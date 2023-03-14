@@ -116,12 +116,12 @@ function genlog_filter_reads(logs, pattern) {
       if (pattern === undefined) {
         if (sql.match("select 1") || sql.match(/select.*from.*/i) ||
             sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
-            sql.match(/set (session|@)/i)) {
+            sql.match(/set (session|@)/i) || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
         } else {
           out.push(log);
         }
       } else {
-        if (sql.match(pattern) || sql.match("select 1")) {
+        if (sql.match(pattern) || sql.match("select 1") || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
         } else {
           out.push(log);
         }

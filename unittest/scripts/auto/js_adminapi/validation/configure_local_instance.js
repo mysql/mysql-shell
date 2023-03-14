@@ -1,9 +1,3 @@
-//@ deploy the sandbox
-||
-
-//@ ConfigureLocalInstance should fail if there's no session nor parameters provided
-||An open session is required to perform this operation.
-
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
@@ -33,7 +27,9 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -54,7 +50,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -74,7 +72,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------+---------------+----------------+-----------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -95,7 +95,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -116,7 +118,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -137,7 +141,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -176,7 +182,9 @@ You may want to kill these sessions to prevent them from performing unexpected u
 1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'root2'@'%' created.
+Creating user root2@%.
+Account root2@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
@@ -216,23 +224,10 @@ You may want to kill these sessions to prevent them from performing unexpected u
 1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'root2'@'%' created.
+Creating user root2@%.
+Account root2@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-
-//@ test configureLocalInstance providing clusterAdminPassword without clusterAdmin
-||The clusterAdminPassword is allowed only if clusterAdmin is specified.
-
-//@ test configureLocalInstance providing clusterAdminPassword and an existing clusterAdmin
-||The 'root2'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.
-
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
-||Cancelled (RuntimeError)
-
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
-||Cancelled (RuntimeError)
-
-//@ Interactive_dba_configure_local_instance read_only_invalid_flag_value
-||Option 'clearReadOnly' Bool expected, but value is String
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -255,7 +250,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'root5'@'%' created.
+Creating user root5@%.
+Account root5@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 5.7 {VER(<8.0.11)}
@@ -280,19 +277,15 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'root5'@'%' created.
+Creating user root5@%.
+Account root5@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@ Interactive_dba_configure_local_instance read_only_flag_false 8.0 {VER(>=8.0.11)}
 ||
 
 //@ Interactive_dba_configure_local_instance read_only_flag_false 5.7 {VER(<8.0.11)}
-||
-
-//@ Cleanup raw sandbox
-||
-
-//@ deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
 ||
 
 //@<OUT> Interactive_dba_configure_local_instance should ask for creation of new configuration file and then ask user to copy it. (BUG#27702439)
@@ -326,15 +319,11 @@ Sandbox MySQL configuration file at: <<<mycnf_path>>>
 WARNING: mycnfPath is not writable: <<<mycnf_path>>>: Permission denied
 The required configuration changes may be written to a different file, which you can copy over to its proper location.
 Output path for updated configuration file: Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'root'@'%' created.
+Creating user root@%.
+Account root@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster but you must copy <<<mycnf_path>>>2 to the MySQL option file path.
-
-//@ Cleanup (BUG#27702439)
-||
-
-//@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
-||
 
 //@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17) && VER(< 8.0.21)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -466,9 +455,6 @@ applierWorkerThreads will be set to the default value of 4.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
 
-//@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
-||
-
 //@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
@@ -496,9 +482,6 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
-
-//@ Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
-||
 
 //@<OUT> Interactive_dba_configure_local_instance where we pass the configuration file path via wizard. (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -559,42 +542,4 @@ NOTE: Some configuration options need to be fixed:
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
-NOTE: MySQL server needs to be restarted for configuration changes to take effect.
-
-//@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
-||
-
-//@<OUT> (BUG#30657204) configure local instance should succeed {VER(< 8.0.0) && __dbug_off == 0}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-Assuming full account name 'admin'@'%' for admin
-
-NOTE: Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------+------------------------------------------------+
-| Variable                         | Current Value | Required Value | Note                                           |
-+----------------------------------+---------------+----------------+------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
-| disable_log_bin                  | <present>     | <not present>  | Remove the option and restart the server       |
-| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
-| gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
-| log_bin                          | <not present> | ON             | Update the config file and restart the server  |
-| log_slave_updates                | OFF           | ON             | Update the config file and restart the server  |
-| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server  |
-| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server  |
-| server_id                        | 0             | <unique ID>    | Update the config file and restart the server  |
-| skip_log_bin                     | <present>     | <not present>  | Remove the option and restart the server       |
-| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server  |
-+----------------------------------+---------------+----------------+------------------------------------------------+
-
-Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
-
-Detecting the configuration file...
-Default file not found at the standard locations.
-Please specify the path to the MySQL configuration file: WARNING: mycnfPath is not writable: <<<bug_mycnf_path>>>: Permission denied
-The required configuration changes may be written to a different file, which you can copy over to its proper location.
-Output path for updated configuration file: Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'admin'@'%' created.
-Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster but you must copy <<<bug_mycnf_path>>>2 to the MySQL option file path.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,7 @@ Create_cluster_set::Create_cluster_set(
   assert(cluster);
 }
 
-Create_cluster_set::~Create_cluster_set() {}
+Create_cluster_set::~Create_cluster_set() = default;
 
 void Create_cluster_set::check_version_requirement() {
   auto console = mysqlsh::current_console();
@@ -136,10 +136,16 @@ void Create_cluster_set::check_gr_configuration() {
 }
 
 void Create_cluster_set::resolve_ssl_mode() {
+  auto instance = m_cluster->get_cluster_server();
+
+  // default to cluster's memberSslMode if not specified
+  if (m_options.ssl_mode == Cluster_ssl_mode::NONE)
+    m_options.ssl_mode = to_cluster_ssl_mode(instance->get_sysvar_string(
+        kGrMemberSslMode, mysqlshdk::mysql::Var_qualifier::GLOBAL, ""));
+
   // Resolve the Replication Channel SSL Mode
   mysqlsh::dba::resolve_ssl_mode_option(
-      "clusterSetReplicationSslMode", "Cluster",
-      *m_cluster->get_cluster_server(), &m_options.ssl_mode);
+      kClusterSetReplicationSslMode, "Cluster", *instance, &m_options.ssl_mode);
 
   log_info(
       "SSL mode used to configure the ClusterSet replication channels: '%s'",
@@ -249,7 +255,6 @@ shcore::Value Create_cluster_set::execute() {
   auto console = current_console();
   std::unique_ptr<mysqlshdk::config::Config> config;
   shcore::Scoped_callback_list undo_list;
-  std::shared_ptr<Cluster_set_impl> cs;
 
   try {
     console->print_info("* Creating InnoDB ClusterSet '" + m_domain_name +
@@ -259,7 +264,7 @@ shcore::Value Create_cluster_set::execute() {
     m_cluster->acquire_primary();
 
     // Create ClusterSet object
-    cs = std::make_shared<Cluster_set_impl>(
+    auto cs = std::make_shared<Cluster_set_impl>(
         m_domain_name, m_cluster->get_cluster_server(),
         m_cluster->get_metadata_storage(),
         Global_topology_type::SINGLE_PRIMARY_TREE);
@@ -296,10 +301,17 @@ shcore::Value Create_cluster_set::execute() {
     console->print_info("* Updating metadata...");
 
     if (!m_options.dry_run) {
+      auto auth_type = m_cluster->query_cluster_auth_type();
+      auto auth_cert_issuer = m_cluster->query_cluster_auth_cert_issuer();
+      auto auth_cert_subject =
+          m_cluster->query_cluster_instance_auth_cert_subject(
+              *m_cluster->get_primary_master());
+
       // create and record the replication user for this cluster
       auto repl_user = cs->create_cluster_replication_user(
           m_cluster->get_primary_master().get(),
-          m_options.replication_allowed_host, m_options.dry_run);
+          m_options.replication_allowed_host, auth_type, auth_cert_issuer,
+          auth_cert_subject, m_options.dry_run);
 
       cs->record_cluster_replication_user(m_cluster, repl_user.first,
                                           repl_user.second);
@@ -316,7 +328,8 @@ shcore::Value Create_cluster_set::execute() {
           { throw std::logic_error("debug"); });
 
       // Store the new ClusterSet in the Metadata schema
-      cs->record_in_metadata(seed_cluster_id, m_options);
+      cs->record_in_metadata(seed_cluster_id, m_options, auth_type,
+                             auth_cert_issuer);
     }
 
     undo_list.cancel();

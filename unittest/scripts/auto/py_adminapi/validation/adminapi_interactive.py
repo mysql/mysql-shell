@@ -234,7 +234,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -249,7 +251,9 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -274,7 +278,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]:
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -293,7 +299,8 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
 
 #@<OUT> configure_instance() - create admin account 3
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
@@ -309,7 +316,8 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'myAdmin'@'%' created.
+Creating user myAdmin@%.
+Account myAdmin@% was successfully created.
 
 #@<OUT> configure_instance() - check if configure_instance() was actually successful by double-checking with check_instance_configuration() {VER(>=8.0.11)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -379,6 +387,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 Creating InnoDB Cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
@@ -397,6 +407,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
+
+* Checking connectivity and SSL configuration...
 
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configure_local_instance() command locally to persist the changes.
 Creating InnoDB Cluster 'testCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
@@ -435,6 +447,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 

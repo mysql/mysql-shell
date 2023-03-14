@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,10 @@
 #ifndef MODULES_ADMINAPI_COMMON_ASYNC_REPLICATION_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_ASYNC_REPLICATION_OPTIONS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
+
 #include "modules/adminapi/common/common.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
@@ -45,7 +47,7 @@ struct Async_replication_options {
     CREATE  // all options OK
   };
 
-  Async_replication_options() : target(NONE) {}
+  Async_replication_options() = default;
 
   static const shcore::Option_pack_def<Async_replication_options> &options() {
     static const auto opts =
@@ -56,17 +58,18 @@ struct Async_replication_options {
     return opts;
   }
 
-  explicit Async_replication_options(Unpack_target t) : target(t) {}
+  explicit Async_replication_options(Unpack_target t) noexcept : target(t) {}
 
-  Unpack_target target;
+  Unpack_target target = NONE;
 
-  mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options> repl_credentials;
+  std::optional<mysqlshdk::mysql::Auth_options> repl_credentials;
 
-  mysqlshdk::utils::nullable<int> master_connect_retry;
-  mysqlshdk::utils::nullable<int> master_retry_count;
-  mysqlshdk::utils::nullable<int> master_delay;
+  std::optional<int> master_connect_retry;
+  std::optional<int> master_retry_count;
+  std::optional<int> master_delay;
   Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
-  mysqlshdk::utils::nullable<bool> auto_failover;
+  Replication_auth_type auth_type = Replication_auth_type::PASSWORD;
+  std::optional<bool> auto_failover;
 };
 
 }  // namespace dba

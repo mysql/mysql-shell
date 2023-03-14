@@ -119,6 +119,10 @@ FUNCTIONS
             Executes a query and returns the corresponding ClassicResult
             object.
 
+      setQueryAttributes()
+            Defines query attributes that apply to the next statement sent to
+            the server for execution.
+
       startTransaction()
             Starts a transaction context on the server.
 

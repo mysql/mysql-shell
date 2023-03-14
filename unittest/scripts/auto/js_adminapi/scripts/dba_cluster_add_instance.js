@@ -39,7 +39,7 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = 
 //BUG#32157182
 
 // check status during clone
-var pid = testutil.callMysqlshAsync(["--js", __sandbox_uri1, "--cluster", "-e", `os.sleep(1); s=cluster.status()['defaultReplicaSet']['topology']['${hostname}:${__mysql_sandbox_port3}']; print(s.address, '=', s.mode, '/', s.role, '/', s.status, '\\n');`]);
+var pid = testutil.callMysqlshAsync(["--js", __sandbox_uri1, "--cluster", "-e", `os.sleep(2); s=cluster.status()['defaultReplicaSet']['topology']['${hostname}:${__mysql_sandbox_port3}']; print(s.address, '=', s.mode, '/', s.role, '/', s.status, '\\n');`]);
 
 single.addInstance(__sandbox_uri3, {label: '2node2', recoveryMethod: "clone"});
 EXPECT_STDOUT_CONTAINS("Unable to enable clone on the instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': MetadataError: The replication recovery account in use by '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not stored in the metadata. Use cluster.rescan() to update the metadata.")

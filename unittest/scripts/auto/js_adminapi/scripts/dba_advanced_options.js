@@ -32,7 +32,7 @@ testutil.destroySandbox(__busy_port);
 if (__version_num >= 80027) {
     EXPECT_THROWS(function(){
         var c = dba.createCluster('test', {localAddress: "1a"})
-    }, "Group Replication failed to start");
+    }, "Server address configuration error");
 }
 else {
     EXPECT_THROWS(function(){
@@ -100,6 +100,10 @@ if (__version_num >= 80021) {
 }
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 var valid_port = __mysql_sandbox_port1 + 20000;
 var __local_address_2 = ":" + valid_port;
 var __result_local_address_2 = hostname + __local_address_2;
@@ -182,6 +186,8 @@ EXPECT_EQ(__result_local_address_10, get_sysvar(session, "group_replication_loca
 //@ Dissolve cluster (FR1-TS-1-10)
 c.dissolve({force: true});
 
+shell.options["dba.connectivityChecks"] = true;
+
 //@ Create cluster specifying aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa for groupName (FR3-TS-1-1)
 var __group_name_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 var __result_group_name_1 = __group_name_1;
@@ -241,6 +247,10 @@ c.addInstance(add_instance_options, {localAddress: __local_address_1});
 c.addInstance(add_instance_options, {groupName: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"});
 
 //@ Add instance specifying :<valid_port> for localAddress (FR1-TS-2-2)
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 var valid_port2 = __mysql_sandbox_port2 + 20000;
 var __local_address_add_2 = ":" + valid_port2;
 var __result_local_address_add_2 = hostname + __local_address_add_2;

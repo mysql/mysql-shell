@@ -45,9 +45,7 @@ WIPE_OUTPUT();
 
 EXPECT_THROWS(function(){
     cluster.addInstance(__sandbox_uri2, {localAddress: `1.2.3.4:${__mysql_sandbox_port2}`});
-}, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
-
-EXPECT_OUTPUT_MATCHES(new RegExp(`Unable to start Group Replication for instance '[\\d\\.]+:${__mysql_sandbox_port2}'`));
+}, "Server address configuration error");
 
 //@<> Destroy sandboxes
 testutil.destroySandbox(__mysql_sandbox_port1);

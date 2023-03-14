@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
+#include "mysqlshdk/libs/utils/debug.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -951,6 +952,97 @@ void check_transaction_size_limit(shcore::Array_t issues, Instance *instance,
   }
 }
 
+void check_auth_type_instance_ssl(shcore::Array_t issues,
+                                  const Instance &instance,
+                                  const Cluster_impl &cluster) {
+  auto auth_type = cluster.query_cluster_auth_type();
+  if (auth_type == Replication_auth_type::PASSWORD) return;
+
+  // if we can be more specific
+  switch (auth_type) {
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (cluster.query_cluster_instance_auth_cert_subject(instance).empty()) {
+        auto msg = shcore::str_format(
+            "WARNING: memberAuthType is set to '%s' but there's no "
+            "'certSubject' configured for this instance, which prevents all "
+            "other instances from reaching it, compromising the Cluster. "
+            "Please remove the instance from the Cluster and use the most "
+            "recent version of the shell to re-add it back.",
+            to_string(auth_type).c_str());
+        issues->push_back(shcore::Value(std::move(msg)));
+        return;
+      }
+    default:
+      break;
+  }
+
+  // check if instance user was created correctly
+  bool has_issuer{false}, has_subject{false};
+  {
+    auto instance_repl_account =
+        cluster.get_metadata_storage()->get_instance_repl_account(
+            instance.get_uuid(), Cluster_type::GROUP_REPLICATION);
+
+    if (std::get<0>(instance_repl_account).empty()) {
+      // if this happens, a warning is already shown to the user in
+      // validate_instance_recovery_user(), so there's no point showing a second
+      // error message related to the same thing, even though it almost surely
+      // means that the user was created with an older version of the shell
+      return;
+    }
+
+    if (auto server = cluster.get_cluster_server(); server) {
+      auto res = server->queryf(
+          "SELECT coalesce(length(x509_issuer)), "
+          "coalesce(length(x509_subject)) FROM mysql.user WHERE (user = ?)",
+          std::get<0>(instance_repl_account));
+
+      if (auto row = res->fetch_one()) {
+        has_issuer = row->get_int(0) > 0;
+        has_subject = row->get_int(1) > 0;
+      }
+    }
+  }
+
+  DBUG_EXECUTE_IF("fail_recovery_user_status_check_issuer",
+                  { has_issuer = false; });
+  DBUG_EXECUTE_IF("fail_recovery_user_status_check_subject",
+                  { has_subject = false; });
+
+  switch (auth_type) {
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      if (!has_issuer) {
+        auto msg = shcore::str_format(
+            "WARNING: memberAuthType is set to '%s' but there's no "
+            "'certIssuer' configured for this instance recovery user, which "
+            "prevents all other instances from reaching it, compromising the "
+            "Cluster. Please remove the instance from the Cluster and use the "
+            "most recent version of the shell to re-add it back.",
+            to_string(auth_type).c_str());
+        issues->push_back(shcore::Value(std::move(msg)));
+      }
+      break;
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (!has_issuer || !has_subject) {
+        auto msg = shcore::str_format(
+            "WARNING: memberAuthType is set to '%s' but there's no "
+            "'certIssuer' and/or 'certSubject' configured for this instance "
+            "recovery user, which prevents all other instances from reaching "
+            "it, compromising the Cluster. Please remove the instance from the "
+            "Cluster and use the most recent version of the shell to re-add it "
+            "back.",
+            to_string(auth_type).c_str());
+        issues->push_back(shcore::Value(std::move(msg)));
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 shcore::Array_t instance_diagnostics(
     Instance *instance, const Cluster_impl *cluster,
     const Instance_metadata_info &instance_md,
@@ -1048,6 +1140,9 @@ shcore::Array_t instance_diagnostics(
     check_transaction_size_limit(issues, instance,
                                  cluster_transaction_size_limit);
   }
+
+  // check if instance (if secondary) has a seemingly correct SSL settings
+  if (instance) check_auth_type_instance_ssl(issues, *instance, *cluster);
 
   return issues;
 }
@@ -1633,11 +1728,13 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
 
-  auto ssl_mode = group_instance ? group_instance->get_sysvar_string(
-                                       "group_replication_ssl_mode", "")
-                                 : "";
-  if (!ssl_mode.empty()) {
-    (*ret)["ssl"] = shcore::Value(ssl_mode);
+  {
+    auto ssl_mode = group_instance ? group_instance->get_sysvar_string(
+                                         "group_replication_ssl_mode", "")
+                                   : "";
+    if (!ssl_mode.empty()) {
+      (*ret)["ssl"] = shcore::Value(ssl_mode);
+    }
   }
 
   bool single_primary = true;
@@ -1812,7 +1909,7 @@ shcore::Value Status::get_default_replicaset_status() {
       warning.append(ManagedInstance::describe(
           static_cast<ManagedInstance::State>(state.source_state)));
       warning.append(" state");
-      (*replicaset_dict)["warning"] = shcore::Value(warning);
+      (*replicaset_dict)["warning"] = shcore::Value(std::move(warning));
     }
   }
 

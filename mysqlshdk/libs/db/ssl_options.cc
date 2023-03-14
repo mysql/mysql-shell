@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,10 +27,17 @@
 
 namespace mysqlshdk {
 namespace db {
+
+namespace {
+constexpr const char *const option_str_list[] = {
+    kSslCa,     kSslCaPath,     kSslCert,
+    kSslKey,    kSslCrl,        kSslCrlPath,
+    kSslCipher, kSslTlsVersion, kSslTlsCiphersuites,
+    kSslMode};
+}
+
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
-
-constexpr const char *Ssl_options::option_str_list[];
 
 Ssl_options::Ssl_options(Comparison_mode mode)
     : Nullable_options(mode, "SSL Connection") {
@@ -125,26 +132,26 @@ void Ssl_options::set(const std::string &name, const std::string &value) {
 }
 
 void Ssl_options::validate() const {
-  if (has_mode()) {
-    auto mode = get_mode();
+  if (!has_mode()) return;
 
-    // Temporary copy of the options for validation
-    Ssl_options options = *this;
-    options.clear_mode();
+  auto mode = get_mode();
 
-    if (mode == Ssl_mode::Disabled && options.has_data())
-      throw std::invalid_argument(shcore::str_format(
-          "SSL options are not allowed when %s is set to '%s'.", kSslMode,
-          kSslModeDisabled));
+  // Temporary copy of the options for validation
+  Ssl_options options = *this;
+  options.clear_mode();
 
-    if (mode != Ssl_mode::VerifyCa && mode != Ssl_mode::VerifyIdentity &&
-        (has_ca() || has_capath() || has_crl() || has_crlpath())) {
-      throw std::invalid_argument(shcore::str_format(
-          "Invalid %s, value should be either '%s' or '%s' when any of '%s', "
-          "'%s', '%s' or '%s' are provided.",
-          kSslMode, kSslModeVerifyCA, kSslModeVerifyIdentity, kSslCa,
-          kSslCaPath, kSslCrl, kSslCrlPath));
-    }
+  if (mode == Ssl_mode::Disabled && options.has_data())
+    throw std::invalid_argument(shcore::str_format(
+        "SSL options are not allowed when %s is set to '%s'.", kSslMode,
+        kSslModeDisabled));
+
+  if (mode != Ssl_mode::VerifyCa && mode != Ssl_mode::VerifyIdentity &&
+      (has_ca() || has_capath() || has_crl() || has_crlpath())) {
+    throw std::invalid_argument(shcore::str_format(
+        "Invalid %s, value should be either '%s' or '%s' when any of '%s', "
+        "'%s', '%s' or '%s' are provided.",
+        kSslMode, kSslModeVerifyCA, kSslModeVerifyIdentity, kSslCa, kSslCaPath,
+        kSslCrl, kSslCrlPath));
   }
 }
 

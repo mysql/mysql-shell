@@ -28,9 +28,9 @@ Cluster.setPrimaryInstance: Operation not allowed: The cluster is in Multi-Prima
 //@<OUT> WL#12052: Set new primary {VER(>=8.0.13)}
 Setting instance 'localhost:<<<__mysql_sandbox_port2>>>' as the primary instance of cluster 'cluster'...
 
+Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' remains SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was switched from PRIMARY to SECONDARY.
 Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was switched from SECONDARY to PRIMARY.
-Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' remains SECONDARY.
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully elected as primary.
 

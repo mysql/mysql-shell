@@ -54,7 +54,9 @@ NOTE: Some configuration options need to be fixed:
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
@@ -72,7 +74,9 @@ applierWorkerThreads will be set to the default value of 4.
 
 ?{}
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB ReplicaSet.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB ReplicaSet.
 
 ?{VER(>=8.0.23)}
@@ -87,6 +91,7 @@ A new replicaset with instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' will be c
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.
@@ -160,6 +165,8 @@ This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
 
 * Checking async replication topology...
 
+* Checking connectivity and SSL configuration...
+
 * Checking transaction state of the instance...
 
 Incremental state recovery selected through the recoveryMethod option
@@ -204,7 +211,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 #@# force_primary_instance (prepare) {VER(<8.0.23)}
-|WARNING: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
+|WARNING: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
 |{|
 |    "replicaSet": {|
 |        "name": "myrs", |
@@ -252,7 +259,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |}|
 
 #@# force_primary_instance (prepare) {VER(>=8.0.23)}
-|WARNING: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
+|WARNING: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
 |{|
 |    "replicaSet": {|
 |        "name": "myrs", |

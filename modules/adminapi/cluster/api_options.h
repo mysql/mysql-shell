@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,11 +42,14 @@ namespace cluster {
 
 struct Add_instance_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Add_instance_options> &options();
+
   void set_wait_recovery(int value);
+  void set_cert_subject(const std::string &value);
 
   Join_group_replication_options gr_options;
   Join_cluster_clone_options clone_options;
-  mysqlshdk::null_string label;
+  std::optional<std::string> label;
+  std::string cert_subject;
   int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
 };
 

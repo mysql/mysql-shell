@@ -61,6 +61,7 @@ struct Instance_metadata {
   std::string grendpoint;
   uint32_t server_id = 0;
   bool hidden_from_router = false;
+  std::string cert_subject;
 
   // GR clusters only
   std::string group_name;
@@ -222,13 +223,13 @@ class MetadataStorage {
                            const std::string &new_cluster_name);
 
   bool query_cluster_attribute(const Cluster_id &cluster_id,
-                               const std::string &attribute,
+                               std::string_view attribute,
                                shcore::Value *out_value) const;
 
   void update_cluster_attribute(const Cluster_id &cluster_id,
-                                const std::string &attribute,
+                                std::string_view attribute,
                                 const shcore::Value &value);
-  void update_clusters_attribute(const std::string &attribute,
+  void update_clusters_attribute(std::string_view attribute,
                                  const shcore::Value &value);
 
   void update_cluster_capability(
@@ -241,19 +242,19 @@ class MetadataStorage {
                                 shcore::Value *out_value) const;
 
   void update_cluster_set_attribute(const Cluster_set_id &clusterset_id,
-                                    const std::string &attribute,
+                                    std::string_view attribute,
                                     const shcore::Value &value);
 
   bool query_cluster_set_attribute(const Cluster_set_id &clusterset_id,
-                                   const std::string &attribute,
+                                   std::string_view attribute,
                                    shcore::Value *out_value) const;
 
-  bool query_instance_attribute(const std::string &uuid,
-                                const std::string &attribute,
+  bool query_instance_attribute(std::string_view uuid,
+                                std::string_view attribute,
                                 shcore::Value *out_value) const;
 
-  void update_instance_attribute(const std::string &uuid,
-                                 const std::string &attribute,
+  void update_instance_attribute(std::string_view uuid,
+                                 std::string_view attribute,
                                  const shcore::Value &value);
 
   /**
@@ -461,9 +462,10 @@ class MetadataStorage {
    * Deletes metadata for the named router instance.
    *
    * @param router_def router identifier, as address[::name]
+   * @param lock_metadata controls if the metadata is locked for the operation
    * @return false if router_def doesn't match any router instances
    */
-  bool remove_router(const std::string &router_def);
+  bool remove_router(const std::string &router_def, bool lock_metadata = false);
 
   /**
    * Sets a target-cluster for all Routers of a Cluster

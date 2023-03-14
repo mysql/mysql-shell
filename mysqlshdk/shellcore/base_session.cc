@@ -27,6 +27,7 @@
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/object_factory.h"
 #include "mysqlshdk/include/scripting/proxy_object.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
@@ -44,6 +45,137 @@ using namespace mysqlsh;
 using namespace shcore;
 
 DEBUG_OBJ_ENABLE(ShellBaseSession);
+
+bool Query_attribute_store::set(const std::string &name,
+                                const shcore::Value &value) {
+  constexpr size_t MAX_QUERY_ATTRIBUTES = 32;
+  constexpr size_t MAX_QUERY_ATTRIBUTE_LENGTH = 1024;
+
+  // Searches for the element first
+  const auto it = m_store.find(name);
+
+  // Validates name for any new attribute
+  if (it == m_store.end()) {
+    if (m_order.size() >= MAX_QUERY_ATTRIBUTES) {
+      m_exceeded.push_back(name);
+      return false;
+    }
+    if (name.size() > MAX_QUERY_ATTRIBUTE_LENGTH) {
+      m_invalid_names.push_back(name);
+      return false;
+    };
+  }
+
+  // Validates the value type
+  if (value.type == shcore::Value_type::Undefined ||
+      value.type == shcore::Value_type::Array ||
+      value.type == shcore::Value_type::Map ||
+      value.type == shcore::Value_type::MapRef ||
+      value.type == shcore::Value_type::Function ||
+      value.type == shcore::Value_type::Binary ||
+      (value.type == shcore::Value_type::Object && !value.as_object<Date>())) {
+    m_unsupported_type.push_back(name);
+    return false;
+  }
+
+  // Validates the string value lengths
+  if (value.type == shcore::Value_type::String &&
+      value.value.s->size() > MAX_QUERY_ATTRIBUTE_LENGTH) {
+    m_invalid_value_length.push_back(name);
+    return false;
+  }
+
+  // Inserts or updates the value
+  m_store[name] = value;
+
+  // Adds the new value to the order
+  if (it == m_store.end()) {
+    m_order.emplace_back(m_store.find(name)->first);
+  }
+
+  return true;
+}
+
+bool Query_attribute_store::set(const shcore::Dictionary_t &attributes) {
+  bool ret_val = true;
+
+  clear();
+
+  for (auto it = attributes->begin(); it != attributes->end(); it++) {
+    if (!set(it->first, it->second)) {
+      ret_val = false;
+    }
+  }
+
+  return ret_val;
+}
+
+void Query_attribute_store::handle_errors(bool raise_error) {
+  std::vector<std::string> issues;
+  auto validate = [&issues](const std::vector<std::string> &data,
+                            const std::string &message) -> void {
+    if (!data.empty()) {
+      bool singular = data.size() == 1;
+      issues.push_back(
+          shcore::str_format(message.data(), (singular ? "" : "s"),
+                             shcore::str_join(data, ", ").c_str()));
+    }
+  };
+
+  validate(m_invalid_names,
+           "The following query attribute%s exceed the maximum name length "
+           "(1024): %s");
+
+  validate(m_invalid_value_length,
+           "The following query attribute%s exceed the maximum value length "
+           "(1024): %s");
+
+  validate(m_unsupported_type,
+           "The following query attribute%s have an unsupported data type: %s");
+
+  validate(m_exceeded,
+           "The following query attribute%s exceed the maximum limit (32): %s");
+
+  if (!issues.empty()) {
+    std::string error = "Invalid query attributes found";
+
+    if (!raise_error) error.append(", they will be ignored");
+
+    const auto message = shcore::str_format(
+        "%s: %s", error.c_str(), shcore::str_join(issues, "\n\t").c_str());
+
+    if (raise_error) {
+      clear();
+      throw std::invalid_argument(message);
+    } else {
+      mysqlsh::current_console()->print_warning(message);
+    }
+  }
+}
+
+void Query_attribute_store::clear() {
+  m_order.clear();
+  m_store.clear();
+  m_invalid_names.clear();
+  m_invalid_value_length.clear();
+  m_unsupported_type.clear();
+  m_exceeded.clear();
+}
+
+std::vector<mysqlshdk::db::Query_attribute>
+Query_attribute_store::get_query_attributes(
+    const std::function<std::unique_ptr<mysqlshdk::db::IQuery_attribute_value>(
+        const shcore::Value &)> &translator_cb) const {
+  assert(translator_cb);
+
+  std::vector<mysqlshdk::db::Query_attribute> attributes;
+
+  for (const auto &name : m_order) {
+    attributes.emplace_back(name, translator_cb(m_store.at(std::string{name})));
+  }
+
+  return attributes;
+}
 
 ShellBaseSession::ShellBaseSession() : _tx_deep(0) {
   DEBUG_OBJ_ALLOC(ShellBaseSession);
@@ -255,5 +387,11 @@ void ShellBaseSession::begin_query() {
 void ShellBaseSession::end_query() {
   if (--_guard_active == 0) {
     current_interrupt()->pop_handler();
+  }
+}
+
+void ShellBaseSession::set_query_attributes(const shcore::Dictionary_t &args) {
+  if (!m_query_attributes.set(args)) {
+    m_query_attributes.handle_errors(true);
   }
 }

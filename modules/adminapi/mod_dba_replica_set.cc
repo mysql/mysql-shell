@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -282,6 +282,7 @@ ${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
+${OPT_CERT_SUBJECT}
 
 The recoveryMethod option supports the following values:
 
@@ -349,10 +350,10 @@ void ReplicaSet::add_instance(
   // object
   execute_with_pool(
       [&]() {
-        impl()->add_instance(instance_def, options->ar_options,
-                             options->clone_options, options->instance_label,
-                             progress_style, options->timeout,
-                             options->interactive(), options->dry_run);
+        impl()->add_instance(
+            instance_def, options->ar_options, options->clone_options,
+            options->instance_label, options->cert_subject, progress_style,
+            options->timeout, options->interactive(), options->dry_run);
         return shcore::Value();
       },
       options->interactive());
@@ -876,25 +877,23 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the InnoDB ReplicaSet administrator account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**
@@ -949,25 +948,23 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the MySQL Router account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**

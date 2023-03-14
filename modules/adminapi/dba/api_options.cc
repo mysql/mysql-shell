@@ -20,9 +20,13 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/dba/api_options.h"
+
+#include <array>
+#include <string_view>
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/server_features.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -32,6 +36,13 @@
 
 namespace mysqlsh {
 namespace dba {
+
+namespace {
+constexpr std::array<std::string_view, 5> kReplicationMemberAuthValues = {
+    kReplicationMemberAuthPassword, kReplicationMemberAuthCertIssuer,
+    kReplicationMemberAuthCertSubject, kReplicationMemberAuthCertIssuerPassword,
+    kReplicationMemberAuthCertSubjectPassword};
+}  // namespace
 
 Common_sandbox_options::Common_sandbox_options() {
   sandbox_dir = mysqlsh::current_shell_options()->get().sandbox_directory;
@@ -99,10 +110,56 @@ const shcore::Option_pack_def<Configure_instance_options>
           .optional(kClusterAdmin, &Configure_instance_options::cluster_admin)
           .optional(kClusterAdminPassword,
                     &Configure_instance_options::cluster_admin_password)
+          .optional(kClusterAdminCertIssuer,
+                    &Configure_instance_options::cluster_admin_cert_issuer)
+          .optional(kClusterAdminCertSubject,
+                    &Configure_instance_options::cluster_admin_cert_subject)
+          .optional(kClusterAdminPasswordExpiration,
+                    &Configure_instance_options::set_password_expiration)
           .optional(kRestart, &Configure_instance_options::restart)
           .include<Password_interactive_options>();
 
   return opts;
+}
+
+void Configure_instance_options::set_password_expiration(
+    const shcore::Value &value) {
+  switch (value.type) {
+    case shcore::Null:
+      cluster_admin_password_expiration.reset();
+      break;
+
+    case shcore::String: {
+      const auto &s = value.get_string();
+      if (shcore::str_caseeq(s, "NEVER")) {
+        cluster_admin_password_expiration = -1;
+        break;
+      } else if (shcore::str_caseeq(s, "DEFAULT") || s.empty()) {
+        cluster_admin_password_expiration.reset();
+        break;
+      }
+      [[fallthrough]];
+    }
+
+    case shcore::Integer:
+    case shcore::UInteger:
+      try {
+        cluster_admin_password_expiration = value.as_uint();
+        if (*cluster_admin_password_expiration > 0) break;
+      } catch (...) {
+      }
+      throw shcore::Exception::value_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '" +
+          value.as_string() + "'");
+      break;
+
+    default:
+      throw shcore::Exception::type_error(
+          std::string("Option '") + kPasswordExpiration +
+          "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
+          type_name(value.type));
+  }
 }
 
 void Configure_cluster_local_instance_options::set_mycnf_path(
@@ -184,12 +241,55 @@ const shcore::Option_pack_def<Configure_replicaset_instance_options>
   return opts;
 }
 
+const shcore::Option_pack_def<Replication_auth_options>
+    &Replication_auth_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Replication_auth_options>()
+          .optional(kMemberAuthType, &Replication_auth_options::set_auth_type)
+          .optional(kCertIssuer, &Replication_auth_options::set_cert_issuer)
+          .optional(kCertSubject, &Replication_auth_options::set_cert_subject);
+
+  return opts;
+}
+
+void Replication_auth_options::set_auth_type(const std::string &value) {
+  if (std::find(kReplicationMemberAuthValues.begin(),
+                kReplicationMemberAuthValues.end(), shcore::str_upper(value)) ==
+      kReplicationMemberAuthValues.end()) {
+    std::string valid_values =
+        shcore::str_join(kReplicationMemberAuthValues, ", ");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Supported values: %s.", kMemberAuthType,
+        valid_values.c_str()));
+  }
+
+  member_auth_type = to_replication_auth_type(value);
+}
+
+void Replication_auth_options::set_cert_issuer(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertIssuer));
+
+  cert_issuer = value;
+}
+void Replication_auth_options::set_cert_subject(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
+}
+
 const shcore::Option_pack_def<Create_cluster_options>
     &Create_cluster_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Create_cluster_options>()
           .include(&Create_cluster_options::gr_options)
           .include(&Create_cluster_options::clone_options)
+          .include(&Create_cluster_options::member_auth_options)
           .optional(kMultiPrimary, &Create_cluster_options::set_multi_primary)
           .optional(kMultiMaster, &Create_cluster_options::set_multi_primary,
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE,
@@ -233,11 +333,16 @@ const shcore::Option_pack_def<Create_replicaset_options>
           .optional(kDryRun, &Create_replicaset_options::dry_run)
           .optional(kInstanceLabel,
                     &Create_replicaset_options::set_instance_label)
+
+          .optional(kReplicationSslMode,
+                    &Create_replicaset_options::set_ssl_mode)
+
           .optional(kGtidSetIsComplete,
                     &Create_replicaset_options::gtid_set_is_complete)
           .optional(kReplicationAllowedHost,
                     &Create_replicaset_options::replication_allowed_host)
-          .include<Interactive_option>();
+          .include<Interactive_option>()
+          .include(&Create_replicaset_options::member_auth_options);
 
   return opts;
 }
@@ -249,6 +354,18 @@ void Create_replicaset_options::set_instance_label(const std::string &value) {
   } else {
     instance_label = value;
   }
+}
+
+void Create_replicaset_options::set_ssl_mode(const std::string &value) {
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+    auto valid_values = shcore::str_join(kClusterSSLModeValues, ", ");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Supported values: %s.",
+        kReplicationSslMode, valid_values.c_str()));
+  }
+
+  ssl_mode = to_cluster_ssl_mode(value);
 }
 
 const shcore::Option_pack_def<Drop_metadata_schema_options>

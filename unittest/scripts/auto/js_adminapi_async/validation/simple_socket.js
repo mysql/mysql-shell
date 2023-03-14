@@ -54,7 +54,9 @@ NOTE: Some configuration options need to be fixed:
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'admin'@'%' created.
+Creating user admin@%.
+Account admin@% was successfully created.
+
 Configuring instance...
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 
@@ -125,6 +127,7 @@ A new replicaset with instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' will be c
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.
@@ -206,7 +209,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@# forcePrimaryInstance (prepare)
-|WARNING: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
+|WARNING: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
 |{|
 |    "replicaSet": {|
 |        "name": "myrs", |

@@ -106,15 +106,11 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined dbugSet(String s);
   Undefined dprint(String s);
   Undefined setenv(String var, String value);
-  Undefined sslCreateCA(String name);
-  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
-                           String clientcn);
+  String sslCreateCA(String name, String issuer);
+  String sslCreateCert(String name, String caname, String subj, Integer sbport);
   Undefined setTrap(String type, Array conditions, Dictionary options);
   None clearTraps(String type);
   None resetTraps(String type);
-  Undefined sslCreateCA(String name);
-  Undefined sslCreateCerts(Integer sbport, String caname, String servercn,
-                           String clientcn);
   Undefined wipeAllOutput();
   String getCurrentMetadataVersion();
   String getInstalledMetadataVersion();
@@ -174,13 +170,11 @@ class Testutils : public mysqlsh::Extensible_object {
   None dprint(str s);
   None skip(int port, bool start);
   None setenv(str var, str value);
-  None ssl_create_ca(str name);
-  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
+  str ssl_create_ca(str name, str issuer);
+  str ssl_create_cert(str name, str caname, str subj, int sbport);
   None set_trap(str type, list conditions, dict options);
   None clear_traps(str type);
   None reset_traps(str type);
-  None ssl_create_ca(str name);
-  None ssl_create_certs(int sbport, str caname, str servercn, str clientcn);
   None wipe_all_output();
   str get_current_metadata_version();
   str get_installed_metadata_version();
@@ -248,7 +242,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void restart_sandbox(int port);
 
-  void stop_group(const shcore::Array_t &ports);
+  void stop_group(const shcore::Array_t &ports,
+                  const std::string &root_pass = {});
 
   void wait_sandbox_alive(const shcore::Value &port_or_uri);
   void wait_sandbox_alive(
@@ -296,7 +291,7 @@ class Testutils : public mysqlsh::Extensible_object {
 
   int wait_for_repl_connection_error(int port, const std::string &channel);
 
-  int wait_for_rpl_applier_error(int port, const std::string &channel);
+  int wait_for_repl_applier_error(int port, const std::string &channel);
 
   std::string wait_member_state(int member_port, const std::string &states,
                                 bool direct_connection);
@@ -343,10 +338,10 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void bp(bool flag);
 
-  void ssl_create_ca(const std::string &name);
-  void ssl_create_certs(int sbport, const std::string &caname,
-                        const std::string &servercn,
-                        const std::string &clientcn);
+  std::string ssl_create_ca(const std::string &name, const std::string &issuer);
+  std::string ssl_create_cert(const std::string &name,
+                              const std::string &caname,
+                              const std::string &subj, int sbport);
 
   void get_exclusive_lock(const shcore::Value &classic_session,
                           const std::string name_space, const std::string name,
@@ -487,12 +482,9 @@ class Testutils : public mysqlsh::Extensible_object {
                                      int timeout) const;
 
   void handle_sandbox_encryption(const std::string &path) const;
-  void handle_remote_root_user(const std::string &rootpass,
-                               mysqlshdk::db::ISession *session,
-                               bool create_remote_root = true) const;
-  void prepare_sandbox_boilerplate(const std::string &rootpass, int port,
-                                   const std::string &mysqld_path);
-  bool deploy_sandbox_from_boilerplate(int port,
+
+  void prepare_sandbox_boilerplate(int port, const std::string &mysqld_path);
+  void deploy_sandbox_from_boilerplate(int port,
                                        const shcore::Dictionary_t &opts,
                                        bool raw, const std::string &mysqld_path,
                                        int timeout = -1);
@@ -502,7 +494,8 @@ class Testutils : public mysqlsh::Extensible_object {
   void make_empty_file(const std::string &path);
   void create_file(const std::string &path, const std::string &content);
 
-  std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);
+  std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(
+      int port, const std::optional<std::string> &rootpass = {});
   std::string get_user_config_path();
 
   bool validate_oci_config();

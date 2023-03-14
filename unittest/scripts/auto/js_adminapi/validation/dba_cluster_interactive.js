@@ -11,8 +11,8 @@
 ||Invalid URI: empty.
 ||Invalid values in connection options: ipWhitelist, memberSslMode
 ||Argument #2 is expected to be a map
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 ||The label can not be empty.
 ||The label can only start with an alphanumeric or the '_' character.
@@ -39,6 +39,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -66,6 +67,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -95,6 +97,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -122,6 +125,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -247,6 +251,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -284,6 +289,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -311,6 +317,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 ?{}
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -341,8 +348,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Argument #2 is expected to be a map
 ||Could not open connection to 'localhost'
 ||Could not open connection to 'localhost:3306'
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok

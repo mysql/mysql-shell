@@ -32,6 +32,7 @@
 #include "modules/adminapi/cluster/create_cluster_set.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
@@ -65,7 +66,7 @@ Create_replica_cluster::Create_replica_cluster(
   assert(cluster_set);
 }
 
-Create_replica_cluster::~Create_replica_cluster() {}
+Create_replica_cluster::~Create_replica_cluster() = default;
 
 shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options>
 Create_replica_cluster::prepare_create_cluster_options() {
@@ -101,6 +102,13 @@ Create_replica_cluster::prepare_create_cluster_options() {
   // Required to avoid a failure in the ClusterSet replication channel due to
   // transaction sizes in the Replica side being bigger than on the source.
   options->gr_options.transaction_size_limit = static_cast<int64_t>(0);
+
+  // recovery auth options
+  options->member_auth_options.member_auth_type =
+      m_cluster_set->query_clusterset_auth_type();
+  options->member_auth_options.cert_issuer =
+      m_cluster_set->query_clusterset_auth_cert_issuer();
+  options->member_auth_options.cert_subject = m_options.cert_subject;
 
   return options;
 }
@@ -255,9 +263,10 @@ void Create_replica_cluster::handle_clone(
   //
   // For that reason, we create a user in the recipient with the same username
   // and password as the replication user created in the donor.
-  create_clone_recovery_user_nobinlog(m_target_instance.get(),
-                                      *ar_options.repl_credentials,
-                                      repl_account_host, m_options.dry_run);
+  create_clone_recovery_user_nobinlog(
+      m_target_instance.get(), *ar_options.repl_credentials, repl_account_host,
+      m_cluster_set->query_clusterset_auth_cert_issuer(),
+      m_options.cert_subject, m_options.dry_run);
 
   if (!dry_run) {
     // Ensure the donor's recovery account has the clone usage required
@@ -316,31 +325,43 @@ void Create_replica_cluster::handle_clone(
 
     std::exception_ptr error_ptr;
 
-    auto clone_thread = spawn_scoped_thread(
-        [&recipient_clone, clone_donor_opts, ar_options, &error_ptr] {
-          mysqlsh::thread_init();
+    auto clone_thread = spawn_scoped_thread([&recipient_clone, clone_donor_opts,
+                                             ar_options, &error_ptr] {
+      mysqlsh::thread_init();
 
-          try {
-            mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
-                                       *ar_options.repl_credentials);
-          } catch (const shcore::Error &err) {
-            // Clone canceled
-            if (err.code() == ER_QUERY_INTERRUPTED) {
-              log_info("Clone canceled: %s", err.format().c_str());
-            } else {
-              log_info("Error cloning from instance '%s': %s",
-                       clone_donor_opts.uri_endpoint().c_str(),
-                       err.format().c_str());
-              error_ptr = std::current_exception();
-            }
-          } catch (const std::exception &err) {
-            log_info("Error cloning from instance '%s': %s",
-                     clone_donor_opts.uri_endpoint().c_str(), err.what());
-            error_ptr = std::current_exception();
-          }
+      bool enabled_ssl{false};
+      switch (ar_options.auth_type) {
+        case Replication_auth_type::CERT_ISSUER:
+        case Replication_auth_type::CERT_SUBJECT:
+        case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          enabled_ssl = true;
+          break;
+        default:
+          break;
+      }
 
-          mysqlsh::thread_end();
-        });
+      try {
+        mysqlshdk::mysql::do_clone(recipient_clone, clone_donor_opts,
+                                   *ar_options.repl_credentials, enabled_ssl);
+      } catch (const shcore::Error &err) {
+        // Clone canceled
+        if (err.code() == ER_QUERY_INTERRUPTED) {
+          log_info("Clone canceled: %s", err.format().c_str());
+        } else {
+          log_info("Error cloning from instance '%s': %s",
+                   clone_donor_opts.uri_endpoint().c_str(),
+                   err.format().c_str());
+          error_ptr = std::current_exception();
+        }
+      } catch (const std::exception &err) {
+        log_info("Error cloning from instance '%s': %s",
+                 clone_donor_opts.uri_endpoint().c_str(), err.what());
+        error_ptr = std::current_exception();
+      }
+
+      mysqlsh::thread_end();
+    });
 
     shcore::Scoped_callback join([&clone_thread, error_ptr]() {
       if (clone_thread.joinable()) clone_thread.join();
@@ -434,19 +455,28 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
     m_op_create_cluster->finish();
   }
 
+  {
+    auto auth_type = m_cluster_set->query_clusterset_auth_type();
+
+    current_console()->print_info(
+        shcore::str_format("Cluster \"memberAuthType\" is set to '%s' "
+                           "(inherited from the ClusterSet).",
+                           to_string(auth_type).c_str()));
+  }
+
   // record previously created async replication user for this cluster, now
   // that we have metadata for it
   log_info("Recording metadata for the newly created replication user %s",
            repl_credentials.user.c_str());
 
-  if (!m_options.dry_run) {
-    m_cluster_set->record_cluster_replication_user(
-        cluster.get(), repl_credentials, repl_account_host);
-  }
+  if (m_options.dry_run) return cluster;
 
-  // New clusters inherit this attribute
-  if (m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete() &&
-      !m_options.dry_run) {
+  m_cluster_set->record_cluster_replication_user(
+      cluster.get(), repl_credentials, repl_account_host);
+
+  // New clusters inherit these attributes
+
+  if (m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete()) {
     m_cluster_set->get_metadata_storage()->update_cluster_attribute(
         cluster->get_id(), k_cluster_attribute_assume_gtid_set_complete,
         shcore::Value::True());
@@ -454,18 +484,17 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
 
   // Store the value of group_replication_transaction_size_limit inherited from
   // the Primary Cluster
-  if (!m_options.dry_run) {
-    m_cluster_set->get_metadata_storage()->update_cluster_attribute(
-        cluster->get_id(), k_cluster_attribute_transaction_size_limit,
-        shcore::Value(get_transaction_size_limit(
-            *m_cluster_set->get_primary_cluster()->get_cluster_server())));
-  }
+  m_cluster_set->get_metadata_storage()->update_cluster_attribute(
+      cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+      shcore::Value(get_transaction_size_limit(
+          *m_cluster_set->get_primary_cluster()->get_cluster_server())));
 
   return cluster;
 }
 
 void Create_replica_cluster::recreate_recovery_account(
-    const std::shared_ptr<Cluster_impl> cluster, std::string *recovery_user,
+    const std::shared_ptr<Cluster_impl> cluster,
+    const std::string &auth_cert_subject, std::string *recovery_user,
     std::string *recovery_host) {
   std::string rec_user, host;
 
@@ -484,8 +513,9 @@ void Create_replica_cluster::recreate_recovery_account(
   log_debug("Re-creating temporary recovery user '%s'@'%s' at instance '%s'.",
             rec_user.c_str(), host.c_str(),
             m_primary_instance->descr().c_str());
+
   std::tie(rec_user, host) =
-      cluster->recreate_replication_user(m_target_instance);
+      cluster->recreate_replication_user(m_target_instance, auth_cert_subject);
 
   if (recovery_user) *recovery_user = rec_user;
   if (recovery_host) *recovery_host = host;
@@ -510,10 +540,11 @@ void Create_replica_cluster::prepare() {
   //  - Must be able to connect to all members of the PRIMARY cluster and
   //  vice-versa.
 
-  console->print_info("Setting up replica '" + m_cluster_name +
-                      "' of cluster '" +
-                      m_cluster_set->get_primary_cluster()->get_name() +
-                      "' at instance '" + m_target_instance->descr() + "'.\n");
+  console->print_info(shcore::str_format(
+      "Setting up replica '%s' of cluster '%s' at instance '%s'.\n",
+      m_cluster_name.c_str(),
+      m_cluster_set->get_primary_cluster()->get_name().c_str(),
+      m_target_instance->descr().c_str()));
 
   // Check if the instance is running MySQL >= 8.0.27
   auto instance_version = m_target_instance->get_version();
@@ -541,8 +572,9 @@ void Create_replica_cluster::prepare() {
 
   if (it != clusters.end()) {
     console->print_error(
-        "A Cluster named '" + m_cluster_name +
-        "' already exists in the ClusterSet. Please use a different name.");
+        shcore::str_format("A Cluster named '%s' already exists in the "
+                           "ClusterSet. Please use a different name.",
+                           m_cluster_name.c_str()));
 
     throw shcore::Exception("Cluster name already in use.",
                             SHERR_DBA_CLUSTER_NAME_ALREADY_IN_USE);
@@ -610,6 +642,25 @@ void Create_replica_cluster::prepare() {
   // Store the current value of super_read_only
   bool super_read_only =
       m_target_instance->get_sysvar_bool("super_read_only", false);
+
+  // Get the ClusterSet configured SSL mode
+  m_ssl_mode = m_cluster_set->query_clusterset_ssl_mode();
+  if (m_ssl_mode == Cluster_ssl_mode::NONE) m_ssl_mode = Cluster_ssl_mode::AUTO;
+
+  resolve_ssl_mode_option(kClusterSetReplicationSslMode, "Replica Cluster",
+                          *m_target_instance, &m_ssl_mode);
+
+  // recovery auth checks
+  auto auth_type = m_cluster_set->query_clusterset_auth_type();
+  log_debug("ClusterSet recovery auth: %s", to_string(auth_type).c_str());
+
+  // check if member auth request mode is supported
+  validate_instance_member_auth_type(*m_target_instance, true, m_ssl_mode,
+                                     "memberSslMode", auth_type);
+
+  // check if certSubject was correctly supplied
+  validate_instance_member_auth_options("cluster", true, auth_type,
+                                        m_options.cert_subject);
 
   try {
     shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options =
@@ -683,27 +734,39 @@ void Create_replica_cluster::prepare() {
           m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete(),
           m_options.interactive());
 
-  // Get the ClusterSet configured SSL mode
-  shcore::Value ssl_mode;
-  m_cluster_set->get_metadata_storage()->query_cluster_set_attribute(
-      m_cluster_set->get_id(), k_cluster_set_attribute_ssl_mode, &ssl_mode);
+  // check connectivity between this and the primary of the clusterset
+  if (current_shell_options()->get().dba_connectivity_checks) {
+    console->print_info(
+        "* Checking connectivity and SSL configuration to PRIMARY Cluster...");
 
-  std::string ssl_mode_str = ssl_mode.as_string();
-  m_ssl_mode = to_cluster_ssl_mode(ssl_mode_str);
+    auto cert_issuer = m_cluster_set->query_clusterset_auth_cert_issuer();
+    auto primary_cluster = m_cluster_set->get_primary_cluster();
+    auto primary = primary_cluster->get_primary_master();
 
-  resolve_ssl_mode_option("clusterSetReplicationSslMode", "Replica Cluster",
-                          *m_target_instance, &m_ssl_mode);
+    test_peer_connection(
+        *m_target_instance, m_options.gr_options.local_address.value_or(""),
+        m_options.cert_subject, *primary,
+        primary->get_sysvar_string("group_replication_local_address")
+            .value_or(""),
+        primary_cluster->query_cluster_instance_auth_cert_subject(
+            primary->get_uuid()),
+        m_ssl_mode, auth_type, cert_issuer,
+        m_op_create_cluster->get_communication_stack(), true);
+  }
+
+  console->print_info();
 
   DBUG_EXECUTE_IF("dba_abort_create_replica_cluster",
                   { throw std::logic_error("debug"); });
 }
 
 shcore::Value Create_replica_cluster::execute() {
-  auto console = mysqlsh::current_console();
-  shcore::Value ret_val;
   bool sync_transactions_revert = false;
   shcore::Scoped_callback_list undo_list;
   Async_replication_options ar_options;
+
+  log_info("Creating replica cluster on '%s'",
+           m_target_instance->descr().c_str());
 
   try {
     // Do not send the target_instance back to the pool
@@ -713,15 +776,24 @@ shcore::Value Create_replica_cluster::execute() {
 
     // Prepare the replication options
     {
+      auto primary_cluster = m_cluster_set->get_primary_cluster();
+
       ar_options = m_cluster_set->get_clusterset_replication_options();
 
       // Enable auto-failover
       ar_options.auto_failover = true;
 
       // Create recovery account
-      std::tie(ar_options.repl_credentials, repl_account_host) =
-          m_cluster_set->create_cluster_replication_user(
-              m_target_instance.get(), "", m_options.dry_run);
+      {
+        auto auth_type = primary_cluster->query_cluster_auth_type();
+        auto auth_cert_issuer =
+            primary_cluster->query_cluster_auth_cert_issuer();
+
+        std::tie(ar_options.repl_credentials, repl_account_host) =
+            m_cluster_set->create_cluster_replication_user(
+                m_target_instance.get(), "", auth_type, auth_cert_issuer,
+                m_options.cert_subject, m_options.dry_run);
+      }
 
       if (!m_options.dry_run) {
         undo_list.push_front([=, &sync_transactions_revert]() {
@@ -784,8 +856,8 @@ shcore::Value Create_replica_cluster::execute() {
         // Stop Group Replication and reset GR variables
         mysqlsh::dba::leave_cluster(*m_target_instance, true);
       } catch (const std::exception &err) {
-        console->print_error("Failed to revert changes: " +
-                             std::string(err.what()));
+        mysqlsh::current_console()->print_error("Failed to revert changes: " +
+                                                std::string(err.what()));
         throw;
       }
     });
@@ -796,6 +868,7 @@ shcore::Value Create_replica_cluster::execute() {
                     { throw std::logic_error("debug"); });
 
     // Setup the target instance as an async replica of the global primary
+    auto console = mysqlsh::current_console();
     console->print_info(
         "* Configuring ClusterSet managed replication channel...");
 
@@ -835,8 +908,8 @@ shcore::Value Create_replica_cluster::execute() {
             kCommunicationStackMySQL) {
       std::string repl_account_user;
 
-      recreate_recovery_account(cluster, &repl_account_user,
-                                &repl_account_host);
+      recreate_recovery_account(cluster, m_options.cert_subject,
+                                &repl_account_user, &repl_account_host);
 
       undo_list.push_front([=]() {
         log_info("Revert: Dropping replication user '%s'",
@@ -956,6 +1029,8 @@ shcore::Value Create_replica_cluster::execute() {
           std::make_shared<Cluster>(cluster)));
     }
   } catch (...) {
+    auto console = mysqlsh::current_console();
+
     console->print_error("Error creating Replica Cluster: " +
                          format_active_exception());
 

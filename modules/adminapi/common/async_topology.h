@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -188,7 +188,8 @@ void delete_managed_connection_failover(
 void create_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,
     const mysqlshdk::mysql::Auth_options &donor_account,
-    const std::string &account_host, bool dry_run);
+    const std::string &account_host, const std::string &account_cert_issuer,
+    const std::string &account_cert_subject, bool dry_run);
 
 void drop_clone_recovery_user_nobinlog(
     mysqlshdk::mysql::IInstance *target_instance,

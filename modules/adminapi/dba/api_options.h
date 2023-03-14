@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,12 +75,17 @@ struct Check_instance_configuration_options
 struct Configure_instance_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Configure_instance_options> &options();
 
+  void set_password_expiration(const shcore::Value &value);
+
   bool local = false;
   Cluster_type cluster_type;
 
   std::string cluster_admin;
-  mysqlshdk::null_string cluster_admin_password;
-  mysqlshdk::null_bool restart;
+  std::optional<std::string> cluster_admin_password;
+  std::optional<std::string> cluster_admin_cert_issuer;
+  std::optional<std::string> cluster_admin_cert_subject;
+  std::optional<int64_t> cluster_admin_password_expiration;
+  std::optional<bool> restart;
   std::optional<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
@@ -113,6 +118,18 @@ struct Configure_replicaset_instance_options
   void set_replica_parallel_workers(int64_t value);
 };
 
+struct Replication_auth_options {
+  static const shcore::Option_pack_def<Replication_auth_options> &options();
+
+  void set_auth_type(const std::string &value);
+  void set_cert_issuer(const std::string &value);
+  void set_cert_subject(const std::string &value);
+
+  Replication_auth_type member_auth_type = Replication_auth_type::PASSWORD;
+  std::string cert_issuer;
+  std::string cert_subject;
+};
+
 struct Create_cluster_options : public Force_interactive_options {
   static const shcore::Option_pack_def<Create_cluster_options> &options();
   void set_multi_primary(const std::string &option, bool value);
@@ -124,6 +141,7 @@ struct Create_cluster_options : public Force_interactive_options {
 
   Create_group_replication_options gr_options;
   Create_cluster_clone_options clone_options;
+  Replication_auth_options member_auth_options;
   std::optional<bool> adopt_from_gr;
   std::optional<bool> multi_primary;
   std::optional<bool> clear_read_only;
@@ -135,6 +153,7 @@ struct Create_cluster_options : public Force_interactive_options {
 struct Create_replicaset_options : public Interactive_option {
   static const shcore::Option_pack_def<Create_replicaset_options> &options();
   void set_instance_label(const std::string &optionvalue);
+  void set_ssl_mode(const std::string &value);
 
   bool adopt = false;
   bool dry_run = false;
@@ -145,6 +164,8 @@ struct Create_replicaset_options : public Interactive_option {
 
   // TODO(rennox): This is here but is not really used (options never set)
   Async_replication_options ar_options;
+  Replication_auth_options member_auth_options;
+  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
 };
 
 struct Drop_metadata_schema_options {

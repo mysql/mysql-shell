@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -104,6 +104,12 @@ class Auto_script_py : public Shell_py_script_tester,
     exec_and_out_equals(code);
     code = "__mysql_port = " + m_mysql_port + ";";
     exec_and_out_equals(code);
+
+    code = shcore::str_format("__secure_password = '%.*s';",
+                              static_cast<int>(k_secure_password.length()),
+                              k_secure_password.data());
+    exec_and_out_equals(code);
+
     for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("__mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
@@ -123,6 +129,12 @@ class Auto_script_py : public Shell_py_script_tester,
       code = shcore::str_format(
           "__sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+
+      code = shcore::str_format(
+          "__sandbox_uri_secure_password%i = 'mysql://root:%.*s@localhost:%i';",
+          i + 1, static_cast<int>(k_secure_password.length()),
+          k_secure_password.data(), _mysql_sandbox_ports[i]);
       exec_and_out_equals(code);
     }
 

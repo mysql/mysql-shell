@@ -91,7 +91,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": [[*]]
+                    "replicationLag": [[*]],
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             },
@@ -110,7 +111,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": [[*]]
+                    "replicationLag": [[*]],
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
                 },
                 "status": "ONLINE"
             }
@@ -189,7 +191,7 @@ dryRun finished.
 
 //@# primary is down (should fail)
 ||Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
-|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port1)>>>'|
+|ERROR: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port1)>>>'|
 |Cluster change operations will not be possible unless the PRIMARY can be reached.|
 |If the PRIMARY is unavailable, you must either repair it or perform a forced failover.|
 |See \help forcePrimaryInstance for more information.|

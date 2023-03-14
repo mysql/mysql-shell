@@ -525,14 +525,16 @@ var bug_30632029 = [
     "RESET REPLICA ALL FOR CHANNEL ''"
 ];
 
-\option dba.logSql = 2
+shell.options['dba.logSql'] = 2
 WIPE_SHELL_LOG();
 
 rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
 
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
+
 WIPE_SHELL_LOG();
+shell.options['dba.logSql'] = 0
 
 //@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
 rs.removeInstance(__sandbox3);

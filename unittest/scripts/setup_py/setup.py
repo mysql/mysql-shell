@@ -298,18 +298,20 @@ def EXPECT_FALSE(value, note=""):
         testutil.fail(context)
 
 
-def EXPECT_THROWS(func, etext):
+def EXPECT_THROWS(func, etext, note=""):
+    if note:
+        note = note+": "
     assert callable(func)
     m = __TextMatcher(etext)
     try:
         func()
         testutil.fail(
-            "<red>Missing expected exception throw like " + str(m) + "</red>")
+            note+"<red>Missing expected exception throw like " + str(m) + "</red>")
         return False
     except Exception as e:
         exception_message = type(e).__name__ + ": " + str(e)
         if not m.matches(exception_message):
-            testutil.fail("<red>Exception expected:</red> " + str(m) +
+            testutil.fail(note+"<red>Exception expected:</red> " + str(m) +
                           "\n\t<yellow>Actual:</yellow> " + exception_message)
             return False
         return True
@@ -332,7 +334,7 @@ def EXPECT_MAY_THROW(func, etext):
 def EXPECT_NO_THROWS(func, context=""):
     assert callable(func)
     try:
-        func()
+        return func()
     except Exception as e:
         testutil.fail("<b>Context:</b> " + __test_context +
                       "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>")
@@ -640,6 +642,49 @@ def random_email():
 def md5sum(s):
     return hashlib.md5(s.encode("utf-8")).hexdigest()
 
+
+def reset_instance(session):
+    try:
+      session.run_sql("SELECT group_replication_reset_member_actions()")
+    except:
+        pass
+    try:
+      session.run_sql("SELECT asynchronous_connection_failover_reset()")
+    except:
+        pass
+    session.run_sql("STOP SLAVE")
+    try:
+        session.run_sql("STOP group_replication")
+        session.run_sql("SET PERSIST group_replication_start_on_boot=0")
+    except:
+        pass
+    session.run_sql("SET GLOBAL super_read_only=0")
+    session.run_sql("SET GLOBAL read_only=0")
+    session.run_sql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata")
+    r = session.run_sql("SHOW SCHEMAS")
+    rows = r.fetch_all()
+    for row in rows:
+        if row[0] in ["mysql", "performance_schema", "sys", "information_schema"]:
+            continue
+        session.run_sql("DROP SCHEMA "+row[0])
+    r = session.run_sql("SELECT user,host FROM mysql.user")
+    rows = r.fetch_all()
+    for row in rows:
+        if row[0] in ["mysql.sys", "mysql.session", "mysql.infoschema"]:
+            continue
+        if row[0] == "root" and (row[1] == "localhost" or row[1] == "%"):
+            continue
+        session.run_sql("DROP USER ?@?", [row[0], row[1]])
+    session.run_sql("RESET MASTER")
+    session.run_sql("RESET SLAVE ALL")
+
+
+def reset_multi(ports):
+    testutil.stop_group(ports)
+    for p in ports:
+        s = mysql.get_session(f"mysql://root:root@localhost:{p}")
+        reset_instance(s)
+        s.close()
 
 class Docker_manipulator:
     def __init__(self, docker_name, data_path):

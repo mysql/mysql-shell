@@ -74,6 +74,13 @@ struct List_routers_options {
 struct Setup_account_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Setup_account_options> &options();
 
+  void set_password_expiration(const shcore::Value &value);
+
+  std::optional<std::string> require_cert_issuer;
+  std::optional<std::string> require_cert_subject;
+  // -1 means never, not set means default, >= 0 means n days
+  std::optional<int64_t> password_expiration;
+
   bool dry_run = false;
   bool update = false;
 };

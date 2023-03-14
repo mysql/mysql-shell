@@ -32,161 +32,203 @@
 namespace mysqlshdk {
 namespace mysql {
 
-void change_master(mysqlshdk::mysql::IInstance *instance,
+namespace {
+std::string prepare_ssl_options(const mysqlshdk::db::Ssl_options &ssl_options,
+                                const std::string &source_term) {
+  std::string options;
+
+  if (ssl_options.has_mode()) {
+    auto ssl_mode = ssl_options.get_mode();
+
+    if (ssl_mode != mysqlshdk::db::Ssl_mode::Disabled) {
+      options.append(", " + source_term + "_SSL=1");
+
+      if (ssl_options.has_ca())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CA=?",
+                                         ssl_options.get_ca()));
+
+      if (ssl_options.has_capath())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CAPATH=?",
+                                         ssl_options.get_capath()));
+
+      if (ssl_options.has_crl())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CRL=?",
+                                         ssl_options.get_crl()));
+
+      if (ssl_options.has_crlpath())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CRLPATH=?",
+                                         ssl_options.get_crlpath()));
+
+      if (ssl_options.has_cipher())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CIPHER=?",
+                                         ssl_options.get_cipher()));
+
+      if (ssl_options.has_cert())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_CERT=?",
+                                         ssl_options.get_cert()));
+
+      if (ssl_options.has_key())
+        options.append(shcore::sqlformat(", " + source_term + "_SSL_KEY=?",
+                                         ssl_options.get_key()));
+
+      if (ssl_options.has_tls_version())
+        options.append(shcore::sqlformat(", " + source_term + "_TLS_VERSION=?",
+                                         ssl_options.get_tls_version()));
+
+      if (ssl_options.has_tls_ciphersuites())
+        options.append(
+            shcore::sqlformat(", " + source_term + "_TLS_CIPHERSUITES=?",
+                              ssl_options.get_tls_ciphersuites()));
+
+      if (ssl_mode == mysqlshdk::db::Ssl_mode::VerifyIdentity)
+        options.append(", " + source_term + "_SSL_VERIFY_SERVER_CERT=1");
+    } else {
+      options.append(", " + source_term + "_SSL=0");
+    }
+  }
+  return options;
+}
+}  // namespace
+
+void change_master(const mysqlshdk::mysql::IInstance &instance,
                    const std::string &master_host, int master_port,
                    const std::string &channel_name,
                    const Auth_options &credentials,
-                   mysqlsh::dba::Cluster_ssl_mode ssl_mode,
-                   const mysqlshdk::utils::nullable<int> master_connect_retry,
-                   const mysqlshdk::utils::nullable<int> master_retry_count,
-                   const mysqlshdk::utils::nullable<bool> auto_failover,
-                   const mysqlshdk::utils::nullable<int> master_delay) {
-  assert(ssl_mode != mysqlsh::dba::Cluster_ssl_mode::AUTO);
+                   std::optional<int> master_connect_retry,
+                   std::optional<int> master_retry_count,
+                   std::optional<bool> auto_failover,
+                   std::optional<int> master_delay, bool source_auto_position) {
+  assert(!master_host.empty());
+  assert(credentials.ssl_options.has_mode() &&
+         credentials.ssl_options.get_mode() !=
+             mysqlshdk::db::Ssl_mode::Preferred);
   log_info(
-      "Setting up async source for channel '%s' of %s to %s:%i (user "
-      "%s)",
-      channel_name.c_str(), instance->descr().c_str(), master_host.c_str(),
+      "Setting up async source for channel '%s' of %s to %s:%i (user %s)",
+      channel_name.c_str(), instance.descr().c_str(), master_host.c_str(),
       master_port,
       (credentials.user.empty() ? "unchanged" : "'" + credentials.user + "'")
           .c_str());
 
   try {
-    std::string source_term_cmd =
-        mysqlshdk::mysql::get_replication_source_keyword(
-            instance->get_version(), true);
-    std::string source_term = mysqlshdk::mysql::get_replication_source_keyword(
-        instance->get_version());
+    auto [source_term, source_term_cmd] =
+        mysqlshdk::mysql::get_replication_source_keywords(
+            instance.get_version());
 
     std::string options;
-    if (ssl_mode != mysqlsh::dba::Cluster_ssl_mode::NONE) {
-      bool enable_ssl = false;
 
-      if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::REQUIRED ||
-          ssl_mode == mysqlsh::dba::Cluster_ssl_mode::AUTO) {
-        enable_ssl = true;
-      } else if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA ||
-                 ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY) {
-        throw shcore::Exception::argument_error("Unsupported Cluster SSL-mode");
-      }
+    if (master_retry_count.has_value())
+      options.append(shcore::str_format(
+          ", %s_RETRY_COUNT=%d", source_term.c_str(), *master_retry_count));
 
-      options.append(", " + source_term +
-                     "_SSL=" + std::to_string(enable_ssl ? 1 : 0));
-    }
+    if (master_connect_retry.has_value())
+      options.append(shcore::str_format(
+          ", %s_CONNECT_RETRY=%d", source_term.c_str(), *master_connect_retry));
 
-    if (!master_retry_count.is_null()) {
-      options.append(", " + source_term +
-                     "_RETRY_COUNT=" + std::to_string(*master_retry_count));
-    }
+    if (auto_failover.has_value())
+      options.append(shcore::str_format(", SOURCE_CONNECTION_AUTO_FAILOVER=%d",
+                                        *auto_failover ? 1 : 0));
 
-    if (!master_connect_retry.is_null()) {
-      options.append(", " + source_term +
-                     "_CONNECT_RETRY=" + std::to_string(*master_connect_retry));
-    }
+    if (master_delay.has_value())
+      options.append(shcore::str_format(", %s_DELAY=%d", source_term.c_str(),
+                                        *master_delay));
 
-    if (!auto_failover.is_null()) {
-      options.append(", SOURCE_CONNECTION_AUTO_FAILOVER=" +
-                     std::to_string(*auto_failover));
-    }
+    options.append(prepare_ssl_options(credentials.ssl_options, source_term));
 
-    if (!master_delay.is_null()) {
-      options.append(", " + source_term +
-                     "_DELAY=" + std::to_string(*master_delay));
-    }
+    auto ssl_mode = credentials.ssl_options.has_mode()
+                        ? credentials.ssl_options.get_mode()
+                        : mysqlshdk::db::Ssl_mode::Preferred;
+    if (ssl_mode == mysqlshdk::db::Ssl_mode::Disabled ||
+        ssl_mode == mysqlshdk::db::Ssl_mode::Preferred)
+      options.append("/*!80011 , get_master_public_key=1 */");
 
-    instance->executef("CHANGE " + source_term_cmd +
-                           " TO /*!80011 get_master_public_key=1, */"
-                           " " +
-                           source_term + "_HOST=/*(*/ ? /*)*/, " + source_term +
-                           "_PORT=/*(*/ ? /*)*/,"
-                           " " +
-                           source_term + "_USER=?, " + source_term +
-                           "_PASSWORD=/*((*/ ? /*))*/" + options + ", " +
-                           source_term +
-                           "_AUTO_POSITION=1"
-                           " FOR CHANNEL ?",
-                       master_host, master_port, credentials.user,
-                       *credentials.password, channel_name);
+    if (source_auto_position)
+      options.append(", " + source_term + "_AUTO_POSITION=1");
+
+    auto query = shcore::str_format(
+        "CHANGE %s TO %s_HOST=/*(*/ ? /*)*/, %s_PORT=/*(*/ ? /*)*/, %s_USER=?, "
+        "%s_PASSWORD=/*((*/ ? /*))*/%s FOR CHANNEL ?",
+        source_term_cmd.c_str(), source_term.c_str(), source_term.c_str(),
+        source_term.c_str(), source_term.c_str(), options.c_str());
+
+    instance.executef(query, master_host, master_port, credentials.user,
+                      credentials.password.value_or(""), channel_name);
   } catch (const std::exception &e) {
     log_error("Error setting up async replication: %s", e.what());
     throw;
   }
 }
 
-void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
+void change_master_host_port(const mysqlshdk::mysql::IInstance &instance,
                              const std::string &master_host, int master_port,
                              const std::string &channel_name) {
   log_info("Changing source address for channel '%s' of %s to %s:%i",
-           channel_name.c_str(), instance->descr().c_str(), master_host.c_str(),
+           channel_name.c_str(), instance.descr().c_str(), master_host.c_str(),
            master_port);
 
-  std::string source_term_cmd =
-      mysqlshdk::mysql::get_replication_source_keyword(instance->get_version(),
-                                                       true);
-  std::string source_term =
-      mysqlshdk::mysql::get_replication_source_keyword(instance->get_version());
+  auto [source_term, source_term_cmd] =
+      mysqlshdk::mysql::get_replication_source_keywords(instance.get_version());
 
   try {
-    instance->executef("CHANGE " + source_term_cmd + " TO " + source_term +
-                           "_HOST=/*(*/ ? /*)*/, " + source_term +
-                           "_PORT=/*(*/ ? /*)*/ "
-                           "FOR CHANNEL ?",
-                       master_host, master_port, channel_name);
+    instance.executef("CHANGE " + source_term_cmd + " TO " + source_term +
+                          "_HOST=/*(*/ ? /*)*/, " + source_term +
+                          "_PORT=/*(*/ ? /*)*/ "
+                          "FOR CHANNEL ?",
+                      master_host, master_port, channel_name);
   } catch (const std::exception &e) {
     log_error("Error setting up async replication: %s", e.what());
     throw;
   }
 }
 
-void reset_slave(mysqlshdk::mysql::IInstance *instance,
+void reset_slave(const mysqlshdk::mysql::IInstance &instance,
                  const std::string &channel_name, bool reset_credentials) {
   log_debug("Resetting replica%s channel '%s' for %s...",
             reset_credentials ? " ALL" : "", channel_name.c_str(),
-            instance->descr().c_str());
+            instance.descr().c_str());
   std::string replica_term =
-      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
   if (reset_credentials) {
-    instance->executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
-                       channel_name);
+    instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
+                      channel_name);
   } else {
-    instance->executef("RESET " + replica_term + " FOR CHANNEL ?",
-                       channel_name);
+    instance.executef("RESET " + replica_term + " FOR CHANNEL ?", channel_name);
   }
 }
 
-void start_replication(mysqlshdk::mysql::IInstance *instance,
+void start_replication(const mysqlshdk::mysql::IInstance &instance,
                        const std::string &channel_name) {
   log_debug("Starting replica channel %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
+            instance.descr().c_str());
   std::string replica_term =
-      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
-  instance->executef("START " + replica_term + " FOR CHANNEL ?", channel_name);
+  instance.executef("START " + replica_term + " FOR CHANNEL ?", channel_name);
 }
 
-void stop_replication(mysqlshdk::mysql::IInstance *instance,
+void stop_replication(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &channel_name) {
   log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
+            instance.descr().c_str());
   std::string replica_term =
-      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
-  instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
+  instance.executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
 }
 
-bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
+bool stop_replication_safe(const mysqlshdk::mysql::IInstance &instance,
                            const std::string &channel_name, int timeout_sec) {
   log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
+            instance.descr().c_str());
   std::string replica_term =
-      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
   try {
     while (timeout_sec-- >= 0) {
-      instance->executef("STOP " + replica_term + " FOR CHANNEL ?",
-                         channel_name);
+      instance.executef("STOP " + replica_term + " FOR CHANNEL ?",
+                        channel_name);
 
-      auto n = instance->queryf_one_string(
+      auto n = instance.queryf_one_string(
           1, "0", "SHOW STATUS LIKE 'Slave_open_temp_tables'");
 
       if (n == "0") return true;
@@ -194,10 +236,10 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
       log_warning(
           "Slave_open_tables has unexpected value %s at %s (unsupported SBR in "
           "use?)",
-          n.c_str(), instance->descr().c_str());
+          n.c_str(), instance.descr().c_str());
 
-      instance->executef("START " + replica_term + " FOR CHANNEL ?",
-                         channel_name);
+      instance.executef("START " + replica_term + " FOR CHANNEL ?",
+                        channel_name);
 
       shcore::sleep_ms(1000);
     }
@@ -216,78 +258,81 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
   return false;
 }
 
-void start_replication_receiver(mysqlshdk::mysql::IInstance *instance,
+void start_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
                                 const std::string &channel_name) {
   log_debug("Starting replica io_thread %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
-  instance->executef(
-      "START " +
-          mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+            instance.descr().c_str());
+  instance.executef(
+      "START " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " IO_THREAD FOR CHANNEL ?",
       channel_name);
 }
 
-void stop_replication_receiver(mysqlshdk::mysql::IInstance *instance,
+void stop_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &channel_name) {
   log_debug("Stopping replica io_thread %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
-  instance->executef(
-      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+            instance.descr().c_str());
+  instance.executef(
+      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " IO_THREAD FOR CHANNEL ?",
       channel_name);
 }
 
-void start_replication_applier(mysqlshdk::mysql::IInstance *instance,
+void start_replication_applier(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &channel_name) {
   log_debug("Starting replica sql_thread %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
-  instance->executef(
-      "START " +
-          mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+            instance.descr().c_str());
+  instance.executef(
+      "START " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " SQL_THREAD FOR CHANNEL ?",
       channel_name);
 }
 
-void stop_replication_applier(mysqlshdk::mysql::IInstance *instance,
+void stop_replication_applier(const mysqlshdk::mysql::IInstance &instance,
                               const std::string &channel_name) {
   log_debug("Stopping replica sql_thread %s for %s...", channel_name.c_str(),
-            instance->descr().c_str());
-  instance->executef(
-      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+            instance.descr().c_str());
+  instance.executef(
+      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " SQL_THREAD FOR CHANNEL ?",
       channel_name);
 }
 
-void change_replication_credentials(const mysqlshdk::mysql::IInstance &instance,
-                                    const std::string &rpl_user,
-                                    const std::string &rpl_pwd,
-                                    const std::string &repl_channel) {
-  std::string source_term_cmd =
-      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version(),
-                                                       true);
+void change_replication_credentials(
+    const mysqlshdk::mysql::IInstance &instance, std::string_view channel,
+    std::string_view user, const Replication_credentials_options &options) {
+  auto [source_term, source_term_cmd] =
+      mysqlshdk::mysql::get_replication_source_keywords(instance.get_version());
 
-  std::string source_term =
-      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version());
+  // start of the statement
+  std::string stmt_fmt;
+  {
+    auto fmt = shcore::str_format("CHANGE %s TO %s_USER = /*(*/ ? /*)*/",
+                                  source_term_cmd.c_str(), source_term.c_str());
+    stmt_fmt = (shcore::sqlstring{fmt, 0} << user).str();
+  }
 
-  std::string change_master_stmt_fmt = "CHANGE " + source_term_cmd + " TO " +
-                                       source_term + "_USER = /*(*/ ? /*)*/, " +
-                                       source_term +
-                                       "_PASSWORD = /*((*/ ? /*))*/ "
-                                       "FOR CHANNEL ?";
-  shcore::sqlstring change_master_stmt =
-      shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
-  change_master_stmt << rpl_user;
-  change_master_stmt << rpl_pwd;
-  change_master_stmt << repl_channel;
-  change_master_stmt.done();
+  // if the password needs to be included
+  if (!options.password.empty()) {
+    auto fmt = shcore::str_format(", %s_PASSWORD = /*((*/ ? /*))*/",
+                                  source_term.c_str());
+    stmt_fmt.append((shcore::sqlstring{fmt, 0} << options.password).str());
+  }
+
+  // add SSL options
+  stmt_fmt.append(prepare_ssl_options(options.ssl_options, source_term));
+
+  stmt_fmt.append((" FOR CHANNEL ?"_sql << channel).str());
 
   try {
-    instance.execute(change_master_stmt);
+    instance.execute(stmt_fmt);
   } catch (const std::exception &err) {
-    throw std::runtime_error{"Cannot set replication user of channel '" +
-                             repl_channel + "' to '" + rpl_user +
-                             "'. Error executing CHANGE " + source_term +
-                             " statement: " + err.what()};
+    throw std::runtime_error{
+        shcore::str_format("Cannot set replication user of channel '%.*s' to "
+                           "'%.*s'. Error executing CHANGE %s statement: %s",
+                           static_cast<int>(channel.length()), channel.data(),
+                           static_cast<int>(user.length()), user.data(),
+                           source_term.c_str(), err.what())};
   }
 }
 

@@ -1,11 +1,11 @@
-//@ deploy the sandbox
+//@<> deploy the sandbox
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 var mycnf = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
-//@ ConfigureLocalInstance should fail if there's no session nor parameters provided
-dba.configureLocalInstance();
+//@<> ConfigureLocalInstance should fail if there's no session nor parameters provided
+EXPECT_THROWS(function(){dba.configureLocalInstance();}, "An open session is required to perform this operation.");
 
 // BUG#31491092 reports that when the validate_password plugin is installed, setupAdminAccount() fails
 // with an error indicating the password does not match the current policy requirements. This happened
@@ -57,29 +57,29 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, 
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
-//@ test configureLocalInstance providing clusterAdminPassword without clusterAdmin
-dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdminPassword:'root'});
+//@<> test configureLocalInstance providing clusterAdminPassword without clusterAdmin
+EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdminPassword:'root'});}, "The clusterAdminPassword option is allowed only if clusterAdmin is specified.");
 
-//@ test configureLocalInstance providing clusterAdminPassword and an existing clusterAdmin
-dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf, clusterAdmin: 'root2', clusterAdminPassword: 'whatever' });
+//@<> test configureLocalInstance providing clusterAdminPassword and an existing clusterAdmin
+EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf, clusterAdmin: 'root2', clusterAdminPassword: 'whatever' });}, "The 'root2'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.");
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
+//@<> Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
-dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
+EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});}, "Cancelled");
 testutil.assertNoPrompts();
 
-//@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
+//@<> Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
-dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});
+EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});},"Cancelled");
 testutil.assertNoPrompts();
 
-//@ Interactive_dba_configure_local_instance read_only_invalid_flag_value
+//@<> Interactive_dba_configure_local_instance read_only_invalid_flag_value
 // Since no expectation is set for create_cluster, a call to it would raise
 // an exception
-dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root4', clusterAdminPassword:'root', clearReadOnly: 'NotABool'});
+EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root4', clusterAdminPassword:'root', clearReadOnly: 'NotABool'});}, "Option 'clearReadOnly' Bool expected, but value is String");
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 session.runSql("RESET PERSIST enforce_gtid_consistency");
@@ -126,11 +126,11 @@ EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive
 
 EXPECT_OUTPUT_NOT_CONTAINS("The instance 'localhost:"+__mysql_sandbox_port1+"' is valid for Cluster usage");
 
-//@ Cleanup raw sandbox
+//@<> Cleanup raw sandbox
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
-//@ deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
+//@<> deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "STATEMENT");
@@ -145,10 +145,10 @@ testutil.expectPrompt("Output path for updated configuration file:", mycnf_path+
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
 
-//@ Cleanup (BUG#27702439)
+//@<> Cleanup (BUG#27702439)
 testutil.destroySandbox(__mysql_sandbox_port1);
 
-//@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
+//@<> Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
@@ -161,7 +161,7 @@ dba.configureLocalInstance(__sandbox_uri1, {interactive: true});
 testutil.waitSandboxAlive(__mysql_sandbox_port1);
 dba.configureLocalInstance(__sandbox_uri1, {interactive:true});
 
-//@ Cleanup BUG#29725222 {VER(>= 8.0.17)}
+//@<> Cleanup BUG#29725222 {VER(>= 8.0.17)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@<> Deploy sandbox WL#12758 IPv6 {VER(>= 8.0.14)}
@@ -187,7 +187,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 // DO NOT add tests which do not require __dbug_off to be 0 below this line
 
-//@ Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+//@<> Deploy raw sandbox, and check that configureLocalInstance is using the config path from interactive prompt (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root", { report_host: hostname });
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -207,7 +207,7 @@ print(match_list);
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf_path });
 
-//@ Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
+//@<> Cleanup (BUG#29554251) {VER(< 8.0.0) && __dbug_off == 0}
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.dbugSet("");
 
@@ -221,11 +221,15 @@ testutil.dbugSet("+d,override_mycnf_default_path");
 
 shell.connect(__sandbox_uri1);
 
-//@ (BUG#30657204) configure local instance should succeed {VER(< 8.0.0) && __dbug_off == 0}
+//@<> (BUG#30657204) configure local instance should succeed {VER(< 8.0.0) && __dbug_off == 0}
 testutil.expectPrompt("Please specify the path to the MySQL configuration file: ", bug_mycnf_path);
 testutil.expectPrompt("Output path for updated configuration file:", bug_mycnf_path+"2");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 dba.configureInstance(null, {clusterAdmin:"admin", clusterAdminPassword:"", interactive: true});
+
+EXPECT_OUTPUT_CONTAINS("Account admin@% was successfully created.");
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' was configured to be used in an InnoDB cluster but you must copy ${bug_mycnf_path}2 to the MySQL option file path.`);
+EXPECT_OUTPUT_CONTAINS("NOTE: MySQL server needs to be restarted for configuration changes to take effect.");
 
 //@<> Cleanup (BUG#30657204) clean-up {VER(< 8.0.0) && __dbug_off == 0}
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,8 +59,11 @@ struct Rejoin_instance_options : public Wait_recovery_option,
 struct Add_instance_options : public Rejoin_instance_options {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
+  void set_cert_subject(const std::string &value);
+
   Async_replication_options ar_options;
   std::string instance_label;
+  std::string cert_subject;
 };
 
 struct Gtid_wait_timeout_option {

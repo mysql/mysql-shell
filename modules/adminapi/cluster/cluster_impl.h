@@ -28,6 +28,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_map>
 #include <utility>
@@ -54,19 +55,23 @@ namespace mysqlsh {
 namespace dba {
 
 // User provided option to disabling clone
-constexpr const char k_cluster_attribute_disable_clone[] = "opt_disableClone";
+inline constexpr std::string_view k_cluster_attribute_disable_clone{
+    "opt_disableClone"};
 // Flag to indicate the default cluster in the metadata
-constexpr const char k_cluster_attribute_default[] = "default";
+inline constexpr std::string_view k_cluster_attribute_default{"default"};
 
 // Whether group_replication_start_on_boot should be enabled in each instance
 // (false by default)
-constexpr const char k_cluster_attribute_manual_start_on_boot[] =
-    "opt_manualStartOnBoot";
-
+inline constexpr std::string_view k_cluster_attribute_manual_start_on_boot{
+    "opt_manualStartOnBoot"};
 // Timestamp of when the instance was added to the group
-constexpr const char k_instance_attribute_join_time[] = "joinTime";
+inline constexpr std::string_view k_instance_attribute_join_time{"joinTime"};
 
-constexpr const char k_instance_attribute_server_id[] = "server_id";
+inline constexpr std::string_view k_instance_attribute_server_id{"server_id"};
+
+// replication account certificate subject
+inline constexpr std::string_view k_instance_attribute_cert_subject{
+    "opt_certSubject"};
 
 class MetadataStorage;
 struct Cluster_metadata;
@@ -115,7 +120,7 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value options(const bool all);
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
-  void remove_router_metadata(const std::string &router) override;
+  void remove_router_metadata(const std::string &router);
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
@@ -189,6 +194,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_replication_user(mysqlshdk::mysql::IInstance *target,
+                          std::string_view auth_cert_subject,
                           bool only_on_target = false,
                           mysqlshdk::mysql::Auth_options creds = {},
                           bool print_recreate_node = true) const;
@@ -217,7 +223,8 @@ class Cluster_impl final : public Base_cluster_impl,
    * @param target          Target instance
    */
   std::pair<std::string, std::string> recreate_replication_user(
-      const std::shared_ptr<Instance> &target) const;
+      const std::shared_ptr<Instance> &target,
+      std::string_view auth_cert_subject) const;
 
   bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
                              const std::string &endpoint = "",
@@ -241,14 +248,11 @@ class Cluster_impl final : public Base_cluster_impl,
   bool contains_instance_with_address(const std::string &host_port) const;
 
   mysqlsh::dba::Instance *acquire_primary(
-      bool primary_required = true,
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "",
-      bool check_primary_status = false) override;
+      bool primary_required = true, bool check_primary_status = false) override;
 
   Cluster_metadata get_metadata() const;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  void release_primary() override;
 
   shcore::Value cluster_status(int64_t extended);
   shcore::Value cluster_describe();
@@ -515,6 +519,14 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void refresh_connections();
 
+  // Lock methods
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      std::chrono::seconds timeout = {});
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      std::chrono::seconds timeout = {});
+
  public:
   // clusterset related methods
   const Cluster_set_member_metadata &get_clusterset_metadata() const;
@@ -564,7 +576,7 @@ class Cluster_impl final : public Base_cluster_impl,
    * updated to use that same account. This ensures distributed recovery is
    * possible at any circumstance.
    */
-  void restore_recovery_account_all_members() const;
+  void restore_recovery_account_all_members(bool reset_password = true) const;
 
   /**
    * Change the recovery user credentials of all Cluster members
@@ -583,7 +595,19 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   void create_local_replication_user(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const Group_replication_options &gr_options);
+      std::string_view auth_cert_subject,
+      const Group_replication_options &gr_options,
+      bool propagate_credentials_donors);
+
+  /**
+   * Create all accounts present in the current members of the cluster to the
+   * target cluster
+   *
+   * Required when using the 'MySQL' communication stack and when the recovery
+   * accounts need certificates.
+   */
+  void create_replication_users_at_instance(
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance);
 
   void update_group_peers(const mysqlshdk::mysql::IInstance &target_instance,
                           const Group_replication_options &gr_options,
@@ -618,6 +642,9 @@ class Cluster_impl final : public Base_cluster_impl,
                            shcore::Value::Map_type_ref data) override;
 
   void find_real_cluster_set_primary(Cluster_set_impl *cs) const;
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
+      mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,13 +45,19 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr const char *k_cluster_set_async_user_name = "mysql_innodb_cs_";
-constexpr const int k_cluster_set_master_connect_retry = 3;
-constexpr const int k_cluster_set_master_retry_count = 10;
+inline constexpr std::string_view k_cluster_set_async_user_name{
+    "mysql_innodb_cs_"};
 
 // ClusterSet SSL Mode
-constexpr const char k_cluster_set_attribute_ssl_mode[] =
-    "opt_clusterSetReplicationSslMode";
+inline constexpr std::string_view k_cluster_set_attribute_ssl_mode{
+    "opt_clusterSetReplicationSslMode"};
+
+// replication account authentication type
+inline constexpr std::string_view k_cluster_set_attribute_member_auth_type{
+    "opt_memberAuthType"};
+// replication account certificate issuer
+inline constexpr std::string_view k_cluster_set_attribute_cert_issuer{
+    "opt_certIssuer"};
 
 class Cluster_set_impl : public Base_cluster_impl,
                          public std::enable_shared_from_this<Cluster_set_impl> {
@@ -107,12 +113,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   bool reconnect_target_if_invalidated(bool print_warnings = true);
 
   mysqlsh::dba::Instance *acquire_primary(
-      bool primary_required = true,
-      mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
-      const std::string &skip_lock_uuid = "",
-      bool check_primary_status = false) override;
+      bool primary_required = true, bool check_primary_status = false) override;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  void release_primary() override;
 
   std::list<std::shared_ptr<Cluster_impl>> connect_all_clusters(
       uint32_t read_timeout, bool skip_primary_cluster,
@@ -125,6 +128,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_cluster_replication_user(Instance *cluster_primary,
                                   const std::string &account_host,
+                                  Replication_auth_type member_auth_type,
+                                  const std::string &auth_cert_issuer,
+                                  const std::string &auth_cert_subject,
                                   bool dry_run);
 
   void record_cluster_replication_user(
@@ -152,6 +158,24 @@ class Cluster_set_impl : public Base_cluster_impl,
   Async_replication_options get_clusterset_replication_options() const;
 
   bool check_gtid_consistency(Cluster_impl *cluster) const;
+
+  void setup_admin_account(const std::string &username, const std::string &host,
+                           const Setup_account_options &options) override;
+  void setup_router_account(const std::string &username,
+                            const std::string &host,
+                            const Setup_account_options &options) override;
+
+  Cluster_ssl_mode query_clusterset_ssl_mode() const;
+  Replication_auth_type query_clusterset_auth_type() const;
+  std::string query_clusterset_auth_cert_issuer() const;
+
+  // Lock methods
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      std::chrono::seconds timeout = {});
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      std::chrono::seconds timeout = {});
 
  protected:
   void _set_option(const std::string &option,
@@ -205,9 +229,10 @@ class Cluster_set_impl : public Base_cluster_impl,
                           const shcore::Value &value);
   shcore::Value routing_options(const std::string &router);
 
-  void record_in_metadata(
-      const Cluster_id &seed_cluster_id,
-      const clusterset::Create_cluster_set_options &m_options);
+  void record_in_metadata(const Cluster_id &seed_cluster_id,
+                          const clusterset::Create_cluster_set_options &options,
+                          Replication_auth_type auth_type,
+                          std::string_view member_auth_cert_issuer);
 
   std::shared_ptr<Cluster_impl> get_cluster_object(
       const Cluster_set_member_metadata &cluster_md,
@@ -246,6 +271,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   void restore_transaction_size_limit(Cluster_impl *replica, bool dry_run);
 
   void set_maximum_transaction_size_limit(Cluster_impl *replica, bool dry_run);
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
+      mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;

@@ -40,6 +40,8 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
 <<<(__version_num<80027)?"NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.\n":""\>>>
+* Checking connectivity and SSL configuration...
+
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -82,6 +84,8 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
 <<<(__version_num<80027)?"NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.\n":""\>>>
+* Checking connectivity and SSL configuration...
+
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -108,6 +112,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -135,6 +140,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -236,6 +242,8 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
 <<<(__version_num<80027)?"NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.\n":""\>>>
+* Checking connectivity and SSL configuration...
+
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -277,6 +285,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 
 <<<(__version_num<80027)?"NOTE: The 'localAddress' \"" + hostname + "\" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.\n":""\>>>
 <<<(__version_num<80027)?"See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.\n":""\>>>
+* Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 

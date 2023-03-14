@@ -50,7 +50,10 @@ std::string find_cluster_member_uri_of_role(
     const std::shared_ptr<Instance> &instance, mysqlshdk::gr::Member_role role,
     bool *out_single_primary) {
   bool has_quorum = false;
-  const auto members = get_members(*instance, out_single_primary, &has_quorum);
+  bool single_primary = false;
+  const auto members = get_members(*instance, &single_primary, &has_quorum);
+
+  if (out_single_primary) *out_single_primary = single_primary;
 
   if (!has_quorum) {
     throw shcore::Exception("Group has no quorum",
@@ -65,6 +68,8 @@ std::string find_cluster_member_uri_of_role(
         (mysqlshdk::gr::Member_state::ONLINE == member.state ||
          mysqlshdk::gr::Member_state::RECOVERING == member.state)) {
       member_uuid = member.uuid;
+
+      if (!single_primary) return member_uuid;
 
       if (instance_uuid == member_uuid) {
         break;

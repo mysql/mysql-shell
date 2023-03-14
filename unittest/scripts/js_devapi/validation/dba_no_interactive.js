@@ -6,8 +6,8 @@
 ||Argument #2 is expected to be a map
 ||Argument #2 is expected to be a map
 ||Invalid options: another, invalid
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
@@ -21,13 +21,6 @@
 
 //@# Dba: createCluster ipWhitelist deprecation {VER(>=8.0.23)}
 ||Cannot use the ipWhitelist and ipAllowlist options simultaneously. The ipWhitelist option is deprecated, please use the ipAllowlist option instead. (ArgumentError)
-
-//@ Dba: createCluster with ANSI_QUOTES success
-|Current sql_mode is: ANSI_QUOTES|
-|<Cluster:devCluster>|
-
-//@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
-|Original SQL_MODE has been restored: true|
 
 //@ Dba: create cluster with memberSslMode AUTO succeed
 |<Cluster:devCluster>|
@@ -291,7 +284,9 @@ applierWorkerThreads will be set to the default value of 4.
 
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
-Cluster admin user 'dba_test'@'%' created.
+Creating user dba_test@%.
+Account dba_test@% was successfully created.
+
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
 
 ?{VER(>=8.0.23)}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -203,6 +203,13 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
                        const std::string &channel_name,
                        Replication_channel::Receiver::State *out_io_state,
                        Replication_channel::Applier::State *out_sql_state);
+
+bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string &channel_name,
+                       Replication_channel::Receiver::State *out_io_state,
+                       Replication_channel::Error *out_io_error,
+                       Replication_channel::Applier::State *out_sql_state,
+                       Replication_channel::Error *out_sql_error);
 
 /**
  * Gets configuration for a replication channel (as obtained from
@@ -449,6 +456,24 @@ std::string get_replica_keyword(const mysqlshdk::utils::Version &version);
  */
 std::string get_replication_source_keyword(
     const mysqlshdk::utils::Version &version, bool command = false);
+
+/**
+ * Get the correct keywords in use for the replication configuration command:
+ * 'change replication source/master' regarding the target instance version.
+ *
+ * Useful for the construction of queries or output/error messages.
+ *
+ * This command is equivalent to calling get_replication_source_keyword() twice
+ * with 'command' to false (first returned string) and then to true (second
+ * returned string).
+ *
+ * @param version Version of the target server.
+ *
+ * @return a pair of strings with the keywords: the first is for an optional
+ * parameter and the scond one is the replication configuration command itself
+ */
+std::tuple<std::string, std::string> get_replication_source_keywords(
+    const mysqlshdk::utils::Version &version);
 
 /**
  * Get the correct replication option name to use regarding the target instance

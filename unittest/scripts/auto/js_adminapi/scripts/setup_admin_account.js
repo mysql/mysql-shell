@@ -38,7 +38,6 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
-session3 = mysql.getSession(__sandbox_uri3);
 
 //@<> WL#13536 create cluster
 shell.connect(__sandbox_uri1);
@@ -238,12 +237,113 @@ c = dba.getCluster();
 // Validate that setupAdminAccount cannot be executed because of missing privileges
 c.setupAdminAccount("missing_privs@%", {password: "plusultra"});
 
+//@<> WL#15438 - requireCertIssuer and requireCertSubject
+shell.connect(__sandbox_uri1);
+c=dba.getCluster();
+
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:124})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:124})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:null})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:null})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+
+EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
+
+// create with password
+c.setupAdminAccount("cert1@%", {requireCertIssuer:"/CN=cert1issuer", requireCertSubject:"/CN=cert1subject", password:"pwd"});
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert1'").fetchOne();
+EXPECT_EQ(user[0], "/CN=cert1issuer");
+EXPECT_EQ(user[1], "/CN=cert1subject");
+EXPECT_NE(user[2], "");
+
+// create without password
+c.setupAdminAccount("cert2@%", {requireCertIssuer:"/CN=cert2issuer", requireCertSubject:"/CN=cert2subject", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert2'").fetchOne();
+
+EXPECT_EQ(user[0], "/CN=cert2issuer");
+EXPECT_EQ(user[1], "/CN=cert2subject");
+EXPECT_EQ(user[2], "");
+
+// just issuer
+c.setupAdminAccount("cert3@%", {requireCertIssuer:"/CN=cert3issuer", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert3'").fetchOne();
+
+EXPECT_EQ(user[0], "/CN=cert3issuer");
+EXPECT_EQ(user[1], "");
+EXPECT_EQ(user[2], "");
+
+// just subject
+c.setupAdminAccount("cert4@%", {requireCertSubject:"/CN=cert4subject", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert4'").fetchOne();
+
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "/CN=cert4subject");
+EXPECT_EQ(user[2], "");
+
+// "upgrade" account
+c.setupAdminAccount("cert5@%", {password:"hello"});
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert5'").fetchOne();
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "");
+EXPECT_NE(user[2], "");
+EXPECT_EQ(user[3], null);
+
+c.setupAdminAccount("cert5@%", {requireCertSubject:"/CN=cert5subject", passwordExpiration:42, password:"", update:true});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert5'").fetchOne();
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "/CN=cert5subject");
+EXPECT_EQ(user[2], "");
+EXPECT_EQ(user[3], 42);
+
+// reset pwd only
+c.setupAdminAccount("cert5@%", {password:"abc", update:true});
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert5'").fetchOne();
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "/CN=cert5subject");
+EXPECT_NE(user[2], "");
+EXPECT_EQ(user[3], 42);
+
+// remove all cert options but leave pwd
+c.setupAdminAccount("cert5@%", {requireCertSubject:"", update:true});
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string, password_lifetime from mysql.user where user='cert5'").fetchOne();
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "");
+EXPECT_NE(user[2], "");
+EXPECT_EQ(user[3], 42);
+
+
+//@<> WL#15438 - passwordExpiration
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: -1, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 0, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: {}, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
+
+function CHECK_LIFETIME(user, lifetime) {
+    row = session.runSql("select password_lifetime from mysql.user where user=?", [user]).fetchOne();
+    EXPECT_EQ(row[0], lifetime);
+}
+
+c.setupAdminAccount("expire1@%", {passwordExpiration:"never", password:""});
+CHECK_LIFETIME("expire1", 0);
+c.setupAdminAccount("expire2@%", {passwordExpiration:"default", password:""});
+CHECK_LIFETIME("expire2", null);
+c.setupAdminAccount("expire3@%", {passwordExpiration:null, password:""});
+CHECK_LIFETIME("expire3", null);
+c.setupAdminAccount("expire4@%", {passwordExpiration:42, password:""});
+CHECK_LIFETIME("expire4", 42);
+c.setupAdminAccount("expire5@%", {passwordExpiration:43, password:""});
+CHECK_LIFETIME("expire5", 43);
+
 //@<> WL#13536: Cleanup
 c.disconnect();
 session.close();
 session1.close();
 session2.close();
-session3.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

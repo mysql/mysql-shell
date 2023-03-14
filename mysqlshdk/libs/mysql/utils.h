@@ -25,12 +25,16 @@
 #define MYSQLSHDK_LIBS_MYSQL_UTILS_H_
 
 #include <mysqld_error.h>
+
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/enumset.h"
@@ -50,6 +54,10 @@ inline constexpr size_t kPASSWORD_LENGTH = 32;
 
 using Account_attribute_set =
     utils::Enum_set<Account_attribute, Account_attribute::Grants>;
+
+void clone_user(const IInstance &source_instance,
+                const IInstance &dest_instance, const std::string &user,
+                const std::string &host);
 
 void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &orig_host, const std::string &new_user,
@@ -87,16 +95,13 @@ std::vector<std::string> get_all_hostnames_for_user(const IInstance &instance,
                                                     const std::string &user);
 
 void create_user_with_random_password(
-    const IInstance &instance, const std::string &user,
+    const IInstance &instance, std::string_view user,
     const std::vector<std::string> &hosts,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    std::string *out_password, bool disable_pwd_expire = false);
+    const IInstance::Create_user_options &options, std::string *out_password);
 
-void create_user_with_password(
-    const IInstance &instance, const std::string &user,
-    const std::vector<std::string> &hosts,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    const std::string &password, bool disable_pwd_expire = false);
+void create_user(const IInstance &instance, std::string_view user,
+                 const std::vector<std::string> &hosts,
+                 const IInstance::Create_user_options &options);
 
 void set_random_password(const IInstance &instance, const std::string &user,
                          const std::vector<std::string> &hosts,
@@ -124,6 +129,9 @@ void drop_indicator_tag(const mysql::IInstance &instance,
 bool check_indicator_tag(const mysql::IInstance &instance,
                          const std::string &name);
 
+mysqlshdk::db::Ssl_options read_ssl_client_options(
+    const mysqlshdk::mysql::IInstance &instance, bool set_cert);
+
 struct Error_log_entry {
   std::string logged;
   uint64_t thread_id;
@@ -138,6 +146,21 @@ bool query_server_errors(const mysql::IInstance &instance,
                          const std::string &end_time,
                          const std::vector<std::string> &subsystems,
                          const std::function<void(const Error_log_entry &)> &f);
+
+/**
+ * Queries per-thread variables.
+ *
+ * @param instance target instance where to perform the query.
+ * @param thread_command the target thread command name.
+ * @param user the target user associated with the thread.
+ * @param var_name_filter the LIKE filter for the variables names.
+ * @param cb callback to call for each variable found together with its value.
+ */
+size_t iterate_thread_variables(
+    const mysqlshdk::mysql::IInstance &instance,
+    std::string_view thread_command, std::string_view user,
+    std::string_view var_name_filter,
+    const std::function<bool(std::string, std::string)> &cb);
 
 inline void assert_transaction_is_open(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {

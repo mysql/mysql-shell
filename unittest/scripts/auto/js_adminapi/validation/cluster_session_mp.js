@@ -37,39 +37,6 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-
-//@ MP - getCluster() on primary
-|TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MP - getCluster() on another primary
-|TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
-//@ MP - getCluster() on primary with connectToPrimary: true
-|TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MP - getCluster() on another primary with connectToPrimary: true
-|TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
-//@ MP - getCluster() on primary with connectToPrimary: false
-|TCP port:                     <<<__mysql_sandbox_port1>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MP - getCluster() on another primary with connectToPrimary: false
-|TCP port:                     <<<__mysql_sandbox_port2>>>|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
-//@ MPX - getCluster() on primary
-|TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MPX - getCluster() on primary (no redirect)
-|TCP port:                     <<<__mysql_sandbox_port1>>>0|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
 //@ MP - Connect with no options and ensure it will connect to the specified member
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
@@ -106,38 +73,9 @@
 |While handling --redirect-secondary:|
 |Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
 
-
-//@ MP - Connect with --cluster 1
-|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MP - Connect with --cluster 2
-|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
-//@ MP - Connect with --cluster + --redirect-primary 1
-|NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MP - Connect with --cluster + --redirect-primary 2
-|NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
 //@ MP - Connect with --cluster + --redirect-secondary (error)
 |While handling --redirect-secondary:|
 |Redirect to a SECONDARY member requested, but an InnoDB cluster is multi-primary|
-
-//@ MPX - Connect with --cluster 1
-|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MPX - Connect with --cluster 2
-|"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-
-//@ MPX - Connect with --cluster + --redirect-primary 1
-|NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-
-//@ MPX - Connect with --cluster + --redirect-primary 2
-|NOTE: --redirect-primary ignored because target is already a PRIMARY|
-|    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
 
 //@ MPX - Connect with --cluster + --redirect-secondary (error)
 |While handling --redirect-secondary:|

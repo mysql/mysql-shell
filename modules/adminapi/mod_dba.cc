@@ -160,8 +160,6 @@
   real metadata.
  */
 
-using std::placeholders::_1;
-
 namespace mysqlsh {
 namespace dba {
 
@@ -242,6 +240,27 @@ to disconnect existing connections from instances that are marked to be hidden.
 @note '_hidden' and '_disconnect_existing_sessions_when_hidden' can be useful to shut
 down the instance and perform maintenance on it without disrupting incoming
 application traffic.
+)*");
+
+REGISTER_HELP(OPT_MEMBER_AUTH_TYPE,
+              "@li memberAuthType: controls the authentication type to use for "
+              "the internal replication accounts.");
+REGISTER_HELP(
+    OPT_CERT_ISSUER,
+    "@li certIssuer: common certificate issuer to use when 'memberAuthType' "
+    "contains either \"CERT_ISSUER\" or \"CERT_SUBJECT\".");
+REGISTER_HELP(OPT_CERT_SUBJECT,
+              "@li certSubject: instance's certificate subject to use when "
+              "'memberAuthType' contains \"CERT_SUBJECT\".");
+
+REGISTER_HELP_DETAIL_TEXT(OPT_MEMBER_AUTH_TYPE_EXTRA, R"*(
+The memberAuthType option supports the following values:
+
+@li PASSWORD: account authenticates with password only.
+@li CERT_ISSUER: account authenticates with client certificate, which must match the expected issuer (see 'certIssuer' option).
+@li CERT_SUBJECT: account authenticates with client certificate, which must match the expected issuer and subject (see 'certSubject' option).
+@li CERT_ISSUER_PASSWORD: combines both "CERT_ISSUER" and "PASSWORD" values.
+@li CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD" values.
 )*");
 
 /*
@@ -1291,6 +1310,9 @@ ${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 ${CLUSTER_OPT_MEMBER_SSL_MODE}
+${OPT_MEMBER_AUTH_TYPE}
+${OPT_CERT_ISSUER}
+${OPT_CERT_SUBJECT}
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 @li groupName: string value with the Group Replication group name UUID to be
@@ -1361,6 +1383,13 @@ Group Replication setup, enabling use of MySQL Router and the shell AdminAPI
 for managing it.
 
 ${CLUSTER_OPT_MEMBER_SSL_MODE_DETAIL}
+
+${OPT_MEMBER_AUTH_TYPE_EXTRA}
+
+When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used
+as its client certificate when authenticating replication channels with peer
+servers. memberSslMode must be at least REQUIRED, although VERIFY_CA or
+VERIFY_IDENTITY are recommended for additional security.
 
 ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
@@ -1481,13 +1510,16 @@ shcore::Value Dba::create_cluster(
     throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());
   }
 
+  // put an exclusive lock on the target instance
+  auto i_lock = group_server->get_lock_exclusive();
+
   // Create the cluster
   {
     // Create the add_instance command and execute it.
     Create_cluster op_create_cluster(group_server, cluster_name, *options);
 
     // Always execute finish when leaving "try catch".
-    auto finally = shcore::on_leave_scope(
+    shcore::on_leave_scope finally(
         [&op_create_cluster]() { op_create_cluster.finish(); });
 
     // Prepare the add_instance command execution (validations).
@@ -1879,6 +1911,26 @@ internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default i
 It must be possible for any member of the ReplicaSet to connect to any other
 member using accounts with this hostname value.
 ${OPT_INTERACTIVE}
+${OPT_MEMBER_AUTH_TYPE}
+${OPT_CERT_ISSUER}
+${OPT_CERT_SUBJECT}
+@li replicationSslMode: SSL mode to use to configure the asynchronous replication channels of the replicaset.
+
+The replicationSslMode option supports the following values:
+
+@li DISABLED: TLS encryption is disabled for the replication channel.
+@li REQUIRED: TLS encryption is enabled for the replication channel.
+@li VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer server certificate matches the host to which the connection is attempted.
+@li AUTO: TLS encryption will be enabled if supported by the instance, otherwise disabled.
+
+If replicationSslMode is not specified AUTO will be used by default.
+
+${OPT_MEMBER_AUTH_TYPE_EXTRA}
+
+When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used as its client certificate when authenticating replication channels
+with peer servers. replicationSslMode must be at least REQUIRED, although VERIFY_CA or VERIFY_IDENTITY are recommended for additional security.
+
 )*");
 /**
  * $(DBA_CREATEREPLICASET_BRIEF)
@@ -2438,12 +2490,8 @@ void Dba::do_configure_instance(
     instance_def.set_password(*options.password);
   }
 
-  std::shared_ptr<Instance> target_instance;
-  std::shared_ptr<MetadataStorage> metadata;
-
-  Cluster_check_info state;
-
   // Establish the session to the target instance
+  std::shared_ptr<Instance> target_instance;
   if (instance_def.has_data()) {
     if (instance_def.has_ssh_options())
       throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
@@ -2457,7 +2505,7 @@ void Dba::do_configure_instance(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(target_instance);
+  auto metadata = std::make_shared<MetadataStorage>(target_instance);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -2465,6 +2513,7 @@ void Dba::do_configure_instance(
       Instance_pool::Auth_options(target_instance->get_connection_options()));
 
   // Check the function preconditions
+  Cluster_check_info state;
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
     state = check_function_preconditions("Dba.configureReplicaSetInstance",
                                          metadata, target_instance);
@@ -2476,21 +2525,20 @@ void Dba::do_configure_instance(
 
   ipool->set_metadata(metadata);
 
-  auto warnings_callback = [](const std::string &sql, int code,
-                              const std::string &level,
-                              const std::string &msg) {
+  auto warnings_callback = [instance_descr = target_instance->descr()](
+                               const std::string &sql, int code,
+                               const std::string &level,
+                               const std::string &msg) {
+    log_debug("%s: '%s' on instance '%s'. (Code %d) When executing query: '%s'",
+              level.c_str(), msg.c_str(), instance_descr.c_str(), code,
+              sql.c_str());
+
+    if (level != "WARNING") return;
+
     auto console = current_console();
-    std::string debug_msg;
-
-    debug_msg += level + ": '" + msg + "'. (Code " + std::to_string(code) +
-                 ") When executing query: '" + sql + "'.";
-
-    log_debug("%s", debug_msg.c_str());
-
-    if (level == "WARNING") {
-      console->print_info();
-      console->print_warning(msg + " (Code " + std::to_string(code) + ").");
-    }
+    console->print_info();
+    console->print_warning(
+        shcore::str_format("%s (Code %d).", msg.c_str(), code));
   };
 
   // Add the warnings callback
@@ -2507,8 +2555,8 @@ void Dba::do_configure_instance(
           target_instance, options, state.source_type, purpose));
     }
 
-    // Prepare and execute the operation.
     op_configure_instance->prepare();
+
     op_configure_instance->execute();
   }
 }
@@ -2596,6 +2644,11 @@ file of the instance.
 @li password: The password to be used on the connection.
 @li clusterAdmin: The name of the "cluster administrator" account.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
+@li clusterAdminPasswordExpiration: Password expiration setting for the account.
+May be set to the number of days for expiration, 'NEVER' to disable expiration
+and 'DEFAULT' to use the system default.
+@li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
+@li clusterAdminCertSubject: Optional SSL certificate subject for the account.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled.
 @li restart: boolean value used to indicate that a remote restart of the target
@@ -2676,6 +2729,11 @@ The options dictionary may contain the following options:
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
+@li clusterAdminPasswordExpiration: Password expiration setting for the account.
+May be set to the number of days for expiration, 'NEVER' to disable expiration
+and 'DEFAULT' to use the system default.
+@li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
+@li clusterAdminCertSubject: Optional SSL certificate subject for the account.
 ${OPT_INTERACTIVE}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
@@ -2953,15 +3011,13 @@ None Dba::upgrade_metadata(dict options) {}
 void Dba::upgrade_metadata(
     const shcore::Option_pack_ref<Upgrade_metadata_options> &options) {
   auto instance = connect_to_target_member();
-  std::shared_ptr<MetadataStorage> metadata;
-
   if (!instance) {
     // An open session is required
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(instance);
+  auto metadata = std::make_shared<MetadataStorage>(instance);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -2976,11 +3032,38 @@ void Dba::upgrade_metadata(
 
   ipool->set_metadata(metadata);
 
+  // retrieve the cluster and clusterset (if available) in order to put an
+  // exclusive lock on them
+  std::shared_ptr<Cluster_set_impl> clusterset;
+  std::shared_ptr<mysqlsh::dba::Cluster> cluster;
+  mysqlshdk::mysql::Lock_scoped cs_lock;
+  mysqlshdk::mysql::Lock_scoped c_lock;
+  if (!options->dry_run) {
+    try {
+      cluster = get_cluster(nullptr, metadata, metadata->get_md_server(), false,
+                            false);
+    } catch (const shcore::Error &e) {
+      log_info("Unable to retrieve cluster: %s", e.what());
+    }
+
+    try {
+      if (cluster) clusterset = cluster->impl()->get_cluster_set_object();
+    } catch (const shcore::Error &e) {
+      log_info("Unable to retrieve clusterset: %s", e.what());
+    }
+
+    // get exclusive locks (note: the order is important)
+    if (clusterset) cs_lock = clusterset->get_lock_exclusive();
+    if (cluster) c_lock = cluster->impl()->get_lock_exclusive();
+  }
+
+  // acquire required lock on target instance.
+  auto i_lock = metadata->get_md_server()->get_lock_exclusive();
+
   Upgrade_metadata op_upgrade(metadata, options->interactive(),
                               options->dry_run);
 
-  auto finally =
-      shcore::on_leave_scope([&op_upgrade]() { op_upgrade.finish(); });
+  shcore::on_leave_scope finally([&op_upgrade]() { op_upgrade.finish(); });
 
   op_upgrade.prepare();
 

@@ -255,6 +255,7 @@ ${OPT_INTERACTIVE}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
+${OPT_CERT_SUBJECT}
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -335,11 +336,11 @@ void Cluster::add_instance(
   }
 
   // Validate the label value.
-  if (!options->label.is_null()) {
-    mysqlsh::dba::validate_label(*(options->label));
+  if (options->label.has_value()) {
+    mysqlsh::dba::validate_label(*options->label);
 
     if (!impl()->get_metadata_storage()->is_instance_label_unique(
-            impl()->get_id(), *(options->label))) {
+            impl()->get_id(), *options->label)) {
       throw shcore::Exception::argument_error(
           "An instance with label '" + *(options->label) +
           "' is already part of this InnoDB cluster");
@@ -1303,25 +1304,24 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the InnoDB cluster administrator account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
 The interactive option can be used to explicitly enable or disable the
 interactive prompts that help the user through the account setup process.
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**
@@ -1372,25 +1372,23 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the MySQL Router account.
-@li dryRun: boolean value used to enable a dry run of the account setup
-process. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
+${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
 ${OPT_INTERACTIVE}
-@li update: boolean value that must be enabled to allow updating the privileges
-and/or password of existing accounts. Default value is False.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
-If the user account does not exist, the password is mandatory.
+If the user account does not exist, either the password, requireCertIssuer or
+requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-If dryRun is used, the function will display information about the permissions
-to be granted to `user` account without actually creating and/or performing any
-changes on it.
+${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
+${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
-The update option must be enabled to allow updating an existing account's
-privileges and/or password.
+${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
 )*");
 
 /**
@@ -1582,14 +1580,13 @@ any other member using accounts with this hostname value.
 
 The clusterSetReplicationSslMode option supports the following values:
 
-@li REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
-replication channels.
-@li DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
-replication channels.
-@li AUTO: if used, SSL (encryption) will be enabled if supported by the
-instance, otherwise disabled.
+@li DISABLED: TLS encryption is disabled for the ClusterSet replication channels.
+@li REQUIRED: TLS encryption is enabled for the ClusterSet replication channels.
+@li VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer server certificate matches the host to which the connection is attempted.
+@li AUTO: TLS encryption will be enabled if supported by the instance, otherwise disabled.
 
-If clusterSetReplicationSslMode is not specified AUTO will be used by default.
+If clusterSetReplicationSslMode is not specified, it defaults to the value of the cluster's memberSslMode option.
 )*");
 
 /**

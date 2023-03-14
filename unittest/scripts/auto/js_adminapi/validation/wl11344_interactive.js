@@ -10,6 +10,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -48,6 +49,7 @@ group_replication_member_weight = 50
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -98,6 +100,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.
 Creating InnoDB Cluster 'C' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -130,6 +134,7 @@ group_replication_local_address = localhost:<<<__local_address_1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -162,6 +167,8 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'ClusterName' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -187,6 +194,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -226,6 +234,7 @@ group_replication_member_weight = 50
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -276,6 +285,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -447,6 +457,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xco
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -476,6 +487,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -506,6 +518,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xco
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -535,6 +548,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -567,6 +581,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -612,6 +627,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -635,6 +651,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
@@ -730,6 +747,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -758,6 +776,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -782,6 +801,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -804,6 +824,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -921,6 +942,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -943,6 +965,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -973,6 +996,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -1006,6 +1030,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -1031,6 +1056,7 @@ group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -1053,6 +1079,7 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
@@ -1136,6 +1163,7 @@ group_replication_local_address =
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
+group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED

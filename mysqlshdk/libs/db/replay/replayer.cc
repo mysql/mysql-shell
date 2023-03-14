@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,8 +192,9 @@ void Replayer_mysql::do_connect(
   _impl->connect(data);
 }
 
-std::shared_ptr<IResult> Replayer_mysql::querys(const char *sql_, size_t length,
-                                                bool) {
+std::shared_ptr<IResult> Replayer_mysql::querys(
+    const char *sql_, size_t length, bool,
+    [[maybe_unused]] const std::vector<Query_attribute> &query_attributes) {
   std::string sql = _impl->do_query(std::string(sql_, length));
 
   auto log_sql_handler = shcore::current_log_sql();
@@ -290,8 +291,9 @@ void Replayer_mysqlx::do_connect(
   _impl->connect(data);
 }
 
-std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
-                                                 size_t length, bool) {
+std::shared_ptr<IResult> Replayer_mysqlx::querys(
+    const char *sql_, size_t length, bool,
+    [[maybe_unused]] const std::vector<Query_attribute> &query_attributes) {
   std::string sql = _impl->do_query(std::string(sql_, length));
 
   auto log_sql_handler = shcore::current_log_sql();

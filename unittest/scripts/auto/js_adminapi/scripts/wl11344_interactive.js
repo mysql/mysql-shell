@@ -80,6 +80,9 @@ shell.connect(__hostname_uri1);
 
 var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 if (__version_num < 80027) {
     cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
 } else {
@@ -88,10 +91,13 @@ if (__version_num < 80027) {
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 
 var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
+
 //@ FR1-TS-04/05 {VER(>=8.0.12)}
 print(persisted_sysvars + "\n\n");
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
+
+shell.options["dba.connectivityChecks"] = true;
 
 //@ FR1-TS-04/05 TEARDOWN {VER(>=8.0.12)}
 cluster.disconnect();
@@ -224,13 +230,20 @@ if (__version_num < 80027) {
     dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
 }
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
+
 cluster = dba.getCluster("ClusterName");
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 var __local_address_2 = "15679";
 cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+
+shell.options["dba.connectivityChecks"] = true;
 
 //@ FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
 __mysql_sandbox_gr_port1_xcom = __mysql_sandbox_port1 * 10 + 1
@@ -295,15 +308,24 @@ if (__version_num < 80027) {
     dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true, communicationStack: "XCOM"});
 }
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
+
 cluster = dba.getCluster("ClusterName");
+
+// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
+shell.options["dba.connectivityChecks"] = false;
+
 var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();
 cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+
 session.close();
 shell.connect(__hostname_uri2);
+
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 var persisted_sysvars2 = get_persisted_gr_sysvars(__mysql_sandbox_port2);
+
+shell.options["dba.connectivityChecks"] = true;
 
 //@ FR2-TS-5 {VER(>=8.0.12)}
 print(persisted_sysvars1);

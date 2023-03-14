@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,7 +93,19 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
  * createCluster()/addInstance()/rejoinInstance()
  */
 void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
-                             const Cluster_ssl_mode &ssl_mode);
+                             Cluster_ssl_mode ssl_mode);
+
+/**
+ * Ensure CA Certificate options are set on the target instance
+ *
+ * This function verifies if the CA Certificate options --ssl-ca or --ssl-capath
+ * are set when CERT_ISSUER* or CERT_SUBJECT* are used as memberAuthType
+ *
+ * @param instance target instance to perform the verification
+ * @param member_auth member auth mode
+ */
+void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
+                             Replication_auth_type auth_type);
 
 /**
  * Check if an upgrade of the protocol is possible

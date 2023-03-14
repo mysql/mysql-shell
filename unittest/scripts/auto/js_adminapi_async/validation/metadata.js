@@ -25,7 +25,7 @@ mysql_server_uuid: <<<uuid1>>>
           address: 127.0.0.1:<<<__mysql_sandbox_port1>>>
          endpoint: 127.0.0.1:<<<__mysql_sandbox_port1>>>
         xendpoint: 127.0.0.1:<<<__mysql_sandbox_port1>>>0
-       attributes: {"server_id": 11, "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_11"}
+       attributes: {"server_id": 11, "opt_certSubject": "", "recoveryAccountHost": "%", "recoveryAccountUser": "mysql_innodb_cluster_11"}
 1
 
 //@# this_instance
@@ -52,7 +52,7 @@ mysql_server_uuid: <<<uuid1>>>
 |cluster_type	primary_mode	cluster_id	cluster_name	router_options|
 |ar	pm	<<<cluster_id1>>>	myrs	NULL|
 |instance_id	cluster_id	label	mysql_server_uuid	address	endpoint	xendpoint	attributes|
-|1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11, "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_11"}|
+|1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11, "opt_certSubject": "", "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_11"}|
 
 //@# this_instance again
 |cluster_id	instance_id	cluster_name	cluster_type|

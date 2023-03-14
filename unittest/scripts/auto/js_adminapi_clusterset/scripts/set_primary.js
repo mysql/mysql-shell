@@ -107,9 +107,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 //@<> Make changes to the replica cluster and purge binlogs
 
 // generate innocuous GTID changes on the replica cluster (from the view change) and then purge them, so that they can't be replicated back to the primary cluster
-
 c2.addInstance(__sandbox_uri5);
-
 testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port1);
 
 session4 = mysql.getSession(__sandbox_uri4);

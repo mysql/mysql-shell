@@ -5,6 +5,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "name": "myrs",
@@ -93,6 +101,10 @@
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -135,6 +147,10 @@
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 }
             ]
         }
@@ -157,6 +173,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ], 
         "name": "myrs",
@@ -225,6 +249,10 @@
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -247,6 +275,10 @@
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 }
             ]
         }

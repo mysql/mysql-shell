@@ -162,36 +162,41 @@ shell configuration.
 
 The following shell commands are available:
 
- - \                   Start multi-line input when in SQL mode.
- - \connect    (\c)    Connects the shell to a MySQL server and assigns the
-                       global session.
- - \disconnect         Disconnects the global session.
- - \edit       (\e)    Launch a system editor to edit a command to be executed.
- - \exit               Exits the MySQL Shell, same as \quit.
- - \G                  Send command to mysql server, display result vertically.
- - \g                  Send command to mysql server.
- - \help       (\?,\h) Prints help information about a specific topic.
- - \history            View and edit command line history.
- - \js                 Switches to JavaScript processing mode.
- - \nopager            Disables the current pager.
- - \nowarnings (\w)    Don't show warnings after every statement.
- - \option             Allows working with the available shell options.
- - \pager      (\P)    Sets the current pager.
- - \py                 Switches to Python processing mode.
- - \quit       (\q)    Exits the MySQL Shell.
- - \reconnect          Reconnects the global session.
- - \rehash             Refresh the autocompletion cache.
- - \show               Executes the given report with provided options and
-                       arguments.
- - \source     (\.)    Loads and executes a script from a file.
- - \sql                Executes SQL statement or switches to SQL processing
-                       mode when no statement is given.
- - \status     (\s)    Print information about the current global session.
- - \system     (\!)    Execute a system shell command.
- - \use        (\u)    Sets the active schema.
- - \warnings   (\W)    Show warnings after every statement.
- - \watch              Executes the given report with provided options and
-                       arguments in a loop.
+ - \                         Start multi-line input when in SQL mode.
+ - \connect          (\c)    Connects the shell to a MySQL server and assigns
+                             the global session.
+ - \disconnect               Disconnects the global session.
+ - \edit             (\e)    Launch a system editor to edit a command to be
+                             executed.
+ - \exit                     Exits the MySQL Shell, same as \quit.
+ - \G                        Send command to mysql server, display result
+                             vertically.
+ - \g                        Send command to mysql server.
+ - \help             (\?,\h) Prints help information about a specific topic.
+ - \history                  View and edit command line history.
+ - \js                       Switches to JavaScript processing mode.
+ - \nopager                  Disables the current pager.
+ - \nowarnings       (\w)    Don't show warnings after every statement.
+ - \option                   Allows working with the available shell options.
+ - \pager            (\P)    Sets the current pager.
+ - \py                       Switches to Python processing mode.
+ - \query_attributes         Defines query attributes that apply to the next
+                             statement sent to the server for execution.
+ - \quit             (\q)    Exits the MySQL Shell.
+ - \reconnect                Reconnects the global session.
+ - \rehash                   Refresh the autocompletion cache.
+ - \show                     Executes the given report with provided options
+                             and arguments.
+ - \source           (\.)    Loads and executes a script from a file.
+ - \sql                      Executes SQL statement or switches to SQL
+                             processing mode when no statement is given.
+ - \status           (\s)    Print information about the current global
+                             session.
+ - \system           (\!)    Execute a system shell command.
+ - \use              (\u)    Sets the active schema.
+ - \warnings         (\W)    Show warnings after every statement.
+ - \watch                    Executes the given report with provided options
+                             and arguments in a loop.
 
 EXAMPLES
 \? sql syntax
@@ -747,13 +752,19 @@ DESCRIPTION
 
       The clusterSetReplicationSslMode option supports the following values:
 
-      - REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
-        replication channels.
-      - DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
-        replication channels.
-      - AUTO: if used, SSL (encryption) will be enabled if supported by the
-        instance, otherwise disabled.
+      - DISABLED: TLS encryption is disabled for the ClusterSet replication
+        channels.
+      - REQUIRED: TLS encryption is enabled for the ClusterSet replication
+        channels.
+      - VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer
+        server certificate matches the host to which the connection is
+        attempted.
+      - AUTO: TLS encryption will be enabled if supported by the instance,
+        otherwise disabled.
 
-      If clusterSetReplicationSslMode is not specified AUTO will be used by
-      default.
+      If clusterSetReplicationSslMode is not specified, it defaults to the
+      value of the cluster's memberSslMode option.
 

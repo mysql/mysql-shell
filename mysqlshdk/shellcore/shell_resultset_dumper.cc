@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -531,8 +531,9 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
   });
 
   bool first = true;
+  bool wrapping_json = m_wrap_json != "off";
   do {
-    if (m_wrap_json != "off") {
+    if (wrapping_json) {
       total_count = dump_json(item_label, is_doc_result);
     } else {
       size_t count = 0;
@@ -589,9 +590,15 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
     }
   } while (m_result->next_resultset() && !m_cancelled);
 
-  if (m_cancelled)
+  if (m_cancelled) {
     m_printer->println(
         "Result printing interrupted, rows may be missing from the output.");
+  } else if (!wrapping_json) {
+    const auto statement_id = m_result->get_statement_id();
+    if (!statement_id.empty()) {
+      m_printer->println("Statement ID: " + statement_id);
+    }
+  }
 
   return total_count;
 }
@@ -884,6 +891,12 @@ std::string Resultset_dumper_base::format_json(const std::string &item_label,
 
   dumper.append_string("autoIncrementValue");
   dumper.append_int64(m_result->get_auto_increment_value());
+
+  if (const auto statement_id = m_result->get_statement_id();
+      !statement_id.empty()) {
+    dumper.append_string("statementId");
+    dumper.append_string(statement_id);
+  }
 
   dumper.end_object();
 

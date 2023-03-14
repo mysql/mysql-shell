@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,9 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/db/result.h"
@@ -106,47 +108,47 @@ class IInstance {
   virtual void refresh() = 0;
 
   virtual std::optional<bool> get_sysvar_bool(
-      const std::string &name, const Var_qualifier scope) const = 0;
+      std::string_view name, const Var_qualifier scope) const = 0;
   virtual std::optional<std::string> get_sysvar_string(
-      const std::string &name, const Var_qualifier scope) const = 0;
+      std::string_view name, const Var_qualifier scope) const = 0;
   virtual std::optional<int64_t> get_sysvar_int(
-      const std::string &name, const Var_qualifier scope) const = 0;
+      std::string_view name, const Var_qualifier scope) const = 0;
 
   // get_sysvar_ with a default value
-  bool get_sysvar_bool(const std::string &name, const Var_qualifier scope,
+  bool get_sysvar_bool(std::string_view name, const Var_qualifier scope,
                        bool default_value) const {
     return get_sysvar_bool(name, scope).value_or(default_value);
   }
-  std::string get_sysvar_string(const std::string &name,
+  std::string get_sysvar_string(std::string_view name,
                                 const Var_qualifier scope,
                                 const std::string &default_value) const {
     return get_sysvar_string(name, scope).value_or(default_value);
   }
-  int64_t get_sysvar_int(const std::string &name, const Var_qualifier scope,
+  int64_t get_sysvar_int(std::string_view name, const Var_qualifier scope,
                          int64_t default_value) const {
     return get_sysvar_int(name, scope).value_or(default_value);
   }
 
   // get_sysvar_ without scope (defaults to GLOBAL), with and without a
   // default value
-  std::optional<bool> get_sysvar_bool(const std::string &name) const {
+  std::optional<bool> get_sysvar_bool(std::string_view name) const {
     return get_sysvar_bool(name, Var_qualifier::GLOBAL);
   }
-  std::optional<std::string> get_sysvar_string(const std::string &name) const {
+  std::optional<std::string> get_sysvar_string(std::string_view name) const {
     return get_sysvar_string(name, Var_qualifier::GLOBAL);
   }
-  std::optional<int64_t> get_sysvar_int(const std::string &name) const {
+  std::optional<int64_t> get_sysvar_int(std::string_view name) const {
     return get_sysvar_int(name, Var_qualifier::GLOBAL);
   }
-  bool get_sysvar_bool(const std::string &name, bool default_value) const {
+  bool get_sysvar_bool(std::string_view name, bool default_value) const {
     return get_sysvar_bool(name, Var_qualifier::GLOBAL).value_or(default_value);
   }
-  std::string get_sysvar_string(const std::string &name,
+  std::string get_sysvar_string(std::string_view name,
                                 const std::string &default_value) const {
     return get_sysvar_string(name, Var_qualifier::GLOBAL)
         .value_or(default_value);
   }
-  int64_t get_sysvar_int(const std::string &name, int64_t default_value) const {
+  int64_t get_sysvar_int(std::string_view name, int64_t default_value) const {
     return get_sysvar_int(name, Var_qualifier::GLOBAL).value_or(default_value);
   }
 
@@ -182,12 +184,25 @@ class IInstance {
   virtual void uninstall_plugin(const std::string &plugin_name) const = 0;
   virtual std::optional<std::string> get_plugin_status(
       const std::string &plugin_name) const = 0;
-  virtual void create_user(
-      const std::string &user, const std::string &host, const std::string &pwd,
-      const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-      bool disable_pwd_expire) const = 0;
+
+  struct Create_user_options {
+    std::optional<std::string> password;
+    std::string cert_issuer;
+    std::string cert_subject;
+    bool disable_pwd_expire{false};
+
+    struct Grant {
+      std::string privileges;
+      std::string target;
+      bool grant_option{false};
+    };
+    std::vector<Grant> grants;
+  };
+  virtual void create_user(std::string_view user, std::string_view host,
+                           const Create_user_options &options) const = 0;
   virtual void drop_user(const std::string &user, const std::string &host,
                          bool if_exists = false) const = 0;
+
   virtual mysqlshdk::db::Connection_options get_connection_options() const = 0;
   virtual void get_current_user(std::string *current_user,
                                 std::string *current_host) const = 0;
@@ -269,6 +284,79 @@ struct Suppress_binary_log {
   IInstance *m_instance;
 };
 
+class Set_variable final {
+ public:
+  Set_variable(const Set_variable &) = delete;
+  Set_variable(Set_variable &&) = delete;
+  Set_variable &operator=(const Set_variable &) = delete;
+
+  Set_variable(const IInstance &inst, const std::string &variable,
+               const std::string &value, bool global)
+      : m_instance(inst) {
+    std::string fmt;
+    if (global)
+      fmt = "SET GLOBAL " + variable + "=?";
+    else
+      fmt = "SET SESSION " + variable + "=?";
+
+    {
+      auto res = inst.queryf("SELECT " + (global ? "@@global." + variable
+                                                 : "@@session." + variable));
+      auto row = res->fetch_one_or_throw();
+
+      if (row->is_null(0)) {
+        m_restore_sql = shcore::sqlformat(fmt, nullptr);
+      } else {
+        if (auto oval = row->get_string(0); oval != value)
+          m_restore_sql = shcore::sqlformat(fmt, oval);
+      }
+    }
+    if (!m_restore_sql.empty()) inst.executef(fmt, value);
+  }
+
+  Set_variable(const IInstance &inst, const std::string &variable, int value,
+               bool global)
+      : m_instance(inst) {
+    std::string fmt;
+    if (global)
+      fmt = "SET GLOBAL " + variable + "=?";
+    else
+      fmt = "SET SESSION " + variable + "=?";
+    {
+      auto res = inst.queryf("SELECT " + (global ? "@@global." + variable
+                                                 : "@@session." + variable));
+      auto row = res->fetch_one_or_throw();
+
+      if (row->is_null(0)) {
+        m_restore_sql = shcore::sqlformat(fmt, nullptr);
+      } else {
+        if (auto oval = row->get_int(0); oval != value)
+          m_restore_sql = shcore::sqlformat(fmt, oval);
+      }
+    }
+    if (!m_restore_sql.empty()) inst.executef(fmt, value);
+  }
+
+  void restore() {
+    if (!m_restore_sql.empty()) {
+      m_instance.execute(std::exchange(m_restore_sql, {}));
+    }
+  }
+
+  void restore_nothrow() {
+    try {
+      restore();
+    } catch (...) {
+    }
+  }
+
+  ~Set_variable() { restore_nothrow(); }
+
+ private:
+  const IInstance &m_instance;
+  std::string m_restore_sql;
+};
+
 /**
  * Implementation of the low level instance operations.
  */
@@ -295,12 +383,12 @@ class Instance : public IInstance {
   // values that cannot change) to query the DB again, if they use a cache.
   void refresh() override;
 
-  std::optional<bool> get_sysvar_bool(const std::string &name,
+  std::optional<bool> get_sysvar_bool(std::string_view name,
                                       const Var_qualifier scope) const override;
   std::optional<std::string> get_sysvar_string(
-      const std::string &name, const Var_qualifier scope) const override;
+      std::string_view name, const Var_qualifier scope) const override;
   std::optional<int64_t> get_sysvar_int(
-      const std::string &name, const Var_qualifier scope) const override;
+      std::string_view name, const Var_qualifier scope) const override;
 
   // expose the overloaded methods
   using IInstance::get_sysvar_bool;
@@ -329,20 +417,20 @@ class Instance : public IInstance {
   }
 
   void close_session() const override { _session->close(); }
-  std::map<std::string, std::optional<std::string>> get_system_variables(
-      const std::vector<std::string> &names,
+
+  std::optional<std::string> get_system_variable(
+      std::string_view name,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const;
   std::map<std::string, std::optional<std::string>> get_system_variables_like(
       const std::string &pattern,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
+
   void install_plugin(const std::string &plugin_name) const override;
   void uninstall_plugin(const std::string &plugin_name) const override;
   std::optional<std::string> get_plugin_status(
       const std::string &plugin_name) const override;
-  void create_user(
-      const std::string &user, const std::string &host, const std::string &pwd,
-      const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-      bool disable_pwd_expire = false) const override;
+  void create_user(std::string_view user, std::string_view host,
+                   const Create_user_options &options) const override;
   void drop_user(const std::string &user, const std::string &host,
                  bool if_exists = false) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {

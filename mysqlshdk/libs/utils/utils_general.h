@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,70 +66,82 @@ constexpr static std::size_t array_size(const T (&)[N]) noexcept {
 
 class Scoped_callback {
  public:
-  explicit Scoped_callback(const std::function<void()> &c) : callback(c) {}
+  explicit Scoped_callback(std::function<void()> c) noexcept
+      : m_callback{std::move(c)} {}
 
-  ~Scoped_callback();
+  Scoped_callback() = default;
+  Scoped_callback(const Scoped_callback &) = delete;
+  Scoped_callback &operator=(const Scoped_callback &) = delete;
+  Scoped_callback(Scoped_callback &&) = default;
+  Scoped_callback &operator=(Scoped_callback &&) = default;
 
-  void call() {
-    if (!cancelled && !called) {
-      callback();
-      called = true;
+  ~Scoped_callback() noexcept {
+    try {
+      call();
+    } catch (const std::exception &e) {
+      log_error("Unexpected exception: %s", e.what());
     }
   }
 
-  void cancel() { cancelled = true; }
-
-  const std::exception_ptr &exception() const { return exception_ptr; }
-
-  void check() {
-    if (exception_ptr) std::rethrow_exception(exception_ptr);
+  void call() {
+    if (!m_callback) return;
+    std::exchange(m_callback, nullptr)();
   }
 
+  void cancel() { m_callback = nullptr; }
+
  private:
-  std::function<void()> callback;
-  std::exception_ptr exception_ptr;
-  bool cancelled = false;
-  bool called = false;
+  std::function<void()> m_callback;
 };
 
 class Scoped_callback_list {
  public:
-  ~Scoped_callback_list() {
+  Scoped_callback_list() = default;
+  Scoped_callback_list(const Scoped_callback_list &) = delete;
+  Scoped_callback_list(Scoped_callback_list &&) = delete;
+  Scoped_callback_list &operator=(const Scoped_callback_list &) = delete;
+  Scoped_callback_list &operator=(Scoped_callback_list &&) = delete;
+
+  ~Scoped_callback_list() noexcept {
     try {
       call();
-    } catch (...) {
-      exception_ptr = std::current_exception();
+    } catch (const std::exception &e) {
+      log_error("Unexpected exception: %s", e.what());
     }
   }
 
-  void push_back(const std::function<void()> &c) { callbacks.push_back(c); }
+  void push_back(std::function<void()> c) noexcept {
+    m_callbacks.push_back(std::move(c));
+  }
 
-  void push_front(const std::function<void()> &c) { callbacks.push_front(c); }
+  void push_front(std::function<void()> c) noexcept {
+    m_callbacks.push_front(std::move(c));
+  }
 
   void call() {
-    if (!cancelled && !called) {
-      called = true;
-      for (const auto &cb : callbacks) {
-        cb();
-      }
+    if (m_cancelled) return;
+    m_cancelled = true;  // can only call once (assume cancelled)
+
+    try {
+      for (const auto &cb : m_callbacks) cb();
+    } catch (const std::exception &e) {
+      log_error("Unexpected exception: %s", e.what());
+      throw;
     }
+
+    m_callbacks.clear();
   }
 
-  void cancel() { cancelled = true; }
-
-  bool empty() const { return callbacks.empty(); }
-
-  const std::exception_ptr &exception() const { return exception_ptr; }
-
-  void check() {
-    if (exception_ptr) std::rethrow_exception(exception_ptr);
+  void cancel() {
+    m_cancelled = true;
+    m_callbacks.clear();
   }
+
+  bool empty() const { return m_callbacks.empty(); }
 
  private:
-  std::list<std::function<void()>> callbacks;
-  std::exception_ptr exception_ptr;
-  bool cancelled = false;
-  bool called = false;
+  std::list<std::function<void()>> m_callbacks;
+  bool m_cancelled = false;
 };
 
 using on_leave_scope = Scoped_callback;

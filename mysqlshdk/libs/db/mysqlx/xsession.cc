@@ -149,7 +149,7 @@ XSession_impl::XSession_impl() : m_prep_stmt_count(0) {
 }
 
 void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
-  _mysql.reset(::xcl::create_session().release());
+  _mysql = ::xcl::create_session();
   if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;

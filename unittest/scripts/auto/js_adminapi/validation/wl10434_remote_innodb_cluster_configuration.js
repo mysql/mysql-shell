@@ -649,7 +649,9 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-Cluster admin user 'clusterAdminAccount'@'%' created.
+Creating user clusterAdminAccount@%.
+Account clusterAdminAccount@% was successfully created.
+
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 
@@ -686,7 +688,9 @@ You may want to kill these sessions to prevent them from performing unexpected u
 1 open session(s) of 'root@localhost'.
 
 Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
-Cluster admin user 'newClusterAdminAccount'@'%' created.
+Creating user newClusterAdminAccount@%.
+Account newClusterAdminAccount@% was successfully created.
+
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.

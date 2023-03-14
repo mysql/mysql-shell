@@ -221,6 +221,76 @@ rs2.setupRouterAccount("missing_privs@%", {password: "plusultra"});
 // user was not created
 EXPECT_EQ(0, count_users_like(session1, "missing_privs", "%"));
 
+
+//@<> WL#15438 - requireCertIssuer and requireCertSubject
+shell.connect(__sandbox_uri1);
+rs=dba.getReplicaSet();
+
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:124})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:124})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:null})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:null})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+
+EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
+
+// create with password
+rs.setupRouterAccount("cert1@%", {requireCertIssuer:"/CN=cert1issuer", requireCertSubject:"/CN=cert1subject", password:"pwd"});
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert1'").fetchOne();
+EXPECT_EQ(user[0], "/CN=cert1issuer");
+EXPECT_EQ(user[1], "/CN=cert1subject");
+EXPECT_NE(user[2], "");
+
+// create without password
+rs.setupRouterAccount("cert2@%", {requireCertIssuer:"/CN=cert2issuer", requireCertSubject:"/CN=cert2subject", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert2'").fetchOne();
+
+EXPECT_EQ(user[0], "/CN=cert2issuer");
+EXPECT_EQ(user[1], "/CN=cert2subject");
+EXPECT_EQ(user[2], "");
+
+// just issuer
+rs.setupRouterAccount("cert3@%", {requireCertIssuer:"/CN=cert3issuer", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert3'").fetchOne();
+
+EXPECT_EQ(user[0], "/CN=cert3issuer");
+EXPECT_EQ(user[1], "");
+EXPECT_EQ(user[2], "");
+
+// just subject
+rs.setupRouterAccount("cert4@%", {requireCertSubject:"/CN=cert4subject", password:""});
+
+user = session.runSql("select convert(x509_issuer using ascii), convert(x509_subject using ascii), authentication_string from mysql.user where user='cert4'").fetchOne();
+
+EXPECT_EQ(user[0], "");
+EXPECT_EQ(user[1], "/CN=cert4subject");
+EXPECT_EQ(user[2], "");
+
+//@<> WL#15438 - passwordExpiration
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: "bla", password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: -1, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 0, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: {}, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
+
+function CHECK_LIFETIME(user, lifetime) {
+    row = session.runSql("select password_lifetime from mysql.user where user=?", [user]).fetchOne();
+    EXPECT_EQ(row[0], lifetime);
+}
+
+rs.setupRouterAccount("expire1@%", {passwordExpiration:"never", password:""});
+CHECK_LIFETIME("expire1", 0);
+rs.setupRouterAccount("expire2@%", {passwordExpiration:"default", password:""});
+CHECK_LIFETIME("expire2", null);
+rs.setupRouterAccount("expire3@%", {passwordExpiration:null, password:""});
+CHECK_LIFETIME("expire3", null);
+rs.setupRouterAccount("expire4@%", {passwordExpiration:42, password:""});
+CHECK_LIFETIME("expire4", 42);
+rs.setupRouterAccount("expire5@%", {passwordExpiration:43, password:""});
+CHECK_LIFETIME("expire5", 43);
+
 //@<> WL#13536: Cleanup
 rs.disconnect();
 rs2.disconnect();

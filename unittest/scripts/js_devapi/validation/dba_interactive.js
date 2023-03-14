@@ -7,8 +7,8 @@
 ||Argument #1 is expected to be a string
 ||The Cluster name cannot be empty
 ||Invalid options: another, invalid
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
+||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
@@ -50,6 +50,8 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...
@@ -72,6 +74,8 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
 See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
+* Checking connectivity and SSL configuration...
+
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'devCluster' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
@@ -423,7 +427,9 @@ applierWorkerThreads will be set to the default value of 4.
 ?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
-Cluster admin user 'dba_test'@'%' created.
+Creating user dba_test@%.
+Account dba_test@% was successfully created.
+
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
 
 ?{VER(>=8.0.23)}

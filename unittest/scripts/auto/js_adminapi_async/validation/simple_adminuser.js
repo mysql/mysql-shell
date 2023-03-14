@@ -1,9 +1,9 @@
 //@#configureReplicaSetInstance + create admin user
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.|
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB ReplicaSet.|
-|Cluster admin user 'admin'@'%' created.|
+|Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' is already ready to be used in an InnoDB ReplicaSet.|
 
 //@<OUT> createReplicaSet
@@ -14,6 +14,7 @@ A new replicaset with instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' w
 This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 ReplicaSet object successfully created for <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
@@ -57,6 +58,8 @@ This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_po
 
 * Checking async replication topology...
 
+* Checking connectivity and SSL configuration...
+
 * Checking transaction state of the instance...
 
 NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
@@ -85,6 +88,8 @@ This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_po
 <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Instance configuration is suitable.
 
 * Checking async replication topology...
+
+* Checking connectivity and SSL configuration...
 
 * Checking transaction state of the instance...
 
@@ -130,7 +135,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@# forcePrimaryInstance (prepare)
-|WARNING: Unable to connect to the PRIMARY of the replicaset myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port3)>>>'|
+|WARNING: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port3)>>>'|
 |        "status": "UNAVAILABLE", |
 
 //@<OUT> forcePrimaryInstance

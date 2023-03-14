@@ -81,11 +81,11 @@ EXPECT_THROWS(function (){
 
 EXPECT_THROWS(function (){
     Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {memberSslMode: "foo", password: "root"});
-}, "Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.");
+}, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
 
 EXPECT_THROWS(function (){
     Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {memberSslMode: "", password: "root"});
-}, "Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.");
+}, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
 
 EXPECT_THROWS(function (){
     Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {ipWhitelist: " ", password: "root"});
@@ -352,8 +352,8 @@ EXPECT_THROWS(function (){ Cluster.rejoinInstance({host: "localhost", schema: 'a
 EXPECT_THROWS(function (){ Cluster.rejoinInstance({host: "localhost"}); }, "Could not open connection to 'localhost'");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance("localhost:3306"); }, "Could not open connection to 'localhost:3306'");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance("somehost:3306", "root"); }, "Argument #2 is expected to be a map");
-EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "foo", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.");
-EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.");
+EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "foo", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
+EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"}); }, "Invalid value for ipWhitelist: string value cannot be empty.");
 
 //@<> Dba: rejoin instance 3 ok {VER(<8.0.11)}

@@ -694,80 +694,83 @@ mysql::User_privileges_result check_replication_user(
     const mysqlshdk::mysql::IInstance &instance, const std::string &user,
     const std::string &host) {
   // Check if user has REPLICATION SLAVE on *.*
-  static const std::set<std::string> gr_grants{"REPLICATION SLAVE"};
+  const std::set<std::string> gr_grants{"REPLICATION SLAVE"};
   return instance.get_user_privileges(user, host)->validate(gr_grants);
 }
 
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
-    const std::optional<std::string> &password, bool clone_supported,
-    bool auto_failover, bool mysql_comm_stack_supported) {
-  mysqlshdk::mysql::Auth_options creds;
+    const Create_recovery_user_options &options) {
   assert(!hosts.empty());
   assert(!username.empty());
 
-  creds.user = username;
+  mysqlshdk::mysql::IInstance::Create_user_options user_options;
 
-  std::vector<std::tuple<std::string, std::string, bool>> grants;
+  // setup user grants
+  if (options.clone_supported)
+    user_options.grants.push_back(
+        {"REPLICATION SLAVE, BACKUP_ADMIN", "*.*", false});
+  else
+    user_options.grants.push_back({"REPLICATION SLAVE", "*.*", false});
 
-  if (clone_supported) {
-    grants = {std::make_tuple("REPLICATION SLAVE, BACKUP_ADMIN", "*.*", false)};
-  } else {
-    grants = {std::make_tuple("REPLICATION SLAVE", "*.*", false)};
-  }
+  if (options.auto_failover)
+    user_options.grants.push_back({"SELECT", "performance_schema.*", false});
 
-  if (auto_failover) {
-    grants.push_back(std::make_tuple("SELECT", "performance_schema.*", false));
-  }
-
-  if (mysql_comm_stack_supported) {
-    grants.push_back(std::make_tuple("GROUP_REPLICATION_STREAM", "*.*", false));
-  }
+  if (options.mysql_comm_stack_supported)
+    user_options.grants.push_back({"GROUP_REPLICATION_STREAM", "*.*", false});
 
   if (primary.get_version() >= utils::Version(8, 0, 0)) {
     // Recovery accounts must have CONNECTION_ADMIN too, otherwise, if a group
     // members has offline_mode enabled the member is evicted from the group
-    // since the recovery account connections are disconnected and blocked. This
-    // has greater impact when using "MySQL" communication stack
-    grants.push_back(std::make_tuple("CONNECTION_ADMIN", "*.*", false));
+    // since the recovery account connections are disconnected and blocked.
+    // This has greater impact when using "MySQL" communication stack
+    user_options.grants.push_back({"CONNECTION_ADMIN", "*.*", false});
   }
+
+  mysqlshdk::mysql::Auth_options creds;
 
   try {
     // Accounts are created at the primary replica regardless of who will use
     // them, since they'll get replicated everywhere.
 
-    if (!password.has_value()) {
-      std::string repl_password;
-      for (auto &hostname : hosts) {
-        log_debug(
-            "Creating recovery account '%s'@'%s' with random password at %s",
-            creds.user.c_str(), hostname.c_str(), primary.descr().c_str());
-      }
+    if (options.requires_password && !options.password.has_value()) {
+      // finalize user options
+      user_options.disable_pwd_expire = true;
+      user_options.cert_issuer = options.cert_issuer;
+      user_options.cert_subject = options.cert_subject;
+
       // re-create replication with a new generated password
+      std::string new_pwd;
       mysqlshdk::mysql::create_user_with_random_password(
-          primary, creds.user, hosts, grants, &repl_password, true);
+          primary, username, hosts, user_options, &new_pwd);
 
-      creds.password = repl_password;
+      creds.password = std::move(new_pwd);
+
     } else {
-      for (auto &hostname : hosts) {
-        log_debug(
-            "Creating recovery account '%s'@'%s' with non random password at "
-            "%s",
-            creds.user.c_str(), hostname.c_str(), primary.descr().c_str());
+      // finalize user options
+      if (options.requires_password) {
+        user_options.password = *options.password;
+        user_options.disable_pwd_expire = true;
       }
-      // re-create replication with a given password
-      mysqlshdk::mysql::create_user_with_password(primary, creds.user, hosts,
-                                                  grants, *password, true);
+      user_options.cert_issuer = options.cert_issuer;
+      user_options.cert_subject = options.cert_subject;
 
-      creds.password = *password;
+      // re-create replication with a given password
+      mysqlshdk::mysql::create_user(primary, username, hosts, user_options);
+
+      creds.password = user_options.password;
     }
+
+    creds.user = username;
     creds.ssl_options = primary.get_connection_options().get_ssl_options();
+
   } catch (std::exception &e) {
     throw std::runtime_error(shcore::str_format(
         "Unable to create the Group Replication recovery account: %s",
         e.what()));
   }
+
   return creds;
 }
 

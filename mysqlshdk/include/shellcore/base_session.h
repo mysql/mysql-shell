@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,45 @@ namespace mysqlsh {
 #if DOXYGEN_CPP
 //! Abstraction layer with core elements for all the session types
 #endif
+
+/**
+ * @brief Cache for query attributes to be associated to the next user SQL
+ * executed.
+ *
+ * This class serves as container and validator for the query attributes
+ * coming from the 2 different places:
+ *
+ * - \query_attributes shell command
+ * - setQueryAttributes() API
+ *
+ * Since the defined attributes are meant to be associated to the next user
+ * SQL executed, the data needs to be cached while that happens.
+ */
+class Query_attribute_store {
+ public:
+  bool set(const std::string &name, const shcore::Value &value);
+  bool set(const shcore::Dictionary_t &attributes);
+  void handle_errors(bool raise_error = true);
+  void clear();
+  std::vector<mysqlshdk::db::Query_attribute> get_query_attributes(
+      const std::function<
+          std::unique_ptr<mysqlshdk::db::IQuery_attribute_value>(
+              const shcore::Value &)> &translator_cb) const;
+
+ private:
+  // Real store of valid query attributes
+  std::unordered_map<std::string, shcore::Value> m_store;
+
+  // Honors the order of the attributes when given through \query_attributes
+  std::vector<std::string> m_order;
+
+  // Used to store the list of invalid attributes
+  std::vector<std::string> m_exceeded;
+  std::vector<std::string> m_invalid_names;
+  std::vector<std::string> m_invalid_value_length;
+  std::vector<std::string> m_unsupported_type;
+};
+
 class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
  public:
   static std::shared_ptr<ShellBaseSession> wrap_session(
@@ -68,7 +107,9 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   virtual void set_current_schema(const std::string &name) = 0;
 
   virtual std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &query, const shcore::Array_t &args = {}) = 0;
+      const std::string &query, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes =
+          {}) = 0;
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;
@@ -117,6 +158,16 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
     return m_is_sql_mode_tracking_enabled;
   }
 
+  virtual std::vector<mysqlshdk::db::Query_attribute> query_attributes() const {
+    return {};
+  }
+
+  inline Query_attribute_store &query_attribute_store() {
+    return m_query_attributes;
+  }
+
+  void set_query_attributes(const shcore::Dictionary_t &attributes);
+
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 
  protected:
@@ -149,6 +200,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
                                      const shcore::Array_t &args);
 
   int _tx_deep;
+
+  Query_attribute_store m_query_attributes;
 
  private:
   void init();

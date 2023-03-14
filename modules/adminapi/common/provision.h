@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -144,6 +144,9 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  *                local_address, group_seeds, ip_whitelist, member_weight,
  *                expel_timeout, exit_state_action, and failover_consistency)
  *                when defined.
+ * @param requires_certificates If true, the server certificates (ssl_cert and
+ *                              ssl_key) are read and set in the corresponding
+ *                              'group_replication_recovery_' variables.
  * @param multi_primary optional boolean indicating the GR topology mode that
  *                      will be set. Multi-primary mode if true and
  *                      single-primary mode if false, otherwise not set.
@@ -151,6 +154,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  */
 void start_cluster(const mysqlshdk::mysql::IInstance &instance,
                    const Group_replication_options &gr_opts,
+                   bool requires_certificates,
                    std::optional<bool> multi_primary,
                    mysqlshdk::config::Config *config);
 
@@ -178,6 +182,9 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
  *                to set for the instance (i.e., ssl_mode, local_address,
  *                group_seeds, ip_whitelist, member_weight, expel_timeout,
  *                exit_state_action, and failover_consistency) when defined.
+ * @param requires_certificates If true, the server certificates (ssl_cert and
+ *                              ssl_key) are read and set in the corresponding
+ *                              'group_replication_recovery_' variables.
  * @param replicaset_size integer with the size of the cluster (before adding
  *                        the instance).
  * @param config Config object for the target instance to join the cluster.
@@ -185,6 +192,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
 void join_cluster(const mysqlshdk::mysql::IInstance &instance,
                   const mysqlshdk::mysql::IInstance &peer_instance,
                   const Group_replication_options &gr_opts,
+                  bool requires_certificates,
                   std::optional<uint64_t> cluster_size,
                   mysqlshdk::config::Config *config);
 

@@ -161,6 +161,8 @@ DESCRIPTION
         primary election on failover.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT".
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -951,6 +953,11 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - password: The password for the InnoDB cluster administrator account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
       - interactive: boolean value used to disable/enable the wizards in the
@@ -961,19 +968,22 @@ DESCRIPTION
         privileges and/or password of existing accounts. Default value is
         False.
 
-      If the user account does not exist, the password is mandatory.
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
 
       If the user account exists, the update option must be enabled.
 
       If dryRun is used, the function will display information about the
       permissions to be granted to `user` account without actually creating
-      and/or performing any changes on it.
+      and/or performing any changes to it.
 
       The interactive option can be used to explicitly enable or disable the
       interactive prompts that help the user through the account setup process.
 
-      The update option must be enabled to allow updating an existing account's
-      privileges and/or password.
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.
 
 //@<OUT> setupRouterAccount
 NAME
@@ -1006,6 +1016,11 @@ DESCRIPTION
       The options dictionary may contain the following attributes:
 
       - password: The password for the MySQL Router account.
+      - passwordExpiration: Password expiration setting for the account. May be
+        set to the number of days for expiration, 'NEVER' to disable expiration
+        and 'DEFAULT' to use the system default.
+      - requireCertIssuer: Optional SSL certificate issuer for the account.
+      - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
       - interactive: boolean value used to disable/enable the wizards in the
@@ -1016,19 +1031,22 @@ DESCRIPTION
         privileges and/or password of existing accounts. Default value is
         False.
 
-      If the user account does not exist, the password is mandatory.
+      If the user account does not exist, either the password,
+      requireCertIssuer or requireCertSubject are mandatory.
 
       If the user account exists, the update option must be enabled.
 
       If dryRun is used, the function will display information about the
       permissions to be granted to `user` account without actually creating
-      and/or performing any changes on it.
+      and/or performing any changes to it.
 
       The interactive option can be used to explicitly enable or disable the
       interactive prompts that help the user through the account setup process.
 
-      The update option must be enabled to allow updating an existing account's
-      privileges and/or password.
+      To change authentication options for an existing account, set `update` to
+      `true`. It is possible to change password without affecting certificate
+      options or vice-versa but certificate options can only be changed
+      together.
 
 //@<OUT> Rescan
 NAME
@@ -1303,15 +1321,21 @@ DESCRIPTION
 
       The clusterSetReplicationSslMode option supports the following values:
 
-      - REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
-        replication channels.
-      - DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
-        replication channels.
-      - AUTO: if used, SSL (encryption) will be enabled if supported by the
-        instance, otherwise disabled.
+      - DISABLED: TLS encryption is disabled for the ClusterSet replication
+        channels.
+      - REQUIRED: TLS encryption is enabled for the ClusterSet replication
+        channels.
+      - VERIFY_CA: like REQUIRED, but additionally verify the peer server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: like VERIFY_CA, but additionally verify that the peer
+        server certificate matches the host to which the connection is
+        attempted.
+      - AUTO: TLS encryption will be enabled if supported by the instance,
+        otherwise disabled.
 
-      If clusterSetReplicationSslMode is not specified AUTO will be used by
-      default.
+      If clusterSetReplicationSslMode is not specified, it defaults to the
+      value of the cluster's memberSslMode option.
 
 //@<OUT> getClusterSet
 NAME

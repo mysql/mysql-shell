@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -97,6 +97,8 @@ class SHCORE_PUBLIC ClassicSession
   std::shared_ptr<ClassicResult> query(const std::string &query,
                                        const shcore::Array_t &args = {});
 
+  std::vector<mysqlshdk::db::Query_attribute> query_attributes() const override;
+
   std::shared_ptr<ClassicResult> run_sql(const std::string &query,
                                          const shcore::Array_t &args = {});
 
@@ -119,7 +121,9 @@ class SHCORE_PUBLIC ClassicSession
                                int field = 0) override;
   std::string get_ssl_cipher() const override;
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &query, const shcore::Array_t &args = {}) override;
+      const std::string &query, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
+      override;
 
   socket_t _get_socket_fd() const;
 
@@ -140,6 +144,7 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult commit();
   ClassicResult rollback();
   Bool isOpen();
+  Undefined setQueryAttributes(Dictionary attributes);
 #elif DOXYGEN_PY
   str uri;      //!< Same as get_uri()
   str ssh_uri;  //!< Same as get_ssh_uri()
@@ -152,6 +157,7 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult commit();
   ClassicResult rollback();
   bool is_open();
+  None set_query_attributes(dict attributes);
 #endif
 
   bool is_open() const override;

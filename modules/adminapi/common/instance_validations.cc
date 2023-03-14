@@ -692,6 +692,7 @@ size_t check_illegal_async_channels(
 
   allowed_channels.insert("group_replication_applier");
   allowed_channels.insert("group_replication_recovery");
+  allowed_channels.insert("mysqlsh.test");
 
   auto channels = get_incoming_channels(instance);
   size_t illegal_channels = channels.size();

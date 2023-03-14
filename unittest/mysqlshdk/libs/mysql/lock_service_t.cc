@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,31 +73,31 @@ class Lock_service_test : public tests::Shell_base_test {
 };
 
 TEST_F(Lock_service_test, install_udfs) {
-  if (mysqlshdk::mysql::has_lock_service_udfs(*instance)) {
+  if (mysqlshdk::mysql::has_lock_service(*instance)) {
     // NOTE: Error issued when trying to install UDFs that already exist.
     SKIP_TEST("Lock service UDFs already installed on test server.");
   }
 
   // TEST: No lock service UDFs installed, installation should succeed.
-  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service_udfs(instance));
-  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
+  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service(*instance));
 
   // TEST: Installation succeed even if some UDFs are already installed.
   // BUG#30589080: shell fails using lock service although it could activate it.
   instance->execute("DROP FUNCTION IF EXISTS service_get_read_locks");
-  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
-  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service_udfs(instance));
-  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
+  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(*instance));
+  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service(*instance));
 
   instance->execute("DROP FUNCTION IF EXISTS service_get_write_locks");
-  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
-  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service_udfs(instance));
-  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
+  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(*instance));
+  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service(*instance));
 
   instance->execute("DROP FUNCTION IF EXISTS service_release_locks");
-  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
-  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service_udfs(instance));
-  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
+  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(*instance));
+  EXPECT_NO_THROW(mysqlshdk::mysql::install_lock_service(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::has_lock_service(*instance));
 }
 
 TEST_F(Lock_service_test, lock_erros) {
@@ -233,8 +233,8 @@ TEST_F(Lock_service_test, locks_usage) {
 }
 
 TEST_F(Lock_service_test, uninstall_udfs) {
-  EXPECT_NO_THROW(mysqlshdk::mysql::uninstall_lock_service_udfs(instance));
-  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service_udfs(*instance));
+  EXPECT_NO_THROW(mysqlshdk::mysql::uninstall_lock_service(instance));
+  EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(*instance));
 }
 
 TEST_F(Lock_service_test, has_lock_service_udfs) {
@@ -281,7 +281,7 @@ TEST_F(Lock_service_test, has_lock_service_udfs) {
           {{std::to_string(existing_udfs)}}}});
 
     // Check if lock service UDFs is installed (3 UDFs expected).
-    return mysqlshdk::mysql::has_lock_service_udfs(mock_instance);
+    return mysqlshdk::mysql::has_lock_service(mock_instance);
   };
 
   // Test similuating we are on Windows (3 UDFs expected when installed).

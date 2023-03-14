@@ -32,6 +32,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include "mysqlshdk/libs/db/row_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -162,6 +163,34 @@ void drop_table_or_view(const IInstance &instance, const std::string &schema,
   }
 }
 
+void clone_user(const IInstance &source_instance,
+                const IInstance &dest_instance, const std::string &user,
+                const std::string &host) {
+  std::string create_user = source_instance.queryf_one_string(
+      0, "", "SHOW CREATE USER ?@?", user, host);
+
+  dest_instance.execute(create_user);
+
+  std::vector<std::string> grants;
+  auto result =
+      source_instance.queryf("SHOW GRANTS FOR /*(*/ ?@? /*)*/", user, host);
+  while (auto row = result->fetch_one()) {
+    auto grant = row->get_string(0);
+    assert(shcore::str_beginswith(grant, "GRANT "));
+
+    // GRANT PROXY not supported
+    assert(!shcore::str_beginswith(grant, "GRANT PROXY"));
+    if (shcore::str_beginswith(grant, "GRANT PROXY")) continue;
+
+    // replace original user with new one
+    grants.push_back(std::move(grant));
+  }
+
+  // grant everything
+  for (const auto &grant : grants) {
+    dest_instance.execute(grant);
+  }
+}
 void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &orig_host, const std::string &new_user,
                 const std::string &new_host) {
@@ -422,65 +451,68 @@ std::string generate_password(size_t password_length) {
 }
 
 void create_user_with_random_password(
-    const IInstance &instance, const std::string &user,
+    const IInstance &instance, std::string_view user,
     const std::vector<std::string> &hosts,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    std::string *out_password, bool disable_pwd_expire) {
+    const IInstance::Create_user_options &options, std::string *out_password) {
   assert(!hosts.empty());
 
-  *out_password = generate_password();
+  auto cur_options = options;
 
-  for (int i = 0;; i++) {
+  for (int num_tries = 0;; num_tries++) {
     try {
-      instance.create_user(user, hosts.front(), *out_password, grants,
-                           disable_pwd_expire);
+      log_debug(
+          "Creating recovery account '%.*s'@'%s' with random password at '%s'",
+          static_cast<int>(user.length()), user.data(), hosts.front().c_str(),
+          instance.descr().c_str());
+
+      cur_options.password = mysqlshdk::mysql::generate_password();
+      instance.create_user(user, hosts.front(), cur_options);
       break;
     } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
       // We regenerate the password to retry
-      if (e.code() == ER_NOT_VALID_PASSWORD) {
-        if (i == kMAX_WEAK_PASSWORD_RETRIES) {
-          throw std::runtime_error(
-              "Unable to generate a password that complies with active MySQL "
-              "server password policies for account " +
-              user + "@" + hosts.front());
-        }
-        *out_password = mysqlshdk::mysql::generate_password();
-      } else {
-        throw;
+      if (e.code() != ER_NOT_VALID_PASSWORD) throw;
+
+      if (num_tries == kMAX_WEAK_PASSWORD_RETRIES) {
+        throw std::runtime_error(shcore::str_format(
+            "Unable to generate a password that complies with active MySQL "
+            "server password policies for account %.*s@%s",
+            static_cast<int>(user.length()), user.data(),
+            hosts.front().c_str()));
       }
     }
   }
 
+  if (out_password) *out_password = *cur_options.password;
+
   // subsequent user creations shouldn't fail b/c of password
-  for (size_t i = 1; i < hosts.size(); i++) {
-    instance.create_user(user, hosts[i], *out_password, grants,
-                         disable_pwd_expire);
-  }
+  for (size_t i = 1; i < hosts.size(); i++)
+    instance.create_user(user, hosts[i], cur_options);
 }
 
-void create_user_with_password(
-    const IInstance &instance, const std::string &user,
-    const std::vector<std::string> &hosts,
-    const std::vector<std::tuple<std::string, std::string, bool>> &grants,
-    const std::string &password, bool disable_pwd_expire) {
+void create_user(const IInstance &instance, std::string_view user,
+                 const std::vector<std::string> &hosts,
+                 const IInstance::Create_user_options &options) {
   assert(!hosts.empty());
 
-  for (auto &host : hosts) {
+  for (const auto &host : hosts) {
     try {
-      instance.create_user(user, host, password, grants, disable_pwd_expire);
+      log_debug("Creating recovery account '%.*s'@'%s' %s at '%s'",
+                static_cast<int>(user.length()), user.data(), host.c_str(),
+                options.password.has_value() ? "with non random password"
+                                             : "without password",
+                instance.descr().c_str());
+
+      instance.create_user(user, host, options);
     } catch (const mysqlshdk::db::Error &e) {
       // If the error is: ERROR 1819 (HY000): Your password does not satisfy
       // the current policy requirements
-      if (e.code() == ER_NOT_VALID_PASSWORD) {
-        throw std::runtime_error("Password provided for account " + user + "@" +
-                                 host +
-                                 " does not comply with active MySQL "
-                                 "server password policies");
-      } else {
-        throw;
-      }
+      if (e.code() != ER_NOT_VALID_PASSWORD) throw;
+      throw std::runtime_error(shcore::str_format(
+          "Password provided for account %.*s@%s does not comply with active "
+          "MySQL server password policies",
+          static_cast<int>(user.length()), user.data(), host.c_str()));
     }
   }
 }
@@ -807,6 +839,42 @@ bool check_indicator_tag(const mysql::IInstance &instance,
     return false;
 }
 
+/**
+ * @brief Reads server's SSL configurations to be used when it acts as a client
+ *
+ * @param instance
+ * @param set_cert true to also set server's certificate and key
+ * @return mysqlshdk::db::Ssl_options
+ */
+mysqlshdk::db::Ssl_options read_ssl_client_options(
+    const mysqlshdk::mysql::IInstance &instance, bool set_cert) {
+  mysqlshdk::db::Ssl_options ssl_options;
+
+  auto res = instance.query(
+      "SELECT @@ssl_ca, @@ssl_capath, @@ssl_cert, @@ssl_key, @@ssl_crl, "
+      "@@ssl_crlpath, @@ssl_cipher, @@tls_version "
+      "/*!80016 , @@tls_ciphersuites*/");
+  auto row = res->fetch_one_or_throw();
+
+  log_debug("SSL options for %s: %s", instance.descr().c_str(),
+            mysqlshdk::db::to_string(*row).c_str());
+
+  if (!row->is_null(0)) ssl_options.set_ca(row->get_string(0));
+  if (!row->is_null(1)) ssl_options.set_capath(row->get_string(1));
+  if (set_cert) {
+    if (!row->is_null(2)) ssl_options.set_cert(row->get_string(2));
+    if (!row->is_null(3)) ssl_options.set_key(row->get_string(3));
+  }
+  if (!row->is_null(4)) ssl_options.set_crl(row->get_string(4));
+  if (!row->is_null(5)) ssl_options.set_crlpath(row->get_string(5));
+  if (!row->is_null(6)) ssl_options.set_cipher(row->get_string(6));
+  if (!row->is_null(7)) ssl_options.set_tls_version(row->get_string(7));
+  if (row->num_fields() > 8)
+    if (!row->is_null(8)) ssl_options.set_tls_ciphersuites(row->get_string(8));
+
+  return ssl_options;
+}
+
 bool query_server_errors(
     const mysql::IInstance &instance, const std::string &start_time,
     const std::string &end_time, const std::vector<std::string> &subsystems,
@@ -851,5 +919,29 @@ bool query_server_errors(
 
   return true;
 }
+
+size_t iterate_thread_variables(
+    const mysqlshdk::mysql::IInstance &instance,
+    std::string_view thread_command, std::string_view user,
+    std::string_view var_name_filter,
+    const std::function<bool(std::string, std::string)> &cb) {
+  auto query =
+      "SELECT s.variable_name, s.variable_value FROM "
+      "performance_schema.threads t JOIN performance_schema.status_by_thread s "
+      "ON (t.thread_id = s.thread_id) WHERE (t.processlist_user = ?) AND "
+      "(t.processlist_command = ?) AND (s.variable_name LIKE ?);"_sql
+      << user << thread_command << var_name_filter;
+
+  auto result = instance.query(query.str());
+
+  size_t num_vars{0};
+  while (const auto row = result->fetch_one()) {
+    num_vars++;
+    if (!cb(row->get_string(0), row->get_string(1))) break;
+  }
+
+  return num_vars;
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

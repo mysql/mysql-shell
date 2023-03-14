@@ -206,12 +206,16 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port4}
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port4}'. Use the localAddress option to override.
 
+* Checking connectivity and SSL configuration...
+
 
 * Checking transaction state of the instance...
 
 NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
 
 Incremental state recovery selected through the recoveryMethod option
+
+* Checking connectivity and SSL configuration to PRIMARY Cluster...
 
 Creating InnoDB Cluster 'replicacluster' on '${hostname}:${__mysql_sandbox_port4}'...
 
@@ -220,6 +224,7 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
+Cluster "memberAuthType" is set to 'PASSWORD' (inherited from the ClusterSet).
 * Configuring ClusterSet managed replication channel...
 ** Changing replication source of ${hostname}:${__mysql_sandbox_port4} to ${hostname}:${__mysql_sandbox_port1}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,10 +22,12 @@
  */
 
 #include "mysqlshdk/libs/mysql/replication.h"
+
 #include <algorithm>
 #include <random>
 #include <string>
 #include <vector>
+
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/structured_text.h"
@@ -422,6 +424,57 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
   if (auto row = result->fetch_one()) {
     auto io_state = row->get_string(10);
     auto sql_state = row->get_string(11);
+
+    if (io_state == "Yes") {
+      *out_io_state = Replication_channel::Receiver::ON;
+    } else if (io_state == "No") {
+      *out_io_state = Replication_channel::Receiver::OFF;
+    } else if (io_state == "Connecting") {
+      *out_io_state = Replication_channel::Receiver::CONNECTING;
+    } else {
+      throw std::logic_error("Unexpected value for Replica_IO_Running: " +
+                             io_state);
+    }
+
+    if (sql_state == "Yes") {
+      *out_sql_state = Replication_channel::Applier::ON;
+    } else if (sql_state == "No") {
+      *out_sql_state = Replication_channel::Applier::OFF;
+    } else {
+      throw std::logic_error("Unexpected value for Replica_SQL_Running: " +
+                             sql_state);
+    }
+    return true;
+  }
+  return false;
+}
+
+bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string &channel_name,
+                       Replication_channel::Receiver::State *out_io_state,
+                       Replication_channel::Error *out_io_error,
+                       Replication_channel::Applier::State *out_sql_state,
+                       Replication_channel::Error *out_sql_error) {
+  auto result =
+      instance.queryf("SHOW " + get_replica_keyword(instance.get_version()) +
+                          " STATUS FOR CHANNEL ?",
+                      channel_name);
+
+  std::string source_column_prefix =
+      shcore::str_lower(get_replica_keyword(instance.get_version()));
+  source_column_prefix[0] = ::toupper(source_column_prefix[0]);
+
+  if (auto row = result->fetch_one_named()) {
+    auto io_state = row.get_string(source_column_prefix + "_IO_Running");
+    auto sql_state = row.get_string(source_column_prefix + "_SQL_Running");
+
+    out_io_error->code = row.get_int("Last_IO_Errno");
+    out_io_error->message = row.get_string("Last_IO_Error");
+    out_io_error->timestamp = row.get_string("Last_IO_Error_Timestamp");
+
+    out_sql_error->code = row.get_int("Last_SQL_Errno");
+    out_sql_error->message = row.get_string("Last_SQL_Error");
+    out_sql_error->timestamp = row.get_string("Last_SQL_Error_Timestamp");
 
     if (io_state == "Yes") {
       *out_io_state = Replication_channel::Receiver::ON;
@@ -970,6 +1023,13 @@ std::string get_replication_source_keyword(
   } else {
     return (command == true ? "REPLICATION SOURCE" : "SOURCE");
   }
+}
+
+std::tuple<std::string, std::string> get_replication_source_keywords(
+    const mysqlshdk::utils::Version &version) {
+  if (version < mysqlshdk::utils::Version(8, 0, 23))
+    return {"MASTER", "MASTER"};
+  return {"SOURCE", "REPLICATION SOURCE"};
 }
 
 std::string get_replication_option_keyword(

@@ -31,6 +31,7 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
@@ -94,6 +95,8 @@ void ClassicSession::init() {
   expose("startTransaction", &ClassicSession::_start_transaction);
   expose("commit", &ClassicSession::_commit);
   expose("rollback", &ClassicSession::_rollback);
+  expose("setQueryAttributes", &ClassicSession::set_query_attributes,
+         "attributes");
 
   expose("_getSocketFd", &ClassicSession::_get_socket_fd);
 }
@@ -138,6 +141,96 @@ void ClassicSession::close() {
   _session.reset();
 }
 
+REGISTER_HELP_FUNCTION(setQueryAttributes, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_SETQUERYATTRIBUTES, R"*(
+Defines query attributes that apply to the next statement sent to the server
+for execution.
+
+It is possible to define up to 32 pairs of attribute and values for the next
+executed SQL statement.
+
+To access query attributes within SQL statements for which attributes have been
+defined, the <b>query_attributes</b> component must be installed, this
+component implements a <b>mysql_query_attribute_string()</b> loadable function
+that takes an attribute name argument and returns the attribute value as a
+string, or NULL if the attribute does not exist.
+
+To install the <b>query_attributes</b> component execute the following
+statement:
+
+
+@code
+   session.<<<runSql>>>('INSTALL COMPONENT "file://component_query_attributes"');
+@endcode
+)*");
+
+/**
+ * $(CLASSICSESSION_SETQUERYATTRIBUTES_BRIEF)
+ *
+ * $(CLASSICSESSION_SETQUERYATTRIBUTES)
+ */
+#if DOXYGEN_JS
+Undefined ClassicSession::setQueryAttributes(Dictionary attributes) {}
+#elif DOXYGEN_PY
+None ClassicSession::set_query_attributes(dict attributes) {}
+#endif
+
+std::vector<mysqlshdk::db::Query_attribute> ClassicSession::query_attributes()
+    const {
+  using mysqlshdk::db::mysql::Classic_query_attribute;
+  return m_query_attributes.get_query_attributes(
+      [](const shcore::Value &att) -> std::unique_ptr<Classic_query_attribute> {
+        switch (att.type) {
+          case shcore::Value_type::String:
+            return std::make_unique<Classic_query_attribute>(*att.value.s);
+          case shcore::Value_type::Bool:
+            return std::make_unique<Classic_query_attribute>(att.as_int());
+          case shcore::Value_type::Integer:
+            return std::make_unique<Classic_query_attribute>(att.value.i);
+          case shcore::Value_type::Float:
+            return std::make_unique<Classic_query_attribute>(att.value.d);
+          case shcore::Value_type::UInteger:
+            return std::make_unique<Classic_query_attribute>(att.value.ui);
+          case shcore::Value_type::Null:
+            return std::make_unique<Classic_query_attribute>();
+          case shcore::Value_type::Object: {
+            auto date = att.as_object<Date>();
+            // Only the date object is supported
+            if (date) {
+              MYSQL_TIME time;
+              time.year = date->get_year();
+              time.month = date->get_month();
+              time.day = date->get_day();
+              time.hour = date->get_hour();
+              time.minute = date->get_min();
+              time.second = date->get_sec();
+              time.second_part = date->get_usec();
+
+              enum_field_types type = MYSQL_TYPE_TIMESTAMP;
+              time.time_type = MYSQL_TIMESTAMP_DATETIME;
+              if (date->has_date()) {
+                if (!date->has_time()) {
+                  type = MYSQL_TYPE_DATE;
+                  time.time_type = MYSQL_TIMESTAMP_DATE;
+                }
+              } else {
+                type = MYSQL_TYPE_TIME;
+                time.time_type = MYSQL_TIMESTAMP_TIME;
+              }
+              return std::make_unique<Classic_query_attribute>(time, type);
+            }
+            break;
+          }
+          default:
+            // This should never happen
+            assert(false);
+            break;
+        }
+
+        return {};
+      });
+}
+
 REGISTER_HELP_FUNCTION(runSql, ClassicSession);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_RUNSQL, R"*(
 Executes a query and returns the corresponding ClassicResult object.
@@ -172,8 +265,11 @@ std::shared_ptr<ClassicResult> ClassicSession::run_sql(
   } else {
     Interruptible intr(this);
 
+    shcore::Scoped_callback finally(
+        [this]() { query_attribute_store().clear(); });
+
     auto cresult = std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
-        execute_sql(query, args));
+        execute_sql(query, args, query_attributes()));
 
     ret_val = std::make_shared<ClassicResult>(cresult);
   }
@@ -216,7 +312,8 @@ std::shared_ptr<ClassicResult> ClassicSession::query(
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(
-    const std::string &query, const shcore::Array_t &args) {
+    const std::string &query, const shcore::Array_t &args,
+    const std::vector<mysqlshdk::db::Query_attribute> &query_attributes) {
   std::shared_ptr<mysqlshdk::db::IResult> result;
   if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
@@ -226,7 +323,8 @@ std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(
     } else {
       Interruptible intr(this);
       try {
-        result = _session->query(sub_query_placeholders(query, args));
+        result = _session->query(sub_query_placeholders(query, args), false,
+                                 query_attributes);
       } catch (const mysqlshdk::db::Error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());

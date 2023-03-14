@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,6 +113,17 @@ class Create_cluster : public Command_interface {
    */
   void finish() override;
 
+  /**
+   * Returns the communication stack with which the cluster will be created.
+   *
+   * NOTE: this should only be called after calling prepare() to make sure
+   * that, if the default is "mysql" (e.g.: the version allows it), it is
+   * properly returned.
+   *
+   * @return The communication stack intended for the new cluster.
+   */
+  std::string get_communication_stack() const;
+
  private:
   std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
@@ -122,6 +133,7 @@ class Create_cluster : public Command_interface {
   bool m_retrying = false;
   std::string m_address_in_metadata;
   bool m_create_replica_cluster = false;
+  mysqlshdk::mysql::Lock_scoped_list m_instance_locks;
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
@@ -138,6 +150,7 @@ class Create_cluster : public Command_interface {
                                        const Cluster_impl &cluster);
   void reset_recovery_all(Cluster_impl *cluster);
   void persist_sro_all(Cluster_impl *cluster);
+  void lock_all_instances();
 
   /**
    * This method validates the use of IPv6 addresses on the localAddress of the

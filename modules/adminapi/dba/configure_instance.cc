@@ -32,6 +32,7 @@
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/mod_utils.h"
@@ -335,7 +336,7 @@ void Configure_instance::check_create_admin_user() {
     }
 
     if (cluster_admin_user_exists) {
-      if (!m_options.cluster_admin_password.is_null()) {
+      if (m_options.cluster_admin_password.has_value()) {
         throw shcore::Exception::argument_error(
             "The " + m_options.cluster_admin +
             " account already exists, clusterAdminPassword is not allowed for "
@@ -373,7 +374,7 @@ void Configure_instance::check_create_admin_user() {
       if (m_current_user == admin_user) {
         m_options.cluster_admin_password =
             m_target_instance->get_connection_options().get_password();
-      } else if (m_options.cluster_admin_password.is_null()) {
+      } else if (!m_options.cluster_admin_password.has_value()) {
         if (m_options.interactive()) {
           m_options.cluster_admin_password = prompt_new_account_password();
         } else {
@@ -387,6 +388,44 @@ void Configure_instance::check_create_admin_user() {
   }
 }
 
+namespace {
+void create_cluster_admin_user(mysqlshdk::mysql::IInstance *instance,
+                               Cluster_type purpose,
+                               const std::string &username,
+                               const std::string &password,
+                               const std::string &cert_issuer,
+                               const std::string &cert_subject,
+                               std::optional<int64_t> password_expiration) {
+  std::string user, host;
+  shcore::split_account(username, &user, &host);
+
+  Setup_account_options account_options;
+  account_options.password = password;
+  account_options.require_cert_issuer = cert_issuer;
+  account_options.require_cert_subject = cert_subject;
+  account_options.password_expiration = password_expiration;
+
+  // We're not checking if the current user has enough privileges to create
+  // a cluster admin here, because such check should be performed before
+  // calling this function. If the current user doesn't have the right
+  // privileges to create a cluster admin, one of the SQL statements below
+  // will throw.
+
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
+  log_info("Creating account %s", username.c_str());
+
+  Setup_account op_setup(user, host, account_options,
+                         create_admin_grants(username, instance->get_version()),
+                         *instance, purpose);
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
+  // Prepare the setup_account execution
+  op_setup.prepare();
+  // Execute the setup_account command.
+  op_setup.execute();
+}
+}  // namespace
+
 /*
  * Creates the clusterAdmin account.
  *
@@ -394,35 +433,23 @@ void Configure_instance::check_create_admin_user() {
  */
 void Configure_instance::create_admin_user() {
   if (m_create_cluster_admin) {
-    std::string admin_user, admin_user_host;
-    shcore::split_account(m_options.cluster_admin, &admin_user,
-                          &admin_user_host);
     try {
       assert(!m_current_user.empty());
 
-      if (admin_user == m_current_user) {
-        log_info("Cloning current user account %s@%s as %s",
-                 m_current_user.c_str(), m_current_host.c_str(),
-                 m_options.cluster_admin.c_str());
-        mysqlshdk::mysql::Suppress_binary_log nobinlog(m_target_instance.get());
-        mysqlshdk::mysql::clone_user(
-            *m_target_instance, m_current_user, m_current_host, admin_user,
-            admin_user_host, *m_options.cluster_admin_password);
-      } else {
-        log_info("Creating new cluster admin account %s",
-                 m_options.cluster_admin.c_str());
-        create_cluster_admin_user(*m_target_instance, m_options.cluster_admin,
-                                  *m_options.cluster_admin_password);
-      }
+      log_info("Creating new cluster admin account %s",
+               m_options.cluster_admin.c_str());
+      create_cluster_admin_user(
+          m_target_instance.get(), m_purpose, m_options.cluster_admin,
+          m_options.cluster_admin_password.value_or(""),
+          m_options.cluster_admin_cert_issuer.value_or(""),
+          m_options.cluster_admin_cert_subject.value_or(""),
+          m_options.cluster_admin_password_expiration);
     } catch (const shcore::Exception &err) {
       std::string error_msg = "Error creating clusterAdmin account: '" +
                               m_options.cluster_admin +
                               "', with error: " + err.what();
       throw shcore::Exception::runtime_error(error_msg);
     }
-
-    mysqlsh::current_console()->print_info(
-        "Cluster admin user " + m_options.cluster_admin + " created.");
   }
 }
 
@@ -641,19 +668,36 @@ void Configure_instance::prepare() {
 
     if (!m_options.cluster_admin.empty()) {
       throw shcore::Exception::argument_error(
-          "The clusterAdmin option is not allowed for instances already "
-          "belonging to an InnoDB " +
+          "The " + std::string(kClusterAdmin) +
+          " option is not allowed for instances already belonging to an "
+          "InnoDB " +
           cluster_type + ".");
     }
 
     m_create_cluster_admin = false;
   }
 
-  if (m_options.cluster_admin.empty() &&
-      !m_options.cluster_admin_password.is_null()) {
-    throw shcore::Exception::argument_error(
-        "The clusterAdminPassword is allowed only if clusterAdmin is "
-        "specified.");
+  if (m_options.cluster_admin.empty()) {
+    if (m_options.cluster_admin_password.has_value())
+      throw shcore::Exception::argument_error(
+          "The " + std::string(kClusterAdminPassword) +
+          " option is allowed only if " + std::string(kClusterAdmin) +
+          " is specified.");
+    if (m_options.cluster_admin_cert_issuer.has_value())
+      throw shcore::Exception::argument_error(
+          "The " + std::string(kClusterAdminCertIssuer) +
+          " option is allowed only if " + std::string(kClusterAdmin) +
+          " is specified.");
+    if (m_options.cluster_admin_cert_subject.has_value())
+      throw shcore::Exception::argument_error(
+          "The " + std::string(kClusterAdminCertSubject) +
+          " option is allowed only if " + std::string(kClusterAdmin) +
+          " is specified.");
+    if (m_options.cluster_admin_password_expiration.has_value())
+      throw shcore::Exception::argument_error(
+          "The " + std::string(kClusterAdminPasswordExpiration) +
+          " option is allowed only if " + std::string(kClusterAdmin) +
+          " is specified.");
   }
 
   // Check if the target instance is local
@@ -714,7 +758,8 @@ void Configure_instance::prepare() {
   // ReplicaSet
   if (m_instance_type != TargetType::InnoDBCluster &&
       m_instance_type != TargetType::AsyncReplicaSet) {
-    check_lock_service();
+    m_install_lock_service =
+        !mysqlshdk::mysql::has_lock_service(*m_target_instance);
   }
 
   ensure_instance_address_usable();
@@ -764,21 +809,21 @@ void Configure_instance::prepare() {
       }
     }
 
-    if (m_can_restart && m_needs_restart && m_options.restart.is_null()) {
+    if (m_can_restart && m_needs_restart && !m_options.restart.has_value()) {
       if (m_needs_configuration_update) {
         if (console->confirm(
                 "Do you want to restart the instance after configuring it?",
                 Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = mysqlshdk::utils::nullable<bool>(true);
+          m_options.restart = std::optional<bool>(true);
         } else {
-          m_options.restart = mysqlshdk::utils::nullable<bool>(false);
+          m_options.restart = std::optional<bool>(false);
         }
       } else {
         if (console->confirm("Do you want to restart the instance now?",
                              Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = mysqlshdk::utils::nullable<bool>(true);
+          m_options.restart = std::optional<bool>(true);
         } else {
-          m_options.restart = mysqlshdk::utils::nullable<bool>(true);
+          m_options.restart = std::optional<bool>(true);
         }
       }
     }
@@ -804,8 +849,8 @@ shcore::Value Configure_instance::execute() {
   auto console = mysqlsh::current_console();
   {
     bool need_restore = false;
-    if ((m_install_lock_service_udfs || m_create_cluster_admin)) {
-      need_restore = clear_super_read_only();
+    if (m_install_lock_service || m_create_cluster_admin) {
+      need_restore = clear_super_read_only(!m_create_cluster_admin);
     }
 
     shcore::on_leave_scope reset_read_only([this, need_restore]() {
@@ -815,11 +860,7 @@ shcore::Value Configure_instance::execute() {
     // Acquire required locks on target instance (check user privileges first).
     // No "write" operation allowed to be executed concurrently on the target
     // instance.
-    m_target_instance->get_lock_exclusive();
-
-    // Always release locks at the end, when leaving the function scope.
-    auto finally =
-        shcore::on_leave_scope([this]() { m_target_instance->release_lock(); });
+    auto i_lock = m_target_instance->get_lock_exclusive();
 
     // Handle the clusterAdmin account creation
     if (m_create_cluster_admin) {
@@ -895,7 +936,7 @@ shcore::Value Configure_instance::execute() {
 
   if (m_needs_restart) {
     // We can restart and user wants to restart
-    if (m_can_restart && !m_options.restart.is_null() && *m_options.restart) {
+    if (m_can_restart && m_options.restart.value_or(false)) {
       try {
         console->print_info("Restarting MySQL...");
 
@@ -928,23 +969,30 @@ shcore::Value Configure_instance::execute() {
   return shcore::Value();
 }
 
-bool Configure_instance::clear_super_read_only() {
+bool Configure_instance::clear_super_read_only(bool silent_fail) {
   // Check super_read_only
   // NOTE: this is left for last to avoid setting super_read_only to true
   // and right before some execution failure of the command leaving the
   // instance in an incorrect state
 
   // Handle clear_read_only interaction
-  bool super_read_only = validate_super_read_only(
-      *m_target_instance, m_options.clear_read_only, false);
-  // If super_read_only was disabled, print the information
-  if (super_read_only) {
-    mysqlsh::current_console()->print_info(
-        "Disabled super_read_only on the instance '" +
-        m_target_instance->descr() + "'");
-    return true;
+  try {
+    bool super_read_only = validate_super_read_only(
+        *m_target_instance, m_options.clear_read_only, false);
+
+    // If super_read_only was disabled, print the information
+    if (super_read_only) {
+      mysqlsh::current_console()->print_info(
+          "Disabled super_read_only on the instance '" +
+          m_target_instance->descr() + "'");
+      return true;
+    }
+    return false;
+
+  } catch (const shcore::Exception &) {
+    if (silent_fail) return false;
+    throw;
   }
-  return false;
 }
 
 void Configure_instance::restore_super_read_only() {
@@ -957,11 +1005,6 @@ void Configure_instance::restore_super_read_only() {
     m_target_instance->set_sysvar("super_read_only", "ON",
                                   mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }
-}
-
-void Configure_instance::check_lock_service() {
-  m_install_lock_service_udfs =
-      mysqlshdk::mysql::has_lock_service_udfs(*m_target_instance);
 }
 
 }  // namespace dba

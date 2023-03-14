@@ -166,6 +166,49 @@ std::unique_ptr<mysqlshdk::aws::S3_bucket> s3_bucket(
   }
 }
 
+void update_root_user_password(mysqlshdk::db::ISession *session,
+                               const std::string &rootpass) {
+  session->execute("SET sql_log_bin = 0");
+
+  auto stmt = "ALTER USER 'root'@'localhost' IDENTIFIED BY ?"_sql << rootpass;
+  session->execute(stmt.str_view());
+
+  session->execute("SET sql_log_bin = 1");
+}
+
+void handle_remote_root_user(const std::string &rootpass,
+                             mysqlshdk::db::ISession *session,
+                             bool create_remote_root = true) {
+  // Connect to sandbox using default root@localhost account.
+
+  // Create root user to allow access using other hostnames, otherwise only
+  // access through 'localhost' will be allowed leading to access denied
+  // errors if the reported replication host (from the metadata) is used.
+  // By default, create_remote_root = true.
+  if (create_remote_root) {
+    session->execute("SET sql_log_bin = 0");
+
+    std::string remote_root = "%";
+    shcore::sqlstring create_user(
+        "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
+    create_user << remote_root << rootpass;
+    create_user.done();
+    session->execute(create_user.str_view());
+
+    shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
+    grant << remote_root;
+    grant.done();
+    session->execute(grant.str_view());
+
+    session->execute("SET sql_log_bin = 1");
+  } else {
+    // Drop the user in case it already exists (copied from boilerplate).
+    session->execute("SET sql_log_bin = 0");
+    session->execute("DROP USER IF EXISTS 'root'@'%'");
+    session->execute("SET sql_log_bin = 1");
+  }
+}
+
 }  // namespace
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -230,11 +273,11 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("waitForReplConnectionError",
          &Testutils::wait_for_repl_connection_error, "port", "?channel",
          "group_replication_recovery");
-  expose("waitForRplApplierError", &Testutils::wait_for_rpl_applier_error,
+  expose("waitForReplApplierError", &Testutils::wait_for_repl_applier_error,
          "port", "?channel", "");
   expose("injectGtidSet", &Testutils::inject_gtid_set, "port", "gtidset");
 
-  expose("stopGroup", &Testutils::stop_group, "ports");
+  expose("stopGroup", &Testutils::stop_group, "ports", "?rootpass");
 
   expose("expectPrompt", &Testutils::expect_prompt, "prompt", "value",
          "?options");
@@ -303,9 +346,9 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   // expose("slowify", &Testutils::slowify, "port", "start");
   expose("bp", &Testutils::bp, "flag");
 
-  expose("sslCreateCa", &Testutils::ssl_create_ca, "name");
-  expose("sslCreateCerts", &Testutils::ssl_create_certs, "sbport", "caname",
-         "servercn", "clientcn");
+  expose("sslCreateCa", &Testutils::ssl_create_ca, "name", "issuer");
+  expose("sslCreateCert", &Testutils::ssl_create_cert, "name", "caname", "subj",
+         "?sbport", 0);
 
   expose("validateOciConfig", &Testutils::validate_oci_config);
   expose("getOciConfig", &Testutils::get_oci_config);
@@ -1052,6 +1095,7 @@ void Testutils::wait_replication_channel_state(int port,
  * Parallel stop group_replication in all given sandboxes
  *
  * @param ports List of sandbox ports
+ * @param rootpass The password to be used for the root user.
  */
 #if DOXYGEN_JS
 Undefined Testutils::stopGroup(Array ports);
@@ -1059,18 +1103,19 @@ Undefined Testutils::stopGroup(Array ports);
 None Testutils::stop_group(list ports)
 #endif
 ///@}
-void Testutils::stop_group(const shcore::Array_t &ports) {
+void Testutils::stop_group(const shcore::Array_t &ports,
+                           const std::string &root_pass) {
   std::vector<std::thread> workers;
   std::atomic<int> current = 0;
 
   for (const auto &port : *ports) {
-    workers.push_back(
-        mysqlsh::spawn_scoped_thread([p = port.as_int(), ports, &current]() {
+    workers.push_back(mysqlsh::spawn_scoped_thread(
+        [p = port.as_int(), ports, &current, &root_pass]() {
           mysqlsh::thread_init();
 
           mysqlshdk::db::Connection_options cnx_opt;
           cnx_opt.set_user("root");
-          cnx_opt.set_password("root");
+          cnx_opt.set_password(root_pass.empty() ? "root" : root_pass);
           cnx_opt.set_host("localhost");
           cnx_opt.set_port(p);
           auto session = mysqlshdk::db::mysql::Session::create();
@@ -1080,7 +1125,11 @@ void Testutils::stop_group(const shcore::Array_t &ports) {
           }
           session->connect(cnx_opt);
           ++current;
-          session->execute("stop group_replication");
+          try {
+            session->execute("stop group_replication");
+          } catch (const shcore::Error &e) {
+            std::cerr << "STOP GR@" << p << ": " << e.format() << "\n";
+          }
 
           session->close();
 
@@ -1453,32 +1502,41 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   }
 
   _passwords[port] = rootpass;
+
+  if (_skip_server_interaction) return;
+
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_skip_server_interaction) {
-    wait_sandbox_dead(port);
 
-    // Sandbox from a boilerplate
-    if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      if (!deploy_sandbox_from_boilerplate(port, my_cnf_options, false,
-                                           mysqld_path)) {
-        std::cerr << "Unable to deploy boilerplate sandbox\n";
-        abort();
-      }
-    } else {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
-    }
+  // NOTE: we cannot yet record the correct password because this password is
+  // used by several methods to access the sandbox. Since we need to create the
+  // sandbox with "root", we must, for now, also store "root" as the password
+  // for this port.
+  if (k_boilerplate_root_password != rootpass)
+    _passwords[port] = k_boilerplate_root_password;
 
-    {
-      auto session = connect_to_sandbox(port);
-      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+  wait_sandbox_dead(port);
 
-      _general_log_files[port] = session->query("select @@general_log_file")
-                                     ->fetch_one_or_throw()
-                                     ->get_string(0);
-    }
+  // Sandbox from a boilerplate (always start with root password)
+  prepare_sandbox_boilerplate(port, mysqld_path);
+  deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
+
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  if (k_boilerplate_root_password == rootpass) {
+    session = connect_to_sandbox(port);
+
+    handle_remote_root_user(k_boilerplate_root_password, session.get(),
+                            create_remote_root);
+  } else {
+    session = connect_to_sandbox(port, k_boilerplate_root_password);
+    _passwords[port] = rootpass;  // store the correct password
+
+    update_root_user_password(session.get(), rootpass);
+    handle_remote_root_user(rootpass, session.get(), create_remote_root);
   }
+
+  _general_log_files[port] = session->query("select @@general_log_file")
+                                 ->fetch_one_or_throw()
+                                 ->get_string(0);
 }
 
 //!<  @name Sandbox Operations
@@ -1512,33 +1570,42 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
   }
 
   _passwords[port] = rootpass;
+
+  if (_skip_server_interaction) return;
+
   mysqlshdk::db::replay::No_replay dont_record;
-  if (!_skip_server_interaction) {
-    wait_sandbox_dead(port);
-    // Sandbox from a boilerplate
-    if (k_boilerplate_root_password == rootpass) {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      wait_sandbox_dead(port);
-      if (!deploy_sandbox_from_boilerplate(port, my_cnf_opts, true,
-                                           mysqld_path)) {
-        std::cerr << "Unable to deploy boilerplate sandbox\n";
-        abort();
-      }
-    } else {
-      prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
-      wait_sandbox_dead(port);
-      deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
-    }
 
-    {
-      auto session = connect_to_sandbox(port);
-      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+  // NOTE: we cannot yet record the correct password because this password is
+  // used by several methods to access the sandbox. Since we need to create the
+  // sandbox with "root", we must, for now, also store "root" as the password
+  // for this port.
+  if (k_boilerplate_root_password != rootpass)
+    _passwords[port] = k_boilerplate_root_password;
 
-      _general_log_files[port] = session->query("select @@general_log_file")
-                                     ->fetch_one_or_throw()
-                                     ->get_string(0);
-    }
+  wait_sandbox_dead(port);
+
+  // Sandbox from a boilerplate (always start with root password)
+  prepare_sandbox_boilerplate(port, mysqld_path);
+  wait_sandbox_dead(port);
+  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
+
+  std::shared_ptr<mysqlshdk::db::ISession> session;
+  if (k_boilerplate_root_password == rootpass) {
+    session = connect_to_sandbox(port);
+
+    handle_remote_root_user(k_boilerplate_root_password, session.get(),
+                            create_remote_root);
+  } else {
+    session = connect_to_sandbox(port, k_boilerplate_root_password);
+    _passwords[port] = rootpass;  // store the correct password
+
+    update_root_user_password(session.get(), rootpass);
+    handle_remote_root_user(rootpass, session.get(), create_remote_root);
   }
+
+  _general_log_files[port] = session->query("select @@general_log_file")
+                                 ->fetch_one_or_throw()
+                                 ->get_string(0);
 }
 
 //!<  @name Sandbox Operations
@@ -1983,49 +2050,47 @@ bool Testutils::is_port_available_for_sandbox_to_bind(int port) const {
 
   if (result != 0) throw mysqlshdk::utils::net_error(gai_strerror(result));
 
-  if (info != nullptr) {
-    std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
-    // initialize socket
-    int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+  if (!info) throw std::runtime_error("Could not resolve address 0.0.0.0");
+
+  std::unique_ptr<addrinfo, void (*)(addrinfo *)> deleter{info, freeaddrinfo};
+  // initialize socket
+  int sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 #ifndef _WIN32
-    const int socket_error = -1;
+  const int socket_error = -1;
 #else
-    const int socket_error = INVALID_SOCKET;
+  const int socket_error = INVALID_SOCKET;
 #endif
-    if (sock == socket_error) {
-      throw std::runtime_error("Could not create socket: " +
+  if (sock == socket_error) {
+    throw std::runtime_error("Could not create socket: " +
+                             shcore::errno_to_string(errno));
+  }
+  for (p = info; p != nullptr; p = p->ai_next) {
+#ifndef _WIN32
+    const int opt_val = 1;
+#else
+    const char opt_val = 0;
+#endif
+    // set socket as reusable for non windows systems since according to
+    // sql/conn_handler/socket_connection.cc:383 mysqld doesn't set
+    // SO_REUSEADDR for Windows.
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val) <
+        0) {
+      throw std::runtime_error("Could not set socket as reusable: " +
                                shcore::errno_to_string(errno));
     }
-    for (p = info; p != nullptr; p = p->ai_next) {
-#ifndef _WIN32
-      const int opt_val = 1;
-#else
-      const char opt_val = 0;
-#endif
-      // set socket as reusable for non windows systems since according to
-      // sql/conn_handler/socket_connection.cc:383 mysqld doesn't set
-      // SO_REUSEADDR for Windows.
-      if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val) <
-          0) {
-        throw std::runtime_error("Could not set socket as reusable: " +
-                                 shcore::errno_to_string(errno));
-      }
-      if (bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
-        // cannot bind
-        return false;
-      } else {
+    if (bind(sock, p->ai_addr, p->ai_addrlen) != 0) {
+      // cannot bind
+      return false;
+    } else {
 #ifdef _WIN32
-        closesocket(sock);
+      closesocket(sock);
 #else
-        close(sock);
+      close(sock);
 #endif
-      }
     }
-    // could bind on all
-    return true;
-  } else {
-    throw std::runtime_error("Could not resolve address 0.0.0.0");
   }
+  // could bind on all
+  return true;
 }
 
 void Testutils::wait_until_file_lock_released(const std::string &filepath,
@@ -2558,13 +2623,13 @@ int Testutils::wait_for_repl_connection_error(int port,
  * Waits until the given rpl applier channel stops and errors out.
  */
 #if DOXYGEN_JS
-Undefined Testutils::waitForRplApplierError(Integer port, String channel);
+Undefined Testutils::waitForReplApplierError(Integer port, String channel);
 #elif DOXYGEN_PY
-None Testutils::wait_for_rpl_applier_error(int port, str channel);
+None Testutils::wait_for_repl_applier_error(int port, str channel);
 #endif
 ///@}
-int Testutils::wait_for_rpl_applier_error(int port,
-                                          const std::string &channel) {
+int Testutils::wait_for_repl_applier_error(int port,
+                                           const std::string &channel) {
   int elapsed_time = 0;
   int last_error_num = 0;
   std::shared_ptr<mysqlshdk::db::ISession> session = connect_to_sandbox(port);
@@ -3172,61 +3237,62 @@ void Testutils::dprint(const std::string &s) {
  * Generates a named CA that can be used to create certificates.
  *
  * @param name a name for the CA to be created
+ * @param isuer string to be used for the subject field
  */
 #if DOXYGEN_JS
-Undefined Testutils::sslCreateCa(String s);
+String Testutils::sslCreateCa(String s, String issuer);
 #elif DOXYGEN_PY
-None Testutils::ssl_create_ca(str s);
+str Testutils::ssl_create_ca(str s, String issuer);
 #endif
 ///@}
-void Testutils::ssl_create_ca(const std::string &name) {
-  if (!_skip_server_interaction) {
-    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
-    if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
+std::string Testutils::ssl_create_ca(const std::string &name,
+                                     const std::string &issuer) {
+  if (_skip_server_interaction) return {};
 
-    std::string key_path = shcore::path::join_path(basedir, name + "-key.pem");
-    std::string req_path = shcore::path::join_path(basedir, name + "-req.pem");
-    std::string ca_path = shcore::path::join_path(basedir, name + ".pem");
+  std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+  if (!shcore::path_exists(basedir)) shcore::create_directory(basedir);
 
-    std::string cmd;
+  std::string key_path = shcore::path::join_path(basedir, name + "-key.pem");
+  std::string req_path = shcore::path::join_path(basedir, name + "-req.pem");
+  std::string ca_path = shcore::path::join_path(basedir, name + ".pem");
 
-    std::string cav3_ext = shcore::path::join_path(basedir, "cav3.ext");
-    std::string certv3_ext = shcore::path::join_path(basedir, "certv3.ext");
-    shcore::delete_file(cav3_ext);
-    shcore::delete_file(certv3_ext);
+  std::string cav3_ext = shcore::path::join_path(basedir, "cav3.ext");
+  std::string certv3_ext = shcore::path::join_path(basedir, "certv3.ext");
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
 
-    shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
-    shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
 
-    std::string keyfmt =
-        "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
-        "-subj /CN=A_test_CA_called_$cn$ -out $ca-req.pem$ "
-        "&& openssl rsa -in $ca-key.pem$ -out $ca-key.pem$";
+  std::string_view keyfmt =
+      "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $ca-key.pem$ "
+      "-subj $subj$ -out $ca-req.pem$ && openssl rsa -in $ca-key.pem$ -out "
+      "$ca-key.pem$";
 
-    cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path.c_str());
-    cmd = shcore::str_replace(cmd, "$cn$", name.c_str());
-    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
+  std::string cmd;
+  cmd = shcore::str_replace(keyfmt, "$ca-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$subj$", issuer);
+  cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path);
 
-    dprint("-> " + cmd);
-    if (system(cmd.c_str()) != 0)
-      throw std::runtime_error("CA creation failed");
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0) throw std::runtime_error("CA creation failed");
 
-    std::string certfmt =
-        "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -CAcreateserial "
-        "-req -in $ca-req.pem$ -signkey $ca-key.pem$ -out $ca.pem$";
-    cmd = shcore::str_replace(certfmt, "$ca-key.pem$", key_path.c_str());
-    cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path.c_str());
-    cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
-    cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
+  std::string_view certfmt =
+      "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -CAcreateserial "
+      "-req -in $ca-req.pem$ -signkey $ca-key.pem$ -out $ca.pem$";
+  cmd = shcore::str_replace(certfmt, "$ca-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$ca-req.pem$", req_path);
+  cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path);
+  cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext);
 
-    dprint("-> " + cmd);
-    if (system(cmd.c_str()) != 0)
-      throw std::runtime_error("CA creation failed");
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0) throw std::runtime_error("CA creation failed");
 
-    shcore::delete_file(req_path);
-    shcore::delete_file(cav3_ext);
-    shcore::delete_file(certv3_ext);
-  }
+  shcore::delete_file(req_path);
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
+
+  return ca_path;
 }
 
 //!<  @name Testing Utilities
@@ -3234,98 +3300,90 @@ void Testutils::ssl_create_ca(const std::string &name) {
 /**
  * Generats client and server certs signed by the named CA.
  *
- * @param sbport port of the sandbox that will use the certificates
+ * @param name name of the certificate to generate
  * @param caname the name of the CA as given to sslCreateCa
- * @param servercn the CN to be used for the server certificate
- * @param clientcn the CN to be used for the client certificate
+ * @param subj the subject text to be used for the certificate
+ * @param sbport port of the sandbox that will use the certificates or 0
  *
- * Both client and server certificates signed by the CA that was given will
- * be created and replace the equivalent ones in the given sandbox.
+ * A certificates signed by the CA that was given will be created and be placed
+ * in the given sandbox.
  *
  * The sandbox must be restarted for the changes to take effect.
  *
  * Output is enabled if tracing is enabled.
  */
 #if DOXYGEN_JS
-Undefined Testutils::sslCreateCerts(Integer sbport, String caname,
-                                    String servercn, String clientcn);
+String Testutils::sslCreateCert(String name, String caname, String subj,
+                                Integer sbport);
 #elif DOXYGEN_PY
-None Testutils::ssl_create_certs(int sbport, str caname, str servercn,
-                                 str clientcn);
+str Testutils::ssl_create_cert(str name, str caname, str subj, int sbport);
 #endif
 ///@}
-void Testutils::ssl_create_certs(int sbport, const std::string &caname,
-                                 const std::string &servercn,
-                                 const std::string &clientcn) {
-  if (!_skip_server_interaction) {
-    std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
-    std::string sbdir = get_sandbox_datadir(sbport);
+std::string Testutils::ssl_create_cert(const std::string &name,
+                                       const std::string &caname,
+                                       const std::string &subj, int sbport) {
+  if (_skip_server_interaction) return {};
 
-    std::string ca_key_path =
-        shcore::path::join_path(basedir, caname + "-key.pem");
-    std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
+  std::string basedir = shcore::path::join_path(_sandbox_dir, "ssl");
+  std::string sbdir = sbport == 0 ? basedir : get_sandbox_datadir(sbport);
 
+  std::string ca_key_path =
+      shcore::path::join_path(basedir, caname + "-key.pem");
+  std::string ca_path = shcore::path::join_path(basedir, caname + ".pem");
+
+  if (sbport != 0) {
     // first copy the CA to the target dir
     shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca.pem"));
-    // Note: in reality, I don't think we would deploy the CA key too, but we do
-    // to overwrite the one generated by default
+    // Note: in reality, I don't think we would deploy the CA key too, but we
+    // do to overwrite the one generated by default
     shcore::copy_file(ca_path, shcore::path::join_path(sbdir, "ca-key.pem"));
-
-    auto mkcert = [&](const std::string &name, const std::string &cn) {
-      std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
-      std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
-      std::string cert_path =
-          shcore::path::join_path(sbdir, name + "-cert.pem");
-
-      std::string cmd;
-
-      std::string cav3_ext = shcore::path::join_path(sbdir, "cav3.ext");
-      std::string certv3_ext = shcore::path::join_path(sbdir, "certv3.ext");
-      shcore::delete_file(cav3_ext);
-      shcore::delete_file(certv3_ext);
-
-      shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
-      shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
-
-      std::string keyfmt =
-          "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout "
-          "$cert-key.pem$ "
-          "-subj '/CN=$cn$' -out $cert-req.pem$ "
-          "&& openssl rsa -in $cert-key.pem$ -out $cert-key.pem$";
-
-      cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cn$", cn.c_str());
-      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
-
-      dprint("-> " + cmd);
-      if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("CA creation failed");
-
-      std::string certfmt =
-          "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ "
-          "-req -in $cert-req.pem$ -CA $ca.pem$ -CAkey $ca-key.pem$ "
-          "-CAcreateserial -out $cert.pem$";
-      cmd = shcore::str_replace(certfmt, "$ca-key.pem$", ca_key_path.c_str());
-      cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cert.pem$", cert_path.c_str());
-      cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext.c_str());
-
-      dprint("-> " + cmd);
-      if (system(cmd.c_str()) != 0)
-        throw std::runtime_error("CA creation failed");
-
-      shcore::delete_file(req_path);
-      shcore::delete_file(cav3_ext);
-      shcore::delete_file(certv3_ext);
-    };
-
-    // then generate the server certs
-    mkcert("server", servercn);
-
-    // and finally the client certs
-    mkcert("client", clientcn);
   }
+
+  std::string key_path = shcore::path::join_path(sbdir, name + "-key.pem");
+  std::string req_path = shcore::path::join_path(sbdir, name + "-req.pem");
+  std::string cert_path = shcore::path::join_path(sbdir, name + "-cert.pem");
+
+  std::string cav3_ext = shcore::path::join_path(sbdir, "cav3.ext");
+  std::string certv3_ext = shcore::path::join_path(sbdir, "certv3.ext");
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
+
+  shcore::create_file(cav3_ext, "basicConstraints=CA:TRUE\n");
+  shcore::create_file(certv3_ext, "basicConstraints=CA:TRUE\n");
+
+  std::string_view keyfmt =
+      "openssl req -newkey rsa:2048 -days 3650 -nodes -keyout $cert-key.pem$ "
+      "-subj '$subj$' -out $cert-req.pem$ && openssl rsa -in $cert-key.pem$ "
+      "-out $cert-key.pem$";
+
+  std::string cmd;
+  cmd = shcore::str_replace(keyfmt, "$cert-key.pem$", key_path);
+  cmd = shcore::str_replace(cmd, "$subj$", subj);
+  cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path);
+
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0)
+    throw std::runtime_error("cert creation failed");
+
+  std::string_view certfmt =
+      "openssl x509 -sha256 -days 3650 -extfile $cav3.ext$ -req -in "
+      "$cert-req.pem$ -CA $ca.pem$ -CAkey $ca-key.pem$ -CAcreateserial -out "
+      "$cert.pem$";
+  cmd = shcore::str_replace(certfmt, "$ca-key.pem$", ca_key_path);
+  cmd = shcore::str_replace(cmd, "$ca.pem$", ca_path);
+  cmd = shcore::str_replace(cmd, "$cert-req.pem$", req_path);
+  cmd = shcore::str_replace(cmd, "$cert.pem$", cert_path);
+  cmd = shcore::str_replace(cmd, "$cav3.ext$", cav3_ext);
+
+  dprint("-> " + cmd);
+  if (system(cmd.c_str()) != 0)
+    throw std::runtime_error("cert creation failed");
+
+  shcore::delete_file(req_path);
+  shcore::delete_file(cav3_ext);
+  shcore::delete_file(certv3_ext);
+
+  return cert_path;
 }
 
 std::string Testutils::fetch_captured_stdout(bool eat_one) {
@@ -3359,41 +3417,7 @@ void Testutils::handle_sandbox_encryption(const std::string &path) const {
   shcore::ch_mod(path, 0750);
 }
 
-void Testutils::handle_remote_root_user(const std::string &rootpass,
-                                        mysqlshdk::db::ISession *session,
-                                        bool create_remote_root) const {
-  // Connect to sandbox using default root@localhost account.
-
-  // Create root user to allow access using other hostnames, otherwise only
-  // access through 'localhost' will be allowed leading to access denied
-  // errors if the reported replication host (from the metadata) is used.
-  // By default, create_remote_root = true.
-  if (create_remote_root) {
-    session->execute("SET sql_log_bin = 0");
-
-    std::string remote_root = "%";
-    shcore::sqlstring create_user(
-        "CREATE USER IF NOT EXISTS root@? IDENTIFIED BY ?", 0);
-    create_user << remote_root << rootpass;
-    create_user.done();
-    session->execute(create_user.str_view());
-
-    shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION", 0);
-    grant << remote_root;
-    grant.done();
-    session->execute(grant.str_view());
-
-    session->execute("SET sql_log_bin = 1");
-  } else {
-    // Drop the user in case it already exists (copied from boilerplate).
-    session->execute("SET sql_log_bin = 0");
-    session->execute("DROP USER IF EXISTS 'root'@'%'");
-    session->execute("SET sql_log_bin = 1");
-  }
-}
-
-void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
-                                            int port,
+void Testutils::prepare_sandbox_boilerplate(int port,
                                             const std::string &mysqld_path) {
   if (g_test_trace_scripts) std::cerr << "Preparing sandbox boilerplate...\n";
 
@@ -3401,6 +3425,7 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
 
   std::string bp_folder{"myboilerplate"};
   if (!mysqld_path.empty()) bp_folder.append("-" + mysqld_version);
+
   std::string boilerplate = shcore::path::join_path(_sandbox_dir, bp_folder);
   if (shcore::is_folder(boilerplate) && _use_boilerplate) {
     if (g_test_trace_scripts)
@@ -3420,8 +3445,8 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
-  _mp.create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
-                     true, true, 60, mysqld_path, &errors);
+  _mp.create_sandbox(port, port * 10, _sandbox_dir, k_boilerplate_root_password,
+                     mycnf_options, true, true, 60, mysqld_path, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
     for (auto &v : *errors) std::cerr << v.descr() << "\n";
@@ -3579,7 +3604,7 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
   }
 }
 
-bool Testutils::deploy_sandbox_from_boilerplate(
+void Testutils::deploy_sandbox_from_boilerplate(
     int port, const shcore::Dictionary_t &opts, bool raw,
     const std::string &mysqld_path, int timeout) {
   if (g_test_trace_scripts) {
@@ -3723,8 +3748,6 @@ bool Testutils::deploy_sandbox_from_boilerplate(
   }
 
   start_sandbox(port, start_options);
-
-  return true;
 }
 
 //!<  @name Misc Utilities
@@ -3804,8 +3827,8 @@ void Testutils::get_exclusive_lock(const shcore::Value &classic_session,
       classic_session.as_object<mysqlsh::mysql::ClassicSession>();
   mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
 
-  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
-    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  if (!mysqlshdk::mysql::has_lock_service(instance)) {
+    mysqlshdk::mysql::install_lock_service(&instance);
   }
 
   mysqlshdk::mysql::get_lock(instance, name_space, name,
@@ -3839,8 +3862,8 @@ void Testutils::get_shared_lock(const shcore::Value &classic_session,
       classic_session.as_object<mysqlsh::mysql::ClassicSession>();
   mysqlshdk::mysql::Instance instance(session_obj->get_core_session());
 
-  if (!mysqlshdk::mysql::has_lock_service_udfs(instance)) {
-    mysqlshdk::mysql::install_lock_service_udfs(&instance);
+  if (!mysqlshdk::mysql::has_lock_service(instance)) {
+    mysqlshdk::mysql::install_lock_service(&instance);
   }
 
   mysqlshdk::mysql::get_lock(instance, name_space, name,
@@ -4170,10 +4193,10 @@ void Testutils::try_rename(const std::string &source,
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
-    int port) {
+    int port, const std::optional<std::string> &rootpass) {
   mysqlshdk::db::Connection_options cnx_opt;
   cnx_opt.set_user("root");
-  {
+  if (!rootpass.has_value()) {
     auto pass = _passwords.find(port);
 
     if (_passwords.end() == pass) {
@@ -4182,9 +4205,13 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
     }
 
     cnx_opt.set_password(_passwords.end() == pass ? "root" : pass->second);
+  } else {
+    cnx_opt.set_password(*rootpass);
   }
+
   cnx_opt.set_host("127.0.0.1");
   cnx_opt.set_port(port);
+
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(cnx_opt);
   return session;

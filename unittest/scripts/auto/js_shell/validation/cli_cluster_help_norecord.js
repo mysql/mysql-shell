@@ -123,6 +123,10 @@ OPTIONS
             Integer value to indicate if the command shall wait for the
             recovery process to finish and its verbosity level.
 
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT".
+
 --password=<str>
             The instance connection password
 
@@ -425,6 +429,17 @@ OPTIONS
             Boolean value that must be enabled to allow updating the privileges
             and/or password of existing accounts. Default value is False.
 
+--requireCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--requireCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
+
 --password=<str>
             The password for the InnoDB cluster administrator account.
 
@@ -456,6 +471,17 @@ OPTIONS
 --update=<bool>
             Boolean value that must be enabled to allow updating the privileges
             and/or password of existing accounts. Default value is False.
+
+--requireCertIssuer=<str>
+            Optional SSL certificate issuer for the account.
+
+--requireCertSubject=<str>
+            Optional SSL certificate subject for the account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --password=<str>
             The password for the MySQL Router account.

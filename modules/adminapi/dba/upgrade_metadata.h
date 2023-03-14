@@ -36,17 +36,15 @@
 namespace mysqlsh {
 namespace dba {
 
-constexpr inline int k_router_version_update_timeout = 4;
-
-class Upgrade_metadata : public Command_interface {
+class Upgrade_metadata final : public Command_interface {
  public:
   Upgrade_metadata(const std::shared_ptr<MetadataStorage> &metadata,
                    bool interactive, bool dry_run);
 
   void prepare() override;
   shcore::Value execute() override;
-  void rollback() override;
-  void finish() override;
+  void rollback() override {}
+  void finish() override {}
 
  private:
   void prepare_rolling_upgrade();

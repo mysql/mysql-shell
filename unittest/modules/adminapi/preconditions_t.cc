@@ -468,11 +468,12 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
            mysqlsh::dba::Cluster_availability::ONLINE}};
 
   std::set<std::string> cset_exclusive_expected = {
-      "Cluster.fenceWrites",      "Cluster.getClusterSet",
-      "Cluster.unfenceWrites",    "ClusterSet.createReplicaCluster",
-      "ClusterSet.listRouters",   "ClusterSet.options",
-      "ClusterSet.removeCluster", "ClusterSet.routingOptions",
-      "ClusterSet.setOption",     "ClusterSet.setRoutingOption"};
+      "Cluster.fenceWrites",          "Cluster.getClusterSet",
+      "Cluster.unfenceWrites",        "ClusterSet.createReplicaCluster",
+      "ClusterSet.listRouters",       "ClusterSet.options",
+      "ClusterSet.removeCluster",     "ClusterSet.routingOptions",
+      "ClusterSet.setOption",         "ClusterSet.setRoutingOption",
+      "ClusterSet.setupAdminAccount", "ClusterSet.setupRouterAccount"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",      "ClusterSet.forcePrimaryCluster",

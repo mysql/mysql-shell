@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,7 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -60,6 +61,16 @@ const built_in_tags_map_t k_supported_set_option_tags{
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
 }  // namespace
 
+std::string Base_cluster_impl::make_replication_user_name(
+    uint32_t server_id, std::string_view user_prefix, bool server_id_hexa) {
+  if (server_id_hexa)
+    return shcore::str_format("%.*s%x", static_cast<int>(user_prefix.length()),
+                              user_prefix.data(), server_id);
+
+  return shcore::str_format("%.*s%u", static_cast<int>(user_prefix.length()),
+                            user_prefix.data(), server_id);
+}
+
 Base_cluster_impl::Base_cluster_impl(
     const std::string &cluster_name, std::shared_ptr<Instance> group_server,
     std::shared_ptr<MetadataStorage> metadata_storage)
@@ -73,33 +84,9 @@ Base_cluster_impl::Base_cluster_impl(
   }
 }
 
-Base_cluster_impl::~Base_cluster_impl() {
-  if (m_cluster_server) {
-    m_cluster_server->release();
-    m_cluster_server.reset();
-  }
+Base_cluster_impl::~Base_cluster_impl() { disconnect_internal(); }
 
-  if (m_primary_master) {
-    m_primary_master->release();
-    m_primary_master.reset();
-  }
-}
-
-void Base_cluster_impl::disconnect() {
-  if (m_cluster_server) {
-    m_cluster_server->release();
-    m_cluster_server.reset();
-  }
-
-  if (m_primary_master) {
-    m_primary_master->release();
-    m_primary_master.reset();
-  }
-
-  if (m_metadata_storage) {
-    m_metadata_storage.reset();
-  }
-}
+void Base_cluster_impl::disconnect() { disconnect_internal(); }
 
 void Base_cluster_impl::target_server_invalidated() {
   if (m_cluster_server && m_primary_master) {
@@ -137,9 +124,7 @@ void Base_cluster_impl::check_preconditions(
   try {
     current_ipool()->set_metadata(get_metadata_storage());
 
-    primary_available =
-        (acquire_primary(primary_required, mysqlshdk::mysql::Lock_mode::NONE,
-                         {}, true) != nullptr);
+    primary_available = (acquire_primary(primary_required, true) != nullptr);
     log_debug("Acquired primary: %d", primary_available);
 
   } catch (const shcore::Exception &e) {
@@ -216,11 +201,6 @@ void Base_cluster_impl::sync_transactions(
   current_console()->print_info();
 }
 
-std::string Base_cluster_impl::make_replication_user_name(
-    uint32_t server_id, const std::string &user_prefix) const {
-  return user_prefix + std::to_string(server_id);
-}
-
 void Base_cluster_impl::set_target_server(
     const std::shared_ptr<Instance> &instance) {
   disconnect();
@@ -258,7 +238,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   // * user:pwd@host:port  no extra checks
   auto ipool = current_ipool();
 
-  const auto &main_opts(m_cluster_server->get_connection_options());
+  const auto &main_opts = m_cluster_server->get_connection_options();
 
   // default to copying credentials and all other connection params from the
   // main session
@@ -386,6 +366,8 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
  * @param host The host part of the account
  * @param interactive the value of the interactive flag
  * @param update the value of the update flag
+ * @param requireSubject certificate subject to require
+ * @param requireIssuer certificate issuer to require
  * @param dry_run the value of the dry_run flag
  * @param password the password for the account
  * @param type The type of account to create, Admin or Router
@@ -411,8 +393,7 @@ void Base_cluster_impl::setup_account_common(
   auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
 
   const auto primary_instance = get_primary_master();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
+  shcore::on_leave_scope finally_primary([this]() { release_primary(); });
 
   // get the metadata version to build an accurate list of grants
   mysqlshdk::utils::Version metadata_version;
@@ -437,7 +418,8 @@ void Base_cluster_impl::setup_account_common(
     Setup_account op_setup(username, host, options, grant_list,
                            *primary_instance, get_type());
     // Always execute finish when leaving "try catch".
-    auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
+    shcore::on_leave_scope finally([&op_setup]() { op_setup.finish(); });
+
     // Prepare the setup_account execution
     op_setup.prepare();
     // Execute the setup_account command.
@@ -457,8 +439,14 @@ void Base_cluster_impl::setup_router_account(
   setup_account_common(username, host, options, Setup_account_type::ROUTER);
 }
 
-void Base_cluster_impl::remove_router_metadata(const std::string &router) {
-  if (!get_metadata_storage()->remove_router(router)) {
+void Base_cluster_impl::remove_router_metadata(const std::string &router,
+                                               bool lock_metadata) {
+  /*
+   * The metadata lock is currently only used in ReplicaSet, and only until it's
+   * removed (deprecated because we use DB transactions). At that time, all
+   * metadata locks will be removed, along with this parameter.
+   */
+  if (!get_metadata_storage()->remove_router(router, lock_metadata)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router + "'");
   }
@@ -529,8 +517,8 @@ void Base_cluster_impl::set_option(const std::string &option,
 
   // make sure metadata session is using the primary
   acquire_primary();
-  auto finally_primary =
-      shcore::on_leave_scope([this]() { release_primary(); });
+
+  shcore::on_leave_scope finally_primary([this]() { release_primary(); });
 
   if (opt_namespace.empty()) {
     // no namespace was provided
@@ -538,6 +526,36 @@ void Base_cluster_impl::set_option(const std::string &option,
   } else {
     set_cluster_tag(opt, val);
   }
+}
+
+Replication_auth_type Base_cluster_impl::query_cluster_auth_type() const {
+  if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_member_auth_type, &value)) {
+    return to_replication_auth_type(value.as_string());
+  }
+
+  return Replication_auth_type::PASSWORD;
+}
+
+std::string Base_cluster_impl::query_cluster_auth_cert_issuer() const {
+  if (shcore::Value value;
+      get_metadata_storage()->query_cluster_attribute(
+          get_id(), k_cluster_attribute_cert_issuer, &value) &&
+      (value.type == shcore::String))
+    return value.as_string();
+
+  return {};
+}
+
+std::string Base_cluster_impl::query_cluster_instance_auth_cert_subject(
+    std::string_view instance_uuid) const {
+  if (shcore::Value value;
+      get_metadata_storage()->query_instance_attribute(
+          instance_uuid, k_instance_attribute_cert_subject, &value) &&
+      (value.type == shcore::String))
+    return value.as_string();
+
+  return {};
 }
 
 std::tuple<std::string, std::string, shcore::Value>
@@ -646,6 +664,22 @@ shcore::Value Base_cluster_impl::get_cluster_tags() const {
     (*res)[instance_def.label] = shcore::Value(helper_func(instance_tags));
   }
   return shcore::Value(res);
+}
+
+void Base_cluster_impl::disconnect_internal() {
+  if (m_cluster_server) {
+    m_cluster_server->release();
+    m_cluster_server.reset();
+  }
+
+  if (m_primary_master) {
+    m_primary_master->release();
+    m_primary_master.reset();
+  }
+
+  if (m_metadata_storage) {
+    m_metadata_storage.reset();
+  }
 }
 
 }  // namespace dba

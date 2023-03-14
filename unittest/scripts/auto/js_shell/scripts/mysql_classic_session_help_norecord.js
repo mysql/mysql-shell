@@ -66,3 +66,9 @@ session.help('startTransaction')
 
 //@ Help on startTransaction, \? [USE:Help on startTransaction]
 \? classicsession.startTransaction
+
+//@ Help on setQueryAttributes
+session.help('setQueryAttributes')
+
+//@ Help on setQueryAttributes, \? [USE:Help on setQueryAttributes]
+\? classicsession.setQueryAttributes

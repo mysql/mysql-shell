@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,11 @@
  * Defines the type of validations available on the script testing engine.
  */
 enum class ValidationType { Simple = 0, Multiline = 1, Optional = 2 };
+
+/**
+ * A more "secure" password as alternative to just "root".
+ */
+inline constexpr std::string_view k_secure_password{"s3Cur3_pa22w0rd"};
 
 // Note(rennox) the chunk lines in a test script and the ones on the validation
 // file have different needs: the validation type and stream are only needed for

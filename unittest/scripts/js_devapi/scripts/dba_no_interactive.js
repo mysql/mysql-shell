@@ -55,31 +55,6 @@ dba.createCluster('1invalidN4me');
 //@# Dba: createCluster ipWhitelist deprecation {VER(>=8.0.23)}
 dba.createCluster('devCluster', {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
 
-//@ Dba: createCluster with ANSI_QUOTES success
-// save current sql mode
-var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
-var row = result.fetchOne();
-var original_sql_mode = row[0];
-session.runSql("SET @@GLOBAL.SQL_MODE = ANSI_QUOTES");
-// Check that sql mode has been changed
-var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
-var row = result.fetchOne();
-print("Current sql_mode is: "+ row[0] + "\n");
-
-var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
-print(c1);
-
-//@ Dba: dissolve cluster created with ansi_quotes and restore original sql_mode
-c1.dissolve({force:true});
-
-// Set old_sql_mode
-session.runSql("SET @@GLOBAL.SQL_MODE = '"+ original_sql_mode+ "'");
-var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
-var row = result.fetchOne();
-var restored_sql_mode = row[0];
-var was_restored = restored_sql_mode == original_sql_mode;
-print("Original SQL_MODE has been restored: "+ was_restored + "\n");
-
 //@ Dba: create cluster with memberSslMode AUTO succeed
 var c1 = dba.createCluster("devCluster", {memberSslMode: 'AUTO', clearReadOnly: true});
 c1

@@ -92,9 +92,14 @@ function wipeout_cluster(psession, cluster_or_urls) {
     psession.runSql("delete from mysql_innodb_cluster_metadata.clusters where cluster_name = ?", [cluster_name]);
 }
 
-function connect_cluster_primary(cluster) {
-  uri = "root:root@"+cluster.status()["defaultReplicaSet"]["primary"];
-  uri += "?connect-timeout=1"
+function connect_cluster_primary(cluster, root_pwd) {
+
+  if (root_pwd === undefined) {
+    root_pwd = "root";
+  }
+
+  host = cluster.status()["defaultReplicaSet"]["primary"];
+  uri = `root:${root_pwd}@${host}?connect-timeout=1`;
   s = mysql.getSession(uri);
   s.runSql("SET SESSION sql_mode=''");
   return s;
@@ -414,7 +419,7 @@ function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
   }
 }
 
-function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values) {
+function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values, root_pwd) {
   var view_change_uuid;
 
   if (values === undefined) {
@@ -423,7 +428,11 @@ function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values) {
     };
   }
 
-  var primary_session = connect_cluster_primary(pcluster);
+  if (root_pwd === undefined) {
+    root_pwd = "root";
+  }
+
+  var primary_session = connect_cluster_primary(pcluster, root_pwd);
   var row = primary_session.runSql("select @@port, @@server_uuid").fetchOne();
   var master_port = row[0];
   var master_uuid = row[1];
@@ -494,14 +503,18 @@ function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values) {
   primary_session.close();
 }
 
-function CHECK_REMOVED_CLUSTER(uris, pcluster, cluster_name) {
+function CHECK_REMOVED_CLUSTER(uris, pcluster, cluster_name, root_pwd) {
+
+  if (root_pwd === undefined) {
+    root_pwd = "root";
+  }
 
   for (var uri of uris) {
     var session = mysql.getSession(uri);
     println("CHECK REMOVED CLUSTER", uri, uris[0]);
 
     if (uri == uris[0]) {
-      var master_session = connect_cluster_primary(pcluster);
+      var master_session = connect_cluster_primary(pcluster, root_pwd);
 
       CHECK_GTID_CONSISTENT(master_session, session);
 

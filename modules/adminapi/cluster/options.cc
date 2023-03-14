@@ -49,7 +49,7 @@ const std::map<std::string, std::string> k_instance_options{
 Options::Options(const Cluster_impl &cluster, bool all)
     : m_cluster(cluster), m_all(all) {}
 
-Options::~Options() {}
+Options::~Options() = default;
 
 /**
  * Connects to all members of the Cluster
@@ -64,8 +64,8 @@ Options::~Options() {}
 void Options::connect_to_members() {
   auto group_server = m_cluster.get_cluster_server();
 
-  mysqlshdk::db::Connection_options group_session_copts(
-      group_server->get_connection_options());
+  mysqlshdk::db::Connection_options group_session_copts =
+      group_server->get_connection_options();
 
   for (const auto &inst : m_instances) {
     mysqlshdk::db::Connection_options opts(inst.endpoint);
@@ -110,28 +110,38 @@ shcore::Array_t Options::collect_global_options() {
 
     (*option)["option"] = shcore::Value(cfg.first);
     (*option)["variable"] = shcore::Value(cfg.second);
-    (*option)["value"] = shcore::Value(value);
+    (*option)["value"] = shcore::Value(std::move(value));
 
     array->push_back(shcore::Value(option));
   }
 
   // Get the cluster's disableClone option
-  shcore::Dictionary_t option = shcore::make_dict();
-  (*option)["option"] = shcore::Value(kDisableClone);
-  (*option)["value"] = shcore::Value(m_cluster.get_disable_clone_option());
-  array->push_back(shcore::Value(option));
-
   {
-    shcore::Value allowed_host;
-    if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
-            m_cluster.get_id(), k_cluster_attribute_replication_allowed_host,
-            &allowed_host))
-      allowed_host = shcore::Value::Null();
+    shcore::Dictionary_t option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kDisableClone);
+    (*option)["value"] = shcore::Value(m_cluster.get_disable_clone_option());
+    array->push_back(shcore::Value(std::move(option)));
+  }
 
-    option = shcore::make_dict();
-    (*option)["option"] = shcore::Value(kReplicationAllowedHost);
-    (*option)["value"] = shcore::Value(allowed_host);
-    array->push_back(shcore::Value(option));
+  // read cluster attributes
+  {
+    std::array<std::tuple<std::string_view, std::string_view>, 3> attribs{
+        std::make_tuple(k_cluster_attribute_replication_allowed_host,
+                        kReplicationAllowedHost),
+        std::make_tuple(k_cluster_attribute_member_auth_type, kMemberAuthType),
+        std::make_tuple(k_cluster_attribute_cert_issuer, kCertIssuer)};
+
+    for (const auto &[attrib_name, attrib_desc] : attribs) {
+      shcore::Value attrib_value;
+      if (!m_cluster.get_metadata_storage()->query_cluster_attribute(
+              m_cluster.get_id(), attrib_name, &attrib_value))
+        attrib_value = shcore::Value::Null();
+
+      shcore::Dictionary_t option = shcore::make_dict();
+      (*option)["option"] = shcore::Value(attrib_desc);
+      (*option)["value"] = shcore::Value(std::move(attrib_value));
+      array->push_back(shcore::Value(std::move(option)));
+    }
   }
 
   // Get the communicationStack
@@ -140,7 +150,7 @@ shcore::Array_t Options::collect_global_options() {
   // globalOptions, otherwise, we might pass a misleading message that the
   // communicationStack is an option when in fact it's not in that case
   if (supports_mysql_communication_stack(group_instance->get_version())) {
-    option = shcore::make_dict();
+    shcore::Dictionary_t option = shcore::make_dict();
     (*option)["option"] = shcore::Value(kCommunicationStack);
     (*option)["variable"] =
         shcore::Value("group_replication_communication_stack");
@@ -155,7 +165,7 @@ shcore::Array_t Options::collect_global_options() {
   // globalOptions, otherwise, we might pass a misleading message that the
   // paxosSingleLeader is an option when in fact it's not in that case
   if (supports_paxos_single_leader(group_instance->get_version())) {
-    option = shcore::make_dict();
+    shcore::Dictionary_t option = shcore::make_dict();
     (*option)["option"] = shcore::Value(kPaxosSingleLeader);
     // Do not add the variable 'group_replication_paxos_single_leader' because
     // that's not enough to know whether the Cluster has it enabled and
@@ -213,7 +223,19 @@ shcore::Array_t Options::get_instance_options(
     (*option)["value"] =
         value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
 
-    array->push_back(shcore::Value(option));
+    array->push_back(shcore::Value(std::move(option)));
+  }
+
+  // cert_subject
+  {
+    auto cert_subject =
+        m_cluster.query_cluster_instance_auth_cert_subject(instance);
+
+    shcore::Dictionary_t option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kCertSubject);
+    (*option)["value"] = shcore::Value(std::move(cert_subject));
+
+    array->push_back(shcore::Value(std::move(option)));
   }
 
   // If 'all' is enabled, get all GR configuration options to add to the result
@@ -238,9 +260,9 @@ shcore::Array_t Options::get_instance_options(
       shcore::Dictionary_t option = shcore::make_dict();
 
       (*option)["variable"] = shcore::Value(name);
-      if (value) (*option)["value"] = shcore::Value(*value);
+      if (value.has_value()) (*option)["value"] = shcore::Value(*value);
 
-      array->push_back(shcore::Value(option));
+      array->push_back(shcore::Value(std::move(option)));
     }
   }
 
@@ -255,7 +277,7 @@ shcore::Array_t Options::get_instance_options(
     (*option)["value"] =
         value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
 
-    array->push_back(shcore::Value(option));
+    array->push_back(shcore::Value(std::move(option)));
   }
 
   return array;
@@ -285,20 +307,19 @@ shcore::Dictionary_t Options::collect_default_replicaset_options() {
   connect_to_members();
 
   for (const auto &inst : m_instances) {
-    shcore::Dictionary_t option = shcore::make_dict();
-
     auto instance(m_member_sessions[inst.endpoint]);
 
     if (!instance) {
+      auto option = shcore::make_dict();
       (*option)["shellConnectError"] =
           shcore::Value(m_member_connect_errors[inst.endpoint]);
-      (*tmp)[inst.label] = shcore::Value(option);
+      (*tmp)[inst.label] = shcore::Value(std::move(option));
     } else {
       (*tmp)[inst.label] = shcore::Value(get_instance_options(*instance));
     }
   }
 
-  (*ret)["topology"] = shcore::Value(tmp);
+  (*ret)["topology"] = shcore::Value(std::move(tmp));
 
   return ret;
 }
@@ -329,15 +350,8 @@ shcore::Value Options::execute() {
   dict->get_map("defaultReplicaSet")
       ->emplace(kTags, m_cluster.get_cluster_tags());
 
-  return shcore::Value(dict);
+  return shcore::Value(std::move(dict));
 }
-
-void Options::rollback() {
-  // Do nothing right now, but it might be used in the future when
-  // transactional command execution feature will be available.
-}
-
-void Options::finish() {}
 
 }  // namespace cluster
 }  // namespace dba

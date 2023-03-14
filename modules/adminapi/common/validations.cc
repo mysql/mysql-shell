@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -213,24 +213,79 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
 }
 
 void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
-                             const Cluster_ssl_mode &ssl_mode) {
+                             Cluster_ssl_mode ssl_mode) {
   if (ssl_mode != Cluster_ssl_mode::VERIFY_CA &&
       ssl_mode != Cluster_ssl_mode::VERIFY_IDENTITY)
     return;
 
-  // Get the values of ssl_ca and ss_capath
-  auto ssl_ca = instance.get_sysvar_string("ssl_ca").value_or("");
-  auto ssl_capath = instance.get_sysvar_string("ssl_capath").value_or("");
-
-  // If both unset, error-out
-  if (ssl_ca.empty() && ssl_capath.empty()) {
-    mysqlsh::current_console()->print_error(
-        "CA certificates options not set. ssl_ca or ssl_capath are required, "
-        "to supply a CA certificate that matches the one used by the server.");
-    throw std::runtime_error(
-        "memberSslMode '" + to_string(ssl_mode) +
-        "' requires Certificate Authority (CA) certificates to be supplied.");
+  // either ssl_ca or ss_capath is needed
+  {
+    auto values = instance.get_system_variables_like("ssl_ca%");
+    if (std::any_of(values.begin(), values.end(), [](const auto &value) {
+          return !value.second.value_or("").empty();
+        }))
+      return;
   }
+
+  // both are unset, error-out
+  mysqlsh::current_console()->print_error(
+      "CA certificates options not set. ssl_ca or ssl_capath are required, "
+      "to supply a CA certificate that matches the one used by the server.");
+  throw std::runtime_error(
+      "memberSslMode '" + to_string(ssl_mode) +
+      "' requires Certificate Authority (CA) certificates to be supplied.");
+}
+
+void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
+                             Replication_auth_type auth_type) {
+  switch (auth_type) {
+    case Replication_auth_type::CERT_ISSUER:
+    case Replication_auth_type::CERT_ISSUER_PASSWORD:
+    case Replication_auth_type::CERT_SUBJECT:
+    case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      break;
+    default:
+      return;
+  }
+
+  // ssl_cert is needed
+  if (instance.get_sysvar_string("ssl_cert", "").empty()) {
+    mysqlsh::current_console()->print_error(
+        "Server public key certificate file is not set. ssl_cert is required, "
+        "to supply a certificate to the server.");
+    throw std::runtime_error(
+        shcore::str_format("memberAuthType '%s' requires the server to have a "
+                           "public key certificate file present.",
+                           to_string(auth_type).c_str()));
+  }
+
+  // ssl_key is needed
+  if (instance.get_sysvar_string("ssl_key", "").empty()) {
+    mysqlsh::current_console()->print_error(
+        "Server private key file is not set. ssl_key is required, to supply a "
+        "private key to the server.");
+    throw std::runtime_error(
+        shcore::str_format("memberAuthType '%s' requires the server to have a "
+                           "private key file present.",
+                           to_string(auth_type).c_str()));
+  }
+
+  // either ssl_ca or ss_capath is needed
+  {
+    auto values = instance.get_system_variables_like("ssl_ca%");
+    if (std::any_of(values.begin(), values.end(), [](const auto &value) {
+          return !value.second.value_or("").empty();
+        }))
+      return;
+  }
+
+  // both are unset, error-out
+  mysqlsh::current_console()->print_error(
+      "CA certificates options not set. ssl_ca or ssl_capath are required, "
+      "to supply a CA certificate that matches the one used by the server.");
+  throw std::runtime_error(
+      "memberAuthType '" + to_string(auth_type) +
+      "' requires Certificate Authority (CA) certificates to be supplied.");
 }
 
 void check_protocol_upgrade_possible(

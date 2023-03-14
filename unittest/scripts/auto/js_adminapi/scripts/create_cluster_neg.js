@@ -3,15 +3,27 @@
 
 //@ Initialize
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
 
 //@# create_cluster_with_cluster_admin_type
 dba.createCluster("dev", {"clusterAdminType": "local"});
 
 //@<> createCluster() with memberSslMode DISABLED but require_secure_transport enabled
 session.runSql("SET GLOBAL require_secure_transport = TRUE");
+session2.runSql("SET GLOBAL require_secure_transport = TRUE");
 
 EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "DISABLED"});}, `The instance '127.0.0.1:${__mysql_sandbox_port1}' requires secure connections, to create the Cluster either turn off require_secure_transport or use the memberSslMode option with 'REQUIRED', 'VERIFY_CA' or 'VERIFY_IDENTITY' value.`, "ArgumentError");
+
+//@<> Regression for BUG#26248116 : MYSQLPROVISION DOES NOT USE SECURE CONNECTIONS BY DEFAULT
+EXPECT_NO_THROWS(function(){c = dba.createCluster("dev", {memberSslMode: "REQUIRED"});});
+EXPECT_NO_THROWS(function(){c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});});
+
+c.removeInstance(__sandbox_uri2);
+c.dissolve();
+
+session.runSql("set global super_read_only=0");
 
 //@<> createCluster() with memberSslMode VERIFY_CA but CA options not set {VER(>=8.0.0)}
 session.runSql("SET GLOBAL ssl_ca = DEFAULT");
@@ -39,3 +51,4 @@ EXPECT_THROWS_TYPE(function(){dba.createCluster("dev", {memberSslMode: "REQUIRED
 
 //@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

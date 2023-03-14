@@ -1,5 +1,5 @@
 //@ create cluster admin
-|Cluster admin user 'ca'@'%' created.|
+|Account ca@% was successfully created.|
 
 //@<OUT> check global privileges of cluster admin {VER(<8.0.11)}
 +--------------------+--------------+
@@ -123,4 +123,4 @@
 Empty set ([[*]])
 
 //@ cluster admin should be able to create another cluster admin
-|Cluster admin user 'ca2'@'%' created.|
+|Account ca2@% was successfully created.|

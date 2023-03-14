@@ -1,32 +1,3 @@
-#@<OUT> Creates the sample cluster
-A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
-
-Validating instance configuration at localhost:<<<__mysql_sandbox_port1>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-
-Instance configuration is suitable.
-?{(VER(<8.0.27) and (__os_type == 'windows'))}
-NOTE: The 'localAddress' "127.0.0.1" is an IPv4 localhost, which is compatible with the Group Replication automatically generated list of IPs.
-See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
-NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
-?{}
-?{(VER(>=8.0.27) or (__os_type != 'windows'))}
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>'. Use the localAddress option to override.
-
-?{}
-?{VER(<8.0.0)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configure_local_instance() command locally to persist the changes.
-?{}
-Creating InnoDB Cluster 'sample' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
-
-Adding Seed Instance...
-Cluster successfully created. Use Cluster.add_instance() to add MySQL instances.
-At least 3 instances are needed for the cluster to be able to withstand up to
-one server failure.
-
 #@<OUT> Upgrades the metadata, no registered routers
 Metadata Schema Upgrade
 

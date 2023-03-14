@@ -33,6 +33,12 @@ The following operations are available at 'clusterset':
    set-primary-cluster
       Performs a safe switchover of the PRIMARY Cluster of the ClusterSet.
 
+   setup-admin-account
+      Create or upgrade an InnoDB ClusterSet admin account.
+
+   setup-router-account
+      Create or upgrade a MySQL account to use with MySQL Router.
+
    status
       Describe the status of the ClusterSet.
 

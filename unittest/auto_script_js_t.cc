@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,11 +94,18 @@ class Auto_script_js : public Shell_js_script_tester,
     execute(code);
     code = "var __mysql_port = " + m_mysql_port + ";";
     execute(code);
+
+    code = shcore::str_format("var __secure_password = '%.*s';",
+                              static_cast<int>(k_secure_password.length()),
+                              k_secure_password.data());
+    exec_and_out_equals(code);
+
     code = "var __uri = '" + user + "@" + host + ":" + m_port + "';";
     execute(code);
     code =
         "var __mysql_uri = '" + user + "@" + host + ":" + m_mysql_port + "';";
     execute(code);
+
     for (int i = 0; i < sandbox::k_num_ports; ++i) {
       code = shcore::str_format("var __mysql_sandbox_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i]);
@@ -116,16 +123,27 @@ class Auto_script_js : public Shell_js_script_tester,
       code = shcore::str_format("var __mysql_sandbox_x_port%i = %i;", i + 1,
                                 _mysql_sandbox_ports[i] * 10);
       execute(code);
+
       code = shcore::str_format(
           "var __sandbox_uri%i = 'mysql://root:root@localhost:%i';", i + 1,
           _mysql_sandbox_ports[i]);
       execute(code);
+
+      code = shcore::str_format(
+          "var __sandbox_uri_secure_password%i = "
+          "'mysql://root:%.*s@localhost:%i';",
+          i + 1, static_cast<int>(k_secure_password.length()),
+          k_secure_password.data(), _mysql_sandbox_ports[i]);
+      exec_and_out_equals(code);
+
       code = shcore::str_format("var __endpoint%i = '%s:%i';", i + 1,
                                 hostname().c_str(), _mysql_sandbox_ports[i]);
       execute(code);
+
       code = shcore::str_format("var __sandbox%i = 'localhost:%i';", i + 1,
                                 _mysql_sandbox_ports[i]);
       execute(code);
+
       code = shcore::str_format(
           "var __hostname_uri%i = 'mysql://root:root@%s:%i';", i + 1,
           hostname().c_str(), _mysql_sandbox_ports[i]);

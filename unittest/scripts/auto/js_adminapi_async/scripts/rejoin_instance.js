@@ -186,7 +186,7 @@ session3.runSql("SET sql_log_bin = 1");
 session3.runSql("SET GLOBAL super_read_only = 1");
 
 session2.runSql("CREATE DATABASE error_trx_db");
-testutil.waitForRplApplierError(__mysql_sandbox_port3, "");
+testutil.waitForReplApplierError(__mysql_sandbox_port3, "");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ERROR");
 

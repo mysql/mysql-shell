@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,12 +158,11 @@ enum class Param_flag { Mandatory, Optional };
 struct Parameter final {
   Parameter() = default;
 
-  Parameter(const std::string &n, Value_type t, Param_flag f,
-            const std::string &sname = "", bool cmd_line = true,
-            bool deprecated = false)
-      : name(n),
+  Parameter(std::string n, Value_type t, Param_flag f, std::string sname = "",
+            bool cmd_line = true, bool deprecated = false)
+      : name(std::move(n)),
         flag(f),
-        short_name(sname),
+        short_name(std::move(sname)),
         cmd_line_enabled(cmd_line),
         is_deprecated(deprecated) {
     set_type(t);

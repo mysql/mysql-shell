@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,6 +63,10 @@ storage, allowed values: "always", "prompt" or "never"
 
 @li dba.connectTimeout: float, default connection timeout used for sessions
 created in AdminAPI operations, in seconds
+
+@li dba.connectivityChecks: bool, checks SSL settings and network connectivity
+between instances when creating a cluster, replicaset or clusterset, or adding
+an instance to one.
 
 @li dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
 synchronized

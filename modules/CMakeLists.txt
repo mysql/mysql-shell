@@ -97,6 +97,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/provisioning_interface.cc"
       "adminapi/common/common.cc"
       "adminapi/common/common_status.cc"
+      "adminapi/common/connectivity_check.cc"
       "adminapi/common/accounts.cc"
       "adminapi/common/health_enums.cc"
       "adminapi/common/group_replication_options.cc"

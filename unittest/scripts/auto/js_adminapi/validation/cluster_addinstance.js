@@ -46,7 +46,6 @@
 //@<OUT> BUG#27677227 cluster with x protocol disabled, mysqlx should be NULL
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> = {"grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"}
 <<<hostname>>>:<<<__mysql_sandbox_port2>>> = {"grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"}
-<<<hostname>>>:<<<__mysql_sandbox_port3>>> = {"mysqlX": "<<<hostname>>>:<<<__mysql_sandbox_x_port3>>>", "grLocal": "<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>", "mysqlClassic": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>"}
 
 //@ BUG#27677227 cluster with x protocol disabled cleanup
 ||

@@ -37,6 +37,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -110,6 +118,10 @@
                     "value": "50",
                     "variable": "group_replication_member_weight"
                 },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -202,6 +214,10 @@
                     "value": "75",
                     "variable": "group_replication_member_weight"
                 },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -293,6 +309,10 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {
@@ -366,6 +386,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "tags": {
@@ -420,6 +448,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {
@@ -508,6 +540,10 @@
                     "value": "75",
                     "variable": "group_replication_member_weight"
                 },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -594,6 +630,10 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {
@@ -674,6 +714,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -746,6 +794,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
                     "value": "1",
@@ -1087,6 +1139,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
                     "value": "1",
                     "variable": "auto_increment_increment"
                 },
@@ -1424,6 +1480,10 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
                     "value": "1",
@@ -1744,6 +1804,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "tags": {
@@ -1798,6 +1866,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
                     "value": "1",
@@ -2035,6 +2107,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
                     "value": "1",
                     "variable": "auto_increment_increment"
                 },
@@ -2268,6 +2344,10 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
                     "value": "1",
@@ -2498,6 +2578,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -2567,6 +2655,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
@@ -2632,6 +2724,10 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
                 {
                     "value": "WRITESET",
@@ -2701,6 +2797,10 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
@@ -2756,6 +2856,14 @@
             {
                 "option": "replicationAllowedHost", 
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
             }
         ],
         "tags": {
@@ -2810,6 +2918,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {
@@ -2889,6 +3001,14 @@
             {
                 "option": "replicationAllowedHost",
                 "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
 ?{VER(>=8.0.27)}
             },
             {
@@ -2961,6 +3081,10 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
                 },
 ?{VER(<8.0.23)}
                 {

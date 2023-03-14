@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,7 @@ namespace dba {
 namespace clusterset {
 
 // # of seconds to wait until clone starts
-constexpr const int k_clone_start_timeout = 30;
+inline constexpr const int k_clone_start_timeout = 30;
 
 class Create_replica_cluster : public Command_interface {
  public:
@@ -86,6 +86,7 @@ class Create_replica_cluster : public Command_interface {
    * @param recovery_host Hostname for the recreated account
    */
   void recreate_recovery_account(const std::shared_ptr<Cluster_impl> cluster,
+                                 const std::string &auth_cert_subject,
                                  std::string *recovery_user = nullptr,
                                  std::string *recovery_host = nullptr);
 
@@ -93,7 +94,7 @@ class Create_replica_cluster : public Command_interface {
   Cluster_set_impl *m_cluster_set = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   mysqlsh::dba::Instance *m_primary_instance = nullptr;
-  const std::string &m_cluster_name;
+  std::string m_cluster_name;
   Recovery_progress_style m_progress_style;
   Create_replica_cluster_options m_options;
   Cluster_ssl_mode m_ssl_mode = Cluster_ssl_mode::NONE;

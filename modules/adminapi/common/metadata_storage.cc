@@ -553,13 +553,15 @@ bool MetadataStorage::get_cluster(const Cluster_id &cluster_id,
 }
 
 bool MetadataStorage::query_cluster_attribute(const Cluster_id &cluster_id,
-                                              const std::string &attribute,
+                                              std::string_view attribute,
                                               shcore::Value *out_value) const {
   auto result = execute_sql(
-      shcore::sqlstring("SELECT attributes->'$." + attribute +
-                            "' FROM mysql_innodb_cluster_metadata.clusters"
-                            " WHERE cluster_id=?",
-                        0)
+      shcore::sqlstring(
+          shcore::str_format(
+              "SELECT attributes->'$.%.*s' FROM "
+              "mysql_innodb_cluster_metadata.clusters WHERE cluster_id=?",
+              static_cast<int>(attribute.length()), attribute.data()),
+          0)
       << cluster_id);
 
   if (auto row = result->fetch_one()) {
@@ -572,15 +574,15 @@ bool MetadataStorage::query_cluster_attribute(const Cluster_id &cluster_id,
 }
 
 void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
-                                               const std::string &attribute,
+                                               std::string_view attribute,
                                                const shcore::Value &value) {
   if (value) {
     shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.clusters"
-        " SET attributes = json_set(attributes, '$." +
-            attribute +
-            "', CAST(? as JSON))"
-            " WHERE cluster_id = ?",
+        shcore::str_format("UPDATE mysql_innodb_cluster_metadata.clusters SET "
+                           "attributes = json_set(attributes, '$.%.*s', CAST(? "
+                           "as JSON)) WHERE cluster_id = ?",
+                           static_cast<int>(attribute.length()),
+                           attribute.data()),
         0);
 
     query << value.repr() << cluster_id;
@@ -588,11 +590,10 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
     execute_sql(query);
   } else {
     shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.clusters"
-        " SET attributes = json_remove(attributes, '$." +
-            attribute +
-            "')"
-            " WHERE cluster_id = ?",
+        shcore::str_format(
+            "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+            "json_remove(attributes, '$.%.*s') WHERE cluster_id = ?",
+            static_cast<int>(attribute.length()), attribute.data()),
         0);
     query << cluster_id;
     query.done();
@@ -600,13 +601,14 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
   }
 }
 
-void MetadataStorage::update_clusters_attribute(const std::string &attribute,
+void MetadataStorage::update_clusters_attribute(std::string_view attribute,
                                                 const shcore::Value &value) {
   if (value) {
     shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.clusters"
-        " SET attributes = json_set(attributes, '$." +
-            attribute + "', CAST(? as JSON))",
+        shcore::str_format(
+            "UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = "
+            "json_set(attributes, '$.%.*s', CAST(? as JSON))",
+            static_cast<int>(attribute.length()), attribute.data()),
         0);
 
     query << value.repr();
@@ -614,9 +616,10 @@ void MetadataStorage::update_clusters_attribute(const std::string &attribute,
     execute_sql(query);
   } else {
     shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.clusters"
-        " SET attributes = json_remove(attributes, '$." +
-            attribute + "')",
+        shcore::str_format("UPDATE mysql_innodb_cluster_metadata.clusters SET "
+                           "attributes = json_remove(attributes, '$.%.*s')",
+                           static_cast<int>(attribute.length()),
+                           attribute.data()),
         0);
     query.done();
     execute_sql(query);
@@ -667,28 +670,26 @@ void MetadataStorage::update_cluster_capability(
 }
 
 void MetadataStorage::update_cluster_set_attribute(
-    const Cluster_set_id &clusterset_id, const std::string &attribute,
+    const Cluster_set_id &clusterset_id, std::string_view attribute,
     const shcore::Value &value) {
   shcore::sqlstring query;
 
   if (value) {
-    query = shcore::sqlstring(
-        "UPDATE mysql_innodb_cluster_metadata.clustersets"
-        " SET attributes = json_set(attributes, '$." +
-            attribute +
-            "', CAST(? as JSON))"
-            " WHERE clusterset_id = ?",
-        0);
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.clustersets SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(? as JSON)) WHERE clusterset_id = "
+        "?",
+        static_cast<int>(attribute.length()), attribute.data());
 
+    query = shcore::sqlstring(stmt, 0);
     query << value.repr() << clusterset_id;
   } else {
-    query = shcore::sqlstring(
-        "UPDATE mysql_innodb_cluster_metadata.clustersets"
-        " SET attributes = json_remove(attributes, '$." +
-            attribute +
-            "')"
-            " WHERE clusterset_id = ?",
-        0);
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.clustersets SET attributes = "
+        "json_remove(attributes, '$.%.*s') WHERE clusterset_id = ?",
+        static_cast<int>(attribute.length()), attribute.data());
+
+    query = shcore::sqlstring(stmt, 0);
     query << clusterset_id;
   }
 
@@ -697,14 +698,14 @@ void MetadataStorage::update_cluster_set_attribute(
 }
 
 bool MetadataStorage::query_cluster_set_attribute(
-    const Cluster_set_id &clusterset_id, const std::string &attribute,
+    const Cluster_set_id &clusterset_id, std::string_view attribute,
     shcore::Value *out_value) const {
-  auto result = execute_sql(
-      shcore::sqlstring("SELECT attributes->'$." + attribute +
-                            "' FROM mysql_innodb_cluster_metadata.clustersets"
-                            " WHERE clusterset_id=?",
-                        0)
-      << clusterset_id);
+  auto stmt = shcore::str_format(
+      "SELECT attributes->'$.%.*s' FROM "
+      "mysql_innodb_cluster_metadata.clustersets WHERE clusterset_id=?",
+      static_cast<int>(attribute.length()), attribute.data());
+
+  auto result = execute_sql(shcore::sqlstring(stmt, 0) << clusterset_id);
 
   if (auto row = result->fetch_one()) {
     if (!row->is_null(0)) {
@@ -848,15 +849,15 @@ Cluster_id MetadataStorage::create_cluster_record(Cluster_impl *cluster,
 
 Instance_id MetadataStorage::insert_instance(
     const Instance_metadata &instance) {
-  std::string addresses;
-  addresses = shcore::sqlstring("'mysqlClassic', ?", 0) << instance.endpoint;
+  auto addresses = ("'mysqlClassic', ?"_sql << instance.endpoint).str();
   if (!instance.xendpoint.empty())
-    addresses += shcore::sqlstring(", 'mysqlX', ?", 0) << instance.xendpoint;
+    addresses += (", 'mysqlX', ?"_sql << instance.xendpoint).str();
   if (!instance.grendpoint.empty())
-    addresses += shcore::sqlstring(", 'grLocal', ?", 0) << instance.grendpoint;
+    addresses += (", 'grLocal', ?"_sql << instance.grendpoint).str();
 
-  std::string attributes;
-  attributes = shcore::sqlstring("'server_id', ?", 0) << instance.server_id;
+  auto attributes = ("'server_id', ?"_sql << instance.server_id).str();
+  if (!instance.cert_subject.empty())
+    attributes += ("'cert_subject', ?"_sql << instance.cert_subject).str();
 
   shcore::sqlstring query;
   query = shcore::sqlstring(
@@ -879,15 +880,15 @@ Instance_id MetadataStorage::insert_instance(
 }
 
 void MetadataStorage::update_instance(const Instance_metadata &instance) {
-  std::string addresses;
-  addresses = shcore::sqlstring("'mysqlClassic', ?", 0) << instance.endpoint;
+  auto addresses = ("'mysqlClassic', ?"_sql << instance.endpoint).str();
   if (!instance.xendpoint.empty())
-    addresses += shcore::sqlstring(", 'mysqlX', ?", 0) << instance.xendpoint;
+    addresses += (", 'mysqlX', ?"_sql << instance.xendpoint).str();
   if (!instance.grendpoint.empty())
-    addresses += shcore::sqlstring(", 'grLocal', ?", 0) << instance.grendpoint;
+    addresses += (", 'grLocal', ?"_sql << instance.grendpoint).str();
 
-  std::string attributes;
-  attributes = shcore::sqlstring("'server_id', ?", 0) << instance.server_id;
+  auto attributes = ("'server_id', ?"_sql << instance.server_id).str();
+  if (!instance.cert_subject.empty())
+    attributes += ("'cert_subject', ?"_sql << instance.cert_subject).str();
 
   bool lookup_by_address = instance.id == 0 || instance.cluster_id.empty();
 
@@ -920,15 +921,15 @@ void MetadataStorage::update_instance(const Instance_metadata &instance) {
   execute_sql(query);
 }
 
-bool MetadataStorage::query_instance_attribute(const std::string &uuid,
-                                               const std::string &attribute,
+bool MetadataStorage::query_instance_attribute(std::string_view uuid,
+                                               std::string_view attribute,
                                                shcore::Value *out_value) const {
-  auto result = execute_sql(
-      shcore::sqlstring("SELECT attributes->'$." + attribute +
-                            "' FROM mysql_innodb_cluster_metadata.instances"
-                            " WHERE mysql_server_uuid=?",
-                        0)
-      << uuid);
+  auto stmt = shcore::str_format(
+      "SELECT attributes->'$.%.*s' FROM "
+      "mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = ?",
+      static_cast<int>(attribute.length()), attribute.data());
+
+  auto result = execute_sql(shcore::sqlstring(stmt, 0) << uuid);
 
   if (auto row = result->fetch_one()) {
     if (!row->is_null(0)) {
@@ -939,31 +940,31 @@ bool MetadataStorage::query_instance_attribute(const std::string &uuid,
   return false;
 }
 
-void MetadataStorage::update_instance_attribute(const std::string &uuid,
-                                                const std::string &attribute,
+void MetadataStorage::update_instance_attribute(std::string_view uuid,
+                                                std::string_view attribute,
                                                 const shcore::Value &value) {
   if (value) {
-    shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.instances"
-        " SET attributes = json_set(attributes, '$." +
-            attribute +
-            "', CAST(? as JSON))"
-            " WHERE mysql_server_uuid = ?",
-        0);
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+        "json_set(attributes, '$.%.*s', CAST(? as JSON)) WHERE "
+        "mysql_server_uuid = ?",
+        static_cast<int>(attribute.length()), attribute.data());
 
+    shcore::sqlstring query(stmt, 0);
     query << value.repr() << uuid;
     query.done();
+
     execute_sql(query);
   } else {
-    shcore::sqlstring query(
-        "UPDATE mysql_innodb_cluster_metadata.instances"
-        " SET attributes = json_remove(attributes, '$." +
-            attribute +
-            "')"
-            " WHERE mysql_server_uuid = ?",
-        0);
+    auto stmt = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.instances SET attributes = "
+        "json_remove(attributes, '$.%.*s') WHERE mysql_server_uuid = ?",
+        static_cast<int>(attribute.length()), attribute.data());
+
+    shcore::sqlstring query(stmt, 0);
     query << uuid;
     query.done();
+
     execute_sql(query);
   }
 }
@@ -1495,6 +1496,8 @@ Instance_metadata MetadataStorage::unserialize_instance(
   }
 
   instance.server_id = row.get_uint("server_id", 0);
+  if (row.has_field("cert_subject"))
+    instance.cert_subject = row.get_string("cert_subject", 0);
 
   if (row.has_field("hidden_from_router")) {
     instance.hidden_from_router = row.get_uint("hidden_from_router", 0);
@@ -1548,32 +1551,31 @@ void MetadataStorage::get_replica_set_primary_info(const Cluster_id &cluster_id,
 
 std::vector<Instance_metadata> MetadataStorage::get_all_instances(
     Cluster_id cluster_id) {
-  std::vector<Instance_metadata> ret_val;
+  if (real_version() == metadata::kNotInstalled) return {};
 
-  if (real_version() != metadata::kNotInstalled) {
-    std::string query(get_instance_query(m_real_md_version));
+  std::string query(get_instance_query(m_real_md_version));
 
-    // If a different schema is provided, uses it
-    if (m_md_version_schema != metadata::kMetadataSchemaName)
-      query = shcore::str_replace(query, metadata::kMetadataSchemaName,
-                                  m_md_version_schema);
+  // If a different schema is provided, uses it
+  if (m_md_version_schema != metadata::kMetadataSchemaName)
+    query = shcore::str_replace(query, metadata::kMetadataSchemaName,
+                                m_md_version_schema);
 
-    std::shared_ptr<mysqlshdk::db::IResult> result;
+  std::shared_ptr<mysqlshdk::db::IResult> result;
 
-    if (cluster_id.empty()) {
-      result = execute_sql(query);
+  if (cluster_id.empty()) {
+    result = execute_sql(query);
+  } else {
+    if (m_real_md_version.get_major() == 1) {
+      result = execute_sqlf(query + " WHERE r.cluster_id = ?",
+                            std::atoi(cluster_id.c_str()));
     } else {
-      if (m_real_md_version.get_major() == 1) {
-        result = execute_sqlf(query + " WHERE r.cluster_id = ?",
-                              std::atoi(cluster_id.c_str()));
-      } else {
-        result = execute_sqlf(query + " WHERE i.cluster_id = ?", cluster_id);
-      }
+      result = execute_sqlf(query + " WHERE i.cluster_id = ?", cluster_id);
     }
+  }
 
-    while (auto row = result->fetch_one_named()) {
-      ret_val.push_back(unserialize_instance(row, &m_real_md_version));
-    }
+  std::vector<Instance_metadata> ret_val;
+  while (auto row = result->fetch_one_named()) {
+    ret_val.push_back(unserialize_instance(row, &m_real_md_version));
   }
 
   return ret_val;
@@ -1699,7 +1701,7 @@ void MetadataStorage::get_lock_exclusive() const {
   // Try to acquire the specified lock.
   // NOTE: Only one lock per namespace is used because lock release is
   //       performed by namespace.
-  if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+  if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
     // No need install Locking Service UDFs, already done at a higher level
     // (instance) if needed/supported. Thus, we only try to acquire the lock if
     // the lock UDFs are available (skipped otherwise).
@@ -1737,7 +1739,7 @@ void MetadataStorage::release_lock(bool no_throw) const {
   //       otherwise do nothing (ignore if concurrent execution is not
   //       supported, e.g., lock service plugin not available).
   try {
-    if (mysqlshdk::mysql::has_lock_service_udfs(*m_md_server)) {
+    if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
       log_debug("Releasing locks for '%s' on %s.", k_lock_name_metadata,
                 m_md_server->descr().c_str());
       mysqlshdk::mysql::release_lock(*m_md_server, k_lock_name_metadata);
@@ -2352,58 +2354,45 @@ static void parse_router_definition(const std::string &router_def,
   }
 }
 
-bool MetadataStorage::remove_router(const std::string &router_def) {
+bool MetadataStorage::remove_router(const std::string &router_def,
+                                    bool lock_metadata) {
   std::string address;
   std::string name;
-
   parse_router_definition(router_def, &address, &name);
 
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
+  shcore::on_leave_scope finally;
+  if (lock_metadata) {
+    // Acquire required lock on the Metadata (try at most during 60 sec).
+    get_lock_exclusive();
 
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+    // Always release locks at the end, when leaving the function scope.
+    finally = shcore::on_leave_scope([this]() { release_lock(); });
+  }
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.
+  std::shared_ptr<mysqlshdk::db::IResult> result;
   if (real_version().get_major() == 1) {
-    auto result = execute_sqlf(
-        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
-        " JOIN mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id"
-        " WHERE r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
+    result = execute_sqlf(
+        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r JOIN "
+        "mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id WHERE "
+        "r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
         name, address);
-
-    if (auto row = result->fetch_one()) {
-      int router_id = row->get_int(0);
-
-      execute_sqlf(
-          "DELETE FROM mysql_innodb_cluster_metadata.routers"
-          " WHERE router_id = ?",
-          router_id);
-
-      return true;
-    } else {
-      return false;
-    }
   } else {
-    auto result = execute_sqlf(
-        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r"
-        " WHERE r.router_name = ? AND r.address = ?",
+    result = execute_sqlf(
+        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r WHERE "
+        "r.router_name = ? AND r.address = ?",
         name, address);
-
-    if (auto row = result->fetch_one()) {
-      int router_id = row->get_int(0);
-
-      execute_sqlf(
-          "DELETE FROM mysql_innodb_cluster_metadata.routers"
-          " WHERE router_id = ?",
-          router_id);
-
-      return true;
-    } else {
-      return false;
-    }
   }
+
+  auto row = result->fetch_one();
+  if (!row) return false;
+
+  execute_sqlf(
+      "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE router_id = ?",
+      row->get_int(0));
+
+  return true;
 }
 
 void MetadataStorage::set_target_cluster_for_all_routers(
@@ -2664,11 +2653,6 @@ void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
 Cluster_set_id MetadataStorage::create_cluster_set_record(
     Cluster_set_impl *clusterset, Cluster_id seed_cluster_id,
     shcore::Dictionary_t seed_attributes) {
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_created(?, ?, ?, @_cs_id)",
       clusterset->get_name(), seed_cluster_id,
@@ -2683,12 +2667,6 @@ Cluster_set_id MetadataStorage::create_cluster_set_record(
 
 void MetadataStorage::record_cluster_set_member_added(
     const Cluster_set_member_metadata &cluster) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_added(?, ?, ?, '{}')",
       cluster.cluster_set_id, cluster.cluster.cluster_id,
@@ -2697,12 +2675,6 @@ void MetadataStorage::record_cluster_set_member_added(
 
 void MetadataStorage::record_cluster_set_member_removed(
     const Cluster_set_id &cs_id, const Cluster_id &cluster_id) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf("CALL mysql_innodb_cluster_metadata.v2_cs_member_removed(?, ?)",
                cs_id, cluster_id);
 }
@@ -2710,12 +2682,6 @@ void MetadataStorage::record_cluster_set_member_removed(
 void MetadataStorage::record_cluster_set_member_rejoined(
     const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
     const Cluster_id &master_cluster_id) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   execute_sqlf(
       "CALL mysql_innodb_cluster_metadata.v2_cs_member_rejoined(?, ?, ?, '{}')",
       cs_id, cluster_id, master_cluster_id);

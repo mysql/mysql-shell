@@ -72,15 +72,6 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 
 namespace shcore {
 
-Scoped_callback::~Scoped_callback() {
-  try {
-    call();
-  } catch (const std::exception &e) {
-    exception_ptr = std::current_exception();
-    log_error("Unexpected exception: %s", e.what());
-  }
-}
-
 bool is_valid_identifier(const std::string &name) {
   bool ret_val = false;
 

@@ -126,6 +126,7 @@ NOTE: dryRun option was specified. Validations will be executed, but no changes 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 <<<__address1>>>: Instance configuration is suitable.
 
+* Checking connectivity and SSL configuration...
 * Updating metadata...
 
 dryRun finished.
@@ -139,5 +140,5 @@ dryRun finished.
 @+---------------+@
 
 //@# gtidSetIsCompatible
-@| {"adopted": 0, "opt_gtidSetIsComplete": false, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@
-@| {"adopted": 0, "opt_gtidSetIsComplete": true, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@
+@| {"adopted": 0, "opt_certIssuer": "", "opt_memberAuthType": "PASSWORD", "opt_gtidSetIsComplete": false, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@
+@| {"adopted": 0, "opt_certIssuer": "", "opt_memberAuthType": "PASSWORD", "opt_gtidSetIsComplete": true, "opt_replicationSslMode": "REQUIRED", "opt_replicationAllowedHost": "%"} |@

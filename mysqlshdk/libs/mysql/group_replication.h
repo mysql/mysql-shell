@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -238,31 +238,40 @@ mysql::User_privileges_result check_replication_user(
 
 /**
  * Create a replication (recovery) user with the given name and required
- * privileges for Group Replication and a randomly generated password. NOTE: The
- * replication (recovery) user is always created at the primary instance with
- * disabled password expiration (see: BUG#28855764)
+ * privileges for Group Replication. In case of authentication requiring
+ * password, a random one is generated. NOTE: The replication (recovery) user is
+ * always created at the primary instance with disabled password expiration
+ * (see: BUG#28855764)
  *
  * @param username The name of the replication user we want to create
  * @param primary instance where the account will be created
  * @param hosts list of hosts that will be used for the user creation.
- * @param password password to be used for the account.
- *        If null a random password is assigned.
- * @param clone_supportes boolean flag to indicate whether clone is supported or
- * not to determine if the set of grants required to manage clone are to be
- * given
- * @param auto_failover boolean flag to indicate whether the account will be
- * used for automatic connection failover (clusterSet) or not, to determine if
- * the set of grants required for it are to be given
+ * @param options remaining options
  * @return a Auth_options object with information about the created user
  * @throw std::runtime error if the replication user already exists on the
  * target instance with any of the given hosts or if an error occurs with the
  * user creation.
  */
+struct Create_recovery_user_options {
+  bool requires_password = true;
+  // if null a random password is assigned
+  std::optional<std::string> password;
+  // flag to indicate whether clone is supported or not to determine if the set
+  // of grants required to manage clone are to be given
+  bool clone_supported = false;
+  // flag to indicate whether the account will be used for automatic connection
+  // failover (clusterSet) or not, to determine if the set of grants required
+  // for it are to be given
+  bool auto_failover = false;
+  bool mysql_comm_stack_supported = false;
+  std::string cert_issuer;
+  std::string cert_subject;
+};
+
 mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
-    const std::optional<std::string> &password, bool clone_supported = false,
-    bool auto_failover = false, bool mysql_comm_stack_supported = false);
+    const Create_recovery_user_options &options);
 
 /**
  * Checks if the thread for a delayed initialization of the group replication is

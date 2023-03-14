@@ -162,21 +162,41 @@ void Rescan::prepare() {
   auto console = mysqlsh::current_console();
 
   // All instance to add must be an active member of the GR group.
-  std::vector<std::string> invalid_add_members =
-      detect_invalid_members(m_options.add_instances_list, true);
+  {
+    std::vector<std::string> invalid_add_members =
+        detect_invalid_members(m_options.add_instances_list, true);
 
-  if (!invalid_add_members.empty()) {
+    if (!invalid_add_members.empty()) {
+      console->print_error(
+          "The following instances cannot be added because they are not active "
+          "members of the cluster: '" +
+          shcore::str_join(invalid_add_members, ", ") +
+          "'. Please verify if the specified addresses are correct, or if the "
+          "instances are currently inactive.");
+      console->print_info();
+
+      throw shcore::Exception::runtime_error(
+          "The following instances are not active members of the cluster: '" +
+          shcore::str_join(invalid_add_members, ", ") + "'.");
+    }
+  }
+
+  // can't add instances if recovery auth isn't password
+  if (((!m_options.add_instances_list.empty() || m_options.auto_add) &&
+       (m_cluster->query_cluster_auth_type() !=
+        Replication_auth_type::PASSWORD))) {
     console->print_error(
-        "The following instances cannot be added because they are not active "
-        "members of the cluster: '" +
-        shcore::str_join(invalid_add_members, ", ") +
-        "'. Please verify if the specified addresses are correct, or if the "
-        "instances are currently inactive.");
+        "Unrecognized members were detected in the group, but the cluster is "
+        "configured to require SSL certificate authentication. Please stop GR "
+        "on those members and then add them to the cluster using "
+        "cluster.<<<addInstance>>>() with the appropriate authentication "
+        "options.");
     console->print_info();
 
-    throw shcore::Exception::runtime_error(
-        "The following instances are not active members of the cluster: '" +
-        shcore::str_join(invalid_add_members, ", ") + "'.");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Can't automatically add unrecognized members to the cluster when "
+        "memberAuthType is '%s'.",
+        to_string(m_cluster->query_cluster_auth_type()).c_str()));
   }
 
   // All instance to remove cannot be an active member of the GR group.
@@ -501,7 +521,18 @@ Instance_list::const_iterator find_in_instance_list(
 
 void Rescan::add_metadata_for_instances(
     const std::shared_ptr<shcore::Value::Array_type> &instance_list) {
+  if (instance_list->empty()) return;
+
   auto console = mysqlsh::current_console();
+
+  if (m_cluster->query_cluster_auth_type() != Replication_auth_type::PASSWORD) {
+    console->print_info(
+        "New instances were discovered in the cluster but ignore because the "
+        "cluster requires SSL certificate authentication.\nPlease stop GR on "
+        "those members and then add them to the cluster using "
+        "cluster.addInstance() with the appropriate authentication options.");
+    return;
+  }
 
   for (const auto &instance : *instance_list) {
     auto instance_map = instance.as_map();
@@ -853,7 +884,7 @@ void Rescan::ensure_recovery_accounts_match() {
 
           // Generate the recovery account string for this instance
           std::string recovery_user_generated =
-              m_cluster->make_replication_user_name(
+              Cluster_impl::make_replication_user_name(
                   instance->get_server_id(),
                   old_prefix ? mysqlshdk::gr::k_group_recovery_old_user_prefix
                              : mysqlshdk::gr::k_group_recovery_user_prefix);

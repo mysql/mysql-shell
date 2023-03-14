@@ -42,6 +42,85 @@ enum class Lock_mode {
   EXCLUSIVE,
 };
 
+class Lock_scoped {
+  friend class Lock_scoped_list;
+
+ public:
+  explicit Lock_scoped(std::function<void()> c) noexcept
+      : m_callback{std::move(c)} {}
+
+  Lock_scoped() = default;
+  Lock_scoped(std::nullptr_t) {}
+
+  Lock_scoped(const Lock_scoped &) = delete;
+  Lock_scoped &operator=(const Lock_scoped &) = delete;
+  Lock_scoped(Lock_scoped &&) = default;
+  Lock_scoped &operator=(Lock_scoped &&) = default;
+
+  ~Lock_scoped() noexcept {
+    if (!m_callback) return;
+    try {
+      m_callback();
+    } catch (const std::exception &e) {
+      log_error("Unexpected exception: %s", e.what());
+    }
+  }
+
+  explicit operator bool() const noexcept { return m_callback.operator bool(); }
+
+  void invoke() {
+    if (!m_callback) return;
+    std::exchange(m_callback, nullptr)();
+  }
+
+ private:
+  std::function<void()> m_callback;
+};
+
+class Lock_scoped_list {
+ public:
+  Lock_scoped_list() = default;
+  Lock_scoped_list(const Lock_scoped_list &) = delete;
+  Lock_scoped_list &operator=(const Lock_scoped_list &) = delete;
+  Lock_scoped_list(Lock_scoped_list &&) = default;
+  Lock_scoped_list &operator=(Lock_scoped_list &&) = default;
+
+  ~Lock_scoped_list() noexcept { invoke(); }
+
+  void invoke() noexcept {
+    // from end to begin (mimics a stack)
+    std::for_each(m_callbacks.rbegin(), m_callbacks.rend(), [](const auto &cb) {
+      try {
+        cb();
+      } catch (const std::exception &e) {
+        log_error("Unexpected exception: %s", e.what());
+      }
+    });
+    m_callbacks.clear();
+  }
+
+  void push_back(std::function<void()> cb) {
+    if (!cb) return;
+    m_callbacks.push_back(std::move(cb));
+  }
+
+  void push_back(Lock_scoped lock) {
+    if (!lock) return;
+    m_callbacks.push_back(std::exchange(lock.m_callback, nullptr));
+  }
+
+  template <class TCapture>
+  void push_back(Lock_scoped lock, TCapture &&capture) {
+    if (!lock) return;
+    m_callbacks.push_back(
+        [capture = std::forward<TCapture>(capture),
+         cb = std::exchange(lock.m_callback, nullptr)]() { cb(); });
+  }
+
+ private:
+  std::vector<std::function<void()>> m_callbacks;
+};
+
 /**
  * Convert Lock_mode enumeration values to string.
  *
@@ -51,28 +130,28 @@ enum class Lock_mode {
 std::string to_string(const Lock_mode mode);
 
 /**
- * Install the lock service UDFs on the target instance.
+ * Install the lock service on the target instance.
  *
- * @param instance Instance object with the arget instance to install the UDFs.
+ * @param instance Instance object with the target instance to install the
+ * lock service.
  */
-void install_lock_service_udfs(mysqlshdk::mysql::IInstance *instance);
+void install_lock_service(mysqlshdk::mysql::IInstance *instance);
 
 /**
- * Check if the lock service UDFs are installed on the target instance.
+ * Check if the lock service are installed on the target instance.
  *
  * @param instance Instance object with the target instance to check.
- * @return boolean indicating if service lock UDFs are installed, true if all
- *         the UDFs are available otherwise false.
+ * @return boolean true if lock service is installed, false otherwise.
  */
-bool has_lock_service_udfs(const mysqlshdk::mysql::IInstance &instance);
+bool has_lock_service(const mysqlshdk::mysql::IInstance &instance);
 
 /**
- * Uninstall the lock service UDFs from the target instance.
+ * Uninstall the lock service from the target instance.
  *
  * @param instance Instance object with the target instance to uninstall the
- *        UDFs.
+ *        lock service
  */
-void uninstall_lock_service_udfs(mysqlshdk::mysql::IInstance *instance);
+void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance);
 
 /**
  * Try to acquire the specified lock on the target instance.
@@ -93,10 +172,9 @@ void uninstall_lock_service_udfs(mysqlshdk::mysql::IInstance *instance);
  * @param lock_name string with the name of the lock to acquire.
  * @param lock_mode Type of lock to be acquired: Lock_mode::SHARED or
  *                  Lock_mode::EXCLUSIVE.
- * @param timeout positive int with the maximum time in seconds to wait for the
- *                lock to be acquired. By default 0, meaning that it will fail
- *                with an error if the specified lock cannot be immediately
- *                acquired.
+ * @param timeout positive int with the maximum time in seconds to wait for
+ * the lock to be acquired. By default 0, meaning that it will fail with an
+ * error if the specified lock cannot be immediately acquired.
  * @throws shcore::Exception if the lock cannot be acquired (wait timeout
  *         exceeded), or if the name_space or lock name are invalid (empty or
  *         length greater than 64 characters).

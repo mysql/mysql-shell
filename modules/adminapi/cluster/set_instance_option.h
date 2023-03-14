@@ -36,7 +36,7 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Set_instance_option : public Command_interface {
+class Set_instance_option final : public Command_interface {
  public:
   Set_instance_option(
       const Cluster_impl &cluster,
@@ -83,6 +83,13 @@ class Set_instance_option : public Command_interface {
    * Finalize the command execution.
    */
   void finish() override {}
+
+  /**
+   * The current active instance
+   */
+  mysqlsh::dba::Instance *get_target_instance() const {
+    return m_target_instance.get();
+  }
 
  private:
   const Cluster_impl &m_cluster;

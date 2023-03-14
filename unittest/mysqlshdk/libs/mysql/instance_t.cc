@@ -815,40 +815,6 @@ TEST_F(Instance_test, set_sysvar_default) {
   _session->close();
 }
 
-TEST_F(Instance_test, get_system_variables) {
-  EXPECT_CALL(session, do_connect(_connection_options));
-  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
-  _session->connect(_connection_options);
-
-  session
-      .expect_query(
-          "show GLOBAL variables where `variable_name` in"
-          " ('server_id', 'server_uuid', 'unexisting_variable')")
-      .then_return(
-          {{"show GLOBAL variables where `variable_name` in"
-            " ('server_id', 'server_uuid', 'unexisting_variable')",
-            {"Variable_name", "Value"},
-            {Type::String, Type::String},
-            {{"server_id", "0"},
-             {"server_uuid", "891a2c04-1cc7-11e7-8323-00059a3c7a00"}}}});
-
-  mysqlshdk::mysql::Instance instance(_session);
-  auto variables = instance.get_system_variables(
-      {"server_id", "server_uuid", "unexisting_variable"});
-
-  EXPECT_EQ(3, variables.size());
-
-  EXPECT_FALSE(!variables["server_id"].has_value());
-  EXPECT_FALSE(!variables["server_uuid"].has_value());
-  EXPECT_TRUE(!variables["unexisting_variable"].has_value());
-
-  EXPECT_CALL(session, do_close());
-  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  _session->close();
-}
-
 TEST_F(Instance_test, install_plugin_win) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -1004,11 +970,24 @@ TEST_F(Instance_test, create_user) {
   EXPECT_EXECUTE_CALL(session, "CREATE TABLE test_db2.t1 (c1 INT)");
   _session->execute("CREATE TABLE test_db2.t1 (c1 INT)");
 
+  // prepare options
+  mysqlshdk::mysql::IInstance::Create_user_options test_options;
+  test_options.password = "test_pwd";
+  test_options.grants.push_back({"SELECT, INSERT, UPDATE", "test_db.*", false});
+  test_options.grants.push_back({"DELETE", "test_db.t1", false});
+  test_options.grants.push_back({"ALTER,DROP", "test_db.t2", true});
+  test_options.grants.push_back({"SELECT", "test_db2.*", true});
+
+  mysqlshdk::mysql::IInstance::Create_user_options dba_options;
+  dba_options.password = "dba_pwd";
+  dba_options.disable_pwd_expire = true;
+  dba_options.grants.push_back({"ALL", "*.*", true});
+
   // Create user with SELECT, INSERT, UPDATE on test_db.* and DELETE on
   // test_db.t1.
   EXPECT_EXECUTE_CALL(session,
                       "CREATE USER IF NOT EXISTS 'test_user'@'test_host' "
-                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/");
+                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/ REQUIRE NONE");
   EXPECT_EXECUTE_CALL(
       session,
       "GRANT SELECT, INSERT, UPDATE ON test_db.* TO 'test_user'@'test_host'");
@@ -1020,39 +999,99 @@ TEST_F(Instance_test, create_user) {
   EXPECT_EXECUTE_CALL(session,
                       "GRANT SELECT ON test_db2.* TO 'test_user'@'test_host' "
                       "WITH GRANT OPTION");
-  std::vector<std::tuple<std::string, std::string, bool>> test_priv = {
-      std::make_tuple("SELECT, INSERT, UPDATE", "test_db.*", false),
-      std::make_tuple("DELETE", "test_db.t1", false),
-      std::make_tuple("ALTER,DROP", "test_db.t2", true),
-      std::make_tuple("SELECT", "test_db2.*", true)};
-  instance.create_user("test_user", "test_host", "test_pwd", test_priv);
+  instance.create_user("test_user", "test_host", test_options);
+
   // Create user with ALL on *.* WITH GRANT OPTION.
   EXPECT_EXECUTE_CALL(session,
                       "CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' "
-                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/");
+                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/ REQUIRE NONE "
+                      "PASSWORD EXPIRE NEVER");
   EXPECT_EXECUTE_CALL(
       session, "GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION");
-  std::vector<std::tuple<std::string, std::string, bool>> dba_priv = {
-      std::make_tuple("ALL", "*.*", true)};
-  instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv);
+  instance.create_user("dba_user", "dba_host", dba_options);
 
   // Second create users fail because they already exist.
   EXPECT_EXECUTE_CALL(session,
                       "CREATE USER IF NOT EXISTS 'test_user'@'test_host' "
-                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/")
+                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/ REQUIRE NONE")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
-  EXPECT_THROW(
-      instance.create_user("test_user", "test_host", "test_pwd", test_priv),
-      std::exception);
+  EXPECT_THROW(instance.create_user("test_user", "test_host", test_options),
+               std::exception);
   EXPECT_EXECUTE_CALL(session,
                       "CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' "
-                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/")
+                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/ REQUIRE NONE "
+                      "PASSWORD EXPIRE NEVER")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
-  EXPECT_THROW(
-      instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv),
-      std::exception);
+  EXPECT_THROW(instance.create_user("dba_user", "dba_host", dba_options),
+               std::exception);
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  _session->close();
+}
+
+TEST_F(Instance_test, create_user_ssl_options) {
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
+  _session->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  // prepare options
+  mysqlshdk::mysql::IInstance::Create_user_options test_options;
+
+  // Create user with only cert_issuer
+  EXPECT_EXECUTE_CALL(
+      session,
+      "CREATE USER IF NOT EXISTS 'test_ssl_user'@'test_ssl_host' REQUIRE "
+      "ISSUER 'cIssuer'");
+  test_options.cert_issuer = "cIssuer";
+  test_options.cert_subject.clear();
+  instance.create_user("test_ssl_user", "test_ssl_host", test_options);
+
+  // Create user with only cert_subject
+  EXPECT_EXECUTE_CALL(
+      session,
+      "CREATE USER IF NOT EXISTS 'test_ssl_user_2'@'test_ssl_host' "
+      "REQUIRE SUBJECT 'cSubject'");
+  test_options.cert_issuer.clear();
+  test_options.cert_subject = "cSubject";
+  instance.create_user("test_ssl_user_2", "test_ssl_host", test_options);
+
+  // Create user with cert_issuer and cert_subject
+  EXPECT_EXECUTE_CALL(
+      session,
+      "CREATE USER IF NOT EXISTS 'test_ssl_user_3'@'test_ssl_host' "
+      "REQUIRE ISSUER 'cIssuer' AND SUBJECT 'cSubject'");
+  test_options.cert_issuer = "cIssuer";
+  test_options.cert_subject = "cSubject";
+  instance.create_user("test_ssl_user_3", "test_ssl_host", test_options);
+
+  // Create user with password, cert_issuer and cert_subject
+  EXPECT_EXECUTE_CALL(
+      session,
+      "CREATE USER IF NOT EXISTS 'test_ssl_user_4'@'test_ssl_host' "
+      "IDENTIFIED BY /*((*/ 'test_ssl_pwd' /*))*/ REQUIRE ISSUER 'cIssuer' AND "
+      "SUBJECT 'cSubject'");
+  test_options.password = "test_ssl_pwd";
+  test_options.cert_issuer = "cIssuer";
+  test_options.cert_subject = "cSubject";
+  instance.create_user("test_ssl_user_4", "test_ssl_host", test_options);
+
+  // Create user with password, cert_issuer and cert_subject
+  EXPECT_EXECUTE_CALL(
+      session,
+      "CREATE USER IF NOT EXISTS 'test_ssl_user_4'@'test_ssl_host' "
+      "IDENTIFIED BY /*((*/ 'test_ssl_pwd' /*))*/ REQUIRE ISSUER 'cIssuer' AND "
+      "SUBJECT 'cSubject' PASSWORD EXPIRE NEVER");
+  test_options.password = "test_ssl_pwd";
+  test_options.cert_issuer = "cIssuer";
+  test_options.cert_subject = "cSubject";
+  test_options.disable_pwd_expire = true;
+  instance.create_user("test_ssl_user_4", "test_ssl_host", test_options);
+
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();

@@ -31,6 +31,7 @@
 #include "adminapi/common/cluster_types.h"
 #include "adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -53,6 +54,16 @@
 
 namespace mysqlsh {
 namespace dba {
+
+namespace {
+bool check_comm_stack_defaults_to_mysql(
+    const Create_cluster_options &options,
+    const mysqlsh::dba::Instance &instance) {
+  return !options.gr_options.communication_stack.has_value() &&
+         !options.adopt_from_gr.has_value() &&
+         supports_mysql_communication_stack(instance.get_version());
+}
+}  // namespace
 
 Create_cluster::Create_cluster(const std::shared_ptr<Instance> &target_instance,
                                const std::string &cluster_name,
@@ -108,34 +119,38 @@ void Create_cluster::validate_create_cluster_options() {
           SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR);
   }
 
-  if (m_options.get_adopt_from_gr() &&
-      m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE) {
-    throw shcore::Exception::argument_error(
-        "Cannot use memberSslMode option if adoptFromGR is set to true.");
-  }
+  if (m_options.get_adopt_from_gr()) {
+    if (m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE)
+      throw shcore::Exception::argument_error(
+          "Cannot use memberSslMode option if adoptFromGR is set to true.");
 
-  if (m_options.get_adopt_from_gr() && m_options.multi_primary) {
-    throw shcore::Exception::argument_error(
-        "Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set "
-        "to true. Using adoptFromGR mode will adopt the primary mode in use by "
-        "the Cluster.");
-  }
+    if (m_options.multi_primary) {
+      throw shcore::Exception::argument_error(
+          "Cannot use multiPrimary (or multiMaster) option if adoptFromGR is "
+          "set to true. Using adoptFromGR mode will adopt the primary mode in "
+          "use by the Cluster.");
+    }
 
-  if (m_options.get_adopt_from_gr() &&
-      instance_type != TargetType::GroupReplication) {
-    throw shcore::Exception::argument_error(
-        "The adoptFromGR option is set to true, but there is no replication "
-        "group to adopt");
-  }
+    if (instance_type != TargetType::GroupReplication) {
+      throw shcore::Exception::argument_error(
+          "The adoptFromGR option is set to true, but there is no replication "
+          "group to adopt");
+    }
 
-  // Using communicationStack and adoptFromGR and/or ipAllowlist/ipWhitelist at
-  // the same time is forbidden
-  if (m_options.adopt_from_gr.value_or(false) &&
-      m_options.gr_options.communication_stack.has_value()) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Cannot use the '%s' option if '%s' is set "
-                           "to true.",
-                           kCommunicationStack, kAdoptFromGR));
+    // Using communicationStack and adoptFromGR and/or ipAllowlist/ipWhitelist
+    // at the same time is forbidden
+    if (m_options.gr_options.communication_stack.has_value()) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Cannot use the '%s' option if '%s' is set to true.",
+          kCommunicationStack, kAdoptFromGR));
+    }
+
+    if (m_options.member_auth_options.member_auth_type !=
+        Replication_auth_type::PASSWORD)
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Cannot set '%s' to a value other than 'PASSWORD' "
+                             "if '%s' is set to true.",
+                             kMemberAuthType, kAdoptFromGR));
   }
 
   if (m_options.gr_options.communication_stack.value_or("") ==
@@ -207,17 +222,16 @@ void Create_cluster::resolve_ssl_mode() {
 void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
 
-  std::string msg = "A new InnoDB Cluster will be created ";
+  {
+    auto msg = shcore::str_format(
+        "A new InnoDB Cluster will be created %son instance '%s'.",
+        m_options.adopt_from_gr ? "based on the existing replication group "
+                                : "",
+        m_target_instance->descr().c_str());
 
-  if (m_options.adopt_from_gr) {
-    msg += "based on the existing replication group ";
+    console->print_info(msg);
+    console->print_info();
   }
-
-  msg += "on instance '" + m_target_instance->descr();
-  msg += "'.";
-
-  console->print_info(msg);
-  console->print_info();
 
   // Validate the cluster_name
   mysqlsh::dba::validate_cluster_name(m_cluster_name,
@@ -246,9 +260,7 @@ void Create_cluster::prepare() {
   // instance is running 8.0.27+
   // NOTE: When adoptFromGR is used, we don't set the communication stack since
   // the one in use by the unmanaged GR group must be kept
-  if (!m_options.gr_options.communication_stack.has_value() &&
-      !m_options.adopt_from_gr.has_value() &&
-      supports_mysql_communication_stack(m_target_instance->get_version())) {
+  if (check_comm_stack_defaults_to_mysql(m_options, *m_target_instance)) {
     m_options.gr_options.communication_stack = kCommunicationStackMySQL;
 
     // Verify if the allowlist is used when the communication stack is MySQL by
@@ -280,7 +292,10 @@ void Create_cluster::prepare() {
         m_target_instance->descr().c_str());
   }
 
-  // If adopting, set the target_instance to the primary member of the group:
+  // If adopting, lock all instances and set the target_instance to the primary
+  // member of the group:
+  //
+  // Don't forget that the target instance has already been locked
   //
   // Adopting a cluster can be performed using any member of the group
   // regardless if it's a primary or a secondary. However, all the operations
@@ -289,6 +304,7 @@ void Create_cluster::prepare() {
   // by disabling super_read_only. Apart from possible GTID inconsistencies, a
   // secondary will end up having super_read_only disabled.
   if (m_options.get_adopt_from_gr()) {
+    lock_all_instances();
     m_target_instance = get_primary_member_from_group(m_target_instance);
     m_primary_master = m_target_instance;
   }
@@ -331,6 +347,17 @@ void Create_cluster::prepare() {
 
       // Resolve the SSL Mode to use to configure the instance.
       resolve_ssl_mode();
+
+      // check if member auth request mode is supported
+      validate_instance_member_auth_type(
+          *m_target_instance, false, m_options.gr_options.ssl_mode,
+          "memberSslMode", m_options.member_auth_options.member_auth_type);
+
+      // check if SSL options are valid
+      validate_instance_member_auth_options(
+          "cluster", m_options.member_auth_options.member_auth_type,
+          m_options.member_auth_options.cert_issuer,
+          m_options.member_auth_options.cert_subject);
 
       // Make sure the target instance does not already belong to a cluster.
       if (!m_retrying)
@@ -380,6 +407,21 @@ void Create_cluster::prepare() {
                   *m_options.gr_options.local_address, true, is_windows);
         }
       }
+
+      // Check networking and SSL
+      if (current_shell_options()->get().dba_connectivity_checks) {
+        console->print_info("* Checking connectivity and SSL configuration...");
+
+        test_self_connection(
+            *m_target_instance, m_options.gr_options.local_address.value_or(""),
+            m_options.gr_options.ssl_mode,
+            m_options.member_auth_options.member_auth_type,
+            m_options.member_auth_options.cert_issuer,
+            m_options.member_auth_options.cert_subject,
+            m_options.gr_options.communication_stack.value_or(""));
+      }
+
+      console->print_info();
 
       // Generate the GR group name (if needed).
       if (!m_options.gr_options.group_name.has_value()) {
@@ -528,34 +570,70 @@ void Create_cluster::create_recovery_account(
 
   if (cluster) {
     std::tie(repl_account, repl_account_host) =
-        cluster->create_replication_user(target);
+        cluster->create_replication_user(
+            target, m_options.member_auth_options.cert_subject);
   } else {
     repl_account_host = m_options.replication_allowed_host.empty()
                             ? "%"
                             : m_options.replication_allowed_host;
 
-    repl_account.user = mysqlshdk::gr::k_group_recovery_user_prefix +
-                        std::to_string(m_target_instance->get_server_id());
+    repl_account.user = Cluster_impl::make_replication_user_name(
+        m_target_instance->get_server_id(),
+        mysqlshdk::gr::k_group_recovery_user_prefix);
 
     log_info("Creating recovery account '%s'@'%s' for instance '%s'",
              repl_account.user.c_str(), repl_account_host.c_str(),
              m_target_instance->descr().c_str());
 
+    auto target_version = m_target_instance->get_version();
+
+    std::vector<std::string> hosts;
+    hosts.push_back(repl_account_host);
+
+    mysqlshdk::gr::Create_recovery_user_options user_options;
+    user_options.clone_supported = supports_mysql_clone(target_version);
+    user_options.auto_failover = false;
+    user_options.mysql_comm_stack_supported =
+        supports_mysql_communication_stack(target_version);
+
+    switch (m_options.member_auth_options.member_auth_type) {
+      case Replication_auth_type::PASSWORD:
+      case Replication_auth_type::CERT_ISSUER_PASSWORD:
+      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        user_options.requires_password = true;
+        break;
+      default:
+        user_options.requires_password = false;
+        break;
+    }
+
+    switch (m_options.member_auth_options.member_auth_type) {
+      case Replication_auth_type::CERT_SUBJECT:
+      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+        user_options.cert_subject = m_options.member_auth_options.cert_subject;
+        [[fallthrough]];
+      case Replication_auth_type::CERT_ISSUER:
+      case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        user_options.cert_issuer = m_options.member_auth_options.cert_issuer;
+        break;
+      default:
+        break;
+    }
+
     if (m_target_instance->user_exists(repl_account.user, repl_account_host)) {
+      auto pwd_section =
+          user_options.requires_password ? " with a new password" : "";
       mysqlsh::current_console()->print_note(shcore::str_format(
           "User '%s'@'%s' already existed at instance '%s'. It will be "
-          "deleted and created again with a new password.",
+          "deleted and created again%s.",
           repl_account.user.c_str(), repl_account_host.c_str(),
-          m_target_instance->descr().c_str()));
+          m_target_instance->descr().c_str(), pwd_section));
+
       primary->drop_user(repl_account.user, repl_account_host);
     }
 
-    auto target_version = m_target_instance->get_version();
-
     repl_account = mysqlshdk::gr::create_recovery_user(
-        repl_account.user, *primary, {repl_account_host}, {},
-        supports_mysql_clone(target_version), false,
-        supports_mysql_communication_stack(target_version));
+        repl_account.user, *primary, hosts, user_options);
   }
 
   if (out_username) {
@@ -563,13 +641,16 @@ void Create_cluster::create_recovery_account(
   }
 
   // Configure GR's recovery channel with the newly created account
-  log_debug("Changing GR recovery user details for %s",
+  log_debug("Changing GR recovery user details for '%s'",
             target->descr().c_str());
 
   try {
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = repl_account.password.value_or("");
+
     mysqlshdk::mysql::change_replication_credentials(
-        *target, repl_account.user, *repl_account.password,
-        mysqlshdk::gr::k_gr_recovery_channel);
+        *target, mysqlshdk::gr::k_gr_recovery_channel, repl_account.user,
+        options);
   } catch (const std::exception &e) {
     current_console()->print_warning(
         shcore::str_format("Error updating recovery credentials for %s: %s",
@@ -837,12 +918,25 @@ shcore::Value Create_cluster::execute() {
               std::string(e.what()));
         }
       });
+
+      bool requires_certificates{false};
+      switch (m_options.member_auth_options.member_auth_type) {
+        case mysqlsh::dba::Replication_auth_type::CERT_ISSUER:
+        case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+        case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
+        case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          requires_certificates = true;
+        default:
+          break;
+      }
+
       // Start GR before creating the recovery user and metadata, so that
       // all transactions executed by us have the same GTID prefix
       // NOTE: When the communicationStack chosen is "MySQL", there's one
       // transaction that will have a different GTID prefix that is the "CREATE
       // USER" (see above)
       mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
+                                  requires_certificates,
                                   m_options.multi_primary, m_cfg.get());
     }
 
@@ -947,6 +1041,12 @@ shcore::Value Create_cluster::execute() {
 
     // Insert instance into the metadata.
     if (m_options.get_adopt_from_gr()) {
+      // update recovery auth attributes
+      cluster_impl->get_metadata_storage()->update_cluster_attribute(
+          cluster_impl->get_id(), k_cluster_attribute_member_auth_type,
+          shcore::Value(
+              to_string(m_options.member_auth_options.member_auth_type)));
+
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
       cluster_impl->adopt_from_gr();
@@ -972,6 +1072,19 @@ shcore::Value Create_cluster::execute() {
         cluster_impl->add_metadata_for_instance(
             m_target_instance->get_connection_options());
       }
+
+      // update recovery auth attributes
+      cluster_impl->get_metadata_storage()->update_cluster_attribute(
+          cluster_impl->get_id(), k_cluster_attribute_member_auth_type,
+          shcore::Value(
+              to_string(m_options.member_auth_options.member_auth_type)));
+      cluster_impl->get_metadata_storage()->update_cluster_attribute(
+          cluster_impl->get_id(), k_cluster_attribute_cert_issuer,
+          shcore::Value(m_options.member_auth_options.cert_issuer));
+
+      cluster_impl->get_metadata_storage()->update_instance_attribute(
+          m_target_instance->get_uuid(), k_instance_attribute_cert_subject,
+          shcore::Value(m_options.member_auth_options.cert_subject));
 
       // Create the recovery account and update the Metadata
       // NOTE: If the Cluster is a REPLICA the account must be created at the
@@ -1062,17 +1175,53 @@ shcore::Value Create_cluster::execute() {
 
   std::string message =
       m_options.get_adopt_from_gr()
-          ? "Cluster successfully created based on existing "
-            "replication group."
-          : "Cluster successfully created. Use "
-            "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
-            "At least 3 instances are needed for the cluster to be "
-            "able to withstand up to\n"
-            "one server failure.";
+          ? "Cluster successfully created based on existing replication group."
+          : "Cluster successfully created. Use Cluster.<<<addInstance>>>() to "
+            "add MySQL instances.\nAt least 3 instances are needed for the "
+            "cluster to be able to withstand up to\none server failure.";
   console->print_info(message);
   console->print_info();
 
+  // we can already release the locks on the instances
+  m_instance_locks.invoke();
+
   return ret_val;
+}
+
+void Create_cluster::lock_all_instances() {
+  log_info("Locking all instances that belong to the GR group...");
+
+  bool has_quorum = false;
+  const auto members =
+      mysqlshdk::gr::get_members(*m_target_instance, nullptr, &has_quorum);
+
+  if (!has_quorum) {
+    throw shcore::Exception("Group has no quorum",
+                            SHERR_DBA_GROUP_HAS_NO_QUORUM);
+  }
+
+  const auto &target_instance_uuid = m_target_instance->get_uuid();
+
+  for (const auto &member : members) {
+    if (member.uuid == target_instance_uuid) continue;
+
+    mysqlshdk::db::Connection_options coptions;
+    coptions.set_host(member.host);
+    coptions.set_port(member.port);
+
+    // use the credentials from the target instance from which the group is
+    // being queried (cluster credentials)
+    coptions.set_login_options_from(
+        m_target_instance->get_connection_options());
+
+    log_info("Opening session to member of GR Group at: %s...",
+             coptions.as_uri().c_str());
+
+    auto instance = Instance::connect(coptions);
+
+    if (auto i_lock = instance->get_lock_exclusive(); i_lock)
+      m_instance_locks.push_back(std::move(i_lock), std::move(instance));
+  }
 }
 
 void Create_cluster::rollback() {
@@ -1082,6 +1231,13 @@ void Create_cluster::rollback() {
 
 void Create_cluster::finish() {
   // Do nothing.
+}
+
+std::string Create_cluster::get_communication_stack() const {
+  if (check_comm_stack_defaults_to_mysql(m_options, *m_target_instance))
+    return kCommunicationStackMySQL;
+
+  return m_options.gr_options.communication_stack.value_or("");
 }
 
 }  // namespace dba
