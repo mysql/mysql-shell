@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ enum class Lock_mode {
   EXCLUSIVE,
 };
 
-class Lock_scoped {
+class [[nodiscard]] Lock_scoped {
   friend class Lock_scoped_list;
 
  public:
@@ -54,8 +54,12 @@ class Lock_scoped {
 
   Lock_scoped(const Lock_scoped &) = delete;
   Lock_scoped &operator=(const Lock_scoped &) = delete;
-  Lock_scoped(Lock_scoped &&) = default;
-  Lock_scoped &operator=(Lock_scoped &&) = default;
+
+  Lock_scoped(Lock_scoped && o) noexcept { *this = std::move(o); }
+  Lock_scoped &operator=(Lock_scoped &&o) noexcept {
+    if (this != &o) std::swap(m_callback, o.m_callback);
+    return *this;
+  }
 
   ~Lock_scoped() noexcept {
     if (!m_callback) return;
@@ -77,13 +81,17 @@ class Lock_scoped {
   std::function<void()> m_callback;
 };
 
-class Lock_scoped_list {
+class [[nodiscard]] Lock_scoped_list {
  public:
   Lock_scoped_list() = default;
   Lock_scoped_list(const Lock_scoped_list &) = delete;
   Lock_scoped_list &operator=(const Lock_scoped_list &) = delete;
-  Lock_scoped_list(Lock_scoped_list &&) = default;
-  Lock_scoped_list &operator=(Lock_scoped_list &&) = default;
+
+  Lock_scoped_list(Lock_scoped_list && o) noexcept { *this = std::move(o); }
+  Lock_scoped_list &operator=(Lock_scoped_list &&o) noexcept {
+    if (this != &o) std::swap(m_callbacks, o.m_callbacks);
+    return *this;
+  }
 
   ~Lock_scoped_list() noexcept { invoke(); }
 
@@ -110,7 +118,7 @@ class Lock_scoped_list {
   }
 
   template <class TCapture>
-  void push_back(Lock_scoped lock, TCapture &&capture) {
+  void push_back(Lock_scoped lock, TCapture && capture) {
     if (!lock) return;
     m_callbacks.push_back(
         [capture = std::forward<TCapture>(capture),

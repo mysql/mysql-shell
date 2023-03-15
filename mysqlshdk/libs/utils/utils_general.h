@@ -72,8 +72,12 @@ class Scoped_callback {
   Scoped_callback() = default;
   Scoped_callback(const Scoped_callback &) = delete;
   Scoped_callback &operator=(const Scoped_callback &) = delete;
-  Scoped_callback(Scoped_callback &&) = default;
-  Scoped_callback &operator=(Scoped_callback &&) = default;
+
+  Scoped_callback(Scoped_callback &&o) noexcept { *this = std::move(o); }
+  Scoped_callback &operator=(Scoped_callback &&o) noexcept {
+    if (this != &o) std::swap(m_callback, o.m_callback);
+    return *this;
+  }
 
   ~Scoped_callback() noexcept {
     try {
@@ -98,9 +102,17 @@ class Scoped_callback_list {
  public:
   Scoped_callback_list() = default;
   Scoped_callback_list(const Scoped_callback_list &) = delete;
-  Scoped_callback_list(Scoped_callback_list &&) = delete;
-  Scoped_callback_list &operator=(const Scoped_callback_list &) = delete;
-  Scoped_callback_list &operator=(Scoped_callback_list &&) = delete;
+
+  Scoped_callback_list(Scoped_callback_list &&o) noexcept {
+    *this = std::move(o);
+  }
+  Scoped_callback_list &operator=(Scoped_callback_list &&o) noexcept {
+    if (this != &o) {
+      std::swap(m_callbacks, o.m_callbacks);
+      std::swap(m_cancelled, o.m_cancelled);
+    }
+    return *this;
+  }
 
   ~Scoped_callback_list() noexcept {
     try {
