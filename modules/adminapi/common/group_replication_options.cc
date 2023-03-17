@@ -21,14 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/common/group_replication_options.h"
+
 #include <array>
 #include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 
 #include "mysqlshdk/libs/db/utils_connection.h"
@@ -29,17 +30,57 @@
 namespace mysqlshdk {
 namespace db {
 
-int MapSslModeNameToValue::get_value(const std::string &value) {
-  std::string my_value(value);
-  std::transform(my_value.begin(), my_value.end(), my_value.begin(), ::tolower);
+namespace {
+const std::set<std::string> db_connection_attributes = {kUri,
+                                                        kHost,
+                                                        kPort,
+                                                        kSocket,
+                                                        kScheme,
+                                                        kSchema,
+                                                        kUser,
+                                                        kDbUser,
+                                                        kPassword,
+                                                        kDbPassword,
+                                                        kSslCa,
+                                                        kSslCaPath,
+                                                        kSslCert,
+                                                        kSslKey,
+                                                        kSslCrl,
+                                                        kSslCrlPath,
+                                                        kSslCipher,
+                                                        kSslTlsVersion,
+                                                        kSslTlsCiphersuites,
+                                                        kSslMode,
+                                                        kAuthMethod,
+                                                        kGetServerPublicKey,
+                                                        kServerPublicKeyPath,
+                                                        kConnectTimeout,
+                                                        kNetReadTimeout,
+                                                        kNetWriteTimeout,
+                                                        kCompression,
+                                                        kCompressionAlgorithms,
+                                                        kCompressionLevel,
+                                                        kConnectionAttributes};
 
-  auto index = std::find(ssl_modes.begin(), ssl_modes.end(), my_value);
+const std::array<std::string, 6> ssl_modes = {"",
+                                              kSslModeDisabled,
+                                              kSslModePreferred,
+                                              kSslModeRequired,
+                                              kSslModeVerifyCA,
+                                              kSslModeVerifyIdentity};
+}  // namespace
 
+int MapSslModeNameToValue::get_value(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(), ::tolower);
+
+  auto index = std::find(ssl_modes.begin(), ssl_modes.end(), value);
   return index != ssl_modes.end() ? index - ssl_modes.begin() : 0;
 }
 
 const std::string &MapSslModeNameToValue::get_value(int value) {
-  auto index = value >= 1 && value <= 5 ? value : 0;
+  auto index = (value >= 1 && value <= (static_cast<int>(ssl_modes.size()) - 1))
+                   ? value
+                   : 0;
 
   return ssl_modes[index];
 }

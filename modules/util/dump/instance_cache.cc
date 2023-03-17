@@ -31,6 +31,7 @@
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/profiling.h"

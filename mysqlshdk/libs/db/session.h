@@ -36,27 +36,22 @@
 #include <string>
 #include <string_view>
 #ifdef _WIN32
-#include <windows.h>
-#ifdef WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
-#endif
 using socket_t = SOCKET;
 #else
 using socket_t = int;
 #endif /* _WIN32 */
 
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/db/ssl_options.h"
+
 #include "mysqlshdk/libs/utils/error.h"
-#include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
-#include "mysqlshdk_export.h"
 
 namespace mysqlshdk {
 namespace db {
+
+class SHCORE_PUBLIC IResult;
 
 inline bool is_mysql_client_error(int code) {
   return code >= 2000 && code <= 2999;
@@ -219,25 +214,7 @@ class SHCORE_PUBLIC ISession {
     return m_no_backslash_escapes_enabled;
   }
 
-  void refresh_sql_mode() {
-    assert(is_open());
-    try {
-      auto result = query("select @@sql_mode;");
-      auto row = result->fetch_one();
-
-      if (!row || row->is_null(0)) throw std::runtime_error("Missing sql_mode");
-
-      m_sql_mode = shcore::str_upper(row->get_string(0));
-      m_ansi_quotes_enabled =
-          m_sql_mode->find("ANSI_QUOTES") != std::string::npos;
-      m_no_backslash_escapes_enabled =
-          m_sql_mode->find("NO_BACKSLASH_ESCAPES") != std::string::npos;
-
-    } catch (...) {
-      m_sql_mode = std::nullopt;
-      m_ansi_quotes_enabled = m_no_backslash_escapes_enabled = false;
-    }
-  }
+  void refresh_sql_mode();
 
  protected:
   virtual void do_connect(const mysqlshdk::db::Connection_options &data) = 0;

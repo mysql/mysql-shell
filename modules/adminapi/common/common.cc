@@ -2420,7 +2420,7 @@ void ensure_instance_check_installed_schema_version(
     // Check instance version compatibility according to Group Replication.
     mysqlshdk::gr::check_instance_check_installed_schema_version(
         *target_instance, lowest_cluster_version);
-  } catch (const std::runtime_error &err) {
+  } catch (const std::runtime_error &) {
     auto console = mysqlsh::current_console();
     console->print_error(
         "Cannot join instance '" + target_instance->descr() +

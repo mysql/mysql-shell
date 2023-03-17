@@ -20,6 +20,8 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <string>
+
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils/command_line_test.h"
 #include "utils/utils_string.h"
 

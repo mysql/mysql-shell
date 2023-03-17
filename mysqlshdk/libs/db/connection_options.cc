@@ -21,8 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "mysqlshdk/libs/db/connection_options.h"
+
 #include <algorithm>
 #include <cassert>
+#include <map>
+
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
@@ -37,6 +40,18 @@ using mysqlshdk::utils::nullable_options::Set_mode;
 
 namespace mysqlshdk {
 namespace db {
+
+namespace {
+const std::set<std::string> uri_extra_options = {
+    kAuthMethod,      kGetServerPublicKey,    kServerPublicKeyPath,
+    kConnectTimeout,  kNetReadTimeout,        kNetWriteTimeout,
+    kCompression,     kCompressionAlgorithms, kLocalInfile,
+    kNetBufferLength, kMaxAllowedPacket,      kMysqlPluginDir};
+
+const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
+    deprecated_connection_attributes = {{kDbUser, kUser},
+                                        {kDbPassword, kPassword}};
+}  // namespace
 
 std::string to_string(Transport_type type) {
   switch (type) {

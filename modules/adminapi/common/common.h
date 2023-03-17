@@ -38,16 +38,11 @@
 
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
-
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/utils/enumset.h"
-#include "scripting/lang_base.h"
-#include "scripting/types.h"
 
 namespace mysqlsh {
 
@@ -412,16 +407,16 @@ inline constexpr const char *kReplicationMemberAuthCertSubjectPassword =
 std::string to_string(Replication_auth_type auth);
 Replication_auth_type to_replication_auth_type(std::string_view auth);
 
-constexpr const char *kCommunicationStackMySQL = "MYSQL";
-constexpr const char *kCommunicationStackXCom = "XCOM";
+inline constexpr const char *kCommunicationStackMySQL = "MYSQL";
+inline constexpr const char *kCommunicationStackXCom = "XCOM";
 
-const std::set<std::string> kCommunicationStackValidValues = {
+inline const std::set<std::string> kCommunicationStackValidValues = {
     kCommunicationStackXCom, kCommunicationStackMySQL};
 
 /**
  * Map of the supported Cluster capabilities
  */
-const std::map<std::string, std::set<std::string>>
+inline const std::map<std::string, std::set<std::string>>
     k_cluster_supported_capabilities{
         {kCommunicationStack, kCommunicationStackValidValues}};
 

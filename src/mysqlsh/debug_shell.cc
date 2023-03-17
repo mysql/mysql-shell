@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,13 +135,13 @@ void handle_debug_options(int *argc, char ***argv) {
   if (const char *mode = getenv("MYSQLSH_RECORDER_MODE")) {
     const auto quiet = nullptr != getenv("MYSQLSH_RECORDER_QUIET");
 
-    if (strcasecmp(mode, "direct") == 0 || !*mode) {
+    if (shcore::str_caseeq(mode, "direct") || !*mode) {
       mysqlshdk::db::replay::set_mode(Mode::Direct);
 
       if (!quiet) {
         puts("Disabled classic session recording");
       }
-    } else if (strcasecmp(mode, "record") == 0) {
+    } else if (shcore::str_caseeq(mode, "record")) {
       mysqlshdk::db::replay::set_mode(Mode::Record);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {
@@ -179,7 +179,7 @@ void handle_debug_options(int *argc, char ***argv) {
           mysqlshdk::db::replay::save_test_case_info(info);
         }
       }
-    } else if (strcasecmp(mode, "replay") == 0) {
+    } else if (shcore::str_caseeq(mode, "replay")) {
       mysqlshdk::db::replay::set_mode(Mode::Replay);
 
       if (!getenv("MYSQLSH_RECORDER_PREFIX")) {

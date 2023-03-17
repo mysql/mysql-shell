@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,11 +23,11 @@
 
 #ifndef MYSQLSHDK_LIBS_SSH_SSH_CONNECTION_OPTIONS_H_
 #define MYSQLSHDK_LIBS_SSH_SSH_CONNECTION_OPTIONS_H_
+
 #include <optional>
 #include <set>
 #include <string>
 
-#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 

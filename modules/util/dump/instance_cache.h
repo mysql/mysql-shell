@@ -34,11 +34,15 @@
 #include <unordered_set>
 #include <vector>
 
+#include "modules/util/common/dump/filtering_options.h"
+#include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-#include "modules/util/common/dump/filtering_options.h"
+namespace mysqlshdk::db {
+class SHCORE_PUBLIC IRow;
+}
 
 namespace mysqlsh {
 namespace dump {

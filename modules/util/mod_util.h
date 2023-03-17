@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,8 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/libs/db/connection_options.h"
-
 #include "modules/mod_extensible_object.h"
 #include "modules/util/dump/dump_instance_options.h"
 #include "modules/util/dump/dump_schemas_options.h"
@@ -38,6 +36,8 @@
 #include "modules/util/import_table/import_table_options.h"
 #include "modules/util/load/load_dump_options.h"
 #include "modules/util/upgrade_check.h"
+#include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/document_parser.h"
 
 namespace shcore {
 class IShell_core;

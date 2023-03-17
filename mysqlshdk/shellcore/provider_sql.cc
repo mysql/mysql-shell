@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/parser/base/symbol-info.h"
 #include "mysqlshdk/libs/parser/server/sql_modes.h"

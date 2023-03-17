@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,19 +49,19 @@ std::string get_metadata_upgrade_script();
 namespace upgrade {
 enum class Stage;
 }
-const mysqlshdk::utils::Version kUpgradingVersion =
+inline const mysqlshdk::utils::Version kUpgradingVersion =
     mysqlshdk::utils::Version(0, 0, 0);
-const mysqlshdk::utils::Version kNotInstalled =
+inline const mysqlshdk::utils::Version kNotInstalled =
     mysqlshdk::utils::Version(-1, -1, -1);
 
-constexpr char kMetadataSchemaName[] = "mysql_innodb_cluster_metadata";
-constexpr char kMetadataSchemaBackupName[] =
+inline constexpr char kMetadataSchemaName[] = "mysql_innodb_cluster_metadata";
+inline constexpr char kMetadataSchemaBackupName[] =
     "mysql_innodb_cluster_metadata_bkp";
 
-static constexpr const char *kClusterSetupIndicatorTag =
+inline constexpr const char *kClusterSetupIndicatorTag =
     "__mysql_innodb_cluster_creating_cluster__";
 
-constexpr char kFailedUpgradeError[] =
+inline constexpr char kFailedUpgradeError[] =
     "An unfinished metadata upgrade was detected, which may have left it in an "
     "invalid state. Execute dba.<<<upgradeMetadata>>> again to repair it.";
 

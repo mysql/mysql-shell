@@ -26,6 +26,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+
 #include "modules/mod_mysql_constants.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
@@ -35,6 +36,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 
 #include "errmsg.h"  // NOLINT

@@ -41,6 +41,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace db {
