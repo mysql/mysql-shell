@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_UTILS_NET_H_
 #define MYSQLSHDK_LIBS_UTILS_UTILS_NET_H_
 
+#include <cstdint>
 #include <optional>
 #include <stdexcept>
 #include <string>

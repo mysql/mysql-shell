@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_STRFORMAT_H_
 #define MYSQLSHDK_LIBS_UTILS_STRFORMAT_H_
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
