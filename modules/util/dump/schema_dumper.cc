@@ -42,8 +42,8 @@
 #include <regex>
 #include <unordered_set>
 
-#include "m_ctype.h"
 #include "my_sys.h"
+#include "mysql/strings/m_ctype.h"
 #include "mysqld_error.h"
 
 #include "mysqlshdk/include/shellcore/console.h"
