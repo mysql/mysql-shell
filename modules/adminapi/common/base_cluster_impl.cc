@@ -135,11 +135,9 @@ void Base_cluster_impl::check_preconditions(
   if (custom_func_avail) {
     primary_required = custom_func_avail->primary_required;
   } else {
-    const Function_availability &func_avail =
-        Precondition_checker::get_function_preconditions(api_class(get_type()) +
-                                                         "." + function_name);
-
-    primary_required = func_avail.primary_required;
+    primary_required = Precondition_checker::get_function_preconditions(
+                           api_class(get_type()) + "." + function_name)
+                           .primary_required;
   }
 
   try {

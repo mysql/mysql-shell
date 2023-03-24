@@ -126,6 +126,7 @@ if(WITH_TESTS)
         ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp)
 
     IF(CMAKE_COMPILER_IS_GNUCXX)
+      SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp PROPERTIES COMPILE_FLAGS "-Wno-stringop-overflow")
       SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
       SET_SOURCE_FILES_PROPERTIES(
         "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/libs/db/db_row_decimal_t.cc"
