@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,8 +33,6 @@
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
-#include "scripting/types.h"
-#include "scripting/types_common.h"
 
 namespace mysqlsh {
 class ShellBaseSession;
@@ -51,8 +49,8 @@ class SHCORE_PUBLIC IShell_core {
     return Mode_mask(Mode::JavaScript).set(Mode::Python);
   }
 
-  IShell_core();
-  virtual ~IShell_core();
+  IShell_core() = default;
+  virtual ~IShell_core() = default;
 
   virtual Mode interactive_mode() const = 0;
   virtual bool interactive() const = 0;

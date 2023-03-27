@@ -31,6 +31,7 @@
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/load_errors.h"
+#include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"

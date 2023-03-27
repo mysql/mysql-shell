@@ -27,8 +27,10 @@
 #include <map>
 #include <optional>
 #include <set>
+
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/textui/textui.h"
 
 namespace textui = mysqlshdk::textui;

@@ -28,7 +28,6 @@
 #include <vector>
 
 #include "modules/adminapi/common/dba_errors.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

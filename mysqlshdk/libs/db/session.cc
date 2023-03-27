@@ -22,6 +22,8 @@
  */
 
 #include "mysqlshdk/libs/db/session.h"
+
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 
 namespace mysqlshdk {
@@ -57,5 +59,26 @@ void ISession::close() {
     }
   }
 }
+
+void ISession::refresh_sql_mode() {
+  assert(is_open());
+  try {
+    auto result = query("select @@sql_mode;");
+    auto row = result->fetch_one();
+
+    if (!row || row->is_null(0)) throw std::runtime_error("Missing sql_mode");
+
+    m_sql_mode = shcore::str_upper(row->get_string(0));
+    m_ansi_quotes_enabled =
+        m_sql_mode->find("ANSI_QUOTES") != std::string::npos;
+    m_no_backslash_escapes_enabled =
+        m_sql_mode->find("NO_BACKSLASH_ESCAPES") != std::string::npos;
+
+  } catch (...) {
+    m_sql_mode = std::nullopt;
+    m_ansi_quotes_enabled = m_no_backslash_escapes_enabled = false;
+  }
+}
+
 }  // namespace db
 }  // namespace mysqlshdk

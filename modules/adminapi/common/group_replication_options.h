@@ -29,10 +29,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/instance_pool.h"
 #include "modules/mod_common.h"
-#include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {

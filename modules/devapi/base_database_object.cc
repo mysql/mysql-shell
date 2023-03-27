@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"

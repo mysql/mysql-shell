@@ -33,9 +33,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
-#include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
-#include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
