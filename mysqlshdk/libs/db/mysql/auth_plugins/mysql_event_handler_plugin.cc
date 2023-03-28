@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include <cstring>
 
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
@@ -126,6 +127,11 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
       // authentication
       oci::set_config_file(conn);
     }
+#ifdef _WIN32
+    else if (0 == strcmp(args.plugin_name, "authentication_kerberos_client")) {
+      kerberos::set_client_auth_mode(conn);
+    }
+#endif
   }
 
   return 0;

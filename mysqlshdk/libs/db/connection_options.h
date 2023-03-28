@@ -203,6 +203,12 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   bool is_auth_method(const std::string &method_id) const;
 
+#ifdef _WIN32
+  bool has_kerberos_auth_mode() const;
+  void set_kerberos_auth_mode(const std::string &mode);
+  std::string get_kerberos_auth_mode() const;
+#endif
+
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   std::string get_iname(const std::string &name) const;

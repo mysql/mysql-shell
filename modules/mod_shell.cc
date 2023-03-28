@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -580,6 +580,8 @@ connection timeout.
 PERFORMANCE_SCHEMA connection attributes tables.
 @li local-infile: Enable/disable LOAD DATA LOCAL INFILE.
 @li net-buffer-length: The buffer size for TCP/IP and socket communication.
+@li plugin-authentication-kerberos-client-mode: (Windows) Allows defining the kerberos
+client mode (SSPI, GSSAPI) when using kerberos authentication.
 
 When these options are defined in a URI, their values must be URL encoded.
 

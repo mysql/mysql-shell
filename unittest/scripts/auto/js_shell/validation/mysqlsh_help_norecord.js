@@ -33,6 +33,12 @@ Usage: mysqlsh [OPTIONS] [URI]
   --ssh-identity-file=<file>       File from which the private key for public
                                    key authentication is read.
   --ssh-config-file=<file>         Specify a custom path for SSH configuration.
+?{__os_type == 'windows'}
+  --plugin-authentication-kerberos-client-mode=<mode>
+                                   Allows defining the kerberos client mode
+                                   (SSPI, GSSAPI) when using kerberos
+                                   authentication.
+?{}
   --uri=<value>                    Connect to Uniform Resource Identifier.
                                    Format: [user[:pass]@]host[:port][/db]
   -h, --host=<name>                Connect to host.

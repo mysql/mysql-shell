@@ -362,3 +362,5 @@ No attributes found!
 | program_name                     | mysqlsh    |
 +----------------------------------+------------+
 
+//@ WL15556 Text Classic Connection Kerberos Authentication Plugin client authentication mode {__os_type != 'windows'}
+||Invalid values in connection options: plugin-authentication-kerberos-client-mode (ArgumentError)

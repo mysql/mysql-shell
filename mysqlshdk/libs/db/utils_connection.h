@@ -104,6 +104,8 @@ inline constexpr const char kFidoRegisterFactor[] = "fido-register-factor";
 inline constexpr const char kConnectionAttributes[] = "connection-attributes";
 inline constexpr const char kUri[] = "uri";
 inline constexpr const char kSsh[] = "ssh";
+inline constexpr const char kKerberosClientAuthMode[] =
+    "plugin-authentication-kerberos-client-mode";
 
 inline constexpr const char kSslModeDisabled[] = "disabled";
 inline constexpr const char kSslModePreferred[] = "preferred";
@@ -119,6 +121,8 @@ inline constexpr char kAuthMethodClearPassword[] = "mysql_clear_password";
 inline constexpr char kAuthMethodLdapSasl[] = "authentication_ldap_sasl_client";
 inline constexpr char kAuthMethodKerberos[] = "authentication_kerberos_client";
 inline constexpr char kAuthMethodOci[] = "authentication_oci_client";
+inline constexpr char kKerberosAuthModeSSPI[] = "SSPI";
+inline constexpr char kKerberosAuthModeGSSAPI[] = "GSSAPI";
 
 inline const std::set<std::string> ssh_uri_connection_attributes = {
     kSsh, kSshConfigFile, kSshIdentityFile, kSshIdentityFilePassword,
@@ -144,7 +148,11 @@ inline const std::set<std::string> uri_connection_attributes = {
     kCompression,
     kCompressionAlgorithms,
     kCompressionLevel,
-    kConnectionAttributes};
+    kConnectionAttributes,
+#ifdef _WIN32
+    kKerberosClientAuthMode,
+#endif
+};
 
 }  // namespace db
 }  // namespace mysqlshdk

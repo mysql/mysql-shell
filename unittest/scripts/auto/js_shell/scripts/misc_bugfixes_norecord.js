@@ -205,3 +205,6 @@ shell.connect(__uripwd);
 shell.dumpRows(session.runSql('select 1 as /*This is an inline comment*/my_value'), 'vertical')
 EXPECT_OUTPUT_CONTAINS('my_value: 1');
 session.close();
+
+//@<> BUG#35281998 No throw on invalid kerberos client mode value in dictionary {__os_type == 'windows'}
+EXPECT_THROWS(function(){shell.connect({'user': 'client/mysql', 'auth-method': 'authentication_kerberos_client', 'host': '127.0.0.1', 'password': 'wrong', 'plugin-authentication-kerberos-client-mode': 'a', 'scheme': 'mysql'}); }, 'Invalid value: a. Allowed values: SSPI, GSSAPI.');

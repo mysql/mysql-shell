@@ -187,6 +187,10 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->mysql_plugin_dir;
     else if (option == "log-sql")
       return options->log_sql;
+#ifdef _WIN32
+    else if (option == "plugin-authentication-kerberos-client-mode")
+      return options->connection_options().get_kerberos_auth_mode();
+#endif
 
     throw std::logic_error(option);
   }
@@ -803,6 +807,10 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_EQ("error", options.log_sql);
   EXPECT_EQ("*SELECT*:SHOW*", options.log_sql_ignore);
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*", options.log_sql_ignore_unsafe);
+
+#ifdef _WIN32
+  EXPECT_FALSE(options.connection_options().has_kerberos_auth_mode());
+#endif
 }
 
 TEST_F(Shell_cmdline_options, app) {
@@ -954,6 +962,15 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_equal_invalid_values("log-sql", {"filtered"},
                                    "--log-sql: The log level value must be any "
                                    "of {off, error, on, all, unfiltered}.\n");
+
+#ifdef _WIN32
+  test_option_with_value_list("plugin-authentication-kerberos-client-mode", "",
+                              {"GSSAPI", "SSPI"}, "", false, false);
+
+  test_option_equal_invalid_value(
+      "plugin-authentication-kerberos-client-mode", "GSSPI",
+      "Invalid value: GSSPI. Allowed values: SSPI, GSSAPI.\n");
+#endif
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {

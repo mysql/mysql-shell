@@ -340,6 +340,9 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kCompression);
   attributes.erase(mysqlshdk::db::kCompressionLevel);
   attributes.erase(mysqlshdk::db::kConnectionAttributes);
+#ifdef _WIN32
+  attributes.erase(mysqlshdk::db::kKerberosClientAuthMode);
+#endif
 
   for (auto property : attributes) {
     combine(property, callback);

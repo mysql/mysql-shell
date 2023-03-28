@@ -337,6 +337,16 @@ Shell_options::Shell_options(
     (&storage.ssh.buffer_size, 10240, "ssh.bufferSize",
     "Set buffer size in bytes for data transfer, default is 10240 (10Kb)",
       shcore::opts::Range<int>(0, std::numeric_limits<int>::max()));
+
+#ifdef _WIN32
+  add_startup_options()
+    (cmdline("--plugin-authentication-kerberos-client-mode=<mode>"), 
+      "Allows defining the kerberos client mode (SSPI, GSSAPI) when using "
+      "kerberos authentication.",
+      [this](const std::string&, const char* value){
+        storage.connection_data.set_kerberos_auth_mode(value);
+      });
+#endif
   
   add_startup_options(true)
     (cmdline("--uri=<value>"), "Connect to Uniform Resource Identifier. "

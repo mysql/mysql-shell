@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,30 +21,25 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_
-#define MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_
+#ifndef MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_KERBEROS_H_
+#define MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_KERBEROS_H_
 
 #include <mysql.h>
 
+#include <string>
+
 namespace mysqlshdk {
 namespace db {
-class Connection_options;
 namespace mysql {
-namespace auth {
+namespace kerberos {
 
-void handle_mysql_error(MYSQL *conn);
+#ifdef _WIN32
+void set_client_auth_mode(MYSQL *conn);
+#endif
 
-struct st_mysql_client_plugin *get_authentication_plugin(MYSQL *conn,
-                                                         const char *name);
-
-void register_connection_options_for_mysql(MYSQL *conn,
-                                           const Connection_options &options);
-const Connection_options *get_connection_options_for_mysql(MYSQL *conn);
-void unregister_connection_options_for_mysql(MYSQL *conn);
-
-}  // namespace auth
+}  // namespace kerberos
 }  // namespace mysql
 }  // namespace db
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_
+#endif  // MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_KERBEROS_H_

@@ -462,3 +462,9 @@ connection_data.port = __my_x_port;
 var mySession = mysqlx.getSession(connection_data);
 print_attributes(mySession);
 mySession.close();
+
+
+//@ WL15556 Text Classic Connection Kerberos Authentication Plugin client authentication mode {__os_type != 'windows'}
+connection_data['plugin-authentication-kerberos-client-mode'] = 'GSSAPI'
+var mySession = mysql.getClassicSession(connection_data);
+mySession.close();

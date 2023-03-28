@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,12 +23,20 @@
 
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 
+#include <mutex>
+#include <unordered_map>
+
+#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
 namespace auth {
+namespace {
+std::mutex conn_options_reg_mutex;
+std::unordered_map<MYSQL *, const Connection_options *> conn_options_registry;
+}  // namespace
 
 void handle_mysql_error(MYSQL *conn) {
   const auto code = mysql_errno(conn);
@@ -45,6 +53,26 @@ struct st_mysql_client_plugin *get_authentication_plugin(MYSQL *conn,
   }
 
   return plugin;
+}
+
+void register_connection_options_for_mysql(MYSQL *conn,
+                                           const Connection_options &options) {
+  auto lock = std::lock_guard(conn_options_reg_mutex);
+  conn_options_registry[conn] = &options;
+}
+
+const Connection_options *get_connection_options_for_mysql(MYSQL *conn) {
+  auto lock = std::lock_guard(conn_options_reg_mutex);
+  auto opts = conn_options_registry.find(conn);
+  if (opts == conn_options_registry.end()) {
+    return nullptr;
+  }
+  return opts->second;
+}
+
+void unregister_connection_options_for_mysql(MYSQL *conn) {
+  auto lock = std::lock_guard(conn_options_reg_mutex);
+  conn_options_registry.erase(conn);
 }
 
 }  // namespace auth

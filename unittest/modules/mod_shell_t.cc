@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,7 @@ class mod_shell_test : public Shell_core_test_wrapper {
   std::shared_ptr<mysqlsh::Shell> _shell;
 };
 
+// clang-format off
 TEST_F(mod_shell_test, parse_uri) {
   {
     std::string args;
@@ -281,6 +282,40 @@ TEST_F(mod_shell_test, parse_uri) {
         "ECDSA-AES256-GCM-SHA384&tls-version=TLSv1.1%2CTLSv1.2",
         _shell->unparse_uri(dict));
   }
+// clang-format on
+
+#ifdef _WIN32
+{
+  std::string args;
+  args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
+
+  auto dict = _shell->parse_uri(args);
+
+  EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
+  EXPECT_STREQ(
+      mysqlshdk::db::kKerberosAuthModeSSPI,
+      dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
+
+  // test for case-sensitivity
+  args = "user@host?plugin-authentication-kerberos-client-mode=GsSapi";
+
+  dict = _shell->parse_uri(args);
+
+  EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
+  EXPECT_STREQ(
+      mysqlshdk::db::kKerberosAuthModeGSSAPI,
+      dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
+}
+#else
+{
+  std::string args;
+  args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
+
+  EXPECT_THROW_MSG_CONTAINS(_shell->parse_uri(args), std::exception,
+                            "Invalid URI: Invalid connection option "
+                            "'plugin-authentication-kerberos-client-mode'.");
+}
+#endif
 }
 
 TEST_F(mod_shell_test, connect) {
@@ -440,5 +475,4 @@ TEST_F(mod_shell_test, dump_rows) {
     }
   }
 }
-
 }  // namespace testing

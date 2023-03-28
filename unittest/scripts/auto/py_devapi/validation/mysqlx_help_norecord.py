@@ -174,6 +174,9 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+        authentication.
 
       When these options are defined in a URI, their values must be URL
       encoded.

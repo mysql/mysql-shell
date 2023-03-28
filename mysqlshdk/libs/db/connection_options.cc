@@ -42,11 +42,22 @@ namespace mysqlshdk {
 namespace db {
 
 namespace {
-const std::set<std::string> uri_extra_options = {
-    kAuthMethod,      kGetServerPublicKey,    kServerPublicKeyPath,
-    kConnectTimeout,  kNetReadTimeout,        kNetWriteTimeout,
-    kCompression,     kCompressionAlgorithms, kLocalInfile,
-    kNetBufferLength, kMaxAllowedPacket,      kMysqlPluginDir};
+const std::set<std::string> uri_extra_options = {kAuthMethod,
+                                                 kGetServerPublicKey,
+                                                 kServerPublicKeyPath,
+                                                 kConnectTimeout,
+                                                 kNetReadTimeout,
+                                                 kNetWriteTimeout,
+                                                 kCompression,
+                                                 kCompressionAlgorithms,
+                                                 kLocalInfile,
+                                                 kNetBufferLength,
+                                                 kMaxAllowedPacket,
+                                                 kMysqlPluginDir,
+#ifdef _WIN32
+                                                 kKerberosClientAuthMode
+#endif
+};
 
 const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
     deprecated_connection_attributes = {{kDbUser, kUser},
@@ -359,7 +370,13 @@ void Connection_options::set(const std::string &name,
     set_compression(value);
   } else if (iname == kCompressionAlgorithms) {
     set_compression_algorithms(value);
-  } else if (is_extra_option(iname)) {
+  }
+#ifdef _WIN32
+  else if (iname == kKerberosClientAuthMode) {
+    set_kerberos_auth_mode(value);
+  }
+#endif
+  else if (is_extra_option(iname)) {
     if (iname == kGetServerPublicKey) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
@@ -727,6 +744,35 @@ bool Connection_options::is_auth_method(const std::string &method_id) const {
 
   return ret_val;
 }
+
+#ifdef _WIN32
+bool Connection_options::has_kerberos_auth_mode() const {
+  return has_value(mysqlshdk::db::kKerberosClientAuthMode);
+}
+
+void Connection_options::set_kerberos_auth_mode(const std::string &mode) {
+  std::string uppermode = shcore::str_upper(mode);
+  if (uppermode != mysqlshdk::db::kKerberosAuthModeSSPI &&
+      uppermode != mysqlshdk::db::kKerberosAuthModeGSSAPI) {
+    throw std::invalid_argument(shcore::str_format(
+        "Invalid value: %s. Allowed values: SSPI, GSSAPI.", mode.c_str()));
+  }
+
+  m_extra_options.set(mysqlshdk::db::kKerberosClientAuthMode, uppermode,
+                      Set_mode::CREATE);
+}
+
+std::string Connection_options::get_kerberos_auth_mode() const {
+  if (has_kerberos_auth_mode()) {
+    auto result =
+        m_extra_options.get_value(mysqlshdk::db::kKerberosClientAuthMode);
+    if (result == mysqlshdk::db::kKerberosAuthModeSSPI ||
+        result == mysqlshdk::db::kKerberosAuthModeGSSAPI)
+      return result;
+  }
+  return mysqlshdk::db::kKerberosAuthModeSSPI;
+}
+#endif
 
 void Connection_options::set_connection_attribute(const std::string &attribute,
                                                   const std::string &value) {

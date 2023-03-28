@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,30 +21,47 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_
-#define MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_
+#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 
-#include <mysql.h>
+#include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 
 namespace mysqlshdk {
 namespace db {
-class Connection_options;
 namespace mysql {
-namespace auth {
+namespace kerberos {
 
-void handle_mysql_error(MYSQL *conn);
+namespace {
 
-struct st_mysql_client_plugin *get_authentication_plugin(MYSQL *conn,
-                                                         const char *name);
+#ifdef _WIN32
+struct st_mysql_client_plugin *get_authentication_kerberos_client(MYSQL *conn) {
+  return auth::get_authentication_plugin(conn,
+                                         "authentication_kerberos_client");
+}
+#endif
 
-void register_connection_options_for_mysql(MYSQL *conn,
-                                           const Connection_options &options);
-const Connection_options *get_connection_options_for_mysql(MYSQL *conn);
-void unregister_connection_options_for_mysql(MYSQL *conn);
+}  // namespace
 
-}  // namespace auth
+#ifdef _WIN32
+void set_client_auth_mode(MYSQL *conn) {
+  auto conn_data = auth::get_connection_options_for_mysql(conn);
+  assert(conn_data != nullptr);
+
+  if (!conn_data->has_kerberos_auth_mode()) return;
+
+  auto client_auth_mode = conn_data->get_kerberos_auth_mode();
+  const auto plugin = get_authentication_kerberos_client(conn);
+
+  if (mysql_plugin_options(plugin, "plugin_authentication_kerberos_client_mode",
+                           client_auth_mode.c_str())) {
+    throw std::runtime_error(
+        "Failed to set the kerberos client authentication mode on "
+        "authentication_kerberos_client plugin.");
+  }
+}
+#endif
+
+}  // namespace kerberos
 }  // namespace mysql
 }  // namespace db
 }  // namespace mysqlshdk
-
-#endif  // MYSQLSHDK_LIBS_DB_MYSQL_AUTH_PLUGINS_COMMON_H_

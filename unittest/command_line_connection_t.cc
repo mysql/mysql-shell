@@ -836,4 +836,25 @@ TEST_F(Command_line_connection_test, invalid_port) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid value for -P: invalidPort3");
 }
 
+TEST_F(Command_line_connection_test, kerberos_auth_mode) {
+  execute({_mysqlsh, _uri.c_str(),
+           "--plugin-authentication-kerberos-client-mode=InvalidMode", "--port",
+           "invalidPort", NULL});
+#ifdef _WIN32
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "Invalid value: InvalidMode. Allowed values: SSPI, GSSAPI.");
+
+  execute({_mysqlsh, _uri.c_str(),
+           "--plugin-authentication-kerberos-client-mode=GsSApi", "--port",
+           "invalidPort", NULL});
+
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("GsSApi");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Invalid value for --port: invalidPort");
+
+#else
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "unknown option --plugin-authentication-kerberos-client-mod");
+#endif
+}
+
 }  // namespace tests

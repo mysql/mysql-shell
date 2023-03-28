@@ -31,7 +31,9 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/mysql_event_handler_plugin.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -210,6 +212,10 @@ void Session_impl::connect(
   std::call_once(trace_register_flag, register_tracer_plugin, _mysql);
 
   _connection_options = connection_options;
+
+  auth::register_connection_options_for_mysql(_mysql, _connection_options);
+  shcore::on_leave_scope unregister_conn_options(
+      [this]() { auth::unregister_connection_options_for_mysql(_mysql); });
 
   auto used_ssl_mode = setup_ssl(_connection_options.get_ssl_options());
   if (_connection_options.has_transport_type()) {
