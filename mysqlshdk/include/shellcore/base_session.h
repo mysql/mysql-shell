@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
