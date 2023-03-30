@@ -5,15 +5,7 @@
 //@ Initialization
 metadata_1_0_1_file = "metadata_1_0_1.sql";
 var allowlist = "127.0.0.1," + hostname_ip;
-
-var scene;
-if (__os_type != 'windows') {
-    scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {ipAllowlist: allowlist, gtidSetIsComplete: true});
-}
-else {
-    scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {localAddress:"127.0.0.1", ipAllowlist: allowlist, gtidSetIsComplete: true});
-}
-
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {ipAllowlist: allowlist, gtidSetIsComplete: true});
 var status = scene.cluster.status({extended:2});
 var session = scene.session;
 var topology = status.defaultReplicaSet.topology;

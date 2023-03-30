@@ -855,6 +855,7 @@ void Json_document_parser::get_string(std::string *target,
   get_char(target);
 
   // Count holds the count of the characters read between the quotes
+  int count = 0;
   bool done = false;
   while (!m_source->eof() && !done) {
     switch (m_source->peek()) {
@@ -871,6 +872,7 @@ void Json_document_parser::get_string(std::string *target,
       default:
         get_char(target);
     }
+    if (!done) count++;
   }
 
   if (!done) throw_premature_end();
