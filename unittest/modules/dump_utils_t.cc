@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -125,8 +125,8 @@ class Dump_scheduler : public ::testing::Test {
     Dump_reader::Table_info info;
 
     info.schema = "myschema";
-    info.table = name;
-    info.basename = info.table;
+    info.name = name;
+    info.basename = info.name;
     info.data_info.emplace_back();
 
     auto &di = info.data_info.back();
@@ -175,8 +175,7 @@ class Dump_scheduler : public ::testing::Test {
       auto iter = f(tables_being_loaded, &tables_with_data, nthreads);
 
       if (iter != tables_with_data.end()) {
-        *out_table = schema_table_object_key(
-            (*iter)->owner->schema, (*iter)->owner->table, (*iter)->partition);
+        *out_table = (*iter)->key();
 
         size_t chunk_index;
 
@@ -218,7 +217,7 @@ class Dump_scheduler : public ::testing::Test {
 
       std::cout << "\nTables with data:\n";
       for (auto t : tables_with_data) {
-        std::cout << t->owner->schema << "." << t->owner->table << "\t"
+        std::cout << t->owner->schema << "." << t->owner->name << "\t"
                   << t->bytes_available() << "\n";
       }
       std::cout << "\n";
@@ -262,8 +261,7 @@ class Dump_scheduler : public ::testing::Test {
         // std::cout << "Proportion per table:\n";
         // check that all pending tables are scheduled
         for (auto tbl : old_tables_with_data) {
-          auto table_key = schema_table_object_key(
-              tbl->owner->schema, tbl->owner->table, tbl->partition);
+          const auto &table_key = tbl->key();
           if (std::count_if(threads.begin(), threads.end(),
                             [&](const Thread &thd) {
                               return thd.table == table_key;

@@ -435,10 +435,10 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 EXPECT_OUTPUT_CONTAINS("using 4 threads");
 
 // ensure all 4 threads did something
-EXPECT_SHELL_LOG_CONTAINS("[Worker000] Executing DDL script for `")
-EXPECT_SHELL_LOG_CONTAINS("[Worker001] Executing DDL script for `")
-EXPECT_SHELL_LOG_CONTAINS("[Worker002] Executing DDL script for `")
-EXPECT_SHELL_LOG_CONTAINS("[Worker003] Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker000]: Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker001]: Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker002]: Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker003]: Executing DDL script for `")
 
 EXPECT_SHELL_LOG_CONTAINS("[Worker000]: sakila@")
 EXPECT_SHELL_LOG_CONTAINS("[Worker001]: sakila@")
@@ -446,8 +446,8 @@ EXPECT_SHELL_LOG_CONTAINS("[Worker002]: sakila@")
 EXPECT_SHELL_LOG_CONTAINS("[Worker003]: sakila@")
 
 // schema and view DDL should not be executed in workers
-EXPECT_SHELL_LOG_NOT_CONTAINS("] Executing DDL script for schema")
-EXPECT_SHELL_LOG_NOT_CONTAINS("] Executing DDL script for view")
+EXPECT_SHELL_LOG_NOT_CONTAINS("]: Executing DDL script for schema")
+EXPECT_SHELL_LOG_NOT_CONTAINS("]: Executing DDL script for view")
 
 // ensure views got created through placeholders
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`actor_info` (placeholder for view)");
@@ -747,7 +747,7 @@ session.runSql("set global max_connections=3");
 // This will throw either Too many connections or Aborted
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {threads: 8});}, "Util.loadDump: ");
 
-EXPECT_OUTPUT_CONTAINS("] Error opening connection to MySQL: MySQL Error 1040 (HY000): Too many connections");
+EXPECT_OUTPUT_CONTAINS("]: Error opening connection to MySQL: MySQL Error 1040 (HY000): Too many connections");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);

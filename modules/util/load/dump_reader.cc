@@ -101,14 +101,14 @@ Dump_reader::Status Dump_reader::open() {
     if (include_schema(schema.as_string())) {
       auto info = std::make_shared<Schema_info>();
 
-      info->schema = schema.get_string();
-      if (basenames->has_key(info->schema)) {
-        info->basename = basenames->get_string(info->schema);
+      info->name = schema.get_string();
+      if (basenames->has_key(info->name)) {
+        info->basename = basenames->get_string(info->name);
       } else {
-        info->basename = info->schema;
+        info->basename = info->name;
       }
 
-      m_contents.schemas.emplace(info->schema, info);
+      m_contents.schemas.emplace(info->name, std::move(info));
     } else {
       log_debug("Skipping schema '%s'", schema.as_string().c_str());
     }
@@ -210,7 +210,7 @@ bool Dump_reader::next_schema_and_tables(
   for (auto &it : m_contents.schemas) {
     auto &s = it.second;
     if (!s->table_sql_done && s->ready()) {
-      *out_schema = s->schema;
+      *out_schema = s->name;
 
       for (const auto &t : s->tables) {
         out_tables->emplace_back(
@@ -220,7 +220,7 @@ bool Dump_reader::next_schema_and_tables(
 
       if (s->has_view_sql) {
         for (const auto &v : s->views) {
-          out_view_placeholders->emplace_back(v.table,
+          out_view_placeholders->emplace_back(v.name,
                                               m_dir->file(v.pre_script_name()));
         }
       }
@@ -244,11 +244,11 @@ bool Dump_reader::next_schema_and_views(std::string *out_schema,
 
     // always return true for every schema, even if there are no views
     if (!s->view_sql_done && s->ready()) {
-      *out_schema = s->schema;
+      *out_schema = s->name;
 
       if (s->has_view_sql) {
         for (const auto &v : s->views) {
-          out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+          out_views->emplace_back(v.name, m_dir->file(v.script_name()));
         }
       }
 
@@ -279,35 +279,46 @@ std::vector<std::string> Dump_reader::schemas() const {
   std::vector<std::string> slist;
 
   for (const auto &s : m_contents.schemas) {
-    slist.push_back(s.second->schema);
+    slist.push_back(s.second->name);
   }
 
   return slist;
 }
 
 bool Dump_reader::schema_objects(const std::string &schema,
-                                 std::vector<std::string> *out_tables,
-                                 std::vector<std::string> *out_views,
-                                 std::vector<std::string> *out_triggers,
-                                 std::vector<std::string> *out_functions,
-                                 std::vector<std::string> *out_procedures,
-                                 std::vector<std::string> *out_events) {
+                                 std::list<Object_info *> *out_tables,
+                                 std::list<Object_info *> *out_views,
+                                 std::list<Object_info *> *out_triggers,
+                                 std::list<Object_info *> *out_functions,
+                                 std::list<Object_info *> *out_procedures,
+                                 std::list<Object_info *> *out_events) {
   auto schema_it = m_contents.schemas.find(schema);
   if (schema_it == m_contents.schemas.end()) return false;
-  auto schema_info = schema_it->second;
+  const auto &schema_info = schema_it->second;
 
   out_tables->clear();
-  for (const auto &t : schema_info->tables) {
-    out_tables->push_back(t.first);
-  }
   out_views->clear();
-  for (const auto &v : schema_info->views) {
-    out_views->push_back(v.table);
+  out_triggers->clear();
+  out_functions->clear();
+  out_procedures->clear();
+  out_events->clear();
+
+  const auto add_objects = [](auto *src, std::list<Object_info *> *tgt) {
+    for (auto &s : *src) {
+      tgt->emplace_back(&s);
+    }
+  };
+
+  for (const auto &t : schema_info->tables) {
+    out_tables->push_back(t.second.get());
+
+    add_objects(&t.second->triggers, out_triggers);
   }
-  *out_triggers = schema_info->trigger_names;
-  *out_functions = schema_info->function_names;
-  *out_procedures = schema_info->procedure_names;
-  *out_events = schema_info->event_names;
+
+  add_objects(&schema_info->views, out_views);
+  add_objects(&schema_info->functions, out_functions);
+  add_objects(&schema_info->procedures, out_procedures);
+  add_objects(&schema_info->events, out_events);
 
   return true;
 }
@@ -507,7 +518,7 @@ bool Dump_reader::next_table_chunk(
 
   if (iter != m_tables_with_data.end()) {
     *out_schema = (*iter)->owner->schema;
-    *out_table = (*iter)->owner->table;
+    *out_table = (*iter)->owner->name;
     *out_partition = (*iter)->partition;
     *out_chunked = (*iter)->chunked;
     *out_chunk_index = (*iter)->chunks_consumed;
@@ -548,8 +559,8 @@ bool Dump_reader::next_deferred_index(
       if ((!m_options.load_data() || table.second->all_data_loaded()) &&
           !table.second->indexes_scheduled) {
         table.second->indexes_scheduled = true;
-        *out_schema = schema.second->schema;
-        *out_table = table.second->table;
+        *out_schema = schema.second->name;
+        *out_table = table.second->name;
         *out_indexes = &table.second->indexes;
         return true;
       }
@@ -566,8 +577,8 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
       if ((!m_options.load_data() || table.second->all_data_loaded()) &&
           table.second->indexes_created && !table.second->analyze_scheduled) {
         table.second->analyze_scheduled = true;
-        *out_schema = schema.second->schema;
-        *out_table = table.second->table;
+        *out_schema = schema.second->name;
+        *out_table = table.second->name;
         *out_histograms = table.second->histograms;
         return true;
       }
@@ -619,7 +630,7 @@ void Dump_reader::compute_filtered_data_size() {
 
     if (s != m_contents.table_data_size.end()) {
       for (const auto &table : schema.second->tables) {
-        const auto t = s->second.find(table.second->table);
+        const auto t = s->second.find(table.second->name);
 
         if (t != s->second.end()) {
           m_filtered_data_size += t->second;
@@ -720,8 +731,8 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
   m_contents.schemas.clear();
   m_contents.schemas.emplace(schema, info);
 
-  m_schema_override = {schema, info->schema};
-  info->schema = schema;
+  m_schema_override = {schema, info->name};
+  info->name = schema;
 
   for (const auto &table : info->tables) {
     table.second->schema = schema;
@@ -853,9 +864,21 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
   }
 
-  {
-    const auto trigger_list = md->get_array("triggers");
-    has_triggers = trigger_list && !trigger_list->empty();
+  if (const auto trigger_list = md->get_array("triggers")) {
+    for (const auto &t : *trigger_list) {
+      auto trigger_name = t.as_string();
+
+      if (reader->include_trigger(schema, name, trigger_name)) {
+        triggers.emplace_back(Object_info{std::move(trigger_name)});
+      }
+    }
+
+    has_triggers = !triggers.empty();
+
+    log_debug("%s.%s has %zi triggers", schema.c_str(), name.c_str(),
+              triggers.size());
+  } else {
+    has_triggers = false;
   }
 
   auto histogram_list = md->get_array("histograms");
@@ -1058,18 +1081,20 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 
   shcore::Dictionary_t basenames = md->get_map("basenames");
 
-  if (md->has_key("tables")) {
-    for (const auto &t : *md->get_array("tables")) {
-      if (reader->include_table(schema, t.as_string())) {
+  if (const auto table_list = md->get_array("tables")) {
+    for (const auto &t : *table_list) {
+      auto table_name = t.as_string();
+
+      if (reader->include_table(name, table_name)) {
         auto info = std::make_shared<Table_info>();
 
-        info->schema = schema;
-        info->table = t.as_string();
+        info->schema = name;
+        info->name = std::move(table_name);
 
-        if (basenames->has_key(info->table))
-          info->basename = basenames->get_string(info->table);
+        if (basenames->has_key(info->name))
+          info->basename = basenames->get_string(info->name);
         else
-          info->basename = basename + "@" + info->table;
+          info->basename = basename + "@" + info->name;
 
         // if tables are not going to be analysed, we're marking them as already
         // analysed
@@ -1077,38 +1102,69 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
             reader->m_options.analyze_tables() ==
             Load_dump_options::Analyze_table_mode::OFF;
 
-        tables.emplace(info->table, std::move(info));
+        tables.emplace(info->name, std::move(info));
       }
     }
-    log_debug("%s has %zi tables", schema.c_str(), tables.size());
+
+    log_debug("%s has %zi tables", name.c_str(), tables.size());
   }
 
-  if (md->has_key("views")) {
-    for (const auto &v : *md->get_array("views")) {
-      if (reader->include_table(schema, v.as_string())) {
+  if (const auto view_list = md->get_array("views")) {
+    for (const auto &v : *view_list) {
+      auto view_name = v.as_string();
+
+      if (reader->include_table(name, view_name)) {
         View_info info;
 
-        info.schema = schema;
-        info.table = v.as_string();
-        if (basenames->has_key(info.table))
-          info.basename = basenames->get_string(info.table);
+        info.schema = name;
+        info.name = std::move(view_name);
+        if (basenames->has_key(info.name))
+          info.basename = basenames->get_string(info.name);
         else
-          info.basename = basename + "@" + info.table;
+          info.basename = basename + "@" + info.name;
 
         views.emplace_back(std::move(info));
       }
     }
-    log_debug("%s has %zi views", schema.c_str(), views.size());
+
+    log_debug("%s has %zi views", name.c_str(), views.size());
   }
 
-  if (md->has_key("functions"))
-    function_names = to_vector_of_strings(md->get_array("functions"));
+  if (const auto function_list = md->get_array("functions")) {
+    for (const auto &f : *function_list) {
+      auto function_name = f.as_string();
 
-  if (md->has_key("procedures"))
-    procedure_names = to_vector_of_strings(md->get_array("procedures"));
+      if (reader->include_routine(name, function_name)) {
+        functions.emplace_back(Object_info{std::move(function_name)});
+      }
+    }
 
-  if (md->has_key("events"))
-    event_names = to_vector_of_strings(md->get_array("events"));
+    log_debug("%s has %zi functions", name.c_str(), functions.size());
+  }
+
+  if (const auto procedure_list = md->get_array("procedures")) {
+    for (const auto &p : *procedure_list) {
+      auto procedure_name = p.as_string();
+
+      if (reader->include_routine(name, procedure_name)) {
+        procedures.emplace_back(Object_info{std::move(procedure_name)});
+      }
+    }
+
+    log_debug("%s has %zi procedures", name.c_str(), procedures.size());
+  }
+
+  if (const auto event_list = md->get_array("events")) {
+    for (const auto &e : *event_list) {
+      auto event_name = e.as_string();
+
+      if (reader->include_event(name, event_name)) {
+        events.emplace_back(Object_info{std::move(event_name)});
+      }
+    }
+
+    log_debug("%s has %zi events", name.c_str(), events.size());
+  }
 
   md_loaded = true;
   reader->on_metadata_parsed();
@@ -1117,7 +1173,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
 void Dump_reader::Schema_info::rescan(mysqlshdk::storage::IDirectory *dir,
                                       const Files &files, Dump_reader *reader,
                                       shcore::Thread_pool *pool) {
-  log_debug("Scanning contents of schema '%s'", schema.c_str());
+  log_debug("Scanning contents of schema '%s'", name.c_str());
 
   if (md_loaded && !md_done) {
     // we have the list of tables, so check for their metadata and data files
@@ -1146,7 +1202,7 @@ void Dump_reader::Schema_info::rescan(mysqlshdk::storage::IDirectory *dir,
 
     if (files_to_fetch > 0 && !dir->is_local()) {
       log_info("Fetching %zu table metadata files for schema `%s`...",
-               files_to_fetch, schema.c_str());
+               files_to_fetch, name.c_str());
     }
 
     for (auto &v : views) {
@@ -1187,7 +1243,7 @@ void Dump_reader::Schema_info::check_if_ready() {
     md_done = children_done;
 
     if (md_done) {
-      log_debug("All metadata for schema `%s` was scanned", schema.c_str());
+      log_debug("All metadata for schema `%s` was scanned", name.c_str());
     }
   }
 }
@@ -1321,7 +1377,7 @@ void Dump_reader::Dump_info::rescan_data(const Files &files,
                                          Dump_reader *reader) {
   for (const auto &s : schemas) {
     if (s.second->ready()) {
-      log_debug("Scanning data of schema '%s'", s.second->schema.c_str());
+      log_debug("Scanning data of schema '%s'", s.second->name.c_str());
 
       s.second->rescan_data(files, reader);
     }
@@ -1451,9 +1507,9 @@ const std::string &Dump_reader::override_schema(const std::string &s) const {
   return value.first == s ? value.second : s;
 }
 
-void Dump_reader::on_chunk_loaded(std::string_view schema,
-                                  std::string_view table,
-                                  std::string_view partition) {
+void Dump_reader::on_chunk_loaded(const std::string &schema,
+                                  const std::string &table,
+                                  const std::string &partition) {
   const auto t = find_table(schema, table, "chunk was loaded");
 
   for (auto &tdi : t->data_info) {
@@ -1464,46 +1520,86 @@ void Dump_reader::on_chunk_loaded(std::string_view schema,
   }
 
   throw std::logic_error(
-      shcore::str_format("Unable to find partition %.*s of table %.*s in "
-                         "schema %.*s whose chunk was loaded",
-                         static_cast<int>(partition.length()), partition.data(),
-                         static_cast<int>(table.length()), table.data(),
-                         static_cast<int>(schema.length()), schema.data()));
+      shcore::str_format("Unable to find partition %s of table %s in "
+                         "schema %s whose chunk was loaded",
+                         partition.c_str(), table.c_str(), schema.c_str()));
 }
 
-void Dump_reader::on_index_end(std::string_view schema,
-                               std::string_view table) {
+void Dump_reader::on_index_end(const std::string &schema,
+                               const std::string &table) {
   find_table(schema, table, "indexes were created")->indexes_created = true;
 }
 
-void Dump_reader::on_analyze_end(std::string_view schema,
-                                 std::string_view table) {
+void Dump_reader::on_analyze_end(const std::string &schema,
+                                 const std::string &table) {
   find_table(schema, table, "analysis was finished")->analyze_finished = true;
 }
 
-Dump_reader::Table_info *Dump_reader::find_table(std::string_view schema,
-                                                 std::string_view table,
-                                                 std::string_view context) {
-  const auto s = m_contents.schemas.find(std::string{schema});
+const Dump_reader::Table_info *Dump_reader::find_table(
+    const std::string &schema, const std::string &table,
+    const char *context) const {
+  const auto s = m_contents.schemas.find(schema);
 
   if (s == m_contents.schemas.end()) {
-    throw std::logic_error(
-        shcore::str_format("Unable to find schema %.*s whose %.*s",
-                           static_cast<int>(schema.length()), schema.data(),
-                           static_cast<int>(context.length()), context.data()));
+    throw std::logic_error(shcore::str_format(
+        "Unable to find schema %s whose %s", schema.c_str(), context));
   }
 
-  const auto t = s->second->tables.find(std::string{table});
+  const auto t = s->second->tables.find(table);
 
   if (t == s->second->tables.end()) {
-    throw std::logic_error(shcore::str_format(
-        "Unable to find table %.*s in schema %.*s whose %.*s",
-        static_cast<int>(table.length()), table.data(),
-        static_cast<int>(schema.length()), schema.data(),
-        static_cast<int>(context.length()), context.data()));
+    throw std::logic_error(
+        shcore::str_format("Unable to find table %s in schema %s whose %s",
+                           table.c_str(), schema.c_str(), context));
   }
 
   return t->second.get();
+}
+
+Dump_reader::Table_info *Dump_reader::find_table(const std::string &schema,
+                                                 const std::string &table,
+                                                 const char *context) {
+  return const_cast<Table_info *>(
+      const_cast<const Dump_reader *>(this)->find_table(schema, table,
+                                                        context));
+}
+
+const Dump_reader::View_info *Dump_reader::find_view(
+    const std::string &schema, const std::string &view,
+    const char *context) const {
+  const auto s = m_contents.schemas.find(schema);
+
+  if (s == m_contents.schemas.end()) {
+    throw std::logic_error(shcore::str_format(
+        "Unable to find schema %s whose %s", schema.c_str(), context));
+  }
+
+  for (const auto &v : s->second->views) {
+    if (v.name == view) {
+      return &v;
+    }
+  }
+
+  throw std::logic_error(
+      shcore::str_format("Unable to find view %s in schema %s whose %s",
+                         view.c_str(), schema.c_str(), context));
+}
+
+Dump_reader::View_info *Dump_reader::find_view(const std::string &schema,
+                                               const std::string &view,
+                                               const char *context) {
+  return const_cast<View_info *>(
+      const_cast<const Dump_reader *>(this)->find_view(schema, view, context));
+}
+
+bool Dump_reader::table_exists(const std::string &schema,
+                               const std::string &table) const {
+  return find_table(schema, table, "existence is being checked")->exists;
+}
+
+bool Dump_reader::view_exists(const std::string &schema,
+                              const std::string &view) const {
+  return find_view(schema, view, "existence is being checked")->exists;
 }
 
 }  // namespace mysqlsh

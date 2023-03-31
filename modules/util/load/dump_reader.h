@@ -53,6 +53,7 @@ class Dump_reader {
   using Name_and_file =
       std::pair<std::string, std::shared_ptr<mysqlshdk::storage::IFile>>;
   using Files = std::unordered_set<mysqlshdk::storage::IDirectory::File_info>;
+  struct Object_info;
 
   Dump_reader(std::unique_ptr<mysqlshdk::storage::IDirectory> dump_dir,
               const Load_dump_options &options);
@@ -119,12 +120,12 @@ class Dump_reader {
   std::vector<std::string> schemas() const;
 
   bool schema_objects(const std::string &schema,
-                      std::vector<std::string> *out_tables,
-                      std::vector<std::string> *out_views,
-                      std::vector<std::string> *out_triggers,
-                      std::vector<std::string> *out_functions,
-                      std::vector<std::string> *out_procedures,
-                      std::vector<std::string> *out_events);
+                      std::list<Object_info *> *out_tables,
+                      std::list<Object_info *> *out_views,
+                      std::list<Object_info *> *out_triggers,
+                      std::list<Object_info *> *out_functions,
+                      std::list<Object_info *> *out_procedures,
+                      std::list<Object_info *> *out_events);
 
   std::string fetch_schema_script(const std::string &schema) const;
 
@@ -243,12 +244,16 @@ class Dump_reader {
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
-  void on_chunk_loaded(std::string_view schema, std::string_view table,
-                       std::string_view partition);
+  void on_chunk_loaded(const std::string &schema, const std::string &table,
+                       const std::string &partition);
 
-  void on_index_end(std::string_view schema, std::string_view table);
+  void on_index_end(const std::string &schema, const std::string &table);
 
-  void on_analyze_end(std::string_view schema, std::string_view table);
+  void on_analyze_end(const std::string &schema, const std::string &table);
+
+  bool table_exists(const std::string &schema, const std::string &table) const;
+
+  bool view_exists(const std::string &schema, const std::string &view) const;
 
   struct Capability_info {
     std::string id;
@@ -260,10 +265,13 @@ class Dump_reader {
     return m_contents.capabilities;
   }
 
-  struct View_info {
-    std::string schema;
-    std::string table;
+  struct Object_info {
+    std::string name;
+    bool exists = false;
+  };
 
+  struct View_info : public Object_info {
+    std::string schema;
     std::string basename;
 
     bool ready() const { return sql_seen && sql_pre_seen; }
@@ -323,7 +331,7 @@ class Dump_reader {
 
     const std::string &key() const {
       if (m_key.empty()) {
-        m_key = schema_table_object_key(owner->schema, owner->table, partition);
+        m_key = schema_table_object_key(owner->schema, owner->name, partition);
       }
 
       return m_key;
@@ -337,10 +345,8 @@ class Dump_reader {
     mutable std::string m_key;
   };
 
-  struct Table_info {
+  struct Table_info : public Object_info {
     std::string schema;
-    std::string table;
-
     std::string basename;
 
     std::vector<std::string> primary_index;
@@ -356,6 +362,7 @@ class Dump_reader {
     std::vector<Histogram> histograms;
     bool analyze_scheduled = true;
     bool analyze_finished = true;
+    std::vector<Object_info> triggers;
     bool has_triggers = false;
 
     std::vector<Table_data_info> data_info;
@@ -380,17 +387,14 @@ class Dump_reader {
     bool all_data_loaded() const;
   };
 
-  struct Schema_info {
-    std::string schema;
-
+  struct Schema_info : public Object_info {
     std::string basename;
 
     std::unordered_map<std::string, std::shared_ptr<Table_info>> tables;
-    std::list<View_info> views;
-    std::vector<std::string> trigger_names;
-    std::vector<std::string> function_names;
-    std::vector<std::string> procedure_names;
-    std::vector<std::string> event_names;
+    std::vector<View_info> views;
+    std::vector<Object_info> functions;
+    std::vector<Object_info> procedures;
+    std::vector<Object_info> events;
     std::vector<std::string> foreign_key_queries;
     std::vector<std::string> queries_on_schema_end;
 
@@ -481,8 +485,18 @@ class Dump_reader {
  private:
   const std::string &override_schema(const std::string &s) const;
 
-  Table_info *find_table(std::string_view schema, std::string_view table,
-                         std::string_view context);
+  const Table_info *find_table(const std::string &schema,
+                               const std::string &table,
+                               const char *context) const;
+
+  Table_info *find_table(const std::string &schema, const std::string &table,
+                         const char *context);
+
+  const View_info *find_view(const std::string &schema, const std::string &view,
+                             const char *context) const;
+
+  View_info *find_view(const std::string &schema, const std::string &view,
+                       const char *context);
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 

@@ -349,7 +349,16 @@ std::string format_table(const std::string &schema, const std::string &table,
          " (chunk " + std::to_string(chunk) + ")";
 }
 
+std::string worker_id(size_t id) {
+  return shcore::str_format("[Worker%03zu]: ", id);
+}
+
 }  // namespace
+
+void Dump_loader::Worker::Task::set_id(size_t id) {
+  m_id = id;
+  m_log_id = worker_id(m_id);
+}
 
 void Dump_loader::Worker::Task::handle_current_exception(
     Worker *worker, Dump_loader *loader, const std::string &error) {
@@ -359,7 +368,7 @@ void Dump_loader::Worker::Task::handle_current_exception(
 bool Dump_loader::Worker::Schema_ddl_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will execute DDL for schema %s", id(), schema().c_str());
+  log_debug("%swill execute DDL for schema %s", log_id(), schema().c_str());
 
   loader->post_worker_event(worker, Worker_event::SCHEMA_DDL_START);
 
@@ -410,7 +419,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
   // looking for a task and doesn't have time to process events
   loader->m_schema_ddl_ready[schema()] = true;
 
-  log_debug("worker%zu done", id());
+  log_debug("%sdone", log_id());
   ++loader->m_ddl_executed;
   loader->post_worker_event(worker, Worker_event::SCHEMA_DDL_END);
 
@@ -420,8 +429,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
 bool Dump_loader::Worker::Table_ddl_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will execute DDL file for table %s", id(),
-            key().c_str());
+  log_debug("%swill execute DDL file for table %s", log_id(), key().c_str());
 
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_START);
 
@@ -444,7 +452,7 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
     return false;
   }
 
-  log_debug("worker%zu done", id());
+  log_debug("%sdone", log_id());
   ++loader->m_ddl_executed;
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_END);
 
@@ -563,29 +571,36 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
 void Dump_loader::Worker::Table_ddl_task::load_ddl(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Dump_loader *loader) {
-  if (m_status != Load_progress_log::DONE && loader->m_options.load_ddl()) {
-    log_debug("worker%zu: Executing %stable DDL for %s", id(),
-              m_placeholder ? "placeholder " : "", key().c_str());
+  if (m_status == Load_progress_log::DONE || !loader->m_options.load_ddl()) {
+    return;
+  }
 
+  log_debug("%sExecuting %stable DDL for %s", log_id(),
+            m_placeholder ? "placeholder " : "", key().c_str());
+  log_info("%s%s DDL script for %s%s", log_id(),
+           (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
+                                                       : "Executing"),
+           key().c_str(),
+           (m_placeholder
+                ? " (placeholder for view)"
+                : (m_deferred_statements && m_deferred_statements->has_alters()
+                       ? " (indexes removed for deferred creation)"
+                       : "")));
+
+  if (m_exists) {
+    // BUG#35102738: do not recreate existing tables due to BUG#35154429
+    log_info("%sskipping DDL script for %s, table already exists", log_id(),
+             key().c_str());
+    return;
+  }
+
+  if (!loader->m_options.dry_run()) {
     try {
-      log_info(
-          "[Worker%03zu] %s DDL script for %s%s", id(),
-          (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
-                                                      : "Executing"),
-          key().c_str(),
-          (m_placeholder
-               ? " (placeholder for view)"
-               : (m_deferred_statements && m_deferred_statements->has_alters()
-                      ? " (indexes removed for deferred creation)"
-                      : "")));
-      if (!loader->m_options.dry_run()) {
-        // execute sql
-        execute_script(
-            session, m_script,
-            shcore::str_format("[Worker%03zu] Error processing table %s", id(),
-                               key().c_str()),
-            loader->m_default_sql_transforms);
-      }
+      // execute sql
+      execute_script(session, m_script,
+                     shcore::str_format("%sError processing table %s", log_id(),
+                                        key().c_str()),
+                     loader->m_default_sql_transforms);
     } catch (const std::exception &e) {
       if (!loader->m_options.force()) throw;
     }
@@ -597,7 +612,7 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
     Worker *worker, Dump_loader *loader) {
   const auto masked_path = m_file->full_path().masked();
 
-  log_debug("worker%zu will load chunk %s for table `%s`.`%s`", id(),
+  log_debug("%swill load chunk %s for table `%s`.`%s`", log_id(),
             masked_path.c_str(), schema().c_str(), table().c_str());
 
   try {
@@ -636,7 +651,7 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
     return false;
   }
 
-  log_debug("worker%zu done", id());
+  log_debug("%sdone", log_id());
 
   // signal for more work
   loader->post_worker_event(worker, Worker_event::LOAD_END);
@@ -861,7 +876,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
 bool Dump_loader::Worker::Analyze_table_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will analyze table `%s`.`%s`", id(), schema().c_str(),
+  log_debug("%swill analyze table `%s`.`%s`", log_id(), schema().c_str(),
             table().c_str());
 
   auto console = current_console();
@@ -902,7 +917,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
     return false;
   }
 
-  log_debug("worker%zu done", id());
+  log_debug("%sdone", log_id());
   ++loader->m_tables_analyzed;
 
   // signal for more work
@@ -913,13 +928,13 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 bool Dump_loader::Worker::Index_recreation_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  log_debug("worker%zu will recreate %zu indexes for table %s", id(),
+  log_debug("%swill recreate %zu indexes for table %s", log_id(),
             m_indexes->size(), key().c_str());
 
   const auto console = current_console();
 
   if (!m_indexes->empty())
-    log_info("[Worker%03zu] Recreating indexes for %s", id(), key().c_str());
+    log_info("%sRecreating indexes for %s", log_id(), key().c_str());
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
@@ -1037,7 +1052,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
     }
   }
 
-  log_debug("worker%zu done", id());
+  log_debug("%sdone", log_id());
 
   // signal for more work
   loader->post_worker_event(worker, Worker_event::INDEX_END);
@@ -1107,7 +1122,7 @@ void Dump_loader::Worker::handle_current_exception(Dump_loader *loader,
 
   if (!loader->m_thread_exceptions[id]) {
     current_console()->print_error(
-        shcore::str_format("[Worker%03zu] %s", id, error.c_str()));
+        shcore::str_format("%s%s", worker_id(id).c_str(), error.c_str()));
     loader->m_thread_exceptions[id] = std::current_exception();
   }
 
@@ -2256,6 +2271,7 @@ void Dump_loader::check_tables_without_primary_key() {
 }
 
 namespace {
+
 std::vector<std::string> fetch_names(mysqlshdk::db::IResult *result) {
   std::vector<std::string> names;
 
@@ -2267,37 +2283,70 @@ std::vector<std::string> fetch_names(mysqlshdk::db::IResult *result) {
 
 std::shared_ptr<mysqlshdk::db::IResult> query_names(
     mysqlshdk::db::ISession *session, const std::string &schema,
-    const std::vector<std::string> &names, const std::string &query_prefix) {
-  std::string set = shcore::str_join(names, ",", [](const std::string &s) {
-    return shcore::quote_sql_string(s);
-  });
-  set = set.empty() ? "" : "(" + set + ")";
+    const std::list<Dump_reader::Object_info *> &names,
+    const std::string &query_prefix) {
+  if (!names.empty()) {
+    const auto set = shcore::str_join(names, ",", [](const auto &s) {
+      return shcore::quote_sql_string(s->name);
+    });
 
-  if (!set.empty())
-    return session->queryf(query_prefix + set, schema);
-  else
+    return session->queryf(query_prefix + '(' + set + ')', schema);
+  } else {
     return {};
+  }
 }
 
 }  // namespace
 
-bool Dump_loader::report_duplicates(const std::string &what,
-                                    const std::string &schema,
-                                    mysqlshdk::db::IResult *result) {
+bool Dump_loader::report_duplicates(
+    const std::string &what, const std::string &schema,
+    std::list<Dump_reader::Object_info *> *objects,
+    mysqlshdk::db::IResult *result) {
   bool has_duplicates = false;
+  const auto mark_existing =
+      [objects](const std::function<bool(const std::string &)> &matches) {
+        const auto end = objects->end();
+
+        for (auto it = objects->begin(); it != end; ++it) {
+          if (matches((*it)->name)) {
+            (*it)->exists = true;
+            // erase the object to speed up subsequent searches
+            objects->erase(it);
+
+            return true;
+          }
+        }
+
+        return false;
+      };
 
   while (auto row = result->fetch_one()) {
-    std::string name = row->get_string(0);
+    const auto name = row->get_string(0);
+    const auto msg = "Schema `" + schema + "` already contains " + what +
+                     " named `" + name + "`";
 
     if (m_options.ignore_existing_objects())
-      current_console()->print_note("Schema `" + schema +
-                                    "` already contains a " + what + " named " +
-                                    name);
+      current_console()->print_note(msg);
     else
-      current_console()->print_error("Schema `" + schema +
-                                     "` already contains a " + what +
-                                     " named " + name);
+      current_console()->print_error(msg);
+
     has_duplicates = true;
+
+    // first use exact match
+    if (!mark_existing(
+            [&name](const std::string &object) { return name == object; })) {
+      // try again using case insensitive comparison
+      const auto wide_name = shcore::utf8_to_wide(name);
+
+      if (!mark_existing([&wide_name](const std::string &object) {
+            return shcore::str_caseeq(wide_name, shcore::utf8_to_wide(object));
+          })) {
+        log_info(
+            "Could not find in metadata %s named `%s` which was reported as "
+            "a duplicate in schema `%s`.",
+            what.c_str(), name.c_str(), schema.c_str());
+      }
+    }
   }
 
   return has_duplicates;
@@ -2323,12 +2372,13 @@ void Dump_loader::check_existing_objects() {
     for (auto row = result->fetch_one(); row; row = result->fetch_one()) {
       auto grantee = row->get_string(0);
       if (accounts.count(shcore::str_lower(grantee))) {
+        const auto msg = "Account " + grantee + " already exists";
+
         if (m_options.ignore_existing_objects())
-          current_console()->print_note("Account " + grantee +
-                                        " already exists");
+          current_console()->print_note(msg);
         else
-          current_console()->print_error("Account " + grantee +
-                                         " already exists");
+          current_console()->print_error(msg);
+
         has_duplicates = true;
       }
     }
@@ -2353,12 +2403,12 @@ void Dump_loader::check_existing_objects() {
   std::vector<std::string> dup_schemas = fetch_names(result.get());
 
   for (const auto &schema : dup_schemas) {
-    std::vector<std::string> tables;
-    std::vector<std::string> views;
-    std::vector<std::string> triggers;
-    std::vector<std::string> functions;
-    std::vector<std::string> procedures;
-    std::vector<std::string> events;
+    std::list<Dump_reader::Object_info *> tables;
+    std::list<Dump_reader::Object_info *> views;
+    std::list<Dump_reader::Object_info *> triggers;
+    std::list<Dump_reader::Object_info *> functions;
+    std::list<Dump_reader::Object_info *> procedures;
+    std::list<Dump_reader::Object_info *> events;
 
     if (!m_dump->schema_objects(schema, &tables, &views, &triggers, &functions,
                                 &procedures, &events))
@@ -2368,19 +2418,22 @@ void Dump_loader::check_existing_objects() {
                          "SELECT table_name FROM information_schema.tables"
                          " WHERE table_schema = ? AND table_name in ");
     if (result)
-      has_duplicates |= report_duplicates("table", schema, result.get());
+      has_duplicates |=
+          report_duplicates("a table", schema, &tables, result.get());
 
     result = query_names(m_session.get(), schema, views,
                          "SELECT table_name FROM information_schema.views"
                          " WHERE table_schema = ? AND table_name in ");
     if (result)
-      has_duplicates |= report_duplicates("view", schema, result.get());
+      has_duplicates |=
+          report_duplicates("a view", schema, &views, result.get());
 
     result = query_names(m_session.get(), schema, triggers,
                          "SELECT trigger_name FROM information_schema.triggers"
                          " WHERE trigger_schema = ? AND trigger_name in ");
     if (result)
-      has_duplicates |= report_duplicates("trigger", schema, result.get());
+      has_duplicates |=
+          report_duplicates("a trigger", schema, &triggers, result.get());
 
     result =
         query_names(m_session.get(), schema, functions,
@@ -2388,7 +2441,8 @@ void Dump_loader::check_existing_objects() {
                     " WHERE routine_schema = ? AND routine_type = 'FUNCTION'"
                     " AND routine_name in ");
     if (result)
-      has_duplicates |= report_duplicates("function", schema, result.get());
+      has_duplicates |=
+          report_duplicates("a function", schema, &functions, result.get());
 
     result =
         query_names(m_session.get(), schema, procedures,
@@ -2396,13 +2450,15 @@ void Dump_loader::check_existing_objects() {
                     " WHERE routine_schema = ? AND routine_type = 'PROCEDURE'"
                     " AND routine_name in ");
     if (result)
-      has_duplicates |= report_duplicates("procedure", schema, result.get());
+      has_duplicates |=
+          report_duplicates("a procedure", schema, &procedures, result.get());
 
     result = query_names(m_session.get(), schema, events,
                          "SELECT event_name FROM information_schema.events"
                          " WHERE event_schema = ? AND event_name in ");
     if (result)
-      has_duplicates |= report_duplicates("event", schema, result.get());
+      has_duplicates |=
+          report_duplicates("an event", schema, &events, result.get());
   }
 
   if (has_duplicates) {
@@ -2525,28 +2581,41 @@ void Dump_loader::execute_table_ddl_tasks() {
 #endif
     if (should_fetch_table_ddl(placeholder)) {
       for (auto &item : *list) {
-        if (item.second) {
-          const auto status = placeholder
-                                  ? schema_status
-                                  : m_load_log->table_ddl_status(s, item.first);
-
-          ++ddl_to_execute;
-
-          pool->add_task(
-              [file = std::move(item.second), s, table = item.first]() {
-                log_debug("Fetching table DDL for %s.%s", s.c_str(),
-                          table.c_str());
-                file->open(mysqlshdk::storage::Mode::READ);
-                auto script = mysqlshdk::storage::read_file(file.get());
-                file->close();
-                return script;
-              },
-              [s, table = item.first, placeholder, &worker_tasks,
-               status](std::string &&data) {
-                worker_tasks.push(std::make_unique<Worker::Table_ddl_task>(
-                    s, table, std::move(data), placeholder, status));
-              });
+        if (!item.second) {
+          continue;
         }
+
+        const auto exists =
+            m_options.ignore_existing_objects()
+                ? (placeholder ? m_dump->view_exists(s, item.first)
+                               : m_dump->table_exists(s, item.first))
+                : false;
+
+        if (placeholder && exists) {
+          // BUG#35102738: do not recreate existing views due to BUG#35154429
+          continue;
+        }
+
+        const auto status = placeholder
+                                ? schema_status
+                                : m_load_log->table_ddl_status(s, item.first);
+
+        ++ddl_to_execute;
+
+        pool->add_task(
+            [file = std::move(item.second), s, table = item.first]() {
+              log_debug("Fetching table DDL for %s.%s", s.c_str(),
+                        table.c_str());
+              file->open(mysqlshdk::storage::Mode::READ);
+              auto script = mysqlshdk::storage::read_file(file.get());
+              file->close();
+              return script;
+            },
+            [s, table = item.first, placeholder, &worker_tasks, status,
+             exists](std::string &&data) {
+              worker_tasks.push(std::make_unique<Worker::Table_ddl_task>(
+                  s, table, std::move(data), placeholder, status, exists));
+            });
       }
     }
 #if __GNUC__ >= 12 && !defined(__clang__)
@@ -2764,6 +2833,14 @@ void Dump_loader::execute_view_ddl_tasks() {
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
         for (auto &item : views) {
+          if (m_options.ignore_existing_objects() &&
+              m_dump->view_exists(schema, item.first)) {
+            // BUG#35102738: do not recreate existing views due to BUG#35154429
+            --ddl_to_execute;
+            --views_per_schema[schema];
+            continue;
+          }
+
           pool->add_task(
               [file = std::move(item.second), schema, view = item.first]() {
                 log_debug("Fetching view DDL for %s.%s", schema.c_str(),

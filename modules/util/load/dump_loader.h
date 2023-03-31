@@ -94,6 +94,7 @@ class Dump_loader {
           Dump_loader *) = 0;
 
       size_t id() const { return m_id; }
+      const char *log_id() const { return m_log_id.c_str(); }
       const std::string &schema() const { return m_schema; }
       const std::string &table() const { return m_table; }
       const std::string &key() const { return m_key; }
@@ -107,6 +108,7 @@ class Dump_loader {
 
      protected:
       size_t m_id = std::numeric_limits<size_t>::max();
+      std::string m_log_id;
       std::string m_schema;
       std::string m_table;
       std::string m_key;
@@ -114,7 +116,7 @@ class Dump_loader {
      private:
       friend class Worker;
 
-      void set_id(size_t id) { m_id = id; }
+      void set_id(size_t id);
 
       uint64_t m_weight = 1;
     };
@@ -139,11 +141,12 @@ class Dump_loader {
      public:
       Table_ddl_task(const std::string &schema, const std::string &table,
                      std::string &&script, bool placeholder,
-                     Load_progress_log::Status status)
+                     Load_progress_log::Status status, bool exists)
           : Task(schema, table),
             m_script(std::move(script)),
             m_placeholder(placeholder),
-            m_status(status) {}
+            m_status(status),
+            m_exists(exists) {}
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
@@ -178,6 +181,8 @@ class Dump_loader {
       Load_progress_log::Status m_status;
 
       std::unique_ptr<compatibility::Deferred_statements> m_deferred_statements;
+
+      bool m_exists = false;
     };
 
     class Load_chunk_task : public Task {
@@ -363,6 +368,7 @@ class Dump_loader {
 
   void check_existing_objects();
   bool report_duplicates(const std::string &what, const std::string &schema,
+                         std::list<Dump_reader::Object_info *> *objects,
                          mysqlshdk::db::IResult *result);
 
   void open_dump();

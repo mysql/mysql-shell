@@ -1112,7 +1112,7 @@ continues loading the account.
 it contains user accounts or DDL objects that already exist in the target
 database. If this option is set to false, any existing object results in an
 error. Setting it to true ignores existing objects, but the CREATE statements
-are still going to be executed.
+are still going to be executed, except for the tables and views.
 @li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
 major version number of the server where it was created is different from where
 it will be loaded.

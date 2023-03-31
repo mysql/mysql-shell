@@ -1873,7 +1873,7 @@ OPTIONS
             already exist in the target database. If this option is set to
             false, any existing object results in an error. Setting it to true
             ignores existing objects, but the CREATE statements are still going
-            to be executed. Default: false.
+            to be executed, except for the tables and views. Default: false.
 
 --ignoreVersion=<bool>
             Load the dump even if the major version number of the server where

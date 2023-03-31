@@ -197,7 +197,7 @@ shell.connect(__sandbox_uri2)
 #@<> load data which is not in the dump (fail)
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
                                      {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2"]}), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While executing DDL script for `.+`\.`.+`: Unknown database 'world'"))
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: While executing DDL script for `.+`\.`.+`: Unknown database 'world'"))
 
 testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
 
@@ -1174,6 +1174,7 @@ EXPECT_STDOUT_CONTAINS("""
 
 #@<> WL14244 - helpers
 shell.connect(__sandbox_uri2)
+dump_dir = os.path.join(outdir, "wl14244")
 
 def dump_and_load(options):
     WIPE_STDOUT()
@@ -1193,7 +1194,6 @@ def dump_and_load(options):
     session.run_sql("CREATE PROCEDURE existing_schema_2.existing_routine() DETERMINISTIC BEGIN END")
     session.run_sql("CREATE TRIGGER existing_schema_2.existing_trigger AFTER DELETE ON existing_schema_2.existing_table FOR EACH ROW BEGIN END")
     # do the dump
-    dump_dir = os.path.join(outdir, "wl14244")
     shutil.rmtree(dump_dir, True)
     util.dump_instance(dump_dir, { "showProgress": False })
     # remove everything from the server once again, load the dump
@@ -1331,11 +1331,54 @@ snapshot = dump_and_load({ "excludeTriggers": ['existing_schema_1.existing_table
 EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "tables", "existing_table", "triggers"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table", "triggers"]))
 
+#@<> BUG#35102738 - additional fixes: existing duplicate triggers were not reported, excluded objects were reported as duplicates
+# prepare the instance
+dump_and_load({})
+
+# another load throws due to existing objects
+WIPE_STDOUT()
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "resetProgress": True, "loadData": False, "showProgress": False }), "Duplicate objects found in destination database")
+EXPECT_STDOUT_CONTAINS("""
+ERROR: Schema `existing_schema_1` already contains a table named `existing_table`
+ERROR: Schema `existing_schema_1` already contains a view named `existing_view`
+ERROR: Schema `existing_schema_1` already contains a trigger named `existing_trigger`
+ERROR: Schema `existing_schema_1` already contains a function named `existing_routine`
+ERROR: Schema `existing_schema_1` already contains an event named `existing_event`
+""")
+EXPECT_STDOUT_CONTAINS("""
+ERROR: Schema `existing_schema_2` already contains a table named `existing_table`
+ERROR: Schema `existing_schema_2` already contains a view named `existing_view`
+ERROR: Schema `existing_schema_2` already contains a trigger named `existing_trigger`
+ERROR: Schema `existing_schema_2` already contains a procedure named `existing_routine`
+ERROR: Schema `existing_schema_2` already contains an event named `existing_event`
+""")
+
+# excluded trigger is not reported as a duplicate
+WIPE_STDOUT()
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, {
+    "excludeTables": [ "existing_schema_1.existing_table", "existing_schema_1.existing_view", "existing_schema_2.existing_view" ],
+    "excludeTriggers": [ "existing_schema_2.existing_table.existing_trigger" ],
+    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine" ],
+    "excludeEvents": [ "existing_schema_1.existing_event", "existing_schema_2.existing_event" ],
+    "resetProgress": True,
+    "loadData": False,
+    "showProgress": False }), "Duplicate objects found in destination database")
+EXPECT_STDOUT_CONTAINS("ERROR: Schema `existing_schema_2` already contains a table named `existing_table`")
+EXPECT_STDOUT_NOT_CONTAINS("existing_trigger")
+
+# exclude all existing objects to load the dump (triggers are excluded implicitly because tables are excluded)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {
+    "excludeTables": [ "existing_schema_1.existing_table", "existing_schema_1.existing_view", "existing_schema_2.existing_table", "existing_schema_2.existing_view" ],
+    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine" ],
+    "excludeEvents": [ "existing_schema_1.existing_event", "existing_schema_2.existing_event" ],
+    "resetProgress": True,
+    "loadData": False,
+    "showProgress": False }), "load works")
+
 #@<> includeX + excludeX conflicts - helpers
 def load_with_conflicts(options, throws = True):
     WIPE_STDOUT()
     # reuse dump from the previous test
-    dump_dir = os.path.join(outdir, "wl14244")
     # we're only interested in errors
     options["dryRun"] = True
     options["showProgress"] = False
@@ -1998,7 +2041,7 @@ wipeout_server(session2)
 testutil.set_trap("mysql", ["sql == ALTER TABLE `test_schema`.`test_table2` ADD SPATIAL KEY `location` (`location`)"], { "code": 1045, "msg": "Access denied for user `root`@`%` (using password: YES)", "state": "28000" })
 
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\] While recreating indexes for table `test_schema`.`test_table2`: Access denied for user `root`@`%` \(using password: YES\)"))
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: While recreating indexes for table `test_schema`.`test_table2`: Access denied for user `root`@`%` \(using password: YES\)"))
 
 testutil.clear_traps("mysql")
 
