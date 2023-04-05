@@ -123,6 +123,10 @@ DESCRIPTION
       - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
         the kerberos client mode (SSPI, GSSAPI) when using kerberos 
         authentication.
+      - oci-config-file: Allows defining the OCI configuration file for OCI 
+        authentication.
+      - authentication-oci-client-config-profile: Allows defining the OCI
+        profile used from the configuration for client side OCI authentication.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -233,6 +237,10 @@ DESCRIPTION
       - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
         the kerberos client mode (SSPI, GSSAPI) when using kerberos 
         authentication.
+      - oci-config-file: Allows defining the OCI configuration file for OCI 
+        authentication.
+      - authentication-oci-client-config-profile: Allows defining the OCI
+        profile used from the configuration for client side OCI authentication.
 
       When these options are defined in a URI, their values must be URL
       encoded.

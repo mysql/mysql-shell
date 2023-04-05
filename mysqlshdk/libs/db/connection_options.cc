@@ -42,21 +42,24 @@ namespace mysqlshdk {
 namespace db {
 
 namespace {
-const std::set<std::string> uri_extra_options = {kAuthMethod,
-                                                 kGetServerPublicKey,
-                                                 kServerPublicKeyPath,
-                                                 kConnectTimeout,
-                                                 kNetReadTimeout,
-                                                 kNetWriteTimeout,
-                                                 kCompression,
-                                                 kCompressionAlgorithms,
-                                                 kLocalInfile,
-                                                 kNetBufferLength,
-                                                 kMaxAllowedPacket,
-                                                 kMysqlPluginDir,
+const std::set<std::string> uri_extra_options = {
+    kAuthMethod,
+    kGetServerPublicKey,
+    kServerPublicKeyPath,
+    kConnectTimeout,
+    kNetReadTimeout,
+    kNetWriteTimeout,
+    kCompression,
+    kCompressionAlgorithms,
+    kLocalInfile,
+    kNetBufferLength,
+    kMaxAllowedPacket,
+    kMysqlPluginDir,
 #ifdef _WIN32
-                                                 kKerberosClientAuthMode
+    kKerberosClientAuthMode,
 #endif
+    kOciConfigFile,
+    kOciAuthenticationClientConfigProfile,
 };
 
 const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
@@ -743,6 +746,32 @@ bool Connection_options::is_auth_method(const std::string &method_id) const {
   }
 
   return ret_val;
+}
+
+bool Connection_options::has_oci_config_file() const {
+  return has_value(mysqlshdk::db::kOciConfigFile);
+}
+
+void Connection_options::set_oci_config_file(const std::string &path) {
+  set(mysqlshdk::db::kOciConfigFile, path);
+}
+
+std::string Connection_options::get_oci_config_file() const {
+  return m_extra_options.get_value(mysqlshdk::db::kOciConfigFile);
+}
+
+bool Connection_options::has_oci_client_config_profile() const {
+  return has_value(mysqlshdk::db::kOciAuthenticationClientConfigProfile);
+}
+
+void Connection_options::set_oci_client_config_profile(
+    const std::string &path) {
+  set(mysqlshdk::db::kOciAuthenticationClientConfigProfile, path);
+}
+
+std::string Connection_options::get_oci_client_config_profile() const {
+  return m_extra_options.get_value(
+      mysqlshdk::db::kOciAuthenticationClientConfigProfile);
 }
 
 #ifdef _WIN32

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,15 +40,46 @@ struct st_mysql_client_plugin *get_authentication_oci_client(MYSQL *conn) {
 }  // namespace
 
 void set_config_file(MYSQL *conn) {
+  auto conn_data = auth::get_connection_options_for_mysql(conn);
+  assert(conn_data != nullptr);
+
+  std::string oci_config_file;
+  if (conn_data->has_oci_config_file()) {
+    oci_config_file = conn_data->get_oci_config_file();
+  } else {
+    const auto &options = mysqlsh::current_shell_options();
+    oci_config_file = options->get().oci_config_file;
+  }
+
   const auto plugin = get_authentication_oci_client(conn);
-  const auto &oci_config_file =
-      mysqlsh::current_shell_options()->get().oci_config_file;
 
   if (mysql_plugin_options(plugin, "oci-config-file",
                            oci_config_file.c_str())) {
     throw std::runtime_error(
         "Failed to set the OCI config file path on authentication_oci_client "
         "plugin.");
+  }
+}
+
+void set_client_config_profile(MYSQL *conn) {
+  auto conn_data = auth::get_connection_options_for_mysql(conn);
+  assert(conn_data != nullptr);
+
+  std::string oci_client_config_profile;
+  if (conn_data->has_oci_client_config_profile()) {
+    oci_client_config_profile = conn_data->get_oci_client_config_profile();
+  } else {
+    const auto &options = mysqlsh::current_shell_options();
+    oci_client_config_profile = options->get().oci_profile;
+  }
+
+  const auto plugin = get_authentication_oci_client(conn);
+
+  if (mysql_plugin_options(plugin, "authentication-oci-client-config-profile",
+                           oci_client_config_profile.c_str())) {
+    throw std::runtime_error(
+        "Failed to set the OCI client config profile on "
+        "authentication_oci_client plugin.");
   }
 }
 

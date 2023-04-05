@@ -65,6 +65,8 @@ const std::set<std::string> db_connection_attributes = {
 #ifdef _WIN32
     kKerberosClientAuthMode,
 #endif
+    kOciConfigFile,
+    kOciAuthenticationClientConfigProfile,
 };
 
 const std::array<std::string, 6> ssl_modes = {"",

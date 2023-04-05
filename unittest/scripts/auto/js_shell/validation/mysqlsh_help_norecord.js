@@ -39,6 +39,12 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    (SSPI, GSSAPI) when using kerberos
                                    authentication.
 ?{}
+  --oci-config-file=<file>         Allows defining the OCI configuration file
+                                   for OCI authentication.
+  --authentication-oci-client-config-profile=<name>
+                                   Allows defining the OCI profile used from
+                                   the configuration for client side OCI
+                                   authentication.
   --uri=<value>                    Connect to Uniform Resource Identifier.
                                    Format: [user[:pass]@]host[:port][/db]
   -h, --host=<name>                Connect to host.

@@ -1,13 +1,17 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
 var uri_base = __my_user + ":root@localhost:";
-var connection_data = {user:__my_user,
-                       password: 'root',
-                       host:'localhost'};
+var connection_data = {
+    user: __my_user,
+    password: 'root',
+    host: 'localhost'
+};
 
 var uri_base_no_pwd = __my_user + "@localhost:";
-var connection_data_no_pwd = {user:__my_user,
-                              host:'localhost'};
+var connection_data_no_pwd = {
+    user: __my_user,
+    host: 'localhost'
+};
 
 // ---------------- CLASSIC TESTS URI -------------------------
 
@@ -31,7 +35,7 @@ mySession.close();
 
 //@ getClassicSession with URI, no ssl-mode with ssl-ca (Use Verify_Ca)
 var uri = uri_base + __my_port + '?ssl-ca=' + __my_ca_file_uri;
-println (uri);
+println(uri);
 var mySession = mysql.getClassicSession(uri);
 mySession.runSql("show status like 'Ssl_cipher'");
 mySession.close();
@@ -420,7 +424,7 @@ connection_data = {
     host: "localhost",
     port: __my_port,
     password: 'root',
-    "connection-attributes":["att1=value","att2","att3=45","att4=<val>","att5="]
+    "connection-attributes": ["att1=value", "att2", "att3=45", "att4=<val>", "att5="]
 }
 
 if (secure_transport == 'disabled') {
@@ -465,6 +469,6 @@ mySession.close();
 
 
 //@ WL15556 Text Classic Connection Kerberos Authentication Plugin client authentication mode {__os_type != 'windows'}
-connection_data['plugin-authentication-kerberos-client-mode'] = 'GSSAPI'
+connection_data['plugin-authentication-kerberos-client-mode'] = 'GSSAPI';
 var mySession = mysql.getClassicSession(connection_data);
 mySession.close();

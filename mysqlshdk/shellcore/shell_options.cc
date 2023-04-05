@@ -348,6 +348,21 @@ Shell_options::Shell_options(
       });
 #endif
   
+  add_startup_options()
+    (cmdline("--oci-config-file=<file>"),
+      "Allows defining the OCI configuration file for OCI authentication.",
+      [this](const std::string&, const char* value) {
+        auto path = shcore::path::expand_user(value);
+        if (!shcore::is_file(path))
+          throw shcore::Exception::argument_error("Invalid path or file for OCI authentication configuration file.");
+        storage.connection_data.set_oci_config_file(value);
+      })
+    (cmdline("--authentication-oci-client-config-profile=<name>"),
+      "Allows defining the OCI profile used from the configuration for client side OCI authentication.",
+      [this](const std::string&, const char* value) {
+        storage.connection_data.set_oci_client_config_profile(value);
+      });
+
   add_startup_options(true)
     (cmdline("--uri=<value>"), "Connect to Uniform Resource Identifier. "
         "Format: [user[:pass]@]host[:port][/db]")
@@ -633,6 +648,7 @@ Shell_options::Shell_options(
                     "Value for --interactive if any, must be full");
         }
       });
+
 
   // make sure hack for accessing log_level via Value works
   static_assert(

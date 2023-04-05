@@ -126,6 +126,7 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
       // make sure that the configured OCI config file is used for
       // authentication
       oci::set_config_file(conn);
+      oci::set_client_config_profile(conn);
     }
 #ifdef _WIN32
     else if (0 == strcmp(args.plugin_name, "authentication_kerberos_client")) {

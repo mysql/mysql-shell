@@ -106,6 +106,9 @@ inline constexpr const char kUri[] = "uri";
 inline constexpr const char kSsh[] = "ssh";
 inline constexpr const char kKerberosClientAuthMode[] =
     "plugin-authentication-kerberos-client-mode";
+inline constexpr const char kOciConfigFile[] = "oci-config-file";
+inline constexpr const char kOciAuthenticationClientConfigProfile[] =
+    "authentication-oci-client-config-profile";
 
 inline constexpr const char kSslModeDisabled[] = "disabled";
 inline constexpr const char kSslModePreferred[] = "preferred";
@@ -152,6 +155,8 @@ inline const std::set<std::string> uri_connection_attributes = {
 #ifdef _WIN32
     kKerberosClientAuthMode,
 #endif
+    kOciConfigFile,
+    kOciAuthenticationClientConfigProfile,
 };
 
 }  // namespace db

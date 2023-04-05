@@ -282,40 +282,60 @@ TEST_F(mod_shell_test, parse_uri) {
         "ECDSA-AES256-GCM-SHA384&tls-version=TLSv1.1%2CTLSv1.2",
         _shell->unparse_uri(dict));
   }
-// clang-format on
+  // clang-format on
 
 #ifdef _WIN32
-{
-  std::string args;
-  args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
+  {
+    std::string args;
+    args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
 
-  auto dict = _shell->parse_uri(args);
+    auto dict = _shell->parse_uri(args);
 
-  EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
-  EXPECT_STREQ(
-      mysqlshdk::db::kKerberosAuthModeSSPI,
-      dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
+    EXPECT_STREQ(
+        mysqlshdk::db::kKerberosAuthModeSSPI,
+        dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
 
-  // test for case-sensitivity
-  args = "user@host?plugin-authentication-kerberos-client-mode=GsSapi";
+    // test for case-sensitivity
+    args = "user@host?plugin-authentication-kerberos-client-mode=GsSapi";
 
-  dict = _shell->parse_uri(args);
+    dict = _shell->parse_uri(args);
 
-  EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
-  EXPECT_STREQ(
-      mysqlshdk::db::kKerberosAuthModeGSSAPI,
-      dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
-}
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kKerberosClientAuthMode));
+    EXPECT_STREQ(
+        mysqlshdk::db::kKerberosAuthModeGSSAPI,
+        dict->get_string(mysqlshdk::db::kKerberosClientAuthMode).c_str());
+  }
 #else
-{
-  std::string args;
-  args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
+  {
+    std::string args;
+    args = "user@host?plugin-authentication-kerberos-client-mode=SSPI";
 
-  EXPECT_THROW_MSG_CONTAINS(_shell->parse_uri(args), std::exception,
-                            "Invalid URI: Invalid connection option "
-                            "'plugin-authentication-kerberos-client-mode'.");
-}
+    EXPECT_THROW_MSG_CONTAINS(_shell->parse_uri(args), std::exception,
+                              "Invalid URI: Invalid connection option "
+                              "'plugin-authentication-kerberos-client-mode'.");
+  }
 #endif
+
+  {
+    std::string args;
+    args =
+        "user@host?oci-config-file=config.cfg&authentication-oci-client-config-"
+        "profile=name";
+
+    auto dict = _shell->parse_uri(args);
+
+    EXPECT_TRUE(dict->has_key(mysqlshdk::db::kOciConfigFile));
+    EXPECT_TRUE(
+        dict->has_key(mysqlshdk::db::kOciAuthenticationClientConfigProfile));
+
+    EXPECT_STREQ("config.cfg",
+                 dict->get_string(mysqlshdk::db::kOciConfigFile).c_str());
+    EXPECT_STREQ(
+        "name",
+        dict->get_string(mysqlshdk::db::kOciAuthenticationClientConfigProfile)
+            .c_str());
+  }
 }
 
 TEST_F(mod_shell_test, connect) {

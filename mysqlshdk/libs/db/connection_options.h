@@ -203,6 +203,14 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   bool is_auth_method(const std::string &method_id) const;
 
+  bool has_oci_config_file() const;
+  void set_oci_config_file(const std::string &path);
+  std::string get_oci_config_file() const;
+
+  bool has_oci_client_config_profile() const;
+  void set_oci_client_config_profile(const std::string &profile);
+  std::string get_oci_client_config_profile() const;
+
 #ifdef _WIN32
   bool has_kerberos_auth_mode() const;
   void set_kerberos_auth_mode(const std::string &mode);

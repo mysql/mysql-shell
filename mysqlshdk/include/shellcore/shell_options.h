@@ -265,6 +265,10 @@ class Shell_options final : public shcore::Options {
     storage.oci_config_file = path;
   }
 
+  void set_oci_profile(const std::string &profile) {
+    storage.oci_profile = profile;
+  }
+
   void set_json_output() {
     storage.wrap_json = "json/raw";
     storage.result_format = "json/raw";
