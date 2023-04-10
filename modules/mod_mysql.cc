@@ -157,11 +157,12 @@ static const Mysqlclient_ername k_client_error_names[] = {
     {"CR_INVALID_FACTOR_NO", CR_INVALID_FACTOR_NO},
     {"CR_CANT_GET_SESSION_DATA", CR_CANT_GET_SESSION_DATA},
     {"CR_INVALID_CLIENT_CHARSET", CR_INVALID_CLIENT_CHARSET},
+    {"CR_TLS_SERVER_NOT_FOUND", CR_TLS_SERVER_NOT_FOUND},
     {"CR_ERROR_LAST", CR_ERROR_LAST},
     {"CR_MAX_ERROR", CR_MAX_ERROR}};
 
 // If this assert fails, the list of client error names has to be updated
-static_assert(CR_ERROR_LAST <= 2074);
+static_assert(CR_ERROR_LAST <= 2075);
 
 static shcore::Value g_error_code;
 
