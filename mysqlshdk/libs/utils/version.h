@@ -38,7 +38,9 @@ class Version {
  public:
   constexpr Version() = default;
   explicit Version(const std::string &version);
-  constexpr Version(int major, int minor, int patch)
+  explicit constexpr Version(int major, int minor) noexcept
+      : _major(major), _minor(minor) {}
+  explicit constexpr Version(int major, int minor, int patch) noexcept
       : _major(major), _minor(minor), _patch(patch) {}
 
   /**

@@ -56,10 +56,10 @@ Version::Version(const std::string &version) {
   switch (base_tokens.size()) {
     case 3:
       _patch = parse_token(base_tokens[2]);
-      // fallthrough
+      [[fallthrough]];
     case 2:
       _minor = parse_token(base_tokens[1]);
-      // fallthrough
+      [[fallthrough]];
     case 1:
       _major = parse_token(base_tokens[0]);
       break;

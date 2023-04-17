@@ -85,11 +85,11 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
 //@ Dba: checkInstanceConfiguration in a cluster member
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.|
 
 //@<OUT> Dba: checkInstanceConfiguration ok 1
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -120,7 +120,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in
 
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -198,7 +199,8 @@ NOTE: Some configuration options need to be fixed:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -231,7 +233,8 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
 Persisting the cluster settings...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
@@ -294,7 +297,8 @@ The instance cluster settings were successfully persisted.
 |Number of accounts: 0|
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -373,7 +377,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be u
 
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
-Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -405,7 +410,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be u
 |Number of 'mydba'@'localhost' accounts: 1|
 
 //@<OUT> Dba: configureLocalInstance create different admin user
-Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -437,7 +443,8 @@ Successfully enabled parallel appliers.
 ?{}
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
-Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Please provide the password for 'mydba@localhost:<<<__mysql_sandbox_port2>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 

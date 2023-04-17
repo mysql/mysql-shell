@@ -92,12 +92,11 @@ std::unique_ptr<topology::Server_global_topology> discover_unmanaged_topology(
 }
 
 void validate_version(const Instance &target_server) {
-  if (target_server.get_version() < mysqlshdk::utils::Version(8, 0, 11) ||
-      target_server.get_version() >= mysqlshdk::utils::Version(8, 1, 0)) {
+  if (target_server.get_version() < mysqlshdk::utils::Version(8, 0, 11)) {
     current_console()->print_info(
         "MySQL version " + target_server.get_version().get_full() +
         " detected at " + target_server.get_canonical_address() +
-        ", but 8.0 is required for InnoDB ReplicaSets.");
+        ", but 8.0.11 is required for InnoDB ReplicaSet.");
     throw shcore::Exception("Unsupported MySQL version",
                             SHERR_DBA_BADARG_VERSION_NOT_SUPPORTED);
   }

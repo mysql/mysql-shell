@@ -106,12 +106,14 @@ TEST_F(Preconditions, check_session) {
 
   // Test invalid server version
   // Test different invalid server versions
-  std::vector<std::string> invalid_versions = {"9.0",   "8.1", "8.2.0",
-                                               "9.0.0", "5.6", "5.1"};
-  EXPECT_CALL(*m_mock_metadata, get_md_server()).Times(invalid_versions.size());
-  EXPECT_CALL(*m_mock_session, is_open()).Times(invalid_versions.size());
+  std::vector<std::string> min_invalid_versions = {"5.6", "5.1", "5.6.99"};
+  std::vector<std::string> max_invalid_versions = {"9.0", "8.2.0", "8.3"};
 
-  for (const auto &version : invalid_versions) {
+  EXPECT_CALL(*m_mock_metadata, get_md_server())
+      .Times(min_invalid_versions.size());
+  EXPECT_CALL(*m_mock_session, is_open()).Times(min_invalid_versions.size());
+
+  for (const auto &version : min_invalid_versions) {
     EXPECT_CALL(*m_mock_session, get_server_version())
         .WillOnce(Return(mysqlshdk::utils::Version(version)));
     try {
@@ -121,22 +123,51 @@ TEST_F(Preconditions, check_session) {
       ADD_FAILURE();
     } catch (const shcore::Exception &e) {
       EXPECT_STREQ(
-          "Unsupported server version: AdminAPI operations require MySQL "
-          "server versions 5.7 or 8.0",
+          "Unsupported server version: AdminAPI operations in this version of "
+          "MySQL Shell are supported on MySQL Server 5.7 and above",
           e.what());
     }
   }
 
-  std::vector<std::string> valid_versions = {"8.0",    "8.0.1", "8.0.11",
-                                             "8.0.99", "5.7",   "5.7.22"};
+  EXPECT_CALL(*m_mock_metadata, get_md_server())
+      .Times(max_invalid_versions.size());
+  EXPECT_CALL(*m_mock_session, is_open()).Times(max_invalid_versions.size());
+
+  for (const auto &version : max_invalid_versions) {
+    EXPECT_CALL(*m_mock_session, get_server_version())
+        .WillOnce(Return(mysqlshdk::utils::Version(version)));
+    try {
+      m_preconditions->check_session();
+      SCOPED_TRACE("Unexpected success calling validate_session");
+      SCOPED_TRACE(version);
+      ADD_FAILURE();
+    } catch (const shcore::Exception &e) {
+      EXPECT_STREQ(
+          "Unsupported server version: AdminAPI operations in this version of "
+          "MySQL Shell support MySQL Server up to version 8.1",
+          e.what());
+    }
+  }
+
+  std::vector<std::string> valid_versions = {
+      "8.0", "8.0.1", "8.0.11", "8.0.99", "5.7", "5.7.22", "8.1", "8.1.15"};
   EXPECT_CALL(*m_mock_metadata, get_md_server()).Times(valid_versions.size());
   EXPECT_CALL(*m_mock_session, is_open()).Times(valid_versions.size());
 
   for (const auto &version : valid_versions) {
     EXPECT_CALL(*m_mock_session, get_server_version())
         .WillOnce(Return(mysqlshdk::utils::Version(version)));
+
     try {
       m_preconditions->check_session();
+
+      if (version == "5.7" || version == "5.7.22") {
+        MY_EXPECT_STDOUT_CONTAINS(
+            "WARNING: Support for AdminAPI operations in MySQL version 5.7 is "
+            "deprecated and will be removed in a future release of MySQL "
+            "Shell");
+        output_handler.wipe_all();
+      }
     } catch (const shcore::Exception &e) {
       std::string error = "Unexpected failure calling validate_session: ";
       error += e.what();

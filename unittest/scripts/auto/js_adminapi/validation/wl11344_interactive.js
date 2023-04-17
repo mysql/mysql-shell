@@ -1107,6 +1107,7 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist co
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
 {
     "clusterName": "ClusterName",
     "defaultReplicaSet": {

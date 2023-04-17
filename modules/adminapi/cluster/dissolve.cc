@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,9 +55,9 @@ void Dissolve::prompt_to_confirm_dissolve() const {
   auto console = mysqlsh::current_console();
 
   // Show cluster description.
+  shcore::Value res = m_cluster->describe();
   console->print_info(
       "The cluster still has the following registered instances:");
-  shcore::Value res = m_cluster->describe();
 
   // Pretty print description only if wrap_json is not json/raw.
   bool use_pretty_print =

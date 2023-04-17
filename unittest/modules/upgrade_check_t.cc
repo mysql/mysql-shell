@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,7 +142,7 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
                         upgrade_info(Version("5.6.11"), Version("8.0"))),
                     std::invalid_argument, "at least at version 5.7");
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
-                        upgrade_info(Version("5.7.19"), Version("8.1.0"))),
+                        upgrade_info(Version("5.7.19"), Version("8.2.0"))),
                     std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(
       Upgrade_check::create_checklist(upgrade_info(current, current)),

@@ -1,4 +1,4 @@
-//@<> Deploy 2 sandboxes, used for the following tests {VER(>= 5.7) && VER(< 8.1)}
+//@<> Deploy 2 sandboxes, used for the following tests {VER(>= 5.7)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
@@ -74,7 +74,7 @@ EXPECT_TRUE(clone_installed(session3));
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<> Destroy sandboxes {VER(>= 5.7) && VER(< 8.1)}
+//@<> Destroy sandboxes {VER(>= 5.7)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

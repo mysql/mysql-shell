@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,9 @@ class MetadataStorage;
 
 class Precondition_checker {
  public:
+  static const mysqlshdk::utils::Version k_max_adminapi_server_version;
+  static const mysqlshdk::utils::Version k_min_adminapi_server_version;
+  static const mysqlshdk::utils::Version k_deprecated_adminapi_server_version;
   static const mysqlshdk::utils::Version k_min_gr_version;
   static const mysqlshdk::utils::Version k_min_ar_version;
   static const mysqlshdk::utils::Version k_min_cs_version;
