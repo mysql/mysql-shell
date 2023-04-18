@@ -445,8 +445,6 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port2>>>1'. Use the localAddress option to override.
 
-NOTE: The 'localAddress' "<<<hostname>>>" is [[*]], which is compatible with the Group Replication automatically generated list of IPs.
-See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.
 * Checking connectivity and SSL configuration...
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.

@@ -329,12 +329,7 @@ ${*}
                 },
                 {
                     "option": "groupSeeds",
-?{__os_type == 'windows'}
-                    "value": "127.0.0.1:<<<__mysql_sandbox_port2>>>1",
-?{}
-?{__os_type != 'windows'}
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>1",
-?{}
                     "variable": "group_replication_group_seeds"
                 },
                 {
@@ -359,12 +354,7 @@ ${*}
                 },
                 {
                     "option": "localAddress",
-?{__os_type == 'windows'}
-                    "value": "127.0.0.1:<<<__mysql_sandbox_port1>>>1",
-?{}
-?{__os_type != 'windows'}
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>1",
-?{}
                     "variable": "group_replication_local_address"
                 },
                 {
@@ -440,12 +430,7 @@ ${*}
                 },
                 {
                     "option": "groupSeeds",
-?{__os_type == 'windows'}
-                    "value": "127.0.0.1:<<<__mysql_sandbox_port1>>>1",
-?{}
-?{__os_type != 'windows'}
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>1",
-?{}
                     "variable": "group_replication_group_seeds"
                 },
                 {
@@ -470,12 +455,7 @@ ${*}
                 },
                 {
                     "option": "localAddress",
-?{__os_type == 'windows'}
-                    "value": "127.0.0.1:<<<__mysql_sandbox_port2>>>1",
-?{}
-?{__os_type != 'windows'}
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>1",
-?{}
                     "variable": "group_replication_local_address"
                 },
                 {

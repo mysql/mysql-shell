@@ -1,4 +1,4 @@
-
+//@ {!real_host_is_loopback}
 
 //@<> BUG#29255212 adding instance with lower_case_tablenames different from the cluster is not allowed.
 var __sandbox_dir = testutil.getSandboxPath();
@@ -9,31 +9,19 @@ var lower_case_value = (__os_type !="macos" && __os_type != "windows") ? "0" : "
 dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=1", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
 dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=" + lower_case_value, "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
 EXPECT_STDERR_EMPTY();
-
 shell.connect(__sandbox_uri1);
-
-var os_version = session.runSql('select @@version_compile_os').fetchOne()[0];
-
 var cluster;
 if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        cluster = dba.createCluster("cluster", {localAddress:"127.0.0.1", gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    } else {
-        cluster = dba.createCluster("cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    }
+  cluster = dba.createCluster("cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
   cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 }
 
 //@<> addInstance fails with nice error if lower_case_table_names of instance different from the value off the cluster
 if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2, {localAddress:"127.0.0.1", ipAllowlist:"127.0.0.1," + hostname_ip});}, "The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
-    } else {
-        EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2, {ipAllowlist:"127.0.0.1," + hostname_ip});}, "The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
-    }
+  EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2, {ipAllowlist:"127.0.0.1," + hostname_ip});}, "The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
 } else {
-    EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2);}, "The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
+  EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2);}, "The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
 }
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'lower_case_table_names' value.`);
 

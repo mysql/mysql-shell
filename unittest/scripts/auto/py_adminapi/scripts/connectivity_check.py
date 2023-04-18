@@ -193,10 +193,7 @@ testutil.restart_sandbox(__mysql_sandbox_port2)
 
 shell.connect(__sandbox_uri2)
 shell.options['dba.connectivityChecks'] = False
-if __version_num >= 80027:
-    EXPECT_THROWS(lambda: dba.create_cluster("replica"), "Group Replication failed to start: ")
-else:
-    EXPECT_THROWS(lambda: dba.create_cluster("replica"), "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.")
+EXPECT_THROWS(lambda: dba.create_cluster("replica"), "Group Replication failed to start: ")
 shell.options['dba.connectivityChecks'] = True
 
 EXPECT_STDOUT_CONTAINS(

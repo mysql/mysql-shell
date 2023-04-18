@@ -6,7 +6,6 @@
 
 //@<> Deploy instances (with specific innodb_page_size).
 var __sandbox_dir = testutil.getSandboxPath();
-
 //NOTE: Can not use testutil.deploySandbox here as it will reuse a pre-generated data file that is not
 //      compatible with the innodb_page_size used on this test, so we need clean sandboxes generated
 //      with the required page size
@@ -28,18 +27,12 @@ EXPECT_THROWS(function(){
 }, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
+
 //@<> create cluster fails with nice error if innodb_page_size=4k
 shell.connect(__sandbox_uri1);
-
-var os_version = session.runSql('select @@version_compile_os').fetchOne()[0];
-
 EXPECT_THROWS(function(){
   if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        dba.createCluster("test_cluster", {localAddress:"127.0.0.1", gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    } else {
-        dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    }
+    dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
   } else {
     dba.createCluster("test_cluster", {gtidSetIsComplete: true});
   }
@@ -48,16 +41,11 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 
 //@<> create cluster works with innodb_page_size=8k (> 4k)
 shell.connect(__sandbox_uri2);
-
 var cluster;
 if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        cluster = dba.createCluster("test_cluster", {localAddress:"127.0.0.1", gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    } else {
-        cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-    }
+  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-    cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 }
 EXPECT_STDERR_EMPTY();
 
@@ -68,102 +56,28 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 // -----------------------------------------------------------------------------------------
 // BUG#28531271 - CREATECLUSTER FAILS WHEN INNODB_DEFAULT_ROW_FORMAT IS COMPACT OR REDUNDANT
 // -----------------------------------------------------------------------------------------
-
 //@<> dba.createCluster using innodb_default_row__format=COMPACT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'COMPACT'});
-
 shell.connect(__sandbox_uri1);
-
 var c;
 if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        c = dba.createCluster('sample', {localAddress:"127.0.0.1", ipAllowlist:"127.0.0.1," + hostname_ip});
-    } else {
-        c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
-    }
+  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-    c = dba.createCluster('sample');
+  c = dba.createCluster('sample');
 }
 EXPECT_STDERR_EMPTY();
-
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@<> dba.createCluster using innodb_default_row__format=REDUNDANT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'REDUNDANT'});
-
 shell.connect(__sandbox_uri1);
-
 var c;
 if (__version_num < 80027) {
-    if ((os_version == "Win32") || (os_version == "Win64")) {
-        c = dba.createCluster('sample', {localAddress:"127.0.0.1", ipAllowlist:"127.0.0.1," + hostname_ip});
-    } else {
-        c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
-    }
+  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-    c = dba.createCluster('sample');
+  c = dba.createCluster('sample');
 }
 EXPECT_STDERR_EMPTY();
-
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
-
-//@<> Check if invalid localAddress is checked against ipAllowlist (if not explicitly specified) BUG#31357039
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-
-shell.connect(__sandbox_uri1);
-
-if (__version_num >= 80027) {
-    EXPECT_THROWS(function(){
-        dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1"});
-    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
-}
-else {
-    EXPECT_THROWS(function(){
-        dba.createCluster("test", {localAddress:"0.0.0.0:1"});
-    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
-}
-
-EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "0.0.0.0" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
-if (__os_type != 'windows') {
-    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
-}
-EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
-
-if (__version_num >= 80027) {
-    WIPE_OUTPUT();
-    EXPECT_THROWS(function(){
-        cluster = dba.createCluster("test", {communicationStack: "MYSQL", localAddress:`0.0.0.0:${__mysql_sandbox_port1}`});
-    }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
-
-    EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
-}
-
-// can't run this test on windows because it will always check (regardless of ipAllowlist)
-if (__os_type != "windows") {
-
-    if (__version_num >= 80027) {
-
-        WIPE_OUTPUT();
-        EXPECT_THROWS(function(){
-            cluster = dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1", ipAllowlist: "1.1.1.1"});
-        }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
-
-        EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
-    }
-    else {
-
-        WIPE_OUTPUT();
-        EXPECT_THROWS(function(){
-            cluster = dba.createCluster("test", {localAddress:"0.0.0.0:1", ipAllowlist: "1.1.1.1"});
-        }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
-
-        EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
-    }
-
-}
-
-testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
