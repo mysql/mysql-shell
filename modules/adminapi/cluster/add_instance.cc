@@ -188,17 +188,22 @@ void Add_instance::check_and_resolve_instance_configuration() {
       &m_options.gr_options.expel_timeout);
 
   // Compute group_seeds using local_address from each active cluster member
-  m_options.gr_options.group_seeds = std::invoke(
-      [](const std::map<std::string, std::string> &seeds) {
-        std::string ret;
-        for (const auto &[uuid, endpoint] : seeds) {
-          if (uuid.empty()) continue;
+  {
+    auto group_seeds = [](const std::map<std::string, std::string> &seeds,
+                          const std::string &skip_uuid = "") {
+      std::string ret;
+      for (const auto &i : seeds) {
+        if (i.first != skip_uuid) {
           if (!ret.empty()) ret.append(",");
-          ret.append(endpoint);
+          ret.append(i.second);
         }
-        return ret;
-      },
-      m_cluster_impl->get_cluster_group_seeds());
+      }
+      return ret;
+    };
+
+    m_options.gr_options.group_seeds =
+        group_seeds(m_cluster_impl->get_cluster_group_seeds());
+  }
 
   // Resolve and validate GR local address.
   // NOTE: Must be done only after getting the report_host used by GR and for
@@ -500,38 +505,12 @@ void Add_instance::prepare() {
   // Check for various instance specific configuration issues
   check_and_resolve_instance_configuration();
 
-  // localAddress
-  {
-    // reaching this point, localAddress must have been resolved / generated
-    assert(m_options.gr_options.local_address.has_value());
-
-    // Validate localAddress
+  // Validate localAddress
+  if (m_options.gr_options.local_address.has_value()) {
     validate_local_address_option(
         *m_options.gr_options.local_address,
         m_options.gr_options.communication_stack.value_or(""),
         m_target_instance->get_canonical_port());
-
-    // validate that, when ipAllowlist (or ipWhitelist) isn't specified, that
-    // the local_address (generated or user-specified) is part of the range of
-    // addresses that are part of the automatic IP Whitelist Group Replication
-    // sets (see
-    // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
-    if (shcore::str_caseeq(m_comm_stack, kCommunicationStackXCom)) {
-      // check if the instance runs on Windows (in which case the node tries
-      // to connect to itself), otherwise, we only validate the localAddress
-      // if the ipAllowList was generated automatically
-      auto is_windows = shcore::str_casestr(
-          m_target_instance->get_version_compile_os().c_str(), "WIN");
-      if (is_windows ||
-          shcore::str_caseeq(
-              m_options.gr_options.ip_allowlist.value_or("AUTOMATIC"),
-              "AUTOMATIC")) {
-        assert(m_options.gr_options.local_address.has_value());
-        cluster_topology_executor_ops::
-            validate_local_address_allowed_ip_compatibility(
-                *m_options.gr_options.local_address, false, is_windows);
-      }
-    }
   }
 
   // recovery auth checks

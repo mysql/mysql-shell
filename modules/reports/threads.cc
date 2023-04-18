@@ -557,7 +557,7 @@ class Threads_report : public Native_report {
   }
 
   const char *add_to_cache(std::string &&v) {
-    m_string_cache.emplace_back(std::make_unique<std::string>(std::move(v)));
+    m_string_cache.emplace_back(std::make_unique<std::string>(move(v)));
     return m_string_cache.back()->c_str();
   }
 

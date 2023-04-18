@@ -384,30 +384,6 @@ void Create_cluster::prepare() {
       // by the user or the one that is automatically chosen.
       validate_local_address_ip_compatibility();
 
-      // validate that, when ipAllowlist (or ipWhitelist) isn't specified, that
-      // the local_address (generated or user-specified) is part of the range of
-      // addresses that are part of the automatic IP Whitelist Group Replication
-      // sets (see
-      // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
-      if (shcore::str_caseeq(m_options.gr_options.communication_stack.value_or(
-                                 kCommunicationStackXCom),
-                             kCommunicationStackXCom)) {
-        // check if the instance runs on Windows (in which case the node tries
-        // to connect to itself), otherwise, we only validate the localAddress
-        // if the ipAllowList was generated automatically
-        auto is_windows = shcore::str_casestr(
-            m_target_instance->get_version_compile_os().c_str(), "WIN");
-        if (is_windows ||
-            shcore::str_caseeq(
-                m_options.gr_options.ip_allowlist.value_or("AUTOMATIC"),
-                "AUTOMATIC")) {
-          assert(m_options.gr_options.local_address.has_value());
-          cluster_topology_executor_ops::
-              validate_local_address_allowed_ip_compatibility(
-                  *m_options.gr_options.local_address, true, is_windows);
-        }
-      }
-
       // Check networking and SSL
       if (current_shell_options()->get().dba_connectivity_checks) {
         console->print_info("* Checking connectivity and SSL configuration...");

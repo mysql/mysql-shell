@@ -233,38 +233,6 @@ std::pair<std::string, uint16_t> split_host_and_port(const std::string &s);
 std::string make_host_and_port(const std::string &host, uint16_t port);
 
 /**
- * Check if the given IPv4 address is in the range specified in range/maskBits.
- * To check if ip is in the range "172.16/12", call: check_ipv4_is_in_range(ip,
- * "172.16.0.0", 0b111111111111);
- *
- * @param ip The address to be checked
- * @param range The range against which ip is checked
- * @param prefix The CIDR prefix for the range
- *
- * @return true if ip is in the range, false if it's not and nullopt_t if the
- * test couldn't be performed (e.g.: addresses weren't valid IPs)
- */
-std::optional<bool> check_ipv4_is_in_range(const char *const ip,
-                                           const char *const range,
-                                           uint8_t prefix);
-
-/**
- * Check if the given IPv6 address is in the range specified in range/prefix.
- * To check if ip is in the range "fe80::/10", call: check_ipv6_is_in_range(ip,
- * "fe80::", 10);
- *
- * @param ip The address to be checked
- * @param range The range against which ip is checked
- * @param prefix The CIDR prefix for the range
- *
- * @return true if ip is in the range, false if it's not and nullopt_t if the
- * test couldn't be performed (e.g.: addresses weren't valid IPs)
- */
-std::optional<bool> check_ipv6_is_in_range(const char *const ip,
-                                           const char *const range,
-                                           uint8_t prefix);
-
-/**
  * Converts the given value from host byte order to network byte order.
  */
 uint64_t host_to_network(uint64_t v);
