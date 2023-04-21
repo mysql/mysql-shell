@@ -1,6 +1,6 @@
 // Tests for configure instance (and check instance) bugs
 
-//@ BUG#28727505: Initialization.
+//@<> BUG#28727505: Initialization.
 // Deploy sandbox with GTID_MODE disabled on option file.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"gtid_mode": "OFF", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -47,10 +47,28 @@ dba.checkInstanceConfiguration(__sandbox_uri1);
 //@<> BUG#29765093: configure instance. {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 
+EXPECT_OUTPUT_CONTAINS(`Configuring local MySQL instance listening at port ${__mysql_sandbox_port1} for use in an InnoDB cluster...`);
+EXPECT_OUTPUT_CONTAINS(`This instance reports its own address as ${__endpoint1}`);
+
+if (__version_num >= 80023) {
+    EXPECT_OUTPUT_CONTAINS(`applierWorkerThreads will be set to the default value of 4.`);
+}
+
+EXPECT_OUTPUT_CONTAINS(`NOTE: Some configuration options need to be fixed:
++---------------+---------------+----------------+----------------------------+
+| Variable      | Current Value | Required Value | Note                       |
++---------------+---------------+----------------+----------------------------+
+| binlog_format | MIXED         | ROW            | Update the server variable |
+| gtid_mode     | ON            | ON             | Update the server variable |
++---------------+---------------+----------------+----------------------------+`);
+
+EXPECT_OUTPUT_CONTAINS(`Configuring instance...`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${__endpoint1}' was configured to be used in an InnoDB cluster.`);
+
 //@<> BUG#29765093: configure instance again. {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 
-//@ BUG#29765093: clean-up. {VER(>=8.0.11)}
+//@<> BUG#29765093: clean-up. {VER(>=8.0.11)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@<> BUG#30339460: Initialization.
@@ -58,12 +76,13 @@ testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
-//@ BUG#30339460: Use configureInstance to create the Admin user.
+//@<> BUG#30339460: Use configureInstance to create the Admin user.
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
-dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "admin_user", clusterAdminPassword: "admin_pwd", mycnfPath: mycnf_path });
+
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "admin_user", clusterAdminPassword: "admin_pwd", mycnfPath: mycnf_path }); });
 
 //@<> BUG#30339460: Revert some previous configureInstance() change to require some settings to be fixed.
 shell.connect(__sandbox_uri1);
@@ -78,13 +97,14 @@ session.runSql("SET GLOBAL enforce_gtid_consistency = DEFAULT");
 session.runSql("SET GLOBAL gtid_mode = DEFAULT");
 session.runSql("SET GLOBAL server_id = DEFAULT");
 
-//@ BUG#30339460: Use configureInstance with the Admin user (no error).
+//@<> BUG#30339460: Use configureInstance with the Admin user (no error).
 var admin_uri = "admin_user:admin_pwd@" + hostname + ":" + __mysql_sandbox_port1;
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
-dba.configureInstance(admin_uri, { interactive: true, mycnfPath: mycnf_path});
+
+EXPECT_NO_THROWS(function() { dba.configureInstance(admin_uri, { interactive: true, mycnfPath: mycnf_path}); });
 
 //@<> BUG#30339460: clean-up.
 testutil.destroySandbox(__mysql_sandbox_port1);
