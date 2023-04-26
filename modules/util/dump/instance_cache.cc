@@ -754,12 +754,15 @@ void Instance_cache_builder::fetch_table_indexes() {
   info.where = "COLUMN_NAME IS NOT NULL AND NON_UNIQUE=0";
 
   const std::string primary_index = "PRIMARY";
-  // schema -> table -> index name -> columns
+  struct Index_info {
+    std::vector<Instance_cache::Column *> columns;
+    bool unsafe = false;
+  };
+  // schema -> table -> index name -> index info
+  // indexes are ordered to ensure repeatability of the algorithm
   std::unordered_map<
       std::string,
-      std::unordered_map<
-          std::string,
-          std::map<std::string, std::map<uint64_t, Instance_cache::Column *>>>>
+      std::unordered_map<std::string, std::map<std::string, Index_info>>>
       indexes;
 
   iterate_tables(
@@ -780,18 +783,38 @@ void Instance_cache_builder::fetch_table_indexes() {
         // column will not be found if user is missing SELECT privilege and it
         // was not possible to fetch column information
         if (t->all_columns.end() != column) {
-          indexes[schema_name][table_name][row->get_string(2, "")].emplace(
-              row->get_uint(4), &(*column));  // INDEX_NAME, SEQ_IN_INDEX
+          auto &index_info = indexes[schema_name][table_name]
+                                    [row->get_string(2, {})];  // INDEX_NAME
+          const auto seq = row->get_uint(4);                   // SEQ_IN_INDEX
+
+          // SEQ_IN_INDEX is 1-based
+          if (seq > index_info.columns.size()) {
+            index_info.columns.resize(seq);
+          }
+
+          index_info.columns[seq - 1] = &(*column);
+          // BUG#35180061 - do not use indexes on ENUM columns
+          index_info.unsafe |= (mysqlshdk::db::Type::Enum == column->type);
         } else {
           assert(t->all_columns.empty());
         }
       });
 
-  for (const auto &schema : indexes) {
-    auto &s = m_cache.schemas.at(schema.first);
+  for (auto &schema : indexes) {
+    for (auto &table : schema.second) {
+      for (auto index = table.second.begin(); index != table.second.end();) {
+        if (index->second.unsafe) {
+          index = table.second.erase(index);
+        } else {
+          ++index;
+        }
+      }
 
-    for (const auto &table : schema.second) {
-      auto &t = s.tables.at(table.first);
+      if (table.second.empty()) {
+        continue;
+      }
+
+      auto &t = m_cache.schemas.at(schema.first).tables.at(table.first);
 
       auto index = table.second.find(primary_index);
       bool primary = false;
@@ -802,12 +825,11 @@ void Instance_cache_builder::fetch_table_indexes() {
         const auto mark_integer_columns = [](decltype(index) idx) {
           std::vector<bool> result;
 
-          result.reserve(idx->second.size());
+          result.reserve(idx->second.columns.size());
 
-          for (const auto &c : idx->second) {
-            result.emplace_back(
-                c.second->type == mysqlshdk::db::Type::Integer ||
-                c.second->type == mysqlshdk::db::Type::UInteger);
+          for (const auto &c : idx->second.columns) {
+            result.emplace_back(c->type == mysqlshdk::db::Type::Integer ||
+                                c->type == mysqlshdk::db::Type::UInteger);
           }
 
           return result;
@@ -828,23 +850,23 @@ void Instance_cache_builder::fetch_table_indexes() {
 
         // skip first index
         for (auto it = std::next(index); it != table.second.end(); ++it) {
-          const auto size = it->second.size();
+          const auto size = it->second.columns.size();
 
-          if (size < index->second.size()) {
+          if (size < index->second.columns.size()) {
             // prefer shorter index
             use_index(it);
-          } else if (size == index->second.size()) {
+          } else if (size == index->second.columns.size()) {
             // if indexes have equal length, prefer the one with longer run of
             // integer columns
             auto candidate = mark_integer_columns(it);
-            auto candidate_column = it->second.begin();
-            auto current_column = index->second.begin();
+            auto candidate_column = it->second.columns.begin();
+            auto current_column = index->second.columns.begin();
 
             for (std::size_t i = 0; i < size; ++i) {
               if (candidate[i] == current[i]) {
                 // both columns are of the same type, check if they are nullable
-                if (candidate_column->second->nullable ==
-                    current_column->second->nullable) {
+                if ((*candidate_column)->nullable ==
+                    (*current_column)->nullable) {
                   // both columns are NULL or NOT NULL
                   if (!current[i]) {
                     // both columns are not integers, use the current index
@@ -853,7 +875,7 @@ void Instance_cache_builder::fetch_table_indexes() {
                   // else, both column are integers, check next column
                 } else {
                   // prefer NOT NULL column
-                  if (!candidate_column->second->nullable) {
+                  if (!(*candidate_column)->nullable) {
                     // candidate is NOT NULL, use that
                     use_given_index(it, std::move(candidate));
                   }
@@ -882,8 +904,8 @@ void Instance_cache_builder::fetch_table_indexes() {
 
       t.index.set_primary(primary);
 
-      for (auto &column : index->second) {
-        t.index.add_column(column.second);
+      for (auto &column : index->second.columns) {
+        t.index.add_column(column);
       }
     }
   }

@@ -3126,9 +3126,56 @@ tested_table = "tested_table"
 
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 session.run_sql("CREATE SCHEMA !", [ tested_schema ])
-session.run_sql(f"CREATE TABLE !.! (a TEXT, b TEXT, c GEOMETRY NOT NULL, d GEOMETRY NOT NULL, FULLTEXT (a), FULLTEXT (b), SPATIAL KEY (c), SPATIAL KEY (d))", [ tested_schema, tested_table ])
+session.run_sql("CREATE TABLE !.! (a TEXT, b TEXT, c GEOMETRY NOT NULL, d GEOMETRY NOT NULL, FULLTEXT (a), FULLTEXT (b), SPATIAL KEY (c), SPATIAL KEY (d))", [ tested_schema, tested_table ])
 
 TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
+
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#35180061 - dumping a table which has a PK containing an ENUM column, whose values are not specified in an alphabetic order
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("""CREATE TABLE !.! (
+    `content_type` ENUM('music','music_video','ringtone') NOT NULL,
+    `service` ENUM('individual','individual_annual','match','student','family','trial') NOT NULL,
+    `product_id` int unsigned NOT NULL,
+    `ordinal` int unsigned NOT NULL,
+    PRIMARY KEY (`content_type`,`service`),
+    KEY `product_id` (`product_id`),
+    UNIQUE KEY `ordinal` (`ordinal`)
+)""", [ tested_schema, tested_table ])
+session.run_sql("""INSERT INTO !.! VALUES
+    ('music_video', 'individual', 255, 1),
+    ('music', 'trial', 327, 2),
+    ('ringtone', 'trial', 327, 3),
+    ('music', 'family', 383, 4),
+    ('ringtone', 'family', 383, 5),
+    ('music', 'individual', 384, 6),
+    ('ringtone', 'individual', 384, 7),
+    ('music_video', 'family', 385, 8),
+    ('music_video', 'trial', 386, 9),
+    ('music', 'student', 392, 10),
+    ('ringtone', 'student', 392, 11),
+    ('music_video', 'student', 393, 12),
+    ('music', 'match', 394, 13),
+    ('ringtone', 'match', 394, 14),
+    ('music_video', 'match', 395, 15),
+    ('music', 'individual_annual', 431, 16),
+    ('ringtone', 'individual_annual', 431, 17),
+    ('music_video', 'individual_annual', 432, 18)
+""", [ tested_schema, tested_table ])
+
+# PK consists of ENUM columns, but there's a unique index, it's going to be used for chunking and only one chunk is going to be created
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("1 chunks (18 rows, 447 bytes) for 1 tables in 1 schemas were loaded")
+
+# PK consists of ENUM columns, there are no more indexes, table is not going to be chunked, chunks are created while dumping the table, two chunks are going to be created
+session.run_sql("DROP INDEX `ordinal` ON !.!", [ tested_schema, tested_table ])
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("2 chunks (18 rows, 447 bytes) for 1 tables in 1 schemas were loaded")
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
