@@ -32,45 +32,17 @@
 namespace mysqlsh {
 namespace import_table {
 
-File_iterator::File_iterator(
-    mysqlshdk::storage::IFile *file_descriptor, size_t file_size,
-    size_t start_from_offset, Buffer *current_buffer, Buffer *next_buffer,
-    Async_read_task *aio, size_t needle_size,
-    shcore::Synchronized_queue<Async_read_task *> *task_queue)
-    : m_current(current_buffer),
-      m_next(next_buffer),
-      m_offset(start_from_offset),
-      m_fh(file_descriptor),
-      m_file_size(file_size),
-      m_aio(aio),
-      m_task_queue(task_queue) {
-  if (m_current) {
-    m_current->reserved = needle_size;
-    m_ptr = m_current->begin();
-
-    if (m_offset + m_current->size() < m_file_size) {
-      m_ptr_end = m_current->begin() + m_current->size() - m_current->reserved;
-    } else {
-      m_ptr_end = m_current->begin() + m_current->size();
-    }
+File_iterator::File_iterator(File_handler *parent, size_t offset)
+    : m_parent(parent),
+      m_current(&parent->m_buffer[0]),
+      m_next(&parent->m_buffer[1]),
+      m_offset(offset) {
+  if (offset >= m_parent->file_size()) {
+    return;
   }
 
-  if (m_next) m_next->reserved = needle_size;
-
-  if (start_from_offset >= file_size) return;
-
-  assert(m_aio);
-  if (!m_aio) return;
-
-  m_aio->fh = m_fh;
-  m_aio->length = BUFFER_SIZE;
-
-  read_next(m_offset);
-  await_next();
-  this->swap();
-
-  assert(m_current);
-  read_next(m_offset + m_current->size() - m_current->reserved);
+  enqueue_next(m_offset);
+  read_more();
 }
 
 File_iterator &File_iterator::operator++() {
@@ -78,11 +50,7 @@ File_iterator &File_iterator::operator++() {
   ++m_ptr;
 
   if (m_ptr >= m_ptr_end) {
-    await_next();
-    swap();
-    if (!m_eof) {
-      read_next(m_offset + m_current->size() - m_current->reserved);
-    }
+    read_more();
   }
 
   return *this;
@@ -102,52 +70,85 @@ File_iterator &File_iterator::operator--(int) {
   return *this;
 }
 
-void File_iterator::read_next(size_t offset) {
-  m_aio->buffer = m_next->buffer;
-  m_aio->offset = offset;
-  m_next->offset = offset;
+void File_iterator::enqueue_next(size_t offset) {
+  const auto aio = &m_parent->m_aio;
+  aio->buffer = m_next->buffer;
+  aio->offset = offset;
 
-  if (!(offset < m_file_size)) {
-    m_next->return_value = 0;
+  if (!(offset < m_parent->file_size())) {
+    aio->return_value = 0;
+    aio->status = Async_read_task::Status::Ok;
     return;
   }
 
-  m_aio->status = Async_read_task::Status::Pending;
-  m_task_queue->push(m_aio);
+  aio->status = Async_read_task::Status::Pending;
+  m_parent->m_task_queue.push(aio);
 }
 
 void File_iterator::await_next() {
-  m_aio->wait();
-  m_next->return_value = m_aio->return_value;
+  const auto aio = &m_parent->m_aio;
+  aio->wait();
+  m_next->return_value = aio->return_value;
 
   if (m_next->eof()) {
     m_eof = true;
   }
 
   if (m_next->return_value < 0) {
-    throw std::runtime_error("Read error");
+    if (aio->exception) {
+      std::rethrow_exception(aio->exception);
+    } else {
+      throw std::runtime_error(
+          "Failed to read " + aio->fh->full_path().masked() +
+          ", error code: " + std::to_string(m_next->return_value));
+    }
+  }
+}
+
+void File_iterator::read_more() {
+  await_next();
+  swap();
+
+  if (!m_eof) {
+    enqueue_next(m_offset + m_current->size() - m_current->reserved);
+  }
+}
+
+void File_iterator::swap() {
+  std::swap(m_current, m_next);
+
+  m_ptr = m_current->begin();
+
+  if (m_offset + m_current->size() < m_parent->file_size()) {
+    m_ptr_end = m_current->begin() + m_current->size() - m_current->reserved;
+  } else {
+    m_ptr_end = m_current->begin() + m_current->size();
   }
 }
 
 void File_iterator::force_offset(size_t start_from_offset) {
-  m_offset = std::min(start_from_offset, m_file_size);
+  m_offset = std::min(start_from_offset, m_parent->file_size());
 
   // todo(kg): We can try to cancel current m_aio task. This require cancel
   // functionality implementation for generic aio which isn't currently
   // supported.
   await_next();
 
-  if (start_from_offset < m_file_size) {
-    read_next(start_from_offset);
-    await_next();
-    this->swap();
-    read_next(start_from_offset + m_current->size() - m_current->reserved);
+  if (start_from_offset < m_parent->file_size()) {
+    enqueue_next(m_offset);
+    read_more();
   }
 }
 
 File_handler::File_handler(mysqlshdk::storage::IFile *fh) : m_fh(fh) {
-  m_fh->open(mysqlshdk::storage::Mode::READ);
+  if (!m_fh->is_open()) {
+    m_fh->open(mysqlshdk::storage::Mode::READ);
+  }
+
   m_file_size = m_fh->file_size();
+  m_aio.fh = m_fh;
+  m_aio.length = Buffer::capacity();
+
   m_aio_worker = mysqlsh::spawn_scoped_thread([this]() -> void {
     while (true) {
       Async_read_task *r = m_task_queue.pop();
@@ -157,18 +158,25 @@ File_handler::File_handler(mysqlshdk::storage::IFile *fh) : m_fh(fh) {
         break;
       }
 
-      {
+      try {
         std::unique_lock<std::mutex> lock(r->mutex);
-        off64_t offset = r->fh->seek(r->offset);
-        if (offset == static_cast<off64_t>(-1)) {
-          r->return_value = -1;
-          r->status = Async_read_task::Status::Error;
-        } else {
-          auto ret = r->fh->read(r->buffer, r->length);
-          r->return_value = ret;
-          r->status = Async_read_task::Status::Ok;
+
+        if (r->offset >= 0) {
+          if (r->fh->seek(r->offset) < 0) {
+            throw std::runtime_error("Failed to seek file " +
+                                     r->fh->full_path().masked() + " to " +
+                                     std::to_string(r->offset));
+          }
         }
+
+        r->return_value = r->fh->read(r->buffer, r->length);
+        r->status = Async_read_task::Status::Ok;
+      } catch (...) {
+        r->exception = std::current_exception();
+        r->return_value = -1;
+        r->status = Async_read_task::Status::Error;
       }
+
       r->cv.notify_one();
     }
   });
@@ -180,13 +188,12 @@ File_handler::~File_handler() {
   m_fh->close();
 }
 
-File_iterator File_handler::begin(size_t needle_size) const {
-  return File_iterator(m_fh, size(), 0, &m_buffer[0], &m_buffer[1], &m_aio,
-                       needle_size, &m_task_queue);
-}
-File_iterator File_handler::end(size_t needle_size) const {
-  return File_iterator(m_fh, size(), size(), nullptr, nullptr, nullptr,
-                       needle_size, &m_task_queue);
+std::pair<File_iterator, File_iterator> File_handler::iterators(
+    size_t needle_size) {
+  m_buffer[0].reserved = needle_size;
+  m_buffer[1].reserved = needle_size;
+
+  return {File_iterator{this, 0}, File_iterator{this, file_size()}};
 }
 
 void Chunk_file::set_chunk_size(const size_t bytes) {
@@ -197,9 +204,7 @@ void Chunk_file::set_chunk_size(const size_t bytes) {
 void Chunk_file::start() {
   File_handler fh{m_file_handle};
 
-  const size_t needle_size = m_dialect.lines_terminated_by.size();
-  auto first = fh.begin(needle_size);
-  auto last = fh.end(needle_size);
+  auto [first, last] = fh.iterators(m_dialect.lines_terminated_by.size());
 
   File_import_info stencil;
   stencil.file_path = m_file_handle->full_path().real();

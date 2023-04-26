@@ -102,8 +102,6 @@ EXPECT_THROWS(lambda: util.import_table(['nonexisting/lorem*.gz', '', 'parts/*.g
 EXPECT_STDOUT_CONTAINS("Directory nonexisting does not exist.")
 
 #@<> oci+os:// scheme is not supported
-# util.import_table was moved from expose() to add_method() and it cause change in exception message
-# EXPECT_THROWS(lambda: util.import_table('oci+os://region/tenancy/bucket/file'), 'ArgumentError: Util.import_table: File handling for oci+os protocol is not supported.')
 EXPECT_THROWS(lambda: util.import_table('oci+os://region/tenancy/bucket/file'), 'Util.import_table: File handling for oci+os protocol is not supported.')
 
 #@<> test import using OCI
@@ -146,6 +144,13 @@ for extension in [ "", ".zst" ]:
 
 #@<> BUG#35018278 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+
+#@<> BUG#35313366 - exception when importing a single uncompressed file crashes shell {not __dbug_off}
+testutil.set_trap("os_bucket", ["op == get_object", f"name == {raw_files[0]}"], {"code": 404, "msg": "Injected exception"})
+
+EXPECT_THROWS(lambda: util.import_table(raw_files[0], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}), "Injected exception (404)")
+
+testutil.clear_traps("os_bucket")
 
 #@<> Cleanup
 delete_bucket(OS_BUCKET_NAME)

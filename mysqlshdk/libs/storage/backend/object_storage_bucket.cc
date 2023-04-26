@@ -43,7 +43,7 @@ namespace {
 
 constexpr size_t MAX_LIST_OBJECTS_LIMIT = 1000;
 
-FI_DEFINE(os_put_object, ([](const mysqlshdk::utils::FI::Args &args) {
+FI_DEFINE(os_bucket, ([](const mysqlshdk::utils::FI::Args &args) {
             throw Response_error(
                 static_cast<Response::Status_code>(args.get_int("code")),
                 args.get_string("msg"));
@@ -158,8 +158,9 @@ void Container::put_object(const std::string &object_name, const char *data,
   request.size = size;
 
   try {
-    FI_TRIGGER_TRAP(os_put_object, mysqlshdk::utils::FI::Trigger_options(
-                                       {{"name", object_name}}));
+    FI_TRIGGER_TRAP(os_bucket,
+                    mysqlshdk::utils::FI::Trigger_options(
+                        {{"op", "put_object"}, {"name", object_name}}));
 
     ensure_connection()->put(&request);
   } catch (const Response_error &error) {
@@ -191,6 +192,10 @@ size_t Container::get_object(const std::string &object_name,
   response.body = buffer;
 
   try {
+    FI_TRIGGER_TRAP(os_bucket,
+                    mysqlshdk::utils::FI::Trigger_options(
+                        {{"op", "get_object"}, {"name", object_name}}));
+
     ensure_connection()->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.status_code(),
