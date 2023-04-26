@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,8 +56,7 @@ TEST(import_table, double_buffer_iteration) {
                        kBufferSize / 2, (kBufferSize / 2 + 1)}) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    auto first = fh.begin(reserved);
-    auto last = fh.end(reserved);
+    auto [first, last] = fh.iterators(reserved);
 
     std::string from_file;
     for (; first != last; ++first) {
@@ -160,8 +159,8 @@ TEST(import_table, chunks) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, 1, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -179,11 +178,10 @@ TEST(import_table, chunks) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1);
+      row = skip_rows(row, last, line_terminator, 1);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -224,8 +222,8 @@ TEST(import_table, chunks_2) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, 1, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -243,11 +241,10 @@ TEST(import_table, chunks_2) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1);
+      row = skip_rows(row, last, line_terminator, 1);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -284,8 +281,9 @@ TEST(import_table, false_line_termination) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -303,11 +301,10 @@ TEST(import_table, false_line_termination) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -346,8 +343,9 @@ TEST(import_table, escape_char_in_the_middle_if_line_terminator) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -365,11 +363,10 @@ TEST(import_table, escape_char_in_the_middle_if_line_terminator) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -415,8 +412,9 @@ TEST(import_table, escape_at_the_end_of_a_buffer) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -434,11 +432,10 @@ TEST(import_table, escape_at_the_end_of_a_buffer) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -523,8 +520,9 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, kSkipBytes, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -542,11 +540,10 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1);
+      row = skip_rows(row, last, line_terminator, 1);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -592,8 +589,9 @@ TEST(import_table, false_line_terminator_after_eof) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, kSkipBytes, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -612,11 +610,10 @@ TEST(import_table, false_line_terminator_after_eof) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1);
+      row = skip_rows(row, last, line_terminator, 1);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -669,8 +666,8 @@ TEST(import_table, last_character_same_as_terminator) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r,
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
                        File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
@@ -690,11 +687,10 @@ TEST(import_table, last_character_same_as_terminator) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -763,8 +759,8 @@ TEST(import_table, onechar_a_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r,
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
                        File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
@@ -784,11 +780,10 @@ TEST(import_table, onechar_a_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -859,8 +854,8 @@ TEST(import_table, twochar_ab_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r,
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
                        File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
@@ -880,11 +875,10 @@ TEST(import_table, twochar_ab_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 
@@ -957,8 +951,8 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r,
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
                        File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
@@ -985,8 +979,9 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<File_import_info> r;
-    chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 254, &r, File_import_info());
+    auto [first, last] = fh.iterators(needle_size);
+    chunk_by_max_bytes(first, last, line_terminator, escape, 254, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -1018,11 +1013,10 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
     std::queue<Range> r;
-    auto row = fh.begin(needle_size);
-    auto last = fh.end(needle_size);
+    auto [row, last] = fh.iterators(needle_size);
     while (row != last) {
       auto previous = row;
-      row = skip_rows(row, fh.end(needle_size), line_terminator, 1, escape);
+      row = skip_rows(row, last, line_terminator, 1, escape);
       r.push(Range{previous.offset(), row.offset()});
     }
 

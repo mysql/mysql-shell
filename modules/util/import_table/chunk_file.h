@@ -27,6 +27,7 @@
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
@@ -52,10 +53,8 @@ struct Buffer final {
 
   ~Buffer() = default;
 
-  // static constexpr const size_t BUFFER_SIZE = 1 << 16;
   uint8_t buffer[BUFFER_SIZE];
   int return_value = -1;  //< read() return value
-  size_t offset = -1;     //< Global offset, e.g. from file beginning
   size_t reserved = 0;    //< Number of bytes reserved at the end of the buffer
 
   size_t size() const noexcept { return return_value > 0 ? return_value : 0; }
@@ -76,6 +75,7 @@ struct Async_read_task {
   void *buffer;                   //< Buffer location
   size_t length;                  //< Number of bytes to read
   int return_value;               //< read() return value
+  std::exception_ptr exception;   //< Exception reported during the read
 
   std::mutex mutex;            //< mutex
   std::condition_variable cv;  //< Synchronization point
@@ -93,6 +93,8 @@ struct Async_read_task {
   }
 };
 
+class File_handler;
+
 /**
  * File_handler iterator that asynchronously pre-loads file chunks to double
  * buffer.
@@ -106,10 +108,6 @@ class File_iterator final {
   using iterator_category = std::forward_iterator_tag;
 
   File_iterator() = delete;
-  File_iterator(mysqlshdk::storage::IFile *file_descriptor, size_t file_size,
-                size_t start_from_offset, Buffer *current_buffer,
-                Buffer *next_buffer, Async_read_task *aio, size_t needle_size,
-                shcore::Synchronized_queue<Async_read_task *> *task_queue);
 
   File_iterator(const File_iterator &other) = default;
   File_iterator(File_iterator &&other) = default;
@@ -118,7 +116,7 @@ class File_iterator final {
   File_iterator &operator=(File_iterator &&other) = default;
 
   bool operator!=(const File_iterator &other) const {
-    return m_offset != other.m_offset;
+    return !(*this == other);
   }
 
   bool operator==(const File_iterator &other) const {
@@ -140,6 +138,9 @@ class File_iterator final {
    * Post-increment operator advances buffer and file position. Use this when
    * you need pointer to reserved buffer area. Buffer boundaries are not checked
    * and might overflow buffer.
+   *
+   * WARNING: do not use this iterator, it does not return a copy and does not
+   * check the boundaries!
    *
    * @return Reference to File_iterator
    */
@@ -171,23 +172,24 @@ class File_iterator final {
   ~File_iterator() = default;
 
  private:
+  friend class File_handler;
+
+  File_iterator(File_handler *parent, size_t offset);
+
+  File_handler *m_parent = nullptr;
   Buffer *m_current = nullptr;
   Buffer *m_next = nullptr;
   uint8_t *m_ptr = nullptr;
   uint8_t *m_ptr_end = nullptr;
   size_t m_offset = 0;  //< Global file offset where m_ptr points
-  mysqlshdk::storage::IFile *m_fh = nullptr;
-  size_t m_file_size = 0;
-  Async_read_task *m_aio = nullptr;
   bool m_eof = false;
-  shcore::Synchronized_queue<Async_read_task *> *m_task_queue = nullptr;
 
   /**
    * Enqueue task that reads data from file offset to next buffer.
    *
    * @param offset File offset.
    */
-  void read_next(size_t offset);
+  void enqueue_next(size_t offset);
 
   /**
    * Wait for currently enqueued task finish work. After this call next buffer
@@ -198,19 +200,12 @@ class File_iterator final {
   /**
    * Swap double buffers and reset internal range pointers to proper values.
    */
-  void swap() {
-    std::swap(m_current, m_next);
+  void swap();
 
-    assert(m_current);
-    if (!m_current) throw std::logic_error("No buffer available");
-
-    m_ptr = m_current->begin();
-    if (m_offset + m_current->size() < m_file_size) {
-      m_ptr_end = m_current->begin() + m_current->size() - m_current->reserved;
-    } else {
-      m_ptr_end = m_current->begin() + m_current->size();
-    }
-  }
+  /**
+   * Fills in the read buffer and enqueues a task for subsequent chunk.
+   */
+  void read_more();
 };
 
 /**
@@ -231,12 +226,13 @@ class File_handler final {
 
   bool is_open() const { return m_fh->is_open(); }
 
-  size_t size() const { return m_file_size; }
+  inline size_t file_size() const noexcept { return m_file_size; }
 
-  File_iterator begin(size_t needle_size) const;
-  File_iterator end(size_t needle_size) const;
+  std::pair<File_iterator, File_iterator> iterators(size_t needle_size);
 
  private:
+  friend class File_iterator;
+
   mutable Buffer m_buffer[2];  //< Double buffer
   mutable Async_read_task m_aio{};
   mutable std::thread m_aio_worker;
