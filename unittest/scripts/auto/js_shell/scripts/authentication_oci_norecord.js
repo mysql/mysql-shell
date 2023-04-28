@@ -12,18 +12,19 @@ testutil.callMysqlsh(["--", "shell", "options", "unset-persist", "oci.configFile
 
 // TODO(pawel): add more tests for BUG#34858763
 
-//@<> WL#15561 - invalid profile name test
+//@<> WL#15561 - invalid profile name test {OCI_AUTH_CONFIG_FILE.length != 0}
 
 testutil.callMysqlsh(["--", "shell", "options", "set-persist", "oci.profile", "invalidProfile"]);
 
 testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--auth-method=authentication_oci_client",
+    `--oci-config-file=${OCI_AUTH_CONFIG_FILE}`,
     "--quiet-start=2", "--sql", "-e", "SELECT 1"]);
 EXPECT_OUTPUT_CONTAINS("Failed to set the OCI client config profile on authentication_oci_client plugin.");
 
 testutil.callMysqlsh(["--", "shell", "options", "unset-persist", "oci.profile"]);
 
-//@<> WL#15561 - correct config file test
+//@<> WL#15561 - correct config file test {OCI_AUTH_CONFIG_FILE.length != 0}
 
 testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--auth-method=authentication_oci_client",
@@ -32,7 +33,7 @@ testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--sql", "-e", "SELECT current_user()"]);
 EXPECT_OUTPUT_CONTAINS('test_oci_auth');
 
-//@<> WL#15561 - correct profile from config file test
+//@<> WL#15561 - correct profile from config file test {OCI_AUTH_CONFIG_FILE.length != 0}
 
 var config_file = testutil.catFile(OCI_AUTH_CONFIG_FILE);
 config_file = config_file.replace("[DEFAULT]", "[SOMEPROFILE]");
@@ -47,7 +48,7 @@ testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--sql", "-e", "SELECT current_user()"]);
 EXPECT_OUTPUT_CONTAINS('test_oci_auth');
 
-//@ WL15561 Text Classic Connection OCI Authentication Plugin config file and profile
+//@ WL15561 Text Classic Connection OCI Authentication Plugin config file and profile {OCI_AUTH_CONFIG_FILE.length != 0}
 connection_data = shell.parseUri(OCI_AUTH_URI);
 connection_data['oci-config-file'] = OCI_AUTH_CONFIG_FILE;
 connection_data['authentication-oci-client-config-profile'] = 'DEFAULT';
