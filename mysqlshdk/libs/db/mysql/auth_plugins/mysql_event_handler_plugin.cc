@@ -28,8 +28,12 @@
 
 #include <mysql.h>
 #include <mysql/plugin_trace.h>
-#include <cstring>
 
+#include <cstring>
+#include <stdexcept>
+#include <string>
+
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
@@ -168,8 +172,14 @@ st_mysql_client_plugin_TRACE mysql_plugin_tracer = {
  */
 
 void register_tracer_plugin(MYSQL *conn) {
-  mysql_client_register_plugin(
-      conn, reinterpret_cast<st_mysql_client_plugin *>(&mysql_plugin_tracer));
+  if (!mysql_client_register_plugin(
+          conn,
+          reinterpret_cast<st_mysql_client_plugin *>(&mysql_plugin_tracer))) {
+    mysqlsh::current_console()->print_warning(
+        "Failed to register the event handler plugin: " +
+        std::string(mysql_error(conn)) +
+        ", pluggable authentication is not available");
+  }
 }
 
 }  // namespace mysql
