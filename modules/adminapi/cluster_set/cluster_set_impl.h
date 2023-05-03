@@ -270,7 +270,8 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void restore_transaction_size_limit(Cluster_impl *replica, bool dry_run);
 
-  void set_maximum_transaction_size_limit(Cluster_impl *replica, bool dry_run);
+  void set_maximum_transaction_size_limit(Cluster_impl *cluster,
+                                          bool is_primary, bool dry_run);
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
       mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});

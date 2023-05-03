@@ -1794,7 +1794,6 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   // Get the Cluster's transaction size_limit stored in the Metadata if the
   // Cluster is standalone or a Primary. Otherwise, it's a Replica so it
   // should be the value of the primary member
-  shcore::Value value;
   bool is_replica_cluster =
       m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster();
 
@@ -1806,6 +1805,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   }
 
   if (!is_replica_cluster) {
+    shcore::Value value;
     if (!m_cluster->get_metadata_storage()->query_cluster_attribute(
             m_cluster->get_id(), k_cluster_attribute_transaction_size_limit,
             &value)) {

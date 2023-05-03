@@ -197,6 +197,7 @@ EXPECT_NO_THROWS(function() { clusterset.createReplicaCluster(__sandbox_uri4, "a
 testutil.killSandbox(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
+cluster = dba.getCluster();
 clusterset = dba.getClusterSet();
 
 EXPECT_NO_THROWS(function() { clusterset.forcePrimaryCluster("new_replica_cluster"); });
@@ -228,7 +229,32 @@ EXPECT_NO_THROWS(function() { clusterset.rejoinCluster("replica_cluster") });
 transaction_size_limit = session.runSql("select @@group_replication_transaction_size_limit").fetchOne()[0];
 EXPECT_EQ(0, transaction_size_limit);
 
+//@<> rejoin the primary can't change the transaction_size_limit
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
+EXPECT_NO_THROWS(function() { clusterset.rejoinCluster("new_replica_cluster"); });
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
+//@<> rejoin the primary should fix incorrect transaction_size_limit values
+shell.connect(__sandbox_uri1);
+session.runSql("SET GLOBAL group_replication_transaction_size_limit=12345678");
+
+status = cluster.status();
+EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_EQ("WARNING: The value of 'group_replication_transaction_size_limit' does not match the Cluster's configured value. Use Cluster.rescan() to repair.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0])
+
+EXPECT_NO_THROWS(function() { clusterset.rejoinCluster("new_replica_cluster"); });
+
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+
 //@<> removeCluster must ensure the removed Cluster gets the value restored even if GR is stopped
+shell.connect(__sandbox_uri3);
 session.runSql("STOP group_replication");
 
 EXPECT_NO_THROWS(function() { clusterset.removeCluster("replica_cluster", {force: true}); });

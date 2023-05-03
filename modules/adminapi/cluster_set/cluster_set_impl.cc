@@ -1753,7 +1753,7 @@ void Cluster_set_impl::demote_from_primary(
   update_replica(cluster_primary.get(), new_primary, repl_options, true,
                  dry_run);
 
-  set_maximum_transaction_size_limit(cluster, dry_run);
+  set_maximum_transaction_size_limit(cluster, false, dry_run);
 }
 
 void Cluster_set_impl::update_replica(
@@ -2010,27 +2010,39 @@ void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
   }
 }
 
-void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *replica,
+void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *cluster,
+                                                          bool is_primary,
                                                           bool dry_run) {
   log_info(
       "Setting transaction_size_limit to the maximum accepted value in "
       "Cluster '%s'",
-      replica->get_name().c_str());
+      cluster->get_name().c_str());
 
-  if (!dry_run) {
-    // The primary must be reachable at this point so it will always be
-    // updated, but one of more secondaries might be unreachable and it's OK
-    // if they are not updated. Auto-rejoins might fail due to transactions
-    // being rejected, but the user will be warned about it in cluster.status()
-    // and can fix it with .rescan(). Also, manually rejoining instances with
-    // .rejoinInstance() will overcome the problem
-    std::unique_ptr<mysqlshdk::config::Config> config =
-        replica->create_config_object({}, false, false, true);
+  if (dry_run) return;
 
-    config->set(kGrTransactionSizeLimit, std::optional<std::int64_t>(0));
+  int64_t cluster_transaction_size_limit = 0;
+  if (is_primary) {
+    shcore::Value value;
+    if (!cluster->get_metadata_storage()->query_cluster_attribute(
+            cluster->get_id(), k_cluster_attribute_transaction_size_limit,
+            &value))
+      return;
 
-    config->apply();
+    cluster_transaction_size_limit = value.as_int();
   }
+
+  // The primary must be reachable at this point so it will always be
+  // updated, but one of more secondaries might be unreachable and it's OK
+  // if they are not updated. Auto-rejoins might fail due to transactions
+  // being rejected, but the user will be warned about it in cluster.status()
+  // and can fix it with .rescan(). Also, manually rejoining instances with
+  // .rejoinInstance() will overcome the problem
+  std::unique_ptr<mysqlshdk::config::Config> config =
+      cluster->create_config_object({}, false, false, true);
+
+  config->set(kGrTransactionSizeLimit,
+              std::optional<int64_t>(cluster_transaction_size_limit));
+  config->apply();
 }
 
 void Cluster_set_impl::_set_option(const std::string &option,
@@ -2950,7 +2962,10 @@ void Cluster_set_impl::rejoin_cluster(
     throw;
   }
 
-  set_maximum_transaction_size_limit(rejoining_cluster.get(), options.dry_run);
+  set_maximum_transaction_size_limit(
+      rejoining_cluster.get(),
+      rejoining_cluster->get_id() == primary_cluster->get_id(),
+      options.dry_run);
 
   mysqlsh::dba::Async_replication_options ar_options =
       get_clusterset_replication_options();
