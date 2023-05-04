@@ -163,5 +163,15 @@ Version::operator bool() const {
   return !(get_major() == 0 && get_minor() == 0 && get_patch() == 0);
 }
 
+int major_version_difference(const Version &source, const Version &target) {
+  const auto major_version = [](const Version &v) {
+    // we pretend that version 5.7 is 7 to simplify the code
+    const auto m = v.get_major();
+    return 5 == m && 7 == v.get_minor() ? 7 : m;
+  };
+
+  return major_version(target) - major_version(source);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

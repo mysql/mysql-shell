@@ -15,15 +15,11 @@ def EXPECT_FAIL(error, msg, connectionData, options = {}, src = __sandbox_uri1, 
 #@<> Setup
 setup_copy_tests(2, { "mysqldPath": MYSQLD57_PATH })
 
-#@<> WL15298_TSFR_4_5_20
-EXPECT_FAIL("Error: Shell Error (53011)", "MySQL version mismatch", __sandbox_uri2, { "ignoreVersion": False })
+#@<> BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
+EXPECT_SUCCESS(__sandbox_uri2)
 EXPECT_STDOUT_CONTAINS(f"Target is MySQL {__version_full}. Dump was produced from MySQL {MYSQLD_SECONDARY_SERVER_A['version']}")
-EXPECT_STDOUT_CONTAINS("Destination MySQL version is newer than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. Enable the 'ignoreVersion' option to load anyway.")
-
-#@<> WL15298_TSFR_4_5_21
-EXPECT_SUCCESS(__sandbox_uri2, { "ignoreVersion": True })
-EXPECT_STDOUT_CONTAINS(f"Target is MySQL {__version_full}. Dump was produced from MySQL {MYSQLD_SECONDARY_SERVER_A['version']}")
-EXPECT_STDOUT_CONTAINS("Destination MySQL version is newer than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. The 'ignoreVersion' option is enabled, so loading anyway.")
+EXPECT_STDOUT_CONTAINS("Destination MySQL version is newer than the one where the dump was created.")
+EXPECT_STDOUT_NOT_CONTAINS("ignoreVersion")
 
 #@<> Cleanup
 cleanup_copy_tests()

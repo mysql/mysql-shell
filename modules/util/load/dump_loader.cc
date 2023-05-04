@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <cstdlib>
 #include <iterator>
 #include <list>
 #include <sstream>
@@ -1145,11 +1146,7 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
       m_num_chunks_loaded(0),
       m_num_warnings(0),
       m_num_errors(0),
-      m_progress_thread("Load dump", options.show_progress()) {
-  if (m_options.ignore_version()) {
-    m_default_sql_transforms.add_strip_removed_sql_modes();
-  }
-}
+      m_progress_thread("Load dump", options.show_progress()) {}
 
 Dump_loader::~Dump_loader() {}
 
@@ -2077,19 +2074,26 @@ void Dump_loader::open_dump(
 
 void Dump_loader::check_server_version() {
   const auto console = current_console();
+  const auto &source_server = m_dump->server_version();
   const auto &target_server = m_options.target_server_version();
   const auto mds = m_options.is_mds();
   mysqlshdk::mysql::Instance session(m_options.base_session());
 
   std::string msg = "Target is MySQL " + target_server.get_full();
   if (mds) msg += " (MySQL Database Service)";
-  msg +=
-      ". Dump was produced from MySQL " + m_dump->server_version().get_full();
+  msg += ". Dump was produced from MySQL " + source_server.get_full();
 
   console->print_info(msg);
 
   if (target_server < Version(5, 7, 0)) {
     THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_SERVER_VERSION);
+  }
+
+  if (m_options.ignore_version() ||
+      (Version(5, 7, 0) <= source_server && source_server < Version(8, 0, 0) &&
+       Version(8, 0, 0) <= target_server && target_server < Version(9, 0, 0))) {
+    // we implicitly enable this transformation when loading 5.7 -> 8.X
+    m_default_sql_transforms.add_strip_removed_sql_modes();
   }
 
   if (mds && !m_dump->mds_compatibility()) {
@@ -2115,25 +2119,37 @@ void Dump_loader::check_server_version() {
     }
   }
 
-  if (target_server.get_major() != m_dump->server_version().get_major()) {
-    if (target_server.get_major() < m_dump->server_version().get_major())
+  if (target_server.get_major() != source_server.get_major()) {
+    // BUG#35359364 - we allow for migration between consecutive major versions
+    const auto diff = major_version_difference(source_server, target_server);
+
+    if (diff < 0) {
       msg =
-          "Destination MySQL version is older than the one where the dump "
-          "was created.";
-    else
-      msg =
-          "Destination MySQL version is newer than the one where the dump "
-          "was created.";
-    msg +=
-        " Loading dumps from different major MySQL versions is "
-        "not fully supported and may not work.";
-    if (m_options.ignore_version()) {
-      msg += " The 'ignoreVersion' option is enabled, so loading anyway.";
-      console->print_warning(msg);
+          "Destination MySQL version is older than the one where the dump was "
+          "created.";
     } else {
-      msg += " Enable the 'ignoreVersion' option to load anyway.";
-      console->print_error(msg);
-      THROW_ERROR0(SHERR_LOAD_SERVER_VERSION_MISMATCH);
+      msg =
+          "Destination MySQL version is newer than the one where the dump was "
+          "created.";
+    }
+
+    if (1 != abs(diff)) {
+      if (m_options.ignore_version()) {
+        msg +=
+            " Source and destination have non-consecutive major MySQL "
+            "versions. The 'ignoreVersion' option is enabled, so loading "
+            "anyway.";
+        console->print_warning(msg);
+      } else {
+        msg +=
+            " Loading dumps from non-consecutive major MySQL versions is not "
+            "fully supported and may not work. Enable the 'ignoreVersion' "
+            "option to load anyway.";
+        console->print_error(msg);
+        THROW_ERROR0(SHERR_LOAD_SERVER_VERSION_MISMATCH);
+      }
+    } else {
+      console->print_note(msg);
     }
   }
 
