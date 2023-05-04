@@ -106,6 +106,19 @@ class Version {
   int parse_token(const std::string &data);
 };
 
+/**
+ * Provides the difference between major versions of source and target. This
+ * difference is positive if target has greater version than source.
+ *
+ * NOTE: for sake of simplicity, the difference between 5.7 and 8.0 is one.
+ *
+ * @param source The source version.
+ * @param target The target version.
+ *
+ * @returns difference between major versions
+ */
+int major_version_difference(const Version &source, const Version &target);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

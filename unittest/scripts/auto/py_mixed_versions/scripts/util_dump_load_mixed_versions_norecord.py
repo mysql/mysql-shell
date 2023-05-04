@@ -83,43 +83,29 @@ def EXPECT_NO_CHANGES(session, before):
 # Test dumping in MySQL 5.7 and loading in 8.0
 
 #@<> Plain dump in 5.7, load in 8.0
-
 shell.connect(__sandbox_uri1)
 util.dump_instance(__tmp_dir+"/ldtest/dump1")
 
+# BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri4)
-
-EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump1"), "MySQL version mismatch")
-
-EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_80+". Dump was produced from MySQL "+version_57)
-
-#@<> Force loading of 5.7 dump in 8.0
-
-util.load_dump(__tmp_dir+"/ldtest/dump1", {"ignoreVersion":True})
+util.load_dump(__tmp_dir+"/ldtest/dump1")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_80+". Dump was produced from MySQL "+version_57)
-
+EXPECT_STDOUT_CONTAINS("NOTE: Destination MySQL version is newer than the one where the dump was created.")
 EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 
 #@<> Test dumping in MySQL 8.0 and loading in 5.7
-
 shell.connect(__sandbox_uri2)
 util.dump_instance(__tmp_dir+"/ldtest/dump2")
 
+# BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri3)
-EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2"), "MySQL version mismatch")
-
-EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)
-EXPECT_STDOUT_CONTAINS("ERROR: Destination MySQL version is older than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. Enable the 'ignoreVersion' option to load anyway.")
-
-#@<> Force loading of 8.0 dump in 5.7
 # Currently expected failure
-EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2", {"ignoreVersion":True}), "Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2"), "Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS("Unknown collation: 'utf8mb4_0900_ai_ci'")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)
-EXPECT_STDOUT_CONTAINS("WARNING: Destination MySQL version is older than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. The 'ignoreVersion' option is enabled, so loading anyway.")
-
+EXPECT_STDOUT_CONTAINS("NOTE: Destination MySQL version is older than the one where the dump was created.")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

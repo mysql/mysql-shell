@@ -95,6 +95,8 @@ session.runSql("SET @@global.local_infile = ON;");
 // prepare data to be dumped
 shell.connect(__mysql56_uri);
 
+version_56 = session.runSql("SELECT @@version").fetchOne()[0];
+
 drop_all_schemas();
 
 testutil.importData(__mysql56_uri, os.path.join(__data_path, "sql", "sakila-schema.sql")); // sakila
@@ -219,7 +221,15 @@ EXPECT_CHECKSUMS(all_tables);
 //@<> loadDump instance
 drop_all_schemas();
 
+util.loadDump(k_instance_dump);
+EXPECT_STDOUT_CONTAINS(`Target is MySQL ${__version_full}. Dump was produced from MySQL ${version_56}`);
+EXPECT_STDOUT_CONTAINS("ERROR: Destination MySQL version is newer than the one where the dump was created. Loading dumps from non-consecutive major MySQL versions is not fully supported and may not work. Enable the 'ignoreVersion' option to load anyway.");
+
+WIPE_OUTPUT();
+
 util.loadDump(k_instance_dump, { ignoreVersion: true });
+EXPECT_STDOUT_CONTAINS(`Target is MySQL ${__version_full}. Dump was produced from MySQL ${version_56}`);
+EXPECT_STDOUT_CONTAINS("WARNING: Destination MySQL version is newer than the one where the dump was created. Source and destination have non-consecutive major MySQL versions. The 'ignoreVersion' option is enabled, so loading anyway.");
 
 EXPECT_EQ(all_objects, fetch_all_objects());
 EXPECT_CHECKSUMS(all_tables);
@@ -230,6 +240,30 @@ drop_all_schemas();
 util.loadDump(k_users_dump, { loadUsers: true, ignoreVersion: true });
 
 EXPECT_STDOUT_CONTAINS("Executing user accounts SQL...");
+EXPECT_EQ(all_objects, fetch_all_objects());
+EXPECT_CHECKSUMS(all_tables);
+
+//@<> copy tests - setup
+function setup_copy_tests() {
+  shell.connect(__sandbox_uri1);
+  drop_all_schemas();
+  shell.connect(__mysql56_uri);
+}
+
+//@<> WL15298_TSFR_4_5_20
+setup_copy_tests();
+
+EXPECT_THROWS(function () { util.copyInstance(__sandbox_uri1, { showProgress: false }); }, "MySQL version mismatch");
+EXPECT_STDOUT_CONTAINS(`Target is MySQL ${__version_full}. Dump was produced from MySQL ${version_56}`);
+EXPECT_STDOUT_CONTAINS("ERROR: TGT: Destination MySQL version is newer than the one where the dump was created. Loading dumps from non-consecutive major MySQL versions is not fully supported and may not work. Enable the 'ignoreVersion' option to load anyway.");
+
+//@<> WL15298_TSFR_4_5_21
+setup_copy_tests();
+
+EXPECT_NO_THROWS(function () { util.copyInstance(__sandbox_uri1, { users: false, showProgress: false, ignoreVersion: true }); }, "Copy with ignoreVersion should not throw");
+EXPECT_STDOUT_CONTAINS(`Target is MySQL ${__version_full}. Dump was produced from MySQL ${version_56}`);
+EXPECT_STDOUT_CONTAINS("WARNING: TGT: Destination MySQL version is newer than the one where the dump was created. Source and destination have non-consecutive major MySQL versions. The 'ignoreVersion' option is enabled, so loading anyway.");
+
 EXPECT_EQ(all_objects, fetch_all_objects());
 EXPECT_CHECKSUMS(all_tables);
 
