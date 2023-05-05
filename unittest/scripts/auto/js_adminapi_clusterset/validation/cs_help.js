@@ -798,8 +798,8 @@ DESCRIPTION
         value is 'primary'.
       - invalidated_cluster_policy: Routing policy to be taken when the target
         cluster is detected as being invalidated. Default value is 'drop_all'.
-      - stats_updates_frequency: Frequency of Router check-in updates. Default
-        value is 0.
+      - stats_updates_frequency: Number of seconds between updates that the
+        Router is to make to its statistics in the InnoDB Cluster metadata.
       - use_replica_primary_as_rw: Enable/Disable the RW Port in Replica
         Clusters. Disabled by default.
       - tags: Associates an arbitrary JSON object with custom key/value pairs
@@ -822,9 +822,10 @@ DESCRIPTION
         connections will be accepted (default).
 
       The stats_updates_frequency option accepts positive integers and sets the
-      frequency of Router check-in updates in seconds in the Metadata. If set
-      to 0 (default), no periodic updates are done. Router will round up the
-      value to be a multiple of Router's TTL, i.e.:
+      frequency of updates of Router stats (timestamp, version, etc.), in
+      seconds, in the Metadata. If set to 0 (default), no periodic updates are
+      done. Router will round up the value to be a multiple of Router's TTL,
+      i.e.:
 
       - If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
         stats_updates_frequency=1, effective frequency is 30 seconds.

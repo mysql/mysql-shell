@@ -42,6 +42,9 @@ FUNCTIONS
       removeRouterMetadata(routerDef)
             Removes metadata for a router instance.
 
+      routingOptions([router])
+            Lists the ReplicaSet Routers configuration options.
+
       setInstanceOption(instance, option, value)
             Changes the value of an option in a ReplicaSet member.
 
@@ -50,6 +53,10 @@ FUNCTIONS
 
       setPrimaryInstance(instance, options)
             Performs a safe PRIMARY switchover, promoting the given instance.
+
+      setRoutingOption([router], option, value)
+            Changes the value of either a global ReplicaSet Routing option or
+            of a single Router instance.
 
       setupAdminAccount(user, options)
             Create or upgrade an InnoDB ReplicaSet admin account.
@@ -579,6 +586,66 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+//@<OUT> routingOptions
+NAME
+      routingOptions - Lists the ReplicaSet Routers configuration options.
+
+SYNTAX
+      <ReplicaSet>.routingOptions([router])
+
+WHERE
+      router: Identifier of the router instance to query for the options.
+
+RETURNS
+      A JSON object describing the configuration options of all router
+      instances of the ReplicaSet and its global options or just the given
+      Router.
+
+DESCRIPTION
+      This function lists the Router configuration options of all Routers of
+      the ReplicaSet or the target Router.
+
+//@<OUT> setRoutingOption
+NAME
+      setRoutingOption - Changes the value of either a global ReplicaSet
+                         Routing option or of a single Router instance.
+
+SYNTAX
+      <ReplicaSet>.setRoutingOption([router], option, value)
+
+WHERE
+      router: Identifier of the target router instance (e.g.
+              192.168.45.70::system).
+      option: The Router option to be changed.
+      value: The value that the option shall get (or null to unset).
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      The accepted options are:
+
+      - tags: Associates an arbitrary JSON object with custom key/value pairs
+        with the ReplicaSet metadata.
+      - stats_updates_frequency: Number of seconds between updates that the
+        Router is to make to its statistics in the InnoDB Cluster metadata.
+
+      The stats_updates_frequency option accepts positive integers and sets the
+      frequency of updates of Router stats (timestamp, version, etc.), in
+      seconds, in the Metadata. If set to 0 (default), no periodic updates are
+      done. Router will round up the value to be a multiple of Router's TTL,
+      i.e.:
+
+      - If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
+        stats_updates_frequency=1, effective frequency is 30 seconds.
+      - If not a multiple of TTL it will be rounded up and adjusted according
+        to the TTL, e.g. TTL=5, stats_updates_frequency=11, effective frequency
+        is 15 seconds; TTL=5, stats_updates_frequency=13, effective frequency
+        is 15 seconds.
+
+      If the value is null, the option value is cleared and the default value
+      (0) takes effect.
 
 //@<OUT> Status
 NAME

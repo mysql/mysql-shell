@@ -1010,68 +1010,69 @@ std::tuple<std::string, std::string, shcore::Value>
 Base_cluster_impl::validate_set_option_namespace(
     const std::string &option, const shcore::Value &value,
     const built_in_tags_map_t &built_in_tags) const {
-  shcore::Value val = value;
   // Check if we're using namespaces
   auto tokens = shcore::str_split(option, ":", 1);
-  if (tokens.size() == 2) {
-    // colon cannot be first char or last char, we don't support empty
-    // namespaces nor empty namespace options
-    std::string opt_namespace = tokens[0];
-    std::string opt = tokens[1];
-    if (opt_namespace.empty() || opt.empty()) {
-      throw shcore::Exception::argument_error("'" + option +
-                                              "' is not a valid identifier.");
-    }
-    // option is of type namespace:option
-    // For now since we don't allow namespaces other than 'tag', throw an
-    // error if the namespace is not a tag
-    if (opt_namespace != "tag") {
-      throw shcore::Exception::argument_error("Namespace '" + opt_namespace +
-                                              "' not supported.");
-    } else {
-      // tag namespace.
-      if (!shcore::is_valid_identifier(opt)) {
-        throw shcore::Exception::argument_error(
-            "'" + opt + "' is not a valid tag identifier.");
-      }
-      // Even if it is a valid identifier, if it starts with _ we need to make
-      // sure it is one of the allowed built-in tags
-      if (opt[0] == '_') {
-        built_in_tags_map_t::const_iterator c_it = built_in_tags.find(opt);
-        if (c_it == built_in_tags.cend()) {
-          throw shcore::Exception::argument_error(
-              "'" + opt + "' is not a valid built-in tag.");
-        }
-        // If the type of the value is not Null, check that it can be
-        // converted to the expected type
-        if (value.type != shcore::Value_type::Null) {
-          try {
-            switch (c_it->second) {
-              case shcore::Value_type::Bool:
-                val = shcore::Value(value.as_bool());
-                break;
-              default:
-                // so far, built-in tags are only expected to be booleans.
-                // Any other type should throw an exception. This exception
-                // will be caught on the catch clause, and re-created with a
-                // more informative message.
-                throw shcore::Exception::type_error(
-                    "Unsupported built-in tag type.");
-            }
-          } catch (const shcore::Exception &) {
-            throw shcore::Exception::type_error(shcore::str_format(
-                "Built-in tag '%s' is expected to be of type %s, but is %s",
-                c_it->first.c_str(), type_name(c_it->second).c_str(),
-                type_name(value.type).c_str()));
-          }
-        }
-      }
-    }
-    return std::make_tuple(opt_namespace, opt, val);
-  } else {
-    // not using namespaces
-    return std::make_tuple("", option, val);
+  if (tokens.size() != 2)
+    return std::make_tuple("", option, value);  // not using namespaces
+
+  // colon cannot be first char or last char, we don't support empty
+  // namespaces nor empty namespace options
+  const std::string &opt_namespace = tokens[0];
+  const std::string &opt = tokens[1];
+  if (opt_namespace.empty() || opt.empty()) {
+    throw shcore::Exception::argument_error("'" + option +
+                                            "' is not a valid identifier.");
   }
+
+  // option is of type namespace:option
+  // For now since we don't allow namespaces other than 'tag', throw an
+  // error if the namespace is not a tag
+  if (opt_namespace != "tag") {
+    throw shcore::Exception::argument_error("Namespace '" + opt_namespace +
+                                            "' not supported.");
+  }
+
+  // tag namespace.
+  if (!shcore::is_valid_identifier(opt)) {
+    throw shcore::Exception::argument_error("'" + opt +
+                                            "' is not a valid tag identifier.");
+  }
+
+  // Even if it is a valid identifier, if it starts with _ we need to make
+  // sure it is one of the allowed built-in tags
+  shcore::Value val = value;
+  if (opt[0] == '_') {
+    built_in_tags_map_t::const_iterator c_it = built_in_tags.find(opt);
+    if (c_it == built_in_tags.cend()) {
+      throw shcore::Exception::argument_error("'" + opt +
+                                              "' is not a valid built-in tag.");
+    }
+    // If the type of the value is not Null, check that it can be
+    // converted to the expected type
+    if (value.type != shcore::Value_type::Null) {
+      try {
+        switch (c_it->second) {
+          case shcore::Value_type::Bool:
+            val = shcore::Value(value.as_bool());
+            break;
+          default:
+            // so far, built-in tags are only expected to be booleans.
+            // Any other type should throw an exception. This exception
+            // will be caught on the catch clause, and re-created with a
+            // more informative message.
+            throw shcore::Exception::type_error(
+                "Unsupported built-in tag type.");
+        }
+      } catch (const shcore::Exception &) {
+        throw shcore::Exception::type_error(shcore::str_format(
+            "Built-in tag '%s' is expected to be of type %s, but is %s",
+            c_it->first.c_str(), type_name(c_it->second).c_str(),
+            type_name(value.type).c_str()));
+      }
+    }
+  }
+
+  return std::make_tuple(opt_namespace, opt, std::move(val));
 }
 
 shcore::Value Base_cluster_impl::get_cluster_tags() const {
@@ -1134,25 +1135,27 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
   shcore::Value val;
   std::tie(opt_namespace, opt, val) =
       validate_set_option_namespace(option, value, {});
-  if (opt_namespace.empty()) {
-    auto value_fixed = validate_router_option(*this, opt, val);
 
-    auto msg = "Routing option '" + opt + "' successfully updated";
-    if (router.empty()) {
-      get_metadata_storage()->set_global_routing_option(get_type(), get_id(),
-                                                        opt, value_fixed);
-      msg += ".";
-    } else {
-      get_metadata_storage()->set_routing_option(get_type(), router, get_id(),
-                                                 opt, value_fixed);
-      msg += " in router '" + router + "'.";
-    }
-
-    auto console = mysqlsh::current_console();
-    console->print_info(msg);
-  } else {
+  if (!opt_namespace.empty()) {
     set_router_tag(router, opt, val);
+    return;
   }
+
+  auto value_fixed = validate_router_option(*this, opt, val);
+
+  auto msg = shcore::str_format("Routing option '%s' successfully updated",
+                                opt.c_str());
+  if (router.empty()) {
+    get_metadata_storage()->set_global_routing_option(get_type(), get_id(), opt,
+                                                      value_fixed);
+    msg += ".";
+  } else {
+    get_metadata_storage()->set_routing_option(get_type(), router, get_id(),
+                                               opt, value_fixed);
+    msg += shcore::str_format(" in router '%s'.", router.c_str());
+  }
+
+  mysqlsh::current_console()->print_info(msg);
 }
 
 shcore::Dictionary_t Base_cluster_impl::routing_options(

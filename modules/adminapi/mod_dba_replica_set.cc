@@ -102,6 +102,11 @@ void ReplicaSet::init() {
   expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
          "?options")
       ->cli();
+  expose("routingOptions", &ReplicaSet::routing_options, "?router")->cli();
+  expose("setRoutingOption", &ReplicaSet::set_routing_option, "option",
+         "value");
+  expose("setRoutingOption", &ReplicaSet::set_routing_option, "router",
+         "option", "value");
 
   // TODO(alfredo):
   // - dissolve()
@@ -786,6 +791,83 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPROUTERACCOUNT,
 Undefined ReplicaSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::setup_router_account(str user, dict options) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routingOptions, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGOPTIONS, R"*(
+Lists the ReplicaSet Routers configuration options.
+
+@param router Optional identifier of the router instance to query for the options.
+
+@returns A JSON object describing the configuration options of all router
+instances of the ReplicaSet and its global options or just the given Router.
+
+This function lists the Router configuration options of all Routers of the
+ReplicaSet or the target Router.
+)*");
+
+/**
+ * $(REPLICASET_ROUTINGOPTIONS_BRIEF)
+ *
+ * $(REPLICASET_ROUTINGOPTIONS)
+ */
+#if DOXYGEN_JS
+Dictionary ReplicaSet::routingOptions(String router) {}
+#elif DOXYGEN_PY
+dict ReplicaSet::routing_options(str router) {}
+#endif
+
+REGISTER_HELP_FUNCTION(setRoutingOption, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETROUTINGOPTION, R"*(
+Changes the value of either a global ReplicaSet Routing option or of a single
+Router instance.
+
+@param router optional identifier of the target router instance (e.g.
+192.168.45.70@::system).
+@param option The Router option to be changed.
+@param value The value that the option shall get (or null to unset).
+
+@returns Nothing.
+
+The accepted options are:
+
+@li tags: Associates an arbitrary JSON object with custom key/value pairs with
+the ReplicaSet metadata.
+@li stats_updates_frequency: Number of seconds between updates that the Router
+is to make to its statistics in the InnoDB Cluster metadata.
+
+The stats_updates_frequency option accepts positive integers and sets the
+frequency of updates of Router stats (timestamp, version, etc.), in seconds,
+in the Metadata. If set to 0 (default), no periodic updates are done. Router
+will round up the value to be a multiple of Router's TTL, i.e.:
+
+@li If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
+stats_updates_frequency=1, effective frequency is 30 seconds.
+
+@li If not a multiple of TTL it will be rounded up and adjusted according to
+the TTL, e.g. TTL=5, stats_updates_frequency=11, effective frequency is 15
+seconds; TTL=5, stats_updates_frequency=13, effective frequency is 15 seconds.
+
+If the value is null, the option value is cleared and the default value (0)
+takes effect.
+)*");
+
+#if DOXYGEN_JS
+Undefined ReplicaSet::setRoutingOption(String option, String value) {}
+#elif DOXYGEN_PY
+None ReplicaSet::set_routing_option(str option, str value) {}
+#endif
+
+/**
+ * $(REPLICASET_SETROUTINGOPTION_BRIEF)
+ *
+ * $(REPLICASET_SETROUTINGOPTION)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::setRoutingOption(String router, String option,
+                                       String value) {}
+#elif DOXYGEN_PY
+None ReplicaSet::set_routing_option(str router, str option, str value) {}
 #endif
 
 REGISTER_HELP_FUNCTION(options, ReplicaSet);

@@ -45,6 +45,7 @@
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/star_global_topology_manager.h"
@@ -378,10 +379,11 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
 
     // Update metadata
     log_info("Creating replicaset metadata...");
+    Cluster_id id;
     if (!dry_run) {
       MetadataStorage::Transaction trx(m_metadata_storage);
 
-      auto id = m_metadata_storage->create_async_cluster_record(this, false);
+      id = m_metadata_storage->create_async_cluster_record(this, false);
 
       m_metadata_storage->update_cluster_attribute(
           id, k_cluster_attribute_replication_allowed_host,
@@ -411,12 +413,20 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
 
     log_info("Recording metadata for %s", m_cluster_server->descr().c_str());
     if (!dry_run) {
+      assert(!id.empty());
+
       manage_instance(m_cluster_server.get(), {user.first.user, user.second},
                       options.instance_label, 0, true);
 
-      get_metadata_storage()->update_instance_attribute(
+      m_metadata_storage->update_instance_attribute(
           m_cluster_server.get()->get_uuid(), k_instance_attribute_cert_subject,
           shcore::Value(options.member_auth_options.cert_subject));
+
+      // Set and store the default Routing Options
+      for (const auto &[option, value] : k_default_replicaset_router_options) {
+        m_metadata_storage->set_global_routing_option(
+            Cluster_type::ASYNC_REPLICATION, id, option, value);
+      }
     }
     console->print_info();
   } catch (...) {

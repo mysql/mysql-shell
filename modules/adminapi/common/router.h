@@ -71,15 +71,17 @@ inline constexpr std::array<decltype(k_router_option_target_cluster), 6>
 extern const std::map<std::string, shcore::Value>
     k_default_clusterset_router_options;
 
-inline constexpr std::array<decltype(k_router_option_target_cluster), 2>
+inline constexpr std::array<decltype(k_router_option_target_cluster), 3>
     k_cluster_router_options = {k_router_option_tags,
-                                k_router_option_read_only_targets};
+                                k_router_option_read_only_targets,
+                                k_router_option_stats_updates_frequency};
 
 extern const std::map<std::string, shcore::Value>
     k_default_cluster_router_options;
 
-inline constexpr std::array<decltype(k_router_option_target_cluster), 1>
-    k_replicaset_router_options = {k_router_option_tags};
+inline constexpr std::array<decltype(k_router_option_target_cluster), 2>
+    k_replicaset_router_options = {k_router_option_tags,
+                                   k_router_option_stats_updates_frequency};
 
 extern const std::map<std::string, shcore::Value>
     k_default_replicaset_router_options;

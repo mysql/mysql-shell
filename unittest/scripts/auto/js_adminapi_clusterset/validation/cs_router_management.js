@@ -4,7 +4,7 @@
     "global": {
         "invalidated_cluster_policy": "drop_all",
         "read_only_targets": "secondaries",
-        "stats_updates_frequency": 0,
+        "stats_updates_frequency": null,
         "tags": {},
         "target_cluster": "primary",
         "use_replica_primary_as_rw": false

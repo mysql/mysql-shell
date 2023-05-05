@@ -42,7 +42,7 @@ const std::map<std::string, shcore::Value> k_default_clusterset_router_options =
           k_router_option_invalidated_cluster_routing_policy_drop_all)},
      {k_router_option_target_cluster,
       shcore::Value(k_router_option_target_cluster_primary)},
-     {k_router_option_stats_updates_frequency, shcore::Value(0)},
+     {k_router_option_stats_updates_frequency, shcore::Value::Null()},
      {k_router_option_use_replica_primary_as_rw, shcore::Value::False()},
      {k_router_option_tags, shcore::Value(shcore::make_dict())},
      {k_router_option_read_only_targets,
@@ -51,10 +51,12 @@ const std::map<std::string, shcore::Value> k_default_clusterset_router_options =
 const std::map<std::string, shcore::Value> k_default_cluster_router_options = {
     {k_router_option_tags, shcore::Value(shcore::make_dict())},
     {k_router_option_read_only_targets,
-     shcore::Value(k_default_router_option_read_only_targets)}};
+     shcore::Value(k_default_router_option_read_only_targets)},
+    {k_router_option_stats_updates_frequency, shcore::Value::Null()}};
 
 const std::map<std::string, shcore::Value> k_default_replicaset_router_options =
-    {{k_router_option_tags, shcore::Value(shcore::make_dict())}};
+    {{k_router_option_tags, shcore::Value(shcore::make_dict())},
+     {k_router_option_stats_updates_frequency, shcore::Value::Null()}};
 
 inline bool is_router_upgrade_required(
     const mysqlshdk::utils::Version &version) {
@@ -214,7 +216,7 @@ shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
         auto ret = shcore::make_dict();
         for (const auto &option : entry) (*ret)[option.first] = option.second;
 
-        return shcore::Value(ret);
+        return shcore::Value(std::move(ret));
       };
 
   if (!router_label.empty()) {
@@ -243,108 +245,105 @@ shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
 shcore::Value validate_router_option(const Base_cluster_impl &cluster,
                                      const std::string &name,
                                      const shcore::Value &value) {
-  std::vector<const char *> router_options;
-  shcore::Value fixed_value = value;
+  {
+    auto check_option = [&name](const auto &col) {
+      if (std::find(col.begin(), col.end(), name) != col.end()) return;
 
-  switch (cluster.get_type()) {
-    case Cluster_type::REPLICATED_CLUSTER:
-      router_options =
-          std::vector<const char *>(k_clusterset_router_options.begin(),
-                                    k_clusterset_router_options.end());
-      break;
-    case Cluster_type::GROUP_REPLICATION:
-      router_options = std::vector<const char *>(
-          k_cluster_router_options.begin(), k_cluster_router_options.end());
-      break;
-    case Cluster_type::ASYNC_REPLICATION:
-      router_options =
-          std::vector<const char *>(k_replicaset_router_options.begin(),
-                                    k_replicaset_router_options.end());
-      break;
-    case Cluster_type::NONE:
-      throw std::logic_error("internal error");
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Unsupported routing option, '%s' supported options: %s",
+          name.c_str(),
+          shcore::str_join(col.begin(), col.end(), ", ").c_str()));
+    };
+
+    switch (cluster.get_type()) {
+      case Cluster_type::REPLICATED_CLUSTER:
+        check_option(k_clusterset_router_options);
+        break;
+      case Cluster_type::GROUP_REPLICATION:
+        check_option(k_cluster_router_options);
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        check_option(k_replicaset_router_options);
+        break;
+      case Cluster_type::NONE:
+        throw std::logic_error("internal error");
+    }
   }
 
-  if (std::find(router_options.begin(), router_options.end(), name) ==
-      router_options.end())
-    throw shcore::Exception::argument_error(
-        "Unsupported routing option, '" + name +
-        "' supported options: " + shcore::str_join(router_options, ", "));
+  if (value.get_type() == shcore::Value_type::Null) return value;
 
-  if (value.get_type() != shcore::Value_type::Null) {
-    if (name == k_router_option_invalidated_cluster_routing_policy) {
-      if (value.get_type() != shcore::Value_type::String ||
-          (value.get_string() !=
-               k_router_option_invalidated_cluster_routing_policy_accept_ro &&
-           value.get_string() !=
-               k_router_option_invalidated_cluster_routing_policy_drop_all)) {
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for routing option '") +
-            k_router_option_invalidated_cluster_routing_policy +
-            "', accepted values: '" +
-            k_router_option_invalidated_cluster_routing_policy_accept_ro +
-            "', '" +
-            k_router_option_invalidated_cluster_routing_policy_drop_all + "'");
-      }
-    } else if (name == k_router_option_target_cluster) {
-      bool ok = false;
-      if (value.get_type() == shcore::Value_type::String) {
-        if (value.get_string() == k_router_option_target_cluster_primary) {
-          ok = true;
-        } else {
-          // Translate the clusterName into the Cluster's UUID
-          // (group_replication_group_name)
-          try {
-            fixed_value = shcore::Value(
-                cluster.get_metadata_storage()->get_cluster_group_name(
-                    value.get_string()));
-            ok = true;
-          } catch (const shcore::Exception &e) {
-            if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
-          }
-        }
-      }
-      if (!ok)
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for routing option '") +
-            k_router_option_target_cluster +
-            "', accepted values 'primary' or valid cluster name");
-    } else if (name == k_router_option_stats_updates_frequency) {
-      if (value.get_type() != shcore::Value_type::Integer &&
-          value.get_type() != shcore::Value_type::UInteger) {
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for routing option '") +
-            k_router_option_stats_updates_frequency +
-            "', value is expected to be an integer.");
+  shcore::Value fixed_value = value;
+  if (name == k_router_option_invalidated_cluster_routing_policy) {
+    if (value.get_type() != shcore::Value_type::String ||
+        (value.get_string() !=
+             k_router_option_invalidated_cluster_routing_policy_accept_ro &&
+         value.get_string() !=
+             k_router_option_invalidated_cluster_routing_policy_drop_all)) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for routing option '%s', accepted values: '%s', '%s'",
+          k_router_option_invalidated_cluster_routing_policy,
+          k_router_option_invalidated_cluster_routing_policy_accept_ro,
+          k_router_option_invalidated_cluster_routing_policy_drop_all));
+    }
+  } else if (name == k_router_option_target_cluster) {
+    bool ok = false;
+    if (value.get_type() == shcore::Value_type::String) {
+      if (value.get_string() == k_router_option_target_cluster_primary) {
+        ok = true;
       } else {
-        if (value.as_int() < 0) {
-          throw shcore::Exception::argument_error(
-              std::string("Invalid value for routing option '") +
-              k_router_option_stats_updates_frequency +
-              "', value is expected to be a positive integer.");
+        // Translate the clusterName into the Cluster's UUID
+        // (group_replication_group_name)
+        try {
+          fixed_value = shcore::Value(
+              cluster.get_metadata_storage()->get_cluster_group_name(
+                  value.get_string()));
+          ok = true;
+        } catch (const shcore::Exception &e) {
+          if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
         }
       }
-    } else if (name == k_router_option_use_replica_primary_as_rw) {
-      if (value.get_type() != shcore::Value_type::Bool) {
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for routing option '") +
-            k_router_option_use_replica_primary_as_rw +
-            "', value is expected to be a boolean.");
-      }
-    } else if (name == k_router_option_read_only_targets) {
-      if (value.get_type() != shcore::Value_type::String ||
-          (value.get_string() != k_router_option_read_only_targets_all &&
-           value.get_string() !=
-               k_router_option_read_only_targets_read_replicas &&
-           value.get_string() !=
-               k_router_option_read_only_targets_secondaries)) {
-        throw shcore::Exception::argument_error(
-            std::string("Invalid value for routing option '") +
-            k_router_option_read_only_targets + "', accepted values: '" +
-            k_router_option_read_only_targets_all + "', '" +
-            k_router_option_read_only_targets_read_replicas + "', '" +
-            k_router_option_read_only_targets_secondaries + "'");
-      }
+    }
+
+    if (!ok)
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s', accepted "
+                             "values 'primary' or valid cluster name",
+                             k_router_option_target_cluster));
+  } else if (name == k_router_option_stats_updates_frequency) {
+    if (value.get_type() != shcore::Value_type::Integer &&
+        value.get_type() != shcore::Value_type::UInteger) {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s', value is "
+                             "expected to be an integer.",
+                             k_router_option_stats_updates_frequency));
+    }
+
+    if (value.as_int() < 0) {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s', value is "
+                             "expected to be a positive integer.",
+                             k_router_option_stats_updates_frequency));
+    }
+  } else if (name == k_router_option_use_replica_primary_as_rw) {
+    if (value.get_type() != shcore::Value_type::Bool) {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s', value is "
+                             "expected to be a boolean.",
+                             k_router_option_use_replica_primary_as_rw));
+    }
+  } else if (name == k_router_option_read_only_targets) {
+    if (value.get_type() != shcore::Value_type::String ||
+        (value.get_string() != k_router_option_read_only_targets_all &&
+         value.get_string() !=
+             k_router_option_read_only_targets_read_replicas &&
+         value.get_string() != k_router_option_read_only_targets_secondaries)) {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s', accepted "
+                             "values: '%s', '%s', '%s'",
+                             k_router_option_read_only_targets,
+                             k_router_option_read_only_targets_all,
+                             k_router_option_read_only_targets_read_replicas,
+                             k_router_option_read_only_targets_secondaries));
     }
   }
 

@@ -89,6 +89,18 @@ rs.help("setupRouterAccount")
 //@ setupRouterAccount. \? [USE:setupRouterAccount]
 \? ReplicaSet.setupRouterAccount
 
+//@ routingOptions
+rs.help("routingOptions")
+
+//@ routingOptions. \? [USE:routingOptions]
+\? ReplicaSet.routingOptions
+
+//@ setRoutingOption
+rs.help("setRoutingOption")
+
+//@ setRoutingOption. \? [USE:setRoutingOption]
+\? ReplicaSet.setRoutingOption
+
 //@ Status
 rs.help("status");
 

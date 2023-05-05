@@ -53,7 +53,7 @@ mysql_server_uuid: <<<uuid1>>>
 
 //@# Merge schema from different sources (rs then cluster)
 |cluster_type	primary_mode	cluster_id	cluster_name	router_options|
-|ar	pm	<<<cluster_id1>>>	myrs	NULL|
+|ar	pm	<<<cluster_id1>>>	myrs	{"tags": {}}|
 |instance_id	cluster_id	label	mysql_server_uuid	address	endpoint	xendpoint	attributes|
 |1	<<<cluster_id1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	<<<uuid1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>	127.0.0.1:<<<__mysql_sandbox_port1>>>0	{"server_id": 11, "instance_type": "async-member", "opt_certSubject": "", "replicationAccountHost": "%", "replicationAccountUser": "mysql_innodb_rs_11"}|
 

@@ -4804,13 +4804,15 @@ void Cluster_impl::set_routing_option(const std::string &option,
 void Cluster_impl::set_routing_option(const std::string &router,
                                       const std::string &option,
                                       const shcore::Value &value) {
-  if (option == k_router_option_read_only_targets && is_cluster_set_member()) {
-    current_console()->print_error(
-        "Cluster '" + get_name() + "' is a member of ClusterSet '" +
-        get_cluster_set_object()->get_name() +
-        "', use <ClusterSet>.<<<setRoutingOption>>>() to change the option "
-        "'" +
-        k_router_option_read_only_targets + "'");
+  if (((option == k_router_option_read_only_targets) ||
+       (option == k_router_option_stats_updates_frequency)) &&
+      is_cluster_set_member()) {
+    current_console()->print_error(shcore::str_format(
+        "Cluster '%s' is a member of ClusterSet '%s', use "
+        "<ClusterSet>.<<<setRoutingOption>>>() to change the option '%s'",
+        get_name().c_str(), get_cluster_set_object()->get_name().c_str(),
+        option.c_str()));
+
     throw shcore::Exception::runtime_error(
         "Option not available for ClusterSet members");
   }

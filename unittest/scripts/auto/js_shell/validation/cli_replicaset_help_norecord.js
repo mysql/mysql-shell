@@ -22,6 +22,9 @@ The following operations are available at 'rs':
    remove-router-metadata
       Removes metadata for a router instance.
 
+   routing-options
+      Lists the ReplicaSet Routers configuration options.
+
    set-instance-option
       Changes the value of an option in a ReplicaSet member.
 
@@ -216,6 +219,21 @@ WHERE
 
 RETURNS
       Nothing
+
+//@<OUT> CLI replicaset routing-options --help
+NAME
+      routing-options - Lists the ReplicaSet Routers configuration options.
+
+SYNTAX
+      rs routing-options [<router>]
+
+WHERE
+      router: Identifier of the router instance to query for the options.
+
+RETURNS
+      A JSON object describing the configuration options of all router
+      instances of the ReplicaSet and its global options or just the given
+      Router.
 
 //@<OUT> CLI replicaset set-instance-option --help
 NAME

@@ -33,6 +33,24 @@ EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Route
 //@ clusterset.routingOptions() with all defaults
 values = clusterset.routingOptions();
 
+//@<> clusterset.setRoutingOption, all valid values, tag
+clusterset.setRoutingOption(cm_router, "tag:test_tag", 567);
+EXPECT_JSON_EQ(567, clusterset.routingOptions(cm_router)[cm_router]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, clusterset.routingOptions()["routers"][cm_router]["tags"]["test_tag"]);
+
+clusterset.setRoutingOption("tag:test_tag", 567);
+EXPECT_JSON_EQ(567, clusterset.routingOptions()["global"]["tags"]["test_tag"]);
+
+clusterset.setRoutingOption("tag:test_tag", null);
+clusterset.setRoutingOption(cm_router, "tag:test_tag", null);
+EXPECT_JSON_EQ(null, clusterset.routingOptions()["routers"][cm_router]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(null, clusterset.routingOptions()["global"]["tags"]["test_tag"]);
+
+clusterset.setRoutingOption("tags", null);
+clusterset.setRoutingOption(cm_router, "tags", null);
+EXPECT_JSON_EQ(undefined, clusterset.routingOptions()["routers"][cm_router]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routingOptions()["global"]["tags"]);
+
 //@<> clusterset.setRoutingOption, all valid values
 function CHECK_SET_ROUTING_OPTION(option, value, expected_value) {
   orig_options = clusterset.routingOptions();
@@ -94,13 +112,27 @@ EXPECT_JSON_EQ(full_options, clusterset.routingOptions());
 //@<> BUG#34458017: setRoutingOption to null resets all options
 // Each option should be reset individually and not all of them
 clusterset.setRoutingOption("stats_updates_frequency", 42);
-// clusterset.setRoutingOption(cm_router, "tags", { "a": 3, "b": 4 });
 clusterset.setRoutingOption(cm_router, "stats_updates_frequency", 44);
 var orig = clusterset.routingOptions();
+
+// WL15601 NFR2: value must be present in the MD
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
+options = JSON.parse(session.runSql("select options from mysql_innodb_cluster_metadata.routers").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
 
 clusterset.setRoutingOption(cm_router, "stats_updates_frequency", null);
 delete orig["routers"][cm_router]["stats_updates_frequency"];
 EXPECT_JSON_EQ(orig, clusterset.routingOptions());
+
+// WL15601 NFR2: value must *note* be present in the MD
+options = JSON.parse(session.runSql("select options from mysql_innodb_cluster_metadata.routers").fetchOne()[0]);
+EXPECT_FALSE("stats_updates_frequency" in options);
+
+clusterset.setRoutingOption("stats_updates_frequency", null);
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_FALSE("stats_updates_frequency" in options);
+clusterset.setRoutingOption("stats_updates_frequency", 42);
 
 //@<> set individual tags
 clusterset.setRoutingOption("tags", {"old":"oldvalue"});
@@ -268,6 +300,16 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JS
 //@<> clusterset.listRouters() warning re-bootstrap
 clusterset.listRouters();
 EXPECT_OUTPUT_CONTAINS("WARNING: The following Routers were bootstrapped before the ClusterSet was created: [routerhost2::system, routerhost2::another]. Please re-bootstrap the Routers to ensure the ClusterSet is recognized and the configurations are updated. Otherwise, Routers will operate as if the Clusters were standalone.");
+
+//@<> check setting options if the MD values are cleared
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 10); });
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tag:two", 2); });
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tags", {"one":1, "two":"2"}); });
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

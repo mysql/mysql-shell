@@ -33,6 +33,7 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
   "clusterName": "cluster",
   "global": {
       "read_only_targets": "secondaries",
+      "stats_updates_frequency": null,
       "tags": {}
   },
   "routers": {
@@ -44,6 +45,24 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 }
 `
 );
+
+//@<> cluster.setRoutingOption, all valid values, tag
+cluster.setRoutingOption(router1, "tag:test_tag", 567);
+EXPECT_JSON_EQ(567, cluster.routingOptions(router1)[router1]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, cluster.routingOptions()["routers"][router1]["tags"]["test_tag"]);
+
+cluster.setRoutingOption("tag:test_tag", 567);
+EXPECT_JSON_EQ(567, cluster.routingOptions()["global"]["tags"]["test_tag"]);
+
+cluster.setRoutingOption("tag:test_tag", null);
+cluster.setRoutingOption(router1, "tag:test_tag", null);
+EXPECT_JSON_EQ(null, cluster.routingOptions()["routers"][router1]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(null, cluster.routingOptions()["global"]["tags"]["test_tag"]);
+
+cluster.setRoutingOption("tags", null);
+cluster.setRoutingOption(router1, "tags", null);
+EXPECT_JSON_EQ(undefined, cluster.routingOptions()["routers"][router1]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routingOptions()["global"]["tags"]);
 
 //@<> cluster.setRoutingOption, all valid values
 function CHECK_SET_ROUTING_OPTION(option, value, expected_value) {
@@ -134,6 +153,33 @@ EXPECT_EQ("string", typeof options["global"]["read_only_targets"]);
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
 EXPECT_EQ("string", typeof options["read_only_targets"]);
 
+//@<> WL15601 FR1 stats_updates_frequency support
+
+EXPECT_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", "asda"); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be an integer.");
+EXPECT_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", -1); },
+  "Invalid value for routing option 'stats_updates_frequency', value is expected to be a positive integer.");
+
+CHECK_SET_ROUTING_OPTION("stats_updates_frequency", 22, 22);
+
+cluster.setRoutingOption("stats_updates_frequency", 23);
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
+
+cluster.setRoutingOption("stats_updates_frequency", null);
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
+EXPECT_FALSE("stats_updates_frequency" in options);
+
+//@<> check setting options if the MD values are cleared
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", 10); });
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tag:two", 2); });
+
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tags", {"one":1, "two":"2"}); });
+
 //@<> Error when cluster has no quorum
 scene.make_no_quorum([__mysql_sandbox_port1]);
 
@@ -146,12 +192,21 @@ cluster.removeInstance(__endpoint2, {force: true})
 cs = cluster.createClusterSet("cs");
 
 EXPECT_THROWS(function(){ cluster.setRoutingOption("read_only_targets", 1); },
-  "Option not available for ClusterSet member");
+  "Option not available for ClusterSet members");
 EXPECT_OUTPUT_CONTAINS("Cluster 'cluster' is a member of ClusterSet 'cs', use <ClusterSet>.setRoutingOption() to change the option 'read_only_targets'");
 
 EXPECT_THROWS(function(){ cluster.setRoutingOption(router1, "read_only_targets", 1); },
-  "Option not available for ClusterSet member");
+  "Option not available for ClusterSet members");
 EXPECT_OUTPUT_CONTAINS("Cluster 'cluster' is a member of ClusterSet 'cs', use <ClusterSet>.setRoutingOption() to change the option 'read_only_targets'");
+
+// WL15601 FR1.1
+EXPECT_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", 1); },
+  "Option not available for ClusterSet members");
+EXPECT_OUTPUT_CONTAINS("Cluster 'cluster' is a member of ClusterSet 'cs', use <ClusterSet>.setRoutingOption() to change the option 'stats_updates_frequency'");
+
+EXPECT_THROWS(function(){ cluster.setRoutingOption(router1, "stats_updates_frequency", 1); },
+  "Option not available for ClusterSet members");
+EXPECT_OUTPUT_CONTAINS("Cluster 'cluster' is a member of ClusterSet 'cs', use <ClusterSet>.setRoutingOption() to change the option 'stats_updates_frequency'");
 
 //@<> Cleanup
 scene.destroy();

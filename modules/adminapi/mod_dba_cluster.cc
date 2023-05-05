@@ -1261,6 +1261,8 @@ The accepted options are:
 the Cluster metadata.
 @li read_only_targets: Routing policy to define Router's usage of Read Only
 instance. Default is 'secondaries'.
+@li stats_updates_frequency: Number of seconds between updates that the Router
+is to make to its statistics in the InnoDB Cluster metadata.
 
 The read_only_targets option supports the following values:
 
@@ -1270,6 +1272,21 @@ other SECONDARY Cluster members for R/O traffic.
 R/O traffic.
 @li secondaries: Only Secondary members of the target Cluster should be used
 for R/O traffic (default).
+
+The stats_updates_frequency option accepts positive integers and sets the
+frequency of updates of Router stats (timestamp, version, etc.), in seconds,
+in the Metadata. If set to 0 (default), no periodic updates are done. Router
+will round up the value to be a multiple of Router's TTL, i.e.:
+
+@li If lower than TTL its gets rounded up to TTL, e.g. TTL=30, and
+stats_updates_frequency=1, effective frequency is 30 seconds.
+
+@li If not a multiple of TTL it will be rounded up and adjusted according to
+the TTL, e.g. TTL=5, stats_updates_frequency=11, effective frequency is 15
+seconds; TTL=5, stats_updates_frequency=13, effective frequency is 15 seconds.
+
+If the value is null, the option value is cleared and the default value (0)
+takes effect.
 )*");
 
 #if DOXYGEN_JS

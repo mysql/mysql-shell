@@ -1103,7 +1103,6 @@ void MetadataStorage::set_router_tag(Cluster_type type,
                                      const std::string &tagname,
                                      const shcore::Value &value) {
   shcore::Value curtag;
-
   if (router.empty()) {
     curtag = get_global_routing_option(type, cluster_id, "tags");
   } else {
@@ -1111,7 +1110,6 @@ void MetadataStorage::set_router_tag(Cluster_type type,
   }
 
   shcore::Dictionary_t tags;
-
   if (curtag && curtag.type == shcore::Map) {
     tags = curtag.as_map();
     tags->set(tagname, value);
@@ -2597,8 +2595,10 @@ shcore::Value MetadataStorage::get_global_routing_option(
   }
 
   if (auto row = result->fetch_one()) {
+    if (row->is_null(0)) return {};
     return shcore::Value::parse(row->get_string(0));
   }
+
   return {};
 }
 
@@ -2633,8 +2633,10 @@ shcore::Value MetadataStorage::get_routing_option(Cluster_type type,
   }
 
   if (auto row = result->fetch_one()) {
+    if (row->is_null(0)) return {};
     return shcore::Value::parse(row->get_string(0));
   }
+
   return {};
 }
 
@@ -2767,8 +2769,7 @@ void MetadataStorage::migrate_read_only_targets_to_clusterset(
   auto row = result->fetch_one();
 
   std::string read_only_targets;
-
-  if (!row) {
+  if (!row || row->is_null(0)) {
     // If the value is not set for the Cluster, assume the default
     read_only_targets = k_default_router_option_read_only_targets;
   } else {
