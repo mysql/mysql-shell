@@ -589,6 +589,7 @@ class Dump_loader {
 
   size_t m_num_bytes_previously_loaded = 0;
   std::atomic<size_t> m_num_rows_loaded;
+  std::atomic<size_t> m_num_rows_deleted = 0;
   std::atomic<size_t> m_num_bytes_loaded;
   std::atomic<size_t> m_num_raw_bytes_loaded;
   std::atomic<size_t> m_num_chunks_loaded;

@@ -2725,6 +2725,42 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", 
 shell.connect(__sandbox_uri2)
 dba.drop_metadata_schema({ 'force': True })
 
+#@<> BUG#35304391 - loader should notify if rows were replaced during load
+# constants
+dump_dir = os.path.join(outdir, "bug_35304391")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+session.run_sql("CREATE SCHEMA ! DEFAULT CHARACTER SET latin1 COLLATE latin1_general_cs", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id tinyint AUTO_INCREMENT PRIMARY KEY, alias varchar(12) NOT NULL UNIQUE KEY, name varchar(32) NOT NULL)", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (alias, name) VALUES ('bond-007', 'James Bond'), ('Bond-007', 'James Bond')", [ tested_schema, tested_table ])
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ tested_schema ], "showProgress": False }), "Dump should not fail")
+
+# load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+# load just the DDL
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadData": False, "resetProgress": True, "showProgress": False }), "Load should not fail")
+# change collation to case-insensitive
+session.run_sql("ALTER SCHEMA ! CHARACTER SET latin1 COLLATE latin1_general_ci", [ tested_schema ])
+session.run_sql("ALTER TABLE !.! CONVERT TO CHARACTER SET latin1 COLLATE latin1_general_ci", [ tested_schema, tested_table ])
+# load the data
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "resetProgress": True, "showProgress": False }), "Load should not fail")
+
+# verification
+EXPECT_STDOUT_CONTAINS("1 rows were replaced")
+
+#@<> BUG#35304391 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
