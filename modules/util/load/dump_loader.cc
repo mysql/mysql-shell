@@ -870,6 +870,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
 
   loader->m_num_chunks_loaded += 1;
   loader->m_num_rows_loaded += rows_loaded;
+  loader->m_num_rows_deleted += stats.total_deleted;
   loader->m_num_warnings += stats.total_warnings;
 }
 
@@ -1955,6 +1956,12 @@ void Dump_loader::show_summary() {
             m_num_bytes_loaded.load() - m_num_bytes_previously_loaded,
             load_seconds)
             .c_str()));
+  }
+
+  if (m_num_rows_deleted > 0) {
+    // BUG#35304391 - notify about replaced rows
+    console->print_info(std::to_string(m_num_rows_deleted) +
+                        " rows were replaced");
   }
 
   if (m_options.load_users()) {
