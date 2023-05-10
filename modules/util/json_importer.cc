@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,7 @@
 #ifdef _WIN32
 #include <Winsock2.h>
 #else
-#include <sys/select.h>
+#include <poll.h>
 #endif
 #include <deque>
 #include <istream>
@@ -317,19 +317,28 @@ void Json_importer::update_statistics(xcl::XQuery_result *xquery_result) {
 
 void Json_importer::recv_response(bool block) {
   if (m_pending_response > 0) {
-    my_socket fd = m_session->get_driver_obj()
-                       ->get_protocol()
-                       .get_connection()
-                       .get_socket_fd();
-    fd_set rfds;
-    FD_ZERO(&rfds);
-    FD_SET(fd, &rfds);
-    timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
-    auto ready = select(fd + 1, &rfds, nullptr, nullptr, &timeout);
-    bool fd_ready = FD_ISSET(fd, &rfds);
-    if (block || (ready > 0 && fd_ready)) {
+    bool should_receive = false;
+
+    if (block) {
+      should_receive = true;
+    } else {
+      pollfd rfds;
+      rfds.fd = m_session->get_driver_obj()
+                    ->get_protocol()
+                    .get_connection()
+                    .get_socket_fd();
+      rfds.events = POLLIN;
+      rfds.revents = 0;
+
+#ifdef _WIN32
+      const auto poll = WSAPoll;
+#endif  // _WIN32
+
+      const auto ready = poll(&rfds, 1, 0);  // return immediately
+      should_receive = (ready > 0) && (rfds.revents & POLLIN);
+    }
+
+    if (should_receive) {
       xcl::XError error;
       auto result =
           m_session->get_driver_obj()->get_protocol().recv_resultset(&error);
