@@ -64,6 +64,9 @@ Router_metadata unserialize_router(const mysqlshdk::db::Row_ref_by_name &row) {
   if (!row.is_null("rw_x_port")) {
     router.rw_x_port = row.get_string("rw_x_port");
   }
+  if (row.has_field("rw_split_port") && !row.is_null("rw_split_port")) {
+    router.rw_split_port = row.get_string("rw_split_port");
+  }
   if (!row.is_null("last_check_in")) {
     router.last_checkin = row.get_string("last_check_in");
   }
@@ -90,6 +93,7 @@ constexpr const char *k_list_routers_1_0_1 =
     " r.attributes->>'$.RWEndpoint' AS rw_port,"
     " r.attributes->>'$.ROXEndpoint' AS ro_x_port,"
     " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
+    " r.attributes->>'$.RWSplitEndpoint' AS rw_split_port,"
     " NULL as last_check_in,"
     " r.attributes->>'$.version' AS version"
     " FROM mysql_innodb_cluster_metadata.routers r"
@@ -102,6 +106,7 @@ constexpr const char *k_list_routers =
     " r.attributes->>'$.RWEndpoint' AS rw_port,"
     " r.attributes->>'$.ROXEndpoint' AS ro_x_port,"
     " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
+    " r.attributes->>'$.RWSplitEndpoint' AS rw_split_port,"
     " r.attributes->>'$.bootstrapTargetType' AS bootstrap_target_type,"
     " r.last_check_in, r.version,"
     " r.options->>'$.target_cluster' as targetCluster,"
@@ -2424,11 +2429,9 @@ void MetadataStorage::record_async_primary_forced_switch(
 
 std::vector<Router_metadata> MetadataStorage::get_routers(
     const Cluster_id &cluster_id) {
-  std::vector<Router_metadata> ret_val;
   std::string query(get_router_query(real_version()));
 
   std::shared_ptr<mysqlshdk::db::IResult> result;
-
   if (m_md_version.get_major() >= 2 && !cluster_id.empty()) {
     query.append(" WHERE r.cluster_id = ?");
     result = execute_sqlf(query, cluster_id);
@@ -2436,6 +2439,7 @@ std::vector<Router_metadata> MetadataStorage::get_routers(
     result = execute_sqlf(query);
   }
 
+  std::vector<Router_metadata> ret_val;
   while (auto row = result->fetch_one_named()) {
     auto router = unserialize_router(row);
     ret_val.push_back(router);
@@ -2445,12 +2449,12 @@ std::vector<Router_metadata> MetadataStorage::get_routers(
 
 std::vector<Router_metadata> MetadataStorage::get_clusterset_routers(
     const Cluster_set_id &cs) {
-  std::vector<Router_metadata> ret_val;
   std::string query(get_router_query(real_version()));
 
   query.append(" WHERE r.clusterset_id = ?");
   auto result = execute_sqlf(query, cs);
 
+  std::vector<Router_metadata> ret_val;
   while (auto row = result->fetch_one_named()) {
     auto router = unserialize_router(row);
     ret_val.push_back(router);
@@ -2459,23 +2463,24 @@ std::vector<Router_metadata> MetadataStorage::get_clusterset_routers(
 }
 
 namespace {
-static std::string router_opt_select_items(
-    const std::string &prefix, const std::vector<const char *> &options) {
+template <class TOptions>
+std::string router_opt_select_items(std::string_view prefix,
+                                    const TOptions &options) {
   std::string ret;
   for (const auto &opt : options) {
     if (opt == k_router_option_target_cluster) {
       ret += ", JSON_QUOTE(IF(";
-      ret += prefix;
+      ret.append(prefix);
       ret +=
           "->>'$.target_cluster'='primary', 'primary', "
           "(SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters "
           "c "
           "WHERE c.attributes->>'$.group_replication_group_name' = ";
-      ret += prefix;
+      ret.append(prefix);
       ret += "->>'$.target_cluster' limit 1))) AS target_cluster";
     } else {
       ret += ", ";
-      ret += prefix;
+      ret.append(prefix);
       ret += "->'$.";
       ret += opt;
       ret += "' as ";
@@ -2516,51 +2521,49 @@ Router_options_metadata fetch_router_options(
 Router_options_metadata MetadataStorage::get_routing_options(
     Cluster_type type, const std::string &id) {
   std::string query;
-
   std::map<std::string, shcore::Value> option_defaults;
-  std::vector<const char *> options;
+
   switch (type) {
     case Cluster_type::REPLICATED_CLUSTER:
-      options = {k_clusterset_router_options.begin(),
-                 k_clusterset_router_options.end()};
       option_defaults = {k_default_clusterset_router_options.begin(),
                          k_default_clusterset_router_options.end()};
 
-      query = "SELECT concat(r.address, '::', r.router_name) AS router_label" +
-              router_opt_select_items("r.options", options) +
-              "FROM mysql_innodb_cluster_metadata.routers AS r UNION SELECT "
-              "NULL" +
-              router_opt_select_items("cs.router_options", options) +
-              "FROM mysql_innodb_cluster_metadata.clustersets AS cs WHERE "
-              "clusterset_id = ?";
+      query =
+          "SELECT concat(r.address, '::', r.router_name) AS router_label" +
+          router_opt_select_items("r.options", k_clusterset_router_options) +
+          "FROM mysql_innodb_cluster_metadata.routers AS r UNION SELECT "
+          "NULL" +
+          router_opt_select_items("cs.router_options",
+                                  k_clusterset_router_options) +
+          "FROM mysql_innodb_cluster_metadata.clustersets AS cs WHERE "
+          "clusterset_id = ?";
       break;
     case Cluster_type::GROUP_REPLICATION:
-      options = {k_cluster_router_options.begin(),
-                 k_cluster_router_options.end()};
       option_defaults = {k_default_cluster_router_options.begin(),
                          k_default_cluster_router_options.end()};
 
       query = "SELECT concat(r.address, '::', r.router_name) AS router_label" +
-              router_opt_select_items("r.options", options) +
+              router_opt_select_items("r.options", k_cluster_router_options) +
               "FROM mysql_innodb_cluster_metadata.routers AS r UNION SELECT "
               "NULL" +
-              router_opt_select_items("c.router_options", options) +
+              router_opt_select_items("c.router_options",
+                                      k_cluster_router_options) +
               "FROM mysql_innodb_cluster_metadata.clusters AS c WHERE "
               "cluster_id = ?";
       break;
     case Cluster_type::ASYNC_REPLICATION:
-      options = {k_replicaset_router_options.begin(),
-                 k_replicaset_router_options.end()};
       option_defaults = {k_default_replicaset_router_options.begin(),
                          k_default_replicaset_router_options.end()};
 
-      query = "SELECT concat(r.address, '::', r.router_name) AS router_label" +
-              router_opt_select_items("r.options", options) +
-              "FROM mysql_innodb_cluster_metadata.routers AS r UNION SELECT "
-              "NULL" +
-              router_opt_select_items("c.router_options", options) +
-              "FROM mysql_innodb_cluster_metadata.clusters AS c WHERE "
-              "cluster_id = ?";
+      query =
+          "SELECT concat(r.address, '::', r.router_name) AS router_label" +
+          router_opt_select_items("r.options", k_replicaset_router_options) +
+          "FROM mysql_innodb_cluster_metadata.routers AS r UNION SELECT "
+          "NULL" +
+          router_opt_select_items("c.router_options",
+                                  k_replicaset_router_options) +
+          "FROM mysql_innodb_cluster_metadata.clusters AS c WHERE "
+          "cluster_id = ?";
       break;
     case Cluster_type::NONE:
       throw std::logic_error("internal error");
@@ -2789,7 +2792,6 @@ void MetadataStorage::migrate_read_only_targets_to_clusterset(
 std::vector<Router_metadata>
 MetadataStorage::get_routers_using_cluster_as_target(
     const std::string &target_cluster_group_name) {
-  std::vector<Router_metadata> ret_val;
   std::string query(get_router_query(real_version()));
 
   std::shared_ptr<mysqlshdk::db::IResult> result;
@@ -2803,6 +2805,7 @@ MetadataStorage::get_routers_using_cluster_as_target(
         "Operation not support on Metadata schema versions < 2.1.0");
   }
 
+  std::vector<Router_metadata> ret_val;
   while (auto row = result->fetch_one_named()) {
     auto router = unserialize_router(row);
     ret_val.push_back(router);

@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -125,16 +126,17 @@ struct Cluster_set_metadata {
 
 struct Router_metadata {
   std::string name;
-  uint64_t id;
+  uint64_t id{0};
   std::string hostname;
-  mysqlshdk::utils::nullable<std::string> rw_port;
-  mysqlshdk::utils::nullable<std::string> ro_port;
-  mysqlshdk::utils::nullable<std::string> rw_x_port;
-  mysqlshdk::utils::nullable<std::string> ro_x_port;
-  mysqlshdk::utils::nullable<std::string> bootstrap_target_type;
-  mysqlshdk::utils::nullable<std::string> last_checkin;
-  mysqlshdk::utils::nullable<std::string> version;
-  mysqlshdk::utils::nullable<std::string> target_cluster;
+  std::optional<std::string> rw_port;
+  std::optional<std::string> ro_port;
+  std::optional<std::string> rw_x_port;
+  std::optional<std::string> ro_x_port;
+  std::optional<std::string> rw_split_port;
+  std::optional<std::string> bootstrap_target_type;
+  std::optional<std::string> last_checkin;
+  std::optional<std::string> version;
+  std::optional<std::string> target_cluster;
 
   shcore::Dictionary_t tags = nullptr;
 };

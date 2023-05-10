@@ -33,7 +33,7 @@ session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'r
 
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', '{\"ROEndpoint\": \"6481\", \"RWEndpoint\": \"6480\", \"ROXEndpoint\": \"6483\", \"RWXEndpoint\": \"6482\"}', ?, NULL, NULL)", [cluster_id]);
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482}', ?, NULL, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}', ?, NULL, NULL)", [cluster_id]);
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'foobar', 'mysqlrouter', 'routerhost2', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 
 //@<> MD2 - listRouters() - full list
@@ -109,6 +109,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -180,6 +181,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -261,6 +263,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -276,7 +279,6 @@ EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata("routerhost1:r2"); 
 EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata("::bla"); }, "Invalid router instance '::bla'", "ArgumentError");
 EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata("foo::bla::"); }, "Invalid router instance 'foo::bla::'", "ArgumentError");
 EXPECT_THROWS_TYPE(function() { cluster.removeRouterMetadata("127.0.0.1"); }, "Invalid router instance '127.0.0.1'", "ArgumentError");
-
 
 //@<> MD2 - removeRouterMetadata()
 cluster.removeRouterMetadata("routerhost1");
@@ -490,7 +492,7 @@ session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'r
 
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 3, NULL)");
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 2, '{\"ROEndpoint\": \"6481\", \"RWEndpoint\": \"6480\", \"ROXEndpoint\": \"6483\", \"RWXEndpoint\": \"6482\"}')");
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 3, '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482}')");
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 3, '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}')");
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'foobar', 3, NULL)");
 
 //@<> MD1 - listRouters() - full list
@@ -576,6 +578,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "<= 8.0.18"
@@ -658,6 +661,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "<= 8.0.18"
@@ -749,6 +753,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": "6490",
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "<= 8.0.18"

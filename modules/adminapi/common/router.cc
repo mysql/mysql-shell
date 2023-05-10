@@ -75,7 +75,7 @@ shcore::Dictionary_t get_router_dict(const Router_metadata &router_md,
   auto router = shcore::make_dict();
 
   mysqlshdk::utils::Version router_version;
-  if (router_md.version.is_null()) {
+  if (!router_md.version.has_value()) {
     router_version = mysqlshdk::utils::Version("8.0.18");
     (*router)["version"] = shcore::Value("<= 8.0.18");
   } else {
@@ -94,30 +94,33 @@ shcore::Dictionary_t get_router_dict(const Router_metadata &router_md,
 
   (*router)["hostname"] = shcore::Value(router_md.hostname);
 
-  if (router_md.last_checkin.is_null())
+  if (!router_md.last_checkin.has_value())
     (*router)["lastCheckIn"] = shcore::Value::Null();
   else
     (*router)["lastCheckIn"] = shcore::Value(*router_md.last_checkin);
 
-  if (router_md.ro_port.is_null())
+  if (!router_md.ro_port.has_value())
     (*router)["roPort"] = shcore::Value::Null();
   else
     (*router)["roPort"] = shcore::Value(*router_md.ro_port);
 
-  if (router_md.rw_port.is_null())
+  if (!router_md.rw_port.has_value())
     (*router)["rwPort"] = shcore::Value::Null();
   else
     (*router)["rwPort"] = shcore::Value(*router_md.rw_port);
 
-  if (router_md.ro_x_port.is_null())
+  if (!router_md.ro_x_port.has_value())
     (*router)["roXPort"] = shcore::Value::Null();
   else
     (*router)["roXPort"] = shcore::Value(*router_md.ro_x_port);
 
-  if (router_md.rw_x_port.is_null())
+  if (!router_md.rw_x_port.has_value())
     (*router)["rwXPort"] = shcore::Value::Null();
   else
     (*router)["rwXPort"] = shcore::Value(*router_md.rw_x_port);
+
+  if (router_md.rw_split_port.has_value())
+    (*router)["rwSplitPort"] = shcore::Value(*router_md.rw_split_port);
 
   return router;
 }
@@ -130,11 +133,13 @@ shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
   for (const auto &router_md : routers_md) {
     auto router = get_router_dict(router_md, only_upgrade_required);
     if (router->empty()) continue;
-    std::string label = router_md.hostname + "::" + router_md.name;
-    router_list->set(label, shcore::Value(router));
+
+    auto label = shcore::str_format("%s::%s", router_md.hostname.c_str(),
+                                    router_md.name.c_str());
+    router_list->set(std::move(label), shcore::Value(std::move(router)));
   }
 
-  return shcore::Value(router_list);
+  return shcore::Value(std::move(router_list));
 }
 
 shcore::Value clusterset_list_routers(MetadataStorage *md,
@@ -145,21 +150,20 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
   std::vector<std::string> routers_needing_rebootstrap;
 
   for (const auto &router_md : routers_md) {
-    shcore::Array_t router_errors = shcore::make_array();
-    std::string label = router_md.hostname + "::" + router_md.name;
+    auto label = shcore::str_format("%s::%s", router_md.hostname.c_str(),
+                                    router_md.name.c_str());
     if (!router.empty() && router != label) continue;
     auto r = get_router_dict(router_md, false);
     if (r->empty()) continue;
 
-    if (router_md.target_cluster.is_null()) {
+    if (!router_md.target_cluster.has_value()) {
       (*r)["targetCluster"] = shcore::Value::Null();
-    } else if (router_md.target_cluster.get_safe() !=
+    } else if (router_md.target_cluster.value() !=
                k_router_option_target_cluster_primary) {
       // Translate the Cluster's UUID (group_replication_group_name) to the
       // Cluster's name
-      std::string cluster_name =
-          md->get_cluster_name(router_md.target_cluster.get_safe());
-      (*r)["targetCluster"] = shcore::Value(cluster_name);
+      (*r)["targetCluster"] =
+          shcore::Value(md->get_cluster_name(router_md.target_cluster.value()));
     } else {
       (*r)["targetCluster"] = shcore::Value(*router_md.target_cluster);
     }
@@ -167,10 +171,9 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
     router_list->set(label, shcore::Value(r));
 
     // Check if the Router needs a re-bootstrap
-    if (router_md.bootstrap_target_type.get_safe() != "clusterset") {
-      std::string router_identifier =
-          router_md.hostname + "::" + router_md.name;
-      routers_needing_rebootstrap.push_back(router_identifier);
+    shcore::Array_t router_errors = shcore::make_array();
+    if (router_md.bootstrap_target_type.value_or("") != "clusterset") {
+      routers_needing_rebootstrap.push_back(label);
 
       router_errors->push_back(
           shcore::Value("WARNING: Router must be bootstrapped again for the "
@@ -178,7 +181,7 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
     }
 
     if (router_errors && !router_errors->empty()) {
-      (*r)["routerErrors"] = shcore::Value(router_errors);
+      (*r)["routerErrors"] = shcore::Value(std::move(router_errors));
     }
   }
 
@@ -197,7 +200,7 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
         "will operate as if the Clusters were standalone.");
   }
 
-  return shcore::Value(router_list);
+  return shcore::Value(std::move(router_list));
 }
 
 shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,

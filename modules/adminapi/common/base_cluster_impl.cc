@@ -792,7 +792,7 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
   (*dict)["routers"] = router_list(get_metadata_storage().get(), get_id(),
                                    only_upgrade_required);
 
-  return shcore::Value(dict);
+  return shcore::Value(std::move(dict));
 }
 
 /**

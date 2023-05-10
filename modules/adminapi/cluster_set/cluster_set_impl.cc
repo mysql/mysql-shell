@@ -1740,7 +1740,7 @@ shcore::Value Cluster_set_impl::list_routers(const std::string &router) {
     auto dict = shcore::make_dict();
     (*dict)["routers"] = routers;
     (*dict)["domainName"] = shcore::Value(get_name());
-    return shcore::Value(dict);
+    return shcore::Value(std::move(dict));
   }
 
   return routers;
