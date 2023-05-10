@@ -1,6 +1,6 @@
 // Assumptions: ensure auth_socket plugin enabled
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
-
+//@{__system_user != 'root'}
 //@# Install auth_socket plugin if needed
 ensure_plugin_enabled("auth_socket");
 
@@ -10,7 +10,6 @@ sess
 sess.isOpen()
 
 //@# Create user identified with auth_socket
-sess.runSql("CREATE USER '" + __system_user + "'@'localhost' IDENTIFIED WITH auth_socket;")
 sess.runSql("CREATE USER '" + __system_user + "'@'%' IDENTIFIED WITH auth_socket;")
 
 //@# Get unix socket path
@@ -29,7 +28,6 @@ sess
 
 //@# Cleanup
 sess = mysql.getClassicSession(__uripwd)
-sess.runSql("DROP USER '" + __system_user + "'@'localhost'")
 sess.runSql("DROP USER '" + __system_user + "'@'%'")
 sess.close()
 sess
