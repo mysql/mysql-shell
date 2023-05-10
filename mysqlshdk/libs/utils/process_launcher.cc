@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -773,42 +773,44 @@ std::string Process::read_from_terminal() {
 
   return output;
 #else   // ! __APPLE__
-  fd_set input;
   char buffer[512];
-  struct timeval timeout;
   int64_t retry_count = 0;
 
+  pollfd input;
+  input.fd = m_master_device;
+  input.events = POLLIN;
+
   do {
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 500 * 1000;  // 500ms
+    input.revents = 0;
 
-    FD_ZERO(&input);
-    FD_SET(m_master_device, &input);
-
-    int ret = ::select(m_master_device + 1, &input, nullptr, nullptr, &timeout);
+    int ret = ::poll(&input, 1, 500);  // 500ms
 
     if (ret == -1) {
       report_error(nullptr);
     } else if (ret == 0) {
-      report_error("Timeout on select()");
-    } else {
+      report_error("Timeout on poll()");
+    } else if (input.revents & POLLIN) {
       int n = ::read(m_master_device, buffer, sizeof(buffer));
 
       if (n >= 0) {
         return std::string(buffer, n);
-      } else if (errno == EIO) {
-        // This error means that the other side of pseudo terminal is closed.
-        // Since child does not duplicate it to stdin/stdout/stderr, it will
-        // remain closed until the child process opens the controlling terminal
-        // (i.e. writes the password prompt and waits for user input).
-        if (++retry_count > 1000000) {
-          report_error("Controlling terminal seems to be closed");
-        } else {
-          continue;
-        }
       } else {
         report_error(nullptr);
       }
+    } else if (input.revents & POLLHUP) {
+      // This event means that the other side of pseudo terminal is closed.
+      // Since child does not duplicate it to stdin/stdout/stderr, it will
+      // remain closed until the child process opens the controlling terminal
+      // (i.e. writes the password prompt and waits for user input).
+      if (++retry_count > 1000000) {
+        report_error("Controlling terminal seems to be closed");
+      } else {
+        continue;
+      }
+    } else {
+      const auto msg = "No data to read, poll() returned an error event: " +
+                       std::to_string(input.revents);
+      report_error(msg.c_str());
     }
   } while (true);
 

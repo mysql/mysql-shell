@@ -38,6 +38,7 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -602,32 +603,30 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
   }
 
 #ifdef _WIN32
+  const auto poll = WSAPoll;
   auto last_error = []() { return WSAGetLastError(); };
   const int connection_refused = WSAECONNREFUSED;
-  auto would_block = [](int err) {
+  const auto would_block = [](int err) {
     return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
   };
 #else
   auto last_error = []() { return errno; };
   const int connection_refused = ECONNREFUSED;
-  auto would_block = [](int err) {
+  const auto would_block = [](int err) {
     return err == EWOULDBLOCK || err == EINPROGRESS;
   };
 #endif
   int err;
 
-  struct timeval timeout;
-  timeout.tv_sec = k_port_check_timeout;
-  timeout.tv_usec = 0;
+  pollfd fds;
+  fds.fd = sock;
+  fds.events = POLLIN | POLLOUT;
 
   while (would_block((err = last_error()))) {
-    fd_set wfds, efds;
-    FD_ZERO(&wfds);
-    FD_SET(sock, &wfds);
-    FD_ZERO(&efds);
-    FD_SET(sock, &efds);
+    fds.revents = 0;
 
-    err = select(sock + 1, nullptr, &wfds, &efds, &timeout);
+    err = poll(&fds, 1, k_port_check_timeout * 1000);  // milliseconds
+
     if (err == 0) {
       // timeout
       closesocket(sock);
@@ -636,6 +635,7 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
 
     if (err > 0) {
       socklen_t len = sizeof(err);
+
       if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (char *)&err, &len) < 0) {
         err = last_error();
       } else {
@@ -644,6 +644,7 @@ bool Net::is_port_listening_impl(const std::string &address, int port) const {
           return true;
         }
       }
+
       break;
     }
   }
