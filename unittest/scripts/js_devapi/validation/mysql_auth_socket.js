@@ -6,7 +6,6 @@
 
 //@# Create user identified with auth_socket
 |Query OK, 0 rows affected |
-|Query OK, 0 rows affected |
 
 //@# Get unix socket path
 |true|
@@ -18,7 +17,6 @@
 |ClassicSession:disconnected>|
 
 //@# Cleanup
-|Query OK, 0 rows affected |
 |Query OK, 0 rows affected |
 |ClassicSession:disconnected>|
 
