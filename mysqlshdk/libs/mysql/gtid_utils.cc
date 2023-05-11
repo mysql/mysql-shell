@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -151,17 +151,19 @@ void Gtid_set::enumerate_ranges(
 
   shcore::str_itersplit(
       m_gtid_set,
-      [&fn](const std::string &s) {
-        if (const auto p = s.find(':'); p != std::string::npos) {
+      [&fn](std::string_view s) {
+        if (const auto p = s.find(':'); p != std::string_view::npos) {
           const auto offs = (s.front() == '\n') ? 1 : 0;
           // strip \n from previous range as in range,\nrange
           const auto prefix = s.substr(offs, p - offs);
 
           shcore::str_itersplit(
               s.substr(p + 1),
-              [&fn, &prefix](const std::string &ss) {
+              [&fn, &prefix](std::string_view ss) {
+                std::string range{ss};
                 uint64_t begin, end;
-                switch (sscanf(&ss[0], "%" PRIu64 "-%" PRIu64, &begin, &end)) {
+                switch (
+                    sscanf(&range[0], "%" PRIu64 "-%" PRIu64, &begin, &end)) {
                   case 2:
                     fn(std::make_tuple(Gtid(prefix), begin, end));
                     break;

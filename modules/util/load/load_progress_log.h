@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,9 +86,10 @@ class Load_progress_log final {
         shcore::str_itersplit(
             data,
             [this, &bytes_completed,
-             &raw_bytes_completed](const std::string &line) -> bool {
+             &raw_bytes_completed](std::string_view line) -> bool {
               if (!shcore::str_strip(line).empty()) {
-                shcore::Value doc = shcore::Value::parse(line);
+                shcore::Value doc =
+                    shcore::Value::parse(line.data(), line.size());
                 shcore::Dictionary_t entry = doc.as_map();
 
                 bool done = entry->get_int("done") != 0;

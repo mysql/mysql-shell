@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -364,7 +365,7 @@ inline std::string str_partition_after_inpl(std::string *s,
  * @returns vector of splitted strings
  */
 inline std::vector<std::string> str_split(
-    const std::string &input, const std::string &separator_chars = " \r\n\t",
+    std::string_view input, std::string_view separator_chars = " \r\n\t",
     int maxsplit = -1, bool compress = false) {
   std::vector<std::string> ret_val;
   size_t index = 0, new_find = 0;
@@ -374,17 +375,17 @@ inline std::vector<std::string> str_split(
     if (maxsplit--)
       new_find = input.find_first_of(separator_chars, index);
     else
-      new_find = std::string::npos;
+      new_find = std::string_view::npos;
 
-    if (new_find != std::string::npos) {
+    if (new_find != std::string_view::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements
       if (new_find > index || !compress || new_find == 0)
-        ret_val.push_back(input.substr(index, new_find - index));
+        ret_val.push_back(std::string{input.substr(index, new_find - index)});
 
       index = new_find + 1;
     } else {
-      ret_val.push_back(input.substr(index));
+      ret_val.push_back(std::string{input.substr(index)});
     }
   }
   return ret_val;
@@ -405,20 +406,22 @@ inline std::vector<std::string> str_split(
  *
  * @returns false if f returns false, true otherwise
  */
-inline bool str_itersplit(const std::string &input,
-                          const std::function<bool(const std::string &s)> &f,
-                          const std::string &separator_chars = " \r\n\t",
+template <class TCallback>
+inline bool str_itersplit(std::string_view input, TCallback &&f,
+                          std::string_view separator_chars = " \r\n\t",
                           int maxsplit = -1, bool compress = false) {
+  static_assert(std::is_invocable_r_v<bool, TCallback, std::string_view>);
+
   size_t index = 0, new_find = 0;
-  const size_t end = input.size();
+  const auto end = input.size();
 
   while (new_find < end) {
     if (maxsplit--)
       new_find = input.find_first_of(separator_chars, index);
     else
-      new_find = std::string::npos;
+      new_find = std::string_view::npos;
 
-    if (new_find != std::string::npos) {
+    if (new_find != std::string_view::npos) {
       // When compress is enabled, consecutive separators
       // do not generate new elements
       if (new_find > index || !compress || new_find == 0)

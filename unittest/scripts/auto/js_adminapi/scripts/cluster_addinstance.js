@@ -499,8 +499,16 @@ if (__version_num >= 80027) {
 var num_recovery_users = number_of_gr_recovery_accounts(session);
 print("Number of recovery user before addInstance(): " + num_recovery_users + "\n");
 
-//@ BUG#25503159: add instance fail (using an invalid localaddress).
-c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
+//@<> BUG#25503159: add instance fail (using an invalid localaddress).
+EXPECT_THROWS(function(){
+    c.addInstance(__hostname_uri2, {localAddress: "invalid_host"});
+}, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "invalid_host" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+if (__os_type != 'windows') {
+    EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+}
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
 
 //@<> BUG#25503159: number of recovery users is the same.
 var num_recovery_users_after = number_of_gr_recovery_accounts(session);
@@ -640,6 +648,37 @@ EXPECT_THROWS(function(){
 shell.connect(__sandbox_uri2);
 dba.dropMetadataSchema({force:true, clearReadOnly:true});
 session.runSql("RESET MASTER");
+
+//@<> BUG#31357039 Make sure that a note show when creating the cluster and adding an instance with local address specified {__os_type == 'windows' && !__replaying && !__recording}
+if (testutil.versionCheck(__version, "<", "8.0.21")) {
+    testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+    testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+    shell.connect(__sandbox_uri1);
+}
+else {
+    shell.connect(__sandbox_uri2);
+    reset_instance(session);
+    shell.connect(__sandbox_uri1);
+    reset_instance(session);
+}
+
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster("sample", {gtidSetIsComplete: true, communicationStack: "XCOM", ipAllowlist: `127.0.0.1, ${hostname_ip}`}); });
+EXPECT_OUTPUT_CONTAINS("Because the configured Group Replication communication stack is XCOM and the instance is running on Windows, make sure that the local address (specified with 'localAddress') is within the range of allowed hosts (specified with 'ipAllowlist').");
+
+WIPE_OUTPUT()
+
+EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri2, {ipAllowlist: `127.0.0.1, ${hostname_ip}`}); });
+EXPECT_OUTPUT_CONTAINS("Because the configured Group Replication communication stack is XCOM and the instance is running on Windows, make sure that the local address (specified with 'localAddress') is within the range of allowed hosts (specified with 'ipAllowlist').");
+
+// cleanup
+if (testutil.versionCheck(__version, "<", "8.0.21")) {
+    session.close();
+    testutil.destroySandbox(__mysql_sandbox_port1);
+    testutil.destroySandbox(__mysql_sandbox_port2);
+}
+else {
+    cluster.removeInstance(__sandbox_uri2);
+}
 
 //@<> Check if fails when GR local address isn't properly read {!__dbug_off}
 if (testutil.versionCheck(__version, "<", "8.0.21")) {

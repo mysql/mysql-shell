@@ -32,7 +32,7 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 shell.connect(__sandbox_uri1);
 EXPECT_THROWS(function(){
   if (__version_num < 80027) {
-    dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+        dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
   } else {
     dba.createCluster("test_cluster", {gtidSetIsComplete: true});
   }
@@ -43,9 +43,9 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 shell.connect(__sandbox_uri2);
 var cluster;
 if (__version_num < 80027) {
-  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
+        cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-  cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+    cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
 }
 EXPECT_STDERR_EMPTY();
 
@@ -61,9 +61,9 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, in
 shell.connect(__sandbox_uri1);
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+        c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-  c = dba.createCluster('sample');
+    c = dba.createCluster('sample');
 }
 EXPECT_STDERR_EMPTY();
 session.close();
@@ -74,10 +74,64 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, in
 shell.connect(__sandbox_uri1);
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
+        c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 } else {
-  c = dba.createCluster('sample');
+    c = dba.createCluster('sample');
 }
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Check if invalid localAddress is checked against ipAllowlist (if not explicitly specified) BUG#31357039
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+
+shell.connect(__sandbox_uri1);
+
+if (__version_num >= 80027) {
+    EXPECT_THROWS(function(){
+        dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1"});
+    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+}
+else {
+    EXPECT_THROWS(function(){
+        dba.createCluster("test", {localAddress:"0.0.0.0:1"});
+    }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
+}
+
+EXPECT_OUTPUT_CONTAINS(`The 'localAddress' "0.0.0.0" isn't compatible with the Group Replication automatically generated list of allowed IPs.`);
+EXPECT_OUTPUT_CONTAINS("In this scenario, it's necessary to explicitly use the 'ipAllowlist' option to manually specify the list of allowed IPs.");
+EXPECT_OUTPUT_CONTAINS("See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html for more details.");
+
+shell.options["dba.connectivityChecks"] = false;
+
+if (__version_num >= 80027) {
+    WIPE_OUTPUT();
+    EXPECT_THROWS(function(){
+        cluster = dba.createCluster("test", {communicationStack: "MYSQL", localAddress:`0.0.0.0:${__mysql_sandbox_port1}`});
+    }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
+
+    EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
+}
+
+if (__version_num >= 80027) {
+
+    WIPE_OUTPUT();
+    EXPECT_THROWS(function(){
+        cluster = dba.createCluster("test", {communicationStack: "XCOM", localAddress:"0.0.0.0:1", ipAllowlist: "1.1.1.1"});
+    }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
+
+    EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
+}
+else {
+
+    WIPE_OUTPUT();
+    EXPECT_THROWS(function(){
+        cluster = dba.createCluster("test", {localAddress:"0.0.0.0:1", ipAllowlist: "1.1.1.1"});
+    }, "The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.");
+
+    EXPECT_OUTPUT_CONTAINS(`Unable to start Group Replication for instance '${hostname}:${__mysql_sandbox_port1}'.`);
+}
+
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

@@ -1672,15 +1672,21 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
 
   this.cluster = dba.createCluster("cluster", create_cluster_options);
 
-  var allowList = create_cluster_options["ipAllowlist"];
+  add_instance_options = {}
+  if ('ipAllowlist' in create_cluster_options) {
+    add_instance_options["ipAllowlist"] = create_cluster_options["ipAllowlist"];
+  }
+  if ('localAddress' in create_cluster_options) {
+    add_instance_options["localAddress"] = create_cluster_options["localAddress"];
+  }
 
   for (i in ports) {
     if (i > 0) {
       var uri = "mysql://root:root@localhost:" + ports[i];
-      if (allowList === undefined) {
+      if (Object.keys(add_instance_options).length === 0) {
         this.cluster.addInstance(uri);
       } else {
-        this.cluster.addInstance(uri, {ipAllowlist: allowList});
+        this.cluster.addInstance(uri, add_instance_options);
       }
       testutil.waitMemberState(ports[i], "ONLINE");
 

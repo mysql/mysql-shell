@@ -386,6 +386,14 @@ void Create_cluster::prepare() {
       // by the user or the one that is automatically chosen.
       validate_local_address_ip_compatibility();
 
+      validate_ip_allow_list(
+          *m_target_instance,
+          m_options.gr_options.ip_allowlist.value_or("AUTOMATIC"),
+          m_options.gr_options.local_address.value_or(""),
+          m_options.gr_options.communication_stack.value_or(
+              kCommunicationStackXCom),
+          true);
+
       // Check networking and SSL
       if (current_shell_options()->get().dba_connectivity_checks) {
         console->print_info("* Checking connectivity and SSL configuration...");

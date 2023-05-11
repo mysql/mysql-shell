@@ -185,8 +185,8 @@ DESCRIPTION
         'mysql_innodb_cluster_###'@'hostname'). Default is %. It must be
         possible for any member of the Cluster to connect to any other member
         using accounts with this hostname value.
-      - communicationStack: The Group Replication protocol stack to be used in
-        the Cluster: XCom (legacy) or MySQL.
+      - communicationStack: The Group Replication communication stack to be
+        used in the Cluster: XCom (legacy) or MySQL.
       - transactionSizeLimit: integer value to configure the maximum
         transaction size in bytes which the Cluster accepts
       - paxosSingleLeader: boolean value used to enable/disable the Group

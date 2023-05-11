@@ -26,6 +26,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
@@ -97,9 +98,15 @@ struct Group_replication_options {
   std::string ip_allowlist_option_name;
 };
 
-void validate_local_address_option(std::string local_address,
-                                   const std::string &communication_stack,
+void validate_local_address_option(std::string_view address,
+                                   std::string_view communication_stack,
                                    int canonical_port);
+
+void validate_ip_allow_list(const mysqlshdk::mysql::IInstance &instance,
+                            std::string_view ip_allowlist,
+                            const std::string &local_address,
+                            std::string_view communication_stack,
+                            bool create_cluster);
 
 struct Rejoin_group_replication_options : public Group_replication_options {
   explicit Rejoin_group_replication_options(

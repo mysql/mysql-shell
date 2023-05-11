@@ -121,8 +121,8 @@ OPTIONS
             attempt to rejoin the cluster after being expelled.
 
 --communicationStack=<str>
-            The Group Replication protocol stack to be used in the Cluster:
-            XCom (legacy) or MySQL.
+            The Group Replication communication stack to be used in the
+            Cluster: XCom (legacy) or MySQL.
 
 --paxosSingleLeader=<bool>
             Boolean value used to enable/disable the Group Communication engine

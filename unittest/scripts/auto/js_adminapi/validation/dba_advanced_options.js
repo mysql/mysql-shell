@@ -4,12 +4,6 @@
 //@ Create cluster fails because port default GR local address port is already in use. {!__replaying && !__recording}
 ||The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
 
-//@ Create cluster errors using localAddress option
-||Server address configuration error
-||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
-||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
-||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
-
 //@ Create cluster errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__mysql_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__mysql_port>>>'. (RuntimeError)
 
@@ -51,25 +45,6 @@
 
 //@ Create cluster
 ||
-
-//@ Add instance errors using localAddress option {VER(<8.0.22)}
-||Server address configuration error
-||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
-||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
-||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
-
-//@ Add instance errors using localAddress option {VER(>=8.0.22) && VER(<8.0.30)}
-|ERROR: Unable to start Group Replication for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'.|The START GROUP_REPLICATION command failed as there was an error when initializing the group communication layer.
-|The MySQL error_log contains the following messages:|
-||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
-||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
-||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
-
-//@ Add instance errors using localAddress option {VER(>=8.0.30)}
-||Server address configuration error
-||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
-||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
-||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
 
 //@ Add instance errors using localAddress option on busy port {!__replaying && !__recording}
 ||The port '<<<__mysql_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__mysql_port>>>'. (RuntimeError)

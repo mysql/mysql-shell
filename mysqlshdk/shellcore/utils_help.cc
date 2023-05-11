@@ -84,7 +84,7 @@ std::map<std::string, std::string> parse_cli_option_data(
       // Result 6 indicates type description was found
       if (results[6].matched) {
         std::string full_details;
-        auto type_tokens = shcore::str_split(results[7], " ");
+        auto type_tokens = shcore::str_split(results[7].str(), " ");
         // Type description found, should be ignored.
         if (type_tokens.size() == 1 ||
             shcore::str_caseeq(type_tokens[0], "array") ||

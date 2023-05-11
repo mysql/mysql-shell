@@ -408,9 +408,18 @@ void Add_instance::prepare(checks::Check_type check_type,
 
   if (add_instance) {
     // Validate localAddress
-    validate_local_address_option(*m_gr_opts.local_address,
-                                  m_gr_opts.communication_stack.value_or(""),
-                                  m_target_instance->get_canonical_port());
+    {
+      // reaching this point, localAddress must have been resolved / generated
+      assert(m_gr_opts.local_address.has_value());
+
+      validate_local_address_option(*m_gr_opts.local_address,
+                                    m_gr_opts.communication_stack.value_or(""),
+                                    m_target_instance->get_canonical_port());
+
+      validate_ip_allow_list(
+          *m_target_instance, m_gr_opts.ip_allowlist.value_or("AUTOMATIC"),
+          m_gr_opts.local_address.value_or(""), m_comm_stack, false);
+    }
 
     // recovery auth checks
     auto auth_type = m_cluster_impl->query_cluster_auth_type();

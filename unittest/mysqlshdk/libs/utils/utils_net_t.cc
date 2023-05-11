@@ -359,6 +359,100 @@ TEST(utils_net, make_host_and_port) {
             make_host_and_port("fe80::7a7b:8aff:feb8:ed32%utun1", 3232));
 }
 
+TEST(utils_net, check_ipv4_is_in_range) {
+  // IPv4: 10.0.0.0 - 10.255.255.255 (i.e.: 10.0.0.0/8)
+  {
+    auto res = check_ipv4_is_in_range("10.0.0.0", "10.255.255.255", 8);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv4_is_in_range("10.255.255.255", "10.1.2.3", 8);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv4_is_in_range("11.0.0.0", "10.0.0.0", 8);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = check_ipv4_is_in_range("1.1.1.1", "10.0.0.0", 8);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = check_ipv4_is_in_range("-", "10.0.0.0", 8);
+    EXPECT_TRUE(!res.has_value());
+  }
+
+  // IPv4: 172.16.0.0 - 172.31.255.255 (i.e.: 172.16.0.0/12)
+  {
+    auto res = mysqlshdk::utils::check_ipv4_is_in_range("172.16.0.0",
+                                                        "172.16.0.0", 12);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = mysqlshdk::utils::check_ipv4_is_in_range("172.31.255.255",
+                                                   "172.31.255.255", 12);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = mysqlshdk::utils::check_ipv4_is_in_range("172.15.255.255",
+                                                   "172.16.0.0", 12);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = mysqlshdk::utils::check_ipv4_is_in_range("172.32.0.0", "172.16.0.0",
+                                                   12);
+    EXPECT_TRUE(res.has_value() && !res.value());
+  }
+
+  // IPv4: 192.168.0.0 - 192.168.255.255 (i.e.: 192.168.0.0/16)
+  {
+    auto res = check_ipv4_is_in_range("192.168.0.0", "192.168.255.255", 16);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv4_is_in_range("192.168.255.255", "192.168.0.0", 16);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv4_is_in_range("10.0.0.0", "192.168.0.0", 16);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = check_ipv4_is_in_range("-", "192.168.0.0", 16);
+    EXPECT_TRUE(!res.has_value());
+  }
+}
+
+TEST(utils_net, check_ipv6_is_in_range) {
+  // IPv6: fc00::/7
+  {
+    auto res = check_ipv6_is_in_range("fc00::", "fc00:ffff::", 7);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("fc00:ffff::", "fc00::", 7);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                                 "fc00::", 7);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("fd0::", "fc00::", 7);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = check_ipv6_is_in_range("--", "fc00::", 7);
+    EXPECT_TRUE(!res.has_value());
+  }
+
+  // IPv6: fe80::/10
+  {
+    auto res = check_ipv6_is_in_range("fe80::", "fe80:ffff::", 10);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("fe80:ffff::", "fe80::", 10);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                                 "fe80::", 10);
+    EXPECT_TRUE(res.has_value() && res.value());
+
+    res = check_ipv6_is_in_range("fec0::", "fe80::", 10);
+    EXPECT_TRUE(res.has_value() && !res.value());
+
+    res = check_ipv6_is_in_range("--", "fe80::", 10);
+    EXPECT_TRUE(!res.has_value());
+  }
+}
+
 TEST(utils_net, split_host_and_port) {
   EXPECT_EQ("a", split_host_and_port("a:1").first);
   EXPECT_EQ(1, split_host_and_port("a:1").second);

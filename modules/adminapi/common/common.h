@@ -826,9 +826,17 @@ void validate_local_address_ip_compatibility(
     const std::string &local_address, const std::string &group_seeds,
     mysqlshdk::utils::Version lowest_cluster_version);
 
+/**
+ * Validate that the local_address is part of the range of addresses that are
+ * part of the automatic allowList
+ */
+void validate_local_address_allowed_ip_compatibility(
+    const std::string &local_address, bool create_cluster);
+
 void validate_read_replica_version(
     mysqlshdk::utils::Version target_instance_version,
     mysqlshdk::utils::Version lowest_cluster_version);
+
 }  // namespace cluster_topology_executor_ops
 
 }  // namespace dba

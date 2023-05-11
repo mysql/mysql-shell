@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -137,7 +137,7 @@ std::string Blob_storage_config::describe_self() const {
 
 void Blob_storage_config::load_connection_string(
     const std::string &connection_string) {
-  auto parse_tokens = [this](const std::string &item) {
+  auto parse_tokens = [this](std::string_view item) {
     if (item.empty()) return true;
 
     auto config = shcore::str_split(item, "=", 1);

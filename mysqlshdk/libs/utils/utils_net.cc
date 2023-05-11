@@ -702,6 +702,81 @@ std::string make_host_and_port(const std::string &host, uint16_t port) {
   return address;
 }
 
+std::optional<bool> check_ipv4_is_in_range(const char *const ip,
+                                           const char *const range,
+                                           uint8_t prefix) {
+  in_addr addr_ip;
+  if (inet_pton(AF_INET, ip, &addr_ip) != 1) return {};
+  in_addr addr_range;
+  if (inet_pton(AF_INET, range, &addr_range) != 1) return {};
+
+  uint32_t hip = ntohl(addr_ip.s_addr);
+  uint32_t hrange = ntohl(addr_range.s_addr);
+
+  assert(prefix <= 32);
+  uint32_t netmask = ~uint32_t(0) << unsigned(32 - prefix);
+
+  return ((hip & netmask) == (hrange & netmask));
+}
+
+std::optional<bool> check_ipv6_is_in_range(const char *const ip,
+                                           const char *const range,
+                                           uint8_t prefix) {
+  struct in6_addr bufTarget;
+  if (inet_pton(AF_INET6, ip, &bufTarget) != 1) return {};
+  struct in6_addr bufRange;
+  if (inet_pton(AF_INET6, range, &bufRange) != 1) return {};
+
+#if defined(_WIN32)
+  auto mask_ipv6 = [](struct in6_addr *a, unsigned ip_prefix) {
+    assert(ip_prefix <= 128);
+    unsigned bits_to_clear = 128 - ip_prefix;
+    unsigned i = 3;
+    while (bits_to_clear >= 32) {
+      reinterpret_cast<uint32_t *>(&(a->u))[i] = 0;
+      bits_to_clear -= 32;
+      i--;
+    }
+    if (bits_to_clear == 0) return;
+    uint32_t mask = htonl(~((1 << bits_to_clear) - 1));
+    reinterpret_cast<uint32_t *>(&(a->u))[i] &= mask;
+  };
+#elif defined(__APPLE__)
+  auto mask_ipv6 = [](struct in6_addr *a, unsigned ip_prefix) {
+    assert(ip_prefix <= 128);
+    unsigned bits_to_clear = 128 - ip_prefix;
+    unsigned i = 3;
+    while (bits_to_clear >= 32) {
+      a->__u6_addr.__u6_addr32[i] = 0;
+      bits_to_clear -= 32;
+      i--;
+    }
+    if (bits_to_clear == 0) return;
+    uint32_t mask = htonl(~((1 << bits_to_clear) - 1));
+    a->__u6_addr.__u6_addr32[i] &= mask;
+  };
+#else
+  auto mask_ipv6 = [](struct in6_addr *a, unsigned ip_prefix) {
+    assert(ip_prefix <= 128);
+    unsigned bits_to_clear = 128 - ip_prefix;
+    unsigned i = 3;
+    while (bits_to_clear >= 32) {
+      a->s6_addr32[i] = 0;
+      bits_to_clear -= 32;
+      i--;
+    }
+    if (bits_to_clear == 0) return;
+    uint32_t mask = htonl(~((1 << bits_to_clear) - 1));
+    a->s6_addr32[i] &= mask;
+  };
+#endif
+
+  mask_ipv6(&bufTarget, prefix);
+  mask_ipv6(&bufRange, prefix);
+
+  return (std::memcmp(&bufTarget, &bufRange, sizeof(struct in6_addr)) == 0);
+}
+
 uint64_t host_to_network(uint64_t v) {
 #ifdef htonll
   return htonll(v);

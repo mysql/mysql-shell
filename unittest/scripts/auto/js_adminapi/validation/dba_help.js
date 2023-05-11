@@ -490,8 +490,8 @@ DESCRIPTION
         be disabled. Deprecated.
       - multiMaster: boolean value used to define an InnoDB cluster with
         multiple writable instances. Deprecated.
-      - communicationStack: The Group Replication protocol stack to be used in
-        the Cluster: XCom (legacy) or MySQL.
+      - communicationStack: The Group Replication communication stack to be
+        used in the Cluster: XCom (legacy) or MySQL.
       - transactionSizeLimit: integer value to configure the maximum
         transaction size in bytes which the Cluster accepts
       - paxosSingleLeader: boolean value used to enable/disable the Group
@@ -1137,13 +1137,13 @@ DESCRIPTION
         will be thrown when finished.
       - primary: Instance definition representing the instance that must be
         selected as the primary.
-      - switchCommunicationStack: The Group Replication protocol stack to be
-        used by the Cluster after the reboot.
+      - switchCommunicationStack: The Group Replication communication stack to
+        be used by the Cluster after the reboot.
       - ipAllowList: The list of hosts allowed to connect to the instance for
-        Group Replication traffic when using the 'XCOM' protocol stack.
+        Group Replication traffic when using the 'XCOM' communication stack.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one when using the
-        'XCOM' protocol stack.
+        'XCOM' communication stack.
       - timeout: integer value with the maximum number of seconds to wait for
         pending transactions to be applied in each instance of the cluster
         (default value is retrieved from the 'dba.gtidWaitTimeout' shell

@@ -217,7 +217,7 @@ This instance reports its own address as ${hostname}:${__mysql_sandbox_port4}
 
 Instance configuration is suitable.
 NOTE: Group Replication will communicate with other members using '${hostname}:${__mysql_sandbox_port4}1'. Use the localAddress option to override.
-
+[[*]]
 * Checking connectivity and SSL configuration...
 
 

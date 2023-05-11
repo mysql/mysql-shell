@@ -46,14 +46,15 @@ namespace dba {
  * @throw ArgumentError if the value is empty or no host and port is specified
  *        (i.e., value is ":").
  */
-void validate_local_address_option(std::string local_address,
-                                   const std::string &communication_stack,
+void validate_local_address_option(std::string_view address,
+                                   std::string_view communication_stack,
                                    int canonical_port) {
   // Minimal validation is performed here, the rest is already currently
   // handled at resolve_gr_local_address() (including the logic to automatically
   // set the host and port when not specified).
 
-  local_address = shcore::str_strip(local_address);
+  auto local_address = shcore::str_strip(address);
+
   if (local_address.empty()) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s, string value cannot be empty.", kLocalAddress));
@@ -69,7 +70,8 @@ void validate_local_address_option(std::string local_address,
 
   // If the communicationStack is 'MySQL', the port must be no other than
   // the use in use by MySQL. If 'XCOM', the check doesn't apply
-  if (communication_stack != kCommunicationStackMySQL) return;
+  if (!shcore::str_caseeq(communication_stack, kCommunicationStackMySQL))
+    return;
 
   // Parse the given address host:port (both parts are optional).
   // Note: Get the last ':' in case a IPv6 address is used, e.g. [::1]:123.
@@ -109,6 +111,42 @@ void validate_local_address_option(std::string local_address,
           "' communication stack, the port must be the same in use by "
           "MySQL Server");
     }
+  }
+}
+
+void validate_ip_allow_list(const mysqlshdk::mysql::IInstance &instance,
+                            std::string_view ip_allowlist,
+                            const std::string &local_address,
+                            std::string_view communication_stack,
+                            bool create_cluster) {
+  // validate that, when ipAllowlist (or ipWhitelist) isn't specified, that
+  // the local_address (generated or user-specified) is part of the range of
+  // addresses that are part of the automatic IP Whitelist Group Replication
+  // sets (see
+  // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
+  if (!shcore::str_caseeq(communication_stack, kCommunicationStackXCom)) return;
+
+  if (shcore::str_caseeq(ip_allowlist, "AUTOMATIC")) {
+    assert(!local_address.empty());
+    cluster_topology_executor_ops::
+        validate_local_address_allowed_ip_compatibility(local_address,
+                                                        create_cluster);
+
+    return;
+  }
+
+  if (shcore::str_casestr(instance.get_version_compile_os().c_str(), "WIN")) {
+    // if the instance runs on Windows, the local address needs to be
+    // compatible with the allowed IP list, because on Windows, the node
+    // needs to connect to itself. However, this test can't be done
+    // locally because the machine may not be (and probably isn't) the
+    // target instance. In this case, we simply issue a warning.
+    current_console()->print_warning(shcore::str_format(
+        "Because the configured Group Replication communication stack is "
+        "XCOM and the instance is running on Windows, make sure that the "
+        "local address (specified with '%s') is within the range of "
+        "allowed hosts (specified with '%s').",
+        kLocalAddress, kIpAllowlist));
   }
 }
 

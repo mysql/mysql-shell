@@ -304,8 +304,8 @@ REGISTER_HELP(CLUSTER_OPT_IP_ALLOWLIST,
               "instance for group replication. Only valid if "
               "communicationStack=XCOM.");
 REGISTER_HELP(CLUSTER_OPT_COMM_STACK,
-              "@li communicationStack: The Group Replication protocol stack to "
-              "be used in the Cluster: XCom (legacy) or MySQL.");
+              "@li communicationStack: The Group Replication communication "
+              "stack to be used in the Cluster: XCom (legacy) or MySQL.");
 REGISTER_HELP(CLUSTER_OPT_LOCAL_ADDRESS,
               "@li localAddress: string value with the Group Replication local "
               "address to be used instead of the automatically generated one.");
@@ -2842,9 +2842,9 @@ the Cluster cannot be reached, or the primary instance selected has a diverging 
 @li dryRun: boolean value that if true, all validations and steps of the command are
 executed, but no changes are actually made. An exception will be thrown when finished.
 @li primary: Instance definition representing the instance that must be selected as the primary.
-@li switchCommunicationStack: The Group Replication protocol stack to be used by the Cluster after the reboot.
-@li ipAllowList: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' protocol stack.
-@li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' protocol stack.
+@li switchCommunicationStack: The Group Replication communication stack to be used by the Cluster after the reboot.
+@li ipAllowList: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' communication stack.
+@li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' communication stack.
 @li timeout: integer value with the maximum number of seconds to wait for pending transactions to be applied in each instance of the cluster (default
 value is retrieved from the 'dba.gtidWaitTimeout' shell option).
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
