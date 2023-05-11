@@ -960,9 +960,9 @@ TEST_F(Rest_service_test, bug34765385) {
   Retry_strategy retry_strategy(1);
   retry_strategy.set_max_attempts(2);
   // CURLE_PARTIAL_FILE
-  retry_strategy.add_retriable_curl_error_code(18);
+  retry_strategy.add_retriable_error_code(Error_code::PARTIAL_FILE);
   // if curl is using OpenSSL3, CURLE_RECV_ERROR error is reported instead
-  retry_strategy.add_retriable_curl_error_code(56);
+  retry_strategy.add_retriable_error_code(Error_code::RECV_ERROR);
 
   auto request = Request("/partial_file/1000");
   request.type = Type::GET;

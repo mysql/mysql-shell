@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,8 +79,8 @@ class Retry_strategy {
     m_retriable_status[code].emplace(msg);
   }
 
-  void add_retriable_curl_error_code(int code) {
-    m_retriable_curl_error_codes.emplace(code);
+  void add_retriable_error_code(Error_code code) {
+    m_retriable_error_codes.emplace(code);
   }
 
   void set_retry_on_server_errors(bool value) {
@@ -105,6 +105,10 @@ class Retry_strategy {
     return m_max_ellapsed_time.value_or(std::chrono::seconds{0});
   }
 
+  std::unique_ptr<Retry_strategy> clone() const {
+    return std::unique_ptr<Retry_strategy>(clone_impl());
+  }
+
  protected:
   std::chrono::seconds m_base_sleep_time;
   uint32_t m_retry_count;
@@ -113,6 +117,10 @@ class Retry_strategy {
   virtual std::chrono::seconds next_sleep_time(
       std::optional<Response::Status_code> response_status_code = {});
 
+  virtual Retry_strategy *clone_impl() const {
+    return new Retry_strategy(*this);
+  }
+
   bool should_retry(std::optional<Response::Status_code> response_status_code);
 
   // Retry criteria members
@@ -120,7 +128,7 @@ class Retry_strategy {
   std::optional<std::chrono::seconds> m_max_ellapsed_time;
   std::unordered_map<Response::Status_code, std::unordered_set<std::string>>
       m_retriable_status;
-  std::unordered_set<int> m_retriable_curl_error_codes;
+  std::unordered_set<Error_code> m_retriable_error_codes;
   bool m_retry_on_server_errors = false;
 
   // Tracking members
@@ -155,6 +163,10 @@ class Exponential_backoff_retry : public Retry_strategy {
   void set_equal_jitter_for_throttling(bool value);
 
  private:
+  Exponential_backoff_retry *clone_impl() const override {
+    return new Exponential_backoff_retry(*this);
+  }
+
   uint32_t m_exponent_grow_factor;
   uint32_t m_max_wait_between_calls;
   bool m_equal_jitter_for_throttling = false;
