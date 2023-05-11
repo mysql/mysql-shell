@@ -34,6 +34,7 @@
 
 namespace mysqlsh {
 namespace import_table {
+namespace {
 
 constexpr const int kBufferSize = BUFFER_SIZE;
 
@@ -41,6 +42,56 @@ struct Range {
   size_t begin{0};
   size_t end{0};
 };
+
+void validate_ranges(const std::vector<Range> &expected,
+                     std::queue<Range> *actual) {
+  EXPECT_EQ(expected.size(), actual->size());
+
+  for (size_t i = 0; i < expected.size(); i++) {
+    auto range = actual->front();
+    actual->pop();
+
+    EXPECT_EQ(expected[i].begin, range.begin);
+    EXPECT_EQ(expected[i].end, range.end);
+  }
+
+  EXPECT_TRUE(actual->empty());
+}
+
+template <typename... Params>
+void TEST_CHUNKING(const std::string &path, const std::string &line_terminator,
+                   const std::vector<Range> &expected, Params... params) {
+  static_assert(1 == sizeof...(params) || 2 == sizeof...(params));
+
+  File_handler fh{mysqlshdk::storage::make_file(path)};
+  std::queue<Range> r;
+  auto [first, last] = fh.iterators(line_terminator.size());
+  const auto on_new_chunk = [&r](size_t begin, size_t end) {
+    r.push(Range{begin, end});
+  };
+
+  chunk_by_max_bytes(first, last, line_terminator, params..., on_new_chunk);
+
+  validate_ranges(expected, &r);
+}
+
+template <typename... Escape>
+void TEST_SKIP_ROWS(const std::string &path, const std::string &line_terminator,
+                    const std::vector<Range> &expected, Escape... escape) {
+  static_assert(sizeof...(escape) <= 1);
+
+  File_handler fh{mysqlshdk::storage::make_file(path)};
+  std::queue<Range> r;
+  auto [row, last] = fh.iterators(line_terminator.size());
+
+  while (row != last) {
+    auto previous = row;
+    row = skip_rows(row, last, line_terminator, 1, escape...);
+    r.push(Range{previous.offset(), row.offset()});
+  }
+
+  validate_ranges(expected, &r);
+}
 
 TEST(import_table, double_buffer_iteration) {
   const std::string pattern{"abcdefghijklmnopqrstuvwxyz01234567890"};
@@ -54,8 +105,7 @@ TEST(import_table, double_buffer_iteration) {
 
   for (int reserved : {0, 1, 2, 3, 10, 500, 512, 1024, kBufferSize / 4,
                        kBufferSize / 2, (kBufferSize / 2 + 1)}) {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
+    File_handler fh{mysqlshdk::storage::make_file(path)};
     auto [first, last] = fh.iterators(reserved);
 
     std::string from_file;
@@ -154,49 +204,9 @@ TEST(import_table, chunks) {
   }
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, 1, &r, File_import_info());
 
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, 1);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges);
 
   shcore::delete_file(path, true);
 }
@@ -217,49 +227,9 @@ TEST(import_table, chunks_2) {
   }
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, 1, &r, File_import_info());
 
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, 1);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges);
 
   shcore::delete_file(path, true);
 }
@@ -275,51 +245,9 @@ TEST(import_table, false_line_termination) {
   expected_ranges.emplace_back(Range{23, 36});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, 1);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -338,50 +266,9 @@ TEST(import_table, escape_char_in_the_middle_if_line_terminator) {
   expected_ranges.emplace_back(Range{39, 50});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
-                       File_import_info());
 
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, 1);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -407,50 +294,9 @@ TEST(import_table, escape_at_the_end_of_a_buffer) {
   }
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, 1, &r,
-                       File_import_info());
 
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, 1);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -514,51 +360,9 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
   expected_ranges.push_back(Range{first_row_end, test_string.size()});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, kSkipBytes);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges);
 
   shcore::delete_file(path, true);
 }
@@ -583,52 +387,9 @@ TEST(import_table, false_line_terminator_after_eof) {
   expected_ranges.push_back(Range{0, test_string.size()});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, kSkipBytes);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges);
 
   shcore::delete_file(path, true);
 }
@@ -660,52 +421,9 @@ TEST(import_table, last_character_same_as_terminator) {
   expected_ranges.push_back(Range{252, 317});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, kSkipBytes);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -753,52 +471,9 @@ TEST(import_table, onechar_a_line_terminator_same_as_row_data) {
   expected_ranges.push_back(Range{630, 706});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, kSkipBytes);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -848,52 +523,9 @@ TEST(import_table, twochar_ab_line_terminator_same_as_row_data) {
   expected_ranges.push_back(Range{640, 717});
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
-
-  {
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
-  }
+  TEST_CHUNKING(path, line_terminator, expected_ranges, escape, kSkipBytes);
+  TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
 
   shcore::delete_file(path, true);
 }
@@ -929,7 +561,6 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
       "b\\ab\\ab\\ab\\abxx\\ab\\ab\\ab\\ab123456\\a\\abbcc\\abaa"};
 
   shcore::create_file(path, test_string, true);
-  const size_t needle_size = line_terminator.size();
 
   {
     std::vector<Range> expected_ranges;
@@ -948,24 +579,7 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     expected_ranges.push_back(Range{566, 640});
     expected_ranges.push_back(Range{640, 717});
 
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, kSkipBytes, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
+    TEST_CHUNKING(path, line_terminator, expected_ranges, escape, kSkipBytes);
   }
 
   // jump to row line terminator, but we don't know if it is escaped, therefore
@@ -976,24 +590,7 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     expected_ranges.push_back(Range{368, 640});
     expected_ranges.push_back(Range{640, 717});
 
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<File_import_info> r;
-    auto [first, last] = fh.iterators(needle_size);
-    chunk_by_max_bytes(first, last, line_terminator, escape, 254, &r,
-                       File_import_info());
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
-      EXPECT_EQ(expected_ranges[i].end, range.range.second);
-    }
-
-    EXPECT_TRUE(r.empty());
+    TEST_CHUNKING(path, line_terminator, expected_ranges, escape, 254);
   }
 
   {
@@ -1010,31 +607,12 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
     expected_ranges.push_back(Range{566, 640});
     expected_ranges.push_back(Range{640, 717});
 
-    auto fh_ptr = mysqlshdk::storage::make_file(path);
-    File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
-    auto [row, last] = fh.iterators(needle_size);
-    while (row != last) {
-      auto previous = row;
-      row = skip_rows(row, last, line_terminator, 1, escape);
-      r.push(Range{previous.offset(), row.offset()});
-    }
-
-    EXPECT_EQ(expected_ranges.size(), r.size());
-
-    for (size_t i = 0; i < expected_ranges.size(); i++) {
-      auto range = r.front();
-      r.pop();
-
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
-    }
-
-    EXPECT_TRUE(r.empty());
+    TEST_SKIP_ROWS(path, line_terminator, expected_ranges, escape);
   }
 
   shcore::delete_file(path, true);
 }
 
+}  // namespace
 }  // namespace import_table
 }  // namespace mysqlsh

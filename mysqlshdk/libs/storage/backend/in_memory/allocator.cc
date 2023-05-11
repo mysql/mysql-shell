@@ -28,6 +28,7 @@
 #include <chrono>
 #include <iterator>
 #include <stdexcept>
+#include <utility>
 
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -74,8 +75,8 @@ Allocator::Allocator(std::size_t page_size, std::size_t block_size)
       }()),
       m_block_size(block_size),
       m_page_size(m_blocks_per_page * m_block_size),
-      m_pages(m_page_size),
-      m_full_pages(m_page_size) {
+      m_pages(Compare_pages{m_page_size}),
+      m_full_pages(Compare_pages{m_page_size}) {
   if (!m_blocks_per_page) {
     throw std::runtime_error("The page size cannot be 0");
   }
@@ -91,8 +92,7 @@ Allocator::~Allocator() {
 }
 
 std::vector<char *> Allocator::allocate(std::size_t memory) {
-  // round up
-  auto blocks = memory / m_block_size + (memory % m_block_size != 0);
+  auto blocks = block_count(memory);
   std::vector<char *> result;
   result.reserve(blocks);
 
@@ -181,6 +181,34 @@ void Allocator::free_block(char *block) {
       m_empty_page = page.get();
     }
   }
+}
+
+Scoped_data_block::Scoped_data_block() : m_allocator(nullptr) {}
+
+Scoped_data_block::Scoped_data_block(Data_block block, Allocator *allocator)
+    : m_block(std::move(block)), m_allocator(allocator) {}
+
+Scoped_data_block::Scoped_data_block(Scoped_data_block &&other) {
+  operator=(std::move(other));
+}
+
+Scoped_data_block &Scoped_data_block::operator=(Scoped_data_block &&other) {
+  free();
+
+  m_block = std::exchange(other.m_block, {});
+  m_allocator = other.m_allocator;
+
+  return *this;
+}
+
+Scoped_data_block::~Scoped_data_block() { free(); }
+
+Data_block Scoped_data_block::relinquish() {
+  return std::exchange(m_block, {});
+}
+
+Scoped_data_block Scoped_data_block::new_block(Allocator *allocator) {
+  return Scoped_data_block{{allocator->allocate_block(), 0}, allocator};
 }
 
 }  // namespace in_memory

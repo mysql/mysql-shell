@@ -48,8 +48,11 @@ class Allocated_file : public Virtual_fs::IFile {
    *
    * @param name Name of the file.
    * @param allocator Allocator to use.
+   * @param consume_if_first Blocks are released as long as reading starts at
+   * the first block.
    */
-  Allocated_file(const std::string &name, Allocator *allocator);
+  Allocated_file(const std::string &name, Allocator *allocator,
+                 bool consume_if_first = false);
 
   Allocated_file(const Allocated_file &) = delete;
   Allocated_file(Allocated_file &&) = default;
@@ -135,6 +138,15 @@ class Allocated_file : public Virtual_fs::IFile {
    */
   ssize_t write(const void *buffer, std::size_t length) override;
 
+  /**
+   * Appends a data block, file takes ownership of the memory.
+   *
+   * @param block Buffer which holds the data.
+   *
+   * @throws std::runtime_error If it's not possible to append a new block.
+   */
+  void append(Scoped_data_block block);
+
  private:
   Allocator *m_allocator;
   bool m_is_open = false;
@@ -147,6 +159,8 @@ class Allocated_file : public Virtual_fs::IFile {
   std::size_t m_bytes_consumed = 0;
   bool m_reading_from_beginning = false;
   std::deque<char *> m_blocks;
+  bool m_consume_if_first;
+  bool m_accepts_append = true;
 };
 
 }  // namespace in_memory

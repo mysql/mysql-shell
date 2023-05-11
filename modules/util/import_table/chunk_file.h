@@ -28,6 +28,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -214,7 +215,7 @@ class File_iterator final {
 class File_handler final {
  public:
   File_handler() = default;
-  explicit File_handler(mysqlshdk::storage::IFile *fh);
+  explicit File_handler(std::unique_ptr<mysqlshdk::storage::IFile> fh);
 
   File_handler(const File_handler &other) = delete;
   File_handler(File_handler &&other) = delete;
@@ -237,14 +238,15 @@ class File_handler final {
   mutable Async_read_task m_aio{};
   mutable std::thread m_aio_worker;
   mutable shcore::Synchronized_queue<Async_read_task *> m_task_queue;
-  mysqlshdk::storage::IFile *m_fh;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_fh;
   size_t m_file_size = 0;
 };
 
 struct File_import_info {
-  std::string file_path;
+  std::unique_ptr<mysqlshdk::storage::IFile> file;
   bool range_read = false;
   std::pair<size_t, size_t> range{0, 0};
+  std::string context;
   bool is_guard = true;
 };
 
@@ -401,22 +403,18 @@ Iter skip_rows(Iter first, Iter last, const std::string &needle,
  * max_bytes_per_chunk in size.
  *
  * @tparam Iter Forward iterator.
- * @tparam QueueContainer Target container type.
  * @param first Iterator to first element in range.
  * @param last Iterator to last element in range.
  * @param needle Line terminator string.
  * @param escape_char Escape character.
- * @param max_bytes_per_chunk Size of file chunks in bytes.
- * @param range_queue Queue where file chunk offset will be stored.
+ * @param on_new_chunk Callback called with the begin and end offsets of a new
+ *                     chunk.
  */
-template <typename Iter,
-          class QueueContainer = shcore::Synchronized_queue<File_import_info>>
-void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
-                        char escape_char, const size_t max_bytes_per_chunk,
-                        QueueContainer *range_queue,
-                        const File_import_info &stencil) {
-  assert(range_queue);
-
+template <typename Iter>
+void chunk_by_max_bytes(
+    Iter first, Iter last, const std::string &needle, char escape_char,
+    const size_t max_bytes_per_chunk,
+    const std::function<void(size_t, size_t)> &on_new_chunk) {
   size_t current_offset = first.offset();
 
   while (first != last) {
@@ -442,9 +440,7 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
     }
 
     current_offset = first.offset();
-    File_import_info info = stencil;
-    info.range = std::make_pair(prev_offset, current_offset);
-    range_queue->push(std::move(info));
+    on_new_chunk(prev_offset, current_offset);
   }
 }
 
@@ -453,21 +449,17 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
  * max_bytes_per_chunk in size.
  *
  * @tparam Iter Forward iterator.
- * @tparam QueueContainer Target container type.
  * @param first Iterator to first element in range.
  * @param last Iterator to last element in range.
  * @param needle Line terminator string.
- * @param max_bytes_per_chunk Size of file chunks in bytes.
- * @param range_queue Queue where file chunk offset will be stored.
+ * @param on_new_chunk Callback called with the begin and end offsets of a new
+ *                     chunk.
  */
-template <typename Iter,
-          class QueueContainer = shcore::Synchronized_queue<File_import_info>>
-void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
-                        const size_t max_bytes_per_chunk,
-                        QueueContainer *range_queue,
-                        const File_import_info &stencil) {
-  assert(range_queue);
-
+template <typename Iter>
+void chunk_by_max_bytes(
+    Iter first, Iter last, const std::string &needle,
+    const size_t max_bytes_per_chunk,
+    const std::function<void(size_t, size_t)> &on_new_chunk) {
   size_t current_offset = first.offset();
 
   while (first != last) {
@@ -488,9 +480,7 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
     }
 
     current_offset = first.offset();
-    File_import_info info = stencil;
-    info.range = std::make_pair(prev_offset, current_offset);
-    range_queue->push(std::move(info));
+    on_new_chunk(prev_offset, current_offset);
   }
 }
 
@@ -506,12 +496,20 @@ class Chunk_file final {
   ~Chunk_file() = default;
 
   void set_chunk_size(const size_t bytes);
-  void set_file_handle(mysqlshdk::storage::IFile *fh) { m_file_handle = fh; }
+
+  void set_handle_creator(
+      std::function<std::unique_ptr<mysqlshdk::storage::IFile>()> creator) {
+    m_handle_creator = std::move(creator);
+  }
+
   void set_dialect(const Dialect &dialect) { m_dialect = dialect; }
+
   void set_rows_to_skip(const size_t rows) { m_skip_rows_count = rows; }
+
   void set_output_queue(shcore::Synchronized_queue<File_import_info> *queue) {
     m_queue = queue;
   }
+
   void start();
 
  private:
@@ -519,7 +517,7 @@ class Chunk_file final {
   Dialect m_dialect;
   uint64_t m_skip_rows_count = 0;
   shcore::Synchronized_queue<File_import_info> *m_queue = nullptr;
-  mysqlshdk::storage::IFile *m_file_handle;
+  std::function<std::unique_ptr<mysqlshdk::storage::IFile>()> m_handle_creator;
 };
 
 }  // namespace import_table

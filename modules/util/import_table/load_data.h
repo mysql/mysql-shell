@@ -58,14 +58,14 @@ class Transaction_buffer {
  public:
   Transaction_buffer() = default;
 
-  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
+  Transaction_buffer(const Dialect &dialect, mysqlshdk::storage::IFile *file,
                      const Transaction_options &options = {})
       : Transaction_buffer(dialect, file, options.max_trx_size,
                            options.skip_bytes) {
     m_options = options;
   }
 
-  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
+  Transaction_buffer(const Dialect &dialect, mysqlshdk::storage::IFile *file,
                      uint64_t max_transaction_size, uint64_t skip_bytes);
 
   void before_query();

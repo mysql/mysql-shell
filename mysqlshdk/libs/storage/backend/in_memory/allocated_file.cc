@@ -23,17 +23,21 @@
 
 #include "mysqlshdk/libs/storage/backend/in_memory/allocated_file.h"
 
+#include <algorithm>
 #include <cstring>
 #include <stdexcept>
+#include <utility>
 
 namespace mysqlshdk {
 namespace storage {
 namespace in_memory {
 
-Allocated_file::Allocated_file(const std::string &name, Allocator *allocator)
+Allocated_file::Allocated_file(const std::string &name, Allocator *allocator,
+                               bool consume_if_first)
     : IFile(name),
       m_allocator(allocator),
-      m_block_size(allocator->block_size()) {}
+      m_block_size(allocator->block_size()),
+      m_consume_if_first(consume_if_first) {}
 
 Allocated_file::~Allocated_file() {
   m_allocator->free(m_blocks.begin(), m_blocks.end());
@@ -52,6 +56,7 @@ void Allocated_file::open(bool read_mode) {
 
   m_is_open = true;
   m_read_mode = read_mode;
+  m_accepts_append = false;
   seek(0);
 }
 
@@ -83,7 +88,9 @@ off64_t Allocated_file::seek(off64_t offset) {
   }
 
   m_offset = new_offset;
-  m_reading_from_beginning = m_offset == m_bytes_consumed;
+  m_reading_from_beginning =
+      m_offset == m_bytes_consumed ||
+      (m_consume_if_first && m_offset < m_bytes_consumed + m_block_size);
 
   return tell();
 }
@@ -188,6 +195,23 @@ ssize_t Allocated_file::write(const void *buffer, std::size_t length) {
   }
 
   return result;
+}
+
+void Allocated_file::append(Scoped_data_block block) {
+  if (!m_accepts_append) {
+    throw std::runtime_error("Unable to append a block to file: " + name() +
+                             ", not allowed");
+  }
+
+  m_blocks.emplace_back(block->memory);
+  m_size += block->size;
+  m_capacity += m_block_size;
+
+  // it's no longer possible to append a new block after an incomplete block was
+  // added, this ensures the continuity of the blocks
+  m_accepts_append = block->size == m_block_size;
+
+  block.relinquish();
 }
 
 }  // namespace in_memory

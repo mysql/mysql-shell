@@ -50,8 +50,10 @@ set(library_SRC
   backend/in_memory/allocated_file.cc
   backend/in_memory/allocator.cc
   backend/in_memory/synchronized_file.cc
+  backend/in_memory/threaded_file.cc
   backend/in_memory/virtual_config.cc
   backend/in_memory/virtual_directory.cc
+  backend/in_memory/virtual_file_adapter.cc
   backend/in_memory/virtual_file.cc
   backend/in_memory/virtual_fs.cc
   compression/gz_file.cc

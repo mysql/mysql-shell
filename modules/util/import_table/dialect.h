@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,7 +59,7 @@ struct Dialect {
    * dialect.
    * @return Part of SQL statement
    */
-  std::string build_sql();
+  std::string build_sql() const;
 
   /**
    * Returns default dialect for LOAD DATA FILE.

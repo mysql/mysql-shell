@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
@@ -132,6 +133,7 @@ class Synchronized_queue final {
   std::array<std::deque<T>, 4> m_queues;
   std::atomic<std::size_t> m_size{0};
 };
+
 }  // namespace shcore
 
-#endif /* MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_ */
+#endif  // MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_

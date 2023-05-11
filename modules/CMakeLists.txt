@@ -71,6 +71,7 @@ file(GLOB api_module_SOURCES
       "util/import_table/dialect.cc"
       "util/import_table/import_table_options.cc"
       "util/import_table/import_table.cc"
+      "util/import_table/scanner.cc"
       "util/json_importer.cc"
       "util/mod_util.cc"
       "util/upgrade_check.cc"
@@ -109,4 +110,3 @@ target_link_libraries(api_modules utils adminapi_modules)
 ADD_SUBDIRECTORY(adminapi)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})
-

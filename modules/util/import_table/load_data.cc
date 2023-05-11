@@ -79,7 +79,7 @@ int local_infile_error_nop(void * /* userdata */, char * /* error_msg */,
 
 }  // namespace
 
-Transaction_buffer::Transaction_buffer(Dialect dialect,
+Transaction_buffer::Transaction_buffer(const Dialect &dialect,
                                        mysqlshdk::storage::IFile *file,
                                        uint64_t max_transaction_size,
                                        uint64_t skip_bytes)
@@ -87,7 +87,11 @@ Transaction_buffer::Transaction_buffer(Dialect dialect,
   m_options.max_trx_size = max_transaction_size;
   m_options.skip_bytes = skip_bytes;
 
-  if (m_dialect == Dialect::default_()) {
+  if (m_dialect.lines_terminated_by.empty() ||
+      m_dialect.fields_terminated_by == m_dialect.lines_terminated_by) {
+    // we're unable to sub-chunk properly in this case
+    m_options.max_trx_size = 0;
+  } else if (m_dialect == Dialect::default_()) {
     find_first_row_boundary_after =
         &Transaction_buffer::find_first_row_boundary_after_impl_default;
     find_last_row_boundary_before =
@@ -810,9 +814,8 @@ void Load_data_worker::execute(
             fi.filehandler ? fi.filehandler->filename() + ": " : "";
         auto msg = worker_name + task + error;
 
-        if (fi.range_read) {
-          msg += " @ file bytes range [" + std::to_string(r.range.first) +
-                 ", " + std::to_string(r.range.second) + ")";
+        if (!r.context.empty()) {
+          msg += r.context;
         }
 
         if (!extra.empty()) {
@@ -831,25 +834,26 @@ void Load_data_worker::execute(
               break;
             }
 
-            fi.filehandler = m_opt.create_file_handle(r.file_path);
+            fi.filehandler = std::move(r.file);
             fi.range_read = r.range_read;
 
             if (r.range_read) {
               fi.bytes_left = r.range.second - r.range.first;
-              // TODO(pawel): maxBytesPerTransaction should not be ignored in
-              // case of a single uncompressed file imported in chunks
+              // maxBytesPerTransaction is ignored in case of a file imported in
+              // chunks, because we assume that in this case bytesPerChunk ==
+              // maxBytesPerTransaction
               max_trx_size = 0;
 
               // if fi.range_read == true, we're importing in chunks from a
-              // single uncompressed file, rows were already skipped
+              // single file, rows were already skipped
               query_ignore_lines.clear();
             } else {
               fi.bytes_left = 0;
               max_trx_size = m_opt.max_transaction_size();
 
               if (m_opt.skip_rows_count() > 0) {
-                // this handles the case when a single compressed file or
-                // multiple files are being imported and skipRows is set
+                // this handles the case when multiple files are being imported
+                // and skipRows is set
                 query_ignore_lines = " IGNORE " +
                                      std::to_string(m_opt.skip_rows_count()) +
                                      " LINES";
