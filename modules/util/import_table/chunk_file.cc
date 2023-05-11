@@ -140,13 +140,14 @@ void File_iterator::force_offset(size_t start_from_offset) {
   }
 }
 
-File_handler::File_handler(mysqlshdk::storage::IFile *fh) : m_fh(fh) {
+File_handler::File_handler(std::unique_ptr<mysqlshdk::storage::IFile> fh)
+    : m_fh(std::move(fh)) {
   if (!m_fh->is_open()) {
     m_fh->open(mysqlshdk::storage::Mode::READ);
   }
 
   m_file_size = m_fh->file_size();
-  m_aio.fh = m_fh;
+  m_aio.fh = m_fh.get();
   m_aio.length = Buffer::capacity();
 
   m_aio_worker = mysqlsh::spawn_scoped_thread([this]() -> void {
@@ -202,14 +203,18 @@ void Chunk_file::set_chunk_size(const size_t bytes) {
 }
 
 void Chunk_file::start() {
-  File_handler fh{m_file_handle};
+  File_handler fh{m_handle_creator()};
 
   auto [first, last] = fh.iterators(m_dialect.lines_terminated_by.size());
+  const auto on_new_chunk = [this](size_t begin, size_t end) {
+    File_import_info info;
+    info.file = m_handle_creator();
+    info.range_read = true;
+    info.range = std::make_pair(begin, end);
+    info.is_guard = false;
 
-  File_import_info stencil;
-  stencil.file_path = m_file_handle->full_path().real();
-  stencil.range_read = true;
-  stencil.is_guard = false;
+    m_queue->push(std::move(info));
+  };
 
   if (m_dialect.fields_escaped_by.empty()) {
     if (m_skip_rows_count > 0) {
@@ -217,15 +222,15 @@ void Chunk_file::start() {
                         m_skip_rows_count);
     }
     chunk_by_max_bytes(first, last, m_dialect.lines_terminated_by, m_chunk_size,
-                       m_queue, stencil);
+                       on_new_chunk);
   } else {
     if (m_skip_rows_count > 0) {
       first = skip_rows(first, last, m_dialect.lines_terminated_by,
                         m_skip_rows_count, m_dialect.fields_escaped_by[0]);
     }
     chunk_by_max_bytes(first, last, m_dialect.lines_terminated_by,
-                       m_dialect.fields_escaped_by[0], m_chunk_size, m_queue,
-                       stencil);
+                       m_dialect.fields_escaped_by[0], m_chunk_size,
+                       on_new_chunk);
   }
 }
 

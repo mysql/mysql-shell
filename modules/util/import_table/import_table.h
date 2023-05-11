@@ -27,6 +27,7 @@
 #include <atomic>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -38,6 +39,12 @@
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
+
+namespace mysqlshdk::storage::in_memory {
+
+class Allocator;
+
+}  // namespace mysqlshdk::storage::in_memory
 
 namespace mysqlsh {
 namespace import_table {
@@ -89,11 +96,19 @@ class Import_table final {
   void build_queue();
   void progress_setup();
   void progress_shutdown();
+  void scan_file();
+
+  inline bool interrupted() const noexcept {
+    return m_interrupt && *m_interrupt;
+  }
 
   std::atomic<size_t> m_prog_sent_bytes{0};
   std::atomic<size_t> m_prog_file_bytes{0};
+  std::optional<size_t> m_prog_total_file_bytes;
   size_t m_total_file_size = 0;
   bool m_has_compressed_files = false;
+
+  std::unique_ptr<mysqlshdk::storage::in_memory::Allocator> m_allocator;
 
   shcore::Synchronized_queue<File_import_info> m_range_queue;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,7 @@ bool Dialect::operator==(const Dialect &d) const {
 }
 
 void Dialect::validate() const {
+  // TODO(pawel): remove this when chunk_file.h is no longer used
   if (!((lines_terminated_by.size() / 2) < BUFFER_SIZE)) {
     throw std::invalid_argument("Line terminator string is too long.");
   }
@@ -89,6 +90,11 @@ void Dialect::validate() const {
   if (fields_escaped_by.size() > 1) {
     throw std::invalid_argument("fieldsEscapedBy must be empty or a char.");
   }
+
+  // TODO(pawel): this seems wrong or incomplete, docs have the same comment and
+  // an example which uses FIELDS TERMINATED BY and FIELDS ENCLOSED BY; instead
+  // data should be handled by the server and if it's not possible to parse it,
+  // an error should be reported
 
   // If you specify one separator that is the same as or a prefix of another,
   // LOAD DATA INFILE cannot interpret the input properly.
@@ -157,7 +163,7 @@ Dialect Dialect::csv_unix() {
   return dialect;
 }
 
-std::string Dialect::build_sql() {
+std::string Dialect::build_sql() const {
   using sqlstring = shcore::sqlstring;
   std::string sql =
       (sqlstring("FIELDS TERMINATED BY ?", 0) << fields_terminated_by).str();
@@ -177,6 +183,9 @@ std::string Dialect::build_sql() {
 
 void Dialect::on_unpacked_options() {
   validate();
+
+  // TODO(pawel): values provided by the user should not be altered, instead
+  // code which uses these two sequences should handle this case properly
 
   // If LINES TERMINATED BY is an empty string and FIELDS TERMINATED BY is
   // nonempty, lines are also terminated with FIELDS TERMINATED BY.

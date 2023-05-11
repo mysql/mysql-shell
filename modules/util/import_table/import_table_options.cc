@@ -149,6 +149,14 @@ void Import_table_option_pack::set_filenames(
     const std::vector<std::string> &filenames) {
   m_filelist_from_user = filenames;
 
+  // remove empty paths provided by user
+  m_filelist_from_user.erase(
+      std::remove_if(m_filelist_from_user.begin(), m_filelist_from_user.end(),
+                     [](const auto &s) { return s.empty(); }),
+      m_filelist_from_user.end());
+
+  m_is_multifile = check_if_multifile();
+
   if (!is_multifile()) {
     // If loading single file, chunk size defaults to 50M if not specified by
     // the user.
@@ -160,8 +168,8 @@ void Import_table_option_pack::set_filenames(
     // If loading single file, table name is taken from the file if not
     // specified by the user.
     if (m_table.empty()) {
-      m_table = std::get<0>(shcore::path::split_extension(
-          shcore::path::basename(m_filelist_from_user[0])));
+      m_table = std::get<0>(
+          shcore::path::split_extension(shcore::path::basename(single_file())));
     }
   }
 }
@@ -204,14 +212,11 @@ void Import_table_option_pack::set_decode_columns(
   }
 }
 
-bool Import_table_option_pack::is_multifile() const {
+bool Import_table_option_pack::check_if_multifile() const {
   if (m_filelist_from_user.size() == 1) {
-    if (has_wildcard(m_filelist_from_user[0])) {
-      return true;
-    }
-
-    return false;
+    return has_wildcard(m_filelist_from_user[0]);
   }
+
   return true;
 }
 
@@ -238,12 +243,6 @@ void Import_table_options::validate() {
         "Target table is not set. The target table for the import operation "
         "must be provided in the options.");
   }
-
-  // remove empty paths provided by user
-  m_filelist_from_user.erase(
-      std::remove_if(m_filelist_from_user.begin(), m_filelist_from_user.end(),
-                     [](const auto &s) { return s.empty(); }),
-      m_filelist_from_user.end());
 
   if (m_filelist_from_user.empty()) {
     throw std::runtime_error("File list cannot be empty.");
@@ -281,13 +280,15 @@ void Import_table_options::validate() {
           "multiple files.");
     }
   } else {
-    if (!m_filelist_from_user[0].empty()) {
-      m_file_handle = create_file_handle(m_filelist_from_user[0]);
-      m_file_handle->open(mysqlshdk::storage::Mode::READ);
-      m_file_size = m_file_handle->file_size();
-      m_file_handle->close();
-    }
+    const auto handle = create_file_handle(single_file());
+    // open the file to check if it's readable
+    handle->open(mysqlshdk::storage::Mode::READ);
+    handle->close();
+    // cache some values
+    m_file_size = handle->file_size();
+    m_full_path = handle->full_path().masked();
   }
+
   m_threads_size = calc_thread_size();
 }
 
@@ -311,23 +312,23 @@ Import_table_option_pack::create_file_handle(
   return mysqlshdk::storage::make_file(std::move(file_handler), compr);
 }
 
-size_t Import_table_option_pack::calc_thread_size() {
+size_t Import_table_options::calc_thread_size() {
   // We need at least one thread
   int64_t threads_size = std::max(static_cast<int64_t>(1), m_threads_size);
 
   if (!is_multifile()) {
-    if (is_compressed(m_filelist_from_user[0])) {
-      // a single compressed file cannot be chunked, we're going to use a single
-      // thread
-      threads_size = 1;
-    } else {
-      // We do not need to spawn more threads than file chunks
-      const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
-      if (calculated_threads <
-          static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
-        threads_size =
-            std::min(threads_size, static_cast<int64_t>(calculated_threads));
+    if (dialect_supports_chunking()) {
+      if (!is_compressed(single_file())) {
+        // We do not need to spawn more threads than file chunks
+        const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
+        if (calculated_threads <
+            static_cast<size_t>(std::numeric_limits<int64_t>::max())) {
+          threads_size =
+              std::min(threads_size, static_cast<int64_t>(calculated_threads));
+        }
       }
+    } else {
+      threads_size = 1;
     }
   }
   return threads_size;
@@ -425,25 +426,32 @@ size_t Import_table_option_pack::max_transaction_size() const {
 }
 
 std::string Import_table_options::target_import_info() const {
-  auto connection_options = m_base_session->get_connection_options();
+  const auto uri = m_base_session->get_connection_options().as_uri(
+      mysqlshdk::db::uri::formats::only_transport());
+  std::string info_msg = "Importing from ";
 
-  if (!is_multifile()) {
-    std::string info_msg = "Importing from file '" + full_path().masked() +
-                           "' to table `" + schema() + "`.`" + table() +
-                           "` in MySQL Server at " +
-                           connection_options.as_uri(
-                               mysqlshdk::db::uri::formats::only_transport()) +
-                           " using " + std::to_string(threads_size());
-    info_msg += threads_size() == 1 ? " thread" : " threads";
-    return info_msg;
+  if (is_multifile()) {
+    info_msg += "multiple files";
+  } else {
+    info_msg += "file '";
+    info_msg += masked_full_path();
+    info_msg += '\'';
   }
-  std::string info_msg =
-      "Importing from multiple files to table `" + schema() + "`.`" + table() +
-      "` in MySQL Server at " +
-      connection_options.as_uri(mysqlshdk::db::uri::formats::only_transport()) +
-      " using " + std::to_string(threads_size());
-  info_msg += threads_size() == 1 ? " thread" : " threads";
+
+  info_msg += " to table `" + schema() + "`.`" + table() +
+              "` in MySQL Server at " + uri + " using " +
+              std::to_string(threads_size()) + " thread";
+
+  if (1 != threads_size()) {
+    info_msg += 's';
+  }
+
   return info_msg;
+}
+
+bool Import_table_options::dialect_supports_chunking() const {
+  return !m_dialect.lines_terminated_by.empty() &&
+         m_dialect.lines_terminated_by != m_dialect.fields_terminated_by;
 }
 
 }  // namespace import_table

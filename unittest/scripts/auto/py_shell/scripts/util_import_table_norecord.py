@@ -461,7 +461,8 @@ util.export_table(test_table_qualified, os.path.join(output_dir, "2.tsv.gz"), { 
 session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
 rc = testutil.call_mysqlsh([uri, "--", "util", "import-table", os.path.join(output_dir, "1.tsv.zst").replace("\\", "/"), "--bytes-per-chunk", "131072", "--schema", test_schema, "--table", test_table, "--show-progress"])
 EXPECT_EQ(0, rc)
-EXPECT_STDOUT_CONTAINS("using 1 thread")
+# BUG#BUG35279351 - compressed files are read by multiple threads
+EXPECT_STDOUT_CONTAINS("using 8 threads")
 EXPECT_STDOUT_CONTAINS("100%")
 EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {int(test_rows / 2)}  Deleted: 0  Skipped: 0  Warnings: 0")
 
@@ -474,5 +475,44 @@ EXPECT_STDOUT_MATCHES(re.compile(r"2 files \(.* uncompressed, .* compressed\) we
 EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {test_rows}  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> BUG#33970577 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+testutil.rmdir(output_dir, True)
+
+#@<> BUG#35279351 - same field and line termination characters
+# setup
+test_schema = "bug_35279351"
+test_table = "t"
+test_table_qualified = quote_identifier(test_schema, test_table)
+test_rows = 40000
+output_dir = os.path.join(__tmp_dir, test_schema)
+testutil.mkdir(output_dir, True)
+
+shell.connect(uri)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql(f"CREATE TABLE {test_table_qualified} (k INT PRIMARY KEY, v TEXT)")
+
+session.run_sql(f"""INSERT INTO {test_table_qualified} VALUES {",".join([f"({i}, '{random_string(7, 13)}')" for i in range(test_rows)])}""")
+
+checksum = md5_table(session, test_schema, test_table)
+
+util.export_table(test_table_qualified, os.path.join(output_dir, "1.tsv"), { "fieldsTerminatedBy": ",", "linesTerminatedBy": ",", "compression": "none", "showProgress": False })
+util.export_table(test_table_qualified, os.path.join(output_dir, "1.tsv.zst"), { "fieldsTerminatedBy": ",", "linesTerminatedBy": ",", "compression": "zstd", "showProgress": False })
+
+#@<> BUG#33970577 - chunking should be disabled
+session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(output_dir, "1.tsv"), { "threads": 4, "bytesPerChunk": "131072", "fieldsTerminatedBy": ",", "linesTerminatedBy": ",", "schema": test_schema, "table": test_table, "showProgress": False }), "import should not fail")
+EXPECT_STDOUT_CONTAINS("using 1 thread")
+EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {test_rows}  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_EQ(checksum, md5_table(session, test_schema, test_table))
+
+#@<> BUG#33970577 - subchunking should be disabled
+session.run_sql(f"TRUNCATE TABLE {test_table_qualified}")
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(output_dir, "1.tsv.zst"), { "threads": 1, "maxBytesPerTransaction": "4096", "fieldsTerminatedBy": ",", "linesTerminatedBy": ",", "schema": test_schema, "table": test_table, "showProgress": False }), "import should not fail")
+EXPECT_STDOUT_CONTAINS("loading finished in 1 sub-chunk")
+EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {test_rows}  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_EQ(checksum, md5_table(session, test_schema, test_table))
+
+#@<> BUG#35279351 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 testutil.rmdir(output_dir, True)

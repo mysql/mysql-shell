@@ -67,6 +67,36 @@ class Allocator final {
   inline std::size_t block_size() const { return m_block_size; }
 
   /**
+   * Provides number of blocks needed to hold the given memory size.
+   *
+   * @param memory Size of the memory.
+   *
+   * @returns number of blocks needed
+   */
+  inline std::size_t block_count(std::size_t memory) const {
+    // round up
+    return (memory + m_block_size - 1) / m_block_size;
+  }
+
+  /**
+   * Allocates the requested number of memory blocks.
+   *
+   * @param blocks Number of memory blocks to be allocated.
+   *
+   * @returns allocated memory blocks
+   */
+  inline std::vector<char *> allocate_blocks(std::size_t blocks) {
+    return allocate(blocks * m_block_size);
+  }
+
+  /**
+   * Allocates a single memory block.
+   *
+   * @returns allocated memory block
+   */
+  inline char *allocate_block() { return allocate_blocks(1).front(); }
+
+  /**
    * Allocates the requested memory. Memory is returned in blocks of a constant
    * size, which means that more memory can be allocated than requested.
    *
@@ -143,7 +173,8 @@ class Allocator final {
   struct Compare_pages {
     using is_transparent = void;
 
-    Compare_pages(std::size_t page_size) : m_page_size(page_size - 1) {}
+    explicit Compare_pages(std::size_t page_size)
+        : m_page_size(page_size - 1) {}
 
     /**
      * Orders the elements by the address of allocated memory.
@@ -208,6 +239,45 @@ class Allocator final {
 
   // controls access to memory
   std::mutex m_mutex;
+};
+
+struct Data_block {
+  char *memory = nullptr;
+  std::size_t size = 0;
+};
+
+/**
+ * Automatically frees the memory held by the data block.
+ */
+class Scoped_data_block final {
+ public:
+  Scoped_data_block();
+
+  Scoped_data_block(Data_block block, Allocator *allocator);
+
+  Scoped_data_block(const Scoped_data_block &) = delete;
+  Scoped_data_block(Scoped_data_block &&);
+
+  Scoped_data_block &operator=(const Scoped_data_block &) = delete;
+  Scoped_data_block &operator=(Scoped_data_block &&);
+
+  ~Scoped_data_block();
+
+  Data_block *operator->() noexcept { return &m_block; }
+
+  Data_block relinquish();
+
+  static Scoped_data_block new_block(Allocator *allocator);
+
+ private:
+  inline void free() {
+    if (m_allocator && m_block.memory) {
+      m_allocator->free(m_block.memory);
+    }
+  }
+
+  Data_block m_block;
+  Allocator *m_allocator;
 };
 
 }  // namespace in_memory

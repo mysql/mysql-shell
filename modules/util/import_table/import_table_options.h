@@ -30,6 +30,7 @@
 #include <unistd.h>
 #endif
 
+#include <cassert>
 #include <map>
 #include <memory>
 #include <optional>
@@ -70,9 +71,9 @@ class Import_table_option_pack {
   static const shcore::Option_pack_def<Import_table_option_pack> &options();
   void set_decode_columns(const shcore::Dictionary_t &decode_columns);
 
-  Dialect dialect() const { return m_dialect; }
+  const Dialect &dialect() const { return m_dialect; }
 
-  bool is_multifile() const;
+  bool is_multifile() const noexcept { return m_is_multifile; }
 
   bool is_compressed(const std::string &path) const;
 
@@ -80,6 +81,11 @@ class Import_table_option_pack {
 
   const std::vector<std::string> &filelist_from_user() const {
     return m_filelist_from_user;
+  }
+
+  const std::string &single_file() const {
+    assert(!is_multifile());
+    return m_filelist_from_user[0];
   }
 
   uint64_t max_rate() const;
@@ -109,8 +115,6 @@ class Import_table_option_pack {
   void set_partition(const std::string &partition) { m_partition = partition; }
 
   const std::string &character_set() const { return m_character_set; }
-
-  size_t file_size() const { return m_file_size; }
 
   uint64_t bytes_per_chunk() const;
 
@@ -142,12 +146,11 @@ class Import_table_option_pack {
   void set_bytes_per_chunk(const std::string &value);
   void set_max_rate(const std::string &value);
   void on_unpacked_options();
+  bool check_if_multifile() const;
 
  protected:
-  size_t calc_thread_size();
-
   std::vector<std::string> m_filelist_from_user;
-  size_t m_file_size;
+  bool m_is_multifile = false;
   std::string m_table;
   std::string m_schema;
   std::string m_partition;
@@ -180,14 +183,15 @@ class Import_table_options : public Import_table_option_pack {
     m_base_session = session;
   }
 
-  mysqlshdk::Masked_string full_path() const {
-    return m_file_handle->full_path();
+  size_t file_size() const {
+    assert(!is_multifile());
+    return m_file_size;
   }
 
-  /**
-   * Returns the raw pointer to the file handle
-   */
-  mysqlshdk::storage::IFile *file_handle() const { return m_file_handle.get(); }
+  const std::string &masked_full_path() const {
+    assert(!is_multifile());
+    return m_full_path;
+  }
 
   void validate();
 
@@ -195,9 +199,14 @@ class Import_table_options : public Import_table_option_pack {
 
   std::string target_import_info() const;
 
+  bool dialect_supports_chunking() const;
+
  private:
+  size_t calc_thread_size();
+
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
-  std::unique_ptr<mysqlshdk::storage::IFile> m_file_handle;
+  size_t m_file_size;
+  std::string m_full_path;
 };
 
 }  // namespace import_table
