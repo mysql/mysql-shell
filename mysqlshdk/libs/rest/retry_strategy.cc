@@ -21,7 +21,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <curl/curl.h>
 #include <stdlib.h>
 
 #include <chrono>
@@ -57,7 +56,7 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
 
   // retry in case of partial file error reported by CURL, can happen due to a
   // network error, when received data is shorter than reported
-  retry_strategy->add_retriable_curl_error_code(CURLE_PARTIAL_FILE);
+  retry_strategy->add_retriable_error_code(Error_code::PARTIAL_FILE);
 
   // Throttling handling: equal jitter guarantees some wait time before next
   // attempt
@@ -151,7 +150,7 @@ bool Retry_strategy::should_retry(const Connection_error &error) {
     return false;
   }
 
-  if (m_retriable_curl_error_codes.count(error.curl_code())) {
+  if (m_retriable_error_codes.count(error.code())) {
     return true;
   }
 

@@ -31,6 +31,7 @@
 
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
+#include "mysqlshdk/libs/rest/retry_strategy.h"
 
 namespace mysqlshdk {
 namespace rest {
@@ -102,6 +103,10 @@ class Signed_rest_service_config {
   virtual std::unique_ptr<Signer> signer() const = 0;
 
   virtual bool signature_caching_enabled() const { return true; }
+
+  virtual std::unique_ptr<Retry_strategy> retry_strategy() const {
+    return rest::default_retry_strategy();
+  }
 };
 
 class Signed_rest_service {
@@ -157,6 +162,7 @@ class Signed_rest_service {
   std::string m_label;
   std::unique_ptr<Signer> m_signer;
   bool m_enable_signature_caching;
+  std::unique_ptr<Retry_strategy> m_default_retry_strategy;
 };
 
 }  // namespace rest

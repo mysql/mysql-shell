@@ -30,8 +30,6 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-#include "mysqlshdk/libs/rest/retry_strategy.h"
-
 namespace mysqlshdk {
 namespace rest {
 
@@ -84,7 +82,8 @@ Signed_rest_service::Signed_rest_service(
     : m_endpoint{config.service_endpoint()},
       m_label{config.service_label()},
       m_signer{config.signer()},
-      m_enable_signature_caching(config.signature_caching_enabled()) {}
+      m_enable_signature_caching(config.signature_caching_enabled()),
+      m_default_retry_strategy(config.retry_strategy()) {}
 
 Response::Status_code Signed_rest_service::get(Signed_request *request,
                                                Response *response) {
@@ -230,7 +229,7 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
   std::unique_ptr<rest::Retry_strategy> retry_strategy;
 
   if (!request->retry_strategy) {
-    retry_strategy = rest::default_retry_strategy();
+    retry_strategy = m_default_retry_strategy->clone();
     request->retry_strategy = retry_strategy.get();
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,6 +62,8 @@ class S3_bucket_config
   const std::string &service_label() const override { return m_label; }
 
   std::unique_ptr<rest::Signer> signer() const override;
+
+  std::unique_ptr<rest::Retry_strategy> retry_strategy() const override;
 
   std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
