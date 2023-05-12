@@ -672,23 +672,23 @@ shell.options["useWizards"] = false;
 // Validate output with interactive disabled
 EXPECT_NO_THROWS(function() { cluster.rescan(); });
 
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster is not configured to use 'group_replication_view_change_uuid', which is required for InnoDB ClusterSet. Configuring it requires a full Cluster reboot.");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster is not configured to use 'group_replication_view_change_uuid', which is required for InnoDB ClusterSet. Configuring it requires a full Cluster reboot.");
 EXPECT_OUTPUT_CONTAINS("Use the 'updateViewChangeUuid' option to generate and configure a value for the Cluster.");
 WIPE_STDOUT();
 
 // Use the option and validate it's successful
 EXPECT_NO_THROWS(function() { cluster.rescan({updateViewChangeUuid: true}); });
 
-EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set.");
 EXPECT_OUTPUT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 WIPE_STDOUT();
 
 // Do not restart yet and confirm that cluster.rescan() detects a restart is needed for the change to be effective
 EXPECT_NO_THROWS(function() { cluster.rescan({updateViewChangeUuid: true}); });
-EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is set but not yet effective");
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+EXPECT_OUTPUT_CONTAINS("WARNING: The current Cluster group_replication_view_change_uuid setting does not allow ClusterSet to be implemented, because it's set but not yet effective.");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 WIPE_STDOUT();
 
 // Restart the instances and reboot it from complete outage after rescan() changed group_replication_view_change_uuid
@@ -731,9 +731,9 @@ EXPECT_EQ(view_change_uuid, view_change_uuid_md);
 
 // cluster.rescan() must not warn or act if the target cluster has group_replication_view_change_uuid set
 EXPECT_NO_THROWS(function() { cluster.rescan(); });
-EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set.");
 EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_NOT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 WIPE_STDOUT();
 
@@ -750,10 +750,10 @@ testutil.expectPrompt("Would you like 'group_replication_view_change_uuid' to be
 
 EXPECT_NO_THROWS(function() { cluster.rescan(); });
 
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster is not configured to use 'group_replication_view_change_uuid', which is required for InnoDB ClusterSet. Configuring it requires a full Cluster reboot.");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster is not configured to use 'group_replication_view_change_uuid', which is required for InnoDB ClusterSet. Configuring it requires a full Cluster reboot.");
 
 EXPECT_OUTPUT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+EXPECT_OUTPUT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 WIPE_STDOUT();
 
@@ -774,9 +774,9 @@ EXPECT_EQ(view_change_uuid, view_change_uuid_md);
 
 // Confirm cluster.rescan() does not warn or act if the target cluster has group_replication_view_change_uuid set
 EXPECT_NO_THROWS(function() { cluster.rescan(); });
-EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set");
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set.");
 EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
-EXPECT_OUTPUT_NOT_CONTAINS("WARNING: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 
 //@<> Bug #33235502 Check for incorrect recovery accounts and fix them
