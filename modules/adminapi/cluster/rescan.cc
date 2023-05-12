@@ -690,8 +690,6 @@ void Rescan::ensure_view_change_uuid_set() {
       Precondition_checker::k_min_cs_version)
     return;
 
-  auto console = mysqlsh::current_console();
-
   // Check if group_replication_view_change_uuid is already set on the cluster
   std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
   auto view_change_uuid = cluster_instance->get_sysvar_string(
@@ -707,16 +705,19 @@ void Rescan::ensure_view_change_uuid_set() {
             ->get_persisted_value("group_replication_view_change_uuid")
             .value_or("");
 
+    auto console = mysqlsh::current_console();
+
     if (!view_change_uuid_persisted.empty() &&
         view_change_uuid_persisted != view_change_uuid) {
-      console->print_note(
-          "The Cluster's group_replication_view_change_uuid is set but not "
-          "yet effective");
+      console->print_warning(
+          "The current Cluster group_replication_view_change_uuid setting does "
+          "not allow ClusterSet to be implemented, because it's set but not "
+          "yet effective.");
 
       skip_md_mismatch_check = true;
     } else {
       console->print_note(
-          "The Cluster's group_replication_view_change_uuid is not set");
+          "The Cluster's group_replication_view_change_uuid is not set.");
       console->print_info(
           "Generating and setting a value for "
           "group_replication_view_change_uuid...");
@@ -729,11 +730,10 @@ void Rescan::ensure_view_change_uuid_set() {
       auto cfg = m_cluster->create_config_object({}, false, true);
 
       cfg->set("group_replication_view_change_uuid", view_change_uuid);
-
       cfg->apply();
     }
 
-    console->print_warning(
+    console->print_note(
         "The Cluster must be completely taken OFFLINE and restarted "
         "(<<<dba.rebootClusterFromCompleteOutage>>>()) for the settings to "
         "be effective");
@@ -995,7 +995,7 @@ shcore::Value Rescan::execute() {
 
     if (view_change_uuid == "AUTOMATIC") {
       if (m_options.update_view_change_uuid.is_null()) {
-        console->print_warning(
+        console->print_note(
             "The Cluster is not configured to use "
             "'group_replication_view_change_uuid', which is required "
             "for InnoDB ClusterSet. Configuring it requires a full Cluster "
