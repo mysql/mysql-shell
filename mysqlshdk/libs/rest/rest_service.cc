@@ -385,6 +385,10 @@ class Rest_service::Impl {
 
   const Masked_string &base_url() const { return m_base_url; }
 
+  void reset_connection() {
+    m_handle.reset(curl_easy_duphandle(m_handle.get()));
+  }
+
  private:
   void verify_ssl(bool verify) {
     curl_easy_setopt(m_handle.get(), CURLOPT_SSL_VERIFYHOST, verify ? 2L : 0L);
@@ -588,6 +592,7 @@ Response::Status_code Rest_service::execute(Request *request,
   }
 
   const auto retry = [&response, &retry_strategy, this](const char *msg) {
+    m_impl->reset_connection();
     if (response && response->body) response->body->clear();
     retry_strategy->wait_for_retry();
     // this log is to have visibility of the error
