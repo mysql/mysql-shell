@@ -57,6 +57,8 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
   // retry in case of partial file error reported by CURL, can happen due to a
   // network error, when received data is shorter than reported
   retry_strategy->add_retriable_error_code(Error_code::PARTIAL_FILE);
+  // retry if operation times out, sometimes servers get stuck...
+  retry_strategy->add_retriable_error_code(Error_code::OPERATION_TIMEDOUT);
 
   // Throttling handling: equal jitter guarantees some wait time before next
   // attempt
