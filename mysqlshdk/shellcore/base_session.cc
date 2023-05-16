@@ -262,7 +262,8 @@ void ShellBaseSession::enable_sql_mode_tracking() {
   }
 
   m_is_sql_mode_tracking_enabled =
-      current_value.find("sql_mode") != std::string::npos;
+      current_value.find("sql_mode") != std::string::npos ||
+      current_value == "*";
 
   if (m_is_sql_mode_tracking_enabled) {
     log_info("Already tracking 'sql_mode'system variable.");

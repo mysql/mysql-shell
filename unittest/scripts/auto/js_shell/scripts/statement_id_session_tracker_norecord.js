@@ -1,5 +1,5 @@
 //@ {VER(>=8.0.33)}
-let result_formats=["table", "tabbed", "vertical", "json", "ndjson", "json/raw", "json/array", "json/pretty"];
+let result_formats = ["table", "tabbed", "vertical", "json", "ndjson", "json/raw", "json/array", "json/pretty"];
 let DUMP_STATEMENT_ID = 'Statement ID:';
 let JSON_STATEMENT_ID = '"statementId":';
 
@@ -33,8 +33,9 @@ function verify_statement_id_in_dump(target, present) {
 
 
 //@<> Setup
-testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {session_track_system_variables:"sql_mode"});
-testutil.deployRawSandbox(__mysql_sandbox_port2, "root", {session_track_system_variables:"statement_id"});
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root", { session_track_system_variables: "sql_mode" });
+testutil.deployRawSandbox(__mysql_sandbox_port2, "root", { session_track_system_variables: "statement_id" });
+testutil.deployRawSandbox(__mysql_sandbox_port3, "root", { session_track_system_variables: "*" });
 
 //@<> Disabled by default, no Statement ID Printed
 shell.connect(__sandbox_uri1);
@@ -95,7 +96,14 @@ EXPECT_NE(res2.statementId, "");
 EXPECT_NE(res2.getStatementId(), "");
 session.close();
 
+//@<> Enabled by default (*), Statement ID Printed
+shell.connect(__sandbox_uri3);
+verify_statement_id_in_api_dump(true);
+session.close();
+verify_statement_id_in_dump(__sandbox_uri3, true);
+
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
