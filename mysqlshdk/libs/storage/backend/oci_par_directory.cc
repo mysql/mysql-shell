@@ -23,8 +23,14 @@
 
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 
+#include <algorithm>
+#include <filesystem>
+
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -39,6 +45,78 @@ size_t Oci_par_file::file_size() const {
   }
 
   return m_file_size;
+}
+
+void Oci_par_file::open(Mode m) {
+  Http_object::open(m);
+
+  if (Mode::WRITE == m_open_mode) {
+    auto config = std::dynamic_pointer_cast<const mysqlshdk::oci::IPAR_config>(
+        m_parent_config);
+
+    m_file_path = shcore::path::join_path(config->temp_folder(), m_path);
+
+    m_file = shcore::create_private_file(m_file_path);
+  }
+}
+
+void Oci_par_file::set_write_data(Http_request *request) {
+  request->file = this;
+}
+
+void Oci_par_file::close() {
+  assert(is_open());
+
+  if (Mode::WRITE == *m_open_mode) {
+    // Resets the file position so it is read from the beginning by the HTTP Put
+    // request
+    fseek(m_file, 0, SEEK_SET);
+  }
+
+  Http_object::close();
+
+  do_close();
+}
+
+void Oci_par_file::do_close() {
+  if (m_file) {
+    std::fclose(m_file);
+    m_file = nullptr;
+    shcore::delete_file(m_file_path);
+    m_file_path.clear();
+  }
+}
+
+ssize_t Oci_par_file::read(void *buffer, size_t length) {
+  assert(is_open());
+  if (Mode::READ == *m_open_mode) {
+    return Http_object::read(buffer, length);
+  } else {
+    if (!(length > 0)) return 0;
+    const auto fsize = file_size();
+    if (m_offset >= static_cast<off64_t>(fsize)) return 0;
+
+    size_t count = fread(buffer, 1, length, m_file);
+
+    m_offset += count;
+
+    return count;
+  }
+}
+
+ssize_t Oci_par_file::write(const void *buffer, size_t length) {
+  assert(is_open() && Mode::WRITE == *m_open_mode);
+
+  size_t written = fwrite(buffer, 1, length, m_file);
+  if (length != written) {
+    throw std::runtime_error(shcore::str_format(
+        "Unexpected error writing %zi bytes to file %s, written: %zi", length,
+        this->full_path().masked().c_str(), written));
+  }
+
+  m_file_size += length;
+
+  return length;
 }
 
 std::unique_ptr<IFile> Oci_par_directory::file(

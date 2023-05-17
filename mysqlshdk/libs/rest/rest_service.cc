@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 
 #ifdef _WIN32
 #include <openssl/ssl.h>
@@ -54,9 +55,13 @@ static constexpr auto k_application_json = "application/json";
 
 std::string get_user_agent() { return "mysqlsh/" MYSH_VERSION; }
 
-size_t request_callback(char *, size_t, size_t, void *) {
+size_t request_callback(char *ptr, size_t size, size_t nitems, void *userdata) {
   // some older versions of CURL may call this callback when performing
   // POST-like request with Content-Length set to 0
+  if (userdata) {
+    auto file = static_cast<mysqlshdk::storage::IFile *>(userdata);
+    return file->read(ptr, size * nitems);
+  }
   return 0;
 }
 
@@ -309,8 +314,12 @@ class Rest_service::Impl {
     set_url(request->full_path().real());
     // body needs to be set before the type, because it implicitly sets type
     // to POST
-    set_body(request->body, request->size, synch);
-    set_type(request->type);
+    if (request->file == nullptr) {
+      set_body(request->body, request->size, synch);
+    }
+
+    set_type(request);
+
     const auto headers_deleter =
         set_headers(request->headers(), request->size != 0);
 
@@ -382,13 +391,13 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_SSL_VERIFYPEER, verify ? 1L : 0L);
   }
 
-  void set_type(Type type) {
+  void set_type(Request *request) {
     // custom request overwrites any other option, make sure it's set to
     // default
     curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, nullptr);
     curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, 0);
 
-    switch (type) {
+    switch (request->type) {
       case Type::GET:
         curl_easy_setopt(m_handle.get(), CURLOPT_HTTPGET, 1L);
         break;
@@ -405,11 +414,16 @@ class Rest_service::Impl {
         break;
 
       case Type::PUT:
-        curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
-        // We could use CURLOPT_UPLOAD here, but that would mean we have to
-        // provide request data using CURLOPT_READDATA. Using custom request
-        // allows to always use CURLOPT_COPYPOSTFIELDS.
-        curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "PUT");
+        if (request->file) {
+          curl_easy_setopt(m_handle.get(), CURLOPT_UPLOAD, 1L);
+          auto size = request->file->file_size();
+          curl_easy_setopt(m_handle.get(), CURLOPT_INFILESIZE_LARGE,
+                           (curl_off_t)size);
+          curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, request->file);
+        } else {
+          curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
+          curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "PUT");
+        }
         break;
 
       case Type::PATCH:

@@ -23,18 +23,21 @@
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 
+#include <fcntl.h>
 #include <climits>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <random>
 #include <stdexcept>
 #include <type_traits>
-#include "utils/utils_general.h"
-#include "utils/utils_path.h"
-#include "utils/utils_string.h"
+
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #ifdef _WIN32
 #include <AccCtrl.h>
@@ -78,6 +81,12 @@ std::string get_error(int error_code) {
   return errno_to_string(error_code) + str_format(" (errno %d)", error_code);
 }
 #endif
+
+class Existing_folder_error : public std::runtime_error {
+ public:
+  using runtime_error::runtime_error;
+};
+
 }  // namespace
 
 /*
@@ -461,7 +470,7 @@ void ensure_dir_exists(const std::string &path) {
  * Recursively create a directory and its parents if they don't exist.
  */
 void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive,
-                                    int mode) {
+                                    int mode, bool reuse_existing) {
   assert(!path.empty());
   for (;;) {
 #ifdef _WIN32
@@ -478,13 +487,15 @@ void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive,
         throw std::runtime_error(
             str_format("Could not create directory %s: %s", path.c_str(),
                        last_error_to_string(last_error).c_str()));
+      } else if (!reuse_existing) {
+        throw Existing_folder_error(last_error_to_string(last_error).c_str());
       }
 
       break;
     }
 
     if (ERROR_PATH_NOT_FOUND == last_error && recursive) {
-      create_directory(path::dirname(path), recursive, mode);
+      create_directory(path::dirname(path), recursive, mode, reuse_existing);
     } else {
       throw std::runtime_error(
           str_format("Could not create directory %s: %s", path.c_str(),
@@ -494,16 +505,22 @@ void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive,
     if (mkdir(path.c_str(), mode) == 0 || errno == EEXIST) {
       const auto error = errno;
 
-      if (error == EEXIST && !is_folder(path)) {
-        // path already exist but it's not a directory
-        throw std::runtime_error(str_format("Could not create directory %s: %s",
-                                            path.c_str(), strerror(error)));
+      if (error == EEXIST) {
+        if (!is_folder(path)) {
+          // path already exist but it's not a directory
+          throw std::runtime_error(
+              str_format("Could not create directory %s: %s", path.c_str(),
+                         strerror(error)));
+        } else if (!reuse_existing) {
+          throw Existing_folder_error(strerror(error));
+        }
       }
 
       break;
     }
+
     if (errno == ENOENT && recursive) {
-      create_directory(path::dirname(path), recursive, mode);
+      create_directory(path::dirname(path), recursive, mode, reuse_existing);
     } else {
       throw std::runtime_error(str_format("Could not create directory %s: %s",
                                           path.c_str(), strerror(errno)));
@@ -1417,4 +1434,66 @@ std::string get_tempfile_path(const std::string &cnf_path) {
   return tmp_file_path;
 }
 
+FILE *create_private_file(const std ::string &path) {
+  FILE *file = nullptr;
+  int fd = 0;
+
+#ifdef _WIN32
+  const auto wpath = shcore::utf8_to_wide(path);
+  _wsopen_s(&fd, wpath.c_str(), O_RDWR | O_CREAT | O_BINARY, _SH_DENYWR,
+            _S_IREAD | _S_IWRITE);
+#else
+  fd = ::open(path.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+#endif
+
+  if (fd >= 0) {
+#ifdef _WIN32
+    file = _fdopen(fd, "w+b");
+#else
+    file = fdopen(fd, "w+b");
+#endif
+    if (nullptr == file) {
+      throw std::runtime_error(
+          shcore::str_format("Error opening private file '%s': %s",
+                             path.c_str(), strerror(errno)));
+    }
+
+  } else {
+    throw std::runtime_error(shcore::str_format(
+        "Error creating private file '%s': %s", path.c_str(), strerror(errno)));
+  }
+
+  return file;
+}
+
+std::string create_temporary_folder(size_t max_attempts) {
+  std::string dir_path;
+  std::string error;
+  while (max_attempts > 0) {
+    try {
+      std::string name("mysqlsh-");
+      name.append(
+          shcore::get_random_string(10,
+                                    "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmno"
+                                    "pqrstuvwxyz1234567890"));
+      dir_path = path::join_path(
+          std::filesystem::temp_directory_path().string(), name);
+
+      create_directory(dir_path, true, 0700, false);
+
+      break;
+    } catch (const Existing_folder_error &err) {
+      error = err.what();
+      --max_attempts;
+      dir_path.clear();
+    }
+  }
+
+  if (dir_path.empty()) {
+    throw std::runtime_error(
+        str_format("Error creating temporary directory: %s", error.c_str()));
+  }
+
+  return dir_path;
+}
 }  // namespace shcore

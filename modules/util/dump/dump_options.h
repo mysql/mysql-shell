@@ -148,6 +148,8 @@ class Dump_options {
 
   virtual std::size_t threads() const = 0;
 
+  virtual std::size_t worker_threads() const { return threads(); }
+
   virtual bool is_export_only() const = 0;
 
   virtual bool use_single_file() const = 0;

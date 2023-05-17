@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,8 @@
 #include "mysqlshdk/libs/utils/masked_value.h"
 
 #include "mysqlshdk/libs/rest/headers.h"
+
+#include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlshdk {
 namespace rest {
@@ -97,6 +99,11 @@ struct Request {
    * Retry strategy to use.
    */
   Retry_strategy *retry_strategy = nullptr;
+
+  /**
+   * Causes a PUT request to load the data from this file
+   */
+  mysqlshdk::storage::IFile *file = nullptr;
 
  protected:
   Masked_string m_path;

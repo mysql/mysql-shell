@@ -65,7 +65,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .include<Dump_options>()
           .optional("chunking", &Ddl_dumper_options::m_split)
           .optional("bytesPerChunk", &Ddl_dumper_options::set_bytes_per_chunk)
-          .optional("threads", &Ddl_dumper_options::m_threads)
+          .optional("threads", &Ddl_dumper_options::set_threads)
           .optional("triggers", &Ddl_dumper_options::m_dump_triggers)
           .optional("tzUtc", &Ddl_dumper_options::m_timezone_utc)
           .optional("ddlOnly", &Ddl_dumper_options::m_ddl_only)
@@ -174,6 +174,13 @@ void Ddl_dumper_options::set_dry_run(bool dry_run) {
   set_dry_run_mode(dry_run ? Dry_run::DONT_WRITE_ANY_FILES : Dry_run::DISABLED);
 }
 
+void Ddl_dumper_options::set_threads(uint64_t threads) {
+  m_threads = threads;
+
+  // By default, m_worker_threads is equal to m_threads
+  m_worker_threads = threads;
+}
+
 const Object_storage_options *Ddl_dumper_options::object_storage_options()
     const {
   if (m_dump_manifest_options) {
@@ -201,6 +208,9 @@ void Ddl_dumper_options::set_output_url(const std::string &url) {
     } else {
       if (par.type() == mysqlshdk::oci::PAR_type::PREFIX) {
         set_storage_config(dump::common::get_par_config(par));
+
+        // For dumps with PAR prefix, doubles the number of worker threads
+        m_worker_threads = m_threads * 2;
       } else {
         throw std::invalid_argument("The given URL is not a prefix PAR.");
       }

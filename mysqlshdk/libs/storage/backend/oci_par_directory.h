@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 
+#include <cstdio>
 #include <optional>
 #include <string>
 #include <vector>
@@ -45,13 +46,30 @@ class Oci_par_file : public Http_object {
   Oci_par_file &operator=(const Oci_par_file &other) = delete;
   Oci_par_file &operator=(Oci_par_file &&other) = default;
 
-  ~Oci_par_file() = default;
+  ~Oci_par_file() override { do_close(); }
 
   int error() const override { return 0; }
 
-  off64_t tell() const override { return m_file_size; }
+  off64_t tell() const override { return m_offset; }
 
   size_t file_size() const override;
+
+  void open(Mode m) override;
+
+  void close() override;
+
+  ssize_t read(void *buffer, size_t length) override;
+
+  ssize_t write(const void *, size_t) override;
+
+ private:
+  void do_close();
+
+  void set_write_data(Http_request *request) override;
+
+  std::string m_file_path;
+
+  std::FILE *m_file = nullptr;
 };
 
 class Oci_par_directory : public Http_directory {

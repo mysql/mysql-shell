@@ -25,7 +25,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <iterator>
@@ -57,6 +56,7 @@
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/std.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
@@ -344,31 +344,6 @@ bool check_if_transactions_are_ddl_safe(
 }
 
 }  // namespace
-
-class Dumper::Synchronize_workers final {
- public:
-  Synchronize_workers() = default;
-  ~Synchronize_workers() = default;
-
-  void wait_for(const uint16_t count) {
-    std::unique_lock<std::mutex> lock(m_mutex);
-    m_condition.wait(lock, [this, count]() { return m_count >= count; });
-    m_count -= count;
-  }
-
-  void notify() {
-    {
-      std::lock_guard<std::mutex> lock(m_mutex);
-      ++m_count;
-    }
-    m_condition.notify_one();
-  }
-
- private:
-  std::mutex m_mutex;
-  std::condition_variable m_condition;
-  uint16_t m_count = 0;
-};
 
 class Dumper::Dump_writer_controller {
  public:
@@ -705,6 +680,12 @@ class Dumper::Table_worker final {
 
   ~Table_worker() = default;
 
+  void release_session() {
+    if (m_session) {
+      m_dumper->session_pool().push(std::move(m_session));
+    }
+  }
+
   void run() {
     std::string context;
 
@@ -714,14 +695,6 @@ class Dumper::Table_worker final {
                                    {"id", std::to_string(m_id)}}));
 
       mysqlsh::Mysql_thread mysql_thread;
-      shcore::on_leave_scope close_session([this]() {
-        if (m_session) {
-          m_session->close();
-        }
-      });
-
-      open_session();
-
       m_rate_limit =
           mysqlshdk::utils::Rate_limit(m_dumper->m_options.max_rate());
 
@@ -738,14 +711,20 @@ class Dumper::Table_worker final {
 
         context = std::move(work.info);
 
+        m_session = m_dumper->session_pool().pop();
+        shcore::on_leave_scope session_releaser(
+            [this]() { release_session(); });
+
+        if (m_dumper->m_worker_interrupt) {
+          return;
+        }
+
         work.task(this);
 
         if (m_dumper->m_worker_interrupt) {
           return;
         }
       }
-
-      m_dumper->assert_transaction_is_open(m_session);
     } catch (const mysqlshdk::db::Error &e) {
       handle_exception(context, e.format().c_str());
     } catch (const shcore::Error &e) {
@@ -764,18 +743,6 @@ class Dumper::Table_worker final {
 
  private:
   friend class Dumper;
-
-  void open_session() {
-    // notify dumper that the session has been established
-    shcore::on_leave_scope notify_dumper(
-        [this]() { m_dumper->m_worker_synchronization->notify(); });
-
-    m_session =
-        establish_session(m_dumper->session()->get_connection_options(), false);
-
-    m_dumper->start_transaction(m_session);
-    m_dumper->on_init_thread_session(m_session);
-  }
 
   inline std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql) const {
@@ -874,6 +841,8 @@ class Dumper::Table_worker final {
                 full_query.c_str(), e.format().c_str());
       throw;
     }
+
+    release_session();
 
     controller->finish_writing();
 
@@ -1579,6 +1548,7 @@ class Dumper::Table_worker final {
 
   void handle_exception(const std::string &context, const char *msg) {
     m_dumper->m_worker_exceptions[m_id] = std::current_exception();
+    m_dumper->m_worker_exception_thrown = true;
     current_console()->print_error(
         m_log_id + (context.empty() ? "" : "Error while " + context + ": ") +
         msg);
@@ -1828,10 +1798,6 @@ Dumper::Dumper(const Dump_options &options)
       mysqlshdk::storage::get_extension(m_options.compression());
 }
 
-// needs to be defined here due to Dumper::Synchronize_workers being
-// incomplete type
-Dumper::~Dumper() = default;
-
 void Dumper::run() {
   if (m_options.is_dry_run()) {
     current_console()->print_info(
@@ -1934,14 +1900,14 @@ void Dumper::do_run() {
         return;
       }
 
+      create_worker_sessions();
+
       create_worker_threads();
 
       m_current_stage->finish();
 
       // initialize cache while threads are starting up
       initialize_instance_cache();
-
-      wait_for_workers();
 
       if (m_options.consistent_dump() && !m_worker_interrupt) {
         current_console()->print_info("All transactions have been started");
@@ -1955,6 +1921,20 @@ void Dumper::do_run() {
             "consistent");
       }
     }
+
+    shcore::on_leave_scope cleanup([this]() {
+      // Ensures all the worker sessions get closed
+      size_t worker_sessions = m_options.threads();
+      while (worker_sessions) {
+        auto session = m_session_pool.pop();
+
+        if (!m_worker_exception_thrown) {
+          assert_transaction_is_open(session);
+        }
+        session->close();
+        --worker_sessions;
+      }
+    });
 
     create_schema_tasks();
 
@@ -2803,21 +2783,28 @@ void Dumper::close_output_directory() {
   m_output_dir.reset();
 }
 
+void Dumper::create_worker_sessions() {
+  for (std::size_t i = 0; i < m_options.threads(); ++i) {
+    auto worker_session =
+        establish_session(session()->get_connection_options(), false);
+
+    start_transaction(worker_session);
+    on_init_thread_session(worker_session);
+
+    m_session_pool.push(std::move(worker_session));
+  }
+}
+
 void Dumper::create_worker_threads() {
   m_worker_exceptions.clear();
-  m_worker_exceptions.resize(m_options.threads());
-  m_worker_synchronization = std::make_unique<Synchronize_workers>();
+  m_worker_exceptions.resize(m_options.worker_threads());
 
-  for (std::size_t i = 0; i < m_options.threads(); ++i) {
+  for (std::size_t i = 0; i < m_options.worker_threads(); ++i) {
     auto t = mysqlsh::spawn_scoped_thread(
         &Table_worker::run,
         Table_worker{i, this, Table_worker::Exception_strategy::ABORT});
     m_workers.emplace_back(std::move(t));
   }
-}
-
-void Dumper::wait_for_workers() {
-  m_worker_synchronization->wait_for(m_workers.size());
 }
 
 void Dumper::maybe_push_shutdown_tasks() {

@@ -56,6 +56,8 @@ class Ddl_dumper_options : public Dump_options {
 
   std::size_t threads() const override { return m_threads; }
 
+  std::size_t worker_threads() const override { return m_worker_threads; }
+
   bool is_export_only() const override { return false; }
 
   bool use_single_file() const override { return false; }
@@ -96,6 +98,7 @@ class Ddl_dumper_options : public Dump_options {
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
   void set_dry_run(bool dry_run);
+  void set_threads(uint64_t threads);
   const Object_storage_options *object_storage_options() const;
 
   Dump_manifest_options m_dump_manifest_options;
@@ -106,7 +109,14 @@ class Ddl_dumper_options : public Dump_options {
 
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
+
+  // Number of threads requested by the user (or default)
+  // At most this number of database connections will be used in the dump
+  // operation.
   uint64_t m_threads = 4;
+
+  // Internal number of threads (to be doubled in the case of prefix PAR dumps)
+  uint64_t m_worker_threads = 4;
 
   bool m_dump_triggers = true;
   bool m_timezone_utc = true;

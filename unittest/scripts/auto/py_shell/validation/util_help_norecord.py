@@ -131,10 +131,10 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
@@ -948,7 +948,8 @@ DESCRIPTION
       to perform the dump operation. A bucket or prefix PAR with the following
       access types is required to perform a dump with this method:
 
-      - Permit object reads and writes. - Enable object listing.
+      - Permit object reads and writes.
+      - Enable object listing.
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
@@ -965,6 +966,17 @@ DESCRIPTION
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
+
+      When using a PAR, a temporary directory is created to be used as staging
+      area; each file is initially buffered to disk and then sent to the target
+      bucket, deleting it when it is transferred.
+
+      This will be done on the system temporary directory, defined by any of
+      the following environment variables:
+
+      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
+      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
+        directory.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -1543,7 +1555,8 @@ DESCRIPTION
       to perform the dump operation. A bucket or prefix PAR with the following
       access types is required to perform a dump with this method:
 
-      - Permit object reads and writes. - Enable object listing.
+      - Permit object reads and writes.
+      - Enable object listing.
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
@@ -1560,6 +1573,17 @@ DESCRIPTION
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
+
+      When using a PAR, a temporary directory is created to be used as staging
+      area; each file is initially buffered to disk and then sent to the target
+      bucket, deleting it when it is transferred.
+
+      This will be done on the system temporary directory, defined by any of
+      the following environment variables:
+
+      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
+      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
+        directory.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -2132,7 +2156,8 @@ DESCRIPTION
       to perform the dump operation. A bucket or prefix PAR with the following
       access types is required to perform a dump with this method:
 
-      - Permit object reads and writes. - Enable object listing.
+      - Permit object reads and writes.
+      - Enable object listing.
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
@@ -2149,6 +2174,17 @@ DESCRIPTION
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
+
+      When using a PAR, a temporary directory is created to be used as staging
+      area; each file is initially buffered to disk and then sent to the target
+      bucket, deleting it when it is transferred.
+
+      This will be done on the system temporary directory, defined by any of
+      the following environment variables:
+
+      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
+      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
+        directory.
 
       Enabling dump loading using pre-authenticated requests
 
@@ -2506,7 +2542,8 @@ DESCRIPTION
       to perform the dump operation. A bucket or prefix PAR with the following
       access types is required to perform a dump with this method:
 
-      - Permit object reads and writes. - Enable object listing.
+      - Permit object reads and writes.
+      - Enable object listing.
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
@@ -2523,6 +2560,17 @@ DESCRIPTION
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
+
+      When using a PAR, a temporary directory is created to be used as staging
+      area; each file is initially buffered to disk and then sent to the target
+      bucket, deleting it when it is transferred.
+
+      This will be done on the system temporary directory, defined by any of
+      the following environment variables:
+
+      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
+      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
+        directory.
 
       Dumping to a Bucket in the AWS S3 Object Storage
 

@@ -25,9 +25,11 @@
 #define MODULES_UTIL_DUMP_DUMPER_H_
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -65,7 +67,7 @@ class Dumper {
   Dumper &operator=(const Dumper &) = delete;
   Dumper &operator=(Dumper &&) = delete;
 
-  virtual ~Dumper();
+  virtual ~Dumper() = default;
 
   void run();
 
@@ -161,8 +163,6 @@ class Dumper {
     std::function<void(Table_worker *)> task;
   };
 
-  class Synchronize_workers;
-
   class Dump_info;
 
   class Memory_dumper;
@@ -228,9 +228,9 @@ class Dumper {
 
   void close_output_directory();
 
-  void create_worker_threads();
+  void create_worker_sessions();
 
-  void wait_for_workers();
+  void create_worker_threads();
 
   void maybe_push_shutdown_tasks();
 
@@ -370,6 +370,11 @@ class Dumper {
 
   void throw_if_cannot_dump_users() const;
 
+  shcore::Synchronized_queue<std::shared_ptr<mysqlshdk::db::ISession>>
+      &session_pool() {
+    return m_session_pool;
+  }
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
@@ -435,10 +440,10 @@ class Dumper {
   // threads
   std::vector<std::thread> m_workers;
   std::vector<std::exception_ptr> m_worker_exceptions;
+  std::atomic<bool> m_worker_exception_thrown = false;
   shcore::Synchronized_queue<Task_info> m_worker_tasks;
   std::atomic<uint64_t> m_chunking_tasks;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
-  std::unique_ptr<Synchronize_workers> m_worker_synchronization;
   std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   volatile bool m_worker_interrupt = false;
 
@@ -448,6 +453,9 @@ class Dumper {
   mutable Progress_thread m_progress_thread;
   mutable Progress_thread::Stage *m_current_stage = nullptr;
   Progress_thread::Stage *m_data_dump_stage = nullptr;
+
+  shcore::Synchronized_queue<std::shared_ptr<mysqlshdk::db::ISession>>
+      m_session_pool;
 };
 
 }  // namespace dump

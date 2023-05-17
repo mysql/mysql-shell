@@ -113,6 +113,8 @@ class Http_object : public IFile {
   void throw_if_error(const std::optional<rest::Response_error> &error,
                       const std::string &context) const;
 
+  virtual void set_write_data(Http_request *request);
+
   std::optional<rest::Response_error> fetch_file_size() const;
 
   off64_t m_offset = 0;

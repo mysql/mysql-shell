@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,8 @@ bool SHCORE_PUBLIC is_folder(const std::string &filename);
 bool SHCORE_PUBLIC path_exists(const std::string &path);
 void SHCORE_PUBLIC ensure_dir_exists(const std::string &path);  // delme
 void SHCORE_PUBLIC create_directory(const std::string &path,
-                                    bool recursive = true, int mode = 0700);
+                                    bool recursive = true, int mode = 0700,
+                                    bool reuse_existing = true);
 void SHCORE_PUBLIC remove_directory(const std::string &path,
                                     bool recursive = true);
 std::string SHCORE_PUBLIC get_last_error();
@@ -152,6 +153,9 @@ check_file_access_rights_to_open(const std::string &file_name);
  *        name).
  */
 std::string SHCORE_PUBLIC get_tempfile_path(const std::string &file_path);
+
+FILE *create_private_file(const std ::string &path);
+std::string create_temporary_folder(size_t max_attempts = 10);
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_FILE_H_

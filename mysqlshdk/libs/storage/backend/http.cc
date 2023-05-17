@@ -205,6 +205,11 @@ std::unique_ptr<IDirectory> Http_object::parent() const {
   return make_directory(m_base.real(), m_parent_config);
 }
 
+void Http_object::set_write_data(Http_request *request) {
+  request->body = m_buffer.data();
+  request->size = m_buffer.size();
+}
+
 void Http_object::close() {
   assert(is_open());
 
@@ -212,8 +217,7 @@ void Http_object::close() {
     auto request = Http_request(m_path, m_use_retry,
                                 {{"content-type", "application/octet-stream"}});
 
-    request.body = m_buffer.data();
-    request.size = m_buffer.size();
+    set_write_data(&request);
 
     throw_if_error(get_rest_service(m_base)->put(&request).get_error(),
                    "Failed to put object");
