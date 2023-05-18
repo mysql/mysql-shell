@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/common_status.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/server_features.h"
@@ -2255,6 +2256,26 @@ shcore::Dictionary_t Status::get_read_replicas_info(
       // The reason why the source is empty might be because the replica was in
       // error state and the channel was then stopped
       if (rr_info.current_source_server_uuid.empty()) {
+        rogue_read_replicas.push_back(rr_info);
+        continue;
+      }
+
+      // If the current source does not belong to the cluster anymore, the
+      // instance must be considered rogue. The instance might have
+      // entered an error state and during that period the current source was
+      // removed from the cluster
+      try {
+        // Attempt to get the current source from the Cluster
+        m_cluster->get_metadata_storage()->get_instance_by_uuid(
+            rr_info.current_source_server_uuid);
+      } catch (const shcore::Exception &e) {
+        if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) {
+          log_info("Error querying metadata for %s: %s\n",
+                   rr_info.current_source_server_uuid.c_str(), e.what());
+        }
+
+        // The source does not belong to the Cluster anymore, place the
+        // read-replica under the primary, as rogue
         rogue_read_replicas.push_back(rr_info);
         continue;
       }

@@ -436,6 +436,53 @@ EXPECT_EQ("ERROR: Could not connect to the Read-Replica: The instance is unreach
 
 EXPECT_EQ({}, status["defaultReplicaSet"]["topology"][__endpoint2]["readReplicas"]);
 
+cluster.switchToSinglePrimaryMode();
+testutil.startSandbox(__mysql_sandbox_port5);
+cluster.removeInstance(__endpoint4, {force: true});
+CHECK_READ_REPLICA(__sandbox_uri5, cluster, "primary", __endpoint1);
+
+session5 = mysql.getSession(__sandbox_uri5);
+
+session5.runSql("stop replica");
+
+session1 = mysql.getSession(__sandbox_uri1);
+
+session1.runSql("CREATE schema foobar;")
+
+var session2 = mysql.getSession(__sandbox_uri2);
+
+session1.runSql("FLUSH BINARY LOGS");
+session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+session2.runSql("FLUSH BINARY LOGS");
+session2.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+
+session5.runSql("start replica");
+
+// Check error
+status = cluster.status();
+print(status);
+read_replica1 = status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint5];
+
+EXPECT_EQ(__endpoint5, read_replica1["address"]);
+EXPECT_EQ("ERROR", read_replica1["status"]);
+
+var regexp = /WARNING: Read Replica's replication channel stopped with a connection error: 'Got fatal error \d+ from source when reading data from binary log: 'Cannot replicate because the source purged required binary logs\. Replicate the missing transactions from elsewhere, or provision a new replica from backup\. Consider increasing the source's binary log expiration period\. The GTID set sent by the replica is '[0-9a-f-:,\s]+', and the missing transactions are '[0-9a-f-:,\s]+'''\. Use Cluster\.rejoinInstance\(\) to restore it\./;
+
+EXPECT_TRUE(read_replica1["instanceErrors"][0].match(regexp));
+
+cluster.setPrimaryInstance(__endpoint2);
+cluster.removeInstance(__endpoint1);
+
+// Confirm the instance is still placed under the current primary after the switch
+status = cluster.status();
+print(status);
+read_replica1 = status["defaultReplicaSet"]["topology"][__endpoint2]["readReplicas"][__endpoint5];
+
+EXPECT_EQ(__endpoint5, read_replica1["address"]);
+EXPECT_EQ("ERROR", read_replica1["status"]);
+
+EXPECT_TRUE(read_replica1["instanceErrors"][0].match(regexp));
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port4);
