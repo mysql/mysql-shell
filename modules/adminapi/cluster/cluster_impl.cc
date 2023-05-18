@@ -4453,10 +4453,17 @@ Member_recovery_method Cluster_impl::check_recovery_method(
 
   std::shared_ptr<Instance> donor_instance = get_cluster_server();
 
-  auto recovery_method = mysqlsh::dba::validate_instance_recovery(
-      Cluster_type::GROUP_REPLICATION, op_action, *donor_instance,
-      target_instance, check_recoverable, selected_recovery_method,
-      get_gtid_set_is_complete(), interactive, get_disable_clone_option());
+  Member_recovery_method recovery_method;
+  {
+    // to avoid trace order mismatch
+    auto gtid_set_is_complete = get_gtid_set_is_complete();
+    auto disable_clone_option = get_disable_clone_option();
+
+    recovery_method = mysqlsh::dba::validate_instance_recovery(
+        Cluster_type::GROUP_REPLICATION, op_action, *donor_instance,
+        target_instance, check_recoverable, selected_recovery_method,
+        gtid_set_is_complete, interactive, disable_clone_option);
+  }
 
   // If recovery method was selected as clone, check that there is at least one
   // ONLINE cluster instance not using IPV6, otherwise throw an error
