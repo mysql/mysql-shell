@@ -1105,14 +1105,16 @@ for (i = 0; i < NUM_DATA_ROWS; i++) {
 var stat = cluster.status({extended:1});
 var comm_stack = json_find_key(stat, "defaultReplicaSet")["communicationStack"];
 
-//@<> XCOM stack
+session.close();
 
-// Drop replication accounts
+//@<> Verify that any error present in PFS is added to the status of the members when calling cluster.status() {!__dbug_off}
 if (comm_stack == "XCOM") {
-    var accounts = session.runSql("select concat(user, '@', quote(host)) from mysql.user where user like 'mysql_innodb_cluster%'").fetchAll();
+    // Drop replication accounts
+    var session1 = mysql.getSession(__sandbox_uri1);
+    var accounts = session1.runSql("select concat(user, '@', quote(host)) from mysql.user where user like 'mysql_innodb_cluster%'").fetchAll();
     for (var i in accounts) {
         var user = accounts[i][0];
-        session.runSql("drop user "+user);
+        session1.runSql("drop user "+user);
     }
 
     testutil.startSandbox(__mysql_sandbox_port2);
@@ -1122,6 +1124,7 @@ if (comm_stack == "XCOM") {
     cluster.rejoinInstance(__sandbox_uri2);
 
     EXPECT_EQ(1045, testutil.waitForReplConnectionError(__mysql_sandbox_port2));
+    testutil.dbugSet("");
 
     var stat = cluster.status({extended:3});
     println(stat);
@@ -1134,10 +1137,8 @@ if (comm_stack == "XCOM") {
     EXPECT_EQ("CONNECTION_ERROR", recovery["state"]);
     EXPECT_NE(undefined, recovery["receiverErrorNumber"]);
     EXPECT_NE(undefined, recovery["state"]);
-}
-
-//@<> MYSQL stack {!__dbug_off}
-if (comm_stack == "MYSQL") {
+    session1.close();
+} else if (comm_stack == "MYSQL") {
     testutil.startSandbox(__mysql_sandbox_port2);
 
     testutil.dbugSet("+d,fail_recovery_mysql_stack");
