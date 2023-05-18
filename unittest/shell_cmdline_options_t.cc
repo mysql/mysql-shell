@@ -176,7 +176,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "run_file")
       return options->run_file;
     else if (option == "connect-timeout")
-      return options->connection_options().get(mysqlshdk::db::kConnectTimeout);
+      return std::to_string(
+          options->connection_options().get_connect_timeout());
     else if (option == "quiet-start")
       return AS__STRING(static_cast<int>(options->quiet_start));
     else if (option == "showColumnTypeInfo")
@@ -1614,7 +1615,7 @@ TEST_F(Shell_cmdline_options, invalid_connect_timeout) {
     std::string error("Invalid value '");
     error.append(value);
     error.append(
-        "' for 'connect-timeout'. The connection timeout value must "
+        "' for 'connect-timeout'. The timeout value must "
         "be a positive integer (including 0).\n");
 
     std::streambuf *backup = std::cerr.rdbuf();

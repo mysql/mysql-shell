@@ -182,12 +182,12 @@ void Load_dump_options::set_session(
   m_target.set(mysqlshdk::db::kLocalInfile, "true");
 
   // Set long timeouts by default
-  std::string timeout = "86400000";  // 1 day in milliseconds
-  if (!m_target.has(mysqlshdk::db::kNetReadTimeout)) {
-    m_target.set(mysqlshdk::db::kNetReadTimeout, timeout);
+  constexpr auto timeout = 86400000;  // 1 day in milliseconds
+  if (!m_target.has_net_read_timeout()) {
+    m_target.set_net_read_timeout(timeout);
   }
-  if (!m_target.has(mysqlshdk::db::kNetWriteTimeout)) {
-    m_target.set(mysqlshdk::db::kNetWriteTimeout, timeout);
+  if (!m_target.has_net_write_timeout()) {
+    m_target.set_net_write_timeout(timeout);
   }
 
   // set size of max packet (~size of 1 row) we can send to server

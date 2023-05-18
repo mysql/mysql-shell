@@ -701,12 +701,8 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   // is user has specified the connect-timeout connection option, use that
   // value explicitly
   if (instance_def.has_value(mysqlshdk::db::kConnectTimeout)) {
-    if (connect_opts.has_value(mysqlshdk::db::kConnectTimeout)) {
-      connect_opts.remove(mysqlshdk::db::kConnectTimeout);
-    }
-
     connect_opts.set(mysqlshdk::db::kConnectTimeout,
-                     instance_def.get(mysqlshdk::db::kConnectTimeout));
+                     instance_def.get_connect_timeout());
   }
 
   if (allow_account_override) {

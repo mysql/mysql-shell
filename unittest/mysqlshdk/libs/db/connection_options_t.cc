@@ -294,6 +294,25 @@ auto callback = [](const std::string &property, const std::string &twisted,
     EXPECT_STREQ(arg_value.c_str(), value.c_str());
   }
 };
+
+using get_prop_t =
+    std::function<int(const mysqlshdk::db::Connection_options &data)>;
+
+auto callback_int = [](const std::string &property, const std::string &twisted,
+                       const std::string &arg_value, get_prop_t get_property) {
+  std::string uri = "mysql://root@host?" + twisted + "=" + arg_value;
+  mysqlshdk::db::Connection_options data(uri);
+  if (!data.has(property)) {
+    std::string failed = "Failed Property: " + twisted;
+    SCOPED_TRACE(failed);
+    ADD_FAILURE();
+  } else {
+    std::string value = std::to_string(get_property(data));
+    std::string failed = "Unexpected Value: " + value;
+    SCOPED_TRACE(failed);
+    EXPECT_STREQ(arg_value.c_str(), value.c_str());
+  }
+};
 }  // namespace case_insensitive
 
 TEST(Connection_options, case_insensitive_ssl_mode) {
@@ -337,6 +356,8 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kGetServerPublicKey);
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
   attributes.erase(mysqlshdk::db::kConnectTimeout);
+  attributes.erase(mysqlshdk::db::kNetReadTimeout);
+  attributes.erase(mysqlshdk::db::kNetWriteTimeout);
   attributes.erase(mysqlshdk::db::kCompression);
   attributes.erase(mysqlshdk::db::kCompressionLevel);
   attributes.erase(mysqlshdk::db::kConnectionAttributes);
@@ -349,27 +370,31 @@ TEST(Connection_options, case_insensitive_options) {
   }
 }
 
-TEST(Connection_options, connect_timeout) {
-  // Tests case insensitiveness of the connect-timeout option
-  // This callback will get called with every combination of
-  // uppercase/lowercase letters for connect-timeout
-  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
-                            std::placeholders::_2, "1000");
+void test_int_timeout(const char *timeout_param,
+                      case_insensitive::get_prop_t get_property) {
+  auto callback_int =
+      std::bind(case_insensitive::callback_int, std::placeholders::_1,
+                std::placeholders::_2, "1000", get_property);
 
-  combine(mysqlshdk::db::kConnectTimeout, callback);
+  combine(timeout_param, callback_int);
 
   // Test rejection of invalid values
+
   auto invalid_values = {"-1", "-100", "10.0", "whatever"};
 
   for (const auto &value : invalid_values) {
-    std::string uri("root@host?connect-timeout=");
+    std::string uri("root@host?");
+    uri.append(timeout_param);
+    uri.append("=");
     uri.append(value);
 
     std::string msg("Invalid value '");
     msg.append(value);
+    msg.append("' for '");
+    msg.append(timeout_param);
     msg.append(
-        "' for 'connect-timeout'. The connection timeout value must "
-        "be a positive integer (including 0).");
+        "'. The timeout value must be a positive integer (including "
+        "0).");
 
     std::string uri_msg("Invalid URI: ");
     uri_msg.append(msg);
@@ -378,21 +403,50 @@ TEST(Connection_options, connect_timeout) {
 
     mysqlshdk::db::Connection_options sample;
     MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
-                    sample.set(mysqlshdk::db::kConnectTimeout, value));
+                    sample.set(timeout_param, value));
   }
 
   // Tests acceptance of valid values
   auto valid_values = {"0", "1000", "10000"};
 
   for (const auto &value : valid_values) {
-    std::string uri("root@host?connect-timeout=");
+    std::string uri("root@host?");
+    uri.append(timeout_param);
+    uri.append("=");
     uri.append(value);
 
     EXPECT_NO_THROW({ mysqlshdk::db::Connection_options data(uri); });
 
     mysqlshdk::db::Connection_options sample;
-    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kConnectTimeout, value));
+    EXPECT_NO_THROW(sample.set(timeout_param, value));
   }
+}
+
+TEST(Connection_options, connect_timeout) {
+  // Tests case insensitiveness of the connect-timeout option
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for connect-timeout
+
+  test_int_timeout(mysqlshdk::db::kConnectTimeout,
+                   &mysqlshdk::db::Connection_options::get_connect_timeout);
+}
+
+TEST(Connection_options, net_read_timeout) {
+  // Tests case insensitiveness of the net-read-timeout option
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for net-read-timeout
+
+  test_int_timeout(mysqlshdk::db::kNetReadTimeout,
+                   &mysqlshdk::db::Connection_options::get_net_read_timeout);
+}
+
+TEST(Connection_options, net_write_timeout) {
+  // Tests case insensitiveness of the net-read-timeout option
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters for net-read-timeout
+
+  test_int_timeout(mysqlshdk::db::kNetWriteTimeout,
+                   &mysqlshdk::db::Connection_options::get_net_write_timeout);
 }
 
 TEST(Connection_options, compression) {

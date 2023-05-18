@@ -148,6 +148,8 @@ inline const std::set<std::string> uri_connection_attributes = {
     kGetServerPublicKey,
     kServerPublicKeyPath,
     kConnectTimeout,
+    kNetReadTimeout,
+    kNetWriteTimeout,
     kCompression,
     kCompressionAlgorithms,
     kCompressionLevel,

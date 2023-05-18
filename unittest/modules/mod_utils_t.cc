@@ -124,7 +124,7 @@ TEST(modules_mod_utils, get_connection_data_connect_timeout) {
     std::string msg("Invalid value '");
     msg.append(value.descr());
     msg.append(
-        "' for 'connect-timeout'. The connection timeout value must "
+        "' for 'connect-timeout'. The timeout value must "
         "be a positive integer (including 0).");
 
     EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),

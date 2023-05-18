@@ -330,14 +330,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   // Sets the connection timeout
   int64_t connect_timeout = mysqlshdk::db::default_connect_timeout();
-  if (_connection_options.has(kConnectTimeout)) {
-    connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+  if (_connection_options.has_connect_timeout()) {
+    connect_timeout = _connection_options.get_connect_timeout();
   }
   _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Connect_timeout,
                            connect_timeout);
   // Set read timeout
-  if (_connection_options.has(kNetReadTimeout)) {
-    int64_t read_timeout = std::stoi(_connection_options.get(kNetReadTimeout));
+  if (_connection_options.has_net_read_timeout()) {
+    int64_t read_timeout = _connection_options.get_net_read_timeout();
     _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Read_timeout,
                              read_timeout);
   }

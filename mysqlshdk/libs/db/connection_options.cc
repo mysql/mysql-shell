@@ -65,6 +65,17 @@ const std::set<std::string> uri_extra_options = {
 const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
     deprecated_connection_attributes = {{kDbUser, kUser},
                                         {kDbPassword, kPassword}};
+
+int lexical_cast_timeout(const std::string &name, const std::string &value) {
+  try {
+    auto result = shcore::lexical_cast<int>(value);
+    if (result < 0) throw std::exception();
+    return result;
+  } catch (...) {
+    Connection_options::throw_invalid_timeout(name.c_str(), value);
+  }
+  throw std::runtime_error("lexical_cast_timeout invalid operation.");
+}
 }  // namespace
 
 std::string to_string(Transport_type type) {
@@ -346,6 +357,7 @@ bool Connection_options::is_bool_value(const std::string &value) {
 
 void Connection_options::set(const std::string &name,
                              const std::string &value) {
+  using namespace std::string_literals;
   const std::string iname = get_iname(name);
   if (name != iname)
     m_warnings.emplace_back("'" + name +
@@ -373,6 +385,12 @@ void Connection_options::set(const std::string &name,
     set_compression(value);
   } else if (iname == kCompressionAlgorithms) {
     set_compression_algorithms(value);
+  } else if (compare(iname, db::kConnectTimeout) == 0) {
+    set_connect_timeout(lexical_cast_timeout(db::kConnectTimeout, value));
+  } else if (compare(iname, db::kNetReadTimeout) == 0) {
+    set_net_read_timeout(lexical_cast_timeout(db::kNetReadTimeout, value));
+  } else if (compare(iname, db::kNetWriteTimeout) == 0) {
+    set_net_write_timeout(lexical_cast_timeout(db::kNetWriteTimeout, value));
   }
 #ifdef _WIN32
   else if (iname == kKerberosClientAuthMode) {
@@ -386,12 +404,6 @@ void Connection_options::set(const std::string &name,
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "
                                "values: true, false, 1, 0.",
                                value.c_str(), iname.c_str()));
-      }
-    } else if (iname == kConnectTimeout) {
-      for (auto digit : value) {
-        if (!std::isdigit(digit)) {
-          throw_invalid_connect_timeout(value);
-        }
       }
     }
 
@@ -416,8 +428,8 @@ void Connection_options::set(const std::string &name,
     try {
       set_compression_level(shcore::lexical_cast<int>(value));
     } catch (...) {
-      throw std::invalid_argument(std::string("The value of '") +
-                                  kCompressionLevel + "' must be an integer.");
+      throw std::invalid_argument("The value of '"s + kCompressionLevel +
+                                  "' must be an integer."s);
     }
   } else {
     throw std::invalid_argument("Invalid connection option '" + name + "'.");
@@ -429,6 +441,18 @@ void Connection_options::set(const std::string &name, int value) {
     set_port(value);
   } else if (name == db::kCompressionLevel) {
     set_compression_level(value);
+  } else if (name == kConnectTimeout) {
+    if (value < 0)
+      throw_invalid_timeout(kConnectTimeout, std::to_string(value));
+    set_connect_timeout(value);
+  } else if (name == kNetReadTimeout) {
+    if (value < 0)
+      throw_invalid_timeout(kNetReadTimeout, std::to_string(value));
+    set_net_read_timeout(value);
+  } else if (name == kNetWriteTimeout) {
+    if (value < 0)
+      throw_invalid_timeout(kNetWriteTimeout, std::to_string(value));
+    set_net_write_timeout(value);
   } else {
     throw std::invalid_argument("Invalid connection option '" + name + "'.");
   }
@@ -436,7 +460,15 @@ void Connection_options::set(const std::string &name, int value) {
 
 void Connection_options::set_unchecked(const std::string &name,
                                        const char *value) {
-  m_extra_options.set(name, value);
+  if (name == kConnectTimeout) {
+    set_connect_timeout(shcore::lexical_cast<int>(value));
+  } else if (name == kNetReadTimeout) {
+    set_net_read_timeout(shcore::lexical_cast<int>(value));
+  } else if (name == kNetWriteTimeout) {
+    set_net_write_timeout(shcore::lexical_cast<int>(value));
+  } else {
+    m_extra_options.set(name, value);
+  }
 }
 
 void Connection_options::set(const std::string &name,
@@ -465,6 +497,9 @@ bool Connection_options::has(const std::string &name) const {
   std::string iname = get_iname(name);
 
   if (iname == db::kCompressionLevel) return has_compression_level();
+  if (iname == db::kConnectTimeout) return has_connect_timeout();
+  if (iname == db::kNetReadTimeout) return has_net_read_timeout();
+  if (iname == db::kNetWriteTimeout) return has_net_write_timeout();
 
   return m_options.has(iname) || m_ssl_options.has(iname) ||
          m_extra_options.has(iname) || m_options.compare(iname, kPort) == 0;
@@ -477,6 +512,12 @@ bool Connection_options::has_value(const std::string &name) const {
     return has_socket();
   else if (m_options.compare(iname, kPipe) == 0)
     return has_pipe();
+  else if (m_options.compare(iname, kConnectTimeout) == 0)
+    return has_connect_timeout();
+  else if (m_options.compare(iname, kNetReadTimeout) == 0)
+    return has_net_read_timeout();
+  else if (m_options.compare(iname, kNetWriteTimeout) == 0)
+    return has_net_write_timeout();
   else if (m_options.has(iname))
     return m_options.has_value(iname);
   else if (m_ssl_options.has(iname))
@@ -510,6 +551,18 @@ Connection_options::query_attributes() const {
     }
   }
 
+  if (has_connect_timeout()) {
+    attributes.push_back(
+        {kConnectTimeout, std::to_string(get_connect_timeout())});
+  }
+  if (has_net_read_timeout()) {
+    attributes.push_back(
+        {kNetReadTimeout, std::to_string(get_net_read_timeout())});
+  }
+  if (has_net_write_timeout()) {
+    attributes.push_back(
+        {kNetWriteTimeout, std::to_string(get_net_write_timeout())});
+  }
   if (has_compression_level()) {
     attributes.push_back(
         {kCompressionLevel, std::to_string(get_compression_level())});
@@ -585,6 +638,9 @@ const std::string &Connection_options::get(const std::string &name) const {
 int Connection_options::get_numeric(const std::string &name) const {
   if (name == db::kPort) return get_port();
   if (name == db::kCompressionLevel) return get_compression_level();
+  if (name == db::kConnectTimeout) return get_connect_timeout();
+  if (name == db::kNetReadTimeout) return get_net_read_timeout();
+  if (name == db::kNetWriteTimeout) return get_net_write_timeout();
 
   throw std::invalid_argument(
       shcore::str_format("Invalid URI property: %s", name.c_str()));
@@ -723,13 +779,13 @@ void Connection_options::set_default_data() {
   }
 }
 
-void Connection_options::throw_invalid_connect_timeout(
-    const std::string &value) {
+void Connection_options::throw_invalid_timeout(const char *name,
+                                               const std::string &value) {
   throw std::invalid_argument(
       shcore::str_format("Invalid value '%s' for '%s'. The "
-                         "connection timeout value must be a positive integer "
+                         "timeout value must be a positive integer "
                          "(including 0).",
-                         value.c_str(), kConnectTimeout));
+                         value.c_str(), name));
 }
 
 bool Connection_options::is_auth_method(const std::string &method_id) const {
@@ -802,6 +858,52 @@ std::string Connection_options::get_kerberos_auth_mode() const {
   return mysqlshdk::db::kKerberosAuthModeSSPI;
 }
 #endif
+
+bool Connection_options::has_connect_timeout() const {
+  return m_connect_timeout.has_value();
+}
+
+void Connection_options::set_connect_timeout(int value) {
+  m_connect_timeout = value;
+}
+
+int Connection_options::get_connect_timeout() const {
+  return m_connect_timeout.value();
+}
+
+void Connection_options::clear_connect_timeout() { m_connect_timeout.reset(); }
+
+bool Connection_options::has_net_read_timeout() const {
+  return m_net_read_timeout.has_value();
+}
+
+void Connection_options::set_net_read_timeout(int value) {
+  m_net_read_timeout = value;
+}
+
+int Connection_options::get_net_read_timeout() const {
+  return m_net_read_timeout.value();
+}
+
+void Connection_options::clear_net_read_timeout() {
+  m_net_read_timeout.reset();
+}
+
+bool Connection_options::has_net_write_timeout() const {
+  return m_net_write_timeout.has_value();
+}
+
+void Connection_options::set_net_write_timeout(int value) {
+  m_net_write_timeout = value;
+}
+
+int Connection_options::get_net_write_timeout() const {
+  return m_net_write_timeout.value();
+}
+
+void Connection_options::clear_net_write_timeout() {
+  m_net_write_timeout.reset();
+}
 
 void Connection_options::set_connection_attribute(const std::string &attribute,
                                                   const std::string &value) {

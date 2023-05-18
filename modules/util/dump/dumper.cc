@@ -2039,9 +2039,9 @@ void Dumper::open_session() {
   auto co = get_classic_connection_options(m_options.session());
 
   // set read timeout, if not already set by user
-  if (!co.has(mysqlshdk::db::kNetReadTimeout)) {
-    const auto k_one_day = "86400000";
-    co.set(mysqlshdk::db::kNetReadTimeout, k_one_day);
+  if (!co.has_net_read_timeout()) {
+    const auto k_one_day = 86400000;
+    co.set_net_read_timeout(k_one_day);
   }
 
   // set size of max packet (~size of 1 row) we can get from server

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,6 +62,18 @@ Connection_options get_connection_options(const std::string &instance_def) {
   ret_val.clear_warnings();
 
   return ret_val;
+}
+
+void check_timeout_option(const char *timeout_option,
+                          const shcore::Argument_map &connection_map,
+                          const shcore::Value::Map_type::value_type &option,
+                          Connection_options &ret_val) {
+  if (connection_map.at(option.first).get_type() != shcore::Integer) {
+    mysqlshdk::db::Connection_options::throw_invalid_timeout(
+        timeout_option, connection_map.at(option.first).descr());
+  } else {
+    ret_val.set(option.first, connection_map.at(option.first).descr());
+  }
 }
 
 /**
@@ -132,15 +144,16 @@ Connection_options get_connection_options(
       ret_val.set_compression_level(connection_map.int_at(option.first));
     } else if (ret_val.compare(option.first, mysqlshdk::db::kConnectTimeout) ==
                0) {
-      // Additional connection options are internally stored as strings.
-      // Even so, when given in a dictionary, the connect-timeout option
-      // must be given as an integer value
-      if (connection_map.at(option.first).type != shcore::Integer) {
-        mysqlshdk::db::Connection_options::throw_invalid_connect_timeout(
-            connection_map.at(option.first).descr());
-      } else {
-        ret_val.set(option.first, connection_map.at(option.first).descr());
-      }
+      check_timeout_option(mysqlshdk::db::kConnectTimeout, connection_map,
+                           option, ret_val);
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kNetReadTimeout) ==
+               0) {
+      check_timeout_option(mysqlshdk::db::kNetReadTimeout, connection_map,
+                           option, ret_val);
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kNetWriteTimeout) ==
+               0) {
+      check_timeout_option(mysqlshdk::db::kNetWriteTimeout, connection_map,
+                           option, ret_val);
     } else if (ret_val.compare(option.first,
                                mysqlshdk::db::kConnectionAttributes) == 0) {
       if (option.second.type == shcore::Map) {
@@ -308,13 +321,25 @@ shcore::Value::Map_type_ref get_connection_map(
     if (!option.second.has_value())
       (*map)[option.first] = shcore::Value();
     else {
-      if (shcore::str_caseeq(option.first, mysqlshdk::db::kConnectTimeout)) {
-        (*map)[option.first] =
-            shcore::Value(std::atoi((*option.second).c_str()));
-      } else {
-        (*map)[option.first] = shcore::Value(*option.second);
-      }
+      (*map)[option.first] = shcore::Value(*option.second);
     }
+  }
+
+  if (connection_options.has_connect_timeout()) {
+    (*map)[mysqlshdk::db::kConnectTimeout] =
+        shcore::Value(connection_options.get_connect_timeout());
+  }
+  if (connection_options.has_net_read_timeout()) {
+    (*map)[mysqlshdk::db::kNetReadTimeout] =
+        shcore::Value(connection_options.get_net_read_timeout());
+  }
+  if (connection_options.has_net_write_timeout()) {
+    (*map)[mysqlshdk::db::kNetWriteTimeout] =
+        shcore::Value(connection_options.get_net_write_timeout());
+  }
+  if (connection_options.has_compression_level()) {
+    (*map)[mysqlshdk::db::kCompressionLevel] =
+        shcore::Value(connection_options.get_compression_level());
   }
 
   if (connection_options.is_connection_attributes_enabled()) {

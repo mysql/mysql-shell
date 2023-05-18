@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -3489,5 +3489,49 @@ TEST_F(Interactive_shell_test, windows_python_locale) {
   EXPECT_TRUE(output_handler.std_err.empty());
 }
 #endif
+
+TEST_F(Interactive_shell_test, shell_command_connect_stoi) {
+  {
+    execute("\\connect --mc " + _mysql_uri + "?connect-timeout=");
+    MY_EXPECT_STDERR_NOT_CONTAINS("stoi");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Invalid URI: Invalid value '' for 'connect-timeout'. The "
+        "timeout value must be a positive integer (including 0).");
+    wipe_all();
+  }
+  {
+    execute("\\connect --mc " + _mysql_uri + "?net-read-timeout=");
+    MY_EXPECT_STDERR_NOT_CONTAINS("stoi");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Invalid URI: Invalid value '' for 'net-read-timeout'. The "
+        "timeout value must be a positive integer (including 0).");
+    wipe_all();
+  }
+  {
+    execute("\\connect --mc " + _mysql_uri + "?net-write-timeout=");
+    MY_EXPECT_STDERR_NOT_CONTAINS("stoi");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Invalid URI: Invalid value '' for 'net-write-timeout'. The "
+        "timeout value must be a positive integer (including 0).");
+    wipe_all();
+  }
+
+  {
+    execute("\\connect --mx " + _mysql_uri + "?connect-timeout=");
+    MY_EXPECT_STDERR_NOT_CONTAINS("stoi");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Invalid URI: Invalid value '' for 'connect-timeout'. The "
+        "timeout value must be a positive integer (including 0).");
+    wipe_all();
+  }
+  {
+    execute("\\connect --mx " + _mysql_uri + "?net-read-timeout=");
+    MY_EXPECT_STDERR_NOT_CONTAINS("stoi");
+    MY_EXPECT_STDERR_CONTAINS(
+        "Invalid URI: Invalid value '' for 'net-read-timeout'. The "
+        "timeout value must be a positive integer (including 0).");
+    wipe_all();
+  }
+}
 
 }  // namespace mysqlsh

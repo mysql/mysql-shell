@@ -88,9 +88,9 @@ std::shared_ptr<Instance> Instance::connect_raw(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
   mysqlshdk::db::Connection_options op(opts);
 
-  if (!op.has_value(mysqlshdk::db::kConnectTimeout)) {
-    op.set(mysqlshdk::db::kConnectTimeout,
-           std::to_string(default_adminapi_connect_timeout()));
+  if (!op.has_connect_timeout()) {
+    op.set_connect_timeout(
+        static_cast<int>(default_adminapi_connect_timeout()));
   }
 
   return std::make_shared<Instance>(connect_session(op, interactive));

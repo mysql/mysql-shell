@@ -369,13 +369,12 @@ Connection_options Import_table_options::connection_options() const {
   connection_options.set(mysqlshdk::db::kLocalInfile, "true");
 
   // Set long timeouts by default
-  const std::string timeout =
-      std::to_string(24 * 3600 * 1000);  // 1 day in milliseconds
-  if (!connection_options.has(mysqlshdk::db::kNetReadTimeout)) {
-    connection_options.set(mysqlshdk::db::kNetReadTimeout, timeout);
+  constexpr auto timeout = 24 * 3600 * 1000;  // 1 day in milliseconds
+  if (!connection_options.has_net_read_timeout()) {
+    connection_options.set_net_read_timeout(timeout);
   }
-  if (!connection_options.has(mysqlshdk::db::kNetWriteTimeout)) {
-    connection_options.set(mysqlshdk::db::kNetWriteTimeout, timeout);
+  if (!connection_options.has_net_write_timeout()) {
+    connection_options.set_net_write_timeout(timeout);
   }
 
   return connection_options;

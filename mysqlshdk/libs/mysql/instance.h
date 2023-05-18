@@ -441,9 +441,7 @@ class Instance : public IInstance {
     auto co = _session->get_connection_options();
 
     // we don't want to be using cached value of connect-timeout option
-    if (co.has_value(mysqlshdk::db::kConnectTimeout)) {
-      co.remove(mysqlshdk::db::kConnectTimeout);
-    }
+    co.clear_connect_timeout();
 
     return co;
   }

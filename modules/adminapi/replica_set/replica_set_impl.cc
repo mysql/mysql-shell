@@ -2788,9 +2788,7 @@ std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
         ipool->default_auth_opts().set(&opts);
         // The read timeout will allow commands that block at the server but
         // have no server-side timeouts to not block the shell indefinitely.
-        if (read_timeout > 0)
-          opts.set(mysqlshdk::db::kNetReadTimeout,
-                   {std::to_string(read_timeout * 1000)});
+        if (read_timeout > 0) opts.set_net_read_timeout(read_timeout * 1000);
 
         console->print_info("** Connecting to " + i.label);
         r.emplace_back(ipool->connect_unchecked(opts));

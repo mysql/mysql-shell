@@ -199,7 +199,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
     return m_options.compare(lhs, rhs);
   }
 
-  static void throw_invalid_connect_timeout(const std::string &value);
+  static void throw_invalid_timeout(const char *name, const std::string &value);
 
   bool is_auth_method(const std::string &method_id) const;
 
@@ -217,6 +217,21 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   std::string get_kerberos_auth_mode() const;
 #endif
 
+  bool has_connect_timeout() const;
+  void set_connect_timeout(int value);
+  int get_connect_timeout() const;
+  void clear_connect_timeout();
+
+  bool has_net_read_timeout() const;
+  void set_net_read_timeout(int value);
+  int get_net_read_timeout() const;
+  void clear_net_read_timeout();
+
+  bool has_net_write_timeout() const;
+  void set_net_write_timeout(int value);
+  int get_net_write_timeout() const;
+  void clear_net_write_timeout();
+
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   std::string get_iname(const std::string &name) const;
@@ -227,6 +242,9 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   std::optional<Transport_type> m_transport_type;
   std::optional<int64_t> m_compress_level;
+  std::optional<int> m_connect_timeout;
+  std::optional<int> m_net_read_timeout;
+  std::optional<int> m_net_write_timeout;
 
   Ssl_options m_ssl_options;
   ssh::Ssh_connection_options m_ssh_options;

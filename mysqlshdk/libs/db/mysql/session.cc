@@ -304,22 +304,22 @@ void Session_impl::connect(
      // seconds)
     uint connect_timeout = mysqlshdk::db::default_connect_timeout();
 
-    if (_connection_options.has(kConnectTimeout)) {
-      connect_timeout = std::stoi(_connection_options.get(kConnectTimeout));
+    if (_connection_options.has_connect_timeout()) {
+      connect_timeout = _connection_options.get_connect_timeout();
     }
     connect_timeout = std::ceil(connect_timeout / 1000.0);
     mysql_options(_mysql, MYSQL_OPT_CONNECT_TIMEOUT, &connect_timeout);
   }
 
-  if (_connection_options.has(kNetReadTimeout)) {
-    uint read_timeout = std::stoi(_connection_options.get(kNetReadTimeout));
+  if (_connection_options.has_net_read_timeout()) {
+    uint read_timeout = _connection_options.get_net_read_timeout();
 
     read_timeout = std::ceil(read_timeout / 1000.0);
     mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &read_timeout);
   }
 
-  if (_connection_options.has(kNetWriteTimeout)) {
-    uint write_timeout = std::stoi(_connection_options.get(kNetWriteTimeout));
+  if (_connection_options.has_net_write_timeout()) {
+    uint write_timeout = _connection_options.get_net_write_timeout();
 
     write_timeout = std::ceil(write_timeout / 1000.0);
     mysql_options(_mysql, MYSQL_OPT_WRITE_TIMEOUT, &write_timeout);
