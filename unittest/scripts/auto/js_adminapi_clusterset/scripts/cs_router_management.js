@@ -2,6 +2,8 @@
 
 //@<> INCLUDE clusterset_utils.inc
 
+//@<> INCLUDE metadata_schema_utils.inc
+
 //@<> Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -125,7 +127,7 @@ clusterset.setRoutingOption(cm_router, "stats_updates_frequency", null);
 delete orig["routers"][cm_router]["stats_updates_frequency"];
 EXPECT_JSON_EQ(orig, clusterset.routingOptions());
 
-// WL15601 NFR2: value must *note* be present in the MD
+// WL15601 NFR2: value must *not* be present in the MD
 options = JSON.parse(session.runSql("select options from mysql_innodb_cluster_metadata.routers").fetchOne()[0]);
 EXPECT_FALSE("stats_updates_frequency" in options);
 
@@ -204,7 +206,6 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra", 'invalidated_clust
   "Router 'abra' is not part of this topology");
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra::cadabra", 'target_cluster', 'primary'); },
   "Router 'abra::cadabra' is not part of this topology");
-
 
 //@<> check types of clusterset router option values
 // Bug#34604612
@@ -310,6 +311,77 @@ EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tag:two", 2); });
 
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options = '{}'");
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tags", {"one":1, "two":"2"}); });
+
+//@<> cluster.routingOptions(), for global options that also exist in clusterset.routingOptions(), should show the values (except tags) stored on the ClusterSet
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+EXPECT_NO_THROWS(function() {cluster = dba.createCluster("cluster", {gtidSetIsComplete:1}); });
+
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tag:five", 5); });
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", 52); });
+
+options = cluster.routingOptions();
+EXPECT_EQ("number", typeof options["global"]["tags"]["five"]);
+EXPECT_EQ(5, options["global"]["tags"]["five"]);
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(52, options["global"]["stats_updates_frequency"]);
+
+EXPECT_NO_THROWS(function() {clusterset = cluster.createClusterSet("clusterset"); });
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tag:six", 6); });
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 66); });
+
+options = cluster.routingOptions();
+EXPECT_EQ("number", typeof options["global"]["tags"]["five"]);
+EXPECT_EQ(5, options["global"]["tags"]["five"]);
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(66, options["global"]["stats_updates_frequency"]);
+
+//@<> check if "stats_updates_frequency", in ClusterSets, defaults to 0
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 48); });
+
+options = clusterset.routingOptions();
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(48, options["global"]["stats_updates_frequency"]);
+
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
+EXPECT_EQ(48, options["stats_updates_frequency"]);
+
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", null); });
+
+options = clusterset.routingOptions();
+EXPECT_EQ("object", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(null, options["global"]["stats_updates_frequency"]);
+
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_FALSE("stats_updates_frequency" in options);
+
+set_metadata_version(2, 1, 0);
+
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 47); });
+
+options = clusterset.routingOptions();
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(47, options["global"]["stats_updates_frequency"]);
+
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
+EXPECT_EQ(47, options["stats_updates_frequency"]);
+
+EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", null); });
+
+options = clusterset.routingOptions();
+EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
+EXPECT_EQ(0, options["global"]["stats_updates_frequency"]);
+
+options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
+EXPECT_TRUE("stats_updates_frequency" in options);
+EXPECT_EQ(0, options["stats_updates_frequency"]);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

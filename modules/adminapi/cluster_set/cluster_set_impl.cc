@@ -1915,26 +1915,24 @@ void Cluster_set_impl::record_in_metadata(
   // delete unrelated records if there are any
   metadata->cleanup_for_cluster(seed_cluster_id);
 
-  Cluster_set_id csid = metadata->create_cluster_set_record(
-      this, seed_cluster_id, shcore::make_dict());
-
-  m_id = csid;
+  m_id = metadata->create_cluster_set_record(this, seed_cluster_id,
+                                             shcore::make_dict());
 
   // Record the ClusterSet SSL mode in the Metadata
   metadata->update_cluster_set_attribute(
-      csid, k_cluster_set_attribute_ssl_mode,
+      m_id, k_cluster_set_attribute_ssl_mode,
       shcore::Value(to_string(options.ssl_mode)));
 
   metadata->update_cluster_set_attribute(
-      csid, k_cluster_set_attribute_member_auth_type,
+      m_id, k_cluster_set_attribute_member_auth_type,
       shcore::Value(to_string(auth_type)));
 
   metadata->update_cluster_set_attribute(
-      csid, k_cluster_set_attribute_cert_issuer,
+      m_id, k_cluster_set_attribute_cert_issuer,
       shcore::Value(member_auth_cert_issuer));
 
   metadata->update_cluster_set_attribute(
-      csid, k_cluster_attribute_replication_allowed_host,
+      m_id, k_cluster_attribute_replication_allowed_host,
       options.replication_allowed_host.empty()
           ? shcore::Value("%")
           : shcore::Value(options.replication_allowed_host));
@@ -1946,9 +1944,16 @@ void Cluster_set_impl::record_in_metadata(
   metadata->migrate_routers_to_clusterset(seed_cluster_id, get_id());
 
   // Set and store the default Routing Options
-  for (const auto &i : k_default_clusterset_router_options)
-    metadata->set_global_routing_option(Cluster_type::REPLICATED_CLUSTER, csid,
-                                        i.first, i.second);
+  for (const auto &[name, value] : k_default_clusterset_router_options) {
+    if ((name == k_router_option_stats_updates_frequency) &&
+        (metadata->installed_version() < mysqlshdk::utils::Version(2, 2))) {
+      metadata->set_global_routing_option(Cluster_type::REPLICATED_CLUSTER,
+                                          m_id, name, shcore::Value(0));
+    } else {
+      metadata->set_global_routing_option(Cluster_type::REPLICATED_CLUSTER,
+                                          m_id, name, value);
+    }
+  }
 
   // Migrate the Read Only Targets setting from Cluster to ClusterSet
   log_info(

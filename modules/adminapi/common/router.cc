@@ -211,6 +211,22 @@ shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
   auto router_options = shcore::make_dict();
   auto romd = md->get_routing_options(type, id);
 
+  if (Cluster_set_id cs_id;
+      (type == Cluster_type::GROUP_REPLICATION) &&
+      md->check_cluster_set(nullptr, nullptr, nullptr, &cs_id)) {
+    // if the Cluster belongs to a ClusterSet, we need to replace the options in
+    // the Cluster with the options in the ClusterSet
+    auto cs_romd =
+        md->get_routing_options(Cluster_type::REPLICATED_CLUSTER, cs_id);
+
+    for (const auto &[option, value] : cs_romd.global) {
+      if (option == "tags") continue;
+
+      auto it = romd.global.find(option);
+      if (it != romd.global.end()) it->second = value;
+    }
+  }
+
   const auto get_options_dict =
       [](const std::map<std::string, shcore::Value> &entry) {
         auto ret = shcore::make_dict();

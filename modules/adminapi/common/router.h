@@ -26,6 +26,7 @@
 
 #include <array>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "modules/adminapi/common/base_cluster_impl.h"
@@ -71,10 +72,9 @@ inline constexpr std::array<decltype(k_router_option_target_cluster), 6>
 extern const std::map<std::string, shcore::Value>
     k_default_clusterset_router_options;
 
-inline constexpr std::array<decltype(k_router_option_target_cluster), 3>
-    k_cluster_router_options = {k_router_option_tags,
-                                k_router_option_read_only_targets,
-                                k_router_option_stats_updates_frequency};
+inline constexpr std::array<std::string_view, 3> k_cluster_router_options = {
+    k_router_option_tags, k_router_option_read_only_targets,
+    k_router_option_stats_updates_frequency};
 
 extern const std::map<std::string, shcore::Value>
     k_default_cluster_router_options;
