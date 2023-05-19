@@ -2526,6 +2526,13 @@ Router_options_metadata MetadataStorage::get_routing_options(
       option_defaults = {k_default_clusterset_router_options.begin(),
                          k_default_clusterset_router_options.end()};
 
+      if (installed_version() < mysqlshdk::utils::Version(2, 2)) {
+        assert(option_defaults.find(k_router_option_stats_updates_frequency) !=
+               option_defaults.end());
+        option_defaults[k_router_option_stats_updates_frequency] =
+            shcore::Value(0);
+      }
+
       query =
           "SELECT concat(r.address, '::', r.router_name) AS router_label" +
           router_opt_select_items("r.options", k_clusterset_router_options) +
@@ -2851,7 +2858,15 @@ void MetadataStorage::set_global_routing_option(Cluster_type type,
   shcore::Value value_copy = value;
   std::string option_name = option;
 
-  if (value.type == shcore::Null) value_copy = option_defaults->at(option);
+  if (value.type == shcore::Null) {
+    if ((type == Cluster_type::REPLICATED_CLUSTER) &&
+        (option == k_router_option_stats_updates_frequency) &&
+        (installed_version() < mysqlshdk::utils::Version(2, 2))) {
+      value_copy = shcore::Value(0);
+    } else {
+      value_copy = option_defaults->at(option);
+    }
+  }
 
   if (type == Cluster_type::REPLICATED_CLUSTER) {
     if (value_copy.type == shcore::Null) {
