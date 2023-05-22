@@ -107,7 +107,15 @@ TEST_F(Preconditions, check_session) {
   // Test invalid server version
   // Test different invalid server versions
   std::vector<std::string> min_invalid_versions = {"5.6", "5.1", "5.6.99"};
-  std::vector<std::string> max_invalid_versions = {"9.0", "8.2.0", "8.3"};
+
+  std::vector<std::string> max_invalid_versions = {
+      shcore::str_format("%d.0",
+                         mysqlshdk::utils::k_shell_version.get_major() + 1),
+      shcore::str_format("%d.%d.0",
+                         mysqlshdk::utils::k_shell_version.get_major(),
+                         mysqlshdk::utils::k_shell_version.get_minor() + 1),
+      shcore::str_format("%d.%d", mysqlshdk::utils::k_shell_version.get_major(),
+                         mysqlshdk::utils::k_shell_version.get_minor() + 2)};
 
   EXPECT_CALL(*m_mock_metadata, get_md_server())
       .Times(min_invalid_versions.size());
@@ -144,13 +152,34 @@ TEST_F(Preconditions, check_session) {
     } catch (const shcore::Exception &e) {
       EXPECT_STREQ(
           "Unsupported server version: AdminAPI operations in this version of "
-          "MySQL Shell support MySQL Server up to version 8.1",
+          "MySQL Shell support MySQL Server up to version 8.2",
           e.what());
     }
   }
 
-  std::vector<std::string> valid_versions = {
-      "8.0", "8.0.1", "8.0.11", "8.0.99", "5.7", "5.7.22", "8.1", "8.1.15"};
+  std::vector<std::string> valid_versions = {"5.7", "5.7.22"};
+
+  valid_versions.push_back(shcore::str_format(
+      "%d.%d.%d", mysqlshdk::utils::k_shell_version.get_major(),
+      mysqlshdk::utils::k_shell_version.get_minor(),
+      mysqlshdk::utils::k_shell_version.get_patch()));
+
+  // Now inserts corner cases for the different versions starting at 8.0
+  // Valid versions start at 8.0
+  int lower_major = 8;
+  for (auto major = lower_major;
+       major <= mysqlshdk::utils::k_shell_version.get_major(); major++) {
+    // Valid minor versions end at current minor for the last release or at 6
+    // for previous releases
+    int max_minor = major < mysqlshdk::utils::k_shell_version.get_major()
+                        ? 6
+                        : mysqlshdk::utils::k_shell_version.get_minor();
+    for (auto minor = 0; minor <= max_minor; minor++) {
+      valid_versions.push_back(shcore::str_format("%d.%d", major, minor));
+      valid_versions.push_back(shcore::str_format("%d.%d.1", major, minor));
+      valid_versions.push_back(shcore::str_format("%d.%d.99", major, minor));
+    }
+  }
   EXPECT_CALL(*m_mock_metadata, get_md_server()).Times(valid_versions.size());
   EXPECT_CALL(*m_mock_session, is_open()).Times(valid_versions.size());
 

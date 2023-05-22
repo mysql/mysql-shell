@@ -106,6 +106,8 @@ class Version {
   int parse_token(const std::string &data);
 };
 
+inline const Version k_shell_version = Version(MYSH_VERSION);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 

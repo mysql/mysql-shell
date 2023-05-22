@@ -202,7 +202,9 @@ ReplicationQuorum::State na_quorum;
 
 // The AdminAPI maximum supported MySQL Server version
 const mysqlshdk::utils::Version
-    Precondition_checker::k_max_adminapi_server_version(8, 1, 9999);
+    Precondition_checker::k_max_adminapi_server_version(
+        mysqlshdk::utils::k_shell_version.get_major(),
+        mysqlshdk::utils::k_shell_version.get_minor(), 9999);
 
 // The AdminAPI minimum supported MySQL Server version
 const mysqlshdk::utils::Version
