@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,9 +131,11 @@ void validate_unsupported_options(
   }
 
   constexpr auto k_default_connect_retry = 60;
-  constexpr auto k_default_retry_count = 86400;
   constexpr auto k_default_heartbeat_period = 30;
   constexpr auto k_default_compression_algorithm = "uncompressed";
+
+  const auto k_default_retry_count =
+      (server_version >= mysqlshdk::utils::Version(8, 1)) ? 10 : 86400;
 
   std::string source_term =
       mysqlshdk::mysql::get_replication_source_keyword(server_version);

@@ -236,7 +236,7 @@
 |                    SQL_Delay: 0|
 |          SQL_Remaining_Delay: NULL|
 |      Slave_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
-|           Master_Retry_Count: 86400|
+|           Master_Retry_Count: <<<(__version_num<80100)?86400:10>>>|
 |                  Master_Bind: |
 |      Last_IO_Error_Timestamp: |
 |     Last_SQL_Error_Timestamp: |
