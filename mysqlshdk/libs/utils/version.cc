@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,10 +56,10 @@ Version::Version(const std::string &version) {
   switch (base_tokens.size()) {
     case 3:
       _patch = parse_token(base_tokens[2]);
-      // fallthrough
+      [[fallthrough]];
     case 2:
       _minor = parse_token(base_tokens[1]);
-      // fallthrough
+      [[fallthrough]];
     case 1:
       _major = parse_token(base_tokens[0]);
       break;

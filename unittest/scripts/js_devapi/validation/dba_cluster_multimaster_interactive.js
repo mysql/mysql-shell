@@ -54,7 +54,8 @@ one server failure.
 |The cluster was successfully dissolved.|
 
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
+<<<(__version_num<80000)?"WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell":"WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead."\>>>
 
 A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
@@ -321,7 +322,9 @@ NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(<8.0.11)}
-WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+<<<(__version_num<80000)?"WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell":"
+WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here."\>>>
 
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
 NOTE: Instance detected as a sandbox.

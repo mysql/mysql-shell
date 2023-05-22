@@ -94,9 +94,14 @@ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2
 //@<> enable interactive mode
 shell.options.useWizards=true;
 
-//@<OUT> Cluster.forceQuorumUsingPartitionOf success intractive
+//@<> Cluster.forceQuorumUsingPartitionOf success interactive
 testutil.expectPassword(`Please provide the password for 'root@localhost:${__mysql_sandbox_port1}': `, "root");
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'});
+
+EXPECT_OUTPUT_CONTAINS("Restoring cluster 'cluster' from loss of quorum, by using the partition composed of [" + __endpoint1 + "]");
+EXPECT_OUTPUT_CONTAINS("Restoring the InnoDB cluster ...");
+EXPECT_OUTPUT_CONTAINS("The InnoDB cluster was successfully restored using the partition from the instance 'root@localhost:" + __mysql_sandbox_port1 + "'.");
+EXPECT_OUTPUT_CONTAINS("WARNING: To avoid a split-brain scenario, ensure that all other members of the cluster are removed or joined back to the group that was restored.");
 
 //@<> disable interactive mode
 shell.options.useWizards=false;

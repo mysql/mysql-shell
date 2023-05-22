@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,14 +39,6 @@ namespace mysqlsh {
 namespace dba {
 
 namespace {
-// The AdminAPI maximum supported MySQL Server version
-const mysqlshdk::utils::Version k_max_adminapi_server_version =
-    mysqlshdk::utils::Version("8.1");
-
-// The AdminAPI minimum supported MySQL Server version
-const mysqlshdk::utils::Version k_min_adminapi_server_version =
-    mysqlshdk::utils::Version("5.7");
-
 // Holds a relation of messages for a given metadata state.
 using MDS = metadata::State;
 
@@ -202,17 +194,30 @@ void check_clusters_availability(Cluster_availability availability,
 
 constexpr bool k_primary_not_required = false;
 constexpr bool k_primary_required = true;
+constexpr bool k_allowed_on_fence = true;
 }  // namespace
 
 // The replicaset functions do not use quorum
 ReplicationQuorum::State na_quorum;
 
-const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version =
-    mysqlshdk::utils::Version("5.7");
-const mysqlshdk::utils::Version Precondition_checker::k_min_ar_version =
-    mysqlshdk::utils::Version("8.0");
-const mysqlshdk::utils::Version Precondition_checker::k_min_cs_version =
-    mysqlshdk::utils::Version("8.0.27");
+// The AdminAPI maximum supported MySQL Server version
+const mysqlshdk::utils::Version
+    Precondition_checker::k_max_adminapi_server_version(
+        mysqlshdk::utils::k_shell_version.get_major(),
+        mysqlshdk::utils::k_shell_version.get_minor(), 9999);
+
+// The AdminAPI minimum supported MySQL Server version
+const mysqlshdk::utils::Version
+    Precondition_checker::k_min_adminapi_server_version(5, 7, 0);
+
+// The AdminAPI deprecated version
+const mysqlshdk::utils::Version
+    Precondition_checker::k_deprecated_adminapi_server_version(5, 7, 9999);
+
+const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version(5, 7);
+const mysqlshdk::utils::Version Precondition_checker::k_min_ar_version(8, 0);
+const mysqlshdk::utils::Version Precondition_checker::k_min_cs_version(8, 0,
+                                                                       27);
 
 const std::map<std::string, Function_availability>
     Precondition_checker::s_preconditions = {
@@ -236,7 +241,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Dba.dropMetadataSchema",
          {k_min_adminapi_server_version,
           TargetType::StandaloneWithMetadata |
@@ -337,7 +342,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
 
         // GR Cluster functions
         {"Cluster.addInstance",
@@ -368,7 +373,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.status",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -376,7 +381,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.resetRecoveryAccountsPassword",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -391,7 +396,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.dissolve",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -495,7 +500,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.fenceWrites",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -510,7 +515,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.getClusterSet",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -520,7 +525,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"Cluster.createClusterSet",
          {k_min_cs_version,
           TargetType::InnoDBCluster,
@@ -593,7 +598,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"ClusterSet.listRouters",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -601,7 +606,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"ClusterSet.status",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
@@ -611,7 +616,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"ClusterSet.describe",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
@@ -621,7 +626,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"ClusterSet.options",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -629,7 +634,7 @@ const std::map<std::string, Function_availability>
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
           k_primary_not_required,
           kClusterGlobalStateAny,
-          true}},
+          k_allowed_on_fence}},
         {"ClusterSet.setOption",
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
@@ -763,11 +768,29 @@ void Precondition_checker::check_session() const {
   // Validate if the server version is supported by the AdminAPI
   mysqlshdk::utils::Version server_version = session->get_server_version();
 
-  if (server_version >= k_max_adminapi_server_version ||
-      server_version < k_min_adminapi_server_version) {
+  if (server_version < Precondition_checker::k_min_adminapi_server_version) {
     throw shcore::Exception::runtime_error(
-        "Unsupported server version: AdminAPI operations require MySQL "
-        "server versions 5.7 or 8.0");
+        "Unsupported server version: AdminAPI operations in this version of "
+        "MySQL Shell are supported on MySQL Server " +
+        Precondition_checker::k_min_adminapi_server_version.get_short() +
+        " and above");
+  }
+
+  if (server_version > Precondition_checker::k_max_adminapi_server_version) {
+    throw shcore::Exception::runtime_error(
+        "Unsupported server version: AdminAPI operations in this version of "
+        "MySQL Shell support MySQL Server up to version " +
+        Precondition_checker::k_max_adminapi_server_version.get_short());
+  }
+
+  // Print a warning for deprecated version
+  if (server_version <=
+      Precondition_checker::k_deprecated_adminapi_server_version) {
+    mysqlsh::current_console()->print_warning(
+        "Support for AdminAPI operations in MySQL version " +
+        Precondition_checker::k_deprecated_adminapi_server_version.get_short() +
+        " is deprecated and will be removed in a future release of MySQL "
+        "Shell");
   }
 }
 

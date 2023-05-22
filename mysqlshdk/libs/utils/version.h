@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,9 @@ class Version {
  public:
   constexpr Version() = default;
   explicit Version(const std::string &version);
-  constexpr Version(int major, int minor, int patch)
+  explicit constexpr Version(int major, int minor) noexcept
+      : _major(major), _minor(minor) {}
+  explicit constexpr Version(int major, int minor, int patch) noexcept
       : _major(major), _minor(minor), _patch(patch) {}
 
   /**
@@ -98,6 +100,8 @@ class Version {
 
   int parse_token(const std::string &data);
 };
+
+inline const Version k_shell_version = Version(MYSH_VERSION);
 
 }  // namespace utils
 }  // namespace mysqlshdk

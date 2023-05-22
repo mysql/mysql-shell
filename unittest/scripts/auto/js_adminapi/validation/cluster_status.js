@@ -501,9 +501,5 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 //@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (true).
 WARNING: The 'queryMembers' option is deprecated. Please use the 'extended' option with value 3 instead.
 
-{
-
 //@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (false).
 WARNING: The 'queryMembers' option is deprecated. Please use the 'extended' option instead.
-
-{

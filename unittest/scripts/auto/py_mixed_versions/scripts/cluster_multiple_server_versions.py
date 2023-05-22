@@ -30,10 +30,10 @@ session.run_sql("select @@version");
 EXPECT_STDOUT_CONTAINS("5.7");
 
 
-#@<> Get Version for the 8.0 Server
+#@<> Get Version for the 8.x Server
 shell.connect(__sandbox_uri1);
 session.run_sql("select @@version");
-EXPECT_STDOUT_CONTAINS("8.0");
+EXPECT_STDOUT_CONTAINS("8");
 
 #@<> Finalize
 def finalize():

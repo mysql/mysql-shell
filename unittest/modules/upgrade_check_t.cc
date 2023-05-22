@@ -141,9 +141,12 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
                         upgrade_info(Version("5.6.11"), Version("8.0"))),
                     std::invalid_argument, "at least at version 5.7");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
-                        upgrade_info(Version("5.7.19"), Version("8.1.0"))),
-                    std::invalid_argument, "This tool supports checking");
+  EXPECT_THROW_LIKE(
+      Upgrade_check::create_checklist(upgrade_info(
+          Version("5.7.19"),
+          Version(mysqlshdk::utils::k_shell_version.get_major(),
+                  mysqlshdk::utils::k_shell_version.get_minor() + 1, 0))),
+      std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(
       Upgrade_check::create_checklist(upgrade_info(current, current)),
       std::invalid_argument,
