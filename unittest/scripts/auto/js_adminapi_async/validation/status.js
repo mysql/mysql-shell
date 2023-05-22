@@ -127,7 +127,7 @@
                         "connectRetry": 60,
                         "delay": 0,
                         "heartbeatPeriod": 30,
-                        "retryCount": 86400
+                        "retryCount": <<<(__version_num<80100)?86400:10>>>
                     },
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
@@ -219,7 +219,7 @@
                         "connectRetry": 60,
                         "delay": 0,
                         "heartbeatPeriod": 123,
-                        "retryCount": 86400
+                        "retryCount": <<<(__version_num<80100)?86400:10>>>
                     },
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
