@@ -151,8 +151,12 @@ TEST_F(Preconditions, check_session) {
       ADD_FAILURE();
     } catch (const shcore::Exception &e) {
       EXPECT_STREQ(
-          "Unsupported server version: AdminAPI operations in this version of "
-          "MySQL Shell support MySQL Server up to version 8.2",
+          shcore::str_format(
+              "Unsupported server version: AdminAPI operations in this version "
+              "of MySQL Shell support MySQL Server up to version %d.%d",
+              mysqlshdk::utils::k_shell_version.get_major(),
+              mysqlshdk::utils::k_shell_version.get_minor())
+              .c_str(),
           e.what());
     }
   }
