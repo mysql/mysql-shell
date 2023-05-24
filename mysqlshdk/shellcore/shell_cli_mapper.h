@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -122,6 +122,7 @@ class Shell_cli_mapper {
 
  private:
   void add_argument(const shcore::Value &argument);
+  void add_default_arguments();
   void define_named_arg(const Cli_option &option);
   void define_named_arg(const std::string &param, const std::string &option,
                         const std::string &short_option, bool required);
@@ -170,9 +171,9 @@ class Shell_cli_mapper {
   // Definition of the command line arguments specified by the user
   std::vector<Cmd_line_arg_definition> m_cmdline_args;
 
-  // Counter of optional arguments that has been skipped before a new argument
-  // is specified, used to fill the missing args with NULLs
-  size_t m_missing_optionals;
+  // Stores the default values for optional arguments that has been skipped
+  // before a new argument is specified, used to fill the missing args
+  std::vector<shcore::Value> m_missing_optionals;
 
   // Used when adding cmdline_args, for the case when the value for a named
   // argument comes in a separate cmd line arg.

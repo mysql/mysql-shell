@@ -25,6 +25,7 @@
 #define MODULES_UTIL_MOD_UTIL_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -78,8 +79,8 @@ class SHCORE_PUBLIC Util : public Extensible_object {
   None check_for_server_upgrade(dict options);
 #endif
   void check_for_server_upgrade(
-      const mysqlshdk::db::Connection_options &connection_options =
-          mysqlshdk::db::Connection_options(),
+      const std::optional<mysqlshdk::db::Connection_options>
+          &connection_options = {},
       const shcore::Option_pack_ref<Upgrade_check_options> &options = {});
 
 #if DOXYGEN_JS
