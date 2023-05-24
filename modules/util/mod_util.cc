@@ -150,9 +150,14 @@ None Util::check_for_server_upgrade(dict options);
 #endif
 
 void Util::check_for_server_upgrade(
-    const mysqlshdk::db::Connection_options &connection_options,
+    const std::optional<mysqlshdk::db::Connection_options> &connection_options,
     const shcore::Option_pack_ref<Upgrade_check_options> &options) {
-  auto connection = connection_options;
+  mysqlshdk::db::Connection_options connection;
+
+  if (connection_options.has_value()) {
+    connection = *connection_options;
+  }
+
   if (connection.has_data()) {
     if (options->password.has_value()) {
       if (connection.has_password()) connection.clear_password();

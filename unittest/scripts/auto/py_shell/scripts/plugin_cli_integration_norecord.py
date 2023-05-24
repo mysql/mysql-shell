@@ -208,5 +208,87 @@ EXPECT_STDOUT_CONTAINS("Interactive Parameter In Nested Function: Success!")
 call_mysqlsh(["--", "cli_tester", "emptyChild", "grandChild", "print-more-nested-info", "Failure"])
 EXPECT_STDOUT_CONTAINS("ERROR: Invalid operation for grandChild object: print-more-nested-info")
 
+
+
+#@<> CLI mapper properly takes default values from plugin optional parameters
+# NOTE: The default values for the print_defaults function differ with the ones
+# registered in the plugin on purpose, this will be used to demonstrate who is
+# passing the default values to the call.
+# In general they would never differ, and indeed, this inconsistency is not possible
+# when using the plugin and plugin_function decorators.
+plugin_code = """
+def print_defaults(one=1, two="python default", three={"option1": "python option1 default"}, four={"option2": "python option2 default"}):
+    print(one, two, three, four)
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "printDefaults", print_defaults, {
+  "brief": "Testing default values on plugins.",
+  "cli": True,
+  "parameters":[
+      {
+          "name": "one",
+          "brief": "int parameter",
+          "type": "integer",
+          "default": 2,
+          "required": False
+      },
+      {
+          "name": "two",
+          "brief": "string parameter",
+          "type": "string",
+          "default": "plugin default",
+          "required": False
+      },
+      {
+          "name": "three",
+          "brief": "optional dictionary parameter",
+          "type": "dictionary",
+          "options": [
+            {
+                "name": "option1",
+                "type": "string",
+            }
+          ],
+          "default": {"option1": "plugin option1 default"},
+          "required": False
+      },
+      {
+          "name": "four",
+          "brief": "optional dictionary parameter",
+          "type": "dictionary",
+          "required": False, 
+          "options": [
+            {
+                "name": "option2",
+                "type": "string",
+            }
+          ],
+          "default": {"option2": "plugin option2 default"},
+      }
+  ]
+})
+
+shell.register_global('cli_tester', obj, {"brief": "CLI Integration Testing Plugin"})
+"""
+
+testutil.rmfile(plugin_path)
+testutil.create_file(plugin_path, plugin_code)
+
+#@<> Using all default values
+rc = call_mysqlsh(["--", "cli_tester", "print-defaults"])
+EXPECT_STDOUT_CONTAINS("2 plugin default {\"option1\": \"plugin option1 default\"} {\"option2\": \"plugin option2 default\"}")
+WIPE_OUTPUT()
+
+#@<> Using explicit value for 'three', CLI mapper handles defaults for 'one' and 'two'
+rc = call_mysqlsh(["--", "cli_tester", "print-defaults", "--option1", "explicit value for option1"])
+EXPECT_STDOUT_CONTAINS("2 plugin default {\"option1\": \"explicit value for option1\"} {\"option2\": \"plugin option2 default\"}")
+WIPE_OUTPUT()
+
+#@<> CLI mapper handles defaults for 'one', 'two' and 'three'
+rc = call_mysqlsh(["--", "cli_tester", "print-defaults", "--option2", "explicit value for option2"])
+EXPECT_STDOUT_CONTAINS("2 plugin default {\"option1\": \"plugin option1 default\"} {\"option2\": \"explicit value for option2\"}")
+WIPE_OUTPUT()
+
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)
