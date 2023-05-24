@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -553,11 +553,15 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
 }
 
 void Shell_cli_mapper::add_argument(const shcore::Value &argument) {
-  for (size_t index = 0; index < m_missing_optionals; index++) {
-    m_argument_list->push_back(shcore::Value::Null());
-  }
+  add_default_arguments();
   m_argument_list->push_back(argument);
-  m_missing_optionals = 0;
+  m_missing_optionals.clear();
+}
+
+void Shell_cli_mapper::add_default_arguments() {
+  for (auto &missing_optional : m_missing_optionals) {
+    m_argument_list->push_back(std::move(missing_optional));
+  }
 }
 
 /**
@@ -675,13 +679,21 @@ void Shell_cli_mapper::process_positional_args() {
           m_cmdline_args.erase(m_cmdline_args.begin());
         } else {
           if (connection_data->empty()) {
-            // If the parameter is empty, inserts a null if not optional,
-            // otherwise counts it as parameters to be added in case a further
-            // parameter has value
+            // If a connection parameter is empty CLI determines the value to
+            // use as follows:
+            // - If required: Uses Null
+            // - If optional, Caches it's default value if any, or Null
             if (m_metadata->signature[index]->flag ==
-                shcore::Param_flag::Optional)
-              m_missing_optionals++;
-            else
+                shcore::Param_flag::Optional) {
+              if (m_metadata->signature[index]->def_value.type !=
+                  shcore::Value_type::Undefined) {
+                m_missing_optionals.push_back(
+                    m_metadata->signature[index]->def_value);
+
+              } else {
+                m_missing_optionals.push_back(shcore::Value::Null());
+              }
+            } else
               add_argument(shcore::Value::Null());
           } else {
             add_argument(shcore::Value(connection_data));
@@ -691,15 +703,19 @@ void Shell_cli_mapper::process_positional_args() {
       case 'D': {
         const auto &options = get_argument_options(param_name).as_map();
 
-        if (options->empty()) {
-          // If the parameter is empty, inserts a null if not optional,
-          // otherwise counts it as parameters to be added in case a further
-          // parameter has value
-          if (m_metadata->signature[index]->flag ==
-              shcore::Param_flag::Optional)
-            m_missing_optionals++;
-          else
-            add_argument(shcore::Value::Null());
+        if (options->empty() && m_metadata->signature[index]->flag ==
+                                    shcore::Param_flag::Optional) {
+          // If a dictionary parameter is empty CLI determines the value to
+          // use as follows:
+          // - If required: Uses an empty dictionary
+          // - If optional, Caches it's default value if any, or an empty dict
+          if (m_metadata->signature[index]->def_value.type !=
+              shcore::Value_type::Undefined) {
+            m_missing_optionals.push_back(
+                m_metadata->signature[index]->def_value);
+          } else {
+            m_missing_optionals.push_back(shcore::Value(options));
+          }
         } else {
           add_argument(shcore::Value(options));
         }
@@ -709,35 +725,46 @@ void Shell_cli_mapper::process_positional_args() {
         shcore::Array_t list_argument;
         if (has_argument_options(param_name)) {
           list_argument = get_argument_options(param_name).as_array();
-        } else if (!m_cmdline_args.empty()) {
+        } else {
           list_argument = shcore::make_array();
-          auto validator =
-              m_metadata->signature[index]->validator<List_validator>();
+          if (!m_cmdline_args.empty()) {
+            auto validator =
+                m_metadata->signature[index]->validator<List_validator>();
 
-          // All remaining anonymous arguments are added to the list parameter
-          while (!m_cmdline_args.empty()) {
-            // Only anonymous arguments are added to the list
-            if (m_cmdline_args[0].option.empty()) {
-              if (m_cmdline_args[0].value.type == shcore::Array) {
-                validate_list_items(m_cmdline_args[0],
+            // All remaining anonymous arguments are added to the list parameter
+            while (!m_cmdline_args.empty()) {
+              // Only anonymous arguments are added to the list
+              if (m_cmdline_args[0].option.empty()) {
+                if (m_cmdline_args[0].value.type == shcore::Array) {
+                  validate_list_items(m_cmdline_args[0],
+                                      validator->element_type());
+                  auto source = m_cmdline_args[0].value.as_array();
+                  std::move(source->begin(), source->end(),
+                            std::back_inserter(*list_argument));
+                } else {
+                  add_value_to_list(&list_argument, m_cmdline_args[0],
                                     validator->element_type());
-                auto source = m_cmdline_args[0].value.as_array();
-                std::move(source->begin(), source->end(),
-                          std::back_inserter(*list_argument));
-              } else {
-                add_value_to_list(&list_argument, m_cmdline_args[0],
-                                  validator->element_type());
+                }
               }
-            }
 
-            m_cmdline_args.erase(m_cmdline_args.begin());
+              m_cmdline_args.erase(m_cmdline_args.begin());
+            }
           }
         }
 
-        if ((!list_argument || list_argument->empty()) &&
-            m_metadata->signature[index]->flag ==
-                shcore::Param_flag::Optional) {
-          m_missing_optionals++;
+        if (list_argument->empty() && m_metadata->signature[index]->flag ==
+                                          shcore::Param_flag::Optional) {
+          // If a list parameter is empty CLI determines the value to use as
+          // follows:
+          // - If required: Uses an empty list
+          // - If optional, Caches it's default value if any, or an empty list
+          if (m_metadata->signature[index]->def_value.type !=
+              shcore::Value_type::Undefined) {
+            m_missing_optionals.push_back(
+                m_metadata->signature[index]->def_value);
+          } else {
+            m_missing_optionals.push_back(shcore::Value(list_argument));
+          }
         } else {
           add_argument(shcore::Value(list_argument));
         }
@@ -753,10 +780,24 @@ void Shell_cli_mapper::process_positional_args() {
           m_cmdline_args.erase(m_cmdline_args.begin());
         }
 
+        // If any other parameter is undefined CLI determines the value to use
+        // as follows:
+        // - If required: Uses Null
+        // - If optional, Caches it's default value if any, or Null
+        // list
+
         if (value.type == shcore::Undefined) {
           if (m_metadata->signature[index]->flag ==
               shcore::Param_flag::Optional) {
-            m_missing_optionals++;
+            if (m_metadata->signature[index]->def_value.type !=
+                shcore::Value_type::Undefined) {
+              m_missing_optionals.push_back(
+                  m_metadata->signature[index]->def_value);
+            } else {
+              m_missing_optionals.push_back(shcore::Value::Null());
+            }
+          } else {
+            add_argument(shcore::Value::Null());
           }
         } else {
           add_argument(value);
@@ -809,7 +850,7 @@ void Shell_cli_mapper::clear() {
   m_argument_options.clear();
   m_cli_option_registry.clear();
   m_normalized_cli_options.clear();
-  m_missing_optionals = 0;
+  m_missing_optionals.clear();
   m_waiting_value = false;
   m_help_type = Help_type::NONE;
   m_cmdline_args.clear();
@@ -927,13 +968,16 @@ void Shell_cli_mapper::define_named_args() {
         m_argument_options[param_name] = shcore::Value(shcore::make_dict());
       } break;
       case 'A':
+        // If a single array parameter is defined, its items can not be handled
+        // as named args, however, any further list are handled as named
+        // parameters
         if (!found_list) {
           found_list = true;
         } else {
           define_named_arg(param_name, "", "",
                            m_metadata->signature[index]->flag ==
                                shcore::Param_flag::Mandatory);
-          m_argument_options[param_name] = shcore::Value(shcore::Array_t());
+          m_argument_options[param_name] = shcore::Value::new_array();
         }
         break;
       default:
@@ -1008,6 +1052,8 @@ void Shell_cli_mapper::process_arguments(shcore::Argument_list *argument_list) {
 
   process_named_args();
   process_positional_args();
+  // Adds any remaining argument with a default value
+  add_default_arguments();
 }
 
 }  // namespace cli

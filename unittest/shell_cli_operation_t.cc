@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -150,15 +150,17 @@ class Shell_cli_operation_test : public Shell_core_test_wrapper,
     prepare();
 
     // If the second list is empty, it means there were no arguments passed
-    // for it and so the CLI mapper will NOT provide this argument to the API
-    // call
-    EXPECT_EQ(second ? 2 : 1, m_argument_list.size());
+    // for it and so the CLI mapper provide an empty list as the second
+    // parameter
+    EXPECT_EQ(2, m_argument_list.size());
     EXPECT_EQ(shcore::Value(first), m_argument_list.at(0));
 
     // If there were arguments for the second list, they should be mapped
     // properly
     if (second) {
       EXPECT_EQ(shcore::Value(second), m_argument_list.at(1));
+    } else {
+      EXPECT_EQ(shcore::Value::new_array(), m_argument_list.at(1));
     }
   }
 
@@ -681,8 +683,9 @@ TEST_F(Shell_cli_operation_test, local_dict) {
     parse(&it);
     // This no longer crashes as { and } are simply ignored
     prepare();
-    EXPECT_EQ(1, m_argument_list.size());
+    EXPECT_EQ(2, m_argument_list.size());
     ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+    ASSERT_EQ(shcore::Value::new_map(), m_argument_list[1]);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
   }
   {
@@ -715,7 +718,8 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_NO_THROW(prepare());
     EXPECT_EQ("util", m_object_name);
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
-    EXPECT_EQ(1, m_argument_list.size());
+    EXPECT_EQ(2, m_argument_list.size());
+    EXPECT_EQ(shcore::Value::new_map(), m_argument_list.at(1));
     ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
     EXPECT_EQ("required", m_argument_list.map_at(0)->get_string("ssl-mode"));
@@ -753,6 +757,24 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     ASSERT_TRUE(m_argument_list[1].type == Value_type::Map);
     EXPECT_EQ("/whatever/path",
               m_argument_list.map_at(1)->get_string("configPath"));
+  }
+  {
+    const char *arg2[] = {
+        "util",
+        "check-for-server-upgrade",
+        "--outputFormat=JSON",
+    };
+    Options::Cmdline_iterator it(3, arg2, 0);
+    EXPECT_NO_THROW(parse(&it));
+    EXPECT_NO_THROW(prepare());
+    EXPECT_EQ("util", m_object_name);
+    EXPECT_EQ("checkForServerUpgrade", m_method_name);
+    EXPECT_EQ(2, m_argument_list.size());
+    EXPECT_EQ(shcore::Value::Null(), m_argument_list[0]);
+    ASSERT_TRUE(m_argument_list[1].type == Value_type::Map);
+    auto co = m_argument_list.map_at(1);
+    // a connection options dictionary
+    EXPECT_EQ("JSON", co->get_string("outputFormat"));
   }
 }
 
