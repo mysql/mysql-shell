@@ -2776,12 +2776,6 @@ void MetadataStorage::migrate_read_only_targets_to_clusterset(
     read_only_targets = row->get_string(0);
   }
 
-  execute_sqlf(
-      "UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = "
-      "JSON_REMOVE(router_options, concat('$.', 'read_only_targets')) WHERE "
-      "cluster_id = ?",
-      cluster_id);
-
   execute_sql(
       ("UPDATE mysql_innodb_cluster_metadata.clustersets "
        "SET router_options = JSON_SET(router_options, '$.read_only_targets', "
