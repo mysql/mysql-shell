@@ -31,6 +31,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/validations.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -42,6 +43,8 @@
 namespace mysqlsh {
 namespace dba {
 namespace cluster {
+
+constexpr const char *k_xplugin_disabled = "<disabled>";
 
 Rescan::Rescan(const Rescan_options &options, Cluster_impl *cluster)
     : m_options(options), m_cluster(cluster) {
@@ -251,38 +254,73 @@ void Rescan::check_mismatched_hostnames_addresses(
 
         auto address = instance->get_canonical_address();
 
+        std::optional<int> xport = instance->get_xport();
+
         auto res = instance->query(
             "select @@hostname, @@report_host, @@port, @@report_port");
         auto row = res->fetch_one();
 
         log_debug(
             "Hostname metadata check for %s: address=%s @@hostname=%s "
-            "@@report_host=%s @@port=%s @@report_port=%s md.instance_id=%u "
-            "md.endpoint=%s md.address=%s md.label=%s md.xendpoint=%s "
-            "md.grendpoint=%s member_id=%s member_host=%s member_port=%i",
+            "@@report_host=%s @@port=%s @@report_port=%s @@mysqlx_port=%s "
+            " md.instance_id=%u md.endpoint=%s md.address=%s md.label=%s "
+            "md.xendpoint=%s md.grendpoint=%s member_id=%s member_host=%s "
+            "member_port=%i",
             instance->get_uuid().c_str(), address.c_str(),
             row->get_as_string(0).c_str(), row->get_as_string(1).c_str(),
             row->get_as_string(2).c_str(), row->get_as_string(3).c_str(),
+            xport.has_value() ? std::to_string(*xport).c_str() : "null",
             info.first.id, info.first.endpoint.c_str(),
             info.first.address.c_str(), info.first.label.c_str(),
             info.first.xendpoint.c_str(), info.first.grendpoint.c_str(),
             info.second.uuid.c_str(), info.second.host.c_str(),
             info.second.port);
 
+        bool xport_equal = false;
+        bool address_equal = false;
+        std::string x_address;
+
+        auto canonical_hostname = instance->get_canonical_hostname();
+
+        if (xport.has_value()) {
+          x_address =
+              mysqlshdk::utils::make_host_and_port(canonical_hostname, *xport);
+        }
+
+        if (mysqlshdk::utils::are_endpoints_equal(info.first.xendpoint,
+                                                  x_address)) {
+          xport_equal = true;
+        }
+
         if (grendpoint_valid &&
             mysqlshdk::utils::are_endpoints_equal(info.first.endpoint,
                                                   address) &&
             mysqlshdk::utils::are_endpoints_equal(info.first.address,
                                                   address)) {
-          return true;
+          address_equal = true;
         }
 
-        instances->emplace_back(shcore::Value(
-            shcore::make_dict("member_id", shcore::Value(instance->get_uuid()),
-                              "id", shcore::Value(info.first.id), "label",
-                              shcore::Value(info.first.label), "host",
-                              shcore::Value(instance->get_canonical_address()),
-                              "old_host", shcore::Value(info.first.endpoint))));
+        if (xport_equal && address_equal) return true;
+
+        shcore::Dictionary_t dict = shcore::make_dict();
+
+        dict->set("member_id", shcore::Value(instance->get_uuid()));
+        dict->set("id", shcore::Value(info.first.id));
+        dict->set("label", shcore::Value(info.first.label));
+        dict->set("host", shcore::Value(instance->get_canonical_address()));
+        dict->set(
+            "xport_endpoint",
+            shcore::Value(x_address.empty() ? k_xplugin_disabled : x_address));
+
+        instances->emplace_back(shcore::Value(dict));
+
+        if (!address_equal) {
+          dict->set("old_host", shcore::Value(info.first.endpoint));
+        }
+
+        if (!xport_equal) {
+          dict->set("old_xport_endpoint", shcore::Value(info.first.xendpoint));
+        }
 
         return true;
       },
@@ -615,6 +653,7 @@ void Rescan::update_metadata_for_instances(
   for (const auto &instance : *instance_list) {
     auto instance_map = instance.as_map();
     std::string label;
+    std::string xport_endpoint_str;
 
     std::string instance_address = instance_map->get_string("host");
     // Report that an obsolete instance was found (in the metadata).
@@ -628,8 +667,7 @@ void Rescan::update_metadata_for_instances(
           instance_map->get_string("member_id").c_str()));
     } else {
       // member address changed
-      if (instance_map->get_string("old_host") !=
-          instance_map->get_string("host")) {
+      if (instance_map->has_key("old_host")) {
         console->print_info(shcore::str_format(
             "The instance '%s' is part of the cluster but its "
             "reported address has changed. "
@@ -641,8 +679,22 @@ void Rescan::update_metadata_for_instances(
 
       // update instance label if it's the default value
       if (instance_map->get_string("label") ==
-          instance_map->get_string("old_host"))
+          instance_map->get_string("old_host")) {
         label = instance_map->get_string("host");
+      }
+
+      // xport has changed
+      if (instance_map->has_key("old_xport_endpoint")) {
+        xport_endpoint_str = instance_map->get_string("xport_endpoint");
+
+        console->print_info(shcore::str_format(
+            "The instance '%s' is part of the Cluster but the reported X "
+            "plugin port has changed. "
+            "Old xport: %s. Current xport: %s.",
+            instance_address.c_str(),
+            instance_map->get_string("old_xport_endpoint").c_str(),
+            xport_endpoint_str.c_str()));
+      }
     }
 
     // Decide to add/remove instance based on given operation options.
@@ -651,6 +703,13 @@ void Rescan::update_metadata_for_instances(
 
     update_metadata_for_instance(instance_cnx_opts,
                                  instance_map->get_uint("id"), label);
+
+    // The xplugin was disabled, remove the endpoint from the metadata
+    if (xport_endpoint_str == k_xplugin_disabled) {
+      m_cluster->get_metadata_storage()->update_instance_addresses(
+          instance_map->get_string("member_id"), "mysqlX",
+          shcore::Value::Null());
+    }
   }
 }
 

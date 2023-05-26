@@ -98,6 +98,24 @@ int Instance::get_canonical_port() const {
   return m_port;
 }
 
+std::optional<int> Instance::get_xport() const {
+  if (!m_xport.has_value()) {
+    try {
+      auto result = query("SELECT @@mysqlx_port");
+      auto row = result->fetch_one();
+
+      m_xport = row->get_int(0);
+    } catch (const std::exception &) {
+      log_info("The X plugin is not enabled on instance '%s'.",
+               descr().c_str());
+
+      m_xport = std::nullopt;
+    }
+  }
+
+  return m_xport;
+}
+
 std::string Instance::get_canonical_address() const {
   // returns the canonical address that should be used to reach this instance in
   // the format: canonical_hostname + ':' + canonical_port

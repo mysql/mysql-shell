@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -48,6 +49,8 @@ inline constexpr const char *kNotifyClusterSetPrimaryChanged =
     "CLUSTER_SET_PRIMARY_CHANGED";
 
 inline constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
+
+enum class Instance_column_md { ATTRIBUTES, ADDRESSES };
 
 struct Instance_metadata {
   Cluster_id cluster_id;
@@ -255,7 +258,13 @@ class MetadataStorage {
 
   void update_instance_attribute(std::string_view uuid,
                                  std::string_view attribute,
-                                 const shcore::Value &value);
+                                 const shcore::Value &value,
+                                 Transaction_undo *undo = nullptr);
+
+  void update_instance_addresses(std::string_view uuid,
+                                 std::string_view address,
+                                 const shcore::Value &value,
+                                 Transaction_undo *undo = nullptr);
 
   /**
    * Update the information on the metadata about a tag set on the instance with
@@ -657,6 +666,12 @@ class MetadataStorage {
                              const std::string &uuid) const;
 
   bool cluster_sets_supported() const;
+
+  void update_instance_metadata(std::string_view uuid,
+                                Instance_column_md column,
+                                std::string_view field,
+                                const shcore::Value &value,
+                                Transaction_undo *undo);
 
   friend class Transaction;
 
