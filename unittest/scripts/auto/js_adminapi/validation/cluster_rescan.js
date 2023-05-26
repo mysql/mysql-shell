@@ -1,12 +1,3 @@
-//@ Initialize.
-||
-
-//@ Get needed Server_Ids and UUIDs.
-||
-
-//@ Configure sandboxes.
-||
-
 //@<OUT> No-op - Still missing server_id attributes are added
 Rescanning the cluster...
 
@@ -588,6 +579,3 @@ NOTE: The topology mode of the cluster changed to 'Multi-Primary'.
 
 //@<OUT> WL10644 - TSF4_4: Check topology mode in MD after rescan().
 mm
-
-//@ Finalize.
-||

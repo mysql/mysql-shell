@@ -90,6 +90,7 @@ class IInstance {
   virtual std::string descr() const = 0;
   virtual std::string get_canonical_hostname() const = 0;
   virtual int get_canonical_port() const = 0;
+  virtual std::optional<int> get_xport() const = 0;
   /**
    * @brief returns the canonical address that should be used to reach this
    * instance in the format: canonical_hostname + ':' + canonical_port
@@ -373,6 +374,7 @@ class Instance : public IInstance {
   std::string get_canonical_hostname() const override;
   std::string get_canonical_address() const override;
   int get_canonical_port() const override;
+  std::optional<int> get_xport() const override;
 
   const std::string &get_uuid() const override;
   uint32_t get_id() const override;
@@ -528,6 +530,7 @@ class Instance : public IInstance {
   mutable std::string m_group_name;
   mutable std::string m_hostname;
   mutable int m_port = 0;
+  mutable std::optional<int> m_xport;
   mutable uint32_t m_server_id = 0;
   int m_sql_binlog_suppress_count = 0;
   Warnings_callback m_warnings_callback = nullptr;

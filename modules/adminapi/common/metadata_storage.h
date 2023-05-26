@@ -52,6 +52,8 @@ inline constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
 
 enum class Instance_type { GROUP_MEMBER, ASYNC_MEMBER, READ_REPLICA, NONE };
 
+enum class Instance_column_md { ATTRIBUTES, ADDRESSES };
+
 std::string to_string(const Instance_type instance_type);
 Instance_type to_instance_type(const std::string &instance_type);
 
@@ -273,6 +275,11 @@ class MetadataStorage {
 
   void update_instance_attribute(std::string_view uuid,
                                  std::string_view attribute,
+                                 const shcore::Value &value,
+                                 Transaction_undo *undo = nullptr);
+
+  void update_instance_addresses(std::string_view uuid,
+                                 std::string_view address,
                                  const shcore::Value &value,
                                  Transaction_undo *undo = nullptr);
 
@@ -698,6 +705,12 @@ class MetadataStorage {
                      const shcore::Value &value);
 
   bool cluster_sets_supported() const;
+
+  void update_instance_metadata(std::string_view uuid,
+                                Instance_column_md column,
+                                std::string_view field,
+                                const shcore::Value &value,
+                                Transaction_undo *undo);
 
   friend class Transaction;
 
