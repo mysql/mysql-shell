@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -415,10 +415,19 @@ void Options::handle_cmdline_options(
                                       it->first + " requires an argument");
         }
       }
-    } else if (!allow_unregistered_options) {
+    } else if (!allow_unregistered_options && !iterator.is_loose()) {
       throw std::invalid_argument(argv[0] + std::string(": unknown option ") +
                                   opt);
     } else {
+      if (iterator.is_loose()) {
+        auto loose_option = iterator.option();
+        loose_option.insert(2, "loose-");
+        if (Iterator::Type::LONG == iterator.type()) {
+          loose_option.append("=").append(iterator.value());
+        }
+        m_invalid_loose_options.push_back(std::move(loose_option));
+      }
+
       if (Iterator::Type::LONG == iterator.type()) {
         iterator.next();
       } else {
@@ -617,7 +626,6 @@ void Options::Iterator::get_data() {
       if (data[1] == '-') {
         // long option
         const auto pos = data.find('=');
-
         if (std::string::npos == pos) {
           m_option = std::move(data);
           get_separate_value();
@@ -625,6 +633,11 @@ void Options::Iterator::get_data() {
           m_type = Type::LONG;
           m_option = data.substr(0, pos);
           m_value = m_iterator.peek() + pos + 1;
+        }
+
+        if (shcore::str_beginswith(m_option, "--loose-")) {
+          m_loose = true;
+          m_option.replace(2, 6, "");
         }
       } else {
         // short option
