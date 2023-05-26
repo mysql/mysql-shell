@@ -798,6 +798,14 @@ int main(int argc, char **argv) {
     log_debug("Using color mode %i",
               static_cast<int>(mysqlshdk::textui::get_color_capability()));
 
+    if (options.quiet_start !=
+        mysqlsh::Shell_options::Quiet_start::SUPRESS_INFO) {
+      for (const auto &option : shell_options->get_invalid_loose_options()) {
+        mysqlsh::current_console()->print_warning(
+            shcore::str_format("unknown option: %s", option.c_str()));
+      }
+    }
+
     if (shell_options->action_print_version()) {
       std::string version_msg =
           version_string(argv[0], shell_options->action_print_version_extra());
