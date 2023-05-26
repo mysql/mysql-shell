@@ -24,6 +24,8 @@
 #include "modules/adminapi/cluster/status.h"
 
 #include <algorithm>
+#include <optional>
+#include <string>
 
 #include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -953,6 +955,25 @@ void check_host_metadata(shcore::Array_t issues, Instance *instance,
                       "hostname reported by instance (metadata=" +
                       instance_md.md.endpoint + ", actual=" + address +
                       "). Use rescan() to update the metadata."));
+  }
+
+  // Check if the instance's X plugin port matches the metadata
+  std::optional<int> xport = instance->get_xport();
+  std::string x_address;
+
+  if (xport.has_value()) {
+    x_address = mysqlshdk::utils::make_host_and_port(
+        instance->get_canonical_hostname(), *xport);
+  }
+
+  if (!mysqlshdk::utils::are_endpoints_equal(instance_md.md.xendpoint,
+                                             x_address)) {
+    issues->push_back(shcore::Value(
+        "ERROR: Metadata for this instance does not match "
+        "X plugin port reported by instance (metadata=" +
+        instance_md.md.xendpoint +
+        ", actual=" + (x_address.empty() ? "<disabled>" : x_address) +
+        "). Use rescan() to update the metadata."));
   }
 }
 

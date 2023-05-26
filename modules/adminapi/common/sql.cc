@@ -265,20 +265,13 @@ std::vector<std::pair<std::string, int>> get_open_sessions(
 Instance_metadata query_instance_info(
     const mysqlshdk::mysql::IInstance &instance, bool validate_gr_endpoint,
     Instance_type instance_type) {
-  int xport = -1;
+  std::optional<int> xport;
   std::string local_gr_address;
 
   // Get the required data from the joining instance to store in the metadata
 
   // Get the MySQL X port.
-  try {
-    xport = instance.queryf_one_int(0, -1, "SELECT @@mysqlx_port");
-  } catch (const std::exception &e) {
-    log_info(
-        "The X plugin is not enabled on instance '%s'. No value will be "
-        "assumed for the X protocol address.",
-        instance.descr().c_str());
-  }
+  xport = instance.get_xport();
 
   if (instance_type == Instance_type::GROUP_MEMBER) {
     // Get the local GR host data.
@@ -311,9 +304,10 @@ Instance_metadata query_instance_info(
 
   instance_def.address = instance.get_canonical_address();
   instance_def.endpoint = instance_def.address;
-  if (xport != -1)
+  if (xport.has_value()) {
     instance_def.xendpoint = mysqlshdk::utils::make_host_and_port(
-        instance.get_canonical_hostname(), xport);
+        instance.get_canonical_hostname(), *xport);
+  }
 
   if (instance_type == Instance_type::GROUP_MEMBER) {
     instance_def.grendpoint = local_gr_address;

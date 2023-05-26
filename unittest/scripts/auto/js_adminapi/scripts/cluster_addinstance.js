@@ -255,8 +255,8 @@ shell.connect(__sandbox_uri1);
 c = dba.createCluster('noxplugin', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 
-var msg1 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port1 + "'. No value will be assumed for the X protocol address.";
-var msg2 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port2 + "'. No value will be assumed for the X protocol address.";
+var msg1 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port1 + "'.";
+var msg2 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port2 + "'.";
 EXPECT_SHELL_LOG_CONTAINS(msg1);
 EXPECT_SHELL_LOG_CONTAINS(msg2);
 

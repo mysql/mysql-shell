@@ -135,7 +135,7 @@ function test_with_dtrap(dtrap, func) {
     func();
 }
 
-//@ Initialize.
+//@<> Initialize.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
@@ -146,7 +146,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: "cd93eab4-b5
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 var mycnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
-//@ Get needed Server_Ids and UUIDs.
+//@<> Get needed Server_Ids and UUIDs.
 shell.connect(__sandbox_uri1);
 instance1_id = get_server_id(session);
 shell.connect(__sandbox_uri2);
@@ -158,7 +158,7 @@ instance3_uuid = get_server_uuid(session);
 instance3_id = get_server_id(session);
 session.close();
 
-//@ Configure sandboxes.
+//@<> Configure sandboxes.
 dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', mycnfPath: mycnf_path1});
 dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', mycnfPath: mycnf_path2});
 dba.configureInstance(__sandbox_uri3, {clusterAdmin:'root', mycnfPath: mycnf_path3});
@@ -991,7 +991,187 @@ EXPECT_EQ(undefined, s["defaultReplicaSet"]["clusterErrors"]);
 s_ext = c.status({extended:1});
 EXPECT_EQ("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", s_ext["defaultReplicaSet"]["groupViewChangeUuid"]);
 
-//@ Finalize.
+//@<> check metadata repair when mysqlx_port is changed {VER(>=8.0.27)}
+shell.connect(__sandbox_uri3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "loose_mysqlx_port", __mysql_sandbox_x_port4.toString());
+testutil.restartSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+c = dba.getCluster()
+s = c.status();
+
+EXPECT_EQ(`ERROR: Metadata for this instance does not match X plugin port reported by instance (metadata=${hostname_ip}:${__mysql_sandbox_x_port3}, actual=${hostname_ip}:${__mysql_sandbox_x_port4}). Use rescan() to update the metadata.`, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"][0])
+
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port3+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Result of the rescanning operation for the 'cluster' cluster:
+{
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": [
+        {
+            "host": "${hostname_ip}:${__mysql_sandbox_port3}",
+            "id": 2,
+            "label": "hooray",
+            "member_id": "${instance3_uuid}",
+            "old_xport_endpoint": "${hostname_ip}:${__mysql_sandbox_x_port3}",
+            "xport_endpoint": "${hostname_ip}:${__mysql_sandbox_x_port4}"
+        }
+    ]
+}
+
+The instance '${hostname_ip}:${__mysql_sandbox_port3}' is part of the Cluster but the reported X plugin port has changed. Old xport: ${hostname_ip}:${__mysql_sandbox_x_port3}. Current xport: ${hostname_ip}:${__mysql_sandbox_x_port4}.
+Updating instance metadata...
+The instance metadata for '${hostname_ip}:${__mysql_sandbox_port3}' was successfully updated.
+`);
+
+// Confirm the address was updated
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port4+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+// Re-check status
+s = c.status();
+
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"])
+
+//@<> check metadata repair when mysqlx_port is disabled {VER(>=8.0.27)}
+testutil.changeSandboxConf(__mysql_sandbox_port3, "mysqlx", "off");
+testutil.restartSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+c = dba.getCluster()
+s = c.status();
+
+EXPECT_EQ(`ERROR: Metadata for this instance does not match X plugin port reported by instance (metadata=${hostname_ip}:${__mysql_sandbox_x_port4}, actual=<disabled>). Use rescan() to update the metadata.`, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"][0])
+
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Result of the rescanning operation for the 'cluster' cluster:
+{
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": [
+        {
+            "host": "${hostname_ip}:${__mysql_sandbox_port3}",
+            "id": 2,
+            "label": "hooray",
+            "member_id": "${instance3_uuid}",
+            "old_xport_endpoint": "${hostname_ip}:${__mysql_sandbox_x_port4}",
+            "xport_endpoint": "<disabled>"
+        }
+    ]
+}
+
+The instance '${hostname_ip}:${__mysql_sandbox_port3}' is part of the Cluster but the reported X plugin port has changed. Old xport: ${hostname_ip}:${__mysql_sandbox_x_port4}. Current xport: <disabled>.
+Updating instance metadata...
+The instance metadata for '${hostname_ip}:${__mysql_sandbox_port3}' was successfully updated.
+`);
+
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ( {"grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+s = c.status();
+
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"])
+
+// Confirm rescan does not detect anything else
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Rescanning the cluster...
+
+Result of the rescanning operation for the 'cluster' cluster:
+{
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": []
+}
+`);
+
+//@<> check metadata repair when mysqlx_port is enabled back {VER(>=8.0.27)}
+testutil.changeSandboxConf(__mysql_sandbox_port3, "mysqlx", "on");
+testutil.restartSandbox(__mysql_sandbox_port3);
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+c = dba.getCluster()
+s = c.status();
+
+EXPECT_EQ(`ERROR: Metadata for this instance does not match X plugin port reported by instance (metadata=, actual=${hostname_ip}:${__mysql_sandbox_x_port4}). Use rescan() to update the metadata.`, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"][0])
+
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Result of the rescanning operation for the 'cluster' cluster:
+{
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": [
+        {
+            "host": "${hostname_ip}:${__mysql_sandbox_port3}",
+            "id": 2,
+            "label": "hooray",
+            "member_id": "${instance3_uuid}",
+            "old_xport_endpoint": "",
+            "xport_endpoint": "${hostname_ip}:${__mysql_sandbox_x_port4}"
+        }
+    ]
+}
+
+The instance '${hostname_ip}:${__mysql_sandbox_port3}' is part of the Cluster but the reported X plugin port has changed. Old xport: . Current xport: ${hostname_ip}:${__mysql_sandbox_x_port4}.
+Updating instance metadata...
+The instance metadata for '${hostname_ip}:${__mysql_sandbox_port3}' was successfully updated.
+`);
+
+row = session.runSql("select * from mysql_innodb_cluster_metadata.instances where mysql_server_uuid=?", [instance3_uuid]).fetchOne();
+EXPECT_EQ( {"mysqlX": hostname_ip+":"+__mysql_sandbox_port4+"0", "grLocal": hostname_ip+":"+__mysql_sandbox_gr_port3, "mysqlClassic": hostname_ip+":"+__mysql_sandbox_port3}, JSON.parse(row.addresses));
+
+s = c.status();
+
+EXPECT_EQ(undefined, s["defaultReplicaSet"]["topology"]["hooray"]["instanceErrors"])
+
+// Confirm rescan does not detect anything else
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Rescanning the cluster...
+
+Result of the rescanning operation for the 'cluster' cluster:
+{
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": []
+}
+`);
+
+//@<> Finalize.
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
