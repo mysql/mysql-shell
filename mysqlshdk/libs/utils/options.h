@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -505,6 +505,11 @@ class Options {
      */
     void next();
 
+    /**
+     * Returns true if the option is loose, i.e. --loose-option
+     */
+    bool is_loose() const { return m_loose; }
+
    private:
     void get_data();
 
@@ -515,6 +520,7 @@ class Options {
     const char *m_value;
     Type m_type;
     size_t m_short_value_pos = 0;
+    bool m_loose = false;
   };
 
   using Custom_cmdline_handler = std::function<bool(Iterator *)>;
@@ -584,6 +590,10 @@ class Options {
                              std::size_t output_width = 80,
                              std::size_t front_padding = 0);
 
+  const std::vector<std::string> &get_invalid_loose_options() const {
+    return m_invalid_loose_options;
+  }
+
  protected:
   struct Command_line_comparator {
     bool operator()(const std::string &lhs, const std::string &rhs) const;
@@ -597,6 +607,7 @@ class Options {
   std::map<std::string, opts::Generic_option *, Command_line_comparator>
       cmdline_options;
   std::string config_file;
+  std::vector<std::string> m_invalid_loose_options;
 };
 
 } /* namespace shcore */
