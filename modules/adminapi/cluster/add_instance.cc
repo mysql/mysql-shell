@@ -664,7 +664,7 @@ void Add_instance::do_run() {
               m_target_instance, m_options.cert_subject, m_gr_opts,
               !recovery_certificates);
 
-          // if recovery accounts need certificates, we much ensure that the
+          // if recovery accounts need certificates, we must ensure that the
           // recovery accounts of all members also exist on the target instance
           if (recovery_certificates) {
             m_cluster_impl->create_replication_users_at_instance(

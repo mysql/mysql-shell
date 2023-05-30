@@ -289,6 +289,12 @@ void Rejoin_instance::do_run() {
           m_target_instance, m_auth_cert_subject, m_gr_opts,
           !recovery_certificates, m_options.dry_run);
 
+      // if recovery accounts need certificates, we must ensure that the
+      // recovery accounts of all members also exist on the target instance
+      if (recovery_certificates) {
+        m_cluster_impl->create_replication_users_at_instance(m_target_instance);
+      }
+
       // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
       m_gr_opts.ip_allowlist = "AUTOMATIC";
 
