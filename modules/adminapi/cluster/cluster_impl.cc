@@ -2432,6 +2432,43 @@ void Cluster_impl::refresh_connections() {
   }
 }
 
+void Cluster_impl::ensure_compatible_clone_donor(
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient) {
+  /*
+   * A donor is compatible if:
+   *
+   *   - It's an ONLINE member of the Cluster
+   *   - The target (recipient) and donor instances support clone (version
+   *     >= 8.0.17)
+   *   - It has the same version of the recipient
+   *   - It has the same operating system as the recipient
+   */
+
+  // Check if the donor belongs to the PRIMARY Cluster (MD)
+  std::string donor_address = donor.get_canonical_address();
+  try {
+    get_metadata_storage()->get_instance_by_address(donor_address);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+      throw shcore::Exception("Instance " + donor_address +
+                                  " does not belong to the Primary Cluster",
+                              SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
+    }
+    throw;
+  }
+
+  auto target_status = mysqlshdk::gr::get_member_state(donor);
+
+  if (target_status != mysqlshdk::gr::Member_state::ONLINE) {
+    throw shcore::Exception("Instance " + donor_address +
+                                " is not an ONLINE member of the Cluster.",
+                            SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+  }
+
+  Base_cluster_impl::ensure_compatible_clone_donor(donor, recipient);
+}
+
 void Cluster_impl::setup_admin_account(const std::string &username,
                                        const std::string &host,
                                        const Setup_account_options &options) {

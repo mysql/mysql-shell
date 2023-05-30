@@ -373,7 +373,7 @@ CHECK_READ_REPLICA(__sandbox_uri4, cluster, "secondary", __endpoint1);
 
 // cloneDonor tests
 
-// Rejoin a read-replica configured with replication-sources "primary" but using a secondary as cloneDonor
+//@<> Rejoin a read-replica configured with replication-sources "primary" but using a secondary as cloneDonor
 EXPECT_NO_THROWS(function() { cluster.addInstance(__endpoint2); });
 EXPECT_NO_THROWS(function() { cluster.setInstanceOption(__endpoint4, "replicationSources", "primary"); });
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4); });
@@ -381,12 +381,15 @@ CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
 
 session4.runSql("STOP replica");
 
+//@<> Rejoin a read-replica using cloneDonor
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); });
 
 CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
 
-// Rejoin a read-replica configured with replication-sources set to a specific member but using another as cloneDonor
+//@<> Rejoin a read-replica configured with replication-sources set to a specific member but using another as cloneDonor
 EXPECT_NO_THROWS(function() { cluster.setInstanceOption(__endpoint4, "replicationSources", [__endpoint1]); });
+
+//@<> Rejoin should succeed
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4); });
 
 session4 = mysql.getSession(__sandbox_uri4);
@@ -394,6 +397,32 @@ session4.runSql("STOP replica");
 
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); });
 
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint1], __endpoint1);
+
+//@<> Test a failure due to version check of the donor {!__dbug_off}
+session4 = mysql.getSession(__sandbox_uri4);
+session4.runSql("STOP replica");
+testutil.dbugSet("+d,dba_clone_version_check_fail");
+
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance " + __endpoint2 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+
+// Disable the debug trap so the command can succeed
+testutil.dbugSet("");
+
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4); });
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint1], __endpoint1);
+
+//@<> Test a failure due to version check of the donor (automatic) {!__dbug_off}
+session4 = mysql.getSession(__sandbox_uri4);
+session4.runSql("STOP replica");
+testutil.dbugSet("+d,dba_clone_version_check_fail");
+
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+
+// Disable the debug trap so the command can succeed
+testutil.dbugSet("");
+
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4); });
 CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint1], __endpoint1);
 
 // --- timeout tests

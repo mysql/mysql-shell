@@ -377,12 +377,13 @@ void Add_replica_instance::do_run() {
         m_options.clone_options.clone_donor.has_value()) {
       std::string donor = *m_options.clone_options.clone_donor;
 
-      // Check if the donor is valid
-      m_cluster_impl->ensure_compatible_clone_donor(donor, m_target_instance);
-
       m_donor_instance =
           Scoped_instance(m_cluster_impl->connect_target_instance(donor));
     }
+
+    // Check if the donor is valid
+    m_cluster_impl->ensure_compatible_clone_donor(*m_donor_instance,
+                                                  *m_target_instance);
 
     console->print_info("* Checking transaction state of the instance...");
     m_options.clone_options.recovery_method = validate_instance_recovery();

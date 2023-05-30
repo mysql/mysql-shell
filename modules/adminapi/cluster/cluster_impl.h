@@ -584,6 +584,10 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void refresh_connections();
 
+  void ensure_compatible_clone_donor(
+      const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient) override;
+
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(

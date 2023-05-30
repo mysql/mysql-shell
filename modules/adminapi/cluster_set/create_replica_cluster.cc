@@ -430,13 +430,11 @@ shcore::Value Create_replica_cluster::execute() {
     // Handle clone provisioning
     if (*m_options.clone_options.recovery_method ==
         Member_recovery_method::CLONE) {
-      // Ensure cloneDonor is valid and pick a valid donor if the option is not
-      // used. By default, the donor must be the PRIMARY member of the PRIMARY
-      // Cluster.
+      // Pick a donor if the option is not used. By default, the donor must be
+      // the PRIMARY member of the PRIMARY Cluster.
       std::string donor;
       if (m_options.clone_options.clone_donor.has_value()) {
         donor = *m_options.clone_options.clone_donor;
-        m_cluster_set->ensure_compatible_clone_donor(donor, m_target_instance);
       } else {
         // Pick the primary instance of the primary cluster as donor
         donor = m_primary_instance->get_canonical_address();
@@ -444,6 +442,13 @@ shcore::Value Create_replica_cluster::execute() {
 
       const auto donor_instance =
           Scoped_instance(m_cluster_set->connect_target_instance(donor));
+
+      // Ensure the donor is valid:
+      //   - It's an ONLINE member of the Primary Cluster
+      //   - It has the same version of the recipient
+      //   - It has the same operating system as the recipient
+      m_cluster_set->get_primary_cluster()->ensure_compatible_clone_donor(
+          donor_instance, *m_target_instance);
 
       m_cluster_set->handle_clone_provisioning(
           m_target_instance, donor_instance, ar_options, repl_account_host,

@@ -782,8 +782,6 @@ void Replica_set_impl::add_instance(
       //  PRIMARY.
       std::string donor;
       if (clone_options.clone_donor.has_value()) {
-        ensure_compatible_donor(*clone_options.clone_donor,
-                                target_instance.get());
         donor = *clone_options.clone_donor;
       } else {
         donor = pick_clone_donor(target_instance.get());
@@ -791,6 +789,8 @@ void Replica_set_impl::add_instance(
 
       const auto donor_instance =
           Scoped_instance(connect_target_instance(donor));
+
+      ensure_compatible_clone_donor(donor_instance, target_instance);
 
       // Do and monitor the clone
       Base_cluster_impl::handle_clone_provisioning(
@@ -1035,8 +1035,6 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       //  PRIMARY.
       std::string donor;
       if (clone_options.clone_donor.has_value()) {
-        ensure_compatible_donor(*clone_options.clone_donor,
-                                target_instance.get());
         donor = *clone_options.clone_donor;
       } else {
         donor = pick_clone_donor(target_instance.get());
@@ -1044,6 +1042,8 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
       const auto donor_instance =
           Scoped_instance(connect_target_instance(donor));
+
+      ensure_compatible_clone_donor(donor_instance, target_instance);
 
       // Do and monitor the clone
       Base_cluster_impl::handle_clone_provisioning(
@@ -2169,8 +2169,9 @@ void Replica_set_impl::ensure_metadata_has_server_uuid(
   m_metadata_storage->update_instance(instance_md);
 }
 
-void Replica_set_impl::ensure_compatible_donor(
-    const std::string &instance_def, mysqlshdk::mysql::IInstance *recipient) {
+void Replica_set_impl::ensure_compatible_clone_donor(
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient) {
   /*
    * A donor is compatible if:
    *
@@ -2181,10 +2182,8 @@ void Replica_set_impl::ensure_compatible_donor(
    *   - It has the same operating system as the recipient
    */
 
-  const auto target = Scoped_instance(connect_target_instance(instance_def));
-
   // Check if the target belongs to the ReplicaSet (MD)
-  std::string target_address = target->get_canonical_address();
+  std::string target_address = donor.get_canonical_address();
   try {
     m_metadata_storage->get_instance_by_address(target_address);
   } catch (const shcore::Exception &e) {
@@ -2201,14 +2200,16 @@ void Replica_set_impl::ensure_compatible_donor(
     auto topology_mng = setup_topology_manager();
 
     auto topology_node =
-        topology_mng->topology()->try_get_node_for_uuid(target->get_uuid());
-    if (!topology_node)
+        topology_mng->topology()->try_get_node_for_uuid(donor.get_uuid());
+    if (!topology_node) {
       topology_node = topology_mng->topology()->try_get_node_for_endpoint(
-          target->get_canonical_address());
-    if (!topology_node)
+          donor.get_canonical_address());
+    }
+    if (!topology_node) {
       throw shcore::Exception(
-          "Unable to find instance '" + target->descr() + "' in the topology.",
+          "Unable to find instance '" + donor.descr() + "' in the topology.",
           SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
+    }
 
     if (topology_node->status() != topology::Node_status::ONLINE) {
       throw shcore::Exception("Instance " + target_address +
@@ -2217,38 +2218,7 @@ void Replica_set_impl::ensure_compatible_donor(
     }
   }
 
-  // Check if the instance support clone (the recipient was already checked)
-  if (!supports_mysql_clone(target->get_version())) {
-    throw shcore::Exception(
-        "Instance " + target_address + " does not support MySQL Clone.",
-        SHERR_DBA_CLONE_NO_SUPPORT);
-  }
-
-  // Check if the instance has the same version of the recipient
-  if (target->get_version() != recipient->get_version()) {
-    throw shcore::Exception("Instance " + target_address +
-                                " cannot be a donor because it has a different "
-                                "version than the recipient.",
-                            SHERR_DBA_CLONE_DIFF_VERSION);
-  }
-
-  // Check if the instance has the same OS the recipient
-  if (target->get_version_compile_os() != recipient->get_version_compile_os()) {
-    throw shcore::Exception("Instance " + target_address +
-                                " cannot be a donor because it has a different "
-                                "Operating System than the recipient.",
-                            SHERR_DBA_CLONE_DIFF_OS);
-  }
-
-  // Check if the instance is running on the same platform of the recipient
-  if (target->get_version_compile_machine() !=
-      recipient->get_version_compile_machine()) {
-    throw shcore::Exception(
-        "Instance " + target_address +
-            " cannot be a donor because it is running on a different "
-            "platform than the recipient.",
-        SHERR_DBA_CLONE_DIFF_PLATFORM);
-  }
+  Base_cluster_impl::ensure_compatible_clone_donor(donor, recipient);
 }
 
 std::string Replica_set_impl::pick_clone_donor(
@@ -2282,7 +2252,11 @@ std::string Replica_set_impl::pick_clone_donor(
                 "Instance hostname/report_host is an IPv6 address, which is "
                 "not supported for cloning");
 
-          ensure_compatible_donor(instance_def, recipient);
+          const auto donor_instance =
+              Scoped_instance(connect_target_instance(instance_def));
+
+          ensure_compatible_clone_donor(donor_instance, *recipient);
+
           r = instance_def;
 
           // No need to continue looking for more
@@ -2309,7 +2283,11 @@ std::string Replica_set_impl::pick_clone_donor(
             "Instance hostname/report_host is an IPv6 address, which is "
             "not supported for cloning");
 
-      ensure_compatible_donor(instance_def, recipient);
+      const auto donor_instance =
+          Scoped_instance(connect_target_instance(instance_def));
+
+      ensure_compatible_clone_donor(donor_instance, *recipient);
+
       r = instance_def;
     } catch (const shcore::Exception &e) {
       std::string msg = "PRIMARY '" + instance_def +

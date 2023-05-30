@@ -127,45 +127,19 @@ bool Rejoin_replica_instance::check_rejoinable() {
 }
 
 Member_recovery_method Rejoin_replica_instance::validate_instance_recovery() {
-  // When replicationSources is set to 'primary' or 'secondary' the main source
-  // is the primary member of the cluster
-  if (m_replication_sources.source_type == Source_type::PRIMARY ||
-      m_replication_sources.source_type == Source_type::SECONDARY) {
-    m_clone_donor_instance = m_cluster_impl->get_cluster_server();
-  } else {
-    // When replicationSources is set to a list of instances the main source
-    // must be the first member of the list (the one with highest weight)
-    auto first_element = *(m_replication_sources.replication_sources.begin());
-
-    std::string source_str = first_element.to_string();
-
-    std::shared_ptr<Instance> source_instance;
-
-    try {
-      source_instance =
-          m_cluster_impl->get_session_to_cluster_instance(source_str);
-    } catch (const shcore::Exception &e) {
-      throw shcore::Exception(
-          "Source is not reachable",
-          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
-    }
-
-    m_clone_donor_instance = source_instance;
-  }
-
   auto check_recoverable =
       [=](const mysqlshdk::mysql::IInstance &tgt_instance) {
         // Get the gtid state in regards to the donor
         mysqlshdk::mysql::Replica_gtid_state state =
-            check_replica_group_gtid_state(*m_clone_donor_instance,
-                                           tgt_instance, nullptr, nullptr);
+            check_replica_group_gtid_state(*m_donor_instance, tgt_instance,
+                                           nullptr, nullptr);
 
         return (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE);
       };
 
   return mysqlsh::dba::validate_instance_recovery(
       Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
-      *m_clone_donor_instance, *m_target_instance, check_recoverable,
+      *m_donor_instance, *m_target_instance, check_recoverable,
       m_options.clone_options.recovery_method.get_safe(),
       m_cluster_impl->get_gtid_set_is_complete(), m_options.interactive());
 }
@@ -188,23 +162,57 @@ void Rejoin_replica_instance::validate_replication_channels() {
   }
 }
 
+std::shared_ptr<Instance>
+Rejoin_replica_instance::get_default_donor_instance() {
+  // When replicationSources is set to 'primary' or 'secondary' the main source
+  // is the primary member of the cluster
+  if (m_replication_sources.source_type == Source_type::PRIMARY ||
+      m_replication_sources.source_type == Source_type::SECONDARY) {
+    return m_cluster_impl->get_cluster_server();
+  } else {
+    // When replicationSources is set to a list of instances the main source
+    // must be the first member of the list (the one with highest weight)
+    assert(!m_replication_sources.replication_sources.empty());
+    auto first_element = *(m_replication_sources.replication_sources.begin());
+
+    std::string source_str = first_element.to_string();
+
+    std::shared_ptr<Instance> source_instance;
+
+    try {
+      source_instance =
+          m_cluster_impl->get_session_to_cluster_instance(source_str);
+    } catch (const shcore::Exception &e) {
+      throw shcore::Exception(
+          "Source is not reachable",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
+    }
+
+    return source_instance;
+  }
+}
+
 void Rejoin_replica_instance::prepare() {
   auto console = current_console();
 
   // Validate the Clone options.
   m_options.clone_options.check_option_values(m_target_instance->get_version());
 
-  // If the cloneDonor option us used, validate if the selected donor is
-  // valid and set it as the donor instance
+  // Get the main donor and source instance
+  // By default, the instance is:
+  //
+  //   - The primary member when 'replicationSources' is set to "primary" or
+  //   "secondary"
+  //   - The first member of the 'replicationSources' list
+  m_donor_instance = get_default_donor_instance();
+
+  // If the cloneDonor option us used set it as the donor instance
   if (*m_options.clone_options.recovery_method ==
       Member_recovery_method::CLONE) {
     if (m_options.clone_options.clone_donor.has_value()) {
       std::string donor = *m_options.clone_options.clone_donor;
 
-      // Check if the donor is valid
-      m_cluster_impl->ensure_compatible_clone_donor(donor, m_target_instance);
-
-      m_clone_donor_instance =
+      m_donor_instance =
           Scoped_instance(m_cluster_impl->connect_target_instance(donor));
     }
   }
@@ -220,6 +228,10 @@ void Rejoin_replica_instance::prepare() {
 
   console->print_info("* Checking transaction state of the instance...");
   m_options.clone_options.recovery_method = validate_instance_recovery();
+
+  // Check if the donor is valid
+  m_cluster_impl->ensure_compatible_clone_donor(*m_donor_instance,
+                                                *m_target_instance);
 }
 
 void Rejoin_replica_instance::do_run() {
@@ -257,9 +269,9 @@ void Rejoin_replica_instance::do_run() {
   if (*m_options.clone_options.recovery_method ==
       Member_recovery_method::CLONE) {
     m_cluster_impl->handle_clone_provisioning(
-        m_target_instance, m_clone_donor_instance, ar_options,
-        repl_account_host, "", "", m_options.get_recovery_progress(),
-        m_options.timeout, m_options.dry_run);
+        m_target_instance, m_donor_instance, ar_options, repl_account_host, "",
+        "", m_options.get_recovery_progress(), m_options.timeout,
+        m_options.dry_run);
 
     // Clone will copy all tables, including the replication settings stored
     // in mysql.slave_master_info. MySQL will start replication by default
