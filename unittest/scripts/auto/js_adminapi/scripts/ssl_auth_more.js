@@ -42,6 +42,15 @@ function test_add_instance(commStack, recoverMethod) {
 
     testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+    if (commStack.toLowerCase() == "xcom" && (__version_num >= 80027)) {
+
+        testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+        EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster", {switchCommunicationStack: "mysql"}); });
+
+        EXPECT_NE("", session.runSql("SELECT ssl_type FROM mysql.user WHERE (user LIKE 'mysql_innodb_cluster_%');").fetchOne()[0]);
+        EXPECT_NE("", session.runSql("SELECT authentication_string FROM mysql.user WHERE (user LIKE 'mysql_innodb_cluster_%');").fetchOne()[0]);
+    }
+
     cluster.dissolve();
 }
 
@@ -72,7 +81,6 @@ reset_instance(session);
 
 //@<> create cluster comm stack xcom with primary offline
 shell.connect(__sandbox_uri1);
-
 
 var cluster;
 if (__version_num < 80027) {

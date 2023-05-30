@@ -771,6 +771,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed() {
     //   - The recovery credentials have the required Grants
     //
     // For those reasons, we must simply re-create the recovery account
+    bool requires_certificates{false};
     if (m_options.gr_options.communication_stack.value_or("") ==
         kCommunicationStackMySQL) {
       // If it's a Replica cluster, we must disable the binary logging and
@@ -848,6 +849,35 @@ void Reboot_cluster_from_complete_outage::reboot_seed() {
         options.clone_supported = true;
         options.auto_failover = false;
         options.mysql_comm_stack_supported = true;
+
+        auto auth_type = m_cluster->impl()->query_cluster_auth_type();
+        switch (auth_type) {
+          case Replication_auth_type::PASSWORD:
+          case Replication_auth_type::CERT_ISSUER_PASSWORD:
+          case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+            options.requires_password = true;
+            break;
+          default:
+            options.requires_password = false;
+            break;
+        }
+
+        switch (auth_type) {
+          case Replication_auth_type::CERT_SUBJECT:
+          case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+            options.cert_subject =
+                m_cluster->impl()->query_cluster_instance_auth_cert_subject(
+                    *m_target_instance);
+            [[fallthrough]];
+          case Replication_auth_type::CERT_ISSUER:
+          case Replication_auth_type::CERT_ISSUER_PASSWORD:
+            options.cert_issuer =
+                m_cluster->impl()->query_cluster_auth_cert_issuer();
+            requires_certificates = true;
+            break;
+          default:
+            break;
+        }
 
         repl_account = mysqlshdk::gr::create_recovery_user(
             repl_account.user, *m_target_instance, hosts, options);
@@ -934,24 +964,17 @@ void Reboot_cluster_from_complete_outage::reboot_seed() {
       }
     }
 
-    log_info("Starting cluster with '%s' using account %s",
+    resolve_ssl_mode_option("memberSslMode", "Cluster", *m_target_instance,
+                            &m_options.gr_options.ssl_mode);
+
+    log_info("Starting cluster with '%s' (%s) using account %s",
              m_target_instance->descr().c_str(),
+             to_string(m_options.gr_options.ssl_mode).c_str(),
              m_target_instance->get_connection_options().get_user().c_str());
 
     // Determine the topology mode to use.
     auto multi_primary = m_cluster->impl()->get_cluster_topology_type() ==
                          mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
-
-    bool requires_certificates{false};
-    switch (m_cluster->impl()->query_cluster_auth_type()) {
-      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER:
-      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
-      case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
-      case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
-        requires_certificates = true;
-      default:
-        break;
-    }
 
     // Start the cluster to bootstrap Group Replication.
     mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
