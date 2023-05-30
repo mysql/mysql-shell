@@ -484,6 +484,30 @@ shell.options.useWizards=1;
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
 EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Cancelled");
 
+// --- cloneDonor tests
+
+//@<> addReplicaInstance: recoveryMethod: clone, automatic donor not valid {!__dbug_off}
+testutil.dbugSet("+d,dba_clone_version_check_fail");
+
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+
+//@<> addReplicaInstance: recoveryMethod: clone, cloneDonor not valid {!__dbug_off}
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance " + __endpoint2 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+
+testutil.dbugSet("");
+
+//@<> addReplicaInstance: recoveryMethod: clone, cloneDonor valid {!__dbug_off}
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint3}); });
+
+EXPECT_OUTPUT_CONTAINS(`NOTE: ${hostname}:${__mysql_sandbox_port4} is being cloned from ${hostname}:${__mysql_sandbox_port3}`)
+
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
+
+EXPECT_NO_THROWS(function() { cluster.removeInstance(__sandbox_uri4); });
+
+session4 = mysql.getSession(__sandbox_uri4);
+reset_instance(session4);
+
 // --- timeout tests
 
 // FR1.3.6: `timeout`: maximum number of seconds to wait for the instance to sync up with the PRIMARY after it's provisioned and the replication channel is established. If reached, the operation is rolled-back. Default is unlimited (zero).

@@ -2245,7 +2245,6 @@ TargetType::Type get_instance_type(
   if (has_metadata) {
     // Check if it is a Read-Replica
     if (replica_type == Replica_type::READ_REPLICA) {
-      std::cout << "read replica \n";
       return TargetType::InnoDBCluster;
     }
 

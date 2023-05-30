@@ -30,11 +30,11 @@
 #include <string>
 #include <vector>
 
-#include "adminapi/cluster/cluster_impl.h"
-#include "adminapi/common/cluster_types.h"
-#include "adminapi/common/common.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/cluster_types.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/instance_monitoring.h"
@@ -43,11 +43,13 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/mod_shell.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -56,7 +58,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "shellcore/utils_help.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -577,62 +579,67 @@ void Base_cluster_impl::handle_clone_provisioning(
 }
 
 void Base_cluster_impl::ensure_compatible_clone_donor(
-    const std::string &donor_def,
-    const std::shared_ptr<mysqlsh::dba::Instance> &recipient) {
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient) {
   /*
    * A donor is compatible if:
    *
-   *   - It's an ONLINE member of the Cluster
+   *   - Supports clone
    *   - It has the same version of the recipient
    *   - It has the same operating system as the recipient
    */
+  std::string target_address = donor.get_canonical_address();
 
-  const auto target = Scoped_instance(connect_target_instance(donor_def));
-
-  // Check if the target belongs to the PRIMARY Cluster (MD)
-  std::string target_address = target->get_canonical_address();
-  try {
-    get_metadata_storage()->get_instance_by_address(target_address);
-  } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      throw shcore::Exception("Instance " + target_address +
-                                  " does not belong to the Primary Cluster",
-                              SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
-    }
-    throw;
+  // Check if the instance support clone
+  if (!supports_mysql_clone(donor.get_version())) {
+    throw shcore::Exception(
+        "Instance " + target_address + " does not support MySQL Clone.",
+        SHERR_DBA_CLONE_NO_SUPPORT);
   }
 
-  auto target_status = mysqlshdk::gr::get_member_state(*target);
+  auto donor_version = donor.get_version();
+  auto recipient_version = recipient.get_version();
 
-  if (target_status != mysqlshdk::gr::Member_state::ONLINE) {
-    throw shcore::Exception("Instance " + target_address +
-                                " is not an ONLINE member of the Cluster.",
-                            SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
-  }
+  DBUG_EXECUTE_IF("dba_clone_version_check_fail",
+                  { donor_version = mysqlshdk::utils::Version(8, 0, 17); });
 
   // Check if the instance has the same version of the recipient
-  if (target->get_version() != recipient->get_version()) {
+  if (donor_version != recipient_version) {
     throw shcore::Exception("Instance " + target_address +
                                 " cannot be a donor because it has a different "
-                                "version than the recipient.",
+                                "version (" +
+                                donor_version.get_full() +
+                                ") than the recipient (" +
+                                recipient_version.get_full() + ").",
                             SHERR_DBA_CLONE_DIFF_VERSION);
   }
 
   // Check if the instance has the same OS the recipient
-  if (target->get_version_compile_os() != recipient->get_version_compile_os()) {
+  auto donor_version_compile_os = donor.get_version_compile_os();
+  auto recipient_version_compile_os = recipient.get_version_compile_os();
+
+  if (donor_version_compile_os != recipient_version_compile_os) {
     throw shcore::Exception("Instance " + target_address +
                                 " cannot be a donor because it has a different "
-                                "Operating System than the recipient.",
+                                "Operating System (" +
+                                donor_version_compile_os +
+                                ") than the recipient (" +
+                                recipient_version_compile_os + ").",
                             SHERR_DBA_CLONE_DIFF_OS);
   }
 
   // Check if the instance is running on the same platform of the recipient
-  if (target->get_version_compile_machine() !=
-      recipient->get_version_compile_machine()) {
+  auto donor_version_compile_machine = donor.get_version_compile_machine();
+  auto recipient_version_compile_machine =
+      recipient.get_version_compile_machine();
+
+  if (donor_version_compile_machine != recipient_version_compile_machine) {
     throw shcore::Exception(
         "Instance " + target_address +
             " cannot be a donor because it is running on a different "
-            "platform than the recipient.",
+            "platform (" +
+            donor_version_compile_machine + ") than the recipient (" +
+            recipient_version_compile_machine + ").",
         SHERR_DBA_CLONE_DIFF_PLATFORM);
   }
 }

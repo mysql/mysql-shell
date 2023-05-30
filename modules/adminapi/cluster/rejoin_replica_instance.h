@@ -58,6 +58,7 @@ class Rejoin_replica_instance {
   void prepare();
   Member_recovery_method validate_instance_recovery();
   void validate_replication_channels();
+  std::shared_ptr<Instance> get_default_donor_instance();
 
  protected:
   shcore::Scoped_callback_list m_undo_list;
@@ -66,7 +67,7 @@ class Rejoin_replica_instance {
  private:
   Cluster_impl *m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
-  std::shared_ptr<mysqlsh::dba::Instance> m_clone_donor_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_donor_instance;
   Rejoin_instance_options m_options;
   std::string m_account_host;
   std::string m_target_read_replica_address;

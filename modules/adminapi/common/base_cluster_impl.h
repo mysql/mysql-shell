@@ -263,9 +263,9 @@ class Base_cluster_impl {
       const Recovery_progress_style &progress_style, int sync_timeout,
       bool dry_run);
 
-  void ensure_compatible_clone_donor(
-      const std::string &donor_def,
-      const std::shared_ptr<mysqlsh::dba::Instance> &recipient);
+  virtual void ensure_compatible_clone_donor(
+      const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient);
 
  protected:
   Cluster_id m_id;

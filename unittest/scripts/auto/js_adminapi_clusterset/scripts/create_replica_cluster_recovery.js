@@ -351,12 +351,28 @@ EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do no
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod option");
 
-// TODO(miguel): add tests for cloneDonor
+// cloneDonor tests
+testutil.dbugSet("");
+testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-//@<> Cleanup
+//@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + automatic donor not valid
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"}); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance ${__endpoint1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+
+//@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance " + hostname + ":" + __mysql_sandbox_port1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" +__version + ").", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance ${__endpoint1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+
+//@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid
+
 // Disable debug
 testutil.dbugSet("");
 
+EXPECT_NO_THROWS(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint2}); });
+
+//@<> Cleanup
 session.close();
 session4.close();
 scene.destroy();

@@ -541,12 +541,29 @@ session3.runSql("RESET MASTER");
 session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"clone"});
 
-// TODO: add tests for cloneDonor
+// cloneDonor tests
+testutil.dbugSet("");
+testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-//@<> Cleanup {VER(>= 8.0.0)}
+//@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + automatic donor not valid {VER(>=8.0.17)}
+EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone"}); }, "The ReplicaSet has no compatible clone donors.", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS(`ERROR: None of the members in the replicaSet are compatible to be used as clone donors for ${hostname_ip}:${__mysql_sandbox_port3}`);
+EXPECT_OUTPUT_CONTAINS(`PRIMARY '${hostname_ip}:${__mysql_sandbox_port1}' is not a suitable clone donor: Instance ${hostname_ip}:${__mysql_sandbox_port1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+
+//@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid {VER(>=8.0.17)}
+EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance " + hostname_ip + ":" + __mysql_sandbox_port1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" +__version + ").", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS(`ERROR: Error rejoining instance to replicaset: MYSQLSH 51402: Instance ${hostname_ip}:${__mysql_sandbox_port1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+
+//@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid {VER(>=8.0.17)}
+
 // Disable debug
 testutil.dbugSet("");
 
+EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); });
+
+//@<> Cleanup {VER(>= 8.0.0)}
 session.close();
 session1.close();
 session2.close();

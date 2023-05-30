@@ -152,6 +152,10 @@ class Replica_set_impl : public Base_cluster_impl {
 
   std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
+  void ensure_compatible_clone_donor(
+      const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient) override;
+
  private:
   void _set_option(const std::string &option,
                    const shcore::Value &value) override;
@@ -215,8 +219,6 @@ class Replica_set_impl : public Base_cluster_impl {
   void invalidate_handle();
 
   void ensure_metadata_has_server_uuid(const mysqlsh::dba::Instance &instance);
-  void ensure_compatible_donor(const std::string &instance_def,
-                               mysqlshdk::mysql::IInstance *recipient);
 
   std::string pick_clone_donor(mysqlshdk::mysql::IInstance *recipient);
 
