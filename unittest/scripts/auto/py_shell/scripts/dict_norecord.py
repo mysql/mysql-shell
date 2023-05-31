@@ -1,4 +1,5 @@
 ## imports
+import json
 import pickle
 import random
 import sys
@@ -2502,3 +2503,6 @@ SETUP_VIEW("values", "mapping", {'one': 1, 'two': 2, 'three': 3})
 EXPECT_EQ('{"one": 1, "three": 3, "two": 2}', str(actual.mapping))
 
 EXPECT_THROWS(assign_none_to_mapping, "AttributeError: attribute 'mapping' of 'Dict_values' objects is not writable")
+
+#@<> json
+EXPECT_EQ('{"one": 1, "three": 3, "two": 2}', json.dumps(shdict({'three': 3, 'one': 1, 'two': 2})))
