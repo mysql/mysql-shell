@@ -120,6 +120,13 @@ shell.connect(__sandbox_uri1);
 cs = dba.getClusterSet();
 EXPECT_NO_THROWS(function(){ cs.rejoinCluster("replica"); });
 
+// Add some data to the primary Cluster
+session.runSql("create schema test");
+session.runSql("create table test.data (a int primary key auto_increment, data longtext)");
+for (i = 0; i < 20; i++) {
+    session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
+}
+
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri5); });
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri6); });
 
@@ -182,8 +189,12 @@ EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("repl
 
 cs.rejoinCluster("replica");
 
-replica = dba.getCluster();
+wait_channel_ready(session, __mysql_sandbox_port6, "clusterset_replication");
+
 replica.rejoinInstance(__sandbox_uri5);
+
+// Rejoin creates a VCLE, so let's reconcile the GTID-set already
+cs.rejoinCluster("replica");
 
 shell.connect(__sandbox_uri6);
 replica2 = dba.getCluster();
@@ -349,6 +360,26 @@ EXPECT_NO_THROWS(function(){ replica.rejoinInstance(__sandbox_uri5); });
 EXPECT_NO_THROWS(function(){ replica.rejoinInstance(__sandbox_uri6); });
 
 cset.status({extended:1});
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
+CHECK_CLUSTER_SET(session);
+
+//@<> Rebooting a Replica Cluster should succeed to rejoin back its members even though there are missing transactions from the Primary Cluster
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
+
+shell.connect(__sandbox_uri1);
+
+// Add some data to the Primary Cluster
+session.runSql("create schema test2");
+session.runSql("create table test2.data (a int primary key auto_increment, data longtext)");
+for (i = 0; i < 20; i++) {
+    session.runSql("insert into test2.data values (default, repeat('x', 4*1024*1024))");
+}
+
+shell.connect(__sandbox_uri4);
+
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage(); });
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
