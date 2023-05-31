@@ -2122,6 +2122,36 @@ void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *cluster,
     cluster_transaction_size_limit = value.as_int();
   }
 
+  // If there are Cluster members that are reachable but group_replication is
+  // either disabled or not installed, attempting to set
+  // group_replication_transaction_size_limit will result in an error. To avoid
+  // that, we check which are those instances to let the config_handler know
+  // that those are to be ignored
+  std::vector<std::string> ignore_instances_vec;
+  {
+    auto is_gr_active = [](const mysqlshdk::mysql::IInstance &instance) {
+      std::optional<std::string> plugin_state =
+          instance.get_plugin_status(mysqlshdk::gr::k_gr_plugin_name);
+      if (!plugin_state.has_value() ||
+          plugin_state.value_or("DISABLED") != "ACTIVE") {
+        return false;
+      }
+      return true;
+    };
+
+    cluster->execute_in_members(
+        {}, cluster->get_cluster_server()->get_connection_options(), {},
+        [&ignore_instances_vec, &is_gr_active](
+            const std::shared_ptr<Instance> &instance,
+            const mysqlshdk::gr::Member &) {
+          if (!is_gr_active(*instance)) {
+            ignore_instances_vec.push_back(instance->get_canonical_address());
+          }
+
+          return true;
+        });
+  }
+
   // The primary must be reachable at this point so it will always be
   // updated, but one of more secondaries might be unreachable and it's OK
   // if they are not updated. Auto-rejoins might fail due to transactions
@@ -2129,7 +2159,7 @@ void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *cluster,
   // and can fix it with .rescan(). Also, manually rejoining instances with
   // .rejoinInstance() will overcome the problem
   std::unique_ptr<mysqlshdk::config::Config> config =
-      cluster->create_config_object({}, false, false, true);
+      cluster->create_config_object(ignore_instances_vec, false, false, true);
 
   config->set(kGrTransactionSizeLimit,
               std::optional<int64_t>(cluster_transaction_size_limit));

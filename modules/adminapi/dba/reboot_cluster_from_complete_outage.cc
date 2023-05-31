@@ -223,10 +223,20 @@ void rejoin_instances(Cluster_impl *cluster_impl,
         rejoin_options.gr_options.ip_allowlist = std::nullopt;
       }
 
+      // Do not handle the ClusterSet-related steps (configuration of the
+      // managed channel and transaction sync with the primary cluster) when:
+      //   - The Cluster was a Replica Cluster that was removed from the
+      //     ClusterSet, or
+      //   - It's not a ClusterSet member, or
+      //   - It's an INVALIDATED Cluster
+      bool ignore_cluster_set = removed_from_set ||
+                                !cluster_impl->is_cluster_set_member() ||
+                                cluster_impl->is_invalidated();
+
       Cluster_topology_executor<cluster::Rejoin_instance>{
-          cluster_impl,   instance,
-          rejoin_options, options.switch_communication_stack.has_value(),
-          true,           true}
+          cluster_impl,       instance,
+          rejoin_options,     options.switch_communication_stack.has_value(),
+          ignore_cluster_set, true}
           .run();
 
     } catch (const shcore::Error &e) {
@@ -1258,6 +1268,8 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     reboot_seed();
   }
 
+  bool rejoin_remaning_instances = true;
+
   // don't rejoin the instances *if* cluster is in a cluster set and is
   // invalidated (former primary) or is a replica and the primary doesn't have
   // global status OK
@@ -1276,6 +1288,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
                      "Cluster is rejoined to the ClusterSet.";
     console->print_info(msg);
 
+    rejoin_remaning_instances = false;
   } else if (!m_options.get_dry_run()) {
     // it's either a non ClusterSet instance or it is but it's not the
     // primary, so we just need to acquire the primary before rejoining the
@@ -1304,9 +1317,6 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         }
       }
     }
-
-    rejoin_instances(cluster_impl.get(), *m_target_instance, instances,
-                     m_options, !cluster_is_multi_primary);
   }
 
   // if the cluster is part of a set
@@ -1339,7 +1349,6 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
           // also ensure SRO is enabled on all members
           cluster_set_impl->ensure_replica_settings(cluster_impl.get(), false);
-
         } catch (const shcore::Exception &e) {
           switch (e.code()) {
             case SHERR_DBA_DATA_ERRANT_TRANSACTIONS:
@@ -1375,6 +1384,12 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         }
       }
     }
+  }
+
+  if (rejoin_remaning_instances && !m_options.get_dry_run()) {
+    // and finally, rejoin all instances
+    rejoin_instances(cluster_impl.get(), *m_target_instance, instances,
+                     m_options, !cluster_is_multi_primary);
   }
 
   if (m_options.get_dry_run()) {
