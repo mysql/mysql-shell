@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1651,6 +1651,7 @@ PyObject *size_of(dict::Object *self) {
  */
 PyObject *clear(dict::Object *self) {
   self->dict->get()->clear();
+  self->base.ma_used = 0;
   Py_RETURN_NONE;
 }
 
@@ -1710,6 +1711,11 @@ PyObject *from_keys(PyTypeObject *type, PyObject *args) {
     if (result < 0) {
       return nullptr;
     }
+  }
+
+  if (is_shell_dict) {
+    const auto shdict = reinterpret_cast<dict::Object *>(dict.get());
+    shdict->base.ma_used = length(shdict);
   }
 
   return dict.release();
@@ -1799,6 +1805,7 @@ PyObject *pop(dict::Object *self, PyObject *args) {
         auto ret = py::convert(result->second);
 
         self->dict->get()->erase(result);
+        --self->base.ma_used;
 
         return ret.release();
       }
@@ -1840,6 +1847,7 @@ PyObject *pop_item(dict::Object *self) {
   }
 
   self->dict->get()->erase(item);
+  --self->base.ma_used;
 
   return result.release();
 }
@@ -1866,6 +1874,7 @@ PyObject *set_default(dict::Object *self, PyObject *args) {
         return py::convert(result->second).release();
       } else {
         self->dict->get()->set(key_to_find, py::convert(default_value));
+        ++self->base.ma_used;
 
         Py_INCREF(default_value);
         return default_value;
@@ -1893,6 +1902,7 @@ PyObject *set_default(dict::Object *self, PyObject *args) {
 PyObject *update(dict::Object *self, PyObject *args, PyObject *kwds) {
   try {
     if (update(self, args, kwds, "update")) {
+      self->base.ma_used = length(self);
       Py_RETURN_NONE;
     }
   } catch (const std::exception &exc) {
@@ -2023,6 +2033,7 @@ int init(dict::Object *self, PyObject *args, PyObject *kwds) {
 
   try {
     if (update(self, args, kwds, "Dict")) {
+      self->base.ma_used = length(self);
       return 0;
     }
   } catch (const std::exception &exc) {
@@ -2594,6 +2605,7 @@ py::Release wrap(const Dictionary_t &map) {
 
   assert(!wrapper->dict);
   wrapper->dict = new Dictionary_t(map);
+  wrapper->base.ma_used = length(wrapper);
 
   return py::Release{reinterpret_cast<PyObject *>(wrapper)};
 }
