@@ -1767,10 +1767,10 @@ void Shell_script_tester::set_defaults() {
   // LDAP Kerberos Authentication Variables
   if (getenv("LDAP_KERBEROS_SERVER_HOST")) {
     set_env_if_missing("LDAP_KERBEROS_BIND_BASE_DN",
-                       "CN=users,DC=mysql,DC=local");
+                       "CN=users,DC=mtr,DC=local");
     set_env_if_missing("LDAP_KERBEROS_USER_SEARCH_ATTR", "sAMAccountName");
     set_env_if_missing("LDAP_KERBEROS_BIND_ROOT_DN",
-                       "CN=test2,CN=Users,DC=mysql,DC=local");
+                       "CN=test2,CN=Users,DC=mtr,DC=local");
     set_env_if_missing("LDAP_KERBEROS_GROUP_SEARCH_FILTER",
                        "(&(objectClass=group)(member={UD}))");
   }
@@ -1785,10 +1785,12 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("LDAP_KERBEROS_PWD");
   def_string_var_from_env("LDAP_KERBEROS_AUTH_STRING");
   def_string_var_from_env("LDAP_KERBEROS_GROUP_SEARCH_FILTER");
+  def_string_var_from_env("LDAP_KERBEROS_DOMAIN");
 
   // Kerberos Authentication Variables
   def_string_var_from_env("KERBEROS_USER");
   def_string_var_from_env("KERBEROS_PWD");
+  def_string_var_from_env("KERBEROS_DOMAIN");
 
   // OCI Authentication Variables
   def_string_var_from_env("OCI_AUTH_URI");
@@ -1797,8 +1799,17 @@ void Shell_script_tester::set_defaults() {
   } else {
     def_var("OCI_AUTH_CONFIG_FILE", "''");
   }
-  def_var("OCI_AUTH_POSITIVE_TESTS",
-          getenv("OCI_AUTH_CONFIG_FILE") ? "1==1" : "0==1");
+  if (getenv("OCI_AUTH_PROFILE")) {
+    def_string_var_from_env("OCI_AUTH_PROFILE");
+  } else {
+    def_var("OCI_AUTH_PROFILE", "'DEFAULT'");
+  }
+  if (getenv("OCI_AUTH_POSITIVE_TESTS")) {
+    def_numeric_var_from_env("OCI_AUTH_POSITIVE_TESTS");
+  } else {
+    def_var("OCI_AUTH_POSITIVE_TESTS",
+            getenv("OCI_AUTH_CONFIG_FILE") ? "1" : "0");
+  }
 
   // Variables for AWS Tests
   def_string_var_from_env("MYSQLSH_S3_BUCKET_NAME");
