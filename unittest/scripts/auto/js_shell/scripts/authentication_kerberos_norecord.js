@@ -15,8 +15,8 @@ try {
 
     if (kerberos_available) {
         session.runSql("CREATE DATABASE test_user_db");
-        session.runSql(`CREATE USER '${KERBEROS_USER}' IDENTIFIED WITH authentication_kerberos BY 'MYSQL.LOCAL';`);
-        session.runSql(`CREATE USER 'invalid_user' IDENTIFIED WITH authentication_kerberos BY 'MYSQL.LOCAL';`);
+        session.runSql(`CREATE USER '${KERBEROS_USER}' IDENTIFIED WITH authentication_kerberos BY '${KERBEROS_DOMAIN}';`);
+        session.runSql(`CREATE USER 'invalid_user' IDENTIFIED WITH authentication_kerberos BY '${KERBEROS_DOMAIN}';`);
         session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'invalid_user'");
         session.runSql(`GRANT ALL PRIVILEGES ON *.* TO '${KERBEROS_USER}'`);
     } else {
@@ -47,7 +47,7 @@ args = ["--mysql", "--host=localhost",
     "--credential-store-helper=plaintext"]
 
 // WL14553-TSFR_9_4 - No user/password provided
-testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1"]));
+testutil.callMysqlsh(args.concat(["-i", "--sql", "-e", "SELECT current_user()"]));
 
 // System user is not automatically added to the connection data
 EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to 'localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_kerberos_client`)
@@ -57,7 +57,7 @@ EXPECT_OUTPUT_CONTAINS(`Access denied for user '${__system_user}'@'localhost'`)
 WIPE_OUTPUT()
 
 //@<> WL14553-TSFR_9_4 - User given but no password {kerberos_available}
-testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1", `--user=${KERBEROS_USER}`]));
+testutil.callMysqlsh(args.concat(["-i", "--sql", "-e", "SELECT current_user()", `--user=${KERBEROS_USER}`]));
 
 // System user is not automatically added to the connection data
 EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to '${KERBEROS_USER}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_kerberos_client`)

@@ -13,12 +13,12 @@ try {
 
     if (ldap_kerberos_available) {
         session.runSql("CREATE DATABASE test_user_db");
-        session.runSql(`CREATE USER '${LDAP_KERBEROS_USER}@MYSQL.LOCAL' IDENTIFIED WITH authentication_ldap_sasl BY "${LDAP_KERBEROS_AUTH_STRING}"`);
+        session.runSql(`CREATE USER '${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}' IDENTIFIED WITH authentication_ldap_sasl BY "${LDAP_KERBEROS_AUTH_STRING}"`);
         session.runSql("CREATE USER 'invalid_user' IDENTIFIED WITH authentication_ldap_sasl");
         session.runSql("CREATE USER 'mysql_engineering'");
         session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'mysql_engineering'");
         session.runSql("GRANT ALL PRIVILEGES ON test_user_db.* TO 'invalid_user'");
-        session.runSql(`GRANT PROXY on 'mysql_engineering' TO '${LDAP_KERBEROS_USER}@MYSQL.LOCAL'`);
+        session.runSql(`GRANT PROXY on 'mysql_engineering' TO '${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}'`);
     } else {
         session.runSql("create user ldap_kerberos_test identified by 'mypwd'");
     }
@@ -31,8 +31,8 @@ try {
 
 var test_list = {
     "SELECT current_user()": "mysql_engineering@%",
-    "SELECT user()": `${LDAP_KERBEROS_USER}@MYSQL.LOCAL@localhost`,
-    "SELECT @@local.proxy_user": `'${LDAP_KERBEROS_USER}@MYSQL.LOCAL'@'%'`,
+    "SELECT user()": `${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}@localhost`,
+    "SELECT @@local.proxy_user": `'${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}'@'%'`,
     "SELECT @@local.external_user": "mysql_engineering"
 };
 
@@ -57,10 +57,10 @@ EXPECT_OUTPUT_CONTAINS(`SSO user not found, Please perform SSO authentication us
 WIPE_OUTPUT()
 
 //@<> WL14553-TSFR_9_4 - User given but no password {ldap_kerberos_available}
-testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1", `--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`]));
+testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1", `--user=${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}`]));
 
 // System user is not automatically added to the connection data
-EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to '${LDAP_KERBEROS_USER}%40MYSQL.LOCAL@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`)
+EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to '${LDAP_KERBEROS_USER}%40${LDAP_KERBEROS_DOMAIN}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`)
 
 // The client library will pick the system user anyway
 // NOTE: This is the error reported by the server on this scenario rather than a clear message
@@ -75,25 +75,25 @@ args.push("-e")
 cli_variants = []
 
 // WL14553-TSFR_9_1 - Full credentials will cause the TGT to be created
-cli_variants.push([`--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`, `--password=${LDAP_KERBEROS_PWD}`])
+cli_variants.push([`--user=${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}`, `--password=${LDAP_KERBEROS_PWD}`])
 
 // The rest of the variants fall back to the cached TGT
 // WL14553-TSFR_9_2 - No User/Password
 cli_variants.push([])
 
 // User but no password
-cli_variants.push([`--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`])
+cli_variants.push([`--user=${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}`])
 
 // WL14553-TSFR_8_1 - Password but no user
 cli_variants.push([`--password=whatever`])
 
 // User and wrong password
-cli_variants.push([`--user=${LDAP_KERBEROS_USER}@MYSQL.LOCAL`, `--password=whatever`])
+cli_variants.push([`--user=${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}`, `--password=whatever`])
 
 //@<> Test TGT with independent shell instances {ldap_kerberos_available}
 for (variant_index in cli_variants) {
     for (query in test_list) {
-        testutil.callMysqlsh(args.concat([`${query}`]).concat(cli_variants[variant_index]));
+        testutil.callMysqlsh(args.concat([`${query}`]).concat(cli_variants[variant_index]), "", ["AUTHENTICATION_LDAP_CLIENT_LOG=5"]);
         EXPECT_OUTPUT_CONTAINS(test_list[query] ? test_list[query] : "NULL");
         WIPE_OUTPUT();
     }
@@ -103,12 +103,12 @@ for (variant_index in cli_variants) {
 ok_variants = []
 // Full credentials will cause the TGT to be created
 ok_variants.push(function () {
-    shell.connect(`mysql://${LDAP_KERBEROS_USER}%40MYSQL.LOCAL:${LDAP_KERBEROS_PWD}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
+    shell.connect(`mysql://${LDAP_KERBEROS_USER}%40${LDAP_KERBEROS_DOMAIN}:${LDAP_KERBEROS_PWD}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
 });
 
 // Repeats using Shell API
 ok_variants.push(function () {
-    session = mysql.getSession(`mysql://${LDAP_KERBEROS_USER}%40MYSQL.LOCAL:${LDAP_KERBEROS_PWD}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
+    session = mysql.getSession(`mysql://${LDAP_KERBEROS_USER}%40${LDAP_KERBEROS_DOMAIN}:${LDAP_KERBEROS_PWD}@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
 });
 
 // No user/password, falls back to cached TGT
@@ -124,12 +124,12 @@ ok_variants.push(function () {
 
 // User and wrong password, ignores password and uses cached TGT
 ok_variants.push(function () {
-    shell.connect(`mysql://${LDAP_KERBEROS_USER}%40MYSQL.LOCAL:fakepwd@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
+    shell.connect(`mysql://${LDAP_KERBEROS_USER}%40${LDAP_KERBEROS_DOMAIN}:fakepwd@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
 });
 
 // Repeats using the Shell API
 ok_variants.push(function () {
-    session = mysql.getSession(`mysql://${LDAP_KERBEROS_USER}%40MYSQL.LOCAL:fakepwd@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
+    session = mysql.getSession(`mysql://${LDAP_KERBEROS_USER}%40${LDAP_KERBEROS_DOMAIN}:fakepwd@localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`);
 });
 
 for (variant_index in ok_variants) {

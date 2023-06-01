@@ -5,12 +5,12 @@
 //  - An linux server with installed mit kerberos libriaries and mysql server (with kerberos plugin)
 //    - the linux server must have an specific realm configuration (/etc/krb5.conf) to work with mentioned kerberos server:
 //[realms]
-//MYSQL.LOCAL = {
+//MTR.LOCAL = {
 //	kdc = kerberos.auth.server.com
 //	admin_server = kerberos.auth.server.com
-//	default_domain = MYSQL.LOCAL
+//	default_domain = MTR.LOCAL
 //}
-//    - mysql server should have an set veriable: authentication_kerberos_service_principal=mysql_service/kerberos_auth_host@MYSQL.LOCAL
+//    - mysql server should have an set veriable: authentication_kerberos_service_principal=mysql_service/kerberos_auth_host@MTR.LOCAL
 //
 //  - this script should be run on a windows machine:
 //    - the MIT Kerberos Client for windows must be installed and running in the background
