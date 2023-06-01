@@ -666,7 +666,7 @@ TEST_F(Rest_service_test, timeout) {
   FAIL_IF_NO_SERVER
 
   // reduce the timeout
-  m_service.set_timeout(1999, 1, 2);
+  m_service.set_timeout(1000, 1, 1);
 
   auto request = Request("/timeout/2.1");
 
@@ -687,17 +687,17 @@ TEST_F(Rest_service_test, timeout) {
     EXPECT_THROW_LIKE(
         m_service.get(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
-        "last 2 seconds");
+        "last 1 seconds");
 
     EXPECT_THROW_LIKE(
         m_service.put(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
-        "last 2 seconds");
+        "last 1 seconds");
 
     EXPECT_THROW_LIKE(
         m_service.post(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
-        "last 2 seconds");
+        "last 1 seconds");
   }
 
   // increase the timeout
