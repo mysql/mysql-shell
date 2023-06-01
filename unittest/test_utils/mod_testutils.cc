@@ -1589,7 +1589,8 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
   // Sandbox from a boilerplate (always start with root password)
   prepare_sandbox_boilerplate(port, mysqld_path);
   wait_sandbox_dead(port);
-  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
+  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path,
+                                  timeout);
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
   if (k_boilerplate_root_password == rootpass) {
@@ -4130,12 +4131,20 @@ int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
 #endif
   std::shared_ptr<mysqlsh::Command_line_shell> shell(_shell.lock());
   try {
+    std::string expect;
+    std::string response;
     // Starts the process
     process.start();
 
     if (!std_input.empty()) {
-      process.write(&std_input[0], std_input.size());
-      process.finish_writing();  // Reader will see EOF
+      const auto tokens = shcore::str_split(std_input, "|");
+      if (tokens.size() != 2) {
+        process.write(&std_input[0], std_input.size());
+        process.finish_writing();  // Reader will see EOF
+      } else {
+        expect = tokens[0];
+        response = tokens[1];
+      }
     }
 
     // // The password should be provided when it is expected that the Shell
@@ -4159,7 +4168,12 @@ int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
     }
     if (!output.empty()) {
       if (shell) mysqlsh::current_console()->println(output);
+      if (expect == output) {
+        process.write(&std_input[0], std_input.size());
+        process.finish_writing();  // Reader will see EOF
+      }
     }
+
     // Wait until it finishes
     exit_code = process.wait();
   } catch (const std::system_error &e) {
