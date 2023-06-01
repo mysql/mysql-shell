@@ -97,11 +97,11 @@ session.runSql("SET GLOBAL super_read_only = 1");
 
 EXPECT_THROWS(function(){
     replica = dba.rebootClusterFromCompleteOutage("replica");
-}, `The instance '${hostname}:${__mysql_sandbox_port4}' has an incompatible GTID set with the seed instance '${hostname}:${__mysql_sandbox_port5}' (former has missing transactions). If you wish to proceed, the 'force' option must be explicitly set.`);
+}, `The instance '${hostname}:${__mysql_sandbox_port5}' has an incompatible GTID set with the seed instance '${hostname}:${__mysql_sandbox_port4}' (GTIDs diverged). If you wish to proceed, the 'force' option must be explicitly set.`);
 
 testutil.wipeAllOutput();
 
-EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica", {force:true}); });
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica", {force:true, primary: `${hostname}:${__mysql_sandbox_port5}`}); });
 EXPECT_OUTPUT_CONTAINS(`NOTE: Not rejoining instance '${hostname}:${__mysql_sandbox_port4}' because its GTID set isn't compatible with '${hostname}:${__mysql_sandbox_port5}'.`);
 
 status = replica.status();

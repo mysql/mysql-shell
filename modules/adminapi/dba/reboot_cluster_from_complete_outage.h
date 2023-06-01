@@ -77,7 +77,8 @@ class Reboot_cluster_from_complete_outage {
    * explicit instance and the force option.
    */
   std::shared_ptr<Instance> pick_best_instance_gtid(
-      const std::vector<std::shared_ptr<Instance>> &instances, bool force,
+      const std::vector<std::shared_ptr<Instance>> &instances,
+      bool is_cluster_set_member, bool force,
       std::string_view intended_instance);
 
   void check_instance_configuration();

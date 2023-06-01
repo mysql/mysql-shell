@@ -79,8 +79,8 @@ struct IQuery_attribute_value {
  * IQuery_attribute_value interface is used at this level.
  */
 struct Query_attribute {
-  Query_attribute(const std::string &n,
-                  std::unique_ptr<IQuery_attribute_value> v);
+  Query_attribute(std::string n,
+                  std::unique_ptr<IQuery_attribute_value> v) noexcept;
 
   std::string name;
   std::unique_ptr<IQuery_attribute_value> value;

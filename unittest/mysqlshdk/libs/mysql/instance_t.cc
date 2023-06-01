@@ -1512,4 +1512,21 @@ TEST_F(Instance_test, generate_uuid) {
   instance.generate_uuid();
 }
 
+TEST_F(Instance_test, session_limits) {
+  mysqlshdk::mysql::Instance instance(_session);
+  session
+      .expect_query(
+          "show SESSION variables "
+          "where `variable_name` in ('group_concat_max_len')")
+      .then_return({{"show SESSION variables "
+                     "where `variable_name` in ('group_concat_max_len')",
+                     {"Variable_name", "Value"},
+                     {Type::String, Type::Integer},
+                     {{"group_concat_max_len", "1073741824"}}}});
+  auto group_concat_max_len = instance.get_sysvar_int(
+      "group_concat_max_len", mysqlshdk::mysql::Var_qualifier::SESSION);
+  EXPECT_TRUE(group_concat_max_len);
+  EXPECT_EQ(1024 * 1024 * 1024, *group_concat_max_len);
+}
+
 }  // namespace testing

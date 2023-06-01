@@ -29,9 +29,9 @@
 namespace mysqlshdk {
 namespace db {
 
-Query_attribute::Query_attribute(const std::string &n,
-                                 std::unique_ptr<IQuery_attribute_value> v)
-    : name(n), value(std::move(v)) {}
+Query_attribute::Query_attribute(
+    std::string n, std::unique_ptr<IQuery_attribute_value> v) noexcept
+    : name(std::move(n)), value(std::move(v)) {}
 
 void ISession::connect(const mysqlshdk::db::Connection_options &data) {
   do_connect(data);
