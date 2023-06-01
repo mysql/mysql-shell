@@ -169,6 +169,7 @@ Query_attribute_store::get_query_attributes(
   assert(translator_cb);
 
   std::vector<mysqlshdk::db::Query_attribute> attributes;
+  attributes.reserve(m_order.size());
 
   for (const auto &name : m_order) {
     attributes.emplace_back(name, translator_cb(m_store.at(std::string{name})));
@@ -207,10 +208,13 @@ ShellBaseSession::~ShellBaseSession() { DEBUG_OBJ_DEALLOC(ShellBaseSession); }
 std::string &ShellBaseSession::append_descr(std::string &s_out, int /*indent*/,
                                             int /*quote_strings*/) const {
   if (!is_open())
-    s_out.append("<" + class_name() + ":disconnected>");
+    s_out.append("<").append(class_name()).append(":disconnected>");
   else
-    s_out.append("<" + class_name() + ":" +
-                 uri(mysqlshdk::db::uri::formats::user_transport()) + ">");
+    s_out.append("<")
+        .append(class_name())
+        .append(":")
+        .append(uri(mysqlshdk::db::uri::formats::user_transport()))
+        .append(">");
   return s_out;
 }
 
@@ -283,16 +287,20 @@ void ShellBaseSession::enable_sql_mode_tracking() {
   log_info("Now tracking 'sql_mode' system variable.");
 }
 
-std::string ShellBaseSession::get_quoted_name(const std::string &name) {
-  size_t index = 0;
-  std::string quoted_name(name);
+std::string ShellBaseSession::get_quoted_name(std::string_view name) {
+  std::string quoted_name;
+  quoted_name.reserve(name.size() + 2);
 
-  while ((index = quoted_name.find("`", index)) != std::string::npos) {
+  size_t index = 1;  // ignore the first '`'
+  quoted_name.append("`");
+  quoted_name.append(name);
+
+  while ((index = quoted_name.find('`', index)) != std::string::npos) {
     quoted_name.replace(index, 1, "``");
     index += 2;
   }
 
-  quoted_name = "`" + quoted_name + "`";
+  quoted_name.append("`");
 
   return quoted_name;
 }
