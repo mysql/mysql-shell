@@ -249,14 +249,16 @@ function hasAuthEnvironment(context) {
                  'LDAP_KERBEROS_USER_SEARCH_ATTR',
                  'LDAP_KERBEROS_USER',
                  'LDAP_KERBEROS_PWD',
-                 'LDAP_KERBEROS_AUTH_STRING'];
+                 'LDAP_KERBEROS_AUTH_STRING',
+                 'LDAP_KERBEROS_DOMAIN'];
   } else if (context == 'KERBEROS') {
     variables = ['KERBEROS_USER',
-                 'KERBEROS_PWD'];
+                 'KERBEROS_PWD',
+                 'KERBEROS_DOMAIN'];
   } else if (context == 'OCI_AUTH') {
     variables = ['OCI_AUTH_URI',
                  'OCI_AUTH_CONFIG_FILE',
-                 'OCI_AUTH_POSITIVE_TESTS'];
+                 'OCI_AUTH_PROFILE'];
   }
 
   let missing=[];
@@ -327,12 +329,12 @@ function getAuthServerConfig(context) {
       "connect_timeout": 360
     };
   } else if (context == 'KERBEROS') {
-    const keytab_file = os.path.join(__tmp_dir, "mysql2.keytab");
-    testutil.cpfile(os.path.join(__data_path, "keytab", "mysql.keytab"), keytab_file);
+    const keytab_file = os.path.join(__tmp_dir, "mtr.keytab");
+    testutil.cpfile(os.path.join(__data_path, "keytab", "mtr.keytab"), keytab_file);
 
     return {
       "plugin-load-add": `authentication_kerberos.${ext}`,
-      "authentication_kerberos_service_principal": "mysql_service/kerberos_auth_host@MYSQL.LOCAL",
+      "authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${LDAP_KERBEROS_DOMAIN}`,
       "authentication_kerberos_service_key_tab": keytab_file,
       "net_read_timeout": 360,
       "connect_timeout": 360,
