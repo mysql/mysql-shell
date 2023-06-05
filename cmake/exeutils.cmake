@@ -126,9 +126,14 @@ endfunction()
 
 function(install_bundled_binaries)
   set(options)
-  set(oneValueArgs DESTINATION TARGET)
+  set(oneValueArgs DESTINATION TARGET WRITE_RPATH)
   set(multiValueArgs BINARIES)
   cmake_parse_arguments(INSTALL_BUNDLED "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if(NOT DEFINED INSTALL_BUNDLED_WRITE_RPATH)
+    # if not explicitly specified, we always add an RPATH
+    set(INSTALL_BUNDLED_WRITE_RPATH TRUE)
+  endif()
 
   if(WIN32 AND (INSTALL_BUNDLED_DESTINATION STREQUAL INSTALL_LIBDIR OR INSTALL_BUNDLED_DESTINATION MATCHES "^${INSTALL_LIBDIR}/.*"))
     # on Windows, if files should be installed in the 'lib' directory, we install them in the 'bin' directory instead
@@ -141,8 +146,9 @@ function(install_bundled_binaries)
     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
       message(STATUS "Bundling binary: ${SOURCE_BINARY}, installation directory: ${INSTALL_BUNDLED_DESTINATION}")
       if(LINUX)
-        # we always add an RPATH, if we bundle a binary, then for sure it is going to use one of the other libraries
-        write_rpath(BINARY "${SOURCE_BINARY}" DESTINATION "${INSTALL_BUNDLED_DESTINATION}" TARGET ${INSTALL_BUNDLED_TARGET})
+        if(INSTALL_BUNDLED_WRITE_RPATH)
+          write_rpath(BINARY "${SOURCE_BINARY}" DESTINATION "${INSTALL_BUNDLED_DESTINATION}" TARGET ${INSTALL_BUNDLED_TARGET})
+        endif()
       elseif(APPLE)
         # if we bundle OpenSSL, then we want the bundled binary to use it instead of the system one
         if(BUNDLED_OPENSSL)
