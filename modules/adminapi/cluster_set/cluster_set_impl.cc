@@ -276,8 +276,6 @@ Cluster_set_impl::refresh_cluster_replication_user(Cluster_impl *cluster,
   std::tie(repl_user, repl_user_host) = get_cluster_repl_account(cluster);
 
   try {
-    auto console = mysqlsh::current_console();
-
     log_info("Resetting password for %s@%s at %s", repl_user.c_str(),
              repl_user_host.c_str(), primary->descr().c_str());
     // re-create replication with a new generated password
@@ -639,7 +637,11 @@ void ensure_no_router_uses_cluster(const std::vector<Router_metadata> &routers,
 
 Cluster_global_status Cluster_set_impl::get_cluster_global_status(
     Cluster_impl *cluster) const {
-  assert(cluster->is_cluster_set_member());
+  {
+    auto cluster_set_member = cluster->is_cluster_set_member();
+    assert(cluster_set_member);
+    if (!cluster_set_member) return Cluster_global_status::UNKNOWN;
+  }
 
   if (cluster->is_invalidated()) return Cluster_global_status::INVALIDATED;
 
@@ -1865,7 +1867,6 @@ void Cluster_set_impl::update_replica(
     bool dry_run) {
   log_info("Updating replication source at %s", replica->descr().c_str());
 
-  auto console = current_console();
   auto repl_options = ar_options;
 
   try {
@@ -1883,8 +1884,9 @@ void Cluster_set_impl::update_replica(
     log_info("Replication source changed for %sinstance %s",
              (primary_instance ? "primary " : ""), replica->descr().c_str());
   } catch (...) {
-    console->print_error("Error updating replication source for " +
-                         replica->descr() + ": " + format_active_exception());
+    current_console()->print_error("Error updating replication source for " +
+                                   replica->descr() + ": " +
+                                   format_active_exception());
 
     throw shcore::Exception(
         "Could not update replication source of " + replica->descr(),
