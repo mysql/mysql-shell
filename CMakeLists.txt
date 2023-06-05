@@ -836,15 +836,26 @@ IF (WITH_SSL_PATH AND (APPLE OR WIN32 OR LINUX_STANDALONE))
     GET_FILENAME_COMPONENT(OPENSSL_NAME "${OPENSSL_LIBRARY}" NAME_WE)
 
     # Different naming scheme for the matching .dll as of SSL 1.1
+    # OpenSSL 3.x Look for libcrypto-3-x64.dll or libcrypto-3.dll
+    # OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
+    # OpenSSL 1.0 Look for libeay32.dll
     SET(SSL_MSVC_VERSION_SUFFIX)
     SET(SSL_MSVC_ARCH_SUFFIX)
     IF(OPENSSL_VERSION_MINOR VERSION_EQUAL 1)
       SET(SSL_MSVC_VERSION_SUFFIX "-1_1")
       SET(SSL_MSVC_ARCH_SUFFIX "-x64")
     ENDIF()
+    IF(OPENSSL_VERSION_MAJOR VERSION_EQUAL 3)
+      SET(SSL_MSVC_VERSION_SUFFIX "-3")
+      SET(SSL_MSVC_ARCH_SUFFIX "-x64")
+    ENDIF()
 
-    # OpenSSL 1.1 Look for libcrypto-1_1-x64.dll or libcrypto-1_1.dll
-    # OpenSSL 1.0 Look for libeay32.dll
+    MESSAGE(STATUS "===> WITH_SSL_PATH: ${WITH_SSL_PATH}")
+    MESSAGE(STATUS "===> CRYPTO_NAME: ${CRYPTO_NAME}")
+    MESSAGE(STATUS "===> OPENSSL_NAME: ${OPENSSL_NAME}")
+    MESSAGE(STATUS "===> SSL_MSVC_VERSION_SUFFIX: ${SSL_MSVC_VERSION_SUFFIX}")
+    MESSAGE(STATUS "===> SSL_MSVC_ARCH_SUFFIX: ${SSL_MSVC_ARCH_SUFFIX}")
+
     FIND_FILE(HAVE_CRYPTO_DLL
       NAMES
       "${CRYPTO_NAME}${SSL_MSVC_VERSION_SUFFIX}${SSL_MSVC_ARCH_SUFFIX}.dll"
