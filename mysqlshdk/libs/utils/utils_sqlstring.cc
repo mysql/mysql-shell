@@ -37,7 +37,7 @@
 namespace {
 
 // updated as of 8.0, 2022-02-11, this array MUST be sorted
-constexpr std::array<std::string_view, 269> reserved_keywords = {
+constexpr std::array<std::string_view, 271> reserved_keywords = {
     "ACCESSIBLE",
     "ADD",
     "ADMIN",  // became nonreserved in 8.0.12
@@ -120,6 +120,7 @@ constexpr std::array<std::string_view, 269> reserved_keywords = {
     "FORCE",
     "FOREIGN",
     "FROM",
+    "FULL",
     "FULLTEXT",
     "FUNCTION",  // became reserved in 8.0.1
     "GENERATED",
@@ -151,6 +152,7 @@ constexpr std::array<std::string_view, 269> reserved_keywords = {
     "INT8",
     "INTEGER",
     "INTERVAL",
+    "INTERSECT",
     "INTO",
     "IO_AFTER_GTIDS",
     "IO_BEFORE_GTIDS",
