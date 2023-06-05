@@ -335,7 +335,7 @@ Sql_upgrade_check::get_reserved_keywords_check(const Upgrade_info &info) {
                "'RECURSIVE', 'ROW', 'ROWS', 'ROW_NUMBER', 'SYSTEM', 'WINDOW'");
   add_keywords("8.0.14", "'LATERAL'");
   add_keywords("8.0.17", "'ARRAY' ,'MEMBER'");
-  add_keywords("8.0.31", "'FULL'");
+  add_keywords("8.0.31", "'FULL', 'INTERSECT'");
 
   keywords = "(" + keywords + ");";
   return std::make_unique<Sql_upgrade_check>(

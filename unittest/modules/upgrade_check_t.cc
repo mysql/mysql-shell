@@ -207,10 +207,13 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       session->execute("CREATE FUNCTION full (s CHAR(20)) RETURNS CHAR(50) "
                        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
   ASSERT_NO_THROW(session->execute(
+      "CREATE FUNCTION inteRsect (s CHAR(20)) RETURNS CHAR(50) "
+      "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');"));
+  ASSERT_NO_THROW(session->execute(
       "CREATE EVENT LEAD ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
       "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
-  EXPECT_ISSUES(check.get(), 13);
+  EXPECT_ISSUES(check.get(), 14);
   EXPECT_ISSUE(issues[0], "grouping");
   EXPECT_ISSUE(issues[1], "grouping", "System");
   EXPECT_ISSUE(issues[2], "grouping", "NTile", "JSON_TABLE");
@@ -222,8 +225,9 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUE(issues[8], "grouping", "NTile");
   EXPECT_ISSUE(issues[9], "grouping", "Array");
   EXPECT_ISSUE(issues[10], "grouping", "full");
-  EXPECT_ISSUE(issues[11], "grouping", "rows");
-  EXPECT_ISSUE(issues[12], "grouping", "LEAD");
+  EXPECT_ISSUE(issues[11], "grouping", "inteRsect");
+  EXPECT_ISSUE(issues[12], "grouping", "rows");
+  EXPECT_ISSUE(issues[13], "grouping", "LEAD");
 
   check = Sql_upgrade_check::get_reserved_keywords_check(
       upgrade_info(Version(5, 7, 0), Version(8, 0, 30)));
