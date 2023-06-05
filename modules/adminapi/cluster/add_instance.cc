@@ -531,19 +531,24 @@ void Add_instance::prepare() {
       current_console()->print_info(
           "* Checking connectivity and SSL configuration...");
 
-      std::string cert_issuer =
-          m_cluster_impl->query_cluster_auth_cert_issuer();
-      mysqlshdk::mysql::Set_variable disable_sro(
-          *m_target_instance, "super_read_only", false, true);
-      test_peer_connection(
-          *m_target_instance, m_options.gr_options.local_address.value_or(""),
-          m_options.cert_subject, *m_primary_instance,
+      auto cert_issuer = m_cluster_impl->query_cluster_auth_cert_issuer();
+      auto instance_cert_subject =
+          m_cluster_impl->query_cluster_instance_auth_cert_subject(
+              m_primary_instance->get_uuid());
+
+      auto gr_local_address =
           m_primary_instance
               ->get_sysvar_string("group_replication_local_address")
-              .value_or(""),
-          m_cluster_impl->query_cluster_instance_auth_cert_subject(
-              m_primary_instance->get_uuid()),
-          m_options.gr_options.ssl_mode, auth_type, cert_issuer, m_comm_stack);
+              .value_or("");
+
+      mysqlshdk::mysql::Set_variable disable_sro(
+          *m_target_instance, "super_read_only", false, true);
+
+      test_peer_connection(
+          *m_target_instance, m_options.gr_options.local_address.value_or(""),
+          m_options.cert_subject, *m_primary_instance, gr_local_address,
+          instance_cert_subject, m_options.gr_options.ssl_mode, auth_type,
+          cert_issuer, m_comm_stack);
     }
   }
 
