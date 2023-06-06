@@ -157,6 +157,20 @@ if(BUNDLED_OPENSSL)
       DESTINATION ${INSTALL_BINDIR}
       COMPONENT main
     )
+
+    IF(OPENSSL_MODULES_DIR)
+      # Copy the OpenSSL modules to the build dir (for running tests in build tree)
+      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/ossl-modules"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_MODULES_LIST}
+                    "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/ossl-modules")
+
+      # Install/bundle the OpenSSL modules
+      INSTALL(PROGRAMS ${OPENSSL_MODULES_LIST}
+        DESTINATION "${INSTALL_LIBDIR}/ossl-modules"
+        COMPONENT main
+      )
+    ENDIF()
   ELSE()
     # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
     ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
@@ -203,6 +217,10 @@ if(BUNDLED_OPENSSL)
         DESTINATION ${INSTALL_LIBDIR}
         COMPONENT main
       )
+    ENDIF()
+
+    IF(OPENSSL_MODULES_DIR)
+      install_bundled_binaries(BINARIES ${OPENSSL_MODULES_LIST} DESTINATION "${INSTALL_LIBDIR}/ossl-modules" TARGET mysqlsh)
     ENDIF()
   ENDIF()
 endif()

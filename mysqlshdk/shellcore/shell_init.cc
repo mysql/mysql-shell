@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,10 +22,15 @@
  */
 
 #include "shellcore/shell_init.h"
+
 #include <curl/curl.h>
 #include <mysql.h>
 #include <stdlib.h>
 #include <stdexcept>
+
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 
 #ifdef HAVE_V8
 namespace shcore {
@@ -35,6 +40,23 @@ extern void JScript_context_fini();
 #endif
 
 namespace mysqlsh {
+
+namespace {
+
+void init_openssl_modules() {
+#ifdef BUNDLE_OPENSSL_MODULES
+  constexpr auto k_env_var = "OPENSSL_MODULES";
+
+  // don't override path set by the user
+  if (!::getenv(k_env_var)) {
+    shcore::setenv(
+        k_env_var,
+        shcore::path::join_path(shcore::get_library_folder(), "ossl-modules"));
+  }
+#endif
+}
+
+}  // namespace
 
 void thread_init() { mysql_thread_init(); }
 
@@ -51,6 +73,7 @@ void global_init() {
 
   srand(time(0));
   curl_global_init(CURL_GLOBAL_ALL);
+  init_openssl_modules();
 }
 
 void global_end() {
