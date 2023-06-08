@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,6 +94,12 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
 // options First set the options on _options
 void Shell_test_wrapper::reset_options() {
   _opts.reset(new mysqlsh::Shell_options());
+  const char *oci_config_home = getenv("OCI_CONFIG_HOME");
+  if (oci_config_home) {
+    _opts->set_oci_config_file(
+        shcore::path::join_path(oci_config_home, "config"));
+  }
+
   _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
   _options->db_name_cache = false;
 

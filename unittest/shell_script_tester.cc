@@ -1810,11 +1810,6 @@ void Shell_script_tester::set_defaults() {
 
   def_var("__libmysql_version_id",
           shcore::str_format("'%d'", LIBMYSQL_VERSION_ID));
-  const char *oci_config_home = getenv("OCI_CONFIG_HOME");
-  if (oci_config_home) {
-    _opts->set_oci_config_file(
-        shcore::path::join_path(oci_config_home, "config"));
-  }
 }
 
 void Shell_js_script_tester::set_defaults() {
