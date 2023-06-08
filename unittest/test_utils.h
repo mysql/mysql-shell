@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -262,6 +262,13 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
         [](const std::string &w) {
           mysqlsh::current_console()->print(w + "\n");
         }));
+
+    const char *oci_config_home = getenv("OCI_CONFIG_HOME");
+    if (oci_config_home) {
+      _opts->set_oci_config_file(
+          shcore::path::join_path(oci_config_home, "config"));
+    }
+
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
     if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;
