@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include "mysqlshdk/libs/utils/uuid_gen.h"
 
+#include <my_rnd.h>
+#include <mysql.h>
 #include <sstream>
 
 #ifdef _WIN32
@@ -96,11 +98,6 @@ typedef unsigned short uint16;
 typedef char my_bool; /* Small bool */
 
 #define UUID_LENGTH_TEXT (8 + 1 + 4 + 1 + 4 + 1 + 4 + 1 + 12)
-
-struct rand_struct {
-  unsigned long seed1, seed2, max_value;
-  double max_value_dbl;
-};
 
 static pthread_mutex_t LOCK_uuid_generator, LOCK_sql_rand;
 
@@ -335,12 +332,6 @@ my_bool my_gethwaddr(unsigned char *to) {
 my_bool my_gethwaddr(unsigned char *to __attribute__((unused))) { return 1; }
 #endif
 
-double my_rnd(rand_struct *rand_st) {
-  rand_st->seed1 = (rand_st->seed1 * 3 + rand_st->seed2) % rand_st->max_value;
-  rand_st->seed2 = (rand_st->seed1 + rand_st->seed2 + 33) % rand_st->max_value;
-  return (((double)rand_st->seed1) / rand_st->max_value_dbl);
-}
-
 #ifdef _WIN32
 #include "my_systime.h"
 extern unsigned long long my_getsystime();
@@ -379,8 +370,6 @@ unsigned long sql_rnd_with_mutex() {
   return tmp;
 }
 
-extern void randominit(struct rand_struct *rand_st, ulong seed1, ulong seed2);
-
 static uint16 get_proc_id() {
   uint16 proc_id = 0;
 #ifdef _WIN32
@@ -390,6 +379,8 @@ static uint16 get_proc_id() {
 #endif
   return proc_id;
 }
+
+namespace shcore {
 
 void init_uuid(unsigned long seed) {
   pthread_mutex_init(&LOCK_uuid_generator, MY_MUTEX_INIT_FAST);
@@ -570,3 +561,4 @@ std::string get_string_uuid() {
 
   return str.str();
 }
+}  // namespace shcore

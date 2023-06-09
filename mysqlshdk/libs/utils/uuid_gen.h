@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -21,10 +21,12 @@
   51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#ifndef UUID_GEN_INCLUDED
-#define UUID_GEN_INCLUDED
+#ifndef MYSQLSHDK_LIBS_UTILS_UUID_GEN_H_
+#define MYSQLSHDK_LIBS_UTILS_UUID_GEN_H_
 
 #include <string>
+
+namespace shcore {
 
 #define UUID_LENGTH_BIN 16
 typedef unsigned char uuid_type[UUID_LENGTH_BIN];
@@ -34,4 +36,5 @@ void end_uuid();
 void generate_uuid(uuid_type &uuid);
 std::string get_string_uuid();
 
-#endif
+}  // namespace shcore
+#endif  // MYSQLSHDK_LIBS_UTILS_UUID_GEN_H_
