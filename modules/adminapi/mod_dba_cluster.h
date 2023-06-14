@@ -86,8 +86,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined fenceWrites();
   Undefined unfenceWrites();
   Undefined addReplicaInstance(InstanceDef instance, Dictionary options);
-  Undefined removeReadReplica(InstanceDef instance, Dictionary options);
-  Undefined rejoinReadReplica(InstanceDef instance, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -120,9 +118,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None fence_all_traffic();
   None fence_writes();
   None unfence_writes();
-  None add_read_replica(InstanceDef instance, dict options);
-  None remove_read_replica(InstanceDef instance, dict options);
-  None rejoin_read_replica(InstanceDef instance, dict options);
+  None add_replica_instance(InstanceDef instance, dict options);
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);
