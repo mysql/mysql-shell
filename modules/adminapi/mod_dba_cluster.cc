@@ -1718,9 +1718,10 @@ value of 1.
  * $(CLUSTER_ADDREPLICAINSTANCE)
  */
 #if DOXYGEN_JS
-Undefined addReplicaInstance(InstanceDef instance, Dictionary options) {}
+Undefined Cluster::addReplicaInstance(InstanceDef instance,
+                                      Dictionary options) {}
 #elif DOXYGEN_PY
-None add_replica_instance(InstanceDef instance, dict options);
+None Cluster::add_replica_instance(InstanceDef instance, dict options);
 #endif
 void Cluster::add_replica_instance(
     const std::string &instance_def,
