@@ -108,9 +108,9 @@ void Oci_bucket_config::fetch_namespace() {
       try {
         tenancy_name =
             s_tenancy_names
-                .emplace(m_tenancy_id,
-                         shcore::Value::parse(raw_data.data(), raw_data.size())
-                             .as_string())
+                .emplace(m_tenancy_id, shcore::Value::parse(
+                                           {raw_data.data(), raw_data.size()})
+                                           .as_string())
                 .first;
       } catch (const shcore::Exception &error) {
         log_debug2("%s\n%.*s", error.what(), static_cast<int>(raw_data.size()),

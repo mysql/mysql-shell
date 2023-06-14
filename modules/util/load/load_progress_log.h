@@ -25,11 +25,9 @@
 #define MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
 
 #include <chrono>
-#include <fstream>
 #include <functional>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -37,10 +35,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace mysqlsh {
 
@@ -87,45 +82,47 @@ class Load_progress_log final {
             data,
             [this, &bytes_completed,
              &raw_bytes_completed](std::string_view line) -> bool {
-              if (!shcore::str_strip(line).empty()) {
-                shcore::Value doc =
-                    shcore::Value::parse(line.data(), line.size());
-                shcore::Dictionary_t entry = doc.as_map();
-
-                bool done = entry->get_int("done") != 0;
-
-                std::string key = entry->get_string("op");
-
-                if (entry->has_key("schema"))
-                  key += ":`" + entry->get_string("schema") + "`";
-
-                if (entry->has_key("table"))
-                  key += ":`" + entry->get_string("table") + "`";
-
-                if (entry->has_key("partition"))
-                  key += ":`" + entry->get_string("partition") + "`";
-
-                if (entry->has_key("chunk"))
-                  key += ":" + std::to_string(entry->get_int("chunk"));
-
-                if (entry->has_key("subchunk"))
-                  key += ":" + std::to_string(entry->get_int("subchunk"));
-
-                auto iter = m_last_state.find(key);
-                if (iter == m_last_state.end() || !done) {
-                  m_last_state.emplace(key, Status_details{Status::INTERRUPTED,
-                                                           std::move(entry)});
-                } else {
-                  if (entry->has_key("bytes"))
-                    bytes_completed += entry->get_uint("bytes");
-
-                  if (entry->has_key("raw_bytes"))
-                    raw_bytes_completed += entry->get_uint("raw_bytes");
-
-                  iter->second.status = Status::DONE;
-                  iter->second.details = std::move(entry);
-                }
+              if (shcore::str_strip_view(line).empty()) {
+                return true;
               }
+
+              shcore::Value doc = shcore::Value::parse(line);
+              shcore::Dictionary_t entry = doc.as_map();
+
+              bool done = entry->get_int("done") != 0;
+
+              std::string key = entry->get_string("op");
+
+              if (entry->has_key("schema"))
+                key += ":`" + entry->get_string("schema") + "`";
+
+              if (entry->has_key("table"))
+                key += ":`" + entry->get_string("table") + "`";
+
+              if (entry->has_key("partition"))
+                key += ":`" + entry->get_string("partition") + "`";
+
+              if (entry->has_key("chunk"))
+                key += ":" + std::to_string(entry->get_int("chunk"));
+
+              if (entry->has_key("subchunk"))
+                key += ":" + std::to_string(entry->get_int("subchunk"));
+
+              auto iter = m_last_state.find(key);
+              if (iter == m_last_state.end() || !done) {
+                m_last_state.emplace(
+                    key, Status_details{Status::INTERRUPTED, std::move(entry)});
+              } else {
+                if (entry->has_key("bytes"))
+                  bytes_completed += entry->get_uint("bytes");
+
+                if (entry->has_key("raw_bytes"))
+                  raw_bytes_completed += entry->get_uint("raw_bytes");
+
+                iter->second.status = Status::DONE;
+                iter->second.details = std::move(entry);
+              }
+
               return true;
             },
             "\n");

@@ -254,10 +254,9 @@ Value Shell_core::get_global(const std::string &name) {
 std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
   std::vector<std::string> globals;
 
-  for (auto entry : _globals) {
-    if (entry.second.first.is_set(mode) &&
-        entry.second.second.type == shcore::Object)
-      globals.push_back(entry.first);
+  for (const auto &[name, data] : _globals) {
+    if (data.first.is_set(mode) && data.second.get_type() == shcore::Object)
+      globals.push_back(name);
   }
 
   return globals;
@@ -266,9 +265,8 @@ std::vector<std::string> Shell_core::get_global_objects(Mode mode) {
 std::vector<std::string> Shell_core::get_all_globals() {
   std::vector<std::string> globals;
 
-  for (auto entry : _globals) {
-    if (entry.second.second.type == shcore::Object)
-      globals.push_back(entry.first);
+  for (const auto &[name, data] : _globals) {
+    if (data.second.get_type() == shcore::Object) globals.push_back(name);
   }
 
   return globals;

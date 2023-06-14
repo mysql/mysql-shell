@@ -156,13 +156,13 @@ Connection_options get_connection_options(
                            option, ret_val);
     } else if (ret_val.compare(option.first,
                                mysqlshdk::db::kConnectionAttributes) == 0) {
-      if (option.second.type == shcore::Map) {
+      if (option.second.get_type() == shcore::Map) {
         // Supports connection-attributes: {key:val, key:val, ...}
         auto map = option.second.as_map();
         for (const auto &entry : *map) {
           ret_val.set_connection_attribute(entry.first, entry.second.descr());
         }
-      } else if (option.second.type == shcore::Array) {
+      } else if (option.second.get_type() == shcore::Array) {
         // Supports connection-attributes: ["key=val", "key=val", ...]
         auto array = option.second.as_array();
         std::vector<std::string> values;
@@ -197,15 +197,15 @@ Connection_options get_connection_options(
 }  // namespace
 
 Connection_options get_connection_options(const shcore::Value &v) {
-  if (shcore::String == v.type) {
-    return get_connection_options(v.get_string());
-  } else if (shcore::Map == v.type) {
-    return get_connection_options(v.as_map());
-  } else {
-    throw shcore::Exception::type_error(
-        "Invalid connection options, expected either a URI or a Connection "
-        "Options Dictionary");
-  }
+  auto type = v.get_type();
+
+  if (shcore::String == type) return get_connection_options(v.get_string());
+
+  if (shcore::Map == type) return get_connection_options(v.as_map());
+
+  throw shcore::Exception::type_error(
+      "Invalid connection options, expected either a URI or a Connection "
+      "Options Dictionary");
 }
 
 mysqlshdk::ssh::Ssh_connection_options get_ssh_options(

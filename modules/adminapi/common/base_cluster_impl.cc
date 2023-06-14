@@ -1007,7 +1007,7 @@ std::string Base_cluster_impl::query_cluster_auth_cert_issuer() const {
   if (shcore::Value value;
       get_metadata_storage()->query_cluster_attribute(
           get_id(), k_cluster_attribute_cert_issuer, &value) &&
-      (value.type == shcore::String))
+      (value.get_type() == shcore::String))
     return value.as_string();
 
   return {};
@@ -1018,7 +1018,7 @@ std::string Base_cluster_impl::query_cluster_instance_auth_cert_subject(
   if (shcore::Value value;
       get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_cert_subject, &value) &&
-      (value.type == shcore::String))
+      (value.get_type() == shcore::String))
     return value.as_string();
 
   return {};
@@ -1067,7 +1067,7 @@ Base_cluster_impl::validate_set_option_namespace(
     }
     // If the type of the value is not Null, check that it can be
     // converted to the expected type
-    if (value.type != shcore::Value_type::Null) {
+    if (value.get_type() != shcore::Value_type::Null) {
       try {
         switch (c_it->second) {
           case shcore::Value_type::Bool:
@@ -1085,7 +1085,7 @@ Base_cluster_impl::validate_set_option_namespace(
         throw shcore::Exception::type_error(shcore::str_format(
             "Built-in tag '%s' is expected to be of type %s, but is %s",
             c_it->first.c_str(), type_name(c_it->second).c_str(),
-            type_name(value.type).c_str()));
+            type_name(value.get_type()).c_str()));
       }
     }
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,221 @@
 namespace shcore {
 
 namespace {
+
+////////////////////////////////////////////////////////////////////////////////
+// shcore::Value comparisons
+////////////////////////////////////////////////////////////////////////////////
+bool value_op_less(const Value &a, const Value &b);
+bool value_op_less_equal(const Value &a, const Value &b);
+
+bool value_op_less(const Value &a, const Value &b) {
+  auto a_type = a.get_type();
+  auto b_type = b.get_type();
+
+  if (a_type == b_type) {
+    switch (a_type) {
+      case Value_type::Undefined:
+      case Value_type::Null:
+        return false;
+      case Value_type::Bool:
+        return (a.as_bool() < b.as_bool());
+      case Value_type::String:
+      case Value_type::Binary:
+        return (a.get_string() < b.get_string());
+      case Value_type::Integer:
+        return (a.as_int() < b.as_int());
+      case Value_type::UInteger:
+        return (a.as_uint() < b.as_uint());
+      case Value_type::Float:
+        return (a.as_double() < b.as_double());
+      case Value_type::Object:
+        return (*a.as_object() < *b.as_object());
+      case Value_type::Array:
+        // NOTE: not implemented: it's not possible to order array (because of
+        // its values)
+        return false;  //(*a.as_array() < *b.as_array());
+      case Value_type::Map:
+        // NOTE: not implemented: it's not possible to order maps (because of
+        // its values)
+        return false;  //(*a.as_map() < *b.as_map());
+      case Value_type::Function:
+        // NOTE: not implemented: it's not possible to order functions
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  // with type conversion
+  switch (a_type) {
+    case Value_type::Bool: {
+      switch (b_type) {
+        case Value_type::Integer:
+          if (b.as_int() == 1) return a.as_bool() < true;
+          return false;
+        case Value_type::UInteger:
+          if (b.as_uint() == 1) return a.as_bool() < true;
+          return false;
+        case Value_type::Float:
+          if (b.as_double() == 1.0) return a.as_bool() < true;
+          return false;
+        default:
+          return false;
+      }
+    }
+
+    case Value_type::Integer: {
+      if (b_type == Value_type::Bool) return !value_op_less_equal(b, a);
+
+      if (b_type == Value_type::Float) {
+        auto a_val = a.as_int();
+        auto b_val = b.as_double();
+        auto b_val_as_int = static_cast<int64_t>(b_val);
+        return ((a_val < b_val_as_int) ||
+                ((a_val == b_val_as_int) && ((b_val - b_val_as_int) > 0.0)));
+      }
+
+      return false;
+    }
+
+    case Value_type::UInteger: {
+      if (b_type == Value_type::Bool) return !value_op_less_equal(b, a);
+
+      if (b_type == Value_type::Float) {
+        auto a_val = a.as_uint();
+        auto b_val = b.as_double();
+        auto b_val_as_int = static_cast<uint64_t>(b_val);
+        return ((a_val < b_val_as_int) ||
+                ((a_val == b_val_as_int) && ((b_val - b_val_as_int) > 0.0)));
+      }
+
+      return false;
+    }
+
+    case Value_type::Float: {
+      switch (b_type) {
+        case Value_type::Bool:
+        case Value_type::Integer:
+        case Value_type::UInteger:
+          return value_op_less(b, a);
+        default:
+          return false;
+      }
+    }
+
+    default:
+      return false;
+  }
+}
+
+bool value_op_less_equal(const Value &a, const Value &b) {
+  auto a_type = a.get_type();
+  auto b_type = b.get_type();
+
+  if (a_type == b_type) {
+    switch (a_type) {
+      case Value_type::Undefined:
+      case Value_type::Null:
+        return true;
+      case Value_type::Bool:
+        return (a.as_bool() <= b.as_bool());
+      case Value_type::String:
+      case Value_type::Binary:
+        return (a.get_string() <= b.get_string());
+      case Value_type::Integer:
+        return (a.as_int() <= b.as_int());
+      case Value_type::UInteger:
+        return (a.as_uint() <= b.as_uint());
+      case Value_type::Float:
+        return (a.as_double() <= b.as_double());
+      case Value_type::Object:
+        return (*a.as_object() <= *b.as_object());
+      case Value_type::Array:
+        // NOTE: not implemented, it's not possible to order arrays (because of
+        // its values)
+        return (*a.as_array() == *b.as_array());
+      case Value_type::Map:
+        // NOTE: not implemented, it's not possible to order maps (because of
+        // its values)
+        return (*a.as_map() == *b.as_map());
+      case Value_type::Function:
+        // NOTE: not implemented, it's not possible to order functions
+        return (a.as_function() == b.as_function());
+      default:
+        return false;
+    }
+  }
+
+  // with type conversion
+  switch (a_type) {
+    case Value_type::Bool: {
+      switch (b_type) {
+        case Value_type::Integer:
+          if (auto val = b.as_int(); val == 1)
+            return true;
+          else if (val == 0)
+            return a.as_bool() <= false;
+          return false;
+        case Value_type::UInteger:
+          if (auto val = b.as_uint(); val == 1)
+            return true;
+          else if (val == 0)
+            return a.as_bool() <= false;
+          return false;
+        case Value_type::Float:
+          if (auto val = b.as_double(); val == 1.0)
+            return true;
+          else if (val == 0.0)
+            return a.as_bool() <= false;
+          return false;
+        default:
+          return false;
+      }
+    }
+
+    case Value_type::Integer: {
+      if (b_type == Value_type::Bool) return !value_op_less(b, a);
+
+      if (b_type == Value_type::Float) {
+        auto a_val = a.as_int();
+        auto b_val = b.as_double();
+        auto b_val_as_int = static_cast<int64_t>(b_val);
+        return ((a_val < b_val_as_int) ||
+                ((a_val == b_val_as_int) && ((b_val - b_val_as_int) >= 0.0)));
+      }
+
+      return false;
+    }
+
+    case Value_type::UInteger: {
+      if (b_type == Value_type::Bool) return !value_op_less(b, a);
+
+      if (b_type == Value_type::Float) {
+        auto a_val = a.as_uint();
+        auto b_val = b.as_double();
+        auto b_val_as_int = static_cast<uint64_t>(b_val);
+        return ((a_val < b_val_as_int) ||
+                ((a_val == b_val_as_int) && ((b_val - b_val_as_int) >= 0.0)));
+      }
+
+      return false;
+    }
+
+    case Value_type::Float: {
+      switch (b_type) {
+        case Value_type::Bool:
+        case Value_type::Integer:
+        case Value_type::UInteger:
+          return value_op_less_equal(b, a);
+        default:
+          return false;
+      }
+    }
+
+    default:
+      return false;
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Array_object
@@ -1471,8 +1686,9 @@ PyObject *ao_sort(Array_object *self, PyObject *args, PyObject *kwds) {
     std::reverse(items.begin(), items.end());
   }
 
-  std::stable_sort(items.begin(), items.end(),
-                   [](const auto &l, const auto &r) { return l.key < r.key; });
+  std::stable_sort(
+      items.begin(), items.end(),
+      [](const auto &l, const auto &r) { return value_op_less(l.key, r.key); });
 
   // reverse the results
   if (reverse) {
@@ -1629,11 +1845,11 @@ PyObject *ao_richcompare(Array_object *self, PyObject *right, int op) {
 
     switch (op) {
       case Py_LT:
-        result = vl < vr;
+        result = value_op_less(vl, vr);
         break;
 
       case Py_LE:
-        result = vl <= vr;
+        result = value_op_less_equal(vl, vr);
         break;
 
       case Py_EQ:
@@ -1643,11 +1859,11 @@ PyObject *ao_richcompare(Array_object *self, PyObject *right, int op) {
         Py_RETURN_TRUE;
 
       case Py_GT:
-        result = vl > vr;
+        result = !value_op_less_equal(vl, vr);
         break;
 
       case Py_GE:
-        result = vl >= vr;
+        result = !value_op_less(vl, vr);
         break;
 
       default:
@@ -1821,7 +2037,6 @@ PyObject *ao_rev_iter_setstate(Array_object_iterator *self, PyObject *state) {
 
   Py_RETURN_NONE;
 }
-
 }  // namespace
 
 void Python_context::init_shell_list_type() {

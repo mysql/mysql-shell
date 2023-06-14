@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,6 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 #include <algorithm>
-#include <iterator>
 #include <string>
 #include <tuple>
 
@@ -33,6 +32,7 @@
 namespace shcore {
 namespace path {
 namespace detail {
+
 std::string expand_user(const std::string &path, const std::string &sep) {
   if (path.size() > 0) {
     if (path[0] == '~') {

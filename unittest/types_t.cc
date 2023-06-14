@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ TEST(ValueTests, SimpleInt) {
   std::string myrepr = v.repr();
   std::string myjson = v.json();
 
-  EXPECT_EQ(shcore::Integer, v.type);
+  EXPECT_EQ(shcore::Integer, v.get_type());
   EXPECT_STREQ("20", mydescr.c_str());
   EXPECT_STREQ("20", myrepr.c_str());
   EXPECT_STREQ("20", myjson.c_str());
@@ -51,7 +51,7 @@ TEST(ValueTests, SimpleInt) {
   mydescr = v2.descr(true);
   myrepr = v2.repr();
   myjson = v2.json();
-  EXPECT_EQ(shcore::Integer, v2.type);
+  EXPECT_EQ(shcore::Integer, v2.get_type());
   EXPECT_STREQ("20", mydescr.c_str());
   EXPECT_STREQ("20", myrepr.c_str());
   EXPECT_STREQ("20", myjson.c_str());
@@ -61,13 +61,13 @@ TEST(ValueTests, SimpleBool) {
   shcore::Value v;
 
   v = shcore::Value(true);
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("true", v.descr().c_str());
   EXPECT_STREQ("true", v.repr().c_str());
   EXPECT_STREQ("true", v.json().c_str());
 
   v = shcore::Value(false);
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("false", v.descr().c_str());
   EXPECT_STREQ("false", v.repr().c_str());
   EXPECT_STREQ("false", v.json().c_str());
@@ -255,7 +255,7 @@ TEST(ValueTests, SimpleString) {
   std::string myrepr = v.repr();
   std::string myjson = v.json();
 
-  EXPECT_EQ(shcore::String, v.type);
+  EXPECT_EQ(shcore::String, v.get_type());
   EXPECT_STREQ("Hello world", mydescr.c_str());
   EXPECT_STREQ("\"Hello world\"", myrepr.c_str());
   EXPECT_STREQ("\"Hello world\"", myjson.c_str());
@@ -265,7 +265,7 @@ TEST(ValueTests, SimpleString) {
   myrepr = v2.repr();
   myjson = v2.json();
 
-  EXPECT_EQ(shcore::String, v.type);
+  EXPECT_EQ(shcore::String, v.get_type());
   EXPECT_STREQ("Hello / world", mydescr.c_str());
   EXPECT_STREQ("\"Hello / world\"", myrepr.c_str());
   EXPECT_STREQ("\"Hello / world\"", myjson.c_str());
@@ -282,6 +282,48 @@ TEST(ValueTests, SimpleString) {
 
   EXPECT_STREQ(u8"\u100b0",
                shcore::Value::parse("\"\\u100b0\"").get_string().c_str());
+}
+
+TEST(ValueTests, Comparisons) {
+  {
+    Value val_b_true(true);
+    Value val_b_false(false);
+
+    // comparison with int64_t
+    EXPECT_TRUE(val_b_true == Value{static_cast<int64_t>(1)});
+    EXPECT_FALSE(val_b_true == Value{static_cast<int64_t>(0)});
+    EXPECT_FALSE(val_b_true == Value{static_cast<int64_t>(2)});
+
+    EXPECT_TRUE(val_b_false == Value{static_cast<int64_t>(0)});
+    EXPECT_FALSE(val_b_false == Value{static_cast<int64_t>(1)});
+    EXPECT_FALSE(val_b_false == Value{static_cast<int64_t>(2)});
+
+    // comparison with uint64_t
+    EXPECT_TRUE(val_b_true == Value{static_cast<uint64_t>(1)});
+    EXPECT_FALSE(val_b_true == Value{static_cast<uint64_t>(0)});
+    EXPECT_FALSE(val_b_true == Value{static_cast<uint64_t>(2)});
+
+    EXPECT_TRUE(val_b_false == Value{static_cast<uint64_t>(0)});
+    EXPECT_FALSE(val_b_false == Value{static_cast<uint64_t>(1)});
+    EXPECT_FALSE(val_b_false == Value{static_cast<uint64_t>(2)});
+
+    // comparison with double
+    EXPECT_TRUE(val_b_true == Value{1.0});
+    EXPECT_FALSE(val_b_true == Value{0.0});
+    EXPECT_FALSE(val_b_true == Value{2.0});
+
+    EXPECT_TRUE(val_b_false == Value{0.0});
+    EXPECT_FALSE(val_b_false == Value{1.0});
+    EXPECT_FALSE(val_b_false == Value{2.0});
+  }
+
+  // comparison (u)int64_t <> double
+  {
+    EXPECT_TRUE(Value{static_cast<int64_t>(12)} == Value{12.0});
+    EXPECT_FALSE(Value{static_cast<int64_t>(12)} == Value{12.1});
+    EXPECT_TRUE(Value{static_cast<uint64_t>(21)} == Value{21.0});
+    EXPECT_FALSE(Value{static_cast<uint64_t>(21)} == Value{21.1});
+  }
 }
 
 TEST(ValueTests, ArrayCompare) {
@@ -371,7 +413,7 @@ TEST(Parsing, Integer) {
     std::string mydescr = v.descr(true);
     std::string myrepr = v.repr();
 
-    EXPECT_EQ(shcore::Integer, v.type);
+    EXPECT_EQ(shcore::Integer, v.get_type());
     EXPECT_STREQ("1984", mydescr.c_str());
     EXPECT_STREQ("1984", myrepr.c_str());
   }
@@ -381,7 +423,7 @@ TEST(Parsing, Integer) {
     std::string mydescr = v.descr(true);
     std::string myrepr = v.repr();
 
-    EXPECT_EQ(shcore::Integer, v.type);
+    EXPECT_EQ(shcore::Integer, v.get_type());
     EXPECT_STREQ("1984", mydescr.c_str());
     EXPECT_STREQ("1984", myrepr.c_str());
   }
@@ -393,7 +435,7 @@ TEST(Parsing, Float) {
   std::string mydescr = v.descr(true);
   std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Float, v.type);
+  EXPECT_EQ(shcore::Float, v.get_type());
   double d = std::stod(myrepr);
   EXPECT_EQ(3.1, d);
 }
@@ -408,7 +450,7 @@ TEST(Parsing, Bool) {
   std::string mydescr = v.descr(true);
   std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("false", mydescr.c_str());
   EXPECT_STREQ("false", myrepr.c_str());
 
@@ -416,7 +458,7 @@ TEST(Parsing, Bool) {
   mydescr = v.descr(true);
   myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("true", mydescr.c_str());
   EXPECT_STREQ("true", myrepr.c_str());
 
@@ -427,7 +469,7 @@ TEST(Parsing, Bool) {
   mydescr = v.descr(true);
   myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("false", mydescr.c_str());
   EXPECT_STREQ("false", myrepr.c_str());
 
@@ -435,7 +477,7 @@ TEST(Parsing, Bool) {
   mydescr = v.descr(true);
   myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Bool, v.type);
+  EXPECT_EQ(shcore::Bool, v.get_type());
   EXPECT_STREQ("true", mydescr.c_str());
   EXPECT_STREQ("true", myrepr.c_str());
 }
@@ -446,7 +488,7 @@ TEST(Parsing, Null) {
   std::string mydescr = v.descr(true);
   std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::Undefined, v.type);
+  EXPECT_EQ(shcore::Undefined, v.get_type());
   EXPECT_STREQ("undefined", mydescr.c_str());
   EXPECT_STREQ("undefined", myrepr.c_str());
 }
@@ -457,7 +499,7 @@ TEST(Parsing, String) {
   std::string mydescr = v.descr(true);
   std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::String, v.type);
+  EXPECT_EQ(shcore::String, v.get_type());
   EXPECT_STREQ("Hello World", mydescr.c_str());
   EXPECT_STREQ("\"Hello World\"", myrepr.c_str());
 }
@@ -498,13 +540,50 @@ TEST(Parsing, Bad) {
   EXPECT_NO_THROW(shcore::Value::parse("{'a' :  1  }  \t\n"));
 }
 
+TEST(Parsing, InvalidInput) {
+  EXPECT_THROW(shcore::Value::parse("\'foo"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("{"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("{ \"foo\"\n"), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("["), shcore::Exception);
+  EXPECT_THROW(shcore::Value::parse("[ \"foo\"\n"), shcore::Exception);
+}
+
+TEST(Parsing, LimitedInput) {
+  EXPECT_THROW(shcore::Value::parse("truefalse"), shcore::Exception);
+
+  auto v = shcore::Value::parse({"truefalse", 4});
+  EXPECT_EQ(shcore::Bool, v.get_type());
+  EXPECT_STREQ("true", v.descr(true).c_str());
+  EXPECT_STREQ("true", v.repr().c_str());
+
+  EXPECT_THROW(
+      {
+        try {
+          shcore::Value::parse("[ 12, 12.4, true, \"foo\" ]{}");
+        } catch (const shcore::Exception &e) {
+          EXPECT_STREQ(
+              "Unexpected characters left at the end of document: ...{}",
+              e.what());
+          throw;
+        }
+      },
+      shcore::Exception);
+
+  // EXPECT_THROW(shcore::Value::parse("[ 12, 12.4, true, \"foo\" ]{}"),
+  //              shcore::Exception);
+
+  v = shcore::Value::parse({"[ 12, 12.4, true, \"foo\" ]{}", 25});
+  EXPECT_EQ(shcore::Array, v.get_type());
+  EXPECT_EQ(4, v.as_array()->size());
+}
+
 TEST(Parsing, StringSingleQuoted) {
   const std::string data = "\'Hello World\'";
   shcore::Value v = shcore::Value::parse(data);
   std::string mydescr = v.descr(true);
   std::string myrepr = v.repr();
 
-  EXPECT_EQ(shcore::String, v.type);
+  EXPECT_EQ(shcore::String, v.get_type());
   EXPECT_STREQ("Hello World", mydescr.c_str());
   EXPECT_STREQ("\"Hello World\"", myrepr.c_str());
 }
@@ -515,53 +594,53 @@ TEST(Parsing, Map) {
       "\"string value\", \"integer\":560, \"nested\": {\"inner\": \"value\"}}";
   shcore::Value v = shcore::Value::parse(data);
 
-  EXPECT_EQ(shcore::Map, v.type);
+  EXPECT_EQ(shcore::Map, v.get_type());
 
   Value::Map_type_ref map = v.as_map();
 
   EXPECT_TRUE(map->has_key("null"));
-  EXPECT_EQ(shcore::Null, (*map)["null"].type);
+  EXPECT_EQ(shcore::Null, (*map)["null"].get_type());
   EXPECT_FALSE((*map)["null"]);
 
   EXPECT_TRUE(map->has_key("false"));
-  EXPECT_EQ(shcore::Bool, (*map)["false"].type);
+  EXPECT_EQ(shcore::Bool, (*map)["false"].get_type());
   EXPECT_FALSE((*map)["false"].as_bool());
 
   EXPECT_TRUE(map->has_key("true"));
-  EXPECT_EQ(shcore::Bool, (*map)["true"].type);
+  EXPECT_EQ(shcore::Bool, (*map)["true"].get_type());
   EXPECT_TRUE((*map)["true"].as_bool());
 
   EXPECT_TRUE(map->has_key("string"));
-  EXPECT_EQ(shcore::String, (*map)["string"].type);
+  EXPECT_EQ(shcore::String, (*map)["string"].get_type());
   EXPECT_EQ("string value", (*map)["string"].get_string());
 
   EXPECT_TRUE(map->has_key("integer"));
-  EXPECT_EQ(shcore::Integer, (*map)["integer"].type);
+  EXPECT_EQ(shcore::Integer, (*map)["integer"].get_type());
   EXPECT_EQ(560, (*map)["integer"].as_int());
 
   EXPECT_TRUE(map->has_key("nested"));
-  EXPECT_EQ(shcore::Map, (*map)["nested"].type);
+  EXPECT_EQ(shcore::Map, (*map)["nested"].get_type());
 
   Value::Map_type_ref nested = (*map)["nested"].as_map();
 
   EXPECT_TRUE(nested->has_key("inner"));
-  EXPECT_EQ(shcore::String, (*nested)["inner"].type);
+  EXPECT_EQ(shcore::String, (*nested)["inner"].get_type());
   EXPECT_EQ("value", (*nested)["inner"].get_string());
 
   shcore::Value v2 = shcore::Value::parse("{}");
-  EXPECT_EQ(shcore::Map, v2.type);
+  EXPECT_EQ(shcore::Map, v2.get_type());
   Value::Map_type_ref map2 = v2.as_map();
   EXPECT_EQ(map2->size(), 0);
 
   // regression test
   shcore::Value v3 = shcore::Value::parse(
       "{'hello': {'item':1}, 'world': {}, 'foo': 'bar', 'bar':32}");
-  EXPECT_EQ(shcore::Map, v3.type);
+  EXPECT_EQ(shcore::Map, v3.get_type());
   EXPECT_EQ(4, v3.as_map()->size());
 
   v3 = shcore::Value::parse(
       "{'hello': {'item':1}, 'world': [], 'foo': 'bar', 'bar':32}");
-  EXPECT_EQ(shcore::Map, v3.type);
+  EXPECT_EQ(shcore::Map, v3.get_type());
   EXPECT_EQ(4, v3.as_map()->size());
 }
 
@@ -571,55 +650,55 @@ TEST(Parsing, Array) {
       "{\"nested\":\"document\"}, true, false, null, undefined]";
   shcore::Value v = shcore::Value::parse(data);
 
-  EXPECT_EQ(shcore::Array, v.type);
+  EXPECT_EQ(shcore::Array, v.get_type());
 
   Value::Array_type_ref array = v.as_array();
 
-  EXPECT_EQ(shcore::Integer, (*array)[0].type);
+  EXPECT_EQ(shcore::Integer, (*array)[0].get_type());
   EXPECT_EQ(450, (*array)[0].as_int());
 
-  EXPECT_EQ(shcore::Float, (*array)[1].type);
+  EXPECT_EQ(shcore::Float, (*array)[1].get_type());
   EXPECT_EQ(450.3, (*array)[1].as_double());
 
-  EXPECT_EQ(shcore::Float, (*array)[2].type);
+  EXPECT_EQ(shcore::Float, (*array)[2].get_type());
   EXPECT_EQ(3.5e-10, (*array)[2].as_double());
 
-  EXPECT_EQ(shcore::String, (*array)[3].type);
+  EXPECT_EQ(shcore::String, (*array)[3].get_type());
   EXPECT_EQ("a string", (*array)[3].get_string());
 
-  EXPECT_EQ(shcore::Array, (*array)[4].type);
+  EXPECT_EQ(shcore::Array, (*array)[4].get_type());
   Value::Array_type_ref inner = (*array)[4].as_array();
 
-  EXPECT_EQ(shcore::Integer, (*inner)[0].type);
+  EXPECT_EQ(shcore::Integer, (*inner)[0].get_type());
   EXPECT_EQ(1, (*inner)[0].as_int());
 
-  EXPECT_EQ(shcore::Integer, (*inner)[1].type);
+  EXPECT_EQ(shcore::Integer, (*inner)[1].get_type());
   EXPECT_EQ(2, (*inner)[1].as_int());
 
-  EXPECT_EQ(shcore::Integer, (*inner)[2].type);
+  EXPECT_EQ(shcore::Integer, (*inner)[2].get_type());
   EXPECT_EQ(3, (*inner)[2].as_int());
 
-  EXPECT_EQ(shcore::Map, (*array)[5].type);
+  EXPECT_EQ(shcore::Map, (*array)[5].get_type());
   Value::Map_type_ref nested = (*array)[5].as_map();
 
   EXPECT_TRUE(nested->has_key("nested"));
-  EXPECT_EQ(shcore::String, (*nested)["nested"].type);
+  EXPECT_EQ(shcore::String, (*nested)["nested"].get_type());
   EXPECT_EQ("document", (*nested)["nested"].get_string());
 
-  EXPECT_EQ(shcore::Bool, (*array)[6].type);
+  EXPECT_EQ(shcore::Bool, (*array)[6].get_type());
   EXPECT_TRUE((*array)[6].as_bool());
 
-  EXPECT_EQ(shcore::Bool, (*array)[7].type);
+  EXPECT_EQ(shcore::Bool, (*array)[7].get_type());
   EXPECT_FALSE((*array)[7].as_bool());
 
-  EXPECT_EQ(shcore::Null, (*array)[8].type);
+  EXPECT_EQ(shcore::Null, (*array)[8].get_type());
   EXPECT_FALSE((*array)[8]);
 
-  EXPECT_EQ(shcore::Undefined, (*array)[9].type);
+  EXPECT_EQ(shcore::Undefined, (*array)[9].get_type());
   EXPECT_FALSE((*array)[9]);
 
   shcore::Value v2 = shcore::Value::parse("[]");
-  EXPECT_EQ(shcore::Array, v2.type);
+  EXPECT_EQ(shcore::Array, v2.get_type());
   Value::Array_type_ref array2 = v2.as_array();
   EXPECT_EQ(array2->size(), 0);
 }
@@ -631,15 +710,15 @@ TEST(Parsing, newline_characters) {
     SCOPED_TRACE("TESTING: " + std::string(file));
 
     const auto v = shcore::Value::parse(file);
-    EXPECT_EQ(shcore::Value_type::Map, v.type);
+    EXPECT_EQ(shcore::Value_type::Map, v.get_type());
     const auto m = v.as_map();
     EXPECT_EQ(1, m->size());
     const auto k = m->find("k");
     ASSERT_NE(m->end(), k);
-    EXPECT_EQ(shcore::Value_type::Array, k->second.type);
+    EXPECT_EQ(shcore::Value_type::Array, k->second.get_type());
     const auto a = k->second.as_array();
     ASSERT_EQ(1, a->size());
-    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].type);
+    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].get_type());
     EXPECT_EQ(1, (*a)[0].as_int());
   }
 }
@@ -653,15 +732,15 @@ TEST(Parsing, whitespace_characters) {
         whitespace;
 
     const auto v = shcore::Value::parse(json);
-    EXPECT_EQ(shcore::Value_type::Map, v.type);
+    EXPECT_EQ(shcore::Value_type::Map, v.get_type());
     const auto m = v.as_map();
     EXPECT_EQ(1, m->size());
     const auto k = m->find("k");
     ASSERT_NE(m->end(), k);
-    EXPECT_EQ(shcore::Value_type::Array, k->second.type);
+    EXPECT_EQ(shcore::Value_type::Array, k->second.get_type());
     const auto a = k->second.as_array();
     ASSERT_EQ(1, a->size());
-    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].type);
+    EXPECT_EQ(shcore::Value_type::Integer, (*a)[0].get_type());
     EXPECT_EQ(7, (*a)[0].as_int());
   }
 }
@@ -975,13 +1054,13 @@ TEST(Types_yaml, array) {
   array->emplace_back(UINT64_C(5678));
   array->emplace_back(9.01112);
 
-  const auto sub_array = make_array();
+  auto sub_array = make_array();
   sub_array->emplace_back(1);
   sub_array->emplace_back(2);
   sub_array->emplace_back(3);
   array->emplace_back(std::move(sub_array));
 
-  const auto sub_map = make_dict();
+  auto sub_map = make_dict();
   sub_map->emplace("4", 7);
   sub_map->emplace("5", 8);
   sub_map->emplace("6", 9);
@@ -1019,13 +1098,13 @@ TEST(Types_yaml, map) {
   map->emplace("g", UINT64_C(5678));
   map->emplace("h", 9.01112);
 
-  const auto sub_array = make_array();
+  auto sub_array = make_array();
   sub_array->emplace_back(1);
   sub_array->emplace_back(2);
   sub_array->emplace_back(3);
   map->emplace("i", std::move(sub_array));
 
-  const auto sub_map = make_dict();
+  auto sub_map = make_dict();
   sub_map->emplace("4", 7);
   sub_map->emplace("5", 8);
   sub_map->emplace("6", 9);

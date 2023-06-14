@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -220,7 +220,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
 
         // An array with the fields was received as parameter
         if (args.size() == 1) {
-          if (args[0].type == Array || args[0].type == String) {
+          if (args[0].get_type() == Array || args[0].get_type() == String) {
             version = F::insertFields;
 
             parse_string_list(args, columns);
@@ -229,7 +229,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
               message_.mutable_projection()->Add()->set_name(column);
           }
           // A map with fields and values was received as parameter
-          else if (args[0].type == Map) {
+          else if (args[0].get_type() == Map) {
             version = F::insertFieldsAndValues;
 
             Mysqlx::Crud::Insert_TypedRow *row = message_.mutable_row()->Add();

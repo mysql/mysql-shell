@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,7 @@ class Error : public std::runtime_error {
   Error(const std::string &what, int code)
       : std::runtime_error(what), code_(code) {}
 
-  virtual ~Error() {}
+  virtual ~Error() noexcept = default;
 
   int code() const noexcept { return code_; }
 

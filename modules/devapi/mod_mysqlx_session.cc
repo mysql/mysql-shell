@@ -945,7 +945,7 @@ static ::xcl::Argument_array convert_array(const shcore::Array_t &args) {
 }
 
 static ::xcl::Argument_value convert(const shcore::Value &value) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::Bool:
       return xcl::Argument_value(value.as_bool());
     case shcore::UInteger:
@@ -967,7 +967,6 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
                                  xcl::Argument_value::String_type::k_octets);
       break;
     case shcore::Object:
-    case shcore::MapRef:
     case shcore::Function:
     case shcore::Undefined:
       break;

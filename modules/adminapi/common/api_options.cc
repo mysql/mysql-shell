@@ -325,7 +325,7 @@ REGISTER_HELP(
 
 void Setup_account_options::set_password_expiration(
     const shcore::Value &value) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::Null:
       password_expiration.reset();
       break;
@@ -359,7 +359,7 @@ void Setup_account_options::set_password_expiration(
       throw shcore::Exception::type_error(
           std::string("Option '") + kPasswordExpiration +
           "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
-          type_name(value.type));
+          type_name(value.get_type()));
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "mysqlshdk/libs/utils/array_result.h"
+
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -35,15 +36,15 @@ Array_as_result::Array_as_result(const shcore::Array_t &array) {
   }
 
   for (const auto &row : *array) {
-    if (row.type != shcore::Value_type::Array) {
+    if (row.get_type() != shcore::Value_type::Array)
       throw std::logic_error("Expecting a list of lists.");
-    }
 
     m_data.emplace_back();
 
     for (const auto &value : *row.as_array()) {
-      bool is_null = value.type == shcore::Value_type::Undefined ||
-                     value.type == shcore::Value_type::Null;
+      auto value_type = value.get_type();
+      bool is_null = value_type == shcore::Value_type::Undefined ||
+                     value_type == shcore::Value_type::Null;
       m_data.back().emplace_back(is_null ? "NULL" : value.descr());
     }
   }

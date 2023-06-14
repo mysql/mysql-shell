@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -394,7 +394,7 @@ PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
     error_handled = true;
   }
 
-  if (member.type != shcore::Undefined) {
+  if (member.get_type() != shcore::Undefined) {
     auto object = py::convert(member);
     self->cache->members[attrname] = py::Store{object.get()};
     return object.release();
@@ -913,18 +913,13 @@ bool shcore::unwrap(PyObject *value,
 
 bool shcore::unwrap_method(PyObject *value,
                            std::shared_ptr<Function_base> *method) {
-  if (PyObject_TypeCheck(value, &PyShMethodObjectType)) {
-    const auto o = reinterpret_cast<PyShMethodObject *>(value);
-    const auto m = o->object->get()->get_member_advanced(*o->method);
+  if (!PyObject_TypeCheck(value, &PyShMethodObjectType)) return false;
 
-    if (shcore::Value_type::Function != m.type) {
-      return false;
-    }
+  const auto o = reinterpret_cast<PyShMethodObject *>(value);
+  const auto m = o->object->get()->get_member_advanced(*o->method);
 
-    *method = m.as_function();
+  if (shcore::Value_type::Function != m.get_type()) return false;
 
-    return true;
-  }
-
-  return false;
+  *method = m.as_function();
+  return true;
 }

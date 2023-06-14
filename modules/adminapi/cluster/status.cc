@@ -1582,9 +1582,10 @@ shcore::Dictionary_t Status::get_topology(
           m_cluster->get_metadata_storage()->query_instance_attribute(
               instance->get_uuid(), k_instance_attribute_join_time, &join_time);
 
-          std::tie(status, recovery_info) = recovery_status(
-              *instance,
-              join_time.type == shcore::String ? join_time.as_string() : "");
+          std::tie(status, recovery_info) =
+              recovery_status(*instance, join_time.get_type() == shcore::String
+                                             ? join_time.as_string()
+                                             : "");
           if (!status.empty()) {
             (*member)["recoveryStatusText"] = shcore::Value(status);
           }
@@ -2152,7 +2153,7 @@ shcore::Dictionary_t Status::feed_read_replica_info(const Read_replica_info &rr,
       if (m_cluster->get_metadata_storage()->query_instance_attribute(
               rr.md.uuid, k_instance_attribute_read_replica_replication_sources,
               &source_attribute)) {
-        if (source_attribute.type == shcore::String) {
+        if (source_attribute.get_type() == shcore::String) {
           source_list->push_back(shcore::Value(source_attribute.as_string()));
         }
       }

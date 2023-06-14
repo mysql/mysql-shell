@@ -848,7 +848,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
         m_cluster->impl()->get_metadata_storage()->query_cluster_set_attribute(
             m_cluster->impl()->get_id(),
             k_cluster_attribute_replication_allowed_host, &allowed_host) &&
-        allowed_host.type == shcore::String &&
+        allowed_host.get_type() == shcore::String &&
         !allowed_host.as_string().empty()) {
       repl_account_host = allowed_host.as_string();
     }

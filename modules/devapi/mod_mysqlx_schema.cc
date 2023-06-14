@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -770,7 +770,7 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
   std::string function = get_function_name("drop" + type);
   args.ensure_count(1, function.c_str());
 
-  if (args[0].type != shcore::String)
+  if (args[0].get_type() != shcore::String)
     throw shcore::Exception::type_error(
         function + ": Argument #1 is expected to be a string");
 

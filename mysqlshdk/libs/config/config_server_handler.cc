@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,19 +53,19 @@ Config_server_handler::~Config_server_handler() = default;
 
 std::optional<bool> Config_server_handler::value_to_nullable_bool(
     const shcore::Value &value) {
-  if (value.type == shcore::Value_type::Null) return std::nullopt;
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
   return value.as_bool();
 }
 
 std::optional<int64_t> Config_server_handler::value_to_nullable_int(
     const shcore::Value &value) {
-  if (value.type == shcore::Value_type::Null) return std::nullopt;
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
   return value.as_int();
 }
 
 std::optional<std::string> Config_server_handler::value_to_nullable_string(
     const shcore::Value &value) {
-  if (value.type == shcore::Value_type::Null) return std::nullopt;
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
   return value.as_string();
 }
 
@@ -104,12 +104,13 @@ void Config_server_handler::set(const std::string &name,
 
 void Config_server_handler::apply() {
   for (const auto &var : m_change_sequence) {
+    auto var_type = var.value.get_type();
     try {
-      if (var.value.type == shcore::Value_type::Bool) {
+      if (var_type == shcore::Value_type::Bool) {
         bool value = *value_to_nullable_bool(var.value);
         log_debug("Set '%s'=%s", var.name.c_str(), value ? "true" : "false");
         m_instance->set_sysvar(var.name, value, var.qualifier);
-      } else if (var.value.type == shcore::Value_type::Integer) {
+      } else if (var_type == shcore::Value_type::Integer) {
         int64_t value = *value_to_nullable_int(var.value);
         log_debug("Set '%s'=%" PRId64, var.name.c_str(), value);
         m_instance->set_sysvar(var.name, value, var.qualifier);
@@ -123,7 +124,7 @@ void Config_server_handler::apply() {
 
       // Send error with context information (more user friendly).
       std::string value =
-          (var.value.type == shcore::Value_type::Null)
+          (var_type == shcore::Value_type::Null)
               ? "NULL"
               : shcore::str_format("'%s'", var.value.as_string().c_str());
       throw std::runtime_error(

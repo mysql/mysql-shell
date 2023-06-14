@@ -328,9 +328,9 @@ void Extensible_object::register_member(
     target_object =
         shcore::str_format("the '%s' extension object", m_name.c_str());
 
-  if (kAllowedMemberTypes.find(value.type) == kAllowedMemberTypes.end()) {
+  if (kAllowedMemberTypes.find(value.get_type()) == kAllowedMemberTypes.end()) {
     throw shcore::Exception::argument_error("Unsupported member type.");
-  } else if (value.type == shcore::Object) {
+  } else if (value.get_type() == shcore::Object) {
     auto object = value.as_object<Extensible_object>();
     if (!object)
       throw shcore::Exception::argument_error(
@@ -344,7 +344,7 @@ void Extensible_object::register_member(
         "The '%s' extension object has been registered as a member into %s.",
         name.c_str(), target_object.c_str());
   } else {
-    if (value.type == shcore::Function) {
+    if (value.get_type() == shcore::Function) {
       auto fd = parse_function_definition(definition);
       fd->name = name;
       register_function(fd, value.as_function(), false);
@@ -567,7 +567,7 @@ Function_definition::Parameters Extensible_object::parse_parameters(
 
       context->levels.back().position = static_cast<int>(index + 1);
 
-      if (item.type == shcore::Value_type::Map) {
+      if (item.get_type() == shcore::Value_type::Map) {
         parameters.push_back(parse_parameter(item.as_map(), context,
                                              allowed_types, as_parameters));
 
@@ -1174,7 +1174,7 @@ Type_info<std::shared_ptr<mysqlsh::Extensible_object>>::to_native(
     const shcore::Value &in) {
   std::shared_ptr<mysqlsh::Extensible_object> object;
 
-  if (in.type == shcore::Object)
+  if (in.get_type() == shcore::Object)
     object = in.as_object<mysqlsh::Extensible_object>();
 
   if (!object) {

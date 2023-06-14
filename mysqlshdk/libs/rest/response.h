@@ -27,6 +27,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 
 #include <algorithm>
+#include <cassert>
 #include <optional>
 #include <string>
 #include <string_view>

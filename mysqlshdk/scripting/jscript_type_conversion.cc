@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -254,7 +254,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(
 v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
     const Value &value) const {
   v8::Local<v8::Value> r;
-  switch (value.type) {
+  switch (value.get_type()) {
     case Undefined:
       r = v8::Undefined(owner->isolate());
       break;
@@ -262,45 +262,37 @@ v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
       r = v8::Null(owner->isolate());
       break;
     case Bool:
-      r = v8::Boolean::New(owner->isolate(), value.value.b);
+      r = v8::Boolean::New(owner->isolate(), value.as_bool());
       break;
     case String:
-      r = owner->v8_string(*value.value.s);
+      r = owner->v8_string(value.get_string());
       break;
     case Integer:
-      r = v8::Number::New(owner->isolate(), value.value.i);
+      r = v8::Number::New(owner->isolate(), value.as_int());
       break;
     case UInteger:
-      r = v8::Number::New(owner->isolate(), value.value.ui);
+      r = v8::Number::New(owner->isolate(), value.as_uint());
       break;
     case Float:
-      r = v8::Number::New(owner->isolate(), value.value.d);
+      r = v8::Number::New(owner->isolate(), value.as_double());
       break;
     case Object:
-      r = native_object_to_js(*value.value.o);
+      r = native_object_to_js(value.as_object());
       break;
     case Array:
       // maybe convert fully
-      r = array_wrapper->wrap(*value.value.array);
+      r = array_wrapper->wrap(value.as_array());
       break;
     case Map:
       // maybe convert fully
       // r = native_map_to_js(*value.value.map);
-      r = map_wrapper->wrap(*value.value.map);
+      r = map_wrapper->wrap(value.as_map());
       break;
-    case MapRef: {
-      std::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
-      if (map) {
-        throw std::invalid_argument(
-            "Cannot convert internal value to JS: wrapmapref not "
-            "implemented\n");
-      }
-    } break;
     case shcore::Function:
-      r = function_wrapper->wrap(*value.value.func);
+      r = function_wrapper->wrap(value.as_function());
       break;
     case shcore::Binary:
-      r = owner->v8_array_buffer(*value.value.s);
+      r = owner->v8_array_buffer(value.get_string());
       break;
   }
   return r;

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <regex>
 #include <stdexcept>
+#include <string_view>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -43,7 +44,7 @@ shcore::Value interpret_string_value(const std::string &input,
     auto ret_val = shcore::Value::parse(input);
 
     // If the values was properly parsed as a string we let the value intact
-    if (ret_val.type == shcore::Value_type::String)
+    if (ret_val.get_type() == shcore::Value_type::String)
       ret_val = shcore::Value(input);
 
     return ret_val;
@@ -71,7 +72,7 @@ shcore::Value get_value_of_user_type(const std::string &definition,
       case shcore::Value_type::Float:
         return shcore::Value(temp.as_double());
       case shcore::Value_type::Null:
-        if (temp.type != shcore::Value_type::Null) {
+        if (temp.get_type() != shcore::Value_type::Null) {
           throw shcore::Exception::type_error(
               "Unexpected value defined for NULL");
         }
@@ -93,16 +94,12 @@ shcore::Value get_value_of_user_type(const std::string &definition,
         throw std::logic_error("This was not meant to happen!");
     }
   } catch (const shcore::Exception &ex) {
-    if (ex.is_type()) {
-      std::string requested = shcore::type_name(type);
+    if (!ex.is_type()) throw;
 
-      throw std::invalid_argument(
-          "Argument error at '" + definition + "': " + requested +
-          " indicated, but value is " + shcore::type_name(temp.type));
-
-    } else {
-      throw;
-    }
+    throw std::invalid_argument(shcore::str_format(
+        "Argument error at '%s': %s indicated, but value is %s",
+        definition.c_str(), shcore::type_name(type).c_str(),
+        shcore::type_name(temp.get_type()).c_str()));
   }
 
   // By default returns the parsed value...
@@ -110,30 +107,32 @@ shcore::Value get_value_of_user_type(const std::string &definition,
 }
 
 std::string unescape_string(const std::string &input) {
-  std::vector<std::pair<std::string, std::string>> escaped_sequences = {
-      {"\\,", ","}, {"\\\"", "\""}, {"\\'", "'"}, {"\\=", "="}};
+  using namespace std::string_view_literals;
+
+  constexpr std::array<std::tuple<std::string_view, std::string_view>, 4>
+      escaped_sequences{
+          std::make_tuple("\\,"sv, ","sv), std::make_tuple("\\\""sv, "\""sv),
+          std::make_tuple("\\'"sv, "'"sv), std::make_tuple("\\="sv, "="sv)};
 
   auto output = input;
-  for (const auto &sequence : escaped_sequences) {
-    output = shcore::str_replace(output, std::get<0>(sequence),
-                                 std::get<1>(sequence));
-  }
+  for (const auto &[from, to] : escaped_sequences)
+    output = shcore::str_replace(output, from, to);
 
   return output;
 }
 
 void validate_list_items(const Cmd_line_arg_definition &arg,
                          shcore::Value_type expected_type) {
-  assert(arg.value.type == shcore::Value_type::Array);
-  if (expected_type != shcore::Value_type::Undefined) {
-    for (const auto &item : *arg.value.as_array()) {
-      if (item.type != expected_type) {
-        throw std::invalid_argument("Argument error at '" + arg.definition +
-                                    "': " + shcore::type_name(expected_type) +
-                                    " expected, but value is " +
-                                    shcore::type_name(item.type));
-      }
-    }
+  assert(arg.value.get_type() == shcore::Value_type::Array);
+  if (expected_type == shcore::Value_type::Undefined) return;
+
+  for (const auto &item : *arg.value.as_array()) {
+    if (item.get_type() == expected_type) continue;
+
+    throw std::invalid_argument("Argument error at '" + arg.definition +
+                                "': " + shcore::type_name(expected_type) +
+                                " expected, but value is " +
+                                shcore::type_name(item.get_type()));
   }
 }
 
@@ -172,7 +171,7 @@ shcore::Value get_value_of_expected_type(const Cmd_line_arg_definition &arg,
       throw std::invalid_argument("Argument error at '" + arg.definition +
                                   "': " + shcore::type_name(type) +
                                   " expected, but value is " +
-                                  shcore::type_name(arg.value.type));
+                                  shcore::type_name(arg.value.get_type()));
     } else {
       throw;
     }
@@ -261,66 +260,65 @@ Cmd_line_arg_definition parse_named_argument(const std::string &definition) {
 void add_value_to_list(shcore::Array_t *target,
                        const Cmd_line_arg_definition &arg,
                        shcore::Value_type expected_type) {
-  if (arg.value.type != shcore::String || !arg.user_type.is_null()) {
+  if (arg.value.get_type() != shcore::String || !arg.user_type.is_null()) {
     (*target)->push_back(get_value_of_expected_type(arg, expected_type));
-  } else {
-    auto string_value = arg.value.as_string();
-    size_t start = 0;
-    size_t end = 0;
+    return;
+  }
 
-    std::string value;
-    bool done = string_value.empty();
-    while (!done) {
-      bool next_quoted = true;
-      if (string_value[start] == '"') {
-        end = mysqlshdk::utils::span_quoted_string_dq(string_value, start);
-      } else if (string_value[start] == '\'') {
-        end = mysqlshdk::utils::span_quoted_string_sq(string_value, start);
+  auto string_value = arg.value.as_string();
+  size_t start = 0;
+  size_t end = 0;
+
+  bool done = string_value.empty();
+  while (!done) {
+    bool next_quoted = true;
+    if (string_value[start] == '"') {
+      end = mysqlshdk::utils::span_quoted_string_dq(string_value, start);
+    } else if (string_value[start] == '\'') {
+      end = mysqlshdk::utils::span_quoted_string_sq(string_value, start);
+    } else {
+      next_quoted = false;
+      // Searches for the next comma that is not escaped
+      size_t next_start = start;
+      do {
+        end = string_value.find(',', next_start);
+        next_start = end + 1;
+      } while (end != std::string::npos && end > 0 &&
+               string_value[end - 1] == '\\');
+    }
+
+    if (next_quoted) {
+      if (end != std::string::npos) {
+        (*target)->emplace_back(
+            string_value.substr(start + 1, end - start - 2));
+
+        // If the closing quote is the last character...
+        done = end == string_value.size();
       } else {
-        next_quoted = false;
-        // Searches for the next comma that is not escaped
-        size_t next_start = start;
-        do {
-          end = string_value.find(',', next_start);
-          next_start = end + 1;
-        } while (end != std::string::npos && end > 0 &&
-                 string_value[end - 1] == '\\');
+        throw std::invalid_argument("Missing closing quote");
       }
-
-      if (next_quoted) {
-        if (end != std::string::npos) {
-          (*target)->emplace_back(
-              string_value.substr(start + 1, end - start - 2));
-
-          // If the closing quote is the last character...
-          done = end == string_value.size();
-        } else {
-          throw std::invalid_argument("Missing closing quote");
-        }
+    } else {
+      shcore::Value item_value;
+      if (end != std::string::npos) {
+        item_value = interpret_string_value(
+            unescape_string(string_value.substr(start, end - start)));
       } else {
-        shcore::Value item_value;
-        if (end != std::string::npos) {
-          item_value = interpret_string_value(
-              unescape_string(string_value.substr(start, end - start)));
-        } else {
-          item_value = interpret_string_value(
-              unescape_string(string_value.substr(start)));
-          done = true;
-        }
-        auto item_arg = arg;
-        item_arg.value = item_value;
-        (*target)->push_back(
-            get_value_of_expected_type(item_arg, expected_type));
+        item_value =
+            interpret_string_value(unescape_string(string_value.substr(start)));
+        done = true;
+      }
+      auto item_arg = arg;
+      item_arg.value = item_value;
+      (*target)->push_back(get_value_of_expected_type(item_arg, expected_type));
+    }
+
+    if (!done) {
+      if (string_value[end] != ',') {
+        throw std::invalid_argument("Missing comma after list value");
       }
 
-      if (!done) {
-        if (string_value[end] != ',') {
-          throw std::invalid_argument("Missing comma after list value");
-        }
-
-        // Starts on the next element
-        start = end + 1;
-      }
+      // Starts on the next element
+      start = end + 1;
     }
   }
 }
@@ -333,56 +331,55 @@ void add_value_to_dict(shcore::Dictionary_t *target_map,
   // If no options are defined, all the options are passed right away
   if (validator->allowed().empty()) {
     (*arg_map)[arg.option] = arg.value;
-  } else {
-    for (const auto &option_md : validator->allowed()) {
-      if (option_md->name == arg.option) {
-        // A value is being added to an option on this dictionary, however it
-        // will be skipped in the following cases:
-        // - If target option is yet another dictionary: in such case the
-        // validation will be done when the option is added into the target
-        // dictionary.
-        // - If the target option is a list: in such case the validation will be
-        // done when added into the target list.
-        // - If the target option has type Undefined, which means it is not a
-        // fixed type.
-        if (option_md->type() == shcore::Value_type::Map) {
-          const auto &inner_option =
-              parse_named_argument(arg.value.as_string());
+    return;
+  }
 
-          // Ensures the target dict option is available
-          if (!arg_map->has_key(arg.option)) {
-            (*arg_map)[arg.option] = shcore::Value(shcore::make_dict());
-          }
+  for (const auto &option_md : validator->allowed()) {
+    if (option_md->name != arg.option) continue;
 
-          // Gets the target dictionary and sets the key inside
-          auto inner_map = arg_map->get_map(arg.option);
+    // A value is being added to an option on this dictionary, however it
+    // will be skipped in the following cases:
+    // - If target option is yet another dictionary: in such case the
+    // validation will be done when the option is added into the target
+    // dictionary.
+    // - If the target option is a list: in such case the validation will be
+    // done when added into the target list.
+    // - If the target option has type Undefined, which means it is not a
+    // fixed type.
+    if (option_md->type() == shcore::Value_type::Map) {
+      const auto &inner_option = parse_named_argument(arg.value.as_string());
 
-          add_value_to_dict(&inner_map,
-                            option_md->validator<shcore::Option_validator>(),
-                            inner_option);
-        } else if (option_md->type() == shcore::Value_type::Array) {
-          if (!arg_map->has_key(arg.option)) {
-            (*arg_map)[arg.option] = shcore::Value(shcore::make_array());
-          }
-
-          auto array = arg_map->get_array(arg.option);
-
-          auto list_validator = option_md->validator<List_validator>();
-
-          if (arg.value.type == shcore::Value_type::Array) {
-            validate_list_items(arg, list_validator->element_type());
-            auto source = arg.value.as_array();
-            std::move(source->begin(), source->end(),
-                      std::back_inserter(*array));
-          } else {
-            add_value_to_list(&array, arg, list_validator->element_type());
-          }
-
-        } else {
-          (*arg_map)[arg.option] =
-              get_value_of_expected_type(arg, option_md->type());
-        }
+      // Ensures the target dict option is available
+      if (!arg_map->has_key(arg.option)) {
+        (*arg_map)[arg.option] = shcore::Value(shcore::make_dict());
       }
+
+      // Gets the target dictionary and sets the key inside
+      auto inner_map = arg_map->get_map(arg.option);
+
+      add_value_to_dict(&inner_map,
+                        option_md->validator<shcore::Option_validator>(),
+                        inner_option);
+    } else if (option_md->type() == shcore::Value_type::Array) {
+      if (!arg_map->has_key(arg.option)) {
+        (*arg_map)[arg.option] = shcore::Value(shcore::make_array());
+      }
+
+      auto array = arg_map->get_array(arg.option);
+
+      auto list_validator = option_md->validator<List_validator>();
+
+      if (arg.value.get_type() == shcore::Value_type::Array) {
+        validate_list_items(arg, list_validator->element_type());
+        auto source = arg.value.as_array();
+        std::move(source->begin(), source->end(), std::back_inserter(*array));
+      } else {
+        add_value_to_list(&array, arg, list_validator->element_type());
+      }
+
+    } else {
+      (*arg_map)[arg.option] =
+          get_value_of_expected_type(arg, option_md->type());
     }
   }
 }
@@ -685,7 +682,7 @@ void Shell_cli_mapper::process_positional_args() {
             // - If optional, Caches it's default value if any, or Null
             if (m_metadata->signature[index]->flag ==
                 shcore::Param_flag::Optional) {
-              if (m_metadata->signature[index]->def_value.type !=
+              if (m_metadata->signature[index]->def_value.get_type() !=
                   shcore::Value_type::Undefined) {
                 m_missing_optionals.push_back(
                     m_metadata->signature[index]->def_value);
@@ -709,7 +706,7 @@ void Shell_cli_mapper::process_positional_args() {
           // use as follows:
           // - If required: Uses an empty dictionary
           // - If optional, Caches it's default value if any, or an empty dict
-          if (m_metadata->signature[index]->def_value.type !=
+          if (m_metadata->signature[index]->def_value.get_type() !=
               shcore::Value_type::Undefined) {
             m_missing_optionals.push_back(
                 m_metadata->signature[index]->def_value);
@@ -735,7 +732,7 @@ void Shell_cli_mapper::process_positional_args() {
             while (!m_cmdline_args.empty()) {
               // Only anonymous arguments are added to the list
               if (m_cmdline_args[0].option.empty()) {
-                if (m_cmdline_args[0].value.type == shcore::Array) {
+                if (m_cmdline_args[0].value.get_type() == shcore::Array) {
                   validate_list_items(m_cmdline_args[0],
                                       validator->element_type());
                   auto source = m_cmdline_args[0].value.as_array();
@@ -758,7 +755,7 @@ void Shell_cli_mapper::process_positional_args() {
           // follows:
           // - If required: Uses an empty list
           // - If optional, Caches it's default value if any, or an empty list
-          if (m_metadata->signature[index]->def_value.type !=
+          if (m_metadata->signature[index]->def_value.get_type() !=
               shcore::Value_type::Undefined) {
             m_missing_optionals.push_back(
                 m_metadata->signature[index]->def_value);
@@ -785,7 +782,7 @@ void Shell_cli_mapper::process_positional_args() {
         // - If required: throws error indicating it must be provided
         // - If optional, Caches it's default value
 
-        if (value.type == shcore::Undefined) {
+        if (value.get_type() == shcore::Undefined) {
           if (m_metadata->signature[index]->flag ==
               shcore::Param_flag::Optional) {
             m_missing_optionals.push_back(

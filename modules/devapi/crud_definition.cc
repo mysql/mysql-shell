@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,19 +63,19 @@ Crud_definition::~Crud_definition() { reset_prepared_statement(); }
 void Crud_definition::parse_string_list(const shcore::Argument_list &args,
                                         std::vector<std::string> &data) {
   // When there is 1 argument, it must be either an array of strings or a string
-  if (args.size() == 1 && args[0].type != shcore::Array &&
-      args[0].type != shcore::String)
+  if (args.size() == 1 && args[0].get_type() != shcore::Array &&
+      args[0].get_type() != shcore::String)
     throw shcore::Exception::type_error(
         "Argument #1 is expected to be a string or an array of strings");
 
-  if (args.size() == 1 && args[0].type == shcore::Array) {
+  if (args.size() == 1 && args[0].get_type() == shcore::Array) {
     shcore::Value::Array_type_ref shell_fields = args.array_at(0);
     shcore::Value::Array_type::const_iterator index, end = shell_fields->end();
 
     int count = 0;
     for (index = shell_fields->begin(); index != end; index++) {
       count++;
-      if (index->type != shcore::String)
+      if (index->get_type() != shcore::String)
         throw shcore::Exception::type_error(shcore::str_format(
             "Element #%d is expected to be a string", count));
       else
@@ -242,7 +242,7 @@ void Crud_definition::insert_bound_values(
 
 void Crud_definition::encode_expression_object(Mysqlx::Expr::Expr *expr,
                                                const shcore::Value &value) {
-  assert(value.type == shcore::Object);
+  assert(value.get_type() == shcore::Object);
 
   shcore::Object_bridge_ref object = value.as_object();
   std::string object_class = object->class_name();
@@ -272,7 +272,7 @@ void Crud_definition::encode_expression_object(Mysqlx::Expr::Expr *expr,
 
 void Crud_definition::encode_expression_value(Mysqlx::Expr::Expr *expr,
                                               const shcore::Value &value) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::Undefined:
       throw shcore::Exception::argument_error("Invalid value");
 
@@ -318,7 +318,6 @@ void Crud_definition::encode_expression_value(Mysqlx::Expr::Expr *expr,
       expr->mutable_literal()->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
       break;
 
-    case shcore::MapRef:
     case shcore::Function:
       std::stringstream str;
       str << "Invalid value '" << value.descr() << "' in document";

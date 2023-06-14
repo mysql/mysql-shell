@@ -757,10 +757,10 @@ void Load_data_worker::execute(
       const auto placeholders = shcore::str_join(
           *columns, ", ",
           [&decode_columns](const shcore::Value &c) -> std::string {
-            if (c.type == shcore::Value_type::UInteger) {
+            if (c.get_type() == shcore::Value_type::UInteger) {
               // user defined variable
               return "@" + c.as_string();
-            } else if (c.type == shcore::Value_type::Integer) {
+            } else if (c.get_type() == shcore::Value_type::Integer) {
               // We do not want user variable to be negative: `@-1`
               if (c.as_int() < 0) {
                 throw shcore::Exception::value_error(
@@ -769,7 +769,7 @@ void Load_data_worker::execute(
               }
               // user defined variable
               return "@" + c.as_string();
-            } else if (c.type == shcore::Value_type::String) {
+            } else if (c.get_type() == shcore::Value_type::String) {
               const auto column_name = c.as_string();
               std::string prefix;
 
@@ -784,7 +784,7 @@ void Load_data_worker::execute(
                   " (column name) or non-negative " +
                   type_name(shcore::Value_type::Integer) +
                   " (user variable binding) expected, but value is " +
-                  type_name(c.type));
+                  type_name(c.get_type()));
             }
           });
 

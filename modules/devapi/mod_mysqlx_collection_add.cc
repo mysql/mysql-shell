@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -162,7 +162,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
 
     if (collection) {
       try {
-        if (args.size() == 1 && args[0].type == shcore::Array) {
+        if (args.size() == 1 && args[0].get_type() == shcore::Array) {
           // add([doc])
           shcore::Value::Array_type_ref docs = args[0].as_array();
           int i = 0;
@@ -211,8 +211,8 @@ static std::string extract_id(Mysqlx::Expr::Expr *expr) {
 
 void CollectionAdd::add_one_document(shcore::Value doc,
                                      const std::string &error_context) {
-  if (!(doc.type == shcore::Map ||
-        (doc.type == shcore::Object &&
+  if (!(doc.get_type() == shcore::Map ||
+        (doc.get_type() == shcore::Object &&
          doc.as_object()->class_name() == "Expression"))) {
     throw shcore::Exception::type_error(
         error_context +
@@ -220,7 +220,7 @@ void CollectionAdd::add_one_document(shcore::Value doc,
   }
 
   std::unique_ptr<Mysqlx::Expr::Expr> docx;
-  if (doc.type == shcore::Map) {
+  if (doc.get_type() == shcore::Map) {
     // add(doc)
     docx = encode_document_expr(doc);
   } else {

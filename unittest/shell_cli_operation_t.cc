@@ -661,7 +661,7 @@ TEST_F(Shell_cli_operation_test, local_dict) {
     EXPECT_EQ("util", m_object_name);
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
     EXPECT_EQ(1, m_argument_list.size());
-    ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[0].get_type() == Value_type::Map);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
   }
   {
@@ -682,7 +682,7 @@ TEST_F(Shell_cli_operation_test, local_dict) {
     // This no longer crashes as { and } are simply ignored
     prepare();
     EXPECT_EQ(1, m_argument_list.size());
-    ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[0].get_type() == Value_type::Map);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
   }
   {
@@ -716,7 +716,7 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_EQ("util", m_object_name);
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
     EXPECT_EQ(1, m_argument_list.size());
-    ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[0].get_type() == Value_type::Map);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
     EXPECT_EQ("required", m_argument_list.map_at(0)->get_string("ssl-mode"));
     EXPECT_EQ("zstd",
@@ -741,7 +741,7 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_EQ("util", m_object_name);
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
     EXPECT_EQ(2, m_argument_list.size());
-    ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[0].get_type() == Value_type::Map);
     auto co = m_argument_list.map_at(0);
     // a connection options dictionary
     EXPECT_EQ(3306, co->get_int("port"));
@@ -750,7 +750,7 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_EQ("root", co->get_string("user"));
 
     // not a connection options dictionary
-    ASSERT_TRUE(m_argument_list[1].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[1].get_type() == Value_type::Map);
     EXPECT_EQ("/whatever/path",
               m_argument_list.map_at(1)->get_string("configPath"));
   }
@@ -767,7 +767,7 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
     EXPECT_EQ(2, m_argument_list.size());
     EXPECT_EQ(shcore::Value::Null(), m_argument_list[0]);
-    ASSERT_TRUE(m_argument_list[1].type == Value_type::Map);
+    ASSERT_TRUE(m_argument_list[1].get_type() == Value_type::Map);
     auto co = m_argument_list.map_at(1);
     // a connection options dictionary
     EXPECT_EQ("JSON", co->get_string("outputFormat"));
@@ -1017,7 +1017,7 @@ class Test_cli_integration_api_options : public Shell_cli_operation_test {
           // Small exception if the actual argument is an array, in that case
           // the expected should contain all the values until named ones are
           // found
-          if (actual.type == shcore::Array) {
+          if (actual.get_type() == shcore::Array) {
             auto array = shcore::make_array();
             while (index < last_positional) {
               array->push_back(positional_arguments.at(index++));

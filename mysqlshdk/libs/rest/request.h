@@ -130,7 +130,7 @@ struct Json_request final : public Request {
   explicit Json_request(Masked_string path, const shcore::Value &data = {},
                         Headers headers = {})
       : Request(std::move(path), std::move(headers)) {
-    if (data.type != shcore::Value_type::Undefined) {
+    if (data.get_type() != shcore::Value_type::Undefined) {
       m_json = data.repr();
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,7 +148,7 @@ std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent),
                                     int UNUSED(quote_strings)) const {
   s_out.append("<" + _group + "." + _id);
 
-  if (_data.type == shcore::String) {
+  if (_data.get_type() == shcore::String) {
     const std::string &data = _data.get_string();
     size_t pos = data.find("(");
     if (pos != std::string::npos) s_out.append(data.substr(pos));

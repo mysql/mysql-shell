@@ -944,13 +944,14 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   struct Metadata {
     Metadata() = default;
     Metadata(const Metadata &) = delete;
+
     std::string name[2];
     Raw_signature signature;
     mysqlshdk::null_bool cli_enabled;
 
     std::vector<std::pair<std::string, Value_type>> param_types;
     std::string param_codes;
-    Value_type return_type;
+    Value_type return_type{shcore::Undefined};
 
     void set_name(const std::string &name);
     void set(const std::string &name, Value_type rtype,
@@ -1763,7 +1764,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                 const std::tuple<Type_info_t<A>...> &defs,
                 std::index_sequence<I...>) {
     const auto size = args.size();
-    return func((size <= I || args.at(I).type == Value_type::Undefined
+    return func((size <= I || args.at(I).get_type() == Value_type::Undefined
                      ? std::get<I>(defs)
                      : Arg_handler<A>::get(I, args))...);
   }

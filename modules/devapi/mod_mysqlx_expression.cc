@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,19 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-#endif
-
 #include "modules/devapi/mod_mysqlx_expression.h"
+
 #include <memory>
 #include <string>
-#include "scripting/object_factory.h"
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 using namespace shcore;
 using namespace mysqlsh::mysqlx;
@@ -56,14 +47,8 @@ using namespace mysqlsh::mysqlx;
 #endif
 Value Expression::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
-  Value ret_val;
-
-  if (prop == "data")
-    ret_val = Value(_data);
-  else
-    ret_val = Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
+  if (prop == "data") return Value(_data);
+  return Cpp_object_bridge::get_member(prop);
 }
 
 bool Expression::operator==(const Object_bridge &other) const {
@@ -74,11 +59,9 @@ std::shared_ptr<shcore::Object_bridge> Expression::create(
     const shcore::Argument_list &args) {
   args.ensure_count(1, "mysqlx.expr");
 
-  if (args[0].type != shcore::String)
+  if (args[0].get_type() != shcore::String)
     throw shcore::Exception::type_error(
         "mysqlx.expr: Argument #1 is expected to be a string");
 
-  std::shared_ptr<Expression> expression(new Expression(args[0].get_string()));
-
-  return expression;
+  return std::make_shared<Expression>(args[0].get_string());
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@ namespace shcore {
 class Array_as_result : public mysqlshdk::db::IResult {
  public:
   explicit Array_as_result(const shcore::Array_t &array);
+
   const mysqlshdk::db::IRow *fetch_one() override;
   bool next_resultset() override;
   bool has_resultset() override;
@@ -121,6 +122,7 @@ class Array_as_result : public mysqlshdk::db::IResult {
     const std::vector<std::string> &m_row;
   };
 
+ private:
   bool m_has_result = true;
   size_t m_current_row = 1;
   std::vector<mysqlshdk::db::Column> m_metadata;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -600,14 +600,14 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
     size_t unset_count = 0;
 
     // Could receive either a List or many strings
-    if (args.size() == 1 && args[0].type == Array) {
+    if (args.size() == 1 && args[0].get_type() == Array) {
       shcore::Value::Array_type_ref items = args.array_at(0);
       shcore::Value::Array_type::iterator index, end = items->end();
 
       int int_index = 0;
       for (index = items->begin(); index != end; index++) {
         int_index++;
-        if (index->type == shcore::String) {
+        if (index->get_type() == shcore::String) {
           set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
                         index->get_string(), shcore::Value());
         } else {
@@ -619,7 +619,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
       unset_count = items->size();
     } else {
       for (size_t index = 0; index < args.size(); index++) {
-        if (args[index].type == shcore::String) {
+        if (args[index].get_type() == shcore::String) {
           set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE,
                         args.string_at(index), shcore::Value());
         } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -250,7 +250,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     if (!is_static) m_recorded_data_index[key] = idx + 1;
 
     shcore::Value value = array->at(idx);
-    if (value.type == shcore::Map) {
+    if (value.get_type() == shcore::Map) {
       if (value.as_map()->get_string("type") == "net_error")
         throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
       else
@@ -283,7 +283,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     if (!is_static) m_recorded_data_index[key] = idx + 1;
 
     shcore::Value value = array->at(idx);
-    if (value.type == shcore::Map) {
+    if (value.get_type() == shcore::Map) {
       if (value.as_map()->get_string("type") == "net_error")
         throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
       else
@@ -311,7 +311,7 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
     if (!is_static) m_recorded_data_index[key] = idx + 1;
 
     shcore::Value value = array->at(idx);
-    if (value.type == shcore::Map) {
+    if (value.get_type() == shcore::Map) {
       if (value.as_map()->get_string("type") == "net_error")
         throw mysqlshdk::utils::net_error(value.as_map()->get_string("what"));
       else

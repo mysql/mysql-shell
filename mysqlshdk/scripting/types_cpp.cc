@@ -24,12 +24,9 @@
 #include "mysqlshdk/include/scripting/types_cpp.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cstdarg>
 #include <limits>
 #include <tuple>
 
-#include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
@@ -156,8 +153,8 @@ std::tuple<bool, int, shcore::Exception> Cpp_function::match_signatures(
             if (param->type() == kwds->get_type(param->name)) {
               exact_matches++;
             }
-            have_object_params =
-                have_object_params || (kwds->at(param->name).type == Object);
+            have_object_params = have_object_params ||
+                                 (kwds->at(param->name).get_type() == Object);
           } else {
             match = false;
             error = shcore::Exception::type_error(shcore::str_format(
@@ -717,7 +714,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
 
   std::vector<Value_type> arg_types;
   for (const auto &arg : args) {
-    arg_types.push_back(arg.type);
+    arg_types.push_back(arg.get_type());
   }
   // find best matching function taking param types into account
   // by using rules similar to those from C++
@@ -801,7 +798,7 @@ std::string Cpp_object_bridge::help(const std::string &item) {
   if (!item.empty()) {
     // This group represents the API topics that can be children of another
     // API topic
-    pattern += "." + item;
+    pattern.append(".").append(item);
     mask.set(shcore::Topic_type::FUNCTION);
     mask.set(shcore::Topic_type::PROPERTY);
     mask.set(shcore::Topic_type::OBJECT);
@@ -883,9 +880,6 @@ std::string get_param_codes(
       case Value_type::Map:
         codes.append("D");
         break;
-      case Value_type::MapRef:
-        codes.append("D");
-        break;
       case Value_type::Null:
         codes.append("n");
         break;
@@ -957,9 +951,10 @@ static std::string num_args_expected(
   for (auto i = argt.rbegin(); i != argt.rend(); ++i) {
     if (i->first[0] == '?' || i->first[0] == '*') --min_args;
   }
-  if (min_args != argt.size()) {
+
+  if (min_args != argt.size())
     return std::to_string(min_args) + " to " + std::to_string(argt.size());
-  }
+
   return std::to_string(min_args);
 }
 
@@ -991,9 +986,9 @@ Value Cpp_function::invoke(const Argument_list &args) {
 
       // NOTE: Undefined Optional parameters will skip this validation as they
       // will be taking the default value
-      if ((a->type != Value_type::Undefined ||
+      if ((a->get_type() != Value_type::Undefined ||
            (*s)->flag != Param_flag::Optional) &&
-          !(*s)->valid_type(a->type)) {
+          !(*s)->valid_type(a->get_type())) {
         throw Exception::type_error(
             name() + ": Argument #" + std::to_string(n + 1) +
             " is expected to be " + type_description((*s)->type()));
@@ -1057,13 +1052,14 @@ std::string Cpp_property_name::base_name() const {
 
 std::string Parameter_context::str() const {
   std::vector<std::string> ctx_data;
+  ctx_data.reserve(levels.size());
 
-  for (auto it = levels.begin(); it != levels.end(); it++) {
-    if (it->position.is_null()) {
-      ctx_data.push_back(it->name);
+  for (const auto &level : levels) {
+    if (level.position.is_null()) {
+      ctx_data.push_back(level.name);
     } else {
       ctx_data.push_back(
-          shcore::str_format("%s #%i", it->name.c_str(), *it->position));
+          shcore::str_format("%s #%i", level.name.c_str(), *level.position));
     }
   }
 
@@ -1082,18 +1078,17 @@ void Parameter_validator::validate(const Parameter &param, const Value &data,
     // NOTE: Skipping validation for Undefined parameters that are optional as
     // they will use the default value
     if (param.flag == Param_flag::Optional &&
-        data.type == Value_type::Undefined)
+        data.get_type() == Value_type::Undefined)
       return;
 
-    if (!valid_type(param, data.type)) {
+    if (!valid_type(param, data.get_type()))
       throw std::invalid_argument("Invalid type");
-    }
 
     // The call to check_type only verifies the kConvertible matrix there:
     // - A string is convertible to integer, bool and float
     // - A Null us convertible to object, array and dictionary
     // We do this validation to make sure the conversion is really valid
-    if (data.type == shcore::String) {
+    if (data.get_type() == shcore::String) {
       if (param.type() == shcore::Integer)
         data.as_int();
       else if (param.type() == shcore::Bool)
@@ -1114,32 +1109,32 @@ void Object_validator::validate(const Parameter &param, const Value &data,
   if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
-  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+  if (param.flag == Param_flag::Optional &&
+      data.get_type() == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed_ref->empty()) {
-    const auto object = data.as_object();
+  if (m_allowed_ref->empty()) return;
 
-    if (!object) {
-      throw shcore::Exception::type_error(shcore::str_format(
-          "%s is expected to be an object", context->str().c_str()));
-    }
+  const auto object = data.as_object();
 
-    if (std::find(std::begin(m_allowed), std::end(m_allowed),
-                  object->class_name()) == std::end(m_allowed)) {
-      auto allowed_str = shcore::str_join(m_allowed, ", ");
+  if (!object) {
+    throw shcore::Exception::type_error(shcore::str_format(
+        "%s is expected to be an object", context->str().c_str()));
+  }
 
-      if (m_allowed.size() == 1) {
-        throw shcore::Exception::type_error(
-            shcore::str_format("%s is expected to be a '%s' object",
-                               context->str().c_str(), allowed_str.c_str()));
-      } else {
-        throw shcore::Exception::argument_error(
-            shcore::str_format("%s is expected to be one of '%s'",
-                               context->str().c_str(), allowed_str.c_str()));
-      }
-    }
+  if (std::find(std::begin(m_allowed), std::end(m_allowed),
+                object->class_name()) == std::end(m_allowed)) {
+    auto allowed_str = shcore::str_join(m_allowed, ", ");
+
+    if (m_allowed.size() == 1)
+      throw shcore::Exception::type_error(
+          shcore::str_format("%s is expected to be a '%s' object",
+                             context->str().c_str(), allowed_str.c_str()));
+
+    throw shcore::Exception::argument_error(
+        shcore::str_format("%s is expected to be one of '%s'",
+                           context->str().c_str(), allowed_str.c_str()));
   }
 }
 
@@ -1148,18 +1143,19 @@ void String_validator::validate(const Parameter &param, const Value &data,
   if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
-  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+  if (param.flag == Param_flag::Optional &&
+      data.get_type() == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed_ref->empty()) {
-    if (std::find(std::begin(*m_allowed_ref), std::end(*m_allowed_ref),
-                  data.as_string()) == std::end(*m_allowed_ref)) {
-      auto error = shcore::str_format(
-          "%s only accepts the following values: %s.", context->str().c_str(),
-          shcore::str_join(*m_allowed_ref, ", ").c_str());
-      throw shcore::Exception::argument_error(error);
-    }
+  if (m_allowed_ref->empty()) return;
+
+  if (std::find(std::begin(*m_allowed_ref), std::end(*m_allowed_ref),
+                data.as_string()) == std::end(*m_allowed_ref)) {
+    auto error = shcore::str_format(
+        "%s only accepts the following values: %s.", context->str().c_str(),
+        shcore::str_join(*m_allowed_ref, ", ").c_str());
+    throw shcore::Exception::argument_error(error);
   }
 }
 
@@ -1168,30 +1164,31 @@ void Option_validator::validate(const Parameter &param, const Value &data,
   if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
-  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+  if (param.flag == Param_flag::Optional &&
+      data.get_type() == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed_ref->empty()) {
-    Option_unpacker unpacker(data.as_map());
+  if (m_allowed_ref->empty()) return;
 
-    for (const auto &item : *m_allowed_ref) {
-      shcore::Value value;
-      if (item->flag == Param_flag::Mandatory) {
-        unpacker.required(item->name.c_str(), &value);
-      } else {
-        unpacker.optional(item->name.c_str(), &value);
-      }
+  Option_unpacker unpacker(data.as_map());
 
-      if (value) {
-        context->levels.push_back({"option '" + item->name + "'", {}});
-        item->validate(value, context);
-        context->levels.pop_back();
-      }
+  for (const auto &item : *m_allowed_ref) {
+    shcore::Value value;
+    if (item->flag == Param_flag::Mandatory) {
+      unpacker.required(item->name.c_str(), &value);
+    } else {
+      unpacker.optional(item->name.c_str(), &value);
     }
 
-    unpacker.end("at " + context->str());
+    if (value) {
+      context->levels.push_back({"option '" + item->name + "'", {}});
+      item->validate(value, context);
+      context->levels.pop_back();
+    }
   }
+
+  unpacker.end("at " + context->str());
 }
 
 void Parameter::validate(const Value &data, Parameter_context *context) const {
@@ -1204,12 +1201,10 @@ void Parameter::validate(const Value &data, Parameter_context *context) const {
 }
 
 bool Parameter::valid_type(Value_type type) const {
-  if (m_validator) {
-    return m_validator->valid_type(*this, type);
-  } else {
-    // If no validator was set, uses the default validator.
-    return Parameter_validator{}.valid_type(*this, type);
-  }
+  if (m_validator) return m_validator->valid_type(*this, type);
+
+  // If no validator was set, uses the default validator.
+  return Parameter_validator{}.valid_type(*this, type);
 }
 
 }  // namespace shcore

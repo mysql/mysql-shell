@@ -22,7 +22,9 @@
  */
 
 #include "mysqlsh/mysql_shell.h"
+
 #include <mysqld_error.h>
+
 #include <algorithm>
 #include <atomic>
 #include <iterator>
@@ -32,6 +34,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "commands/command_help.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/dba_utils.h"
@@ -763,7 +766,7 @@ void Mysql_shell::finish_init() {
               auto child_names = object->get_members();
               for (const auto &name : child_names) {
                 auto child = object->get_member(name);
-                if (child.type == shcore::Value_type::Object) {
+                if (child.get_type() == shcore::Value_type::Object) {
                   auto child_object = child.as_object<Extensible_object>();
 
                   if (child_object) {
@@ -1137,22 +1140,24 @@ void Mysql_shell::set_active_session(
 
 bool Mysql_shell::redirect_session_if_needed(bool secondary,
                                              const Connection_options &opts) {
+  const auto target = secondary ? "SECONDARY" : "PRIMARY";
+
   const auto dev_session = shell_context()->get_dev_session();
-  const std::string target = secondary ? "SECONDARY" : "PRIMARY";
   const auto session =
       opts.has_data()
           ? establish_session(opts, options().wizards)
           : dev_session && dev_session->is_open()
                 ? dev_session->get_core_session()
-                : throw std::runtime_error("Redirecting to a " + target +
-                                           " requires an active session.");
+                : throw std::runtime_error(shcore::str_format(
+                      "Redirecting to a %s requires an active session.",
+                      target));
   auto connection = session->get_connection_options();
   const auto uri = connection.as_uri();
 
   log_info(
       "Redirecting session from '%s' to a %s of an InnoDB cluster or "
       "ReplicaSet...",
-      uri.c_str(), target.c_str());
+      uri.c_str(), target);
 
   const auto find = secondary ? &dba::find_secondary_member_uri
                               : &dba::find_primary_member_uri;
@@ -1167,15 +1172,14 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
              connection.get_session_type() == mysqlsh::SessionType::X,
              &single_primary, &cluster_type);
   } catch (const shcore::Exception &ex) {
-    if (ex.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
-      throw shcore::Exception(
-          "The InnoDB cluster appears to be under a partial or total outage "
-          "and an ONLINE " +
-              target + " cannot be selected. (" + ex.what() + ")",
-          SHERR_DBA_GROUP_HAS_NO_QUORUM);
-    } else {
-      throw;
-    }
+    if (ex.code() != SHERR_DBA_GROUP_HAS_NO_QUORUM) throw;
+
+    throw shcore::Exception(
+        shcore::str_format(
+            "The InnoDB cluster appears to be under a partial or total outage "
+            "and an ONLINE %s cannot be selected. (%s)",
+            target, ex.what()),
+        SHERR_DBA_GROUP_HAS_NO_QUORUM);
   }
 
   const auto display_string =
@@ -1184,22 +1188,20 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
 
   if (!single_primary) {
     if (secondary) {
-      log_error(
-          "Redirection to a %s but %s for %s is not single-primary "
-          "mode",
-          target.c_str(), display_string.c_str(), uri.c_str());
-      throw std::runtime_error("Redirect to a " + target +
-                               " member requested, but " + display_string +
-                               " is multi-primary");
+      log_error("Redirection to a %s but %s for %s is not single-primary mode",
+                target, display_string.c_str(), uri.c_str());
+      throw std::runtime_error(shcore::str_format(
+          "Redirect to a %s member requested, but %s is multi-primary", target,
+          display_string.c_str()));
     } else {
       new_connection = false;
     }
   }
 
   if (new_connection && redirect_uri.empty()) {
-    throw std::runtime_error(std::string{"No "} +
-                             (secondary ? "secondaries" : "primaries") +
-                             " found in " + display_string);
+    throw std::runtime_error(shcore::str_format(
+        "No %s found in %s", secondary ? "secondaries" : "primaries",
+        display_string.c_str()));
   }
 
   if (new_connection && redirect_uri == connection.uri_endpoint()) {
@@ -1230,9 +1232,11 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
 
   if (new_connection) {
     log_info("Reconnecting to %s instance of %s (%s)...", redirect_uri.c_str(),
-             display_string.c_str(), target.c_str());
-    println("Reconnecting to the " + target + " instance of " + display_string +
-            " (" + redirect_uri + ")...");
+             display_string.c_str(), target);
+
+    println(shcore::str_format("Reconnecting to the %s instance of %s (%s)...",
+                               target, display_string.c_str(),
+                               redirect_uri.c_str()));
 
     mysqlshdk::db::Connection_options redirected_connection(redirect_uri);
 
@@ -1265,7 +1269,7 @@ void Mysql_shell::init_extra_globals() {
 
       if (cluster->impl()->is_cluster_set_member())
         create_default_clusterset_object();
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Exception &) {
       print_warning(
           "Option --cluster requires a session to a member of an InnoDB "
           "cluster.");
@@ -1276,7 +1280,7 @@ void Mysql_shell::init_extra_globals() {
   if (options().default_replicaset_set) {
     try {
       create_default_replicaset_object();
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Exception &) {
       print_warning(
           "Option --replicaset requires a session to a member of an InnoDB "
           "ReplicaSet.");

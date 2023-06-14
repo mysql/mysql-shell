@@ -26,11 +26,8 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
-#include <cinttypes>
-#include <cstdlib>
 #include <iterator>
 #include <list>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -42,13 +39,10 @@
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_errors.h"
 #include "modules/util/load/load_progress_log.h"
-#include "mysqlshdk/include/scripting/naming_style.h"
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
-#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -58,6 +52,7 @@
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {

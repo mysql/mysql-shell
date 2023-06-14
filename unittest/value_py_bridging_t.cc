@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -197,19 +197,19 @@ TEST_F(Python, basic) {
   py->execute_interactive("a = -9223372036854775808", cont);
   result = py->execute_interactive("a", cont);
   ASSERT_EQ(result.repr(), "-9223372036854775808");
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   // Test bigger bigint, handled as Integer
   py->execute_interactive("a = 9223372036854775807", cont);
   result = py->execute_interactive("a", cont);
   ASSERT_EQ(result.repr(), "9223372036854775807");
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   // Test bigger unsiged bigint, handled as UInteger
   py->execute_interactive("a = 18446744073709551615", cont);
   result = py->execute_interactive("a", cont);
   ASSERT_EQ(result.repr(), "18446744073709551615");
-  ASSERT_EQ(result.type, shcore::Value_type::UInteger);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::UInteger);
 
   // Test a bigger number than bigger unsiged bigint
   // (bigger than the unsigned long long range),
@@ -217,53 +217,53 @@ TEST_F(Python, basic) {
   py->execute_interactive("a = 18446744073709551615999", cont);
   result = py->execute_interactive("a", cont);
   ASSERT_EQ(result.repr(), "\"18446744073709551615999\"");
-  ASSERT_EQ(result.type, shcore::Value_type::String);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::String);
 
   py->execute_interactive("a = -1", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, -1);
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), -1);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   py->execute_interactive("a = +1", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, 1);
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), 1);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   py->execute_interactive("a = -10", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, -10);
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), -10);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   py->execute_interactive("a = +10", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, 10);
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), 10);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   py->execute_interactive("a = 0", cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, 0);
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), 0);
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   std::stringstream s;
   s << "a = " << std::numeric_limits<uint64_t>::max();
   py->execute_interactive(s.str(), cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.ui, std::numeric_limits<uint64_t>::max());
-  ASSERT_EQ(result.type, shcore::Value_type::UInteger);
+  ASSERT_EQ(result.as_uint(), std::numeric_limits<uint64_t>::max());
+  ASSERT_EQ(result.get_type(), shcore::Value_type::UInteger);
 
   s.str("");
   s << "a = " << std::numeric_limits<int64_t>::min();
   py->execute_interactive(s.str(), cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.i, std::numeric_limits<int64_t>::min());
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_int(), std::numeric_limits<int64_t>::min());
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 
   s.str("");
   s << "a = " << std::numeric_limits<int64_t>::max();
   py->execute_interactive(s.str(), cont);
   result = py->execute_interactive("a", cont);
-  ASSERT_EQ(result.value.ui, std::numeric_limits<int64_t>::max());
-  ASSERT_EQ(result.type, shcore::Value_type::Integer);
+  ASSERT_EQ(result.as_uint(), std::numeric_limits<int64_t>::max());
+  ASSERT_EQ(result.get_type(), shcore::Value_type::Integer);
 }
 
 TEST_F(Python, globals) {
@@ -357,20 +357,20 @@ k4 -> test)*";
             py->execute_interactive("for i in mapval:\n"
                                     "  print('%s -> %s' % (i, mapval[i]))",
                                     cont)
-                .type);
+                .get_type());
   MY_EXPECT_STDOUT_CONTAINS(expected);
 
   // BUG29599261, BUG29702627 - accessing non-existing key should result in
   // KeyError exception
   output_handler.wipe_all();
   EXPECT_EQ(Value_type::Undefined,
-            py->execute_interactive("mapval['k0']", cont).type);
+            py->execute_interactive("mapval['k0']", cont).get_type());
   MY_EXPECT_STDERR_CONTAINS("KeyError: 'k0'");
 
   // BUG#34403275 - accessing non-existing key with get() should return None
   output_handler.wipe_all();
   EXPECT_EQ(Value_type::Null,
-            py->execute_interactive("mapval.get('k0')", cont).type);
+            py->execute_interactive("mapval.get('k0')", cont).get_type());
   MY_EXPECT_STDERR_NOT_CONTAINS("Error");
 }
 

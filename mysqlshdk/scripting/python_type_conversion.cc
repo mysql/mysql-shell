@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,30 +247,29 @@ void set_item(const Dictionary_t &map, PyObject *key, PyObject *value,
 }
 
 py::Release convert(const Value &value, Python_context * /*context*/) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case Undefined:
     case Null:
       return py::Release::incref(Py_None);
     case Bool:
-      return py::Release{PyBool_FromLong(value.value.b)};
+      return py::Release{PyBool_FromLong(value.as_bool())};
     case String:
-      assert(value.value.s);
-      return py::Release{PyString_FromString(value.value.s->c_str())};
+      return py::Release{PyString_FromString(value.get_string().c_str())};
     case Integer:
-      return py::Release{PyLong_FromLongLong(value.value.i)};
+      return py::Release{PyLong_FromLongLong(value.as_int())};
       break;
     case UInteger:
-      return py::Release{PyLong_FromUnsignedLongLong(value.value.ui)};
+      return py::Release{PyLong_FromUnsignedLongLong(value.as_uint())};
       break;
     case Float:
-      return py::Release{PyFloat_FromDouble(value.value.d)};
+      return py::Release{PyFloat_FromDouble(value.as_double())};
       break;
     case Object: {
       if (auto object = value.as_object<Python_object>())
         return py::Release{object->object()};
 
       if (value.as_object()->class_name() != "Date")
-        return wrap(*value.value.o);
+        return wrap(value.as_object());
 
       std::shared_ptr<Date> date = value.as_object<Date>();
 
@@ -311,26 +310,14 @@ py::Release convert(const Value &value, Python_context * /*context*/) {
       return py::Release{PyString_FromString(value.descr().c_str())};
     }
     case Array:
-      return wrap(*value.value.array);
+      return wrap(value.as_array());
     case Map:
-      return wrap(*value.value.map);
-    case MapRef:
-      /*
-      {
-      std::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
-      if (map)
-      {
-      std::cout << "wrapmapref not implemented\n";
-      }
-      }
-      */
-      return py::Release::incref(Py_None);
+      return wrap(value.as_map());
     case shcore::Function:
-      return wrap(*value.value.func);
+      return wrap(value.as_function());
     case shcore::Binary:
-      assert(value.value.s);
-      return py::Release{PyBytes_FromStringAndSize(value.value.s->c_str(),
-                                                   value.value.s->size())};
+      return py::Release{PyBytes_FromStringAndSize(value.get_string().c_str(),
+                                                   value.get_string().size())};
   }
 
   return {};

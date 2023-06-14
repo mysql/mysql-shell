@@ -1368,7 +1368,7 @@ static void add_module_members(
   for (const auto &member_name : module->get_members()) {
     shcore::Value member = module->get_member_advanced(member_name);
     py::Release value;
-    if (member.type == shcore::Function)
+    if (member.get_type() == shcore::Function)
       value = wrap(module, member_name);
     else
       value = ctx->convert(member);

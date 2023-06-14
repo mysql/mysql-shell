@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -392,27 +392,19 @@ v8::Local<v8::Object> JScript_method_wrapper::wrap(
 
 bool JScript_method_wrapper::unwrap(v8::Local<v8::Object> value,
                                     std::shared_ptr<Function_base> *method) {
-  if (is_method(value)) {
-    const auto collectable = static_cast<Method_collectable *>(
-        value->GetAlignedPointerFromInternalField(1));
-    const auto &object = collectable->data();
+  if (!is_method(value)) return false;
 
-    if (!object) {
-      return false;
-    }
+  const auto collectable = static_cast<Method_collectable *>(
+      value->GetAlignedPointerFromInternalField(1));
+  const auto &object = collectable->data();
 
-    const auto m = object->get_member(collectable->method());
+  if (!object) return false;
 
-    if (shcore::Value_type::Function != m.type) {
-      return false;
-    }
+  const auto m = object->get_member(collectable->method());
+  if (shcore::Value_type::Function != m.get_type()) return false;
 
-    *method = m.as_function();
-
-    return true;
-  }
-
-  return false;
+  *method = m.as_function();
+  return true;
 }
 
 void JScript_method_wrapper::call(

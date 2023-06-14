@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -218,7 +218,7 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args) {
 
     // Only expression objects are allowed as values
     std::string expr_data;
-    if (args[1].type == shcore::Object) {
+    if (args[1].get_type() == shcore::Object) {
       shcore::Object_bridge_ref object = args.object_at(1);
 
       auto expression = std::dynamic_pointer_cast<Expression>(object);

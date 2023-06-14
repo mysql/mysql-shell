@@ -126,7 +126,7 @@ const shcore::Option_pack_def<Configure_instance_options>
 
 void Configure_instance_options::set_password_expiration(
     const shcore::Value &value) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::Null:
       cluster_admin_password_expiration.reset();
       break;
@@ -160,7 +160,7 @@ void Configure_instance_options::set_password_expiration(
       throw shcore::Exception::type_error(
           std::string("Option '") + kPasswordExpiration +
           "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
-          type_name(value.type));
+          type_name(value.get_type()));
   }
 }
 

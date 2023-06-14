@@ -205,7 +205,7 @@ void Remove_instance::cleanup_leftover_recovery_account() const {
       m_cluster_impl->get_metadata_storage()->query_cluster_attribute(
           m_cluster_impl->get_id(),
           k_cluster_attribute_replication_allowed_host, &allowed_host) &&
-      allowed_host.type == shcore::String &&
+      allowed_host.get_type() == shcore::String &&
       !allowed_host.as_string().empty()) {
     host = allowed_host.as_string();
   }

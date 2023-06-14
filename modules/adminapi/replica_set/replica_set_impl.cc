@@ -579,50 +579,53 @@ void Replica_set_impl::read_replication_options(
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replConnectRetry, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
       ar_options->connect_retry = value.as_int();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replRetryCount, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer) ar_options->retry_count = value.as_int();
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
+      ar_options->retry_count = value.as_int();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replHeartbeatPeriod, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if ((value.type == shcore::Integer) || (value.type == shcore::Float))
+    null_options |= (value.get_type() == shcore::Null);
+    if ((value.get_type() == shcore::Integer) ||
+        (value.get_type() == shcore::Float))
       ar_options->heartbeat_period = value.as_double();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replCompressionAlgorithms,
           &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
       ar_options->compression_algos = value.as_string();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replZstdCompressionLevel,
           &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
       ar_options->zstd_compression_level = value.as_int();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replBind, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String) ar_options->bind = value.as_string();
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
+      ar_options->bind = value.as_string();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_instance_attribute(
           instance_uuid, k_instance_attribute_replNetworkNamespace, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
       ar_options->network_namespace = value.as_string();
   }
 
@@ -661,7 +664,7 @@ void Replica_set_impl::cleanup_replication_options(
                                                       attrib_name, &value))
       return;
 
-    if (value.type == shcore::Null)
+    if (value.get_type() == shcore::Null)
       m_metadata_storage->remove_instance_attribute(instance.get_uuid(),
                                                     attrib_name);
   };
@@ -3073,7 +3076,7 @@ Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
       get_metadata_storage()->query_cluster_attribute(
           get_id(), k_cluster_attribute_replication_allowed_host,
           &allowed_host) &&
-      allowed_host.type == shcore::String &&
+      allowed_host.get_type() == shcore::String &&
       !allowed_host.as_string().empty()) {
     host = allowed_host.as_string();
   }
@@ -3334,11 +3337,12 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
   if (shcore::str_beginswith(option, ReplicationPrefix)) {
     auto check_value_type = [&option, &value](shcore::Value_type type,
                                               bool supports_null) {
-      if (value.type == type) return;
-      if (supports_null && (value.type == shcore::Null)) return;
+      if (value.get_type() == type) return;
+      if (supports_null && (value.get_type() == shcore::Null)) return;
 
       // for convenience
-      if (type == shcore::Float && (value.type == shcore::Integer)) return;
+      if (type == shcore::Float && (value.get_type() == shcore::Integer))
+        return;
 
       if (type == shcore::Integer)
         throw shcore::Exception::argument_error(shcore::str_format(
@@ -3381,7 +3385,7 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
     if (shcore::str_endswith(option_name, kReplicationConnectRetry)) {
       check_value_type(shcore::Integer, !instance_is_primary);
 
-      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+      if ((value.get_type() == shcore::Integer) && (value.as_int() < 0))
         throw shcore::Exception::argument_error(shcore::str_format(
             "Option '%s' doesn't support negative values.", option.c_str()));
 
@@ -3393,7 +3397,7 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
     if (shcore::str_endswith(option_name, kReplicationRetryCount)) {
       check_value_type(shcore::Integer, !instance_is_primary);
 
-      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+      if ((value.get_type() == shcore::Integer) && (value.as_int() < 0))
         throw shcore::Exception::argument_error(shcore::str_format(
             "Option '%s' doesn't support negative values.", option.c_str()));
 
@@ -3405,7 +3409,8 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
     if (shcore::str_endswith(option_name, kReplicationHeartbeatPeriod)) {
       check_value_type(shcore::Float, !instance_is_primary);
 
-      if (((value.type == shcore::Integer) || (value.type == shcore::Float)) &&
+      if (((value.get_type() == shcore::Integer) ||
+           (value.get_type() == shcore::Float)) &&
           (value.as_double() < 0.0))
         throw shcore::Exception::argument_error(shcore::str_format(
             "Option '%s' doesn't support negative values.", option.c_str()));
@@ -3437,7 +3442,7 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
             "Instance '%s' does not support the \"%s\" option.",
             target_descr.c_str(), option.c_str()));
 
-      if ((value.type == shcore::Integer) && (value.as_int() < 0))
+      if ((value.get_type() == shcore::Integer) && (value.as_int() < 0))
         throw shcore::Exception::argument_error(shcore::str_format(
             "Option '%s' doesn't support negative values.", option.c_str()));
 
@@ -3470,7 +3475,7 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
 
     if (known_option) {
       auto console = current_console();
-      if (value.type == shcore::Null)
+      if (value.get_type() == shcore::Null)
         console->print_info(shcore::str_format(
             "Successfully set the value of '%s' to NULL for the cluster "
             "member: '%s'.",
@@ -3572,7 +3577,7 @@ void Replica_set_impl::_set_option(const std::string &option,
     throw shcore::Exception::argument_error("Option '" + option +
                                             "' not supported.");
 
-  if (value.type != shcore::String || value.as_string().empty())
+  if (value.get_type() != shcore::String || value.as_string().empty())
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for '%s': Argument #2 is expected "
                            "to be a string.",

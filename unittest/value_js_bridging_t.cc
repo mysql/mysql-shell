@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -335,7 +335,7 @@ text
     EXPECT_EQ(
         Value_type::Undefined,
         env.js->execute_interactive("for (var v of arr) println(v)", &cont)
-            .first.type);
+            .first.get_type());
     env.output_handler.validate_stdout_content(expected, true);
     EXPECT_TRUE(env.output_handler.std_err.empty());
   }
@@ -386,7 +386,7 @@ TEST_F(JavaScript, map_to_js) {
   EXPECT_EQ("false", result.descr());
 
   result = env.js->execute("mapval['invalid']").first;
-  EXPECT_EQ(shcore::Undefined, result.type);
+  EXPECT_EQ(shcore::Undefined, result.get_type());
 
   {
     static constexpr const auto expected = R"*([
@@ -412,7 +412,7 @@ TEST_F(JavaScript, map_to_js) {
     EXPECT_EQ(
         Value_type::Undefined,
         env.js->execute_interactive("for (var m of mapval) println(m)", &cont)
-            .first.type);
+            .first.get_type());
     env.output_handler.validate_stdout_content(expected, true);
     EXPECT_TRUE(env.output_handler.std_err.empty());
   }
@@ -538,7 +538,7 @@ TEST_F(JavaScript, js_date_object) {
       v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
   shcore::Value object = env.js->execute("new Date(2014,0,1)").first;
 
-  ASSERT_EQ(Object, object.type);
+  ASSERT_EQ(Object, object.get_type());
   ASSERT_TRUE(object.as_object()->class_name() == "Date");
   ASSERT_EQ("\"2014-01-01 00:00:00\"", object.repr());
 }

@@ -223,7 +223,7 @@ void Invalidate_replica_clusters_option::set_list_option(
     const std::string &option, const shcore::Value &value) {
   assert(option == kInvalidateReplicaClusters);
 
-  if (value.type == shcore::Value_type::Array) {
+  if (value.get_type() == shcore::Value_type::Array) {
     auto array = value.as_array();
     if (array->empty()) {
       throw shcore::Exception::argument_error(shcore::str_format(

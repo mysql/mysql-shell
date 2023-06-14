@@ -193,7 +193,7 @@ std::string Cluster_impl::get_replication_user_host() const {
   if (md->query_cluster_attribute(get_id(),
                                   k_cluster_attribute_replication_allowed_host,
                                   &allowed_host) &&
-      allowed_host.type == shcore::String) {
+      allowed_host.get_type() == shcore::String) {
     if (auto host = allowed_host.as_string(); !host.empty()) return host;
   }
 
@@ -3533,7 +3533,7 @@ cluster::Replication_sources Cluster_impl::get_read_replica_replication_sources(
       get_metadata_storage()->query_instance_attribute(
           replica_uuid, k_instance_attribute_read_replica_replication_sources,
           &source_attribute)) {
-    if (source_attribute.type == shcore::String) {
+    if (source_attribute.get_type() == shcore::String) {
       auto string = source_attribute.as_string();
 
       if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {
@@ -3545,7 +3545,7 @@ cluster::Replication_sources Cluster_impl::get_read_replica_replication_sources(
         throw shcore::Exception("Invalid metadata for Read-Replica found",
                                 SHERR_DBA_METADATA_INCONSISTENT);
       }
-    } else if (source_attribute.type == shcore::Array) {
+    } else if (source_attribute.get_type() == shcore::Array) {
       replication_sources_opts.source_type = cluster::Source_type::CUSTOM;
 
       uint64_t src_weight = k_read_replica_max_weight;
@@ -3681,7 +3681,7 @@ bool Cluster_impl::drop_replication_user(
         get_metadata_storage()->query_cluster_attribute(
             get_id(), k_cluster_attribute_replication_allowed_host,
             &allowed_host) &&
-        allowed_host.type == shcore::String &&
+        allowed_host.get_type() == shcore::String &&
         !allowed_host.as_string().empty()) {
       host = allowed_host.as_string();
     }
@@ -4559,12 +4559,12 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
     op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
         *this, instance_conn_opt, option, value);
   } else {
-    if (value.type == shcore::String) {
+    if (value.get_type() == shcore::String) {
       std::string value_str = value.as_string();
       op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
           *this, instance_conn_opt, option, value_str);
-    } else if (value.type == shcore::Integer ||
-               value.type == shcore::UInteger) {
+    } else if (value.get_type() == shcore::Integer ||
+               value.get_type() == shcore::UInteger) {
       int64_t value_int = value.as_int();
       op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
           *this, instance_conn_opt, option, value_int);
@@ -4607,7 +4607,7 @@ void Cluster_impl::_set_option(const std::string &option,
   // an argument of type string/int/bool/... since the type int is convertible
   // to string, thus overloading becomes ambiguous. As soon as that limitation
   // is gone, this type checking shall go away too.
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::String:
       op_cluster_set_option = std::make_unique<cluster::Set_option>(
           this, option, value.as_string());

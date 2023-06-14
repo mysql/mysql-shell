@@ -180,23 +180,22 @@ std::vector<mysqlshdk::db::Query_attribute> ClassicSession::query_attributes()
   using mysqlshdk::db::mysql::Classic_query_attribute;
   return m_query_attributes.get_query_attributes(
       [](const shcore::Value &att) -> std::unique_ptr<Classic_query_attribute> {
-        switch (att.type) {
+        switch (att.get_type()) {
           case shcore::Value_type::String:
-            return std::make_unique<Classic_query_attribute>(*att.value.s);
+            return std::make_unique<Classic_query_attribute>(att.get_string());
           case shcore::Value_type::Bool:
             return std::make_unique<Classic_query_attribute>(att.as_int());
           case shcore::Value_type::Integer:
-            return std::make_unique<Classic_query_attribute>(att.value.i);
+            return std::make_unique<Classic_query_attribute>(att.as_int());
           case shcore::Value_type::Float:
-            return std::make_unique<Classic_query_attribute>(att.value.d);
+            return std::make_unique<Classic_query_attribute>(att.as_double());
           case shcore::Value_type::UInteger:
-            return std::make_unique<Classic_query_attribute>(att.value.ui);
+            return std::make_unique<Classic_query_attribute>(att.as_uint());
           case shcore::Value_type::Null:
             return std::make_unique<Classic_query_attribute>();
           case shcore::Value_type::Object: {
-            auto date = att.as_object<Date>();
             // Only the date object is supported
-            if (date) {
+            if (auto date = att.as_object<Date>(); date) {
               MYSQL_TIME time;
               time.year = date->get_year();
               time.month = date->get_month();

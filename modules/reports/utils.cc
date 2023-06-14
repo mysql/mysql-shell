@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -189,7 +189,7 @@ shcore::Array_t create_report_from_json_object(
         for (const auto &c : use_headers) {
           auto &value = map->find(c.id)->second;
 
-          if (shcore::Value_type::Map == value.type) {
+          if (shcore::Value_type::Map == value.get_type()) {
             merge_json_object(report->at(0).as_array(), output_row, c,
                               value.as_map());
           } else {

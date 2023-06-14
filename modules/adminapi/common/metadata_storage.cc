@@ -1211,7 +1211,7 @@ void MetadataStorage::set_router_tag(Cluster_type type,
   }
 
   shcore::Dictionary_t tags;
-  if (curtag && curtag.type == shcore::Map) {
+  if (curtag && curtag.get_type() == shcore::Map) {
     tags = curtag.as_map();
     tags->set(tagname, value);
   } else {
@@ -2999,7 +2999,7 @@ void MetadataStorage::set_global_routing_option(Cluster_type type,
   shcore::Value value_copy = value;
   std::string option_name = option;
 
-  if (value.type == shcore::Null) {
+  if (value.get_type() == shcore::Null) {
     if ((type == Cluster_type::REPLICATED_CLUSTER) &&
         (option == k_router_option_stats_updates_frequency) &&
         (installed_version() < mysqlshdk::utils::Version(2, 2))) {
@@ -3010,7 +3010,7 @@ void MetadataStorage::set_global_routing_option(Cluster_type type,
   }
 
   if (type == Cluster_type::REPLICATED_CLUSTER) {
-    if (value_copy.type == shcore::Null) {
+    if (value_copy.get_type() == shcore::Null) {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clustersets
         SET router_options = JSON_REMOVE(router_options, concat('$.', ?))
         WHERE clusterset_id = ?)*",
@@ -3023,7 +3023,7 @@ void MetadataStorage::set_global_routing_option(Cluster_type type,
                    option_name, value_copy.json(false), cluster_id);
     }
   } else {
-    if (value_copy.type == shcore::Null) {
+    if (value_copy.get_type() == shcore::Null) {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.clusters
         SET router_options = JSON_REMOVE(router_options, concat('$.', ?))
         WHERE cluster_id = ?)*",

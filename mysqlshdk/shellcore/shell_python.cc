@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -95,7 +95,7 @@ void Shell_python::handle_input(std::string &code, bool flush) {
 
   // Only processes the result when full statements are executed
   if (m_input_state == Input_state::Ok)
-    _result_processor(result, result.type == shcore::Undefined);
+    _result_processor(result, result.get_type() == shcore::Undefined);
 }
 
 /*
@@ -146,7 +146,7 @@ void Shell_python::execute_module(const std::string &module_name,
 
     ret_val = _py->execute_module(module_name, args);
 
-    _result_processor(ret_val, ret_val.type == shcore::Undefined);
+    _result_processor(ret_val, ret_val.get_type() == shcore::Undefined);
   } catch (const std::exception &exc) {
     mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")

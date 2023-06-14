@@ -964,7 +964,7 @@ std::vector<std::pair<bool, std::string>> JScript_context::list_globals() {
           "})",
           {})
           .first);
-  assert(globals.type == shcore::Array);
+  assert(globals.get_type() == shcore::Array);
 
   std::vector<std::pair<bool, std::string>> ret;
   for (shcore::Value g : *globals.as_array()) {
@@ -1184,11 +1184,11 @@ std::pair<Value, bool> JScript_context::execute_interactive(
       // which we treat as a multiline mode trigger or
       // - SyntaxError: Invalid or unexpected token
       // which may be a sign of unfinished C style comment
-      const std::string unexpected_end_exc =
+      constexpr std::string_view unexpected_end_exc =
           "SyntaxError: Unexpected end of input";
-      const std::string unterminated_template_exc =
+      constexpr std::string_view unterminated_template_exc =
           "SyntaxError: Unterminated template literal";
-      const std::string unexpected_tok_exc =
+      constexpr std::string_view unexpected_tok_exc =
           "SyntaxError: Invalid or unexpected token";
 
       auto message = m_impl->to_string(try_catch.Exception());
@@ -1282,7 +1282,7 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
-  if (exc.type == Map) {
+  if (exc.get_type() == Map) {
     std::string type = exc.as_map()->get_string("type", "");
     std::string message = exc.as_map()->get_string("message", "");
     int64_t code = exc.as_map()->get_int("code", -1);

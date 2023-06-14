@@ -179,7 +179,8 @@ std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
     const std::string &data, const std::string &pattern) const {
   std::unordered_set<IDirectory::File_info> list;
 
-  const auto response = shcore::Value::parse(data.data(), data.size()).as_map();
+  const auto response =
+      shcore::Value::parse({data.data(), data.size()}).as_map();
   const auto objects = response->get_array("objects");
   m_next_start_with = response->get_string("nextStartWith", "");
   const auto prefix_length = m_config->par().object_prefix().length();

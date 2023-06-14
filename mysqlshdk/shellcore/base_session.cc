@@ -25,17 +25,11 @@
 
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
-#include "mysqlshdk/include/scripting/common.h"
-#include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
-#include "mysqlshdk/include/scripting/object_factory.h"
-#include "mysqlshdk/include/scripting/proxy_object.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
-#include "mysqlshdk/include/shellcore/shell_core.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -67,20 +61,19 @@ bool Query_attribute_store::set(const std::string &name,
   }
 
   // Validates the value type
-  if (value.type == shcore::Value_type::Undefined ||
-      value.type == shcore::Value_type::Array ||
-      value.type == shcore::Value_type::Map ||
-      value.type == shcore::Value_type::MapRef ||
-      value.type == shcore::Value_type::Function ||
-      value.type == shcore::Value_type::Binary ||
-      (value.type == shcore::Value_type::Object && !value.as_object<Date>())) {
+  auto type = value.get_type();
+  if (type == shcore::Value_type::Undefined ||
+      type == shcore::Value_type::Array || type == shcore::Value_type::Map ||
+      type == shcore::Value_type::Function ||
+      type == shcore::Value_type::Binary ||
+      (type == shcore::Value_type::Object && !value.as_object<Date>())) {
     m_unsupported_type.push_back(name);
     return false;
   }
 
   // Validates the string value lengths
-  if (value.type == shcore::Value_type::String &&
-      value.value.s->size() > MAX_QUERY_ATTRIBUTE_LENGTH) {
+  if (type == shcore::Value_type::String &&
+      value.get_string().size() > MAX_QUERY_ATTRIBUTE_LENGTH) {
     m_invalid_value_length.push_back(name);
     return false;
   }
@@ -261,7 +254,7 @@ void ShellBaseSession::enable_sql_mode_tracking() {
 
     current_value = shcore::str_lower(row->get_string(0));
 
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &) {
     return;
   }
 
@@ -279,7 +272,7 @@ void ShellBaseSession::enable_sql_mode_tracking() {
   try {
     session->executef("SET SESSION session_track_system_variables = ?;",
                       current_value);
-  } catch (const mysqlshdk::db::Error &e) {
+  } catch (const mysqlshdk::db::Error &) {
     return;
   }
 
@@ -338,48 +331,48 @@ void ShellBaseSession::reconnect() {
 
 std::string ShellBaseSession::sub_query_placeholders(
     const std::string &query, const shcore::Array_t &args) {
-  if (args) {
-    shcore::sqlstring squery(query.c_str(), 0);
-    int i = 0;
-    for (const shcore::Value &value : *args) {
-      try {
-        switch (value.type) {
-          case shcore::Integer:
-            squery << value.as_int();
-            break;
-          case shcore::Bool:
-            squery << value.as_bool();
-            break;
-          case shcore::Float:
-            squery << value.as_double();
-            break;
-          case shcore::Binary:
-          case shcore::String:
-            squery << value.get_string();
-            break;
-          case shcore::Null:
-            squery << nullptr;
-            break;
-          default:
-            throw Exception::argument_error(shcore::str_format(
-                "Invalid type for placeholder value at index #%i", i));
-        }
-      } catch (Exception &e) {
-        throw;
-      } catch (const std::exception &e) {
-        throw Exception::argument_error(shcore::str_format(
-            "%s while substituting placeholder value at index #%i", e.what(),
-            i));
-      }
-      ++i;
-    }
+  if (!args) return query;
+
+  shcore::sqlstring squery(query.c_str(), 0);
+  int i = 0;
+  for (const shcore::Value &value : *args) {
     try {
-      return squery.str();
+      switch (value.get_type()) {
+        case shcore::Integer:
+          squery << value.as_int();
+          break;
+        case shcore::Bool:
+          squery << value.as_bool();
+          break;
+        case shcore::Float:
+          squery << value.as_double();
+          break;
+        case shcore::Binary:
+        case shcore::String:
+          squery << value.get_string();
+          break;
+        case shcore::Null:
+          squery << nullptr;
+          break;
+        default:
+          throw Exception::argument_error(shcore::str_format(
+              "Invalid type for placeholder value at index #%i", i));
+      }
+    } catch (const Exception &) {
+      throw;
     } catch (const std::exception &e) {
-      throw Exception::argument_error(
-          "Insufficient number of values for placeholders in query");
+      throw Exception::argument_error(shcore::str_format(
+          "%s while substituting placeholder value at index #%i", e.what(), i));
     }
+    ++i;
   }
+  try {
+    return squery.str();
+  } catch (const std::exception &) {
+    throw Exception::argument_error(
+        "Insufficient number of values for placeholders in query");
+  }
+
   return query;
 }
 

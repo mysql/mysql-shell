@@ -192,55 +192,53 @@ bool Response::is_error(Status_code c) {
 
 shcore::Value Response::json() const {
   if (is_json(headers) && body && body->size()) {
-    return shcore::Value::parse(body->data(), body->size());
+    return shcore::Value::parse({body->data(), body->size()});
   }
 
-  throw std::runtime_error("Response " + std::string{k_content_type} +
-                           " is not a " + std::string{k_application_json});
+  throw std::runtime_error(shcore::str_format(
+      "Response %s is not a %s", k_content_type, k_application_json));
 }
 
 std::optional<Response_error> Response::get_error() const {
-  if (is_error(status)) {
-    if (body && body->size()) {
-      if (Response::is_json(headers)) {
-        try {
-          auto json = shcore::Value::parse(body->data(), body->size()).as_map();
-          if (json->get_type("message") == shcore::Value_type::String) {
-            return Response_error(status, json->get_string("message"),
-                                  json->get_string("code"));
-          }
-        } catch (const shcore::Exception &error) {
-          // This handles the case where the content/type indicates it's JSON
-          // but parsing failed. The default error message is used on this case.
+  if (!is_error(status)) return {};
+
+  if (body && body->size()) {
+    if (Response::is_json(headers)) {
+      try {
+        auto json = shcore::Value::parse({body->data(), body->size()}).as_map();
+        if (json->get_type("message") == shcore::Value_type::String) {
+          return Response_error(status, json->get_string("message"),
+                                json->get_string("code"));
         }
-      } else if (Response::is_xml(headers)) {
-        tinyxml2::XMLDocument xml;
+      } catch (const shcore::Exception &) {
+        // This handles the case where the content/type indicates it's JSON
+        // but parsing failed. The default error message is used on this case.
+      }
+    } else if (Response::is_xml(headers)) {
+      tinyxml2::XMLDocument xml;
 
-        if (tinyxml2::XMLError::XML_SUCCESS ==
-            xml.Parse(body->data(), body->size())) {
-          if (const auto root = xml.FirstChildElement("Error")) {
-            const char *message = "";
+      if (tinyxml2::XMLError::XML_SUCCESS ==
+          xml.Parse(body->data(), body->size())) {
+        if (const auto root = xml.FirstChildElement("Error")) {
+          const char *message = "";
 
-            if (const auto child = root->FirstChildElement("Message")) {
-              message = child->GetText();
-            }
-
-            const char *code = "";
-
-            if (const auto child = root->FirstChildElement("Code")) {
-              code = child->GetText();
-            }
-
-            return Response_error(status, message, code);
+          if (const auto child = root->FirstChildElement("Message")) {
+            message = child->GetText();
           }
+
+          const char *code = "";
+
+          if (const auto child = root->FirstChildElement("Code")) {
+            code = child->GetText();
+          }
+
+          return Response_error(status, message, code);
         }
       }
     }
-
-    return Response_error(status);
   }
 
-  return {};
+  return Response_error(status);
 }
 
 void Response::throw_if_error() const {

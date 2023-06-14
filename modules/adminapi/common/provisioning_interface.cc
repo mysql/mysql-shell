@@ -138,7 +138,7 @@ int ProvisioningInterface::execute_mysqlprovision(
   logged_wrapped_args.as_array()->push_back(value_from_argmap(logged_kwargs));
   for (size_t i = 0; i < args.size(); i++) {
     wrapped_args.as_array()->push_back(args[i]);
-    if (args[i].type == shcore::Map) {
+    if (args[i].get_type() == shcore::Map) {
       shcore::Argument_map logged_args(*args[i].as_map());
       if (logged_args.has_key("passwd"))
         logged_args["passwd"] = shcore::Value("****");
@@ -245,7 +245,7 @@ int ProvisioningInterface::execute_mysqlprovision(
             log_error("DBA: mysqlprovision: %s", error.c_str());
           }
 
-          if (raw_data && raw_data.type == shcore::Map) {
+          if (raw_data && raw_data.get_type() == shcore::Map) {
             auto data = raw_data.as_map();
 
             std::string type = data->get_string("type");

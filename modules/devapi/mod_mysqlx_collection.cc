@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -893,36 +893,36 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
         std::swap((*index)["constraint"], (*index)["fields"]);
         index->erase("fields");
 
-        if ((*index)["constraint"].type == shcore::Array) {
+        if ((*index)["constraint"].get_type() == shcore::Array) {
           for (auto &field_val : *index->get_array("constraint")) {
-            if (field_val.type == shcore::Map) {
-              auto field = field_val.as_map();
-              if (field->has_key("field")) {
-                // Moves "field" to "member"
-                std::swap((*field)["member"], (*field)["field"]);
-                field->erase("field");
+            if (field_val.get_type() != shcore::Map) continue;
 
-                // The options and srid values must be converted to UINT
-                // or the plugin will fail with an invalid data type error
-                if (field->has_key("options")) {
-                  uint64_t options = (*field)["options"].as_uint();
-                  (*field)["options"] = shcore::Value(options);
-                }
-                if (field->has_key("srid")) {
-                  uint64_t srid = (*field)["srid"].as_uint();
-                  (*field)["srid"] = shcore::Value(srid);
-                }
+            auto field = field_val.as_map();
+            if (field->has_key("field")) {
+              // Moves "field" to "member"
+              std::swap((*field)["member"], (*field)["field"]);
+              field->erase("field");
+
+              // The options and srid values must be converted to UINT
+              // or the plugin will fail with an invalid data type error
+              if (field->has_key("options")) {
+                uint64_t options = (*field)["options"].as_uint();
+                (*field)["options"] = shcore::Value(options);
               }
-
-              bool is_geojson = false;
-              if (field->has_key("type") &&
-                  (*field)["type"].type == shcore::String)
-                is_geojson = shcore::str_caseeq(
-                    (*field)["type"].get_string().c_str(), "GEOJSON");
-
-              if (!field->has_key("required")) {
-                (*field)["required"] = shcore::Value(is_geojson);
+              if (field->has_key("srid")) {
+                uint64_t srid = (*field)["srid"].as_uint();
+                (*field)["srid"] = shcore::Value(srid);
               }
+            }
+
+            bool is_geojson = false;
+            if (field->has_key("type") &&
+                (*field)["type"].get_type() == shcore::String)
+              is_geojson = shcore::str_caseeq(
+                  (*field)["type"].get_string().c_str(), "GEOJSON");
+
+            if (!field->has_key("required")) {
+              (*field)["required"] = shcore::Value(is_geojson);
             }
           }
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -566,31 +566,32 @@ void Base_shell::process_sql_result(
 }
 
 void Base_shell::print_result(const shcore::Value &result) {
-  if (result) {
-    if (result.type == shcore::Object) {
-      auto object = result.as_object();
-      auto shell_hook = get_shell_hook(object->class_name());
-      if (!shell_hook.empty()) {
-        if (object->has_member(shell_hook)) {
-          shcore::Value hook_result = object->call(shell_hook, {});
+  if (!result) return;
 
-          // Recursive call to continue processing shell hooks if any
-          process_result(hook_result, false);
+  auto type = result.get_type();
 
-          return;
-        }
+  if (type == shcore::Object) {
+    auto object = result.as_object();
+    auto shell_hook = get_shell_hook(object->class_name());
+    if (!shell_hook.empty()) {
+      if (object->has_member(shell_hook)) {
+        shcore::Value hook_result = object->call(shell_hook, {});
+
+        // Recursive call to continue processing shell hooks if any
+        process_result(hook_result, false);
+
+        return;
       }
     }
-
-    // In JSON mode: the json representation is used for Object, Array and
-    // Map For anything else a map is printed with the "value" key
-    std::string tag;
-    if (result.type != shcore::Object && result.type != shcore::Array &&
-        result.type != shcore::Map)
-      tag = "value";
-
-    print_value(result, tag);
   }
+
+  // In JSON mode: the json representation is used for Object, Array and
+  // Map For anything else a map is printed with the "value" key
+  std::string tag;
+  if (type != shcore::Object && type != shcore::Array && type != shcore::Map)
+    tag = "value";
+
+  print_value(result, tag);
 }
 
 void Base_shell::process_result(const shcore::Value &result, bool got_error) {

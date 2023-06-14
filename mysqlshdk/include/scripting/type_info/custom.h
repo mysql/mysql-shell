@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,11 +118,8 @@ struct Type_info<std::shared_ptr<Bridge_class>> {
 template <typename T>
 struct Type_info<mysqlshdk::utils::nullable<T>> {
   static mysqlshdk::utils::nullable<T> to_native(const shcore::Value &in) {
-    if (Value_type::Null == in.type) {
-      return {};
-    } else {
-      return {Type_info<T>::to_native(in)};
-    }
+    if (Value_type::Null == in.get_type()) return {};
+    return {Type_info<T>::to_native(in)};
   }
   static Value_type vtype() { return Type_info<T>::vtype(); }
   static const char *code() { return Type_info<T>::code(); }
@@ -133,11 +130,8 @@ struct Type_info<mysqlshdk::utils::nullable<T>> {
 template <typename T>
 struct Type_info<std::optional<T>> {
   static std::optional<T> to_native(const shcore::Value &in) {
-    if (Value_type::Null == in.type) {
-      return {};
-    } else {
-      return {Type_info<T>::to_native(in)};
-    }
+    if (Value_type::Null == in.get_type()) return {};
+    return {Type_info<T>::to_native(in)};
   }
   static Value_type vtype() { return Type_info<T>::vtype(); }
   static const char *code() { return Type_info<T>::code(); }
@@ -195,7 +189,8 @@ struct Type_info<Option_pack_ref<T>> {
     Option_pack_ref<T> ret_val;
 
     // Null or Undefined get interpreted as a default option pack
-    if (in.type != shcore::Null && in.type != shcore::Undefined) {
+    if (auto type = in.get_type();
+        type != shcore::Null && type != shcore::Undefined) {
       ret_val.unpack(in.as_map());
     }
 

@@ -146,7 +146,8 @@ std::vector<Object_details> Oci_bucket::parse_list_objects(
     const rest::Base_response_buffer &buffer, std::string *next_start_from,
     std::unordered_set<std::string> *out_prefixes) {
   std::vector<Object_details> objects;
-  const auto data = shcore::Value::parse(buffer.data(), buffer.size()).as_map();
+  const auto data =
+      shcore::Value::parse({buffer.data(), buffer.size()}).as_map();
 
   for (const auto &value : *data->get_array("objects")) {
     const auto object = value.as_map();
@@ -217,7 +218,7 @@ std::vector<Multipart_object> Oci_bucket::parse_list_multipart_uploads(
     const mysqlshdk::rest::Base_response_buffer &buffer) {
   std::vector<Multipart_object> objects;
   const auto uploads =
-      shcore::Value::parse(buffer.data(), buffer.size()).as_array();
+      shcore::Value::parse({buffer.data(), buffer.size()}).as_array();
 
   for (const auto &value : *uploads) {
     const auto object = value.as_map();
@@ -241,7 +242,7 @@ Oci_bucket::parse_list_multipart_uploaded_parts(
     const rest::Base_response_buffer &buffer) {
   std::vector<Multipart_object_part> parts;
   const auto uploads =
-      shcore::Value::parse(buffer.data(), buffer.size()).as_array();
+      shcore::Value::parse({buffer.data(), buffer.size()}).as_array();
 
   for (const auto &value : *uploads) {
     const auto part = value.as_map();
@@ -261,7 +262,7 @@ rest::Signed_request Oci_bucket::create_multipart_upload_request(
 
 std::string Oci_bucket::parse_create_multipart_upload(
     const rest::String_response &response) {
-  return shcore::Value::parse(response.buffer.data(), response.buffer.size())
+  return shcore::Value::parse({response.buffer.data(), response.buffer.size()})
       .as_map()
       ->get_string("uploadId");
 }
@@ -358,7 +359,7 @@ PAR Oci_bucket::create_pre_authenticated_request(
 
   shcore::Dictionary_t map;
   try {
-    map = shcore::Value::parse(data.data(), data.size()).as_map();
+    map = shcore::Value::parse({data.data(), data.size()}).as_map();
   } catch (const shcore::Exception &error) {
     error_msg += error.what();
 
@@ -440,7 +441,8 @@ std::vector<PAR> Oci_bucket::list_preauthenticated_requests(
 
     shcore::Array_t data;
     try {
-      data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
+      data =
+          shcore::Value::parse({raw_data.data(), raw_data.size()}).as_array();
     } catch (const shcore::Exception &error) {
       msg.append(": ").append(error.what());
 

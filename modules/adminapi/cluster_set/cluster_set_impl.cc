@@ -74,7 +74,7 @@ void cleanup_replication_options(MetadataStorage *metadata,
     if (!metadata->query_cluster_attribute(cluster_id, attrib_name, &value))
       return;
 
-    if (value.type == shcore::Null)
+    if (value.get_type() == shcore::Null)
       metadata->remove_cluster_attribute(cluster_id, attrib_name);
   };
 
@@ -153,7 +153,7 @@ Cluster_set_impl::create_cluster_replication_user(
     if (get_metadata_storage()->query_cluster_set_attribute(
             get_id(), k_cluster_attribute_replication_allowed_host,
             &allowed_host) &&
-        allowed_host.type == shcore::String &&
+        allowed_host.get_type() == shcore::String &&
         !allowed_host.as_string().empty()) {
       repl_host = allowed_host.as_string();
     }
@@ -2108,7 +2108,7 @@ void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
   if (get_metadata_storage()->query_cluster_attribute(
           replica->get_id(), k_cluster_attribute_transaction_size_limit,
           &value) &&
-      value.type == shcore::Integer) {
+      value.get_type() == shcore::Integer) {
     int64_t transaction_size_limit = value.as_int();
 
     // Only restore if the current value is zero, meaning it was set by the
@@ -2230,7 +2230,7 @@ void Cluster_set_impl::_set_option(const std::string &option,
     throw shcore::Exception::argument_error("Option '" + option +
                                             "' not supported.");
 
-  if (value.type != shcore::String || value.as_string().empty())
+  if (value.get_type() != shcore::String || value.as_string().empty())
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for '%s': Argument #2 is expected "
                            "to be a string.",
@@ -3275,7 +3275,7 @@ Cluster_ssl_mode Cluster_set_impl::query_clusterset_ssl_mode() const {
   if (shcore::Value value;
       get_metadata_storage()->query_cluster_set_attribute(
           get_id(), k_cluster_set_attribute_ssl_mode, &value) &&
-      (value.type == shcore::String))
+      (value.get_type() == shcore::String))
     return to_cluster_ssl_mode(value.as_string());
 
   return Cluster_ssl_mode::NONE;
@@ -3285,7 +3285,7 @@ Replication_auth_type Cluster_set_impl::query_clusterset_auth_type() const {
   if (shcore::Value value;
       get_metadata_storage()->query_cluster_set_attribute(
           get_id(), k_cluster_set_attribute_member_auth_type, &value) &&
-      (value.type == shcore::String))
+      (value.get_type() == shcore::String))
     return to_replication_auth_type(value.as_string());
 
   return Replication_auth_type::PASSWORD;
@@ -3295,7 +3295,7 @@ std::string Cluster_set_impl::query_clusterset_auth_cert_issuer() const {
   if (shcore::Value value;
       get_metadata_storage()->query_cluster_set_attribute(
           get_id(), k_cluster_set_attribute_cert_issuer, &value) &&
-      (value.type == shcore::String))
+      (value.get_type() == shcore::String))
     return value.as_string();
 
   return {};
@@ -3310,51 +3310,53 @@ void Cluster_set_impl::read_cluster_replication_options(
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_connect_retry, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
       ar_options->connect_retry = static_cast<int>(value.as_int());
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_retry_count, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
       ar_options->retry_count = static_cast<int>(value.as_int());
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_heartbeat_period, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if ((value.type == shcore::Integer) || (value.type == shcore::Float))
+    null_options |= (value.get_type() == shcore::Null);
+    if ((value.get_type() == shcore::Integer) ||
+        (value.get_type() == shcore::Float))
       ar_options->heartbeat_period = value.as_double();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_compression_algorithms,
           &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
       ar_options->compression_algos = value.as_string();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_zstd_compression_level,
           &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::Integer)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::Integer)
       ar_options->zstd_compression_level = static_cast<int>(value.as_int());
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_bind, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String) ar_options->bind = value.as_string();
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
+      ar_options->bind = value.as_string();
   }
 
   if (shcore::Value value; get_metadata_storage()->query_cluster_attribute(
           cluster_id, k_cluster_attribute_repl_network_namespace, &value)) {
-    null_options |= (value.type == shcore::Null);
-    if (value.type == shcore::String)
+    null_options |= (value.get_type() == shcore::Null);
+    if (value.get_type() == shcore::String)
       ar_options->network_namespace = value.as_string();
   }
 

@@ -22,7 +22,9 @@
  */
 
 #include "scripting/types.h"
+
 #include <rapidjson/prettywriter.h>
+
 #include <cfloat>
 #include <cmath>
 #include <cstdarg>
@@ -33,6 +35,7 @@
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -58,21 +61,20 @@ namespace {
 // from_type = row, to_type = column
 #define T true
 #define F false
-const bool kTypeConvertible[13][13] = {
-    // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, MapR,Fun, Binary
-    {T, F, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
-    {T, T, F, F, F, F, F, T, T, T, T, T, F},  // Null
-    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Bool
-    {T, F, T, T, T, T, T, F, F, F, F, F, T},  // String
-    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Integer
-    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // UInteger
-    {T, F, T, F, T, T, T, F, F, F, F, F, F},  // Float
-    {T, F, F, F, F, F, F, T, F, F, F, F, F},  // Object
-    {T, F, F, F, F, F, F, F, T, F, F, F, F},  // Array
-    {T, F, F, F, F, F, F, F, F, T, T, F, F},  // Map
-    {T, F, F, F, F, F, F, F, F, T, T, F, F},  // MapRef
-    {T, F, F, F, F, F, F, F, F, F, F, T, F},  // Function
-    {T, F, F, T, F, F, F, F, F, F, F, F, T},  // Binary
+const bool kTypeConvertible[12][12] = {
+    // Undf, Null,Bool,Str, Int, UInt,Flot,Obj, Arr, Map, Fun, Binary
+    {T, F, F, F, F, F, F, F, F, F, F, F},  // Undefined
+    {T, T, F, F, F, F, F, T, T, T, T, F},  // Null
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Bool
+    {T, F, T, T, T, T, T, F, F, F, F, T},  // String
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Integer
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // UInteger
+    {T, F, T, F, T, T, T, F, F, F, F, F},  // Float
+    {T, F, F, F, F, F, F, T, F, F, F, F},  // Object
+    {T, F, F, F, F, F, F, F, T, F, F, F},  // Array
+    {T, F, F, F, F, F, F, F, F, T, F, F},  // Map
+    {T, F, F, F, F, F, F, F, F, F, T, F},  // Function
+    {T, F, F, T, F, F, F, F, F, F, F, T},  // Binary
 };
 #undef T
 #undef F
@@ -83,7 +85,7 @@ const bool kTypeConvertible[13][13] = {
  * Translate hex value from printable ascii character ([0-9a-zA-Z]) to decimal
  * value
  */
-static const uint32_t ascii_to_hex[256] = {
+constexpr uint32_t ascii_to_hex[256] = {
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
     0,  0,  0,  0, 0, 0,  0,  0,  0,  1,  2,  3, 4, 5, 6, 7, 8, 9,  0,  0,
@@ -98,10 +100,430 @@ static const uint32_t ascii_to_hex[256] = {
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0,  0,  0,
     0,  0,  0,  0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0};
 
-void skip_whitespace(const char **pc) {
-  while (**pc == ' ' || **pc == '\t' || **pc == '\r' || **pc == '\n' ||
-         **pc == '\v' || **pc == '\f')
-    ++*pc;
+[[nodiscard]] std::string_view skip_whitespace(std::string_view t) {
+  for (; !t.empty(); t.remove_prefix(1)) {
+    switch (t.front()) {
+      case ' ':
+      case '\t':
+      case '\r':
+      case '\n':
+      case '\v':
+      case '\f':
+        continue;
+    }
+
+    break;
+  }
+
+  return t;
+}
+
+void unicode_codepoint_to_utf8(uint32_t uni, std::string *out) {
+  assert(out);
+
+  if (uni <= 0x7f) {
+    out->push_back(static_cast<char>(uni & 0xff));  // 0xxxxxxx
+  } else if (uni <= 0x7ff) {
+    out->push_back(static_cast<char>(((uni >> 6) & 0xff) | 0xc0));  // 110xxxxxx
+    out->push_back(static_cast<char>((uni & 0x3f) | 0x80));         // 10xxxxxx
+  } else if (uni <= 0xffff) {
+    out->push_back(static_cast<char>(((uni >> 12) & 0xff) | 0xe0));  // 1110xxxx
+    out->push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));  // 110xxxxxx
+    out->push_back(static_cast<char>((uni & 0x3f) | 0x80));         // 10xxxxxx
+  } else {
+    if (uni >= 0x10ffff)
+      throw Exception::parser_error("Invalid unicode codepoint");
+
+    out->push_back(static_cast<char>(((uni >> 18) & 0xff) | 0xf0));  // 11110xxx
+    out->push_back(static_cast<char>(((uni >> 12) & 0x3f) | 0x80));  // 1110xxxx
+    out->push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));  // 110xxxxxx
+    out->push_back(static_cast<char>((uni & 0x3f) | 0x80));         // 10xxxxxx
+  }
+}
+
+// parsing is recursive so we need to forward declare the main function
+[[nodiscard]] std::tuple<Value, std::string_view> parse_main(
+    std::string_view pc);
+
+[[nodiscard]] std::tuple<std::string, std::string_view> parse_string(
+    std::string_view pc, char quote) {
+  assert(pc.front() == quote);
+
+  // obtain the string
+  auto p = pc;
+  {
+    for (p.remove_prefix(1); !p.empty(); p.remove_prefix(1)) {
+      auto cur_char = p.front();
+      if (cur_char == quote) break;
+      if (cur_char == '\\') p.remove_prefix(1);  // escaped char
+    }
+
+    if (p.empty() || (p.front() != quote))
+      throw Exception::parser_error(
+          shcore::str_format("missing closing %c", quote));
+
+    p = pc.substr(1, pc.size() - p.size() - 1);  // remove quotes
+
+    pc.remove_prefix(p.size() + 2);  // next after quoted string
+  }
+
+  std::string s;
+  s.reserve(p.size());
+
+  for (; !p.empty(); p.remove_prefix(1)) {
+    auto cur_char = p.front();
+    if (cur_char != '\\') {
+      s += cur_char;
+      continue;
+    }
+
+    p.remove_prefix(1);  // ignore escape char
+    if (p.empty())
+      throw Exception::parser_error("incorrect use of escape char '\\'");
+
+    cur_char = p.front();
+    switch (cur_char) {
+      case 'n':
+        s += '\n';
+        break;
+      case '"':
+        s += '"';
+        break;
+      case '\'':
+        s += '\'';
+        break;
+      case 'a':
+        s += '\a';
+        break;
+      case 'b':
+        s += '\b';
+        break;
+      case 'f':
+        s += '\f';
+        break;
+      case 'r':
+        s += '\r';
+        break;
+      case 't':
+        s += '\t';
+        break;
+      case 'v':
+        s += '\v';
+        break;
+      case '\\':
+        s += '\\';
+        break;
+      case '\0':
+        s += '\0';
+        break;
+
+      case 'x':
+        if ((p.size() >= 3) && isxdigit(p[1]) && isxdigit(p[2])) {
+          s += (ascii_to_hex[static_cast<unsigned char>(p[1])] << 4) |
+               ascii_to_hex[static_cast<unsigned char>(p[2])];
+
+          p.remove_prefix(2);  // loop already removes one
+          break;
+        }
+
+        throw Exception::parser_error("Invalid \\xXX hex escape");
+        break;
+
+      case 'u':
+        if ((p.size() >= 5) && isxdigit(p[1]) && isxdigit(p[2]) &&
+            isxdigit(p[3]) && isxdigit(p[4])) {
+          uint32_t unich = (ascii_to_hex[static_cast<unsigned>(p[1])] << 12) |
+                           (ascii_to_hex[static_cast<unsigned>(p[2])] << 8) |
+                           (ascii_to_hex[static_cast<unsigned>(p[3])] << 4) |
+                           ascii_to_hex[static_cast<unsigned>(p[4])];
+          unicode_codepoint_to_utf8(unich, &s);
+
+          p.remove_prefix(4);  // loop already removes one
+          break;
+        }
+
+        throw Exception::parser_error("Invalid \\uXXXX unicode escape");
+        break;
+
+      default:
+        throw Exception::parser_error(
+            shcore::str_format("Unknown escape sequence \\%c", cur_char));
+    }
+  }
+
+  return {std::move(s), pc};
+}
+
+[[nodiscard]] std::tuple<Value, std::string_view> parse_map(
+    std::string_view pc) {
+  Value::Map_type_ref map = std::make_shared<Value::Map_type>();
+
+  // Skips the opening {
+  assert(pc.front() == '{');
+  pc.remove_prefix(1);
+
+  bool done = false;
+  while (!done) {
+    pc = skip_whitespace(pc);
+
+    if (pc.empty())
+      throw Exception::parser_error(
+          "Error parsing map, unexpected end of stream.");
+
+    auto cur_char = pc.front();
+    if (cur_char == '}') {
+      pc.remove_prefix(1);
+      break;
+    }
+
+    if (cur_char != '"' && cur_char != '\'')
+      throw Exception::parser_error(
+          "Error parsing map, unexpected character reading key.");
+
+    std::string key;
+    std::tie(key, pc) = parse_string(pc, cur_char);
+
+    pc = skip_whitespace(pc);
+
+    if (pc.empty() || (pc.front() != ':'))
+      throw Exception::parser_error(
+          "Error parsing map, unexpected item value separator.");
+
+    // skips the :
+    pc.remove_prefix(1);
+
+    pc = skip_whitespace(pc);
+
+    {
+      Value value;
+      std::tie(value, pc) = parse_main(pc);
+
+      (*map)[key] = std::move(value);
+    }
+
+    pc = skip_whitespace(pc);
+    if (pc.empty())
+      throw Exception::parser_error(
+          "Error parsing map, unexpected end of stream.");
+
+    switch (pc.front()) {
+      case '}':
+        done = true;
+        [[fallthrough]];
+      case ',':
+        pc.remove_prefix(1);  // skips either the '}' or the ','
+        break;
+      default:
+        throw Exception::parser_error(
+            "Error parsing map, unexpected item separator.");
+    }
+
+    pc = skip_whitespace(pc);
+  }
+
+  return {Value(map), pc};
+}
+
+[[nodiscard]] std::tuple<Value, std::string_view> parse_array(
+    std::string_view pc) {
+  Value::Array_type_ref array = std::make_shared<Value::Array_type>();
+
+  // Skips the opening [
+  assert(pc.front() == '[');
+  pc.remove_prefix(1);
+
+  pc = skip_whitespace(pc);
+
+  bool done = false;
+  while (!done) {
+    pc = skip_whitespace(pc);
+    if (pc.empty())
+      throw Exception::parser_error(
+          "Error parsing array, unexpected end of stream.");
+
+    if (pc.front() != ']') {
+      Value value;
+      std::tie(value, pc) = parse_main(pc);
+
+      array->push_back(std::move(value));
+    }
+
+    pc = skip_whitespace(pc);
+    if (pc.empty())
+      throw Exception::parser_error(
+          "Error parsing array, unexpected end of stream.");
+
+    switch (pc.front()) {
+      case ']':
+        done = true;
+        pc.remove_prefix(1);  // skips the ]
+        break;
+      case ',':
+        pc.remove_prefix(1);
+        break;
+      default:
+        throw Exception::parser_error(
+            "Error parsing array, unexpected value separator.");
+    }
+
+    pc = skip_whitespace(pc);
+  }
+
+  return {Value(array), pc};
+}
+
+[[nodiscard]] std::tuple<Value, std::string_view> parse_single_quoted_string(
+    std::string_view pc) {
+  auto [value, new_pc] = parse_string(pc, '\'');
+  return {Value(std::move(value)), new_pc};
+}
+
+[[nodiscard]] std::tuple<Value, std::string_view> parse_double_quoted_string(
+    std::string_view pc) {
+  auto [value, new_pc] = parse_string(pc, '"');
+  return {Value(std::move(value)), new_pc};
+}
+
+[[nodiscard]] std::tuple<Value, std::string_view> parse_number(
+    std::string_view pcc) {
+  assert(!pcc.empty());
+
+  // Parsing based on the following state table
+  // Valid integer: state == 1
+  // Valid float: state == 2,4,6
+  //                                0  1  2  3  4  5  6
+  //                                +  #  .  #  e  +  d
+  constexpr unsigned char STATE_VALIDITY[] = {0, 1, 0, 1, 0, 0, 1};
+  enum States {
+    FRONT_SIGN,
+    INT_DIGITS,
+    DOT,
+    FLOAT_DIGITS,
+    EXP,
+    EXP_SIGN,
+    EXP_DIGITS
+  };
+
+  // State starts at 1
+  int state = INT_DIGITS;
+
+  // Sign can appear at the beginning
+  auto pc = pcc;
+  switch (pc.front()) {
+    case '-':
+    case '+':
+      pc.remove_prefix(1);
+      state = FRONT_SIGN;
+      break;
+  }
+
+  auto consume_digits = [&pc, &state](auto target_state) {
+    if (!pc.empty() && IS_DIGIT(pc.front())) {
+      state = target_state;
+      pc.remove_prefix(1);
+    }
+    while (!pc.empty() && IS_DIGIT(pc.front())) pc.remove_prefix(1);
+  };
+
+  // Continues while there are digits
+  consume_digits(INT_DIGITS);
+
+  if (STATE_VALIDITY[state] == 1 && !pc.empty() && (pc.front() == '.')) {
+    state = DOT;
+
+    // Skips the .
+    pc.remove_prefix(1);
+
+    // Continues while there are digits
+    consume_digits(FLOAT_DIGITS);
+  }
+
+  // exponential
+  if (STATE_VALIDITY[state] == 1 && !pc.empty() &&
+      (tolower(pc.front()) == 'e')) {
+    state = EXP;
+
+    // Skips the e
+    pc.remove_prefix(1);
+
+    // Sign can appear for exponential numbers
+    switch (pc.empty() ? '\0' : pc.front()) {
+      case '-':
+      case '+':
+        pc.remove_prefix(1);
+        state = EXP_SIGN;
+        break;
+    }
+
+    // Continues while there are digits
+    consume_digits(FLOAT_DIGITS);
+  }
+
+  auto number = pcc.substr(0, pcc.size() - pc.size());
+
+  if (STATE_VALIDITY[state] != 1)
+    throw Exception::parser_error(
+        shcore::str_format("Error parsing number from: '%.*s'",
+                           static_cast<int>(number.length()), number.data()));
+
+  Value ret_val;
+  if (state == INT_DIGITS) {
+    int64_t ll = 0;
+    try {
+      ll = std::atoll(std::string{number}.c_str());
+    } catch (const std::invalid_argument &e) {
+      throw Exception::parser_error(
+          shcore::str_format("Error parsing int: %s", e.what()));
+    }
+    ret_val = Value(static_cast<int64_t>(ll));
+  } else {
+    double d = 0;
+    try {
+      d = std::stod(std::string{number}.c_str());
+    } catch (const std::invalid_argument &e) {
+      throw Exception::parser_error(
+          shcore::str_format("Error parsing float: %s", e.what()));
+    }
+
+    ret_val = Value(d);
+  }
+
+  return {ret_val, pc};
+}
+
+std::tuple<Value, std::string_view> parse_main(std::string_view pc) {
+  assert(!pc.empty());
+
+  auto start = pc.front();
+  switch (start) {
+    case '{':
+      return parse_map(pc);
+    case '[':
+      return parse_array(pc);
+    case '"':
+      return parse_double_quoted_string(pc);
+    case '\'':
+      return parse_single_quoted_string(pc);
+    default:
+      break;
+  }
+
+  if (IS_DIGIT(start) || (start == '-') || (start == '+'))  // a number
+    return parse_number(pc);
+
+  // a constant between true, false, null
+  auto token = pc;
+  while (!pc.empty() && IS_ALPHA(pc.front())) pc.remove_prefix(1);
+
+  token = token.substr(0, token.size() - pc.size());
+
+  if (str_caseeq(token, "undefined")) return {Value(), pc};
+  if (str_caseeq(token, "true")) return {Value(true), pc};
+  if (str_caseeq(token, "null")) return {Value::Null(), pc};
+  if (str_caseeq(token, "false")) return {Value(false), pc};
+
+  throw Exception::parser_error(shcore::str_format(
+      "Can't parse '%.*s'", static_cast<int>(token.length()), token.data()));
 }
 
 }  // namespace
@@ -126,7 +548,7 @@ Exception::Exception(const std::string &type, const std::string &message,
 }
 
 Exception Exception::argument_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -134,7 +556,7 @@ Exception Exception::argument_error(const std::string &message) {
 }
 
 Exception Exception::attrib_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -142,7 +564,7 @@ Exception Exception::attrib_error(const std::string &message) {
 }
 
 Exception Exception::type_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -150,7 +572,7 @@ Exception Exception::type_error(const std::string &message) {
 }
 
 Exception Exception::value_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -158,7 +580,7 @@ Exception Exception::value_error(const std::string &message) {
 }
 
 Exception Exception::logic_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -166,7 +588,7 @@ Exception Exception::logic_error(const std::string &message) {
 }
 
 Exception Exception::runtime_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -174,7 +596,7 @@ Exception Exception::runtime_error(const std::string &message) {
 }
 
 Exception Exception::scripting_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -182,7 +604,7 @@ Exception Exception::scripting_error(const std::string &message) {
 }
 
 Exception Exception::metadata_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("MetadataError");
   (*error)["message"] = Value(message);
   Exception e(message, -1, error);
@@ -191,7 +613,7 @@ Exception Exception::metadata_error(const std::string &message) {
 
 Exception Exception::error_with_code(const std::string &type,
                                      const std::string &message, int code) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -202,7 +624,7 @@ Exception Exception::error_with_code(const std::string &type,
 Exception Exception::error_with_code_and_state(const std::string &type,
                                                const std::string &message,
                                                int code, const char *sqlstate) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -212,7 +634,7 @@ Exception Exception::error_with_code_and_state(const std::string &type,
 }
 
 Exception Exception::parser_error(const std::string &message) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
   Exception e(message, 0, error);
@@ -225,8 +647,8 @@ void Exception::set_file_context(const std::string &file, size_t line) {
 }
 
 const char *Exception::type() const noexcept {
-  if ((*_error)["type"].type == String)
-    return (*_error)["type"].value.s->c_str();
+  if ((*_error)["type"].get_type() == String)
+    return (*_error)["type"].get_string().c_str();
   return "Exception";
 }
 
@@ -309,8 +731,6 @@ std::string type_name(Value_type type) {
       return "Array";
     case Map:
       return "Map";
-    case MapRef:
-      return "MapRef";
     case Function:
       return "Function";
     case Binary:
@@ -341,7 +761,6 @@ std::string type_description(Value_type type) {
     case Array:
       return "an array";
     case Map:
-    case MapRef:
       return "a map";
     case Function:
       return "a function";
@@ -357,7 +776,7 @@ std::string type_description(Value_type type) {
 Value_type Value::Map_type::get_type(const std::string &k) const {
   const_iterator iter = find(k);
   if (iter == end()) return Undefined;
-  return iter->second.type;
+  return iter->second.get_type();
 }
 
 std::string Value::Map_type::get_string(const std::string &k,
@@ -425,1009 +844,241 @@ void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source,
   }
 }
 
-Value::Value(const std::string &s, bool binary)
-    : type(binary ? Binary : String) {
-  value.s = new std::string(s);
+Value::Value(const std::string &s, bool binary) {
+  if (binary)
+    m_value = binary_string{s};
+  else
+    m_value = s;
 }
 
-Value::Value(std::string &&s, bool binary) : type(binary ? Binary : String) {
-  value.s = new std::string(std::move(s));
+Value::Value(std::string &&s, bool binary) {
+  if (binary)
+    m_value = binary_string{std::move(s)};
+  else
+    m_value = std::move(s);
 }
 
 Value::Value(const char *s) {
-  if (s) {
-    type = String;
-    value.s = new std::string(s);
-  } else {
-    type = shcore::Null;
-  }
+  if (s)
+    m_value = std::string{s};
+  else
+    m_value = null_value{};
 }
 
 Value::Value(const char *s, size_t n, bool binary) {
-  if (s) {
-    type = binary ? Binary : String;
-    value.s = new std::string(s, n);
-  } else {
-    type = shcore::Null;
-  }
+  if (!s)
+    m_value = null_value{};
+  else if (binary)
+    m_value = binary_string{std::string{s, n}};
+  else
+    m_value = std::string{s, n};
 }
 
-Value::Value(std::string_view s, bool binary) : type(binary ? Binary : String) {
-  value.s = new std::string(s);
+Value::Value(std::string_view s, bool binary) {
+  if (binary)
+    m_value = binary_string{std::string{s}};
+  else
+    m_value = std::string{s};
 }
 
 Value::Value(std::wstring_view s)
     : Value(shcore::wide_to_utf8(s.data(), s.length())) {}
 
-Value::Value(std::nullptr_t) : type(shcore::Null) {}
+Value::Value(std::nullptr_t) { m_value = null_value{}; }
 
-Value::Value(int i) : type(Integer) { value.i = i; }
+Value::Value(int i) { m_value = static_cast<int64_t>(i); }
 
-Value::Value(unsigned int ui) : type(UInteger) { value.ui = ui; }
+Value::Value(unsigned int ui) { m_value = static_cast<uint64_t>(ui); }
 
-Value::Value(int64_t i) : type(Integer) { value.i = i; }
+Value::Value(int64_t i) { m_value = i; }
 
-Value::Value(uint64_t ui) : type(UInteger) { value.ui = ui; }
+Value::Value(uint64_t ui) { m_value = ui; }
 
-Value::Value(float f) : type(Float) {
+Value::Value(float f) {
   // direct typecast from float to double works by just appending 0s to the
   // binary IEEE representation, which will result in a different number
   // So we convert through decimal instead
-  value.d = std::stod(shcore::ftoa(f));
+  m_value = std::stod(shcore::ftoa(f));
 }
 
-Value::Value(double d) : type(Float) { value.d = d; }
+Value::Value(double d) { m_value = d; }
 
-Value::Value(bool b) : type(Bool) { value.b = b; }
+Value::Value(bool b) { m_value = b; }
 
-Value::Value(const std::shared_ptr<Function_base> &f) : type(Function) {
-  if (f) {
-    value.func = new std::shared_ptr<Function_base>(f);
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(const std::shared_ptr<Function_base> &f) {
+  if (f)
+    m_value = f;
+  else
+    m_value = null_value{};
 }
 
-Value::Value(std::shared_ptr<Function_base> &&f) : type(Function) {
-  if (f) {
-    value.func = new std::shared_ptr<Function_base>(std::move(f));
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(std::shared_ptr<Function_base> &&f) {
+  if (f)
+    m_value = std::move(f);
+  else
+    m_value = null_value{};
 }
 
-Value::Value(const std::shared_ptr<Object_bridge> &n) : type(Object) {
-  if (n) {
-    value.o = new std::shared_ptr<Object_bridge>(n);
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(const std::shared_ptr<Object_bridge> &n) {
+  if (n)
+    m_value = n;
+  else
+    m_value = null_value{};
 }
 
-Value::Value(std::shared_ptr<Object_bridge> &&n) : type(Object) {
-  if (n) {
-    value.o = new std::shared_ptr<Object_bridge>(std::move(n));
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(std::shared_ptr<Object_bridge> &&n) {
+  if (n)
+    m_value = std::move(n);
+  else
+    m_value = null_value{};
 }
 
-Value::Value(const Map_type_ref &n) : type(Map) {
-  if (n) {
-    value.map = new std::shared_ptr<Map_type>(n);
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(const Map_type_ref &n) {
+  if (n)
+    m_value = n;
+  else
+    m_value = null_value{};
 }
 
-Value::Value(Map_type_ref &&n) : type(Map) {
-  if (n) {
-    value.map = new std::shared_ptr<Map_type>(std::move(n));
-  } else {
-    type = shcore::Null;
-  }
+Value::Value(Map_type_ref &&n) {
+  if (n)
+    m_value = std::move(n);
+  else
+    m_value = null_value{};
 }
 
-Value::Value(const std::weak_ptr<Map_type> &n) : type(MapRef) {
-  value.mapref = new std::weak_ptr<Map_type>(n);
+Value::Value(const Array_type_ref &n) {
+  if (n)
+    m_value = n;
+  else
+    m_value = null_value{};
 }
 
-Value::Value(std::weak_ptr<Map_type> &&n) : type(MapRef) {
-  value.mapref = new std::weak_ptr<Map_type>(std::move(n));
+Value::Value(Array_type_ref &&n) {
+  if (n)
+    m_value = std::move(n);
+  else
+    m_value = null_value{};
 }
 
-Value::Value(const Array_type_ref &n) : type(Array) {
-  if (n) {
-    value.array = new std::shared_ptr<Array_type>(n);
-  } else {
-    type = shcore::Null;
-  }
-}
-
-Value::Value(Array_type_ref &&n) : type(Array) {
-  if (n) {
-    value.array = new std::shared_ptr<Array_type>(std::move(n));
-  } else {
-    type = shcore::Null;
-  }
-}
-
-Value &Value::operator=(const Value &other) {
-  if (this == &other) return *this;
-
-  if (type == other.type) {
-    switch (type) {
-      case Undefined:
-        break;
-      case shcore::Null:
-        break;
-      case Bool:
-        value.b = other.value.b;
-        break;
-      case Integer:
-        value.i = other.value.i;
-        break;
-      case UInteger:
-        value.ui = other.value.ui;
-        break;
-      case Float:
-        value.d = other.value.d;
-        break;
-      case Binary:
-      case String:
-        *value.s = *other.value.s;
-        break;
-      case Object:
-        *value.o = *other.value.o;
-        break;
-      case Array:
-        *value.array = *other.value.array;
-        break;
-      case Map:
-        *value.map = *other.value.map;
-        break;
-      case MapRef:
-        *value.mapref = *other.value.mapref;
-        break;
-      case Function:
-        *value.func = *other.value.func;
-        break;
-    }
-  } else {
-    switch (type) {
-      case Undefined:
-      case shcore::Null:
-      case Bool:
-      case Integer:
-      case UInteger:
-      case Float:
-        break;
-      case Binary:
-      case String:
-        delete value.s;
-        break;
-      case Object:
-        delete value.o;
-        break;
-      case Array:
-        delete value.array;
-        break;
-      case Map:
-        delete value.map;
-        break;
-      case MapRef:
-        delete value.mapref;
-        break;
-      case Function:
-        delete value.func;
-        break;
-    }
-    type = other.type;
-    switch (type) {
-      case Undefined:
-      case shcore::Null:
-        break;
-      case Bool:
-        value.b = other.value.b;
-        break;
-      case Integer:
-        value.i = other.value.i;
-        break;
-      case UInteger:
-        value.ui = other.value.ui;
-        break;
-      case Float:
-        value.d = other.value.d;
-        break;
-      case Binary:
-      case String:
-        value.s = new std::string(*other.value.s);
-        break;
-      case Object:
-        value.o = new std::shared_ptr<Object_bridge>(*other.value.o);
-        break;
-      case Array:
-        value.array = new std::shared_ptr<Array_type>(*other.value.array);
-        break;
-      case Map:
-        value.map = new std::shared_ptr<Map_type>(*other.value.map);
-        break;
-      case MapRef:
-        value.mapref = new std::weak_ptr<Map_type>(*other.value.mapref);
-        break;
-      case Function:
-        value.func = new std::shared_ptr<Function_base>(*other.value.func);
-        break;
-    }
-  }
-  return *this;
-}
-
-Value &Value::operator=(Value &&other) noexcept {
-  if (this == &other) return *this;
-
-  switch (type) {
-    case Undefined:
-    case shcore::Null:
-    case Bool:
-    case Integer:
-    case UInteger:
-    case Float:
-      break;
-    case Binary:
-    case String:
-      delete value.s;
-      value.s = nullptr;
-      break;
-    case Object:
-      delete value.o;
-      value.s = nullptr;
-      break;
-    case Array:
-      delete value.array;
-      value.s = nullptr;
-      break;
-    case Map:
-      delete value.map;
-      value.s = nullptr;
-      break;
-    case MapRef:
-      delete value.mapref;
-      value.s = nullptr;
-      break;
-    case Function:
-      delete value.func;
-      value.s = nullptr;
-      break;
-  }
-
-  type = Undefined;
-  std::swap(type, other.type);
-
-  switch (type) {
-    case Undefined:
-    case shcore::Null:
-      break;
-    case Bool:
-      std::swap(value.b, other.value.b);
-      break;
-    case Integer:
-      std::swap(value.i, other.value.i);
-      break;
-    case UInteger:
-      std::swap(value.ui, other.value.ui);
-      break;
-    case Float:
-      std::swap(value.d, other.value.d);
-      break;
-    case Binary:
-    case String:
-      std::swap(value.s, other.value.s);
-      break;
-    case Object:
-      std::swap(value.o, other.value.o);
-      break;
-    case Array:
-      std::swap(value.array, other.value.array);
-      break;
-    case Map:
-      std::swap(value.map, other.value.map);
-      break;
-    case MapRef:
-      std::swap(value.mapref, other.value.mapref);
-      break;
-    case Function:
-      std::swap(value.func, other.value.func);
-      break;
-  }
-  return *this;
-}
-
-Value Value::parse_map(const char **pc) {
-  Map_type_ref map(new Map_type());
-
-  // Skips the opening {
-  ++*pc;
-
-  bool done = false;
-  while (!done) {
-    skip_whitespace(pc);
-
-    if (**pc == '}') {
-      ++*pc;
-      break;
-    }
-
-    Value key, value;
-    if (**pc != '"' && **pc != '\'')
-      throw Exception::parser_error(
-          "Error parsing map, unexpected character reading key.");
-    else {
-      key = parse_string(pc, **pc);
-
-      skip_whitespace(pc);
-
-      if (**pc != ':')
-        throw Exception::parser_error(
-            "Error parsing map, unexpected item value separator.");
-
-      // skips the :
-      ++*pc;
-
-      skip_whitespace(pc);
-
-      value = parse(pc);
-
-      (*map)[key.get_string()] = value;
-
-      skip_whitespace(pc);
-
-      if (**pc == '}') {
-        done = true;
-
-        // Skips the }
-        ++*pc;
-      } else if (**pc == ',')
-        ++*pc;
-      else
-        throw Exception::parser_error(
-            "Error parsing map, unexpected item separator.");
-
-      skip_whitespace(pc);
-    }
-  }
-
-  return Value(map);
-}
-
-Value Value::parse_array(const char **pc) {
-  Array_type_ref array(new Array_type());
-
-  // Skips the opening [
-  ++*pc;
-
-  skip_whitespace(pc);
-
-  bool done = false;
-  while (!done) {
-    skip_whitespace(pc);
-
-    if (**pc != ']') array->push_back(parse(pc));
-
-    skip_whitespace(pc);
-
-    if (**pc == ']') {
-      done = true;
-
-      // Skips the ]
-      ++*pc;
-    } else if (**pc == ',')
-      ++*pc;
-    else
-      throw Exception::parser_error(
-          "Error parsing array, unexpected value separator.");
-
-    skip_whitespace(pc);
-  }
-
-  return Value(array);
-}
-
-inline std::string unicode_codepoint_to_utf8(uint32_t uni) {
-  std::string s;
-  if (uni <= 0x7f) {
-    s.push_back(static_cast<char>(uni & 0xff));  // 0xxxxxxx
-  } else if (uni <= 0x7ff) {
-    s.push_back(static_cast<char>(((uni >> 6) & 0xff) | 0xc0));  // 110xxxxxx
-    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));         // 10xxxxxx
-  } else if (uni <= 0xffff) {
-    s.push_back(static_cast<char>(((uni >> 12) & 0xff) | 0xe0));  // 1110xxxx
-    s.push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));   // 110xxxxxx
-    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));          // 10xxxxxx
-  } else {
-    if (uni >= 0x10ffff) {
-      throw Exception::parser_error("Invalid unicode codepoint");
-    }
-    s.push_back(static_cast<char>(((uni >> 18) & 0xff) | 0xf0));  // 11110xxx
-    s.push_back(static_cast<char>(((uni >> 12) & 0x3f) | 0x80));  // 1110xxxx
-    s.push_back(static_cast<char>(((uni >> 6) & 0x3f) | 0x80));   // 110xxxxxx
-    s.push_back(static_cast<char>((uni & 0x3f) | 0x80));          // 10xxxxxx
-  }
-  return s;
-}
-
-Value Value::parse_string(const char **pc, char quote) {
-  const char *p = *pc;
-
-  // calculate length
-  while (*p && *++p != quote) {
-    // escaped char
-    if (*p == '\\') ++p;
-  }
-
-  int32_t len = p - *pc;
-
-  if (*p != quote) {
-    std::string msg = "missing closing ";
-    msg.push_back(quote);
-    throw Exception::parser_error(msg);
-  }
-
-  std::string s;
-
-  p = *pc;
-  ++*pc;
-  while (**pc != '\0' && (*pc - p < len)) {
-    const char *pc_i = *pc;
-    if (*pc_i == '\\') {
-      switch (*(pc_i + 1)) {
-        case 'n':
-          s.append("\n");
-          break;
-        case '"':
-          s.append("\"");
-          break;
-        case '\'':
-          s.append("\'");
-          break;
-        case 'a':
-          s.append("\a");
-          break;
-        case 'b':
-          s.append("\b");
-          break;
-        case 'f':
-          s.append("\f");
-          break;
-        case 'r':
-          s.append("\r");
-          break;
-        case 't':
-          s.append("\t");
-          break;
-        case 'v':
-          s.append("\v");
-          break;
-        case '\\':
-          s.append("\\");
-          break;
-        case 'x': {
-          if (*pc - (pc_i + 1 + 2) < len && isxdigit(pc_i[2]) &&
-              isxdigit(pc_i[3])) {
-            const char c =
-                (ascii_to_hex[static_cast<unsigned char>(pc_i[2])] << 4) |
-                ascii_to_hex[static_cast<unsigned char>(pc_i[3])];
-            s.append(std::string{c});
-            pc_i += 2;
-          } else {
-            throw Exception::parser_error("Invalid \\xXX hex escape");
-          }
-        } break;
-        case 'u':
-          if (*pc - (pc_i + 1 + 4) < len && isxdigit(pc_i[2]) &&
-              isxdigit(pc_i[3]) && isxdigit(pc_i[4]) && isxdigit(pc_i[5])) {
-            uint32_t unich =
-                (ascii_to_hex[static_cast<unsigned>(pc_i[2])] << 12) |
-                (ascii_to_hex[static_cast<unsigned>(pc_i[3])] << 8) |
-                (ascii_to_hex[static_cast<unsigned>(pc_i[4])] << 4) |
-                ascii_to_hex[static_cast<unsigned>(pc_i[5])];
-            s.append(unicode_codepoint_to_utf8(unich));
-            pc_i += 4;
-          } else {
-            throw Exception::parser_error("Invalid \\uXXXX unicode escape");
-          }
-          break;
-        case '\0':
-          s.append("\0");
-          break;
-      }
-      *pc = pc_i + 2;
-    } else {
-      s.append(*pc, 1);
-      ++*pc;
-    }
-  }
-
-  // Skips the closing quote
-  ++*pc;
-
-  return Value(s);
-}
-
-Value Value::parse_single_quoted_string(const char **pc) {
-  return parse_string(pc, '\'');
-}
-
-Value Value::parse_double_quoted_string(const char **pc) {
-  return parse_string(pc, '"');
-}
-
-Value Value::parse_number(const char **pcc) {
-  Value ret_val;
-  const char *pc = *pcc;
-
-  // Parsing based on the following state table
-  // Valid integer: state == 1
-  // Valid float: state == 2,4,6
-  //                                0  1  2  3  4  5  6
-  //                                +  #  .  #  e  +  d
-  constexpr unsigned char STATE_VALIDITY[] = {0, 1, 0, 1, 0, 0, 1};
-  enum States {
-    FRONT_SIGN,
-    INT_DIGITS,
-    DOT,
-    FLOAT_DIGITS,
-    EXP,
-    EXP_SIGN,
-    EXP_DIGITS
-  };
-
-  // State starts at 1
-  int state = INT_DIGITS;
-
-  // Sign can appear at the beggining
-  if (*pc == '-' || *pc == '+') {
-    ++pc;
-    state = FRONT_SIGN;
-  }
-
-  // Continues while there are digits
-  if (*pc && IS_DIGIT(*pc)) state = INT_DIGITS;
-  while (*pc && IS_DIGIT(*++pc))
-    ;
-
-  if (STATE_VALIDITY[state] == 1 && tolower(*pc) == '.') {
-    state = DOT;
-
-    // Skips the .
-    ++pc;
-
-    // Continues while there are digits
-    if (*pc && IS_DIGIT(*pc)) state = FLOAT_DIGITS;
-    while (*pc && IS_DIGIT(*++pc))
-      ;
-  }
-
-  // exponential
-  if (STATE_VALIDITY[state] == 1 && tolower(*pc) == 'e') {
-    state = EXP;
-
-    // Skips the e
-    ++pc;
-
-    // Sign can appear for exponential numbers
-    if (*pc == '-' || *pc == '+') {
-      ++pc;
-      state = EXP_SIGN;
-    }
-
-    // Continues while there are digits
-    if (*pc && IS_DIGIT(*pc)) state = FLOAT_DIGITS;
-    while (*pc && IS_DIGIT(*++pc))
-      ;
-  }
-
-  size_t len = pc - *pcc;
-  std::string number(*pcc, len);
-
-  if (STATE_VALIDITY[state] == 1) {
-    if (state == INT_DIGITS) {
-      int64_t ll = 0;
-      try {
-        ll = std::atoll(number.c_str());
-      } catch (const std::invalid_argument &e) {
-        std::string s = "Error parsing int: ";
-        s += e.what();
-        throw Exception::parser_error(s);
-      }
-      ret_val = Value(static_cast<int64_t>(ll));
-    } else {
-      double d = 0;
-      try {
-        d = std::stod(number.c_str());
-      } catch (const std::invalid_argument &e) {
-        std::string s = "Error parsing float: ";
-        s += e.what();
-        throw Exception::parser_error(s);
-      }
-
-      ret_val = Value(d);
-    }
-  } else {
-    std::string parsed(*pcc, pc - *pcc);
-    throw Exception::parser_error("Error parsing number from: '" + parsed +
-                                  "'");
-  }
-
-  *pcc = pc;
-
-  return ret_val;
-}
-
-Value Value::parse(const std::string &s) {
-  const char *begin = s.c_str();
-  const char *pc = begin;
-
+Value Value::parse(std::string_view s) {
   // ignore any white-space at the beginning of string
-  skip_whitespace(&pc);
+  auto pc = skip_whitespace(s);
+  if (pc.empty())
+    throw Exception::parser_error("Unable to parse empty string.");
 
-  Value tmp(parse(&pc));
-  size_t parsed_length = pc - begin;
+  Value value;
+  std::tie(value, pc) = parse_main(pc);
 
-  if (parsed_length < s.size()) {
+  if (!pc.empty()) {
     // ensure any leftover chars are just whitespaces
-    skip_whitespace(&pc);
-    parsed_length = pc - begin;
-    if (parsed_length < s.size())
-      throw Exception::parser_error(
-          "Unexpected characters left at the end of document: ..." +
-          std::string(pc));
-  }
-  return tmp;
-}
-
-Value Value::parse(const char *s, size_t size) {
-  const char *begin = s;
-  const char *pc = begin;
-
-  // ignore any white-space at the beginning of string
-  skip_whitespace(&pc);
-
-  Value tmp(parse(&pc));
-  size_t parsed_length = pc - begin;
-
-  if (parsed_length < size) {
-    // ensure any leftover chars are just whitespaces
-    skip_whitespace(&pc);
-    parsed_length = pc - begin;
-    if (parsed_length < size)
-      throw Exception::parser_error(
-          "Unexpected characters left at the end of document: ..." +
-          std::string(pc));
+    pc = skip_whitespace(pc);
+    if (!pc.empty())
+      throw Exception::parser_error(shcore::str_format(
+          "Unexpected characters left at the end of document: ...%.*s",
+          static_cast<int>(pc.length()), pc.data()));
   }
 
-  return tmp;
-}
-
-Value Value::parse(const char **pc) {
-  if (**pc == '{') return parse_map(pc);
-  if (**pc == '[') return parse_array(pc);
-  if (**pc == '"') return parse_double_quoted_string(pc);
-  if (**pc == '\'') return parse_single_quoted_string(pc);
-
-  if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+')  // a number
-    return parse_number(pc);
-
-  // a constant between true, false, null
-  const char *pi = *pc;
-  while (**pc && IS_ALPHA(**pc)) ++*pc;
-
-  std::string_view tok{pi, static_cast<size_t>(*pc - pi)};
-
-  if (tok.size() == 9 && str_caseeq(tok, "undefined")) return Value();
-  if (tok.size() == 4 && str_caseeq(tok, "true")) return Value(true);
-  if (tok.size() == 4 && str_caseeq(tok, "null")) return Value::Null();
-  if (tok.size() == 5 && str_caseeq(tok, "false")) return Value(false);
-
-  throw Exception::parser_error("Can't parse '" + std::string{tok} + "'");
+  return value;
 }
 
 bool Value::operator==(const Value &other) const {
-  if (type == other.type) {
-    switch (type) {
-      case Undefined:
-        return true;  // undefined == undefined is true
-      case shcore::Null:
-        return true;
-      case Bool:
-        return value.b == other.value.b;
-      case Integer:
-        return value.i == other.value.i;
-      case UInteger:
-        return value.ui == other.value.ui;
-      case Float:
-        return value.d == other.value.d;
-      case Binary:
-      case String:
-        return *value.s == *other.value.s;
-      case Object:
-        return **value.o == **other.value.o;
-      case Array:
-        return **value.array == **other.value.array;
-      case Map:
-        return **value.map == **other.value.map;
-      case MapRef:
-        return *value.mapref->lock() == *other.value.mapref->lock();
-      case Function:
-        return **value.func == **other.value.func;
-    }
-  } else {
-    // with type conversion
-    switch (type) {
-      case Undefined:
-        return false;
-      case shcore::Null:
-        return false;
-      case Bool:
-        switch (other.type) {
-          case Integer:
-            if (other.value.i == 1)
-              return value.b == true;
-            else if (other.value.i == 0)
-              return value.b == false;
-            return false;
-          case UInteger:
-            if (other.value.ui == 1)
-              return value.b == true;
-            else if (other.value.ui == 0)
-              return value.b == false;
-            return false;
-          case Float:
-            if (other.value.d == 1.0)
-              return value.b == true;
-            else if (other.value.d == 0.0)
-              return value.b == false;
-            return false;
-          default:
-            return false;
-        }
-      case Integer:
-        switch (other.type) {
-          case Bool:
-            return other.operator==(*this);
-          case Float:
-            return value.i == (int64_t)other.value.d &&
-                   ((other.value.d - (int64_t)other.value.d) == 0.0);
-          default:
-            return false;
-        }
-      case UInteger:
-        switch (other.type) {
-          case Bool:
-            return other.operator==(*this);
-          case Float:
-            return value.ui == (uint64_t)other.value.d &&
-                   ((other.value.d - (uint64_t)other.value.d) == 0.0);
-          default:
-            return false;
-        }
-      case Float:
-        switch (other.type) {
-          case Bool:
-            return other.operator==(*this);
-          case Integer:
-          case UInteger:
-            return other.operator==(*this);
-          default:
-            return false;
-        }
-      default:
-        return false;
-    }
-  }
-  return false;
-}
+  if (m_value.index() == other.m_value.index()) {
+    return std::visit(
+        [&other](auto &&value) {
+          using T = std::decay_t<decltype(value)>;
 
-bool Value::operator<(const Value &other) const {
-  if (type == other.type) {
-    switch (type) {
-      case Undefined:
-        return false;
-      case shcore::Null:
-        return false;
-      case Bool:
-        return value.b < other.value.b;
-      case Integer:
-        return value.i < other.value.i;
-      case UInteger:
-        return value.ui < other.value.ui;
-      case Float:
-        return value.d < other.value.d;
-      case Binary:
-      case String:
-        return *value.s < *other.value.s;
-      case Object:
-        return **value.o < **other.value.o;
-      case Array:
-        return **value.array < **other.value.array;
-      case Map:
-        return **value.map < **other.value.map;
-      case MapRef:
-        return *value.mapref->lock() < *other.value.mapref->lock();
-      case Function:
-        // NOTE: not implemented, it's not possible to order functions
-        return false;
-    }
-  } else {
-    // with type conversion
-    switch (type) {
-      case Undefined:
-        return false;
-      case shcore::Null:
-        return false;
-      case Bool:
-        switch (other.type) {
-          case Integer:
-            if (other.value.i == 1)
-              return value.b < true;
-            else if (other.value.i == 0)
-              return false;
-            return false;
-          case UInteger:
-            if (other.value.ui == 1)
-              return value.b < true;
-            else if (other.value.ui == 0)
-              return false;
-            return false;
-          case Float:
-            if (other.value.d == 1.0)
-              return value.b < true;
-            else if (other.value.d == 0.0)
-              return false;
-            return false;
-          default:
-            return false;
-        }
-      case Integer:
-        switch (other.type) {
-          case Bool:
-            return other.operator<(*this);
-          case Float:
-            return value.i < (int64_t)other.value.d ||
-                   (value.i < (int64_t)other.value.d &&
-                    ((other.value.d - (int64_t)other.value.d) > 0.0));
-          default:
-            return false;
-        }
-      case UInteger:
-        switch (other.type) {
-          case Bool:
-            return other.operator<(*this);
-          case Float:
-            return value.ui < (uint64_t)other.value.d ||
-                   (value.ui == (uint64_t)other.value.d &&
-                    ((other.value.d - (uint64_t)other.value.d) > 0.0));
-          default:
-            return false;
-        }
-      case Float:
-        switch (other.type) {
-          case Bool:
-            return other.operator<(*this);
-          case Integer:
-          case UInteger:
-            return other.operator<(*this);
-          default:
-            return false;
-        }
-      default:
-        return false;
-    }
-  }
-  return false;
-}
+          if constexpr (std::is_same_v<T, std::monostate> ||
+                        std::is_same_v<T, null_value>)
+            return true;
 
-bool Value::operator<=(const Value &other) const {
-  if (type == other.type) {
-    switch (type) {
-      case Undefined:
-        return true;  // undefined == undefined is true
-      case shcore::Null:
-        return true;
-      case Bool:
-        return value.b <= other.value.b;
-      case Integer:
-        return value.i <= other.value.i;
-      case UInteger:
-        return value.ui <= other.value.ui;
-      case Float:
-        return value.d <= other.value.d;
-      case Binary:
-      case String:
-        return *value.s <= *other.value.s;
-      case Object:
-        return **value.o <= **other.value.o;
-      case Array:
-        return **value.array <= **other.value.array;
-      case Map:
-        return **value.map <= **other.value.map;
-      case MapRef:
-        return *value.mapref->lock() <= *other.value.mapref->lock();
-      case Function:
-        // NOTE: not implemented, it's not possible to order functions
-        return **value.func == **other.value.func;
-    }
-  } else {
-    // with type conversion
-    switch (type) {
-      case Undefined:
-        return false;
-      case shcore::Null:
-        return false;
-      case Bool:
-        switch (other.type) {
-          case Integer:
-            if (other.value.i == 1)
-              return true;
-            else if (other.value.i == 0)
-              return value.b <= false;
+          else if constexpr (std::is_same_v<T, bool> ||
+                             std::is_same_v<T, std::string> ||
+                             std::is_same_v<T, binary_string> ||
+                             std::is_same_v<T, int64_t> ||
+                             std::is_same_v<T, uint64_t> ||
+                             std::is_same_v<T, double>)
+            return (value == std::get<T>(other.m_value));
+
+          else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Object_bridge>> ||
+                             std::is_same_v<T, std::shared_ptr<Array_type>> ||
+                             std::is_same_v<T, std::shared_ptr<Map_type>> ||
+                             std::is_same_v<T, std::shared_ptr<Function_base>>)
+            return (*value == *std::get<T>(other.m_value));
+
+          else
             return false;
-          case UInteger:
-            if (other.value.ui == 1)
-              return true;
-            else if (other.value.ui == 0)
-              return value.b <= false;
-            return false;
-          case Float:
-            if (other.value.d == 1.0)
-              return true;
-            else if (other.value.d == 0.0)
-              return value.b <= false;
-            return false;
-          default:
-            return false;
-        }
-      case Integer:
-        switch (other.type) {
-          case Bool:
-            return other.operator<=(*this);
-          case Float:
-            return value.i < (int64_t)other.value.d ||
-                   (value.i == (int64_t)other.value.d &&
-                    ((other.value.d - (int64_t)other.value.d) >= 0.0));
-          default:
-            return false;
-        }
-      case UInteger:
-        switch (other.type) {
-          case Bool:
-            return other.operator<=(*this);
-          case Float:
-            return value.ui < (uint64_t)other.value.d ||
-                   (value.ui == (uint64_t)other.value.d &&
-                    ((other.value.d - (uint64_t)other.value.d) >= 0.0));
-          default:
-            return false;
-        }
-      case Float:
-        switch (other.type) {
-          case Bool:
-            return other.operator<=(*this);
-          case Integer:
-          case UInteger:
-            return other.operator<=(*this);
-          default:
-            return false;
-        }
-      default:
-        return false;
-    }
+        },
+        m_value);
   }
-  return false;
+
+  // with type conversion
+  return std::visit(
+      [this, &other](auto &&value) {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          if (std::holds_alternative<int64_t>(other.m_value)) {
+            if (std::get<int64_t>(other.m_value) == 1) return value;
+            if (std::get<int64_t>(other.m_value) == 0) return !value;
+            return false;
+          }
+
+          if (std::holds_alternative<uint64_t>(other.m_value)) {
+            if (std::get<uint64_t>(other.m_value) == 1) return value;
+            if (std::get<uint64_t>(other.m_value) == 0) return !value;
+            return false;
+          }
+
+          if (std::holds_alternative<double>(other.m_value)) {
+            if (std::get<double>(other.m_value) == 1.0) return value;
+            if (std::get<double>(other.m_value) == 0.0) return !value;
+            return false;
+          }
+
+          return false;
+
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          if (std::holds_alternative<bool>(other.m_value))
+            return other.operator==(*this);
+
+          if (std::holds_alternative<double>(other.m_value)) {
+            auto val = std::get<double>(other.m_value);
+            auto val_as_int = static_cast<int64_t>(val);
+            return ((value == val_as_int) && ((val - val_as_int) == 0.0));
+          }
+
+          return false;
+
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          if (std::holds_alternative<bool>(other.m_value))
+            return other.operator==(*this);
+
+          if (std::holds_alternative<double>(other.m_value)) {
+            auto val = std::get<double>(other.m_value);
+            auto val_as_int = static_cast<uint64_t>(val);
+            return ((value == val_as_int) && ((val - val_as_int) == 0.0));
+          }
+
+          return false;
+
+        } else if constexpr (std::is_same_v<T, double>) {
+          if (std::holds_alternative<bool>(other.m_value) ||
+              std::holds_alternative<int64_t>(other.m_value) ||
+              std::holds_alternative<uint64_t>(other.m_value))
+            return other.operator==(*this);
+
+          return false;
+
+        } else {
+          return false;
+        }
+      },
+      m_value);
 }
 
 std::string Value::json(bool pprint) const {
-  std::stringstream s;
   JSON_dumper dumper(pprint);
 
   dumper.append_value(*this);
@@ -1449,242 +1100,190 @@ std::string Value::repr() const {
 
 std::string &Value::append_descr(std::string &s_out, int indent,
                                  char quote_strings) const {
-  std::string nl = (indent >= 0) ? "\n" : "";
-  switch (type) {
-    case Undefined:
-      s_out.append("undefined");
-      break;
-    case shcore::Null:
-      s_out.append("null");
-      break;
-    case Bool:
-      if (value.b)
-        s_out += "true";
-      else
-        s_out += "false";
-      break;
-    case Integer:
-      s_out += std::to_string(value.i);
-      break;
-    case UInteger:
-      s_out += std::to_string(value.ui);
-      break;
-    case Float:
-      s_out += shcore::dtoa(value.d);
-      break;
-    case String:
-      if (quote_strings) {
-        s_out += quote_string(*value.s, quote_strings);
-      } else {
-        s_out += *value.s;
-      }
-      break;
-    case Object:
-      if (!value.o || !*value.o)
-        throw Exception::value_error("Invalid object value encountered");
-      as_object()->append_descr(s_out, indent, quote_strings);
-      break;
-    case Array: {
-      if (!value.array || !*value.array)
-        throw Exception::value_error("Invalid array value encountered");
-      Array_type *vec = value.array->get();
-      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin) s_out += ", ";
-        s_out += nl;
-        if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
-        iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
-      }
+  std::visit(
+      [this, &s_out, indent, quote_strings](auto &&value) {
+        using T = std::decay_t<decltype(value)>;
 
-      if (!vec->empty()) {
-        s_out += nl;
-        if (indent > 0) s_out.append(indent * 4, ' ');
-      }
+        [[maybe_unused]] std::string_view nl = (indent >= 0) ? "\n" : "";
 
-      s_out += "]";
-    } break;
-    case Map: {
-      if (!value.map || !*value.map)
-        throw Exception::value_error("Invalid map value encountered");
-      Map_type *map = value.map->get();
-      Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += "{";
+        if constexpr (std::is_same_v<T, std::monostate>) {
+          s_out.append("undefined");
+        } else if constexpr (std::is_same_v<T, null_value>) {
+          s_out.append("null");
+        } else if constexpr (std::is_same_v<T, bool>) {
+          s_out.append(value ? "true" : "false");
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          if (quote_strings)
+            s_out.append(quote_string(value, quote_strings));
+          else
+            s_out.append(value);
+        } else if constexpr (std::is_same_v<T, binary_string>) {
+          s_out.append(shcore::string_to_hex(value));
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          s_out.append(lexical_cast<std::string>(value));
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          s_out.append(lexical_cast<std::string>(value));
+        } else if constexpr (std::is_same_v<T, double>) {
+          s_out.append(shcore::dtoa(value));
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Object_bridge>>) {
+          if (!value)
+            throw Exception::value_error("Invalid object value encountered");
 
-      if (!map->empty()) s_out += nl;
+          as_object()->append_descr(s_out, indent, quote_strings);
 
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin) s_out += ", " + nl;
-        if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
-        s_out += quote_string(iter->first, '"') + ": ";
-        iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
-      }
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Array_type>>) {
+          if (!value)
+            throw Exception::value_error("Invalid array value encountered");
 
-      if (!map->empty()) {
-        s_out += nl;
-        if (indent > 0) s_out.append(indent * 4, ' ');
-      }
+          s_out.append("[");
 
-      s_out += "}";
-    } break;
-    case MapRef:
-      s_out.append("mapref");
-      break;
-    case Function:
-      value.func->get()->append_descr(&s_out, indent, quote_strings);
-      break;
-    case Binary:
-      s_out += shcore::string_to_hex(*value.s);
-      break;
-  }
+          auto myend = value->end(), mybegin = value->begin();
+          for (auto iter = mybegin; iter != myend; ++iter) {
+            if (iter != mybegin) s_out.append(", ");
+            s_out.append(nl);
+            if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
+            iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+          }
+
+          if (!value->empty()) {
+            s_out.append(nl);
+            if (indent > 0) s_out.append(indent * 4, ' ');
+          }
+
+          s_out.append("]");
+
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Map_type>>) {
+          if (!value)
+            throw Exception::value_error("Invalid map value encountered");
+
+          s_out.append("{");
+
+          if (!value->empty()) s_out.append(nl);
+
+          auto myend = value->end(), mybegin = value->begin();
+          for (auto iter = mybegin; iter != myend; ++iter) {
+            if (iter != mybegin) s_out.append(", ").append(nl);
+            if (indent >= 0) s_out.append((indent + 1) * 4, ' ');
+            s_out.append(quote_string(iter->first, '"')).append(": ");
+            iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1,
+                                      '"');
+          }
+
+          if (!value->empty()) {
+            s_out.append(nl);
+            if (indent > 0) s_out.append(indent * 4, ' ');
+          }
+
+          s_out.append("}");
+
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Function_base>>) {
+          value->append_descr(&s_out, indent, quote_strings);
+        }
+      },
+      m_value);
+
   return s_out;
 }
 
 std::string &Value::append_repr(std::string &s_out) const {
-  switch (type) {
-    case Undefined:
-      s_out.append("undefined");
-      break;
-    case shcore::Null:
-      s_out.append("null");
-      break;
-    case Bool:
-      if (value.b)
-        s_out += "true";
-      else
-        s_out += "false";
-      break;
-    case Integer: {
-      std::ostringstream value_i;
-      value_i << value.i;
-      s_out += value_i.str();
-    } break;
-    case UInteger: {
-      std::ostringstream value_ui;
-      value_ui << value.ui;
-      s_out += value_ui.str();
-    } break;
-    case Float: {
-      s_out += str_format("%g", value.d);
-    } break;
-    case String: {
-      std::string &s = *value.s;
-      s_out += "\"";
-      for (size_t i = 0; i < s.length(); i++) {
-        unsigned char c = s[i];
+  std::visit(
+      [&s_out](auto &&value) {
+        using T = std::decay_t<decltype(value)>;
 
-        // non-printable ascii char
-        if (!(0x20 <= c && c < 0x7f)) {
-          s_out += "\\x";
-          s_out += "0123456789abcdef"[c >> 4];
-          s_out += "0123456789abcdef"[c & 0xf];
-          continue;
-        }
+        if constexpr (std::is_same_v<T, std::monostate>) {
+          s_out.append("undefined");
+        } else if constexpr (std::is_same_v<T, null_value>) {
+          s_out.append("null");
+        } else if constexpr (std::is_same_v<T, bool>) {
+          s_out.append(value ? "true" : "false");
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          s_out.append("\"");
+          for (const unsigned char c : value) {
+            // non-printable ascii char
+            if (!(0x20 <= c && c < 0x7f)) {
+              s_out.append("\\x");
+              s_out.append(1, "0123456789abcdef"[c >> 4]);
+              s_out.append(1, "0123456789abcdef"[c & 0xf]);
+              continue;
+            }
 
-        switch (c) {
-          case '\n':
-            s_out += "\\n";
-            break;
-          case '"':
-            s_out += "\\\"";
-            break;
-          case '\'':
-            s_out += "\\\'";
-            break;
-          case '\a':
-            s_out += "\\a";
-            break;
-          case '\b':
-            s_out += "\\b";
-            break;
-          case '\f':
-            s_out += "\\f";
-            break;
-          case '\r':
-            s_out += "\\r";
-            break;
-          case '\t':
-            s_out += "\\t";
-            break;
-          case '\v':
-            s_out += "\\v";
-            break;
-          case '\\':
-            s_out += "\\\\";
-            break;
-          default:
-            s_out += c;
+            switch (c) {
+              case '\n':
+                s_out.append("\\n");
+                break;
+              case '"':
+                s_out.append("\\\"");
+                break;
+              case '\'':
+                s_out.append("\\\'");
+                break;
+              case '\a':
+                s_out.append("\\a");
+                break;
+              case '\b':
+                s_out.append("\\b");
+                break;
+              case '\f':
+                s_out.append("\\f");
+                break;
+              case '\r':
+                s_out.append("\\r");
+                break;
+              case '\t':
+                s_out.append("\\t");
+                break;
+              case '\v':
+                s_out.append("\\v");
+                break;
+              case '\\':
+                s_out.append("\\\\");
+                break;
+              default:
+                s_out.append(1, c);
+            }
+          }
+          s_out.append("\"");
+        } else if constexpr (std::is_same_v<T, binary_string>) {
+          s_out.append(shcore::string_to_hex(value));
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          s_out.append(lexical_cast<std::string>(value));
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          s_out.append(lexical_cast<std::string>(value));
+        } else if constexpr (std::is_same_v<T, double>) {
+          s_out.append(str_format("%g", value));
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Object_bridge>>) {
+          value->append_repr(s_out);
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Array_type>>) {
+          s_out.append("[");
+
+          auto myend = value->end(), mybegin = value->begin();
+          for (auto iter = mybegin; iter != myend; ++iter) {
+            if (iter != mybegin) s_out.append(", ");
+            iter->append_repr(s_out);
+          }
+          s_out.append("]");
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Map_type>>) {
+          s_out.append("{");
+
+          auto myend = value->end(), mybegin = value->begin();
+          for (auto iter = mybegin; iter != myend; ++iter) {
+            if (iter != mybegin) s_out.append(", ");
+            Value(iter->first).append_repr(s_out);
+            s_out.append(": ");
+            iter->second.append_repr(s_out);
+          }
+          s_out.append("}");
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Function_base>>) {
+          value->append_repr(&s_out);
         }
-      }
-      s_out += "\"";
-    } break;
-    case Object:
-      s_out = (*value.o)->append_repr(s_out);
-      break;
-    case Array: {
-      Array_type *vec = value.array->get();
-      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin) s_out += ", ";
-        iter->append_repr(s_out);
-      }
-      s_out += "]";
-    } break;
-    case Map: {
-      Map_type *map = value.map->get();
-      Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += "{";
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
-        if (iter != mybegin) s_out += ", ";
-        Value key(iter->first);
-        key.append_repr(s_out);
-        s_out += ": ";
-        iter->second.append_repr(s_out);
-      }
-      s_out += "}";
-    } break;
-    case MapRef:
-      break;
-    case Function:
-      value.func->get()->append_repr(&s_out);
-      break;
-    case Binary:
-      s_out += shcore::string_to_hex(*value.s);
-      break;
-  }
+      },
+      m_value);
+
   return s_out;
-}
-
-Value::~Value() noexcept {
-  switch (type) {
-    case Undefined:
-    case shcore::Null:
-    case Bool:
-    case Integer:
-    case UInteger:
-    case Float:
-      break;
-    case Binary:
-    case String:
-      delete value.s;
-      break;
-    case Object:
-      delete value.o;
-      break;
-    case Array:
-      delete value.array;
-      break;
-    case Map:
-      delete value.map;
-      break;
-    case MapRef:
-      delete value.mapref;
-      break;
-    case Function:
-      delete value.func;
-      break;
-  }
 }
 
 inline Exception type_conversion_error(Value_type from, Value_type expected) {
@@ -1703,134 +1302,196 @@ bool is_compatible_type(Value_type source_type, Value_type target_type) {
 }
 
 void Value::check_type(Value_type t) const {
-  if (!is_compatible_type(type, t)) throw type_conversion_error(type, t);
+  if (auto type = get_type(); !is_compatible_type(type, t))
+    throw type_conversion_error(type, t);
+}
+
+Value_type Value::get_type() const noexcept {
+  return std::visit(
+      [](auto &&value) -> Value_type {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, std::monostate>) {
+          return Value_type::Undefined;
+        } else if constexpr (std::is_same_v<T, null_value>) {
+          return Value_type::Null;
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return Value_type::Bool;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          return Value_type::String;
+        } else if constexpr (std::is_same_v<T, binary_string>) {
+          return Value_type::Binary;
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          return Value_type::Integer;
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          return Value_type::UInteger;
+        } else if constexpr (std::is_same_v<T, double>) {
+          return Value_type::Float;
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Object_bridge>>) {
+          return Value_type::Object;
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Array_type>>) {
+          return Value_type::Array;
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Map_type>>) {
+          return Value_type::Map;
+        } else if constexpr (std::is_same_v<T,
+                                            std::shared_ptr<Function_base>>) {
+          return Value_type::Function;
+        } else {
+          assert(!"Unknown value type");
+          throw Exception::logic_error("Unknown value type");
+        }
+      },
+      m_value);
 }
 
 bool Value::as_bool() const {
-  switch (type) {
-    case Bool:
-      return value.b;
-    case Integer:
-      return value.i != 0;
-    case UInteger:
-      return value.ui != 0;
-    case Float:
-      return value.d != 0.0;
-    case String:
-      try {
-        return lexical_cast<bool>(*value.s);
-      } catch (...) {
-      }
-      break;
-    default:
-      break;
-  }
-  throw type_conversion_error(type, Bool);
+  return std::visit(
+      [this](auto &&value) -> bool {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          return value;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          try {
+            return lexical_cast<bool>(value);
+          } catch (...) {
+            throw type_conversion_error(get_type(), Bool);
+          }
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          return (value != 0);
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          return (value != 0);
+        } else if constexpr (std::is_same_v<T, double>) {
+          return (value != 0.0);
+        } else {
+          throw type_conversion_error(get_type(), Bool);
+        }
+      },
+      m_value);
 }
 
 int64_t Value::as_int() const {
-  switch (type) {
-    case Integer:
-      return value.i;
-    case UInteger:
-      if (value.ui <= (uint64_t)std::numeric_limits<int64_t>::max())
-        return static_cast<int64_t>(value.ui);
-      throw type_range_error(type, Integer);
-    case Float: {
-      double integral;
-      if (std::modf(value.d, &integral) == 0.0 &&
-          value.d >= -(1LL << DBL_MANT_DIG) && value.d <= (1LL << DBL_MANT_DIG))
-        return static_cast<int64_t>(value.d);
-      throw type_range_error(type, Integer);
-    }
-    case Bool:
-      return value.b ? 1 : 0;
-    case String:
-      try {
-        return lexical_cast<int64_t>(*value.s);
-      } catch (...) {
-      }
-      break;
-    default:
-      break;
-  }
-  throw type_conversion_error(type, Integer);
+  return std::visit(
+      [this](auto &&value) -> int64_t {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          return value ? 1 : 0;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          try {
+            return lexical_cast<int64_t>(value);
+          } catch (...) {
+            throw type_conversion_error(get_type(), Integer);
+          }
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          return value;
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          if (value <= (uint64_t)std::numeric_limits<int64_t>::max())
+            return static_cast<int64_t>(value);
+          throw type_range_error(get_type(), Integer);
+        } else if constexpr (std::is_same_v<T, double>) {
+          double integral;
+          if (std::modf(value, &integral) == 0.0 &&
+              value >= -(1LL << DBL_MANT_DIG) && value <= (1LL << DBL_MANT_DIG))
+            return static_cast<int64_t>(value);
+          throw type_range_error(get_type(), Integer);
+        } else {
+          throw type_conversion_error(get_type(), Integer);
+        }
+      },
+      m_value);
 }
 
 uint64_t Value::as_uint() const {
-  switch (type) {
-    case UInteger:
-      return value.ui;
-    case Integer:
-      if (value.i >= 0) return static_cast<uint64_t>(value.i);
-      throw type_range_error(type, UInteger);
-    case Float: {
-      double integral;
-      if (std::modf(value.d, &integral) == 0.0 && value.d >= 0.0 &&
-          value.d <= (1LL << DBL_MANT_DIG))
-        return static_cast<uint64_t>(value.d);
-      throw type_range_error(type, UInteger);
-    }
-    case Bool:
-      return value.b ? 1 : 0;
-    case String:
-      try {
-        return lexical_cast<uint64_t>(*value.s);
-      } catch (...) {
-      }
-      break;
-    default:
-      break;
-  }
-  throw type_conversion_error(type, UInteger);
+  return std::visit(
+      [this](auto &&value) -> int64_t {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          return value ? 1 : 0;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          try {
+            return lexical_cast<uint64_t>(value);
+          } catch (...) {
+            throw type_conversion_error(get_type(), UInteger);
+          }
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          if (value >= 0) return static_cast<uint64_t>(value);
+          throw type_range_error(get_type(), UInteger);
+
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          return value;
+        } else if constexpr (std::is_same_v<T, double>) {
+          double integral;
+          if (std::modf(value, &integral) == 0.0 && value >= 0.0 &&
+              value <= (1LL << DBL_MANT_DIG))
+            return static_cast<uint64_t>(value);
+          throw type_range_error(get_type(), UInteger);
+        } else {
+          throw type_conversion_error(get_type(), UInteger);
+        }
+      },
+      m_value);
 }
 
 double Value::as_double() const {
   // DBL_MANT_DIG is the number of bits used to represent the number itself,
   // without the exponent or sign
-  switch (type) {
-    case UInteger:
-      if (value.ui <= (1ULL << DBL_MANT_DIG))
-        return static_cast<double>(value.ui);
-      // higher values lose precision
-      throw type_range_error(type, Float);
-    case Integer:
-      if (value.i <= (1LL << DBL_MANT_DIG) && value.i >= -(1LL << DBL_MANT_DIG))
-        return static_cast<double>(value.i);
-      // higher or lower values lose precision
-      throw type_range_error(type, Float);
-    case Float:
-      return value.d;
-    case Bool:
-      return value.b ? 1.0 : 0.0;
-    case String:
-      try {
-        return lexical_cast<double>(*value.s);
-      } catch (...) {
-      }
-      break;
-    default:
-      break;
-  }
-  throw type_conversion_error(type, Float);
+
+  return std::visit(
+      [this](auto &&value) -> double {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          return value ? 1.0 : 0.0;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          try {
+            return lexical_cast<double>(value);
+          } catch (...) {
+            throw type_conversion_error(get_type(), Float);
+          }
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          if (value <= (1LL << DBL_MANT_DIG) && value >= -(1LL << DBL_MANT_DIG))
+            return static_cast<double>(value);
+
+          // higher or lower values lose precision
+          throw type_range_error(get_type(), Float);
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          if (value <= (1ULL << DBL_MANT_DIG))
+            return static_cast<double>(value);
+
+          // higher values lose precision
+          throw type_range_error(get_type(), Float);
+        } else if constexpr (std::is_same_v<T, double>) {
+          return value;
+        } else {
+          throw type_conversion_error(get_type(), Float);
+        }
+      },
+      m_value);
 }
 
 std::string Value::as_string() const {
-  switch (type) {
-    case UInteger:
-      return std::to_string(value.ui);
-    case Integer:
-      return std::to_string(value.i);
-    case Float:
-      return lexical_cast<std::string>(value.d);
-    case Bool:
-      return lexical_cast<std::string>(value.b);
-    case String:
-      return *value.s;
-    default:
-      break;
-  }
-  throw type_conversion_error(type, String);
+  return std::visit(
+      [this](auto &&value) -> std::string {
+        using T = std::decay_t<decltype(value)>;
+
+        if constexpr (std::is_same_v<T, bool>) {
+          return lexical_cast<std::string>(value);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          return value;
+        } else if constexpr (std::is_same_v<T, int64_t>) {
+          return lexical_cast<std::string>(value);
+        } else if constexpr (std::is_same_v<T, uint64_t>) {
+          return lexical_cast<std::string>(value);
+        } else if constexpr (std::is_same_v<T, double>) {
+          return lexical_cast<std::string>(value);
+        } else {
+          throw type_conversion_error(get_type(), String);
+        }
+      },
+      m_value);
 }
 
 std::wstring Value::as_wstring() const {
@@ -1841,11 +1502,12 @@ std::string Value::yaml() const { return "---\n" + yaml(0) + "\n"; }
 
 std::string Value::yaml(int init_indent) const {
   // implementation based on: http://yaml.org/spec/1.2/spec.html
-  static constexpr size_t k_indent_size = 2;
+  constexpr size_t k_indent_size = 2;
 
-  const auto new_line = [](std::string *s, int indent) {
+  const auto new_line = [indent_size = k_indent_size](std::string *s,
+                                                      int indent) {
     s->append(1, '\n');
-    s->append(k_indent_size * indent, ' ');
+    s->append(indent_size * indent, ' ');
   };
 
   const auto map2yaml = [&](const Dictionary_t &m, int indent) {
@@ -1868,9 +1530,8 @@ std::string Value::yaml(int init_indent) const {
       const auto sub_yaml = kv.second.yaml(indent + 1);
 
       // if value is a map or an array it needs to be in a separate line
-      if (kv.second.type == Value_type::Map ||
-          kv.second.type == Value_type::MapRef ||
-          kv.second.type == Value_type::Array) {
+      if (auto type = kv.second.get_type();
+          type == Value_type::Map || type == Value_type::Array) {
         new_line(&map, indent + 1);
       } else {
         if (!sub_yaml.empty()) {
@@ -1884,7 +1545,8 @@ std::string Value::yaml(int init_indent) const {
     return map;
   };
 
-  const auto string2yaml = [](const std::string &s, int indent) -> std::string {
+  const auto string2yaml = [indent_size = k_indent_size](
+                               std::string_view s, int indent) -> std::string {
     if (s.empty()) {
       // empty string must be explicitly quoted
       return "''";
@@ -1899,19 +1561,19 @@ std::string Value::yaml(int init_indent) const {
       {
         // plain string cannot contain leading or trailing white-space
         // characters
-        static constexpr auto k_whitespace = " \t";
-        if (std::string{k_whitespace}.find(s[0]) != std::string::npos ||
-            std::string{k_whitespace}.find(s.back()) != std::string::npos) {
+        constexpr std::string_view k_whitespace{" \t"};
+        if (k_whitespace.find(s[0]) != std::string_view::npos ||
+            k_whitespace.find(s.back()) != std::string_view::npos) {
           quote = true;
         }
       }
 
       if (!quote) {
         // plain string cannot start with an indicator
-        if (std::string{"-?:,[]{}#&*!|>'\"%@`"}.find(s[0]) !=
-            std::string::npos) {
+        if (std::string_view{"-?:,[]{}#&*!|>'\"%@`"}.find(s[0]) !=
+            std::string_view::npos) {
           if (s.length() > 1 &&
-              std::string{"-?:"}.find(s[0]) != std::string::npos &&
+              std::string_view{"-?:"}.find(s[0]) != std::string_view::npos &&
               s[1] != ' ') {
             // unless it's '-', '?' or ':' and it's not followed by a space
             quote = false;
@@ -1924,17 +1586,15 @@ std::string Value::yaml(int init_indent) const {
       if (!quote) {
         // plain scalars must never contain the ": " and " #" character
         // combinations
-        if (s.find(": ") != std::string::npos ||
-            s.find(" #") != std::string::npos) {
+        if (s.find(": ") != std::string_view::npos ||
+            s.find(" #") != std::string_view::npos) {
           quote = true;
         }
       }
 
-      if (quote) {
-        return "'" + str_replace(s, "'", "''") + "'";
-      } else {
-        return s;
-      }
+      if (quote) return "'" + str_replace(s, "'", "''") + "'";
+      return std::string{s};
+
     } else {
       // by default set chomping to 'strip'
       char chomping = '-';
@@ -1962,7 +1622,7 @@ std::string Value::yaml(int init_indent) const {
       if (content[0][0] == ' ' || content[0][0] == '\t') {
         // if the first line starts with a white-space, we need to explicitly
         // specify the indent
-        literal += std::to_string(k_indent_size * indent);
+        literal += std::to_string(indent_size * indent);
       }
 
       // add chomping indicator if not 'clip'
@@ -1973,8 +1633,8 @@ std::string Value::yaml(int init_indent) const {
       literal += "\n";
 
       for (const auto &line : content) {
-        literal.append(k_indent_size * indent, ' ');
-        literal += line;
+        literal.append(indent_size * indent, ' ');
+        literal.append(line);
         literal.append(1, '\n');
       }
 
@@ -1985,58 +1645,62 @@ std::string Value::yaml(int init_indent) const {
     }
   };
 
-  switch (type) {
-    case Value_type::Undefined:
-    case Value_type::Null:
-      // YAML has no notion of these values, they are represented by empty
-      // strings
-      return "";
+  return std::visit(
+      [&](auto &&value) -> std::string {
+        using T = std::decay_t<decltype(value)>;
 
-    case Value_type::Bool:
-    case Value_type::Integer:
-    case Value_type::UInteger:
-    case Value_type::Float:
-    case Value_type::Object:
-    case Value_type::Function:
-      // we treat these as scalars
-      return string2yaml(descr(), init_indent);
+        if constexpr (std::is_same_v<T, std::monostate> ||
+                      std::is_same_v<T, null_value>) {
+          // YAML has no notion of these values, they are represented by empty
+          // strings
+          return "";
+        } else if constexpr (std::is_same_v<T, bool> ||
+                             std::is_same_v<T, int64_t> ||
+                             std::is_same_v<T, uint64_t> ||
+                             std::is_same_v<T, double> ||
+                             std::is_same_v<T,
+                                            std::shared_ptr<Object_bridge>> ||
+                             std::is_same_v<T,
+                                            std::shared_ptr<Function_base>>) {
+          // we treat these as scalars
+          return string2yaml(descr(), init_indent);
 
-    case Value_type::String:
-      return string2yaml(*value.s, init_indent);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          return string2yaml(value, init_indent);
 
-    case Value_type::Array: {
-      std::string array;
-      bool first_item = true;
+        } else if constexpr (std::is_same_v<T, binary_string>) {
+          // TODO(rennox): implement binary
+          return string2yaml(value, init_indent);
 
-      for (const auto &v : **value.array) {
-        if (first_item) {
-          first_item = false;
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Array_type>>) {
+          std::string array;
+          bool first_item = true;
+
+          for (const auto &v : *value) {
+            if (first_item) {
+              first_item = false;
+            } else {
+              new_line(&array, init_indent);
+            }
+
+            array += "-";
+            const auto sub_yaml = v.yaml(init_indent + 1);
+
+            if (!sub_yaml.empty()) {
+              array += " " + sub_yaml;
+            }
+          }
+
+          return array;
+
+        } else if constexpr (std::is_same_v<T, std::shared_ptr<Map_type>>) {
+          return map2yaml(value, init_indent);
         } else {
-          new_line(&array, init_indent);
+          throw std::logic_error(shcore::str_format(
+              "Type '%s' was not handled.", type_name(get_type()).c_str()));
         }
-
-        array += "-";
-        const auto sub_yaml = v.yaml(init_indent + 1);
-
-        if (!sub_yaml.empty()) {
-          array += " " + sub_yaml;
-        }
-      }
-
-      return array;
-    }
-
-    case Value_type::Map:
-      return map2yaml(*value.map, init_indent);
-
-    case Value_type::MapRef:
-      return map2yaml(value.mapref->lock(), init_indent);
-    case Value_type::Binary:
-      // TODO(rennox): implement binary
-      return string2yaml(*value.s, init_indent);
-  }
-
-  throw std::logic_error("Type '" + type_name(type) + "' was not handled.");
+      },
+      m_value);
 }
 
 //---
@@ -2044,9 +1708,10 @@ std::string Value::yaml(int init_indent) const {
 const std::string &Argument_list::string_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  switch (at(i).type) {
+
+  switch (at(i).get_type()) {
     case String:
-      return *at(i).value.s;
+      return at(i).get_string();
     default:
       throw Exception::type_error(
           str_format("Argument #%u is expected to be a string", (i + 1)));
@@ -2056,6 +1721,7 @@ const std::string &Argument_list::string_at(unsigned int i) const {
 bool Argument_list::bool_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
+
   try {
     return at(i).as_bool();
   } catch (...) {
@@ -2067,6 +1733,7 @@ bool Argument_list::bool_at(unsigned int i) const {
 int64_t Argument_list::int_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
+
   try {
     return at(i).as_int();
   } catch (...) {
@@ -2078,6 +1745,7 @@ int64_t Argument_list::int_at(unsigned int i) const {
 uint64_t Argument_list::uint_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
+
   try {
     return at(i).as_uint();
   } catch (...) {
@@ -2101,29 +1769,29 @@ double Argument_list::double_at(unsigned int i) const {
 std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Object)
-    throw Exception::type_error(
-        str_format("Argument #%u is expected to be an object", (i + 1)));
-  return *at(i).value.o;
+
+  if (at(i).get_type() == Object) return at(i).as_object();
+  throw Exception::type_error(
+      str_format("Argument #%u is expected to be an object", (i + 1)));
 }
 
 std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Map)
-    throw Exception::type_error(
-        str_format("Argument #%u is expected to be a map", (i + 1)));
-  return *at(i).value.map;
+
+  if (at(i).get_type() == Map) return at(i).as_map();
+  throw Exception::type_error(
+      str_format("Argument #%u is expected to be a map", (i + 1)));
 }
 
 std::shared_ptr<Value::Array_type> Argument_list::array_at(
     unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Array)
-    throw Exception::type_error(
-        str_format("Argument #%u is expected to be an array", (i + 1)));
-  return *at(i).value.array;
+
+  if (at(i).get_type() == Array) return at(i).as_array();
+  throw Exception::type_error(
+      str_format("Argument #%u is expected to be an array", (i + 1)));
 }
 
 void Argument_list::ensure_count(unsigned int c, const char *context) const {
@@ -2155,20 +1823,17 @@ bool Argument_list::operator==(const Argument_list &other) const {
 
 //--
 
-Argument_map::Argument_map() {}
+Argument_map::Argument_map() = default;
 
 Argument_map::Argument_map(const Value::Map_type &map) : _map(map) {}
 
 const std::string &Argument_map::string_at(const std::string &key) const {
-  const Value &v(at(key));
-  switch (v.type) {
-    case String:
-      return *v.value.s;
-    default:
-      throw Exception::type_error(std::string("Argument ")
-                                      .append(key)
-                                      .append(" is expected to be a string"));
-  }
+  const Value &v = at(key);
+  if (v.get_type() == String) return v.get_string();
+
+  throw Exception::type_error(std::string("Argument ")
+                                  .append(key)
+                                  .append(" is expected to be a string"));
 }
 
 bool Argument_map::bool_at(const std::string &key) const {
@@ -2210,28 +1875,27 @@ double Argument_map::double_at(const std::string &key) const {
 std::shared_ptr<Object_bridge> Argument_map::object_at(
     const std::string &key) const {
   const Value &value(at(key));
-  if (value.type != Object)
-    throw Exception::type_error("Argument '" + key +
-                                "' is expected to be an object");
-  return *value.value.o;
+  if (value.get_type() == Object) return value.as_object();
+
+  throw Exception::type_error("Argument '" + key +
+                              "' is expected to be an object");
 }
 
 std::shared_ptr<Value::Map_type> Argument_map::map_at(
     const std::string &key) const {
   const Value &value(at(key));
-  if (value.type != Map)
-    throw Exception::type_error("Argument '" + key +
-                                "' is expected to be a map");
-  return *value.value.map;
+  if (value.get_type() == Map) return value.as_map();
+
+  throw Exception::type_error("Argument '" + key + "' is expected to be a map");
 }
 
 std::shared_ptr<Value::Array_type> Argument_map::array_at(
     const std::string &key) const {
   const Value &value(at(key));
-  if (value.type != Array)
-    throw Exception::type_error("Argument '" + key +
-                                "' is expected to be an array");
-  return *value.value.array;
+  if (value.get_type() == Array) return value.as_array();
+
+  throw Exception::type_error("Argument '" + key +
+                              "' is expected to be an array");
 }
 
 bool Argument_map::comp(const std::string &lhs, const std::string &rhs) {
@@ -2327,104 +1991,104 @@ void Option_unpacker::set_options(const Dictionary_t &options) {
 Value Option_unpacker::get_required(const char *name, Value_type type) {
   if (!m_options || is_ignored(name)) {
     m_missing.insert(name);
-    return Value();
+    return {};
   }
+
   auto opt = m_options->find(name);
   if (opt == m_options->end()) {
     m_missing.insert(name);
-    return Value();
-  } else {
-    m_unknown.erase(name);
-
-    if (type != Undefined && !is_compatible_type(opt->second.type, type)) {
-      throw Exception::type_error(str_format(
-          "Option '%s' is expected to be of type %s, but is %s", name,
-          type_name(type).c_str(), type_name(opt->second.type).c_str()));
-    }
-
-    return opt->second;
+    return {};
   }
+
+  m_unknown.erase(name);
+
+  if (type != Undefined && !is_compatible_type(opt->second.get_type(), type)) {
+    throw Exception::type_error(str_format(
+        "Option '%s' is expected to be of type %s, but is %s", name,
+        type_name(type).c_str(), type_name(opt->second.get_type()).c_str()));
+  }
+
+  return opt->second;
 }
 
 Value Option_unpacker::get_optional(const char *name, Value_type type,
                                     bool case_insensitive) {
-  if (!m_options || is_ignored(name)) {
-    return Value();
-  }
+  if (!m_options || is_ignored(name)) return {};
+
   auto opt = m_options->find(name);
 
   if (case_insensitive && opt == m_options->end()) {
     for (auto it = m_options->begin(); it != m_options->end(); ++it) {
-      if (str_caseeq(it->first.c_str(), name)) {
-        name = it->first.c_str();
-        opt = it;
-        break;
-      }
+      if (!str_caseeq(it->first.c_str(), name)) continue;
+      name = it->first.c_str();
+      opt = it;
+      break;
     }
   }
-  if (opt != m_options->end()) {
-    m_unknown.erase(name);
 
-    if (type != Undefined && !is_compatible_type(opt->second.type, type)) {
-      throw Exception::type_error(str_format(
-          "Option '%s' is expected to be of type %s, but is %s", name,
-          type_name(type).c_str(), type_name(opt->second.type).c_str()));
-    }
+  if (opt == m_options->end()) return {};
 
-    return opt->second;
+  m_unknown.erase(name);
+
+  if (type != Undefined && !is_compatible_type(opt->second.get_type(), type)) {
+    throw Exception::type_error(str_format(
+        "Option '%s' is expected to be of type %s, but is %s", name,
+        type_name(type).c_str(), type_name(opt->second.get_type()).c_str()));
   }
-  return Value();
+
+  return opt->second;
 }
 
 Value Option_unpacker::get_optional_exact(const char *name, Value_type type,
                                           bool case_insensitive) {
-  if (!m_options || is_ignored(name)) {
-    return Value();
-  }
+  if (!m_options || is_ignored(name)) return {};
+
   auto opt = m_options->find(name);
 
   if (case_insensitive && opt == m_options->end()) {
     for (auto it = m_options->begin(); it != m_options->end(); ++it) {
-      if (str_caseeq(it->first.c_str(), name)) {
-        name = it->first.c_str();
-        opt = it;
-        break;
-      }
+      if (!str_caseeq(it->first.c_str(), name)) continue;
+      name = it->first.c_str();
+      opt = it;
+      break;
     }
   }
-  if (opt != m_options->end()) {
-    m_unknown.erase(name);
-    if (type != Undefined &&
-        ((opt->second.type == String && !is_compatible_type(String, type)) ||
-         (opt->second.type != String && opt->second.type != type))) {
-      throw Exception::type_error(str_format(
-          "Option '%s' is expected to be of type %s, but is %s", name,
-          type_name(type).c_str(), type_name(opt->second.type).c_str()));
-    }
 
-    return opt->second;
+  if (opt == m_options->end()) return {};
+
+  m_unknown.erase(name);
+
+  auto opt_type = opt->second.get_type();
+
+  if (type != Undefined &&
+      ((opt_type == String && !is_compatible_type(String, type)) ||
+       (opt_type != String && opt_type != type))) {
+    throw Exception::type_error(
+        str_format("Option '%s' is expected to be of type %s, but is %s", name,
+                   type_name(type).c_str(), type_name(opt_type).c_str()));
   }
-  return Value();
+
+  return opt->second;
 }
 
-void Option_unpacker::end(const std::string &context) { validate(context); }
+void Option_unpacker::end(std::string_view context) { validate(context); }
 
-void Option_unpacker::validate(const std::string &context) {
+void Option_unpacker::validate(std::string_view context) {
   std::string msg;
   if (!m_unknown.empty() && !m_missing.empty()) {
     msg.append("Invalid and missing options ");
-    if (!context.empty()) msg.append(context + " ");
+    if (!context.empty()) msg.append(context).append(" ");
     msg.append("(invalid: ").append(str_join(m_unknown, ", "));
     msg.append("), (missing: ").append(str_join(m_missing, ", "));
     msg.append(")");
   } else if (!m_unknown.empty()) {
     msg.append("Invalid options");
-    if (!context.empty()) msg.append(" " + context);
+    if (!context.empty()) msg.append(" ").append(context);
     msg.append(": ");
     msg.append(str_join(m_unknown, ", "));
   } else if (!m_missing.empty()) {
     msg.append("Missing required options");
-    if (!context.empty()) msg.append(" " + context);
+    if (!context.empty()) msg.append(" ").append(context);
     msg.append(": ");
     msg.append(str_join(m_missing, ", "));
   }
@@ -2456,7 +2120,7 @@ void Function_base::append_json(JSON_dumper *dumper) const {
 }
 
 std::ostream &operator<<(std::ostream &os, const Value &v) {
-  return os << v.descr() << " (" << type_name(v.type) << ")";
+  return os << v.descr() << " (" << type_name(v.get_type()) << ")";
 }
 
 }  // namespace shcore

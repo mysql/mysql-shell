@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,8 +23,6 @@
 
 #include "mysqlshdk/libs/utils/utils_json.h"
 
-#include <cstring>
-
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/utils_encoding.h"
@@ -37,20 +35,14 @@ size_t fmt_double(double d, char *buffer, size_t buffer_len) {
 
 JSON_dumper::JSON_dumper(bool pprint, size_t binary_limit)
     : _binary_limit(binary_limit) {
-  _deep_level = 0;
-
   if (pprint)
-    _writer = new Pretty_writer();
+    _writer = std::make_unique<Pretty_writer>();
   else
-    _writer = new Raw_writer();
-}
-
-JSON_dumper::~JSON_dumper() {
-  if (_writer) delete (_writer);
+    _writer = std::make_unique<Raw_writer>();
 }
 
 void JSON_dumper::append_value(const Value &value) {
-  switch (value.type) {
+  switch (value.get_type()) {
     case Undefined:
       // TODO: Decide what to do on undefineds
       break;
@@ -111,10 +103,6 @@ void JSON_dumper::append_value(const Value &value) {
       } else
         _writer->append_null();
     } break;
-    case MapRef:
-      // TODO: define what to do with this too
-      // s_out.append("mapref");
-      break;
     case Function:
       value.as_function()->append_json(this);
       break;

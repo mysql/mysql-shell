@@ -181,7 +181,7 @@ void Import_table_option_pack::set_decode_columns(
   }
 
   for (const auto &it : *decode_columns) {
-    if (it.second.type != shcore::Null) {
+    if (it.second.get_type() != shcore::Null) {
       auto transformation = it.second.descr();
       if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
           shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {

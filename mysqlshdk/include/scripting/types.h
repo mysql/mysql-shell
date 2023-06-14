@@ -27,7 +27,6 @@
 #include "types_common.h"
 
 #include <algorithm>
-#include <cassert>
 #include <iterator>
 #include <list>
 #include <map>
@@ -39,6 +38,7 @@
 #include <string_view>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
@@ -64,9 +64,8 @@ enum Value_type {
 
   Object,  //! Native/bridged C++ object refs, may or may not be serializable
 
-  Array,   //! Array/List container
-  Map,     //! Dictionary/Map/Object container
-  MapRef,  //! A weak reference to a Map
+  Array,  //! Array/List container
+  Map,    //! Dictionary/Map/Object container
 
   Function,  //! A function reference, not serializable.
   Binary     //! Binary data
@@ -128,11 +127,11 @@ using Function_base_ref = std::shared_ptr<Function_base>;
  * Null can be cast to Object/Array/Map, but a valid Object/Array/Map pointer
  is not NULL, so it can't be cast to it.
   */
-struct SHCORE_PUBLIC Value {
+struct SHCORE_PUBLIC Value final {
   typedef std::vector<Value> Array_type;
   typedef std::shared_ptr<Array_type> Array_type_ref;
 
-  class SHCORE_PUBLIC Map_type {
+  class SHCORE_PUBLIC Map_type final {
    public:
     typedef std::map<std::string, Value> container_type;
     typedef container_type::const_iterator const_iterator;
@@ -205,9 +204,15 @@ struct SHCORE_PUBLIC Value {
     container_type::mapped_type &operator[](const std::string &k) {
       return _map[k];
     }
+
     bool operator==(const Map_type &other) const { return _map == other._map; }
-    bool operator<(const Map_type &other) const { return _map < other._map; }
-    bool operator<=(const Map_type &other) const { return _map <= other._map; }
+    bool operator!=(const Map_type &other) const { return !(*this == other); }
+
+    // prevent default usage of these
+    bool operator<(const Map_type &) const = delete;
+    bool operator>(const Map_type &) const = delete;
+    bool operator<=(const Map_type &) const = delete;
+    bool operator>=(const Map_type &) const = delete;
 
     bool empty() const { return _map.empty(); }
     size_t size() const { return _map.size(); }
@@ -223,23 +228,14 @@ struct SHCORE_PUBLIC Value {
   };
   typedef std::shared_ptr<Map_type> Map_type_ref;
 
-  Value_type type{Undefined};
-  union {
-    bool b;
-    std::string *s;
-    int64_t i;
-    uint64_t ui;
-    double d;
-    std::shared_ptr<class Object_bridge> *o;
-    std::shared_ptr<Array_type> *array;
-    std::shared_ptr<Map_type> *map;
-    std::weak_ptr<Map_type> *mapref;
-    std::shared_ptr<class Function_base> *func;
-  } value;
-
+ public:
   Value() = default;
-  Value(const Value &copy) { *this = copy; }
-  Value(Value &&other) noexcept { *this = std::move(other); }
+  Value(const Value &) = default;
+  Value(Value &&) noexcept = default;
+  Value &operator=(const Value &) = default;
+  Value &operator=(Value &&) noexcept = default;
+
+  ~Value() noexcept = default;
 
   explicit Value(const std::string &s, bool binary = false);
   explicit Value(std::string &&s, bool binary = false);
@@ -259,8 +255,6 @@ struct SHCORE_PUBLIC Value {
   explicit Value(std::shared_ptr<Function_base> &&f);
   explicit Value(const std::shared_ptr<Object_bridge> &o);
   explicit Value(std::shared_ptr<Object_bridge> &&o);
-  explicit Value(const std::weak_ptr<Map_type> &n);
-  explicit Value(std::weak_ptr<Map_type> &&n);
   explicit Value(const Map_type_ref &n);
   explicit Value(Map_type_ref &&n);
   explicit Value(const Array_type_ref &n);
@@ -284,46 +278,31 @@ struct SHCORE_PUBLIC Value {
 
   static Value Null() {
     Value v;
-    v.type = shcore::Null;
+    v.m_value = null_value{};
     return v;
   }
-  static Value True() {
-    Value v;
-    v.type = shcore::Bool;
-    v.value.b = true;
-    return v;
-  }
-  static Value False() {
-    Value v;
-    v.type = shcore::Bool;
-    v.value.b = false;
-    return v;
-  }
+
+  static Value True() { return Value{true}; }
+  static Value False() { return Value{false}; }
 
   //! parse a string returned by repr() back into a Value
-  static Value parse(const std::string &s);
-  static Value parse(const char *s, size_t length);
-
-  ~Value() noexcept;
-
-  Value &operator=(const Value &other);
-  Value &operator=(Value &&other) noexcept;
+  static Value parse(std::string_view s);
 
   bool operator==(const Value &other) const;
-
   bool operator!=(const Value &other) const { return !(*this == other); }
 
-  bool operator<(const Value &other) const;
+  // prevent default usage of these
+  bool operator<(const Value &) const = delete;
+  bool operator>(const Value &) const = delete;
+  bool operator<=(const Value &) const = delete;
+  bool operator>=(const Value &) const = delete;
 
-  bool operator<=(const Value &other) const;
-
-  bool operator>(const Value &other) const { return !(*this <= other); }
-
-  bool operator>=(const Value &other) const { return !(*this < other); }
-
-  explicit operator bool() const {
-    return type != Undefined && type != shcore::Null;
+  explicit operator bool() const noexcept {
+    auto type = get_type();
+    return (type != shcore::Undefined) && (type != shcore::Null);
   }
+
+  bool is_null() const noexcept { return (get_type() == shcore::Null); }
 
   // helper used by gtest
   friend std::ostream &operator<<(std::ostream &os, const Value &v);
@@ -347,7 +326,7 @@ struct SHCORE_PUBLIC Value {
   std::string &append_repr(std::string &s_out) const;
 
   void check_type(Value_type t) const;
-  Value_type get_type() const { return type; }
+  Value_type get_type() const noexcept;
 
   bool as_bool() const;
   int64_t as_int() const;
@@ -355,31 +334,50 @@ struct SHCORE_PUBLIC Value {
   double as_double() const;
   std::string as_string() const;
   std::wstring as_wstring() const;
+
   const std::string &get_string() const {
     check_type(String);
-    return *value.s;
+
+    if (std::holds_alternative<binary_string>(m_value))
+      return std::get<binary_string>(m_value);
+    return std::get<std::string>(m_value);
   }
+
   template <class C>
   std::shared_ptr<C> as_object() const {
     check_type(Object);
-    return std::dynamic_pointer_cast<C>(type == shcore::Null ? nullptr
-                                                             : *value.o);
+
+    if (is_null()) return nullptr;
+    return std::dynamic_pointer_cast<C>(
+        std::get<std::shared_ptr<Object_bridge>>(m_value));
   }
 
   std::shared_ptr<Object_bridge> as_object() const {
     check_type(Object);
-    return std::dynamic_pointer_cast<Object_bridge>(
-        type == shcore::Null ? nullptr : *value.o);
+
+    if (is_null()) return nullptr;
+    return std::get<std::shared_ptr<Object_bridge>>(m_value);
   }
 
   std::shared_ptr<Map_type> as_map() const {
     check_type(Map);
-    return type == shcore::Null ? nullptr : *value.map;
+
+    if (is_null()) return nullptr;
+    return std::get<std::shared_ptr<Map_type>>(m_value);
   }
 
   std::shared_ptr<Array_type> as_array() const {
     check_type(Array);
-    return type == shcore::Null ? nullptr : *value.array;
+
+    if (is_null()) return nullptr;
+    return std::get<std::shared_ptr<Array_type>>(m_value);
+  }
+
+  std::shared_ptr<Function_base> as_function() const {
+    check_type(Function);
+
+    if (is_null()) return nullptr;
+    return std::get<std::shared_ptr<Function_base>>(m_value);
   }
 
   template <class C>
@@ -396,8 +394,9 @@ struct SHCORE_PUBLIC Value {
   }
 
   std::map<std::string, std::string> to_string_map() const {
-    std::map<std::string, std::string> map;
     check_type(Map);
+
+    std::map<std::string, std::string> map;
     for (const auto &v : *as_map()) {
       map.emplace(v.first, v.second.get_string());
     }
@@ -406,31 +405,29 @@ struct SHCORE_PUBLIC Value {
 
   template <class C>
   std::map<std::string, C> to_container_map() const {
-    std::map<std::string, C> map;
     check_type(Map);
+
+    std::map<std::string, C> map;
     for (const auto &v : *as_map()) {
       map.emplace(v.first, v.second.to_string_container<C>());
     }
     return map;
   }
 
-  std::shared_ptr<Function_base> as_function() const {
-    check_type(Function);
-    return std::dynamic_pointer_cast<Function_base>(
-        type == shcore::Null ? nullptr : *value.func);
-  }
+ private:
+  std::string yaml(int indent) const;
 
  private:
-  static Value parse(const char **pc);
-  static Value parse_map(const char **pc);
-  static Value parse_array(const char **pc);
-  static Value parse_string(const char **pc, char quote);
-  static Value parse_single_quoted_string(const char **pc);
-  static Value parse_double_quoted_string(const char **pc);
-  static Value parse_number(const char **pc);
+  struct null_value {};
+  struct binary_string : std::string {};
 
-  std::string yaml(int indent) const;
+  std::variant<std::monostate, null_value, bool, std::string, binary_string,
+               int64_t, uint64_t, double, std::shared_ptr<Object_bridge>,
+               std::shared_ptr<Array_type>, std::shared_ptr<Map_type>,
+               std::shared_ptr<Function_base>>
+      m_value;
 };
+
 typedef Value::Map_type_ref Dictionary_t;
 typedef Value::Array_type_ref Array_t;
 
@@ -471,7 +468,7 @@ class SHCORE_PUBLIC Exception : public shcore::Error {
   Exception(const std::string &message, int code);
   Exception(const std::string &type, const std::string &message, int code);
 
-  virtual ~Exception() noexcept {}
+  virtual ~Exception() noexcept = default;
 
   static Exception runtime_error(const std::string &message);
   static Exception argument_error(const std::string &message);
@@ -519,7 +516,7 @@ class SHCORE_PUBLIC Exception : public shcore::Error {
   std::string format() const override;
 };
 
-class SHCORE_PUBLIC Argument_list {
+class SHCORE_PUBLIC Argument_list final {
  public:
   // TODO(alfredo) remove most of this when possible
   const std::string &string_at(unsigned int i) const;
@@ -833,7 +830,7 @@ class Option_unpacker {
   Option_unpacker() = default;
   explicit Option_unpacker(const Dictionary_t &options);
 
-  virtual ~Option_unpacker() {}
+  virtual ~Option_unpacker() = default;
 
   // For external unpacker objects
   template <typename T>
@@ -875,7 +872,7 @@ class Option_unpacker {
     return *this;
   }
 
-  void end(const std::string &context = "");
+  void end(std::string_view context = "");
 
   void set_options(const shcore::Dictionary_t &options);
 
@@ -915,7 +912,7 @@ class Option_unpacker {
   Value get_optional_exact(const char *name, Value_type type,
                            bool case_insensitive = false);
 
-  void validate(const std::string &context = "");
+  void validate(std::string_view context = "");
 };
 
 class JSON_dumper;
@@ -1022,7 +1019,6 @@ class SHCORE_PUBLIC Function_base {
   virtual void append_json(JSON_dumper *dumper) const;
 };
 
-bool my_strnicmp(const char *c1, const char *c2, size_t n);
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SCRIPTING_TYPES_H_

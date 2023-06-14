@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -790,12 +790,12 @@ TableSelect TableSelect::offset(int numberOfRows) {}
 void TableSelect::set_lock_contention(const shcore::Argument_list &args) {
   std::string lock_contention;
   if (args.size() == 1) {
-    if (args[0].type == shcore::Object) {
+    if (args[0].get_type() == shcore::Object) {
       std::shared_ptr<Constant> constant =
           std::dynamic_pointer_cast<Constant>(args.object_at(0));
       if (constant && constant->group() == "LockContention")
         lock_contention = constant->data().get_string();
-    } else if (args[0].type == shcore::String) {
+    } else if (args[0].get_type() == shcore::String) {
       lock_contention = args.string_at(0);
     }
 

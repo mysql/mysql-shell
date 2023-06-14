@@ -251,7 +251,7 @@ void Set_instance_option::prepare() {
     ensure_instance_is_read_replica();
 
     // If replicationSources is a list, validate the sources
-    if (m_value_value->type == shcore::Array) {
+    if (m_value_value->get_type() == shcore::Array) {
       auto list =
           m_value_value->to_string_container<std::vector<std::string>>();
 
@@ -320,9 +320,9 @@ shcore::Value Set_instance_option::execute() {
   } else if (m_value_str.has_value()) {
     value_to_print = *m_value_str;
   } else if (m_value_value.has_value()) {
-    if (m_value_value->type == shcore::String) {
+    if (m_value_value->get_type() == shcore::String) {
       value_to_print = m_value_value->as_string();
-    } else if (m_value_value->type == shcore::Array) {
+    } else if (m_value_value->get_type() == shcore::Array) {
       auto list =
           m_value_value->to_string_container<std::vector<std::string>>();
 

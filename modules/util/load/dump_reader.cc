@@ -59,7 +59,7 @@ shcore::Dictionary_t parse_metadata(const std::string &data,
                                     const std::string &fn) {
   try {
     auto metadata = shcore::Value::parse(data);
-    if (metadata.type != shcore::Map) {
+    if (metadata.get_type() != shcore::Map) {
       THROW_ERROR(SHERR_LOAD_INVALID_METADATA_FILE, fn.c_str());
     }
     return metadata.as_map();

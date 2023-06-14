@@ -655,7 +655,7 @@ void Create_cluster::store_recovery_account_metadata(
   if (cluster.get_metadata_storage()->query_cluster_attribute(
           cluster.get_id(), k_cluster_attribute_replication_allowed_host,
           &allowed_host) &&
-      allowed_host.type == shcore::String &&
+      allowed_host.get_type() == shcore::String &&
       !allowed_host.as_string().empty()) {
     repl_account_host = allowed_host.as_string();
   }

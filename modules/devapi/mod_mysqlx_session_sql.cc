@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,7 +135,7 @@ SqlExecute SqlExecute::bind(Value data) {}
 SqlExecute SqlExecute::bind(Value data) {}
 #endif
 std::shared_ptr<SqlExecute> SqlExecute::bind(const shcore::Value &data) {
-  if (data.type == shcore::Array) {
+  if (data.get_type() == shcore::Array) {
     for (const auto &v : *data.as_array()) {
       add_bind(v);
     }

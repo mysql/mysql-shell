@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,7 +86,7 @@ class SHCORE_PUBLIC Writer_base {
   SStream _data;
 
  public:
-  virtual ~Writer_base() {}
+  virtual ~Writer_base() noexcept = default;
 
   virtual void start_array() = 0;
   virtual void end_array() = 0;
@@ -107,10 +107,9 @@ class SHCORE_PUBLIC Writer_base {
   const std::string &str() const { return _data.data; }
 };
 
-class SHCORE_PUBLIC Raw_writer : public Writer_base {
+class SHCORE_PUBLIC Raw_writer final : public Writer_base {
  public:
   Raw_writer() : _writer(_data){};
-  virtual ~Raw_writer() {}
 
   virtual void start_array() { _writer.StartArray(); }
   virtual void end_array() { _writer.EndArray(); }
@@ -138,10 +137,9 @@ class SHCORE_PUBLIC Raw_writer : public Writer_base {
   My_writer<SStream> _writer;
 };
 
-class SHCORE_PUBLIC Pretty_writer : public Writer_base {
+class SHCORE_PUBLIC Pretty_writer final : public Writer_base {
  public:
   Pretty_writer() : _writer(_data){};
-  virtual ~Pretty_writer() {}
 
   virtual void start_array() { _writer.StartArray(); }
   virtual void end_array() { _writer.EndArray(); }
@@ -170,10 +168,9 @@ class SHCORE_PUBLIC Pretty_writer : public Writer_base {
   My_pretty_writer<SStream> _writer;
 };
 
-class SHCORE_PUBLIC JSON_dumper {
+class SHCORE_PUBLIC JSON_dumper final {
  public:
-  JSON_dumper(bool pprint = false, size_t binary_limit = 0);
-  virtual ~JSON_dumper();
+  explicit JSON_dumper(bool pprint = false, size_t binary_limit = 0);
 
   void start_array() {
     _deep_level++;
@@ -260,10 +257,10 @@ class SHCORE_PUBLIC JSON_dumper {
   const std::string &str() const { return _writer->str(); }
 
  private:
-  int _deep_level;
-  size_t _binary_limit;
+  int _deep_level{0};
+  size_t _binary_limit{0};
 
-  Writer_base *_writer;
+  std::unique_ptr<Writer_base> _writer;
 };
 }  // namespace shcore
 #endif /* defined(__MYSH__UTILS_JSON__) */

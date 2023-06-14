@@ -639,7 +639,7 @@ TEST_F(Rest_service_test, response_content_type) {
     auto response = m_service.get(&request);
     EXPECT_EQ(Response::Status_code::OK, response.status);
     EXPECT_EQ("application/json", response.headers["Content-Type"]);
-    EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+    EXPECT_EQ(shcore::Value_type::Map, response.json().get_type());
   }
 
   {
@@ -658,7 +658,7 @@ TEST_F(Rest_service_test, response_content_type) {
     EXPECT_EQ(Response::Status_code::OK, response.status);
     EXPECT_EQ("application/json; charset=UTF-8",
               response.headers["Content-Type"]);
-    EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+    EXPECT_EQ(shcore::Value_type::Map, response.json().get_type());
   }
 }
 

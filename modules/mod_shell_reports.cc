@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -211,25 +211,26 @@ Report::Argc get_report_argc(const std::string &argc_s) {
 }
 
 Report::Examples get_report_examples(const shcore::Array_t &ex) {
+  if (!ex) return {};
+
   Report::Examples examples;
+  examples.reserve(ex->size());
 
-  if (ex) {
-    for (const auto &e : *ex) {
-      if (shcore::Value_type::Map != e.type) {
-        throw shcore::Exception::argument_error(
-            "The value associated with the key named 'examples' should be a "
-            "list of dictionaries.");
-      }
-
-      Report::Example example;
-      shcore::Option_unpacker{e.as_map()}
-          .required("description", &example.description)
-          .optional("args", &example.args)
-          .optional("options", &example.options)
-          .end();
-
-      examples.emplace_back(std::move(example));
+  for (const auto &e : *ex) {
+    if (shcore::Value_type::Map != e.get_type()) {
+      throw shcore::Exception::argument_error(
+          "The value associated with the key named 'examples' should be a "
+          "list of dictionaries.");
     }
+
+    Report::Example example;
+    shcore::Option_unpacker{e.as_map()}
+        .required("description", &example.description)
+        .optional("args", &example.args)
+        .optional("options", &example.options)
+        .end();
+
+    examples.emplace_back(std::move(example));
   }
 
   return examples;
@@ -335,13 +336,14 @@ class Native_report_function : public shcore::Cpp_function {
               }
 
               // it's not an array if it's null
-              const auto argv =
-                  args.size() < 2 || args[1].type != shcore::Value_type::Array
-                      ? shcore::make_array()
-                      : args.array_at(1);
+              const auto argv = args.size() < 2 || args[1].get_type() !=
+                                                       shcore::Value_type::Array
+                                    ? shcore::make_array()
+                                    : args.array_at(1);
               // it's not a map if it's null
               const auto options =
-                  args.size() < 3 || args[2].type != shcore::Value_type::Map
+                  args.size() < 3 ||
+                          args[2].get_type() != shcore::Value_type::Map
                       ? shcore::make_dict()
                       : args.map_at(2);
 
@@ -375,7 +377,7 @@ std::string list_formatter(const shcore::Array_t &a,
   }
 
   for (const auto &row : *a) {
-    if (row.type != shcore::Value_type::Array) {
+    if (row.get_type() != shcore::Value_type::Array) {
       throw shcore::Exception::runtime_error(
           "List report should return a list of lists.");
     }
@@ -1272,49 +1274,48 @@ std::string Shell_reports::call_report(
   if (report_options->show_help()) {
     // get help
     return report_options->help();
-  } else {
-    // session must be open
-    if (!session || !session->is_open()) {
-      throw shcore::Exception::argument_error(
-          "Executing the report requires an existing, open session.");
-    }
-
-    // prepare arguments
-    shcore::Argument_list arguments;
-    arguments.push_back(shcore::Value(session));
-
-    if (report_options->requires_argv()) {
-      arguments.push_back(
-          shcore::Value(report_options->get_parsed_arguments()));
-    }
-
-    if (report_options->requires_options()) {
-      // convert args into dictionary
-      arguments.push_back(shcore::Value(report_options->get_parsed_options()));
-    }
-
-    // call the report
-    const auto result = call(report_options->name(), arguments);
-
-    if (shcore::Value_type::Map != result.type) {
-      throw shcore::Exception::runtime_error(
-          "Report should return a dictionary.");
-    }
-
-    shcore::Array_t report;
-    shcore::Option_unpacker{result.as_map()}
-        .required(k_report_key, &report)
-        .end();
-
-    if (!report) {
-      throw shcore::Exception::runtime_error(
-          "Option 'report' is expected to be of type Array, but is Null");
-    }
-
-    const auto display_options = shcore::make_dict();
-    display_options->emplace(k_vertical_key, report_options->vertical());
-    return report_options->formatter()(report, display_options);
   }
+
+  // session must be open
+  if (!session || !session->is_open()) {
+    throw shcore::Exception::argument_error(
+        "Executing the report requires an existing, open session.");
+  }
+
+  // prepare arguments
+  shcore::Argument_list arguments;
+  arguments.push_back(shcore::Value(session));
+
+  if (report_options->requires_argv()) {
+    arguments.push_back(shcore::Value(report_options->get_parsed_arguments()));
+  }
+
+  if (report_options->requires_options()) {
+    // convert args into dictionary
+    arguments.push_back(shcore::Value(report_options->get_parsed_options()));
+  }
+
+  // call the report
+  const auto result = call(report_options->name(), arguments);
+
+  if (shcore::Value_type::Map != result.get_type()) {
+    throw shcore::Exception::runtime_error(
+        "Report should return a dictionary.");
+  }
+
+  shcore::Array_t report;
+  shcore::Option_unpacker{result.as_map()}
+      .required(k_report_key, &report)
+      .end();
+
+  if (!report) {
+    throw shcore::Exception::runtime_error(
+        "Option 'report' is expected to be of type Array, but is Null");
+  }
+
+  const auto display_options = shcore::make_dict();
+  display_options->emplace(k_vertical_key, report_options->vertical());
+  return report_options->formatter()(report, display_options);
 }
 
 }  // namespace mysqlsh

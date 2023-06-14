@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,20 +29,20 @@
 
 #include <memory>
 #include <string>
-#include "modules/mod_common.h"
+
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
-#include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
 namespace mysqlx {
+
 class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge {
  public:
-  explicit Expression(const std::string &expression) {
+  explicit Expression(std::string expression) {
     add_property("data");
-    _data = expression;
+    _data = std::move(expression);
   }
-  virtual ~Expression() {}
+  virtual ~Expression() noexcept = default;
 
   // Virtual methods from object bridge
   virtual std::string class_name() const { return "Expression"; }
@@ -58,6 +58,7 @@ class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge {
  private:
   std::string _data;
 };
+
 }  // namespace mysqlx
 }  // namespace mysqlsh
 

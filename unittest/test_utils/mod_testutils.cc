@@ -2001,7 +2001,7 @@ shcore::Array_t Testutils::read_general_log(
 }
 
 void Testutils::wait_sandbox_alive(const shcore::Value &port_or_uri) {
-  if (shcore::Value_type::Integer == port_or_uri.type) {
+  if (shcore::Value_type::Integer == port_or_uri.get_type()) {
     const auto port = port_or_uri.as_int();
 
     wait_sandbox_alive([this, port]() { return connect_to_sandbox(port); },
@@ -4493,9 +4493,9 @@ void Testutils::delete_oci_object(const std::string &bucket_name,
 namespace {
 
 std::unique_ptr<mysqlshdk::storage::IFile> file(const shcore::Value &location) {
-  if (location.type == shcore::String) {
+  if (location.get_type() == shcore::String) {
     return mysqlshdk::storage::make_file(location.as_string());
-  } else if (location.type == shcore::Map) {
+  } else if (location.get_type() == shcore::Map) {
     mysqlshdk::storage::Config_ptr config;
     std::string name;
 

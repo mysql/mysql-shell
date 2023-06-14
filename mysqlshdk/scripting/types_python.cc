@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,13 +112,13 @@ Value Python_function::invoke(const Argument_list &args) {
   py::Release kw_args;
 
   if (argc == (m_arg_count + 1) &&
-      (args[argc - 1].type == shcore::Value_type::Map ||
-       args[argc - 1].type == shcore::Value_type::Undefined)) {
+      (args[argc - 1].get_type() == shcore::Value_type::Map ||
+       args[argc - 1].get_type() == shcore::Value_type::Undefined)) {
     // We remove the last parameter from the parameter list
     argc--;
 
     // Sets the kwargs from the dictionary if any
-    if (args[argc].type == shcore::Value_type::Map) {
+    if (args[argc].get_type() == shcore::Value_type::Map) {
       kw_args = py::Release{PyDict_New()};
       auto kwd_dictionary = args[argc].as_map();
       for (auto item = kwd_dictionary->begin(); item != kwd_dictionary->end();

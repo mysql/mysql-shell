@@ -2331,13 +2331,13 @@ mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
 }
 
 void validate_replication_sources_option(const shcore::Value &value) {
-  if (value.type == shcore::Value_type::Array) {
+  if (auto type = value.get_type(); type == shcore::Value_type::Array) {
     auto array = value.as_array();
     if (array->empty()) {
       throw shcore::Exception::argument_error(shcore::str_format(
           "The list for '%s' option cannot be empty.", kReplicationSources));
     }
-  } else if (value.type == shcore::Value_type::String) {
+  } else if (type == shcore::Value_type::String) {
     auto string = value.as_string();
 
     if (!shcore::str_caseeq(string, kReplicationSourcesAutoPrimary) &&

@@ -170,7 +170,7 @@ void Rescan_options::set_list_option(const std::string &option,
 
   bool *auto_option = option == kRemoveInstances ? &auto_remove : &auto_add;
 
-  if (value.type == shcore::Value_type::String) {
+  if (value.get_type() == shcore::Value_type::String) {
     auto str_val = value.as_string();
     if (shcore::str_caseeq(str_val, "auto")) {
       *auto_option = true;
@@ -180,7 +180,7 @@ void Rescan_options::set_list_option(const std::string &option,
           "value, otherwise a list of instances is expected.",
           option.c_str()));
     }
-  } else if (value.type == shcore::Value_type::Array) {
+  } else if (value.get_type() == shcore::Value_type::Array) {
     auto instances_array = value.as_array();
     if (instances_array->empty()) {
       throw shcore::Exception::argument_error(shcore::str_format(
@@ -232,7 +232,7 @@ void Add_replica_instance_options::set_replication_sources(
   validate_replication_sources_option(value);
 
   // Iterate the list to build the vector of Managed_async_channel_source(s)
-  if (value.type == shcore::Value_type::Array) {
+  if (value.get_type() == shcore::Value_type::Array) {
     auto sources = value.to_string_container<std::vector<std::string>>();
 
     replication_sources_option.replication_sources =
@@ -258,7 +258,7 @@ void Add_replica_instance_options::set_replication_sources(
 
     // Set the source type to CUSTOM
     replication_sources_option.source_type = Source_type::CUSTOM;
-  } else if (value.type == shcore::Value_type::String) {
+  } else if (value.get_type() == shcore::Value_type::String) {
     auto string = value.as_string();
 
     if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,8 +25,8 @@
 // For the module that implements interactive DB functionality see mod_db
 
 #include "modules/devapi/protobuf_bridge.h"
+
 #include "db/mysqlx/util/setter_any.h"
-#include "modules/devapi/mod_mysqlx_expression.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -46,7 +46,7 @@ std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
   std::unique_ptr<Mysqlx::Datatypes::Scalar> my_scalar(
       new Mysqlx::Datatypes::Scalar);
 
-  switch (value.type) {
+  switch (value.get_type()) {
     case shcore::Undefined:
       throw shcore::Exception::argument_error("Invalid value");
 
@@ -63,9 +63,12 @@ std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
       return my_scalar;
 
     case shcore::Binary:
+      mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string(),
+                                              true);
+      return my_scalar;
     case shcore::String:
       mysqlshdk::db::mysqlx::util::set_scalar(*my_scalar, value.get_string(),
-                                              value.type == shcore::Binary);
+                                              false);
       return my_scalar;
 
     case shcore::Float:
@@ -104,7 +107,6 @@ std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
       return my_scalar;
     }
     case shcore::Null:
-    case shcore::MapRef:
     case shcore::Function:
       std::stringstream str;
       str << "Unsupported value received: " << value.descr();

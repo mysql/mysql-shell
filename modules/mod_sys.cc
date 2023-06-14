@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,17 +84,17 @@ void Sys::set_member(const std::string &prop, shcore::Value value) {
 
   if (prop == "argv") {
     error = "The sys.argv property must be an array";
-    if (value.type == shcore::Array) {
+    if (value.get_type() == shcore::Array) {
       _argv = value.as_array();
       error.clear();
     }
   } else if (prop == "path") {
     error = "The sys.path property must be an array of strings";
-    if (value.type == shcore::Array) {
+    if (value.get_type() == shcore::Array) {
       auto tmp = value.as_array();
 
       if (std::find_if(tmp->begin(), tmp->end(), [](const shcore::Value &data) {
-            return data.type != shcore::String;
+            return data.get_type() != shcore::String;
           }) != tmp->end())
         error = "The sys.path property must be an array of strings";
       else {

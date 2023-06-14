@@ -985,8 +985,8 @@ Shell_options::Shell_options(
 }
 
 static inline std::string value_to_string(const shcore::Value &value) {
-  return value.type == shcore::Value_type::String ? value.get_string()
-                                                  : value.repr();
+  return value.get_type() == shcore::Value_type::String ? value.get_string()
+                                                        : value.repr();
 }
 
 void Shell_options::set(const std::string &option, const shcore::Value &value) {

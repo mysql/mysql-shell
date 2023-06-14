@@ -201,7 +201,7 @@ void Object::open(storage::Mode mode) {
           throw std::invalid_argument(
               "Object Storage only supports APPEND mode for in-progress "
               "multipart uploads or new files.");
-        } catch (const rest::Response_error &error) {
+        } catch (const rest::Response_error &) {
           // If the file did not exist then OK to continue as a new file
           mode = Mode::WRITE;
         }

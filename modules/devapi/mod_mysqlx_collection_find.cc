@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -339,8 +339,8 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
   args.ensure_at_least(1, "CollectionFind.fields");
 
   try {
-    if (args.size() == 1 && args[0].type != String) {
-      if (args[0].type == Array) {
+    if (args.size() == 1 && args[0].get_type() != String) {
+      if (args[0].get_type() == Array) {
         std::vector<std::string> fields;
 
         parse_string_list(args, fields);
@@ -353,7 +353,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
           throw shcore::Exception::argument_error(
               "Field selection criteria can not be empty");
 
-      } else if (args[0].type == Object &&
+      } else if (args[0].get_type() == Object &&
                  args[0].as_object()->class_name() == "Expression") {
         auto expression =
             std::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
@@ -941,12 +941,12 @@ CollectionFind CollectionFind::offset(int quantity) {}
 void CollectionFind::set_lock_contention(const shcore::Argument_list &args) {
   std::string lock_contention;
   if (args.size() == 1) {
-    if (args[0].type == shcore::Object) {
+    if (args[0].get_type() == shcore::Object) {
       std::shared_ptr<Constant> constant =
           std::dynamic_pointer_cast<Constant>(args.object_at(0));
       if (constant && constant->group() == "LockContention")
         lock_contention = constant->data().get_string();
-    } else if (args[0].type == shcore::String) {
+    } else if (args[0].get_type() == shcore::String) {
       lock_contention = args.string_at(0);
     }
 

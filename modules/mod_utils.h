@@ -73,29 +73,20 @@ class Unpack_options : public shcore::Option_unpacker {
   shcore::Option_unpacker &optional_obj(const char *name,
                                         Connection_options *out_value) {
     shcore::Value value = get_optional(name, shcore::Undefined);
-    if (value) {
-      if (value.type == shcore::String) {
-        try {
-          *out_value = Connection_options(value.get_string());
-        } catch (const std::exception &e) {
-          throw shcore::Exception::argument_error(
-              std::string("Invalid value for option ") + name + ": " +
-              e.what());
-        }
-        // } else if (value.type == shcore::Map) {
-        //   try {
-        //     *out_value = get_connection_options();
-        //   } catch (const std::exception& e) {
-        //     throw shcore::Exception::argument_error(
-        //         std::string("Invalid value for option ") + name + ": " +
-        //         e.what());
-        //   }
-      } else {
-        throw shcore::Exception::type_error(shcore::str_format(
-            "Option '%s' is expected to be of type String, but is %s", name,
-            type_name(value.type).c_str()));
-      }
+    if (!value) return *this;
+
+    if (value.get_type() != shcore::String)
+      throw shcore::Exception::type_error(shcore::str_format(
+          "Option '%s' is expected to be of type String, but is %s", name,
+          type_name(value.get_type()).c_str()));
+
+    try {
+      *out_value = Connection_options(value.get_string());
+    } catch (const std::exception &e) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for option %s: %s", name, e.what()));
     }
+
     return *this;
   }
 };
