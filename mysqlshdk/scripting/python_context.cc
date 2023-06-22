@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -903,7 +903,7 @@ void Python_context::get_members_of(
 
   if (!members || !PySequence_Check(members.get())) return;
 
-  for (int i = 0, c = PySequence_Size(members.get()); i < c; i++) {
+  for (Py_ssize_t i = 0, c = PySequence_Size(members.get()); i < c; i++) {
     py::Release m{PySequence_ITEM(members.get(), i)};
     std::string s;
 
@@ -973,15 +973,15 @@ void Python_context::set_python_error(const shcore::Exception &exc,
                                       const std::string &location) {
   std::string error_message;
 
-  std::string type = exc.error()->get_string("type", "");
-  std::string message = exc.error()->get_string("message", "");
   int64_t code = exc.error()->get_int("code", -1);
-  std::string error_location = exc.error()->get_string("location", "");
-
   if (code > 0) {
     set_shell_error(exc);
     return;
   }
+
+  auto type = exc.error()->get_string("type", "");
+  auto message = exc.error()->get_string("message", "");
+  auto error_location = exc.error()->get_string("location", "");
 
   if (error_location.empty()) error_location = location;
 
@@ -1031,6 +1031,29 @@ void Python_context::set_shell_error(const shcore::Error &e) {
 void Python_context::set_python_error(PyObject *obj,
                                       const std::string &location) {
   PyErr_SetString(obj, location.c_str());
+}
+
+void Python_context::set_python_error(const std::string &module,
+                                      const std::string &exception,
+                                      const std::string &location) {
+  py::Release py_module{PyImport_ImportModule(module.c_str())};
+  if (!py_module) {
+    PyErr_Clear();
+    throw std::runtime_error(shcore::str_format(
+        "Could not import Python '%s' module", module.c_str()));
+  }
+
+  PyObject *py_module_dict = PyModule_GetDict(py_module.get());
+
+  PyObject *except_item =
+      PyDict_GetItemString(py_module_dict, exception.c_str());
+  if (!except_item) {
+    throw std::runtime_error(
+        shcore::str_format("Could not find type '%s' in '%s' module",
+                           exception.c_str(), module.c_str()));
+  }
+
+  set_python_error(except_item, location);
 }
 
 bool Python_context::pystring_to_string(PyObject *strobject,
@@ -1168,9 +1191,19 @@ PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args) {
 }
 
 PyObject *Python_context::shell_stdout_isatty(PyObject *, PyObject *) {
-  PyObject *r = Py_False;
-  Py_INCREF(r);
-  return r;
+  Py_INCREF(Py_False);
+  return Py_False;
+}
+
+PyObject *Python_context::shell_stdout_fileno(PyObject *, PyObject *) {
+  try {
+    Python_context::set_python_error("io", "UnsupportedOperation",
+                                     "Method not supported.");
+  } catch (...) {
+    set_python_error(PyExc_IOError, "Method not supported.");
+  }
+
+  return nullptr;
 }
 
 PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
@@ -1178,9 +1211,19 @@ PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
 }
 
 PyObject *Python_context::shell_stderr_isatty(PyObject *, PyObject *) {
-  PyObject *r = Py_False;
-  Py_INCREF(r);
-  return r;
+  Py_INCREF(Py_False);
+  return Py_False;
+}
+
+PyObject *Python_context::shell_stderr_fileno(PyObject *, PyObject *) {
+  try {
+    Python_context::set_python_error("io", "UnsupportedOperation",
+                                     "Method not supported.");
+  } catch (...) {
+    set_python_error(PyExc_IOError, "Method not supported.");
+  }
+
+  return nullptr;
 }
 
 PyObject *Python_context::shell_flush_stderr(PyObject *, PyObject *) {
@@ -1252,18 +1295,15 @@ PyObject *Python_context::shell_stdin_readline(PyObject *, PyObject *) {
 }
 
 PyObject *Python_context::shell_stdin_isatty(PyObject *, PyObject *) {
-  PyObject *r = Py_False;
-  Py_INCREF(r);
-  return r;
+  Py_INCREF(Py_False);
+  return Py_False;
 }
 
 PyObject *Python_context::shell_interactive_eval_hook(PyObject *,
                                                       PyObject *args) {
-  Python_context *ctx;
-  std::string text;
-
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
+  Python_context *ctx;
   if (!(ctx = Python_context::get_and_check())) return nullptr;
 
   if (PyTuple_Size(args) == 1) {
@@ -1286,6 +1326,7 @@ PyMethodDef Python_context::ShellStdErrMethods[] = {
      "Write an error string in the SHELL shell."},
     {"flush", &Python_context::shell_flush_stderr, METH_NOARGS, ""},
     {"isatty", &Python_context::shell_stderr_isatty, METH_NOARGS, ""},
+    {"fileno", &Python_context::shell_stderr_fileno, METH_NOARGS, ""},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -1294,6 +1335,7 @@ PyMethodDef Python_context::ShellStdOutMethods[] = {
      "Write a string in the SHELL shell."},
     {"flush", &Python_context::shell_flush, METH_NOARGS, ""},
     {"isatty", &Python_context::shell_stdout_isatty, METH_NOARGS, ""},
+    {"fileno", &Python_context::shell_stdout_fileno, METH_NOARGS, ""},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -1311,11 +1353,9 @@ PyMethodDef Python_context::ShellPythonSupportMethods[] = {
      METH_VARARGS,
      "Custom displayhook to capture interactive expr evaluation results."},
     {"raw_input", &Python_context::shell_raw_input, METH_VARARGS,
-     "raw_input([prompt]) -> string\n"
-     "\n"
-     "Read a string from standard input.  The trailing newline is stripped.\n"
-     "If the user hits EOF (Unix: Ctl-D, Windows: Ctl-Z+Return), raise "
-     "EOFError.\n"},
+     "raw_input([prompt]) -> string\n\nRead a string from standard input.  The "
+     "trailing newline is stripped.\nIf the user hits EOF (Unix: Ctl-D, "
+     "Windows: Ctl-Z+Return), raise EOFError.\n"},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -91,6 +91,10 @@ class TYPES_COMMON_PUBLIC Python_context {
                                const std::string &location = "");
   static void set_shell_error(const shcore::Error &e);
   static void set_python_error(PyObject *obj, const std::string &location);
+  static void set_python_error(const std::string &module,
+                               const std::string &exception,
+                               const std::string &location);
+
   static bool pystring_to_string(PyObject *strobject, std::string *result,
                                  bool convert = false);
   static bool pystring_to_string(const py::Release &strobject,
@@ -136,8 +140,10 @@ class TYPES_COMMON_PUBLIC Python_context {
   static PyObject *shell_flush_stderr(PyObject *self, PyObject *args);
   static PyObject *shell_stdout(PyObject *self, PyObject *args);
   static PyObject *shell_stdout_isatty(PyObject *self, PyObject *args);
+  static PyObject *shell_stdout_fileno(PyObject *self, PyObject *args);
   static PyObject *shell_stderr(PyObject *self, PyObject *args);
   static PyObject *shell_stderr_isatty(PyObject *self, PyObject *args);
+  static PyObject *shell_stderr_fileno(PyObject *self, PyObject *args);
   static PyObject *shell_raw_input(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_read(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_readline(PyObject *self, PyObject *args);

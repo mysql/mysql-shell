@@ -48,10 +48,14 @@ EXPECT_EQ("Dba.create_cluster", dba.create_cluster.__qualname__)
 EXPECT_EQ("deploy_sandbox", testutil.deploy_sandbox.__name__)
 EXPECT_EQ("create_cluster", dba.create_cluster.__name__)
 
-#@<> check that isatty exists (checking the return value depends on how the tests are ran)
+#@<> check that isatty exists
 sys.stdout.isatty()
 sys.stdin.isatty()
 sys.stderr.isatty()
+
+#@<> check if fileno throws an exception
+EXPECT_THROWS(lambda: sys.stdout.fileno(), "UnsupportedOperation: Method not supported.")
+EXPECT_THROWS(lambda: sys.stderr.fileno(), "UnsupportedOperation: Method not supported.")
 
 #@<> Cleanup
 mydba.session.close()
