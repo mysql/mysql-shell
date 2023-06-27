@@ -77,7 +77,8 @@ class Signer {
 
   virtual bool auth_data_expired(time_t now) const = 0;
 
-  virtual bool is_authorization_error(const Response &response) const {
+  virtual bool is_authorization_error(const Signed_request &,
+                                      const Response &response) const {
     return Response::Status_code::UNAUTHORIZED == response.status;
   }
 };
