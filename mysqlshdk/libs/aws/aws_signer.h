@@ -68,7 +68,8 @@ class Aws_signer : public rest::Signer {
 
   bool auth_data_expired(time_t now) const override;
 
-  bool is_authorization_error(const rest::Response &response) const override;
+  bool is_authorization_error(const rest::Signed_request &request,
+                              const rest::Response &response) const override;
 
  private:
 #ifdef FRIEND_TEST

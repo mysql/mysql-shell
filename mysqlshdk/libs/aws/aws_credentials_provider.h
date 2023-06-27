@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ class Aws_credentials_provider {
     std::optional<std::string> access_key_id;
     std::optional<std::string> secret_access_key;
     std::optional<std::string> session_token;
-    Aws_credentials::Time_point expiration = Aws_credentials::NO_EXPIRATION;
+    std::optional<std::string> expiration;
   };
 
   struct Context {
