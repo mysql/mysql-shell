@@ -516,17 +516,38 @@ def TEST_BUG35027093(http_server, expected_error):
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Refreshing authentication data", 2)
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Retrying a request which failed due to an authorization error", 2)
 
+# BUG#35468541 - expired HEAD request
+class FailHeadRequest(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    def do_HEAD(self):
+        self.send_response(400)
+        self.send_header('Content-Type', 'application/xml')
+        self.send_header('Content-Length', 123)
+        self.end_headers()
+        self.close_connection = True
+    def log_message(self, format, *args):
+        pass
+
+def TEST_BUG35468541(http_server, expected_error):
+    WIPE_SHELL_LOG()
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
+    EXPECT_SHELL_LOG_CONTAINS_COUNT("Refreshing authentication data", 2)
+    EXPECT_SHELL_LOG_CONTAINS_COUNT("Retrying a request which failed due to an authorization error", 2)
+
 expired_token_server = start_test_server(ExpiredToken)
 token_refresh_server = start_test_server(TokenRefreshRequired)
+fail_head_server = start_test_server(FailHeadRequest)
 
-#@<> BUG#35027093 - test
+#@<> BUG#35027093 + BUG#35468541 - test
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script}" }):
     TEST_BUG35027093(expired_token_server, "The provided token has expired. (400)")
     TEST_BUG35027093(token_refresh_server, "The provided token must be refreshed. (400)")
+    TEST_BUG35468541(fail_head_server, "Bad Request (400)")
 
-#@<> BUG#35027093 - cleanup
+#@<> BUG#35027093 + BUG#35468541 - cleanup
 stop_test_server(expired_token_server)
 stop_test_server(token_refresh_server)
+stop_test_server(fail_head_server)
 
 if os.path.exists(creds_script):
     os.remove(creds_script)

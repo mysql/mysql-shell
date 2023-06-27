@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,10 +27,12 @@
 
 #include "unittest/gtest_clean.h"
 
+#include <chrono>
 #include <thread>
 #include <vector>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace aws {
@@ -51,11 +53,27 @@ TEST(Aws_credentials_provider_test, temporary_credentials) {
 
       result.access_key_id = access_key_id() + std::to_string(m_called);
       result.secret_access_key = secret_access_key() + std::to_string(m_called);
-      result.expiration =
-          Aws_credentials::Clock::now() + std::chrono::milliseconds(100);
+      result.expiration = expiration();
 
       ++m_called;
 
+      return result;
+    }
+
+    static std::string expiration() {
+      using std::chrono::milliseconds;
+      using std::chrono::time_point_cast;
+
+      const auto tp = time_point_cast<milliseconds>(
+          Aws_credentials::Clock::now() + milliseconds(100));
+      auto result = shcore::time_point_to_rfc3339(tp);
+      if (std::string::npos == result.find('.')) {
+        // add milliseconds
+        auto ms = std::to_string(tp.time_since_epoch().count() %
+                                 milliseconds::period::den);
+        ms = "." + std::string(3 - ms.length(), '0') + ms;
+        result = result.substr(0, 19) + ms + result.substr(19);
+      }
       return result;
     }
 

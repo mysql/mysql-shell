@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -875,12 +875,14 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
   }
 
   const auto EXPECT_EXPIRATION = [](Aws_credentials::Time_point expected,
-                                    Aws_credentials::Time_point actual) {
+                                    Aws_credentials::Time_point actual,
+                                    bool adjusted = false) {
     // shcore::time_point_to_rfc3339() does not include information about
     // fractions of seconds, these need to be converted to seconds before we can
     // compare them
     EXPECT_EQ(std::chrono::floor<std::chrono::seconds>(expected),
-              std::chrono::floor<std::chrono::seconds>(actual));
+              std::chrono::floor<std::chrono::seconds>(actual) +
+                  std::chrono::minutes(adjusted ? 5 : 0));
   };
 
   {
@@ -947,7 +949,7 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
     EXPECT_EQ(k_session_token, credentials->session_token());
     EXPECT_TRUE(credentials->temporary());
     EXPECT_FALSE(credentials->expired());
-    EXPECT_EXPIRATION(expiration, credentials->expiration());
+    EXPECT_EXPIRATION(expiration, credentials->expiration(), true);
   }
 
   {
@@ -969,7 +971,7 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
     EXPECT_EQ("", credentials->session_token());
     EXPECT_TRUE(credentials->temporary());
     EXPECT_FALSE(credentials->expired());
-    EXPECT_EXPIRATION(expiration, credentials->expiration());
+    EXPECT_EXPIRATION(expiration, credentials->expiration(), true);
   }
 
   {

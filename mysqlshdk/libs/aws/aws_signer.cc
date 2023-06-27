@@ -271,8 +271,15 @@ bool Aws_signer::auth_data_expired(time_t now) const {
   return m_credentials->expired(now);
 }
 
-bool Aws_signer::is_authorization_error(const rest::Response &response) const {
+bool Aws_signer::is_authorization_error(const rest::Signed_request &request,
+                                        const rest::Response &response) const {
   if (rest::Response::Status_code::BAD_REQUEST == response.status) {
+    if (rest::Type::HEAD == request.type) {
+      // if this was a HEAD request, then we won't get the body and the error
+      // code, retry just in case, it's a lightweight request
+      return true;
+    }
+
     if (const auto error = response.get_error(); error.has_value()) {
       if ("ExpiredToken" == error->code() ||
           "TokenRefreshRequired" == error->code()) {
@@ -283,7 +290,7 @@ bool Aws_signer::is_authorization_error(const rest::Response &response) const {
     }
   }
 
-  return Signer::is_authorization_error(response);
+  return Signer::is_authorization_error(request, response);
 }
 
 bool Aws_signer::update_credentials() {

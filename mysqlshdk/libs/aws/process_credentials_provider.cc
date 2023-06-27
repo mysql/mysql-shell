@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_time.h"
 
 #ifdef _WIN32
 #define pclose _pclose
@@ -235,15 +234,7 @@ Aws_credentials_provider::Credentials Process_credentials_provider::parse_json(
   creds.access_key_id = required(access_key_id());
   creds.secret_access_key = required(secret_access_key());
   creds.session_token = optional("SessionToken");
-
-  if (const auto expiration = optional("Expiration"); expiration.has_value()) {
-    try {
-      creds.expiration = shcore::rfc3339_to_time_point(*expiration);
-    } catch (const std::exception &e) {
-      handle_error(std::string{"failed to parse 'Expiration' value: "} +
-                   e.what());
-    }
-  }
+  creds.expiration = optional("Expiration");
 
   return creds;
 }

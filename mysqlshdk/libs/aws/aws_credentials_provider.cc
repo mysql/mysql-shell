@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,9 +23,13 @@
 
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
 
+#include <chrono>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
+
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace aws {
@@ -96,10 +100,33 @@ std::shared_ptr<Aws_credentials> Aws_credentials_provider::get_credentials() {
 
   if (credentials.access_key_id.has_value() &&
       credentials.secret_access_key.has_value()) {
+    Aws_credentials::Time_point expiration = Aws_credentials::NO_EXPIRATION;
+
+    if (credentials.expiration.has_value()) {
+      log_info("The AWS credentials are set to expire at: %s",
+               credentials.expiration->c_str());
+
+      try {
+        expiration = shcore::rfc3339_to_time_point(*credentials.expiration);
+      } catch (const std::exception &e) {
+        throw std::runtime_error("Failed to parse 'Expiration' value '" +
+                                 *credentials.expiration + "' in " + name());
+      }
+
+      // we adjust the expiration time so credentials are refreshed before they
+      // actually expire; the minimum duration specified by AWS docs is 15
+      // minutes, but we check if we don't end up with a value that's in the
+      // past, as some of our tests use values smaller than that
+      if (const auto adjusted_expiration = expiration - std::chrono::minutes(5);
+          Aws_credentials::Clock::now() < adjusted_expiration) {
+        log_info("The expiration of AWS credentials has been adjusted");
+        expiration = adjusted_expiration;
+      }
+    }
+
     return std::make_shared<Aws_credentials>(
         *credentials.access_key_id, *credentials.secret_access_key,
-        credentials.session_token.value_or(std::string{}),
-        credentials.expiration);
+        credentials.session_token.value_or(std::string{}), expiration);
   }
 
   return {};

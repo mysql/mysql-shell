@@ -243,7 +243,7 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
   do {
     code = rest->execute(request, response);
     retry = Response::is_error(code) &&
-            m_signer->is_authorization_error(*response) &&
+            m_signer->is_authorization_error(*request, *response) &&
             ++retries <= k_authorization_retry_limit;
 
     if (retry) {
