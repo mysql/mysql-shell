@@ -39,18 +39,16 @@ namespace {
 const std::string k_at_manifest_json = "@.manifest.json";
 
 const std::regex k_full_par_parser(
-    R"(^https:\/\/objectstorage\.([^\.]+)\.([^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((.*)\/)?(.*)$)");
+    R"(^(https:\/\/(?:[^\.]+\.)?objectstorage\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*)$)");
 
 namespace par_tokens {
 
-const size_t REGION = 1;
-const size_t FULL_DOMAIN = 2;
-const size_t PARID = 3;
-const size_t NAMESPACE = 4;
-const size_t BUCKET = 5;
-const size_t PREFIX = 6;
-[[maybe_unused]] const size_t DIRNAME = 7;
-const size_t BASENAME = 8;
+const size_t ENDPOINT = 1;
+const size_t PAR_ID = 2;
+const size_t NAMESPACE = 3;
+const size_t BUCKET = 4;
+const size_t PREFIX = 5;
+const size_t BASENAME = 6;
 
 }  // namespace par_tokens
 
@@ -127,26 +125,6 @@ std::string hide_par_secret(const std::string &par, std::size_t start_at) {
   return par.substr(0, p + 3) + "<secret>" + par.substr(n);
 }
 
-std::string PAR_structure::full_url() const {
-  return par_url() + db::uri::pctencode_path(object_prefix + object_name);
-}
-
-std::string PAR_structure::par_url() const {
-  return shcore::str_format("%s/p/%s/n/%s/b/%s/o/", endpoint().c_str(),
-                            par_id.c_str(), ns_name.c_str(), bucket.c_str());
-}
-
-std::string PAR_structure::object_path() const {
-  return shcore::str_format("/p/%s/n/%s/b/%s/o/%s%s", par_id.c_str(),
-                            ns_name.c_str(), bucket.c_str(),
-                            object_prefix.c_str(), object_name.c_str());
-}
-
-std::string PAR_structure::endpoint() const {
-  return shcore::str_format("https://objectstorage.%s.%s", region.c_str(),
-                            domain.c_str());
-}
-
 PAR_type parse_par(const std::string &url, PAR_structure *data) {
   PAR_type ret_val = PAR_type::NONE;
   std::smatch results;
@@ -165,14 +143,24 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
     }
 
     if (data) {
-      data->region = results[par_tokens::REGION];
-      data->domain = results[par_tokens::FULL_DOMAIN];
-      data->par_id = results[par_tokens::PARID];
-      data->ns_name = results[par_tokens::NAMESPACE];
-      data->bucket = results[par_tokens::BUCKET];
-      data->object_prefix =
+      data->m_endpoint = results[par_tokens::ENDPOINT];
+      const auto par_id = results[par_tokens::PAR_ID].str();
+      const auto ns_name = results[par_tokens::NAMESPACE].str();
+      const auto bucket = results[par_tokens::BUCKET].str();
+      data->m_object_prefix =
           shcore::pctdecode(results[par_tokens::PREFIX].str());
-      data->object_name = std::move(object_name);
+      data->m_object_name = std::move(object_name);
+
+      data->m_object_path = shcore::str_format(
+          "/p/%s/n/%s/b/%s/o/%s%s", par_id.c_str(), ns_name.c_str(),
+          bucket.c_str(), data->object_prefix().c_str(),
+          data->object_name().c_str());
+      data->m_par_url =
+          shcore::str_format("%s/p/%s/n/%s/b/%s/o/", data->endpoint().c_str(),
+                             par_id.c_str(), ns_name.c_str(), bucket.c_str());
+      data->m_full_url =
+          data->par_url() +
+          db::uri::pctencode_path(data->object_prefix() + data->object_name());
     }
   }
 
@@ -189,7 +177,7 @@ std::string IPAR_config::describe_self() const {
 }
 
 std::string IPAR_config::describe_url(const std::string &) const {
-  return "prefix='" + m_par.object_prefix + "'";
+  return "prefix='" + m_par.object_prefix() + "'";
 }
 
 std::unique_ptr<storage::IFile> General_par_config::file(

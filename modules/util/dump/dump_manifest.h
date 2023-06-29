@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -213,7 +214,6 @@ class Dump_manifest_reader : public mysqlshdk::storage::IDirectory {
  private:
   std::shared_ptr<Manifest_reader> m_reader;
   Dump_manifest_read_config_ptr m_config;
-  mutable std::unordered_map<std::string, File_info> m_created_objects;
 };
 
 }  // namespace dump
