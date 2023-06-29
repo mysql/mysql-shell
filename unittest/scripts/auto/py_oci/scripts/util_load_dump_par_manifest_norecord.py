@@ -44,6 +44,8 @@ testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"local_infile":1})
 shell.connect(__sandbox_uri2)
 
 manifest_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/@.manifest.json")
+# BUG#35548572 - PARs using dedicated endpoints
+manifest_par_converted = convert_par(manifest_par)
 
 #@<> WL14154-TSFR7_1 - When doing a load using a PAR for a manifest file with the progressFile option not set. Validate that the load fail because progressFile option is mandatory.
 PREPARE_PAR_IS_SECRET_TEST()
@@ -56,29 +58,32 @@ EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": manifest_par}
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14154-TSFR7_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
-remove_local_progress_file()
+for par in [manifest_par, manifest_par_converted]:
+    print(f"Testing PAR: {par}")
+    remove_local_progress_file()
+    PREPARE_PAR_IS_SECRET_TEST()
+    EXPECT_NO_THROWS(lambda: util.load_dump(par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
+    EXPECT_PAR_IS_SECRET()
+    EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+    validate_load_progress(local_progress_file)
+    session.run_sql("drop schema if exists sample")
 
-PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
-EXPECT_PAR_IS_SECRET()
-
-EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-validate_load_progress(local_progress_file)
-session.run_sql("drop schema if exists sample")
-
-#@<> WL14154-TSFR8_1 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
+#@<> WL14154-TSFR8_1 - When doing a load using a PAR for a manifest file with the progressFile option set to read/write PAR object for a file. Validate that the load success and the file given stores the load progress.
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+# BUG#35548572 - PARs using dedicated endpoints
+progress_par_converted = convert_par(progress_par)
 
-PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
-EXPECT_PAR_IS_SECRET()
-
-EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, "shell-test/par-load-progress.json", "par-load-progress.json")
-validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema if exists sample")
-os.remove("par-load-progress.json")
-delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
+for par in [progress_par, progress_par_converted]:
+    print(f"Testing progress PAR: {par}")
+    PREPARE_PAR_IS_SECRET_TEST()
+    EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": par}), "load_dump() using PAR progress file")
+    EXPECT_PAR_IS_SECRET()
+    EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+    testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, "shell-test/par-load-progress.json", "par-load-progress.json")
+    validate_load_progress("par-load-progress.json")
+    session.run_sql("drop schema if exists sample")
+    os.remove("par-load-progress.json")
+    delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
 #@<> Use the progressFile option set to a read/write PAR object for a file that is not in the same bucket where the dump is.
 prepare_empty_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)

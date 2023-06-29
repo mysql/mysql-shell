@@ -2,6 +2,7 @@ import oci
 import datetime
 import time
 import queue
+import re
 import threading
 
 from oci.object_storage.models.create_preauthenticated_request_details import CreatePreauthenticatedRequestDetails
@@ -189,3 +190,14 @@ def EXPECT_PAR_IS_SECRET():
     check_text(testutil.fetch_captured_stdout(False), "stdout")
     check_text(testutil.fetch_captured_stderr(False), "stderr")
     check_text(testutil.cat_file(testutil.get_shell_log_path()), "Shell log")
+
+def convert_par(par):
+    m = re.match(r"^https:\/\/(?:([^\.]+)\.)?objectstorage\.([^\.]+)\.[^\/]+(\/p\/.+\/n\/(.+)\/b\/.*\/o\/(?:(?:.*)\/)?.*)$", par)
+    if m is None:
+        raise Exception(f"This is not a PAR: {par}")
+    if m.group(1) is None:
+        # old format, return an URL with a dedicated endpoint
+        return f"https://{m.group(4)}.objectstorage.{m.group(2)}.oci.customer-oci.com{m.group(3)}"
+    else:
+        # PAR with a dedicated endpoint, return old format
+        return f"https://objectstorage.{m.group(2)}.oraclecloud.com{m.group(3)}"

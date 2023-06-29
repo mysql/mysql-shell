@@ -85,6 +85,10 @@ good_pars = {
     "bucket": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), None, "ListObjects"),
 }
 
+# BUG#35548572 - PARs using dedicated endpoints
+for par_type, par in list(good_pars.items()):
+    good_pars[par_type + "-converted"] = convert_par(par)
+
 #@<> Testing PAR with conflicting options
 for par_type, par in good_pars.items():
     for name, callback in dump_util_cb.items():
@@ -150,6 +154,8 @@ for par_type, par in bad_pars.items():
 #<> Testing dump attempt, with existing data in the target bucket/prefix
 for par_type, par in good_pars.items():
     # Performs an initial dump, to ensure there's data in the target location for the following tests
+    print(f"--> Preparing util.dump_{name} test with existing files in target location using {par_type} PAR")
+    prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE, False)
     util.dump_tables("sakila", ["category"], par)
     for name, callback in dump_util_cb.items():
         print(f"--> Testing util.dump_{name} using {par_type} PAR with existing files in target location")
@@ -165,6 +171,7 @@ for par_type, par in good_pars.items():
         shell.connect(__sandbox_uri1)
         EXPECT_NO_THROWS(lambda: callback(par, None), f"Unexpected error calling util.dump_{name} with {par_type} PAR")
         session.close()
+        print(f"--> Loading dump created by util.dump_{name} using {par_type} PAR")
         shell.connect(__sandbox_uri2)
         PREPARE_PAR_IS_SECRET_TEST()
         EXPECT_NO_THROWS(lambda: util.load_dump(par, {"progressFile":"progress.txt"}), f"Unexpected error loading dump using {par_type} PAR.")

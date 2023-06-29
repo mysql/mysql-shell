@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -295,34 +295,14 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   EXPECT_STREQ(k_objects[Obj_index::SECOND].content.c_str(),
                second_file_data.c_str());
 
-  // Test the read manifest allows writing to file using Read/Write PAR
-  auto rw_par = bucket.create_pre_authenticated_request(
+  // any file which does not belong to the manifest results in an exception
+  const auto rw_par = bucket.create_pre_authenticated_request(
       mysqlshdk::oci::PAR_access_type::OBJECT_READ_WRITE, time, "par-progress",
       "@.load.progress.json");
   const auto progress_file_uri =
       write_config->service_endpoint() + rw_par.access_uri;
-  auto new_progress_file = read_manifest.file(progress_file_uri);
-
-  // Being a new file created with PAR it should NOT exist
-  EXPECT_FALSE(new_progress_file->exists());
-  EXPECT_THROW_LIKE(new_progress_file->file_size(), shcore::Exception,
-                    "Not Found");
-
-  new_progress_file->open(mysqlshdk::storage::Mode::WRITE);
-  new_progress_file->write("MY PROGRESS DATA", 16);
-  new_progress_file->close();
-
-  auto existing_progress_file = read_manifest.file(progress_file_uri);
-
-  // Being an existing file created with PAR it should exist
-  EXPECT_TRUE(existing_progress_file->exists());
-
-  existing_progress_file->open(mysqlshdk::storage::Mode::READ);
-
-  read = existing_progress_file->read(&buffer, 16);
-  std::string progress_data(buffer, read);
-  existing_progress_file->close();
-  EXPECT_STREQ("MY PROGRESS DATA", progress_data.c_str());
+  EXPECT_THROW_LIKE(read_manifest.file(progress_file_uri), shcore::Exception,
+                    "Unknown object in manifest");
 }
 
 }  // namespace testing

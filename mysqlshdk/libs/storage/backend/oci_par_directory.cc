@@ -25,6 +25,9 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <memory>
+#include <unordered_set>
+#include <utility>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/oci/oci_par.h"
@@ -161,8 +164,8 @@ std::string Oci_par_directory::get_list_url() const {
   // files in the current directory
   std::string url = "?fields=name,size&delimiter=/";
 
-  if (!m_config->par().object_prefix.empty()) {
-    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix);
+  if (!m_config->par().object_prefix().empty()) {
+    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix());
   }
 
   if (!m_next_start_with.empty()) {
@@ -179,7 +182,7 @@ std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
   const auto response = shcore::Value::parse(data.data(), data.size()).as_map();
   const auto objects = response->get_array("objects");
   m_next_start_with = response->get_string("nextStartWith", "");
-  const auto prefix_length = m_config->par().object_prefix.length();
+  const auto prefix_length = m_config->par().object_prefix().length();
 
   list.reserve(objects->size());
 

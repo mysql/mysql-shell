@@ -26,6 +26,7 @@
 #include <chrono>
 #include <ctime>
 #include <stdexcept>
+#include <unordered_set>
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -545,7 +546,7 @@ Dump_manifest_reader::Dump_manifest_reader(
     m_reader = std::make_shared<Manifest_reader>(
         std::make_unique<mysqlshdk::storage::backend::Http_object>(
             mysqlshdk::oci::anonymize_par(config->par().full_url()), true),
-        m_config->par().object_prefix);
+        m_config->par().object_prefix());
   }
 }
 
@@ -556,35 +557,8 @@ std::string Dump_manifest_reader::join_path(const std::string &a,
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest_reader::file(
     const std::string &name, const mysqlshdk::storage::File_options &) const {
-  using mysqlshdk::oci::PAR_structure;
-  using mysqlshdk::oci::PAR_type;
-  // On read mode, the first file to be created is the handle for the manifest
-  // file, if it has not been created then we skip the validation below for
-  // additional files
-  //
-  // In READ mode, if a PAR is provided (i.e. a PAR to the progress file),
-  // then the file is "created" and it is kept on a different registry (i.e.
-  // not part of the manifest)
-  PAR_structure data;
-
-  if (parse_par(name, &data) != PAR_type::NONE) {
-    if (data.region == m_config->par().region &&
-        data.domain == m_config->par().domain &&
-        data.ns_name == m_config->par().ns_name &&
-        data.bucket == m_config->par().bucket &&
-        data.object_prefix == m_config->par().object_prefix) {
-      m_created_objects.emplace(std::move(data.object_name),
-                                File_info{data.object_path(), 0});
-
-      return std::make_unique<mysqlshdk::storage::backend::Http_object>(
-          mysqlshdk::oci::anonymize_par(name), true);
-    } else {
-      THROW_ERROR(SHERR_LOAD_MANIFEST_PAR_MISMATCH, name.c_str());
-    }
-  } else {
-    return std::make_unique<Http_manifest_object>(
-        m_reader, m_config, m_config->par().object_prefix + name);
-  }
+  return std::make_unique<Http_manifest_object>(
+      m_reader, m_config, m_config->par().object_prefix() + name);
 }
 
 std::unordered_set<File_info> Dump_manifest_reader::list_files(bool) const {
@@ -593,7 +567,7 @@ std::unordered_set<File_info> Dump_manifest_reader::list_files(bool) const {
   }
 
   // File list must exclude the PAR portion
-  const auto prefix_length = m_config->par().object_prefix.length();
+  const auto prefix_length = m_config->par().object_prefix().length();
   std::unordered_set<IDirectory::File_info> files;
 
   for (const auto &object : m_reader->list_objects()) {
