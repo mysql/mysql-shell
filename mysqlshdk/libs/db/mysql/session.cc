@@ -700,7 +700,14 @@ static void free_result(T *result) {
 bool Session_impl::next_resultset() {
   if (_prev_result) _prev_result.reset();
 
-  return mysql_next_result(_mysql) == 0;
+  int rc = mysql_next_result(_mysql);
+
+  if (rc > 0) {
+    throw Error(mysql_error(_mysql), mysql_errno(_mysql),
+                mysql_sqlstate(_mysql));
+  }
+
+  return rc == 0;
 }
 
 void Session_impl::prepare_fetch(Result *target) {

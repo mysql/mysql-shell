@@ -27,4 +27,23 @@ session.runSql("call multiupdates();");
 
 session.runSql("drop schema bug29451154");
 
+//@<> Test stored procedure error is properly reported
+shell.connect(__uripwd);
+session.createSchema("bug35549008");
+session.runSql("CREATE PROCEDURE  bug35549008.my_sp_with_error() BEGIN SELECT 1; SELECT * FROM UNEXISTING; SELECT 2; END;")
+
+// Tests Classic Protocol
+shell.connect(__mysqluripwd + "/bug35549008");
+session.runSql("call my_sp_with_error()")
+EXPECT_OUTPUT_CONTAINS("ERROR: 1146: ClassicResult.dump: Table 'bug35549008.UNEXISTING' doesn't exist");
+WIPE_OUTPUT()
+
+// Tests X Protocol
+shell.connect(__uripwd + "/bug35549008");
+session.runSql("call my_sp_with_error()")
+EXPECT_OUTPUT_CONTAINS("ERROR: 1146: SqlResult.dump: Table 'bug35549008.UNEXISTING' doesn't exist");
+WIPE_OUTPUT()
+
+session.runSql("drop schema bug35549008");
+
 session.close();
