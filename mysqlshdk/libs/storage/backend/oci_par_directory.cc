@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,10 @@
  */
 
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
+
+#include <memory>
+#include <unordered_set>
+#include <utility>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -47,8 +51,8 @@ std::string Oci_par_directory::get_list_url() const {
   // files in the current directory
   std::string url = "?fields=name,size&delimiter=/";
 
-  if (!m_config->par().object_prefix.empty()) {
-    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix);
+  if (!m_config->par().object_prefix().empty()) {
+    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix());
   }
 
   if (!m_next_start_with.empty()) {
@@ -65,7 +69,7 @@ std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
   const auto response = shcore::Value::parse(data.data(), data.size()).as_map();
   const auto objects = response->get_array("objects");
   m_next_start_with = response->get_string("nextStartWith", "");
-  const auto prefix_length = m_config->par().object_prefix.length();
+  const auto prefix_length = m_config->par().object_prefix().length();
 
   list.reserve(objects->size());
 

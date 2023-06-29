@@ -42,17 +42,18 @@ shell.connect(__sandbox_uri2)
 
 #@<> WL14645-TSFR_1_2 - Successfully load dump with prefix AnyObjectRead PAR
 all_read_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), "shell-test/", "ListObjects")
+# BUG#35548572 - PARs using dedicated endpoints
+all_read_par_converted = convert_par(all_read_par)
 
-remove_file("http_progress.txt")
-
-PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": "http_progress.txt"}), "load_dump() using local progress file")
-EXPECT_PAR_IS_SECRET()
-
-EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-validate_load_progress("http_progress.txt")
-session.run_sql("drop schema if exists sample")
-
+for par in [all_read_par, all_read_par_converted]:
+    print(f"Testing PAR: {par}")
+    remove_local_progress_file()
+    PREPARE_PAR_IS_SECRET_TEST()
+    EXPECT_NO_THROWS(lambda: util.load_dump(par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
+    EXPECT_PAR_IS_SECRET()
+    EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+    validate_load_progress(local_progress_file)
+    session.run_sql("drop schema if exists sample")
 
 #@<> WL14645-TSFR_1_4 - Successfully load dump with prefix AnyObjectReadWrite PAR
 all_read_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-write-par", today_plus_days(1, RFC3339), "shell-test/", "ListObjects")

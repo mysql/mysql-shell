@@ -26,6 +26,8 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
+#include <regex>
+#include <utility>
 
 #include "modules/mod_utils.h"
 #include "modules/util/common/dump/utils.h"
@@ -465,10 +467,13 @@ void Load_dump_options::on_unpacked_options() {
 
 void Load_dump_options::on_log_options(const char *msg) const {
   std::string s = msg;
-  const auto pos = s.find("\"progressFile\":\"https://objectstorage.");
 
-  if (std::string::npos != pos) {
-    s = mysqlshdk::oci::hide_par_secret(s, pos);
+  static const std::regex k_par_progress_file(
+      R"("progressFile":"https://(?:[^\.]+\.)?objectstorage\.)");
+  std::smatch match;
+
+  if (std::regex_search(s, match, k_par_progress_file)) {
+    s = mysqlshdk::oci::hide_par_secret(s, match.position());
   }
 
   log_info("Load options: %s", s.c_str());

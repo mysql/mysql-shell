@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,24 +60,38 @@ struct PAR {
 enum class PAR_type { MANIFEST, PREFIX, GENERAL, NONE };
 
 struct PAR_structure {
-  std::string region;
-  std::string domain;
-  std::string par_id;
-  std::string ns_name;
-  std::string bucket;
-  std::string object_prefix;
-  std::string object_name;
+  inline PAR_type type() const noexcept { return m_type; }
 
-  std::string full_url() const;
-  std::string par_url() const;
-  std::string object_path() const;
-  std::string endpoint() const;
-  PAR_type type() const { return m_type; }
+  inline const std::string &endpoint() const noexcept { return m_endpoint; }
+
+  inline const std::string &object_prefix() const noexcept {
+    return m_object_prefix;
+  }
+
+  inline const std::string &object_name() const noexcept {
+    return m_object_name;
+  }
+
+  inline const std::string &object_path() const noexcept {
+    return m_object_path;
+  }
+
+  inline const std::string &par_url() const noexcept { return m_par_url; }
+
+  inline const std::string &full_url() const noexcept { return m_full_url; }
 
  private:
   friend PAR_type parse_par(const std::string &, PAR_structure *);
 
   PAR_type m_type = PAR_type::NONE;
+
+  std::string m_endpoint;
+  std::string m_object_prefix;
+  std::string m_object_name;
+
+  std::string m_object_path;
+  std::string m_par_url;
+  std::string m_full_url;
 };
 
 std::string to_string(PAR_access_type access_type);
