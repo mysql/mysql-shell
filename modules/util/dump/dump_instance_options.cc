@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,6 +83,12 @@ void Dump_instance_options::on_unpacked_options() {
           "The 'includeUsers' option cannot be used if the 'users' option is "
           "set to false.");
     }
+  }
+
+  if (mds_compatibility().has_value()) {
+    // if MDS compatibility option is set, the schema name used by the OCI to
+    // store the audit plugin's configuration should not be dumped
+    filters().schemas().exclude("mysql_audit");
   }
 
   m_filter_conflicts |= filters().schemas().error_on_conflicts();
