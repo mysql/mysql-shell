@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
+
 #include <algorithm>
 #include <string_view>
 
@@ -33,7 +35,6 @@
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -41,8 +42,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 namespace {
 
@@ -663,7 +663,8 @@ void Reboot_cluster_from_complete_outage::check_instance_configuration() {
 /*
  * Reboots the seed instance
  */
-void Reboot_cluster_from_complete_outage::reboot_seed() {
+void Reboot_cluster_from_complete_outage::reboot_seed(
+    const MetadataStorage &metadata) {
   // if the cluster isn't part of a set anymore
   if (m_cs_info.removed_from_set) {
     // enable mysql_disable_super_read_only_if_primary if needed
@@ -752,266 +753,258 @@ void Reboot_cluster_from_complete_outage::reboot_seed() {
                                   "' has an empty GTID set.",
                               SHERR_DBA_GTID_SYNC_ERROR);
     }
+
+    if (supports_mysql_communication_stack(m_target_instance->get_version()) &&
+        !m_options.gr_options.communication_stack.has_value()) {
+      auto comm_stack = m_cluster->impl()->get_comm_stack();
+      if (comm_stack.has_value())
+        m_options.gr_options.communication_stack = *comm_stack;
+    }
   }
 
   // Re-bootstrap
-  {
-    // Set the internal configuration object: read/write configs from the
-    // server.
-    auto cfg = mysqlsh::dba::create_server_config(
-        m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
-    // Common informative logging
-    cluster_topology_executor_ops::log_used_gr_options(m_options.gr_options);
+  // Set the internal configuration object: read/write configs from the
+  // server.
+  auto cfg = mysqlsh::dba::create_server_config(
+      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
-    // If the Cluster is using the 'MySQL' communication stack, we cannot
-    // guarantee that:
-    //
-    //   - The recovery account exists and is configured at every Cluster
-    //   member
-    //   - The recovery credentials didn't change (for example after a
-    //   .resetRecoveryAccountsPassword())
-    //   - The recovery credentials have the required Grants
-    //
-    // For those reasons, we must simply re-create the recovery account
-    bool requires_certificates{false};
-    if (m_options.gr_options.communication_stack.value_or("") ==
-        kCommunicationStackMySQL) {
-      // If it's a Replica cluster, we must disable the binary logging and
-      // ensure the are created later
-      if (m_cluster->impl()->is_cluster_set_member() &&
-          !m_cluster->impl()->is_primary_cluster()) {
-        m_target_instance->execute("SET session sql_log_bin = 0");
-      }
+  // Common informative logging
+  cluster_topology_executor_ops::log_used_gr_options(m_options.gr_options);
 
-      // Disable SRO if enabled
-      if (m_target_instance->get_sysvar_bool("super_read_only", false)) {
-        m_target_instance->set_sysvar("super_read_only", false);
-      }
+  // If the Cluster is using the 'MySQL' communication stack, we cannot
+  // guarantee that:
+  //   - The recovery account exists and is configured at every Cluster
+  //   member
+  //   - The recovery credentials didn't change (for example after a
+  //   .resetRecoveryAccountsPassword())
+  //   - The recovery credentials have the required Grants
+  //
+  // For those reasons, we must simply re-create the recovery account. And we
+  // can only this if were aren't a member of a ClusterSet *or* we are but we
+  // are also the primary that hasn't been invalidated. This is to prevent
+  // errant transactions from being created which would disallow the instance
+  // from being rejoined later.
+  bool requires_certificates{false};
+  if ((m_options.gr_options.communication_stack.value_or("") ==
+       kCommunicationStackMySQL) &&
+      (!m_cs_info.is_member ||
+       (m_cs_info.is_primary && !m_cs_info.is_primary_invalidated))) {
+    log_info("Re-creating recovery account.");
 
-      // Get the recovery account stored in the Metadata
-      std::string recovery_user;
-      std::vector<std::string> recovery_user_hosts;
-      try {
-        std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-            m_cluster->impl()->get_replication_user(*m_target_instance);
-      } catch (const shcore::Exception &re) {
-        if (re.is_runtime()) {
-          mysqlsh::current_console()->print_error(
-              "Unsupported recovery account has been found for "
-              "instance " +
-              m_target_instance->descr() +
-              ". Operations such as "
-              "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
-              "<Cluster>.<<<addInstance>>>() may fail. Please remove and "
-              "add the instance back to the Cluster to ensure a "
-              "supported recovery account is used.");
-        }
-        throw;
-      }
+    // If it's a Replica cluster, we must disable the binary logging and
+    // ensure the are created later
+    if (m_cs_info.is_member && !m_cs_info.is_primary) {
+      m_target_instance->execute("SET session sql_log_bin = 0");
+    }
 
-      mysqlshdk::mysql::Auth_options repl_account;
-      repl_account.user = recovery_user;
+    // Disable SRO if enabled
+    if (m_target_instance->get_sysvar_bool("super_read_only", false)) {
+      m_target_instance->set_sysvar("super_read_only", false);
+    }
 
-      // Check if the replication user already exists to delete it
-      // before creating it again
-      for (const auto &hostname : recovery_user_hosts) {
-        if (!m_target_instance->user_exists(repl_account.user, hostname))
-          continue;
-
-        current_console()->print_note(shcore::str_format(
-            "User '%s'@'%s' already existed at instance '%s'. It will be "
-            "deleted and created again with a new password.",
-            repl_account.user.c_str(), hostname.c_str(),
+    // Get the recovery account stored in the Metadata
+    std::string recovery_user;
+    std::vector<std::string> recovery_user_hosts;
+    try {
+      std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+          m_cluster->impl()->get_replication_user(*m_target_instance);
+    } catch (const shcore::Exception &re) {
+      if (re.is_runtime()) {
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unsupported recovery account has been found for instance %s. "
+            "Operations such as "
+            "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
+            "<Cluster>.<<<addInstance>>>() may fail. Please remove and add the "
+            "instance back to the Cluster to ensure a supported recovery "
+            "account is used.",
             m_target_instance->descr().c_str()));
-
-        m_target_instance->drop_user(repl_account.user, hostname);
       }
-
-      // Get the replicationAllowedHost value set for the Cluster
-      std::string repl_account_host = "%";
-
-      if (shcore::Value allowed_host;
-          m_cluster->impl()
-              ->get_metadata_storage()
-              ->query_cluster_set_attribute(
-                  m_cluster->impl()->get_id(),
-                  k_cluster_attribute_replication_allowed_host,
-                  &allowed_host) &&
-          allowed_host.type == shcore::String &&
-          !allowed_host.as_string().empty()) {
-        repl_account_host = allowed_host.as_string();
-      }
-
-      // Create a new recovery account
-      {
-        std::vector<std::string> hosts;
-        hosts.push_back(repl_account_host);
-
-        mysqlshdk::gr::Create_recovery_user_options options;
-        options.clone_supported = true;
-        options.auto_failover = false;
-        options.mysql_comm_stack_supported = true;
-
-        auto auth_type = m_cluster->impl()->query_cluster_auth_type();
-        switch (auth_type) {
-          case Replication_auth_type::PASSWORD:
-          case Replication_auth_type::CERT_ISSUER_PASSWORD:
-          case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-            options.requires_password = true;
-            break;
-          default:
-            options.requires_password = false;
-            break;
-        }
-
-        switch (auth_type) {
-          case Replication_auth_type::CERT_SUBJECT:
-          case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-            options.cert_subject =
-                m_cluster->impl()->query_cluster_instance_auth_cert_subject(
-                    *m_target_instance);
-            [[fallthrough]];
-          case Replication_auth_type::CERT_ISSUER:
-          case Replication_auth_type::CERT_ISSUER_PASSWORD:
-            options.cert_issuer =
-                m_cluster->impl()->query_cluster_auth_cert_issuer();
-            requires_certificates = true;
-            break;
-          default:
-            break;
-        }
-
-        repl_account = mysqlshdk::gr::create_recovery_user(
-            repl_account.user, *m_target_instance, hosts, options);
-      }
-
-      // Change GR's recovery replication credentials in all possible
-      // donors so whenever GR picks a suitable donor it will be able to
-      // connect and authenticate at the target
-      // NOTE: Instances in RECOVERING must be skipped since won't be used
-      // as donor and the change source command would fail anyway
-      mysqlshdk::mysql::Replication_credentials_options options;
-      options.password = repl_account.password.value_or("");
-
-      mysqlshdk::mysql::change_replication_credentials(
-          *m_target_instance, mysqlshdk::gr::k_gr_recovery_channel,
-          repl_account.user, options);
-
-      if (m_cluster->impl()->is_cluster_set_member() &&
-          !m_cluster->impl()->is_primary_cluster()) {
-        m_target_instance->execute("SET session sql_log_bin = 1");
-      }
-
-      // Insert the recovery account on the Metadata Schema.
-      m_cluster->impl()->get_metadata_storage()->update_instance_repl_account(
-          m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-          Replica_type::GROUP_MEMBER, repl_account.user, repl_account_host);
-
-      // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
-      // since reboot will re-use the values persisted in the instance.
-      // NOTE: AUTOMATIC because there's no other allowed value when using the
-      // 'MySQL' communication stack
-      m_options.gr_options.ip_allowlist = "AUTOMATIC";
+      throw;
     }
 
-    // Make sure the GR plugin is installed (only installed if needed).
-    // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
-    //       Disable read-only temporarily to install the plugin if needed.
-    mysqlshdk::gr::install_group_replication_plugin(*m_target_instance,
-                                                    nullptr);
+    mysqlshdk::mysql::Auth_options repl_account;
+    repl_account.user = recovery_user;
 
-    if (m_is_autorejoining)
-      cluster_topology_executor_ops::ensure_not_auto_rejoining(
-          m_target_instance);
+    // Check if the replication user already exists to delete it
+    // before creating it again
+    for (const auto &hostname : recovery_user_hosts) {
+      if (!m_target_instance->user_exists(repl_account.user, hostname))
+        continue;
 
-    if (m_options.gr_options.group_name.has_value() &&
-        !m_options.gr_options.group_name->empty()) {
-      log_info("Using Group Replication group name: %s",
-               m_options.gr_options.group_name->c_str());
+      current_console()->print_note(shcore::str_format(
+          "User '%s'@'%s' already existed at instance '%s'. It will be deleted "
+          "and created again with a new password.",
+          repl_account.user.c_str(), hostname.c_str(),
+          m_target_instance->descr().c_str()));
+
+      m_target_instance->drop_user(repl_account.user, hostname);
     }
 
-    // Get the value for transaction size limit stored in the Metadata if it
-    // wasn't set by the caller
-    if (!m_options.gr_options.transaction_size_limit.has_value()) {
-      int64_t transaction_size_limit;
+    // Get the replicationAllowedHost value set for the Cluster
+    std::string repl_account_host = "%";
 
-      if (shcore::Value value;
-          m_cluster->impl()->get_metadata_storage()->query_cluster_attribute(
-              m_cluster->impl()->get_id(),
-              k_cluster_attribute_transaction_size_limit, &value)) {
-        transaction_size_limit = value.as_int();
-      } else {
-        // Use what's set in the instance
-        transaction_size_limit = get_transaction_size_limit(
-            *m_cluster->impl()->get_cluster_server());
+    if (shcore::Value allowed_host;
+        m_cluster->impl()->get_metadata_storage()->query_cluster_set_attribute(
+            m_cluster->impl()->get_id(),
+            k_cluster_attribute_replication_allowed_host, &allowed_host) &&
+        allowed_host.type == shcore::String &&
+        !allowed_host.as_string().empty()) {
+      repl_account_host = allowed_host.as_string();
+    }
+
+    // Create a new recovery account
+    {
+      std::vector<std::string> hosts;
+      hosts.push_back(repl_account_host);
+
+      mysqlshdk::gr::Create_recovery_user_options options;
+      options.clone_supported = true;
+      options.auto_failover = false;
+      options.mysql_comm_stack_supported = true;
+
+      auto auth_type = m_cluster->impl()->query_cluster_auth_type();
+      switch (auth_type) {
+        case Replication_auth_type::PASSWORD:
+        case Replication_auth_type::CERT_ISSUER_PASSWORD:
+        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          options.requires_password = true;
+          break;
+        default:
+          options.requires_password = false;
+          break;
       }
 
-      log_info("Using Group Replication transaction size limit: %" PRId64,
-               transaction_size_limit);
-
-      m_options.gr_options.transaction_size_limit = transaction_size_limit;
-    }
-
-    // Get the persisted value of paxosSingleLeader to use it
-    if (!m_options.gr_options.paxos_single_leader.has_value() &&
-        m_target_instance->is_set_persist_supported()) {
-      std::string paxos_single_leader =
-          m_target_instance
-              ->get_persisted_value("group_replication_paxos_single_leader")
-              .value_or("");
-
-      if (!paxos_single_leader.empty()) {
-        m_options.gr_options.paxos_single_leader =
-            shcore::str_caseeq(paxos_single_leader, "on") ? true : false;
+      switch (auth_type) {
+        case Replication_auth_type::CERT_SUBJECT:
+        case Replication_auth_type::CERT_SUBJECT_PASSWORD:
+          options.cert_subject =
+              m_cluster->impl()->query_cluster_instance_auth_cert_subject(
+                  *m_target_instance);
+          [[fallthrough]];
+        case Replication_auth_type::CERT_ISSUER:
+        case Replication_auth_type::CERT_ISSUER_PASSWORD:
+          options.cert_issuer =
+              m_cluster->impl()->query_cluster_auth_cert_issuer();
+          requires_certificates = true;
+          break;
+        default:
+          break;
       }
+
+      repl_account = mysqlshdk::gr::create_recovery_user(
+          repl_account.user, *m_target_instance, hosts, options);
     }
 
-    resolve_ssl_mode_option("memberSslMode", "Cluster", *m_target_instance,
-                            &m_options.gr_options.ssl_mode);
+    // Change GR's recovery replication credentials in all possible
+    // donors so whenever GR picks a suitable donor it will be able to
+    // connect and authenticate at the target
+    // NOTE: Instances in RECOVERING must be skipped since won't be used
+    // as donor and the change source command would fail anyway
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = repl_account.password.value_or("");
 
-    log_info("Starting cluster with '%s' (%s) using account %s",
-             m_target_instance->descr().c_str(),
-             to_string(m_options.gr_options.ssl_mode).c_str(),
-             m_target_instance->get_connection_options().get_user().c_str());
+    mysqlshdk::mysql::change_replication_credentials(
+        *m_target_instance, mysqlshdk::gr::k_gr_recovery_channel,
+        repl_account.user, options);
 
-    // Determine the topology mode to use.
-    auto multi_primary = m_cluster->impl()->get_cluster_topology_type() ==
-                         mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
-
-    // Start the cluster to bootstrap Group Replication.
-    mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
-                                requires_certificates, multi_primary,
-                                cfg.get());
-
-    // Wait for the seed instance to become ONLINE in the Group.
-    // Especially relevant on Replica Clusters to ensure the seed instance is
-    // already ONLINE when other members try to rejoin the Cluster, otherwise,
-    // the rejoining members will fail to rejoin because the managed
-    // replication channel may be started with auto-failover while the members
-    // haven't obtained those channel configurations yet.
-    uint32_t timeout = 5 * 60 * 1000;  // 5 minutes
-
-    mysqlsh::current_console()->print_info(
-        "* Waiting for seed instance to become ONLINE...");
-
-    mysqlshdk::gr::wait_member_online(*m_target_instance, timeout);
-
-    // Update the instances Metadata to ensure 'grLocal' reflects the new value
-    // for local_address
-    // Do it only when communicationStack is used and it's not a replica cluster
-    // to not introduce errant transactions
-    if (m_options.gr_options.communication_stack.has_value() &&
-        (!m_cluster->impl()->is_cluster_set_member() ||
-         m_cluster->impl()->is_primary_cluster())) {
-      m_cluster->impl()->update_metadata_for_instance(*m_target_instance);
+    if (m_cs_info.is_member && !m_cs_info.is_primary) {
+      m_target_instance->execute("SET session sql_log_bin = 1");
     }
 
-    log_debug("Instance add finished");
+    // Insert the recovery account on the Metadata Schema.
+    metadata.update_instance_repl_account(
+        m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+        Replica_type::GROUP_MEMBER, repl_account.user, repl_account_host);
 
-    current_console()->print_info(m_target_instance->descr() +
-                                  " was restored.");
+    // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
+    // since reboot will re-use the values persisted in the instance.
+    // NOTE: AUTOMATIC because there's no other allowed value when using the
+    // 'MySQL' communication stack
+    m_options.gr_options.ip_allowlist = "AUTOMATIC";
   }
+
+  // Make sure the GR plugin is installed (only installed if needed).
+  // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
+  //       Disable read-only temporarily to install the plugin if needed.
+  mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
+
+  if (m_is_autorejoining)
+    cluster_topology_executor_ops::ensure_not_auto_rejoining(m_target_instance);
+
+  if (m_options.gr_options.group_name.has_value() &&
+      !m_options.gr_options.group_name->empty()) {
+    log_info("Using Group Replication group name: %s",
+             m_options.gr_options.group_name->c_str());
+  }
+
+  // Get the value for transaction size limit stored in the Metadata if it
+  // wasn't set by the caller
+  if (!m_options.gr_options.transaction_size_limit.has_value()) {
+    int64_t transaction_size_limit;
+
+    if (shcore::Value value;
+        m_cluster->impl()->get_metadata_storage()->query_cluster_attribute(
+            m_cluster->impl()->get_id(),
+            k_cluster_attribute_transaction_size_limit, &value)) {
+      transaction_size_limit = value.as_int();
+    } else {
+      // Use what's set in the instance
+      transaction_size_limit =
+          get_transaction_size_limit(*m_cluster->impl()->get_cluster_server());
+    }
+
+    log_info("Using Group Replication transaction size limit: %" PRId64,
+             transaction_size_limit);
+
+    m_options.gr_options.transaction_size_limit = transaction_size_limit;
+  }
+
+  // Get the persisted value of paxosSingleLeader to use it
+  if (!m_options.gr_options.paxos_single_leader.has_value() &&
+      m_target_instance->is_set_persist_supported()) {
+    std::string paxos_single_leader =
+        m_target_instance
+            ->get_persisted_value("group_replication_paxos_single_leader")
+            .value_or("");
+
+    if (!paxos_single_leader.empty()) {
+      m_options.gr_options.paxos_single_leader =
+          shcore::str_caseeq(paxos_single_leader, "on") ? true : false;
+    }
+  }
+
+  resolve_ssl_mode_option("memberSslMode", "Cluster", *m_target_instance,
+                          &m_options.gr_options.ssl_mode);
+
+  log_info("Starting cluster with '%s' (%s) using account %s",
+           m_target_instance->descr().c_str(),
+           to_string(m_options.gr_options.ssl_mode).c_str(),
+           m_target_instance->get_connection_options().get_user().c_str());
+
+  // Determine the topology mode to use.
+  auto multi_primary = m_cluster->impl()->get_cluster_topology_type() ==
+                       mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+
+  // Start the cluster to bootstrap Group Replication.
+  mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
+                              requires_certificates, multi_primary, cfg.get());
+
+  // Wait for the seed instance to become ONLINE in the Group.
+  // Especially relevant on Replica Clusters to ensure the seed instance is
+  // already ONLINE when other members try to rejoin the Cluster, otherwise,
+  // the rejoining members will fail to rejoin because the managed
+  // replication channel may be started with auto-failover while the members
+  // haven't obtained those channel configurations yet.
+  uint32_t timeout = 5 * 60 * 1000;  // 5 minutes
+
+  mysqlsh::current_console()->print_info(
+      "* Waiting for seed instance to become ONLINE...");
+
+  mysqlshdk::gr::wait_member_online(*m_target_instance, timeout);
+
+  current_console()->print_info(shcore::str_format(
+      "%s was restored.", m_target_instance->descr().c_str()));
 }
 
 std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
@@ -1134,7 +1127,8 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     }
   }
 
-  if (m_options.switch_communication_stack && m_cs_info.is_primary_invalidated)
+  if (m_options.switch_communication_stack.has_value() &&
+      m_cs_info.is_primary_invalidated)
     throw shcore::Exception::runtime_error(
         "Cannot switch the communication stack in an invalidated Cluster "
         "because its instances won't be removed or rejoined.");
@@ -1273,18 +1267,19 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
       instances.push_back(std::exchange(m_target_instance, best_instance_gtid));
       best_instance_gtid = nullptr;
 
-      reboot_seed();
-
       // refresh metadata and cluster info
       std::shared_ptr<MetadataStorage> metadata;
-      std::shared_ptr<mysqlsh::dba::Cluster> cluster;
-
       m_dba->connect_to_target_group(m_target_instance, &metadata, nullptr,
                                      false);
+
       current_ipool()->set_metadata(metadata);
 
-      cluster = m_dba->get_cluster(cluster_impl->get_name().c_str(), metadata,
-                                   m_target_instance, true, true);
+      reboot_seed(*metadata);
+
+      // refresh metadata and cluster info
+      auto cluster =
+          m_dba->get_cluster(cluster_impl->get_name().c_str(), metadata,
+                             m_target_instance, true, true);
 
       cluster_ret = cluster;
       cluster_impl = cluster->impl();
@@ -1292,7 +1287,21 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
   } else if (!m_options.get_dry_run()) {
     // use the target instance as seed
-    reboot_seed();
+    reboot_seed(*(cluster_impl->get_metadata_storage()));
+  }
+
+  // Update the instances Metadata to ensure 'grLocal' reflects the new value
+  // for local_address. But do it only when communicationStack is used and it's
+  // not a replica cluster to not introduce errant transactions.
+  if (m_options.gr_options.communication_stack.has_value() &&
+      (!m_cs_info.is_member ||
+       (m_cs_info.is_primary && !m_cs_info.is_primary_invalidated))) {
+    // if the cluster was fenced, we need to check if we can actually update the
+    // MD, otherwise, it's up to the user to call rescan() after the reboot
+    if (!cluster_impl->get_metadata_storage()->get_md_server()->get_sysvar_bool(
+            "super_read_only", false)) {
+      cluster_impl->update_metadata_for_instance(*m_target_instance);
+    }
   }
 
   bool rejoin_remaning_instances = true;
@@ -1432,5 +1441,4 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   return cluster_ret;
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

@@ -742,10 +742,11 @@ void MetadataStorage::update_clusters_attribute(std::string_view attribute,
 }
 
 bool MetadataStorage::query_cluster_capability(const Cluster_id &cluster_id,
-                                               const std::string &capability,
+                                               std::string_view capability,
                                                shcore::Value *out_value) const {
-  std::string attribute =
-      std::string(k_cluster_capabilities) + "." + capability;
+  auto attribute = shcore::str_format("%s.%.*s", k_cluster_capabilities,
+                                      static_cast<int>(capability.length()),
+                                      capability.data());
 
   return query_cluster_attribute(cluster_id, attribute, out_value);
 }
@@ -1294,9 +1295,9 @@ std::string repl_account_host_key(Cluster_type type,
 }  // namespace
 
 void MetadataStorage::update_instance_repl_account(
-    const std::string &instance_uuid, Cluster_type type,
-    Replica_type replica_type, const std::string &recovery_account_user,
-    const std::string &recovery_account_host, Transaction_undo *undo) {
+    std::string_view instance_uuid, Cluster_type type,
+    Replica_type replica_type, std::string_view recovery_account_user,
+    std::string_view recovery_account_host, Transaction_undo *undo) const {
   shcore::sqlstring query;
 
   if (undo)
@@ -1306,12 +1307,11 @@ void MetadataStorage::update_instance_repl_account(
         shcore::sqlformat("mysql_server_uuid = ?", instance_uuid));
 
   if (!recovery_account_user.empty()) {
-    query = shcore::sqlstring(
+    query =
         "UPDATE mysql_innodb_cluster_metadata.instances"
         " SET attributes = json_set(COALESCE(attributes, '{}'),"
         "  ?, ?,  ?, ?)"
-        " WHERE mysql_server_uuid = ?",
-        0);
+        " WHERE mysql_server_uuid = ?"_sql;
     query << repl_account_user_key(type, replica_type);
     query << recovery_account_user;
     query << repl_account_host_key(type, replica_type);
@@ -1321,11 +1321,10 @@ void MetadataStorage::update_instance_repl_account(
   } else {
     // if recovery_account user is empty, clear existing recovery attributes
     // of the instance from the metadata.
-    query = shcore::sqlstring(
+    query =
         "UPDATE mysql_innodb_cluster_metadata.instances"
         " SET attributes = json_remove(attributes, ?, ?)"
-        " WHERE mysql_server_uuid = ?",
-        0);
+        " WHERE mysql_server_uuid = ?"_sql;
     query << repl_account_user_key(type, replica_type);
     query << repl_account_host_key(type, replica_type);
     query << instance_uuid;

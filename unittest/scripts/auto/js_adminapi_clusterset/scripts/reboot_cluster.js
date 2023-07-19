@@ -114,7 +114,6 @@ disable_auto_rejoin(__mysql_sandbox_port4);
 disable_auto_rejoin(__mysql_sandbox_port6);
 disable_auto_rejoin(__mysql_sandbox_port2);
 
-shell.connect(__sandbox_uri2);
 testutil.killSandbox(__mysql_sandbox_port6);
 testutil.killSandbox(__mysql_sandbox_port4);
 testutil.killSandbox(__mysql_sandbox_port2);

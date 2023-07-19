@@ -34,16 +34,10 @@ CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True)
 outpath = run_collect_sq(__sandbox_uri1, None)
 CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True)
 
-session.run_sql("drop schema mysql_innodb_cluster_metadata")
+reset_instance(session1);
 
-session2.close()
-testutil.destroy_sandbox(__mysql_sandbox_port2)
-testutil.deploy_sandbox(__mysql_sandbox_port2, "root")
 session2 = mysql.get_session(__sandbox_uri2)
-
-r.disconnect()
-
-session1.run_sql("reset master")
+reset_instance(session2);
 
 #@<> Setup InnoDB Cluster
 shell.connect(__sandbox_uri1)
@@ -51,6 +45,10 @@ c = dba.create_cluster("cluster", {"gtidSetIsComplete":1})
 c.add_instance(__sandbox_uri2)
 c.add_instance(__sandbox_uri3)
 
+session2 = mysql.get_session(__sandbox_uri2)
+session3 = mysql.get_session(__sandbox_uri3)
+
+testutil.wait_member_transactions(__mysql_sandbox_port2, __mysql_sandbox_port1)
 testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
 
 #@<> highload and slowQuery 
@@ -80,6 +78,11 @@ run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), None, allMembers=1
 EXPECT_STDOUT_CONTAINS("Access denied")
 
 #@<> Shutdown instance
+
+testutil.change_sandbox_conf(__mysql_sandbox_port2, 'group_replication_start_on_boot', 'OFF')
+if __version_num > 80011:
+    session2.run_sql("RESET PERSIST group_replication_start_on_boot")
+
 session2.close()
 testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 
@@ -100,12 +103,21 @@ CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_sessi
 #@<> Expand to ClusterSet {VER(>8.0.0)}
 testutil.start_sandbox(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
-c = dba.reboot_cluster_from_complete_outage()
+
+shell.connect(__sandbox_uri1)
+
+c = dba.reboot_cluster_from_complete_outage("cluster")
+
 c.rejoin_instance(__sandbox_uri2)
 c.rejoin_instance(__sandbox_uri3)
 
+session2 = mysql.get_session(__sandbox_uri2)
+session3 = mysql.get_session(__sandbox_uri3)
+
 cs = c.create_cluster_set("cset")
 c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2")
+
+session4 = mysql.get_session(__sandbox_uri4)
 
 testutil.wait_member_transactions(__mysql_sandbox_port4, __mysql_sandbox_port1)
 testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)

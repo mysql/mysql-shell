@@ -1,6 +1,8 @@
 // Regression for BUG#29265869: DBA.REBOOTCLUSTERFROMCOMPLETEOUTAGE OVERRIDES SOME OF THE PERSISTED GR SETTINGS
 // - rebootClusterFromCompleteOutage() should not change any GR setting.
 
+//@<> INCLUDE gr_utils.inc
+
 //@ BUG29265869 - Deploy sandboxes.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -398,6 +400,28 @@ EXPECT_THROWS(function(){
 
 EXPECT_NO_THROWS(function(){ dba.rebootClusterFromCompleteOutage("test", {force: true}); });
 EXPECT_OUTPUT_CONTAINS(`Not rejoining instance '${hostname}:${__mysql_sandbox_port2}' because its GTID set isn't compatible with '${hostname}:${__mysql_sandbox_port1}'`);
+
+session1.close();
+session2.close();
+
+//@<> BUG35341955 - Rebooting a cluster with comm stack "mysql" assumes "xcom" {VER(>= 8.0.27)}
+
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster("cluster", {communicationStack: "MYSQL"}); });
+
+session.runSql("STOP group_replication");
+session.runSql("SET global super_read_only = 0");
+
+var server_uuid = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+var recovery_account = session.runSql(`SELECT (attributes->>'$.recoveryAccountUser') FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = '${server_uuid}'`).fetchOne()[0];
+
+session.runSql(`DROP USER '${recovery_account}'`);
+
+EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage(); });
+
+check_gr_settings(cluster, [__endpoint1], "MYSQL");
 
 //@<> BUG30501978: Cleanup
 session.close();

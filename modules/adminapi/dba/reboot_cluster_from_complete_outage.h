@@ -96,7 +96,7 @@ class Reboot_cluster_from_complete_outage {
   /*
    * Reboots the seed instance
    */
-  void reboot_seed();
+  void reboot_seed(const MetadataStorage &metadata);
 
  protected:
   shcore::Scoped_callback_list m_undo_list;

@@ -623,6 +623,8 @@ class Cluster_impl final : public Base_cluster_impl,
   std::shared_ptr<Cluster_set_impl> get_cluster_set_object(
       bool print_warnings = false, bool check_status = false) const;
 
+  std::optional<std::string> get_comm_stack() const;
+
   /**
    * Reset the password for the Cluster's replication account in use for the
    * ClusterSet replication channel

@@ -2416,6 +2416,16 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
   return cs;
 }
 
+std::optional<std::string> Cluster_impl::get_comm_stack() const {
+  if (shcore::Value value; get_metadata_storage()->query_cluster_capability(
+                               get_id(), kCommunicationStack, &value) &&
+                           (value.get_type() == shcore::Map)) {
+    return value.as_map()->get_string("value");
+  }
+
+  return {};
+}
+
 void Cluster_impl::refresh_connections() {
   get_metadata_storage()->get_md_server()->reconnect_if_needed("Metadata");
 

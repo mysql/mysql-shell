@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -96,6 +96,7 @@ def collect_diagnostics(path: str, **options):
 
     do_collect_diagnostics(session, path, orig_args=options, **options)
 
+    session.close()
 
 @plugin_function("util.debug.collectHighLoadDiagnostics", cli=True)
 def collect_high_load_diagnostics(path: str, **options):
@@ -172,6 +173,8 @@ def collect_high_load_diagnostics(path: str, **options):
     do_collect_high_load_diagnostics(
         session, path, orig_args=options, **options)
 
+    session.close()
+
 
 @plugin_function("util.debug.collectSlowQueryDiagnostics", cli=True)
 def collect_slow_query_diagnostics(path: str, query: str, **options):
@@ -235,3 +238,5 @@ def collect_slow_query_diagnostics(path: str, query: str, **options):
 
     do_collect_slow_query_diagnostics(
         session, path, query, orig_args=options, **options)
+
+    session.close()

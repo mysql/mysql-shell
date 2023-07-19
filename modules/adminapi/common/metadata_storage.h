@@ -263,7 +263,7 @@ class MetadataStorage {
       const std::set<std::string> &allowed_operations);
 
   bool query_cluster_capability(const Cluster_id &cluster_id,
-                                const std::string &capability,
+                                std::string_view capability,
                                 shcore::Value *out_value) const;
 
   void update_cluster_set_attribute(const Cluster_set_id &clusterset_id,
@@ -330,12 +330,12 @@ class MetadataStorage {
    * of the instance with the given uuid is dropped from the metadata.
    * @param recovery_account_host string with the host of the recovery user.
    */
-  void update_instance_repl_account(const std::string &instance_uuid,
+  void update_instance_repl_account(std::string_view instance_uuid,
                                     Cluster_type type,
                                     Replica_type replica_type,
-                                    const std::string &recovery_account_user,
-                                    const std::string &recovery_account_host,
-                                    Transaction_undo *undo = nullptr);
+                                    std::string_view recovery_account_user,
+                                    std::string_view recovery_account_host,
+                                    Transaction_undo *undo = nullptr) const;
   /**
    * Fetch from the metadata the recovery account being used by the instance
    * with the given uuid.
