@@ -205,11 +205,66 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
           channel_status(&cs_channel, &master_info, &relay_info, "",
                          extended - 1, true, false);
 
-      if (extended > 0)
+      if (extended > 0) {
         chstatus->set("receiver",
                       shcore::Value(cluster->get_cluster_server()->descr()));
 
-      res->set("clusterSetReplication", shcore::Value(chstatus));
+        // SSL channel mode
+        {
+          std::string_view ssl_mode = kClusterSSLModeDisabled;
+          if (master_info.enabled_ssl != 0) {
+            bool certs_enabled =
+                !master_info.ssl_ca.empty() || !master_info.ssl_capath.empty();
+            if (master_info.ssl_verify_server_cert) {
+              assert(certs_enabled);
+              ssl_mode = kClusterSSLModeVerifyIdentity;
+            } else {
+              ssl_mode = certs_enabled ? kClusterSSLModeVerifyCA
+                                       : kClusterSSLModeRequired;
+            }
+          }
+
+          chstatus->set("replicationSslMode", shcore::Value(ssl_mode));
+        }
+
+        // SSL info
+        if (primary) {
+          auto repl_user =
+              clusterset->get_metadata_storage()->get_cluster_repl_account_user(
+                  cluster->get_id());
+
+          std::string ssl_cipher, ssl_version;
+          mysqlshdk::mysql::iterate_thread_variables(
+              *primary, "Binlog Dump GTID", repl_user, "Ssl%",
+              [&ssl_cipher, &ssl_version](std::string var_name,
+                                          std::string var_value) {
+                if (var_name == "Ssl_cipher")
+                  ssl_cipher = std::move(var_value);
+                else if (var_name == "Ssl_version")
+                  ssl_version = std::move(var_value);
+
+                return (ssl_cipher.empty() || ssl_version.empty());
+              });
+
+          if (!ssl_cipher.empty() || !ssl_version.empty()) {
+            assert(chstatus->has_key("replicationSsl"));
+
+            if (ssl_cipher.empty())
+              (*chstatus)["replicationSsl"] =
+                  shcore::Value(std::move(ssl_version));
+            else if (ssl_version.empty())
+              (*chstatus)["replicationSsl"] =
+                  shcore::Value(std::move(ssl_cipher));
+            else
+              (*chstatus)["replicationSsl"] = shcore::Value(shcore::str_format(
+                  "%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
+          }
+        } else {
+          (*chstatus)["replicationSsl"] = shcore::Value::Null();
+        }
+      }
+
+      res->set("clusterSetReplication", shcore::Value(std::move(chstatus)));
     } else if (!channel_exists) {
       res->set("clusterSetReplication", shcore::Value(shcore::make_dict()));
     }

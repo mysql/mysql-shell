@@ -318,15 +318,6 @@ struct Option_availability {
 };
 
 /**
- * Map of the global Cluster configuration options of the AdminAPI
- * <sysvar, name>
- */
-inline const std::map<std::string, std::string> k_global_cluster_options{
-    {kGroupName, kGrGroupName},
-    {kMemberSslMode, kGrMemberSslMode},
-    {kTransactionSizeLimit, kGrTransactionSizeLimit}};
-
-/**
  * Map of the supported global cluster configuration options in the
  * AdminAPI <sysvar, name>
  */

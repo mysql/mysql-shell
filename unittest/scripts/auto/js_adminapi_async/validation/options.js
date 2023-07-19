@@ -13,6 +13,10 @@
             {
                 "option": "certIssuer",
                 "value": ""
+            },
+            {
+                "option": "replicationSslMode",
+                "value": "REQUIRED"
             }
         ],
         "name": "myrs",
@@ -251,6 +255,10 @@
             {
                 "option": "certIssuer",
                 "value": ""
+            },
+            {
+                "option": "replicationSslMode",
+                "value": "REQUIRED"
             }
         ], 
         "name": "myrs",

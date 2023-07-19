@@ -80,6 +80,9 @@ function check_apis(sslMode, authType) {
         EXPECT_NO_THROWS(function(){ rset.addInstance(__sandbox_uri2); });
     }
 
+    options = rset.options();
+    check_option(options.replicaSet.globalOptions, "replicationSslMode", sslMode);
+
     // rejoin
     session2.runSql("STOP SLAVE SQL_THREAD");
     EXPECT_NO_THROWS(function(){ rset.rejoinInstance(__sandbox_uri2); });
@@ -140,11 +143,13 @@ EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 // FR16
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, false, false);
 
 // FR14
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "PASSWORD");
 check_option(options.replicaSet.globalOptions, "certIssuer", "");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "");
@@ -173,6 +178,7 @@ EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2, { certSubject: "/
 check_users(session, true, false, false);
 
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "PASSWORD");
 check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=fooIssuer");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "/CN=fooSubject");
@@ -212,11 +218,13 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 // FR16
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, false, true, false);
 
 // FR14
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "CERT_ISSUER");
 check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "");
@@ -247,10 +255,12 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, false, true, false);
 
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "CERT_ISSUER");
 check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "/CN=foo");
@@ -297,11 +307,13 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 // FR16
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, true, false);
 
 // FR14
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "CERT_ISSUER_PASSWORD");
 check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "");
@@ -340,11 +352,13 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 // FR16
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, true, true);
 
 // FR14
 options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
 check_option(options.replicaSet.globalOptions, "memberAuthType", "CERT_SUBJECT_PASSWORD");
 check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", `/CN=${hostname}`);
@@ -383,9 +397,13 @@ EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsCom
 EXPECT_EQ("DISABLED", session.runSql("SELECT attributes->>'$.opt_replicationSslMode' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'rset')").fetchOne()[0]);
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
+options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "DISABLED");
+
 // FR16
 status = rset.status();
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], null);
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "DISABLED");
 
 reset_instance(session1);
 reset_instance(session2);
@@ -394,8 +412,12 @@ EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsCom
 EXPECT_EQ("REQUIRED", session.runSql("SELECT attributes->>'$.opt_replicationSslMode' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'rset')").fetchOne()[0]);
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
+options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
+
 status = rset.status();
 EXPECT_CONTAINS("TLS_AES_", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"]);
+EXPECT_EQ("REQUIRED", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"]);
 
 reset_instance(session1);
 reset_instance(session2);
@@ -404,8 +426,12 @@ EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsCom
 EXPECT_EQ("REQUIRED", session.runSql("SELECT attributes->>'$.opt_replicationSslMode' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'rset')").fetchOne()[0]);
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
+options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "REQUIRED");
+
 status = rset.status();
 EXPECT_CONTAINS("TLS_AES_", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"]);
+EXPECT_EQ("REQUIRED", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"]);
 
 reset_instance(session1);
 reset_instance(session2);
@@ -414,8 +440,12 @@ EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsCom
 EXPECT_EQ("VERIFY_CA", session.runSql("SELECT attributes->>'$.opt_replicationSslMode' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'rset')").fetchOne()[0]);
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
+options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "VERIFY_CA");
+
 status = rset.status();
 EXPECT_CONTAINS("TLS_AES_", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"]);
+EXPECT_EQ("VERIFY_CA", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"]);
 
 reset_instance(session1);
 reset_instance(session2);
@@ -424,8 +454,12 @@ EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsCom
 EXPECT_EQ("VERIFY_IDENTITY", session.runSql("SELECT attributes->>'$.opt_replicationSslMode' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'rset')").fetchOne()[0]);
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
+options = rset.options();
+check_option(options.replicaSet.globalOptions, "replicationSslMode", "VERIFY_IDENTITY");
+
 status = rset.status();
 EXPECT_CONTAINS("TLS_AES_", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"]);
+EXPECT_EQ("VERIFY_IDENTITY", status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"]);
 
 //@<> teste some APIs
 

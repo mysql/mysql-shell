@@ -1518,8 +1518,8 @@ void Cluster_impl::restore_recovery_account_all_members(
           if (info.second.state != mysqlshdk::gr::Member_state::ONLINE)
             return true;
 
-          auto [recovery_user, recovery_host] =
-              get_metadata_storage()->get_instance_repl_account(
+          auto recovery_user =
+              get_metadata_storage()->get_instance_repl_account_user(
                   instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
                   Replica_type::GROUP_MEMBER);
 

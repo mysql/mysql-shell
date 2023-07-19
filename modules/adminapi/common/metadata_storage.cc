@@ -1357,6 +1357,26 @@ std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
   return std::make_pair(recovery_user, recovery_host);
 }
 
+std::string MetadataStorage::get_instance_repl_account_user(
+    std::string_view instance_uuid, Cluster_type type,
+    Replica_type replica_type) {
+  auto query =
+      "SELECT (attributes->>?) "
+      " FROM mysql_innodb_cluster_metadata.instances "
+      " WHERE mysql_server_uuid = ?"_sql;
+
+  query << repl_account_user_key(type, replica_type) << instance_uuid;
+  query.done();
+
+  auto res = execute_sql(query);
+
+  if (auto row = res->fetch_one(); row) {
+    return row->get_string(0, "");
+  }
+
+  return {};
+}
+
 void MetadataStorage::update_cluster_repl_account(
     const Cluster_id &cluster_id, const std::string &repl_account_user,
     const std::string &repl_account_host, Transaction_undo *undo) {
@@ -1455,6 +1475,24 @@ std::pair<std::string, std::string> MetadataStorage::get_cluster_repl_account(
   return std::make_pair(recovery_user, recovery_host);
 }
 
+std::string MetadataStorage::get_cluster_repl_account_user(
+    const Cluster_id &cluster_id) const {
+  auto query =
+      "SELECT (attributes->>'$.replicationAccountUser') as replication_user "
+      " FROM mysql_innodb_cluster_metadata.clusters "
+      " WHERE cluster_id = ?"_sql;
+
+  query << cluster_id;
+  query.done();
+
+  auto res = execute_sql(query);
+  if (auto row = res->fetch_one(); row) {
+    return row->get_string(0, std::string{""});
+  }
+
+  return {};
+}
+
 std::pair<std::string, std::string>
 MetadataStorage::get_read_replica_repl_account(
     const std::string &instance_uuid) const {
@@ -1544,21 +1582,6 @@ std::vector<std::string> MetadataStorage::get_recovery_account_users() {
     if (!row->is_null(0)) users.push_back(row->get_string(0));
 
   return users;
-}
-
-std::string MetadataStorage::get_recovery_account_user(
-    const Cluster_id &cluster_id, const std::string &address) {
-  auto query =
-      "SELECT attributes->>'$.recoveryAccountUser' FROM "
-      "mysql_innodb_cluster_metadata.instances "
-      "WHERE (cluster_id = ?) AND (address = ?)"_sql
-      << cluster_id << address;
-
-  auto result = execute_sql(query);
-  auto row = result->fetch_one();
-  if (!row || row->is_null(0)) return {};
-
-  return row->get_string(0);
 }
 
 size_t MetadataStorage::iterate_recovery_account(

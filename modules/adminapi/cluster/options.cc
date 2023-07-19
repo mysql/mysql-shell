@@ -38,6 +38,15 @@ namespace cluster {
 
 namespace {
 /**
+ * Map of the global Cluster configuration options of the AdminAPI
+ * <sysvar, name>
+ */
+const std::map<std::string_view, std::string_view> k_global_cluster_options{
+    {kGroupName, kGrGroupName},
+    {kMemberSslMode, kGrMemberSslMode},
+    {kTransactionSizeLimit, kGrTransactionSizeLimit}};
+
+/**
  * Map of the instance configuration options of the AdminAPI
  * <sysvar, name>
  */

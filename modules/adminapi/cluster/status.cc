@@ -1022,12 +1022,12 @@ void check_auth_type_instance_ssl(shcore::Array_t issues,
   // check if instance user was created correctly
   bool has_issuer{false}, has_subject{false};
   {
-    auto instance_repl_account =
-        cluster.get_metadata_storage()->get_instance_repl_account(
+    auto instance_repl_account_user =
+        cluster.get_metadata_storage()->get_instance_repl_account_user(
             instance.get_uuid(), Cluster_type::GROUP_REPLICATION,
             Replica_type::GROUP_MEMBER);
 
-    if (std::get<0>(instance_repl_account).empty()) {
+    if (instance_repl_account_user.empty()) {
       // if this happens, a warning is already shown to the user in
       // validate_instance_recovery_user(), so there's no point showing a second
       // error message related to the same thing, even though it almost surely
@@ -1039,7 +1039,7 @@ void check_auth_type_instance_ssl(shcore::Array_t issues,
       auto res = server->queryf(
           "SELECT coalesce(length(x509_issuer)), "
           "coalesce(length(x509_subject)) FROM mysql.user WHERE (user = ?)",
-          std::get<0>(instance_repl_account));
+          instance_repl_account_user);
 
       if (auto row = res->fetch_one()) {
         has_issuer = row->get_int(0) > 0;
@@ -2175,15 +2175,15 @@ shcore::Dictionary_t Status::feed_read_replica_info(const Read_replica_info &rr,
 
     // SSL info
     if (rr_instance) {
-      auto instance_repl_account =
-          m_cluster->get_metadata_storage()->get_instance_repl_account(
+      auto instance_repl_account_user =
+          m_cluster->get_metadata_storage()->get_instance_repl_account_user(
               rr_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
               Replica_type::READ_REPLICA);
 
       std::string ssl_cipher, ssl_version;
       mysqlshdk::mysql::iterate_thread_variables(
           *(m_cluster->get_metadata_storage()->get_md_server()),
-          "Binlog Dump GTID", instance_repl_account.first, "Ssl%",
+          "Binlog Dump GTID", instance_repl_account_user, "Ssl%",
           [&ssl_cipher, &ssl_version](const std::string &var_name,
                                       const std::string &var_value) {
             if (var_name == "Ssl_cipher") {

@@ -2185,29 +2185,54 @@ shcore::Value Replica_set_impl::status(int extended) {
       auto i = server.get_primary_member();
       if (!i->master_channel) continue;
 
-      bool has_null_options;
-      Async_replication_options ar_options;
-      read_replication_options(i->uuid, &ar_options, &has_null_options);
+      auto topo_status = status->get_map("replicaSet")->get_map("topology");
+      if (!topo_status->has_key(i->endpoint)) continue;
 
-      if (!has_null_options) {
-        auto options_to_update = async_merge_repl_options(
-            ar_options, i->master_channel->master_info);
+      // SSL channel mode
+      {
+        std::string_view ssl_mode = kClusterSSLModeDisabled;
+        if (const auto &info = i->master_channel->master_info;
+            info.enabled_ssl != 0) {
+          bool certs_enabled = !info.ssl_ca.empty() || !info.ssl_capath.empty();
+          if (info.ssl_verify_server_cert) {
+            assert(certs_enabled);
+            ssl_mode = kClusterSSLModeVerifyIdentity;
+          } else {
+            ssl_mode = certs_enabled ? kClusterSSLModeVerifyCA
+                                     : kClusterSSLModeRequired;
+          }
+        }
 
-        if (!options_to_update.has_value()) continue;
+        auto target_map =
+            topo_status->get_map(i->endpoint)->get_map("replication");
+
+        target_map->set("replicationSslMode", shcore::Value(ssl_mode));
       }
 
-      auto topo_errors = status->get_map("replicaSet")->get_map("topology");
-      if (!topo_errors->has_key(i->endpoint)) continue;
+      // check for repl options inconsistencies
+      {
+        bool has_null_options;
+        Async_replication_options ar_options;
+        read_replication_options(i->uuid, &ar_options, &has_null_options);
 
-      topo_errors = topo_errors->get_map(i->endpoint);
-      if (!topo_errors->has_key("instanceErrors"))
-        topo_errors->set("instanceErrors", shcore::Value(shcore::make_array()));
+        if (!has_null_options) {
+          auto options_to_update = async_merge_repl_options(
+              ar_options, i->master_channel->master_info);
 
-      auto errors = topo_errors->get_array("instanceErrors", nullptr);
-      errors->push_back(shcore::Value(
-          "WARNING: The instance replication channel is not configured as "
-          "expected (to see the affected options, use options()). Please call "
-          "rejoinInstance() to reconfigure the channel accordingly."));
+          if (!options_to_update.has_value()) continue;
+        }
+
+        auto topo_errors = topo_status->get_map(i->endpoint);
+        if (!topo_errors->has_key("instanceErrors"))
+          topo_errors->set("instanceErrors",
+                           shcore::Value(shcore::make_array()));
+
+        auto errors = topo_errors->get_array("instanceErrors", nullptr);
+        errors->push_back(shcore::Value(
+            "WARNING: The instance replication channel is not configured as "
+            "expected (to see the affected options, use options()). Please "
+            "call rejoinInstance() to reconfigure the channel accordingly."));
+      }
     }
   }
 
@@ -2229,41 +2254,41 @@ shcore::Value Replica_set_impl::status(int extended) {
       if (!topo->has_key(i.endpoint)) continue;
       if (!topo->get_map(i.endpoint)->has_key("replication")) continue;
 
-      std::string repl_account;
+      // SSL info
       {
-        auto [account_user, account_host] =
-            get_metadata_storage()->get_instance_repl_account(
+        auto repl_account =
+            get_metadata_storage()->get_instance_repl_account_user(
                 i.uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
 
-        repl_account = std::move(account_user);
+        std::string ssl_cipher, ssl_version;
+        mysqlshdk::mysql::iterate_thread_variables(
+            *(get_metadata_storage()->get_md_server()), "Binlog Dump GTID",
+            repl_account, "Ssl%",
+            [&ssl_cipher, &ssl_version](std::string var_name,
+                                        std::string var_value) {
+              if (var_name == "Ssl_cipher")
+                ssl_cipher = std::move(var_value);
+              else if (var_name == "Ssl_version")
+                ssl_version = std::move(var_value);
+
+              return (ssl_cipher.empty() || ssl_version.empty());
+            });
+
+        if (!ssl_cipher.empty() || !ssl_version.empty()) {
+          auto target_map = topo->get_map(i.endpoint)->get_map("replication");
+          assert(target_map->has_key("replicationSsl"));
+
+          if (ssl_cipher.empty())
+            (*target_map)["replicationSsl"] =
+                shcore::Value(std::move(ssl_version));
+          else if (ssl_version.empty())
+            (*target_map)["replicationSsl"] =
+                shcore::Value(std::move(ssl_cipher));
+          else
+            (*target_map)["replicationSsl"] = shcore::Value(shcore::str_format(
+                "%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
+        }
       }
-
-      std::string ssl_cipher, ssl_version;
-      mysqlshdk::mysql::iterate_thread_variables(
-          *(get_metadata_storage()->get_md_server()), "Binlog Dump GTID",
-          repl_account, "Ssl%",
-          [&ssl_cipher, &ssl_version](std::string var_name,
-                                      std::string var_value) {
-            if (var_name == "Ssl_cipher")
-              ssl_cipher = std::move(var_value);
-            else if (var_name == "Ssl_version")
-              ssl_version = std::move(var_value);
-
-            return (ssl_cipher.empty() || ssl_version.empty());
-          });
-
-      if (ssl_cipher.empty() && ssl_version.empty()) continue;
-
-      auto target_map = topo->get_map(i.endpoint)->get_map("replication");
-      assert(target_map->has_key("replicationSsl"));
-
-      if (ssl_cipher.empty())
-        (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_version));
-      else if (ssl_version.empty())
-        (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_cipher));
-      else
-        (*target_map)["replicationSsl"] = shcore::Value(shcore::str_format(
-            "%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
     }
   }
 
@@ -3265,11 +3290,12 @@ shcore::Value Replica_set_impl::options() {
 
   // read replica attributes
   {
-    std::array<std::tuple<std::string_view, std::string_view>, 3> attribs{
+    std::array<std::tuple<std::string_view, std::string_view>, 4> attribs{
         std::make_tuple(k_cluster_attribute_replication_allowed_host,
                         kReplicationAllowedHost),
         std::make_tuple(k_cluster_attribute_member_auth_type, kMemberAuthType),
-        std::make_tuple(k_cluster_attribute_cert_issuer, kCertIssuer)};
+        std::make_tuple(k_cluster_attribute_cert_issuer, kCertIssuer),
+        std::make_tuple(k_replica_set_attribute_ssl_mode, kReplicationSslMode)};
 
     shcore::Array_t options = shcore::make_array();
     for (const auto &[attrib_name, attrib_desc] : attribs) {

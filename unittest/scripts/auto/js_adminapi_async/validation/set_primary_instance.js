@@ -92,7 +92,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": [[*]],
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
             },
@@ -112,7 +113,8 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": [[*]],
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
             }

@@ -349,6 +349,10 @@ class MetadataStorage {
       const std::string &instance_uuid, Cluster_type type,
       Replica_type replica_type);
 
+  std::string get_instance_repl_account_user(std::string_view instance_uuid,
+                                             Cluster_type type,
+                                             Replica_type replica_type);
+
   void update_cluster_repl_account(const Cluster_id &cluster_id,
                                    const std::string &repl_account_user,
                                    const std::string &repl_account_host,
@@ -356,6 +360,8 @@ class MetadataStorage {
 
   std::pair<std::string, std::string> get_cluster_repl_account(
       const Cluster_id &cluster_id) const;
+
+  std::string get_cluster_repl_account_user(const Cluster_id &cluster_id) const;
 
   std::pair<std::string, std::string> get_read_replica_repl_account(
       const std::string &instance_uuid) const;
@@ -379,9 +385,6 @@ class MetadataStorage {
                                   bool clusterset_account = false) const;
 
   std::vector<std::string> get_recovery_account_users();
-
-  std::string get_recovery_account_user(const Cluster_id &cluster_id,
-                                        const std::string &address);
 
   size_t iterate_recovery_account(
       const std::function<bool(uint32_t, std::string)> &cb);

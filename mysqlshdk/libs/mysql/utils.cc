@@ -847,7 +847,7 @@ bool check_indicator_tag(const mysql::IInstance &instance,
  * @return mysqlshdk::db::Ssl_options
  */
 mysqlshdk::db::Ssl_options read_ssl_client_options(
-    const mysqlshdk::mysql::IInstance &instance, bool set_cert) {
+    const mysqlshdk::mysql::IInstance &instance, bool set_cert, bool set_ca) {
   mysqlshdk::db::Ssl_options ssl_options;
 
   auto res = instance.query(
@@ -859,8 +859,10 @@ mysqlshdk::db::Ssl_options read_ssl_client_options(
   log_debug("SSL options for %s: %s", instance.descr().c_str(),
             mysqlshdk::db::to_string(*row).c_str());
 
-  if (!row->is_null(0)) ssl_options.set_ca(row->get_string(0));
-  if (!row->is_null(1)) ssl_options.set_capath(row->get_string(1));
+  if (set_ca) {
+    if (!row->is_null(0)) ssl_options.set_ca(row->get_string(0));
+    if (!row->is_null(1)) ssl_options.set_capath(row->get_string(1));
+  }
   if (set_cert) {
     if (!row->is_null(2)) ssl_options.set_cert(row->get_string(2));
     if (!row->is_null(3)) ssl_options.set_key(row->get_string(3));

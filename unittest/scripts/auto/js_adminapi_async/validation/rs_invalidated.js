@@ -253,7 +253,8 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": null
+                    "replicationSsl": null,
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
@@ -303,7 +304,8 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": null
+                    "replicationSsl": null,
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
@@ -362,7 +364,8 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
             },
@@ -376,7 +379,8 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3"
+                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
             },

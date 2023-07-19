@@ -2304,9 +2304,10 @@ mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
       ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY ||
       auth_type != Replication_auth_type::PASSWORD) {
     ssl_options = read_ssl_client_options(
-        instance, ssl_mode != Cluster_ssl_mode::REQUIRED ||
-                      auth_type != Replication_auth_type::PASSWORD);
+        instance, auth_type != Replication_auth_type::PASSWORD,
+        ssl_mode != Cluster_ssl_mode::REQUIRED);
   }
+
   switch (ssl_mode) {
     case Cluster_ssl_mode::NONE:
     case Cluster_ssl_mode::AUTO:
@@ -2325,6 +2326,7 @@ mysqlshdk::db::Ssl_options prepare_replica_ssl_options(
       ssl_options.set_mode(mysqlshdk::db::Ssl_mode::VerifyIdentity);
       break;
   }
+
   return ssl_options;
 }
 

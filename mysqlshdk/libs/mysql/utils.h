@@ -130,7 +130,7 @@ bool check_indicator_tag(const mysql::IInstance &instance,
                          const std::string &name);
 
 mysqlshdk::db::Ssl_options read_ssl_client_options(
-    const mysqlshdk::mysql::IInstance &instance, bool set_cert);
+    const mysqlshdk::mysql::IInstance &instance, bool set_cert, bool set_ca);
 
 struct Error_log_entry {
   std::string logged;

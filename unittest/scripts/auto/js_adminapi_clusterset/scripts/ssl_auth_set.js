@@ -78,6 +78,8 @@ EXPECT_EQ("PASSWORD", session.runSql("SELECT attributes->>'$.opt_memberAuthType'
 EXPECT_EQ("", session.runSql("SELECT attributes->>'$.opt_certIssuer' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 EXPECT_EQ("REQUIRED", session.runSql("SELECT attributes->>'$.opt_clusterSetReplicationSslMode' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 
+check_option(cset.options().clusterSet.globalOptions, "clusterSetReplicationSslMode", "REQUIRED");
+
 WIPE_OUTPUT();
 
 var rcluster;
@@ -86,6 +88,10 @@ EXPECT_OUTPUT_CONTAINS("The cluster's SSL mode (inherited from the ClusterSet) i
 EXPECT_OUTPUT_CONTAINS("Cluster \"memberAuthType\" is set to 'PASSWORD' (inherited from the ClusterSet).");
 
 check_users(session, true, false, false);
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("REQUIRED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -103,12 +109,18 @@ EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset"); });
 EXPECT_EQ("CERT_ISSUER_PASSWORD", session.runSql("SELECT attributes->>'$.opt_memberAuthType' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 EXPECT_EQ("/CN=Test_CA", session.runSql("SELECT attributes->>'$.opt_certIssuer' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 
+check_option(cset.options().clusterSet.globalOptions, "clusterSetReplicationSslMode", "REQUIRED");
+
 var rcluster;
 EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2"); });
 EXPECT_OUTPUT_CONTAINS("Cluster \"memberAuthType\" is set to 'CERT_ISSUER_PASSWORD' (inherited from the ClusterSet).");
 
 check_users(session, true, true, false);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("REQUIRED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -126,11 +138,17 @@ EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset"); });
 EXPECT_EQ("CERT_ISSUER", session.runSql("SELECT attributes->>'$.opt_memberAuthType' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 EXPECT_EQ("/CN=Test_CA", session.runSql("SELECT attributes->>'$.opt_certIssuer' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 
+check_option(cset.options().clusterSet.globalOptions, "clusterSetReplicationSslMode", "REQUIRED");
+
 var rcluster;
 EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2"); });
 
 check_users(session, false, true, false);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("REQUIRED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -165,6 +183,8 @@ EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset"); });
 EXPECT_EQ("CERT_SUBJECT_PASSWORD", session.runSql("SELECT attributes->>'$.opt_memberAuthType' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 EXPECT_EQ("/CN=Test_CA", session.runSql("SELECT attributes->>'$.opt_certIssuer' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
 
+check_option(cset.options().clusterSet.globalOptions, "clusterSetReplicationSslMode", "REQUIRED");
+
 EXPECT_THROWS(function() {
     cset.createReplicaCluster(__sandbox_uri2, "cluster2");
 }, "The cluster's SSL mode (inherited from the ClusterSet) is set to CERT_SUBJECT_PASSWORD but the 'certSubject' option for the instance wasn't supplied.");
@@ -178,6 +198,10 @@ EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri
 
 check_users(session, true, true, true);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("REQUIRED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -194,6 +218,10 @@ EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset"); });
 
 var rcluster;
 EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2", { certSubject: `/CN=${hostname}`, recoveryMethod: "clone" }); });
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("REQUIRED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -214,6 +242,10 @@ EXPECT_EQ("VERIFY_CA", session.runSql("SELECT attributes->>'$.opt_clusterSetRepl
 
 var rcluster;
 EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2"); });
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("VERIFY_CA", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // FR15
 options = cset.options();
@@ -243,6 +275,10 @@ EXPECT_EQ(`/CN=${hostname}`, session.runSql(`SELECT attributes->>'$.opt_certSubj
 check_users(session, true, true, true);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("VERIFY_IDENTITY", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
+
 // FR15
 options = cset.options();
 check_option(options.clusterSet.globalOptions, "clusterSetReplicationSslMode", "VERIFY_IDENTITY");
@@ -257,9 +293,39 @@ shell.connect(__sandbox_uri1);
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: "VERIFY_IDENTITY" }); });
 
+var cset;
 EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset"); });
 
 EXPECT_EQ("VERIFY_IDENTITY", session.runSql("SELECT attributes->>'$.opt_clusterSetReplicationSslMode' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
+
+var rcluster;
+EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2", { memberSslMode: "VERIFY_CA" }); });
+
+status = cset.status({extended: 1});
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("VERIFY_IDENTITY", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
+
+// cleanup cluster
+reset_instance(session1);
+reset_instance(session2);
+
+//@<> FR10 'clusterSetReplicationSslMode' with DISABLED
+shell.connect(__sandbox_uri1);
+
+var cluster;
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: "VERIFY_IDENTITY" }); });
+
+var cset;
+EXPECT_NO_THROWS(function() { cset = cluster.createClusterSet("cset", { clusterSetReplicationSslMode: "DISABLED" }); });
+
+EXPECT_EQ("DISABLED", session.runSql("SELECT attributes->>'$.opt_clusterSetReplicationSslMode' FROM mysql_innodb_cluster_metadata.clustersets WHERE (domain_name = 'cset')").fetchOne()[0]);
+
+var rcluster;
+EXPECT_NO_THROWS(function() { rcluster = cset.createReplicaCluster(__sandbox_uri2, "cluster2", { memberSslMode: "VERIFY_CA" }); });
+
+status = cset.status({extended: 1});
+EXPECT_EQ(null, status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("DISABLED", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
@@ -283,8 +349,10 @@ options = rcluster.options();
 check_option(options.defaultReplicaSet.globalOptions, "memberSslMode", "VERIFY_CA");
 
 status = cset.status({extended: 3});
-EXPECT_EQ(status.clusters.cluster.ssl, "VERIFY_IDENTITY");
-EXPECT_EQ(status.clusters.cluster2.ssl, "VERIFY_CA");
+EXPECT_EQ("VERIFY_IDENTITY", status.clusters.cluster.ssl);
+EXPECT_EQ("VERIFY_CA", status.clusters.cluster2.ssl);
+EXPECT_CONTAINS("TLS_AES_", status.clusters.cluster2.clusterSetReplication.replicationSsl);
+EXPECT_EQ("VERIFY_IDENTITY", status.clusters.cluster2.clusterSetReplication.replicationSslMode);
 
 // cleanup cluster
 reset_instance(session1);
