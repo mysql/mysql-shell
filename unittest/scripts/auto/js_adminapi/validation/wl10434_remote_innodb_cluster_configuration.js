@@ -269,6 +269,10 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -408,6 +412,10 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 NOTE: persisted_globals_load option is OFF
 Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.
 Configuring instance...
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
@@ -569,6 +577,10 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
@@ -654,6 +666,10 @@ Creating user clusterAdminAccount@%.
 Account clusterAdminAccount@% was successfully created.
 
 Configuring instance...
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 
 //@<OUT> ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}

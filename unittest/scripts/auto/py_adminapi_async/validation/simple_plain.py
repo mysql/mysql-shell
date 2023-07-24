@@ -58,6 +58,10 @@ Creating user admin@%.
 Account admin@% was successfully created.
 
 Configuring instance...
+?{VER(>=8.2.0) and not __replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 

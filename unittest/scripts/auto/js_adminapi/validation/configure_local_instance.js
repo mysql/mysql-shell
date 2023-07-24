@@ -145,6 +145,12 @@ Creating user admin@%.
 Account admin@% was successfully created.
 
 Configuring instance...
+?{}
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
+?{VER(>=8.0.27)}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
@@ -439,6 +445,10 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
+?{VER(>=8.2.0) && !__replaying}
+
+WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 Restarting MySQL...
 NOTE: MySQL server at <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restarted.
