@@ -52,7 +52,9 @@ const std::map<std::string, shcore::Value> k_default_cluster_router_options = {
     {k_router_option_tags, shcore::Value(shcore::make_dict())},
     {k_router_option_read_only_targets,
      shcore::Value(k_default_router_option_read_only_targets)},
-    {k_router_option_stats_updates_frequency, shcore::Value::Null()}};
+    {k_router_option_stats_updates_frequency, shcore::Value::Null()},
+    {k_router_option_unreachable_quorum_allowed_traffic,
+     shcore::Value::Null()}};
 
 const std::map<std::string, shcore::Value> k_default_replicaset_router_options =
     {{k_router_option_tags, shcore::Value(shcore::make_dict())},
@@ -347,6 +349,44 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
                              "expected to be a boolean.",
                              k_router_option_use_replica_primary_as_rw));
     }
+  } else if (name == k_router_option_unreachable_quorum_allowed_traffic) {
+    if (value.get_type() != shcore::Value_type::String) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for routing option '%s', value is "
+          "expected to be either 'read', 'all' or 'none'.",
+          k_router_option_unreachable_quorum_allowed_traffic));
+    }
+
+    const auto &value_str = value.get_string();
+    if (!shcore::str_caseeq(value_str, "read") &&
+        !shcore::str_caseeq(value_str, "all") &&
+        !shcore::str_caseeq(value_str, "none")) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for routing option '%s', value is "
+          "expected to be either 'read', 'all' or 'none'.",
+          k_router_option_unreachable_quorum_allowed_traffic));
+    }
+
+    if (!shcore::str_caseeq(value_str, "none")) {
+      mysqlsh::current_console()->print_warning(shcore::str_format(
+          "Setting the '%s' option to '%s' may have unwanted consequences: the "
+          "consistency guarantees provided by InnoDB Cluster are broken since "
+          "the data read can be stale; different Routers may be accessing "
+          "different partitions, thus return different data; and different "
+          "Routers may also have different behavior (i.e. some provide only "
+          "read traffic while others read and write traffic). Note that "
+          "writes on a partition with no quorum will block until quorum is "
+          "restored.",
+          k_router_option_unreachable_quorum_allowed_traffic,
+          value_str.c_str()));
+
+      mysqlsh::current_console()->print_warning(
+          "This option has no practical effect if the server variable "
+          "group_replication_unreachable_majority_timeout is set to a positive "
+          "number and group_replication_exit_state_action is set to either "
+          "OFFLINE_MODE or ABORT_SERVER.");
+    }
+
   } else if (name == k_router_option_read_only_targets) {
     if (value.get_type() != shcore::Value_type::String ||
         (value.get_string() != k_router_option_read_only_targets_all &&

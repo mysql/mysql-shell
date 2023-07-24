@@ -34,7 +34,8 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
   "global": {
       "read_only_targets": "secondaries",
       "stats_updates_frequency": null,
-      "tags": {}
+      "tags": {},
+      "unreachable_quorum_allowed_traffic": null
   },
   "routers": {
       "routerhost1::system": {},
@@ -170,7 +171,7 @@ cluster.setRoutingOption("stats_updates_frequency", null);
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
 EXPECT_FALSE("stats_updates_frequency" in options);
 
-//@<> check setting options if the MD values are cleared
+// check setting options if the MD values are cleared
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
 EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", 10); });
 
@@ -179,6 +180,32 @@ EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tag:two", 2); });
 
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
 EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tags", {"one":1, "two":"2"}); });
+
+//@<> WL15842 unreachable_quorum_allowed_traffic support
+
+EXPECT_THROWS(function(){ cluster.setRoutingOption("unreachable_quorum_allowed_traffic", "asda"); },
+  "Invalid value for routing option 'unreachable_quorum_allowed_traffic', value is expected to be either 'read', 'all' or 'none'.");
+EXPECT_THROWS(function(){ cluster.setRoutingOption("unreachable_quorum_allowed_traffic", -1); },
+  "Invalid value for routing option 'unreachable_quorum_allowed_traffic', value is expected to be either 'read', 'all' or 'none'.");
+
+CHECK_SET_ROUTING_OPTION("unreachable_quorum_allowed_traffic", "read", "read");
+
+WIPE_OUTPUT();
+
+cluster.setRoutingOption("unreachable_quorum_allowed_traffic", "all");
+EXPECT_OUTPUT_CONTAINS("Setting the 'unreachable_quorum_allowed_traffic' option to 'all' may have unwanted consequences: the consistency guarantees provided by InnoDB Cluster are broken since the data read can be stale; different Routers may be accessing different partitions, thus return different data; and different Routers may also have different behavior (i.e. some provide only read traffic while others read and write traffic). Note that writes on a partition with no quorum will block until quorum is restored.");
+EXPECT_OUTPUT_CONTAINS("This option has no practical effect if the server variable group_replication_unreachable_majority_timeout is set to a positive number and group_replication_exit_state_action is set to either OFFLINE_MODE or ABORT_SERVER.");
+
+options = JSON.parse(session.runSql("SELECT router_options FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
+EXPECT_TRUE("unreachable_quorum_allowed_traffic" in options);
+
+cluster.setRoutingOption("unreachable_quorum_allowed_traffic", null);
+options = JSON.parse(session.runSql("SELECT router_options FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
+EXPECT_FALSE("unreachable_quorum_allowed_traffic" in options);
+
+// check setting options if the MD values are cleared
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = '{}'");
+EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("unreachable_quorum_allowed_traffic", "none"); });
 
 //@<> Error when cluster has no quorum
 scene.make_no_quorum([__mysql_sandbox_port1]);

@@ -1659,6 +1659,9 @@ DESCRIPTION
         instance. Default is 'secondaries'.
       - stats_updates_frequency: Number of seconds between updates that the
         Router is to make to its statistics in the InnoDB Cluster metadata.
+      - unreachable_quorum_allowed_traffic: Routing policy to define Router's
+        behavior regarding traffic destinations (ports) when it loses access to
+        the Cluster's quorum.
 
       The read_only_targets option supports the following values:
 
@@ -1684,3 +1687,31 @@ DESCRIPTION
 
       If the value is null, the option value is cleared and the default value
       (0) takes effect.
+
+      The unreachable_quorum_allowed_traffic option allows configuring Router's
+      behavior in the event of a loss of quorum on the only reachable Cluster
+      partition. By default, Router will disconnect all existing connections
+      and refuse new ones, but that can be configured using the following
+      options:
+
+      - read: Router will keep using ONLINE members as Read-Only destination,
+        leaving the RO and RW-split ports open.
+      - all: Router will keep ONLINE members as Read/Write destinations,
+        leaving all ports (RW, RO, and RW-split), open.
+      - none: All current connections are disconnected and new ones are refused
+        (default behavior).
+
+      ATTENTION: Setting this option to a different value other than the
+                 default may have unwanted consequences: the consistency
+                 guarantees provided by InnoDB Cluster are broken since the
+                 data read can be stale; different Routers may be accessing
+                 different partitions, thus return different data; and
+                 different Routers may also have different behavior (i.e. some
+                 provide only read traffic while others read and write
+                 traffic). Note that writes on a partition with no quorum will
+                 block until quorum is restored.
+
+      This option has no practical effect if
+      group_replication_unreachable_majority_timeout is set to a positive value
+      and group_replication_exit_state_action is either OFFLINE_MODE or
+      ABORT_SERVER.
