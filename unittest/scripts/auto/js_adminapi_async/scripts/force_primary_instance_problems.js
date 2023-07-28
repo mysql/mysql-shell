@@ -4,7 +4,7 @@
 // Only tests corner cases and negative cases since the positive ones will
 // be tested elsewhere.
 
-//@ INCLUDE async_utils.inc
+//@<> INCLUDE async_utils.inc
 
 //@<> Setup
 
@@ -33,29 +33,21 @@ shell.options["dba.connectTimeout"] = 1.0;
 // Runtime problems
 //--------------------------------
 
-//@ promoted has stopped replication, should fail
+//@<> promoted has stopped replication, should work (invalidateErrorInstances not required)
 testutil.stopSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri2);
-rs= dba.getReplicaSet();
+rs = dba.getReplicaSet();
 session.runSql("STOP SLAVE");
 
 testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
 
-rs.forcePrimaryInstance(__sandbox2);
+EXPECT_NO_THROWS(function() { rs.forcePrimaryInstance(__sandbox2); });
+EXPECT_OUTPUT_CONTAINS("* Waiting for all received transactions to be applied");
+EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port2} was force-promoted to PRIMARY.`);
+EXPECT_OUTPUT_CONTAINS(`** Changing replication source of ${hostname_ip}:${__mysql_sandbox_port3} to ${hostname_ip}:${__mysql_sandbox_port2}`);
 
-//@ promoted has stopped replication, still fail with invalidateErrorInstances
-testutil.stopSandbox(__mysql_sandbox_port1);
-
-shell.connect(__sandbox_uri2);
-rs= dba.getReplicaSet();
-session.runSql("STOP SLAVE");
-
-testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
-
-rs.forcePrimaryInstance(__sandbox2, {invalidateErrorInstances: true});
-
-//@ a secondary has stopped replication, should fail
+//@<> a secondary has stopped replication, should work (invalidateErrorInstances not required)
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 rs = rebuild_rs();
@@ -67,23 +59,14 @@ session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("STOP SLAVE");
 
 testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
-rs.forcePrimaryInstance(__sandbox3);
 
-//@ a secondary has stopped replication, pass with invalidateErrorInstances
-testutil.startSandbox(__mysql_sandbox_port1);
-shell.connect(__sandbox_uri1);
-rs = rebuild_rs();
-testutil.stopSandbox(__mysql_sandbox_port1);
-shell.connect(__sandbox_uri2);
-rs=dba.getReplicaSet();
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
 
-session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("STOP SLAVE");
-
-testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
-rs.forcePrimaryInstance(__sandbox3, {invalidateErrorInstances: true});
-
-strip_status(rs.status());
+EXPECT_NO_THROWS(function() { rs.forcePrimaryInstance(__sandbox3); });
+EXPECT_OUTPUT_NOT_CONTAINS("* Waiting for all received transactions to be applied");
+EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port3} was force-promoted to PRIMARY.`);
+EXPECT_OUTPUT_CONTAINS(`** Changing replication source of ${hostname_ip}:${__mysql_sandbox_port2} to ${hostname_ip}:${__mysql_sandbox_port3}`);
 
 //@ promoted is down (should fail)
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -178,6 +161,25 @@ rs = dba.getReplicaSet();
 rs.forcePrimaryInstance(__sandbox_uri3, {invalidateErrorInstances: true});
 
 strip_status(rs.status());
+
+//@<> Make sure that we don't wait for transactions if all appliers are OFF
+testutil.startSandbox(__mysql_sandbox_port1);
+rs = rebuild_rs();
+
+testutil.stopSandbox(__mysql_sandbox_port1);
+
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("STOP SLAVE");
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+
+shell.connect(__sandbox_uri3);
+rs = dba.getReplicaSet();
+
+EXPECT_NO_THROWS(function() { rs.forcePrimaryInstance(__sandbox_uri2); });
+
+EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port2} was force-promoted to PRIMARY.`);
+EXPECT_OUTPUT_CONTAINS(`** Changing replication source of ${hostname_ip}:${__mysql_sandbox_port3} to ${hostname_ip}:${__mysql_sandbox_port2}`);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -211,7 +211,8 @@ class Replica_set_impl : public Base_cluster_impl {
       std::list<std::shared_ptr<Instance>> *out_online_instances,
       bool invalidate_error_instances,
       std::vector<Instance_metadata> *out_instances_md,
-      std::list<Instance_id> *out_invalidate_ids) const;
+      std::list<Instance_id> *out_invalidate_ids,
+      std::list<std::string> *out_ids_applier_off) const;
 
   void primary_instance_did_change(
       const std::shared_ptr<Instance> &new_primary = {});

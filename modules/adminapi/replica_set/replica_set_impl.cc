@@ -1876,11 +1876,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     check_preconditions("forcePrimaryInstance");
   } catch (const shcore::Exception &e) {
     // When forcing the primary, there's no primary available
-    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
-      log_debug("No PRIMARY member available: %s", e.what());
-    } else {
-      throw;
-    }
+    if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
+    log_debug("No PRIMARY member available: %s", e.what());
   }
 
   auto console = current_console();
@@ -1908,6 +1905,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
       get_metadata_storage()->get_all_instances(get_id());
   std::list<std::shared_ptr<Instance>> instances;
   std::list<Instance_id> invalidate_ids;
+  std::list<std::string> applier_off_uuids;
 
   {
     std::list<Instance_metadata> unreachable;
@@ -1917,32 +1915,30 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     // get triggered before server-side timeouts
     instances = connect_all_members(timeout + 5, true, &unreachable);
 
-    if (!unreachable.empty()) {
-      if (!invalidate_error_instances) {
-        console->print_error(
-            "Could not connect to one or more SECONDARY instances. Use the "
-            "'invalidateErrorInstances' option to perform the failover anyway "
-            "by skipping and invalidating unreachable instances.");
-        throw shcore::Exception("One or more instances are unreachable",
-                                SHERR_DBA_UNREACHABLE_INSTANCES);
-      }
+    if (!unreachable.empty() && !invalidate_error_instances) {
+      console->print_error(
+          "Could not connect to one or more SECONDARY instances. Use the "
+          "'invalidateErrorInstances' option to perform the failover anyway by "
+          "skipping and invalidating unreachable instances.");
+      throw shcore::Exception("One or more instances are unreachable",
+                              SHERR_DBA_UNREACHABLE_INSTANCES);
     }
 
     for (const auto &i : unreachable) {
-      console->print_note(
-          i.label +
-          " will be invalidated and must be removed from the replicaset.");
+      console->print_note(shcore::str_format(
+          "%s will be invalidated and must be removed from the replicaset.",
+          i.label.c_str()));
 
       invalidate_ids.push_back(i.id);
 
       // Remove invalidated instance from the instance metadata list.
       instances_md.erase(
-          std::remove_if(instances_md.begin(), instances_md.end(),
-                         [&i](const Instance_metadata &i_md) {
-                           return i_md.uuid == i.uuid;
-                         }),
+          std::remove_if(
+              instances_md.begin(), instances_md.end(),
+              [&i](const auto &i_md) { return i_md.uuid == i.uuid; }),
           instances_md.end());
     }
+
     console->print_info();
   }
 
@@ -1957,14 +1953,43 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   //       invalidate_error_instances = true.
   check_replication_applier_errors(srv_topology, &instances,
                                    invalidate_error_instances, &instances_md,
-                                   &invalidate_ids);
+                                   &invalidate_ids, &applier_off_uuids);
 
   // Wait for all instances to apply retrieved transactions (relay log) first.
   // NOTE: Otherwise GTID_EXECUTED set might be missing trx when checking most
   //       up-to-date instances.
-  wait_all_apply_retrieved_trx(&instances, std::chrono::seconds{timeout},
-                               invalidate_error_instances, &instances_md,
-                               &invalidate_ids);
+  {
+    // we can only wait for instances that *don't* have the applier OFF
+    std::list<std::shared_ptr<Instance>> instances_wait;
+    std::copy_if(instances.begin(), instances.end(),
+                 std::back_inserter(instances_wait),
+                 [&applier_off_uuids](const auto &i) {
+                   auto it = std::find(applier_off_uuids.begin(),
+                                       applier_off_uuids.end(), i->get_uuid());
+                   return (it == applier_off_uuids.end());
+                 });
+
+    if (!instances_wait.empty()) {
+      auto instances_wait_original = instances_wait;
+      wait_all_apply_retrieved_trx(
+          &instances_wait, std::chrono::seconds{timeout},
+          invalidate_error_instances, &instances_md, &invalidate_ids);
+
+      // the wait_all_apply_retrieved_trx removed instances from instances_wait
+      // so we should remove them from the main instance list
+      for (const auto &i_wait : instances_wait_original) {
+        auto it = std::find_if(instances_wait.begin(), instances_wait.end(),
+                               [&i_wait](const auto &i) {
+                                 return (i_wait->get_id() == i->get_id());
+                               });
+        if (it != instances_wait.end()) continue;
+
+        instances.remove_if([&i_wait](const auto &i) {
+          return i->get_uuid() == i_wait->get_uuid();
+        });
+      }
+    }
+  }
 
   // Find a candidate to be promoted.
   // NOTE: Use updated (current) GTID_EXECUTED set from instance and not the
@@ -2063,14 +2088,15 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     }
     console->print_info();
 
-    console->print_info(promoted->label + " was force-promoted to PRIMARY.");
+    console->print_info(shcore::str_format("%s was force-promoted to PRIMARY.",
+                                           promoted->label.c_str()));
     console->print_note(
-        "Former PRIMARY " + demoted->label +
-        " is now invalidated and must be removed from the replicaset.");
+        shcore::str_format("Former PRIMARY %s is now invalidated and must be "
+                           "removed from the replicaset.",
+                           demoted->label.c_str()));
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_FAILOVER_ERROR) throw;
-
-    log_warning("While forcing primary instance: %s", e.what());
+    if (e.code() != SHERR_DBA_FAILOVER_ERROR)
+      log_warning("While forcing primary instance: %s", e.what());
     throw;
   } catch (const std::exception &e) {
     log_warning("While forcing primary instance: %s", e.what());
@@ -2778,13 +2804,16 @@ std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
  *                                   must be invalidated.
  * @param out_instances_md Vector with the instances metadata information.
  * @param out_invalidate_ids List with the IDs of the invalidated instances.
+ * @param out_ids_applier_off List with the IDs of the instances which have the
+ * applier in a state other than ON
  */
 void Replica_set_impl::check_replication_applier_errors(
     topology::Server_global_topology *srv_topology,
     std::list<std::shared_ptr<Instance>> *out_online_instances,
     bool invalidate_error_instances,
     std::vector<Instance_metadata> *out_instances_md,
-    std::list<Instance_id> *out_invalidate_ids) const {
+    std::list<Instance_id> *out_invalidate_ids,
+    std::list<std::string> *out_ids_applier_off) const {
   auto console = current_console();
 
   std::list<std::string> error_uuids;
@@ -2798,7 +2827,7 @@ void Replica_set_impl::check_replication_applier_errors(
 
     // Get the applier status.
     // NOTE: Ignore receiver status since it is expected to have errors
-    //       if the primary failed  and some expected receiver status
+    //       if the primary failed and some expected receiver status
     //       (e.g., CONNECTION_ERROR) have precedence over other applier
     //       status (e.g., APPLIER_OFF).
     mysqlshdk::mysql::Replication_channel channel =
@@ -2806,23 +2835,20 @@ void Replica_set_impl::check_replication_applier_errors(
     mysqlshdk::mysql::Replication_channel::Status applier_status =
         channel.applier_status();
 
-    // Issue error if the replication applier is stopped or has errors.
+    if (out_ids_applier_off &&
+        (applier_status != mysqlshdk::mysql::Replication_channel::Status::ON)) {
+      auto it = std::find_if(out_instances_md->begin(), out_instances_md->end(),
+                             [&instance](const Instance_metadata &i_md) {
+                               return i_md.uuid == instance->get_uuid();
+                             });
+
+      if (it != out_instances_md->end())
+        out_ids_applier_off->push_back(it->uuid);
+    }
+
+    // Issue error if the replication applier has errors.
     if (applier_status ==
-        mysqlshdk::mysql::Replication_channel::Status::APPLIER_OFF) {
-      std::string err_msg{"Replication applier is OFF at instance " +
-                          srv_info->label + "."};
-      if (!invalidate_error_instances) {
-        console->print_error(err_msg);
-      } else {
-        log_warning("%s", err_msg.c_str());
-        console->print_note(
-            srv_info->label +
-            " will be invalidated (replication applier is OFF) and must be "
-            "fixed or removed from the replicaset.");
-      }
-      error_uuids.push_back(srv_info->uuid);
-    } else if (applier_status ==
-               mysqlshdk::mysql::Replication_channel::Status::APPLIER_ERROR) {
+        mysqlshdk::mysql::Replication_channel::Status::APPLIER_ERROR) {
       for (const auto &applier : channel.appliers) {
         if (applier.last_error.code == 0) continue;
 
@@ -2860,11 +2886,14 @@ void Replica_set_impl::check_replication_applier_errors(
   // Update instances lists according to invalidated instances.
   for (const auto &uuid : error_uuids) {
     // Add instance to invalidate to list.
-    auto it = std::find_if(
-        out_instances_md->begin(), out_instances_md->end(),
-        [&uuid](const Instance_metadata &i_md) { return i_md.uuid == uuid; });
-    if (it != out_instances_md->end()) {
-      out_invalidate_ids->push_back(it->id);
+    {
+      auto it = std::find_if(
+          out_instances_md->begin(), out_instances_md->end(),
+          [&uuid](const Instance_metadata &i_md) { return i_md.uuid == uuid; });
+      if (it != out_instances_md->end()) {
+        out_invalidate_ids->push_back(it->id);
+        out_instances_md->erase(it);
+      }
     }
 
     // Remove instance to invalidate from lists.
@@ -2872,7 +2901,6 @@ void Replica_set_impl::check_replication_applier_errors(
         [&uuid](const std::shared_ptr<Instance> &i) {
           return i->get_uuid() == uuid;
         });
-    out_instances_md->erase(it);
   }
 }
 

@@ -444,8 +444,8 @@ void wait_all_apply_retrieved_trx(
     std::vector<Instance_metadata> *out_instances_md,
     std::list<Instance_id> *out_invalidate_ids) {
   auto console = current_console();
-
   console->print_info("* Waiting for all received transactions to be applied");
+
   std::list<shcore::Dictionary_t> errors =
       execute_in_parallel(instances->begin(), instances->end(),
                           // Wait for retrieved GTIDs to be applied in parallel
@@ -465,10 +465,13 @@ void wait_all_apply_retrieved_trx(
 
     if (!invalidate_error_instances) {
       console->print_error(err_msg);
-    } else {
-      log_warning("%s", err_msg.c_str());
+      continue;
+    }
 
-      // Get instance metadata info and add it to invalidate list.
+    log_warning("%s", err_msg.c_str());
+
+    // Get instance metadata info and add it to invalidate list.
+    {
       auto md_it =
           std::find_if(out_instances_md->begin(), out_instances_md->end(),
                        [&instance_uuid](const Instance_metadata &i_md) {
@@ -478,26 +481,26 @@ void wait_all_apply_retrieved_trx(
         out_invalidate_ids->push_back(md_it->id);
       }
 
-      console->print_note(
-          md_it->label +
-          " will be invalidated (fail to apply received GTIDs) and must be "
-          "fixed or removed from the replicaset.");
+      console->print_note(shcore::str_format(
+          "%s will be invalidated (fail to apply received GTIDs) and must be "
+          "fixed or removed from the replicaset.",
+          md_it->label.c_str()));
 
-      // Remove instance to invalidate from lists.
-      instances->remove_if(
-          [&instance_uuid](const std::shared_ptr<Instance> &i) {
-            return i->get_uuid() == instance_uuid;
-          });
       out_instances_md->erase(md_it);
     }
+
+    // Remove instance to invalidate from lists.
+    instances->remove_if([&instance_uuid](const std::shared_ptr<Instance> &i) {
+      return i->get_uuid() == instance_uuid;
+    });
   }
 
   if (!invalidate_error_instances) {
     console->print_error(
         "One or more SECONDARY instances failed to apply retrieved "
-        "transactions. Use the 'invalidateErrorInstances' option to "
-        "perform the failover anyway by skipping and invalidating "
-        "instances with errors.");
+        "transactions. Use the 'invalidateErrorInstances' option to perform "
+        "the failover anyway by skipping and invalidating instances with "
+        "errors.");
     throw shcore::Exception(
         shcore::str_format(
             "%zi instance(s) failed to apply retrieved transactions",
