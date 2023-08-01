@@ -991,7 +991,7 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
   return result;
 }
 
-void check_instance_check_installed_schema_version(
+void check_instance_version_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version) {
   auto gr_allow_lower_version_join = instance.get_sysvar_bool(
@@ -1003,18 +1003,35 @@ void check_instance_check_installed_schema_version(
   // default variable value (false).
   if (gr_allow_lower_version_join) return;
 
-  mysqlshdk::utils::Version version = instance.get_version();
+  mysqlshdk::utils::Version target_version = instance.get_version();
 
-  if (version <= mysqlshdk::utils::Version(8, 0, 16)) {
-    if (version.get_major() < lowest_cluster_version.get_major()) {
+  auto supports_downgrade = [](const utils::Version &ver) {
+    return ver >= utils::Version(8, 0, 35);
+  };
+
+  if (target_version <= utils::Version(8, 0, 16)) {
+    if (target_version.get_major() < lowest_cluster_version.get_major()) {
       throw std::runtime_error(
-          "Instance major version '" + std::to_string(version.get_major()) +
+          "Instance major version '" +
+          std::to_string(target_version.get_major()) +
           "' cannot be lower than the cluster lowest major version '" +
           std::to_string(lowest_cluster_version.get_major()) + "'.");
     }
-  } else if (version < lowest_cluster_version) {
+  } else {
+    // upgrades are allowed
+    if (target_version >= lowest_cluster_version) return;
+
+    // downgrades within the same series are allowed, but only starting
+    // from 8.0.35
+    if (supports_downgrade(target_version) &&
+        supports_downgrade(lowest_cluster_version) &&
+        target_version.numeric_version_series() ==
+            lowest_cluster_version.numeric_version_series())
+      return;
+
+    // downgrades between series are not allowed
     throw std::runtime_error(
-        "Instance version '" + version.get_base() +
+        "Instance version '" + target_version.get_base() +
         "' cannot be lower than the cluster lowest version '" +
         lowest_cluster_version.get_base() + "'.");
   }

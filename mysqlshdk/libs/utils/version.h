@@ -89,6 +89,11 @@ class Version {
    */
   bool is_mds() const;
 
+  /**
+   * Returns the numeric major.minor version series (MMmm)
+   */
+  uint32_t numeric_version_series() const { return numeric() / 100; }
+
   bool operator<(const Version &other) const;
   bool operator<=(const Version &other) const;
   bool operator>(const Version &other) const;
