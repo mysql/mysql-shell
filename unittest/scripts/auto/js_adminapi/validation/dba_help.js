@@ -59,6 +59,10 @@ FUNCTIONS
             Validates and configures a local instance for MySQL InnoDB Cluster
             usage.
 
+            ATTENTION: This function is deprecated and will be removed in a
+                       future release of MySQL Shell, use
+                       dba.configureInstance() instead.
+
       configureReplicaSetInstance([instance][, options])
             Validates and configures an instance for use in an InnoDB
             ReplicaSet.
@@ -167,7 +171,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
@@ -189,6 +193,8 @@ DESCRIPTION
       - Update the config file.
       - Update the server variable.
       - Restart the server.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Configure Instance
 NAME
@@ -230,13 +236,13 @@ DESCRIPTION
       - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled.
+        be disabled. Deprecated and default value is true.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - applierWorkerThreads: Number of threads used for applying replicated
         transactions. The default value is 4.
 
@@ -265,6 +271,12 @@ DESCRIPTION
         variable.
       - Required Value: the required value for the configuration variable.
 
+      ATTENTION: The clearReadOnly option will be removed in a future release
+                 and it's no longer needed, super_read_only is automatically
+                 cleared.
+
+      ATTENTION: The interactive option will be removed in a future release.
+
 //@<OUT> Configure Local Instance
 NAME
       configureLocalInstance - Validates and configures a local instance for
@@ -281,6 +293,9 @@ RETURNS
       Nothing
 
 DESCRIPTION
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell, use dba.configureInstance() instead.
+
       This function reviews the instance configuration to identify if it is
       valid for usage in an InnoDB cluster, making configuration changes if
       necessary.
@@ -306,13 +321,13 @@ DESCRIPTION
       - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled.
+        be disabled. Deprecated and default value is true.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       If the outputMycnfPath option is used, only that file is updated and
       mycnfPath is treated as read-only.
@@ -338,6 +353,12 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
+
+      ATTENTION: The clearReadOnly option will be removed in a future release
+                 and it's no longer needed, super_read_only is automatically
+                 cleared.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Configure ReplicaSet Instance
 NAME
@@ -389,7 +410,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
       - applierWorkerThreads: Number of threads used for applying replicated
@@ -409,6 +430,8 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Create Cluster
 NAME
@@ -443,7 +466,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode for communication channels opened by Group
@@ -765,6 +788,8 @@ DESCRIPTION
 
       ATTENTION: The groupSeeds option will be removed in a future release.
 
+      ATTENTION: The interactive option will be removed in a future release.
+
 //@<OUT> Create ReplicaSet
 NAME
       createReplicaSet - Creates a MySQL InnoDB ReplicaSet.
@@ -861,7 +886,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - memberAuthType: controls the authentication type to use for the
         internal replication accounts.
       - certIssuer: common certificate issuer to use when 'memberAuthType'
@@ -903,6 +928,8 @@ DESCRIPTION
       channels with peer servers. replicationSslMode must be at least REQUIRED,
       although VERIFY_CA or VERIFY_IDENTITY are recommended for additional
       security.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Delete Sandbox
 NAME
@@ -998,7 +1025,11 @@ DESCRIPTION
 
       - force: boolean, confirms that the drop operation must be executed.
       - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled
+        be disabled. Deprecated and default value is true.
+
+      ATTENTION: The clearReadOnly option will be removed in a future release
+                 and it's no longer needed, super_read_only is automatically
+                 cleared.
 
 //@<OUT> Get Cluster
 NAME
@@ -1306,7 +1337,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       If dryRun is used, the function will determine whether a metadata upgrade
       or restore is required and inform the user without actually executing the
@@ -1338,3 +1369,4 @@ DESCRIPTION
       this function ended unexpectedly, this function will restore the metadata
       to the state it was before the failed upgrade operation.
 
+      ATTENTION: The interactive option will be removed in a future release.

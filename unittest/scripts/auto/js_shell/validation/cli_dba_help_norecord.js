@@ -10,6 +10,9 @@ The following operations are available at 'dba':
    configure-local-instance
       Validates and configures a local instance for MySQL InnoDB Cluster usage.
 
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell, use dba.configureInstance() instead.
+
    configure-replica-set-instance
       Validates and configures an instance for use in an InnoDB ReplicaSet.
 
@@ -69,15 +72,6 @@ OPTIONS
             the expected option values, in addition to the global MySQL system
             variables.
 
---password=<str>
-            The password to get connected to the instance.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI dba configure-instance --help
 NAME
       configure-instance - Validates and configures an instance for MySQL
@@ -114,15 +108,6 @@ OPTIONS
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
 
---password=<str>
-            The password to be used on the connection.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --mycnfPath=<str>
             The path to the MySQL configuration file of the instance.
 
@@ -130,13 +115,8 @@ OPTIONS
             Alternative output path to write the MySQL configuration file of
             the instance.
 
---clearReadOnly=<bool>
-            Boolean value used to confirm that super_read_only must be
-            disabled.
-
 --applierWorkerThreads=<int>
             Number of threads used for applying replicated transactions. The
-            default value is 4.
 
 //@<OUT> CLI dba configure-local-instance --help
 NAME
@@ -174,25 +154,12 @@ OPTIONS
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
 
---password=<str>
-            The password to be used on the connection.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --mycnfPath=<str>
             The path to the MySQL configuration file of the instance.
 
 --outputMycnfPath=<str>
             Alternative output path to write the MySQL configuration file of
             the instance.
-
---clearReadOnly=<bool>
-            Boolean value used to confirm that super_read_only must be
-            disabled.
 
 //@<OUT> CLI dba configure-replica-set-instance --help
 NAME
@@ -231,15 +198,6 @@ OPTIONS
 --restart=<bool>
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
-
---password=<str>
-            The password to be used on the connection.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 --applierWorkerThreads=<int>
             Number of threads used for applying replicated transactions. The
@@ -360,12 +318,6 @@ OPTIONS
             and/or the operation must proceed even if unmanaged replication
             channels were detected.
 
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI dba create-replica-set --help
 NAME
       create-replica-set - Creates a MySQL InnoDB ReplicaSet.
@@ -408,12 +360,6 @@ OPTIONS
             must be possible for any member of the ReplicaSet to connect to any
             other member using accounts with this hostname value.
 
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI dba delete-sandbox-instance --help
 NAME
       delete-sandbox-instance - Deletes an existing MySQL Server instance on
@@ -445,9 +391,6 @@ RETURNS
 OPTIONS
 --force=<bool>
             Boolean, confirms that the drop operation must be executed.
-
---clearReadOnly=<bool>
-            Boolean value used to confirm that super_read_only must be disabled
 
 //@<OUT> CLI dba deploy-sandbox-instance --help
 NAME
@@ -582,10 +525,3 @@ SYNTAX
 OPTIONS
 --dryRun=<bool>
             Boolean value used to enable a dry run of the upgrade process.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-

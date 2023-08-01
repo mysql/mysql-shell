@@ -220,6 +220,8 @@ status()
 incremental. Default is auto.
 @li waitRecovery: Integer value to indicate the recovery process verbosity
 level.
+@li recoveryProgress: Integer value to indicate the recovery process verbosity
+level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
 ${OPT_INTERACTIVE}
@@ -267,6 +269,12 @@ The waitRecovery option supports the following values:
 @li 2: show detailed static progress information.
 @li 3: show detailed dynamic progress information using progress bars.
 
+The recoveryProgress option supports the following values:
+
+@li 0: do not show any progress information.
+@li 1: show detailed static progress information.
+@li 2: show detailed dynamic progress information using progress bars.
+
 By default, if the standard output on which the Shell is running refers to a
 terminal, the waitRecovery option has the value of 3. Otherwise, it has the
 value of 2.
@@ -276,6 +284,11 @@ be used when clone is selected as the recovery method. By default, a SECONDARY
 member will be chosen as donor. If no SECONDARY members are available the
 PRIMARY will be selected. The option accepts values in the format: 'host:port'.
 IPv6 addresses are not supported.
+
+@attention The waitRecovery option will be removed in a future release.
+Please use the recoveryProgress option instead.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -297,24 +310,17 @@ void ReplicaSet::add_instance(
   // this validates the instance_def
   (void)get_connection_options(shcore::Value(instance_def));
 
-  // Init progress_style
-  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
-
-  if (options->wait_recovery == 1)
-    progress_style = Recovery_progress_style::NOINFO;
-  else if (options->wait_recovery == 2)
-    progress_style = Recovery_progress_style::TEXTUAL;
-  else if (options->wait_recovery == 3)
-    progress_style = Recovery_progress_style::PROGRESSBAR;
-
   // TODO(anyone): The implementation should be updated to receive the options
   // object
+  auto opts = options;
+
   execute_with_pool(
       [&]() {
-        impl()->add_instance(
-            instance_def, options->ar_options, options->clone_options,
-            options->instance_label, options->cert_subject, progress_style,
-            options->timeout, options->interactive(), options->dry_run);
+        impl()->add_instance(instance_def, options->ar_options,
+                             options->clone_options, options->instance_label,
+                             options->cert_subject, opts->get_wait_recovery(),
+                             options->timeout, options->interactive(),
+                             options->dry_run);
         return shcore::Value();
       },
       options->interactive());
@@ -368,6 +374,8 @@ does not execute them
 incremental. Default is auto.
 @li waitRecovery: Integer value to indicate the recovery process verbosity
 level.
+@li recoveryProgress: Integer value to indicate the recovery process verbosity
+level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
 ${OPT_INTERACTIVE}
@@ -397,6 +405,12 @@ The waitRecovery option supports the following values:
 @li 2: show detailed static progress information.
 @li 3: show detailed dynamic progress information using progress bars.
 
+The recoveryProgress option supports the following values:
+
+@li 0: do not show any progress information.
+@li 1: show detailed static progress information.
+@li 2: show detailed dynamic progress information using progress bars.
+
 By default, if the standard output on which the Shell is running refers to a
 terminal, the waitRecovery option has the value of 3. Otherwise, it has the
 value of 2.
@@ -406,6 +420,11 @@ be used when clone is selected as the recovery method. By default, a SECONDARY
 member will be chosen as donor. If no SECONDARY members are available the
 PRIMARY will be selected. The option accepts values in the format: 'host:port'.
 IPv6 addresses are not supported.
+
+@attention The waitRecovery option will be removed in a future release.
+Please use the recoveryProgress option instead.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -431,19 +450,12 @@ void ReplicaSet::rejoin_instance(
   (void)get_connection_options(shcore::Value(instance_def));
 
   // Init progress_style
-  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
-
-  if (options->wait_recovery == 1)
-    progress_style = Recovery_progress_style::NOINFO;
-  else if (options->wait_recovery == 2)
-    progress_style = Recovery_progress_style::TEXTUAL;
-  else if (options->wait_recovery == 3)
-    progress_style = Recovery_progress_style::PROGRESSBAR;
+  auto opts = options;
 
   execute_with_pool(
       [&]() {
         impl()->rejoin_instance(instance_def, options->clone_options,
-                                progress_style, options->timeout,
+                                opts->get_wait_recovery(), options->timeout,
                                 options->interactive(), options->dry_run);
         return shcore::Value();
       },

@@ -42,9 +42,11 @@ namespace replicaset {
 struct Wait_recovery_option {
   static const shcore::Option_pack_def<Wait_recovery_option> &options();
 
-  void set_wait_recovery(int value);
+  void set_wait_recovery(const std::string &option, int value);
+  Recovery_progress_style get_wait_recovery();
 
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
+ private:
+  std::optional<Recovery_progress_style> m_wait_recovery, m_recovery_progress;
 };
 
 struct Rejoin_instance_options : public Wait_recovery_option,

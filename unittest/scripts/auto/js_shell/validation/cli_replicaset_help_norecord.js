@@ -69,7 +69,7 @@ OPTIONS
             If true, performs checks and logs changes that would be made, but
             does not execute them
 
---waitRecovery=<int>
+--recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
 
 --timeout=<int>
@@ -77,15 +77,44 @@ OPTIONS
             timeout and force the Shell to wait until the transaction sync
             finishes. Defaults to 0.
 
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --label=<str>
             An identifier for the instance being added, used in the output of
             status()
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT".
+
+--replicationConnectRetry=<int>
+            Integer that specifies the interval in seconds between the
+            reconnection attempts that the replica makes after the connection
+            to the source times out.
+
+--replicationRetryCount=<int>
+            Integer that sets the maximum number of reconnection attempts that
+            the replica makes after the connection to the source times out.
+
+--replicationHeartbeatPeriod=<float>
+            Decimal that controls the heartbeat interval, which stops the
+            connection timeout occurring in the absence of data if the
+            connection is still good.
+
+--replicationCompressionAlgorithms=<str>
+            String that specifies the permitted compression algorithms for
+            connections to the replication source.
+
+--replicationZstdCompressionLevel=<int>
+            Integer that specifies the compression level to use for connections
+            to the replication source server that use the zstd compression
+            algorithm.
+
+--replicationBind=<str>
+            String that determines which of the replica's network interfaces is
+            chosen for connecting to the source.
+
+--replicationNetworkNamespace=<str>
+            String that specifies the network namespace to use for TCP/IP
+            connections to the replication source server.
 
 //@<OUT> CLI replicaset force-primary-instance --help
 NAME
@@ -169,19 +198,13 @@ OPTIONS
             If true, performs checks and logs changes that would be made, but
             does not execute them
 
---waitRecovery=<int>
+--recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
 
 --timeout=<int>
             Timeout in seconds for transaction sync operations; 0 disables
             timeout and force the Shell to wait until the transaction sync
             finishes. Defaults to 0.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI replicaset remove-instance --help
 NAME
@@ -324,15 +347,6 @@ OPTIONS
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
 
---password=<str>
-            The password for the InnoDB ReplicaSet administrator account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI replicaset setup-router-account --help
 NAME
       setup-router-account - Create or upgrade a MySQL account to use with
@@ -366,15 +380,6 @@ OPTIONS
             Password expiration setting for the account. May be set to the
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
-
---password=<str>
-            The password for the MySQL Router account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI replicaset status --help
 NAME

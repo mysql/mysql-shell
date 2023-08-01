@@ -209,10 +209,7 @@ For the detailed list of requirements to create an InnoDB Cluster, please use
 
 The options dictionary can contain the following values:
 
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or
-not according to the value set. The default value is equal to MySQL
-Shell wizard mode.
+${OPT_INTERACTIVE}
 @li dryRun: boolean if true, all validations and steps for creating a
 Replica Cluster are executed, but no changes are actually made. An
 exception will be thrown when finished.
@@ -313,6 +310,8 @@ ${CLUSTER_OPT_COMM_STACK_EXTRA}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
+
+@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(CLUSTERSET_CREATEREPLICACLUSTER_BRIEF)

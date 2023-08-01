@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "db/utils_connection.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 
 #include "modules/adminapi/common/common.h"
@@ -211,7 +212,9 @@ The options dictionary may contain the following attributes:
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
 @li waitRecovery: Integer value to indicate if the command shall wait for the
-recovery process to finish and its verbosity level.
+recovery process to finish and its verbosity level. Deprecated.
+@li recoveryProgress: Integer value to indicate the recovery process verbosity
+level.
 @li password: the instance connection password
 @li memberSslMode: SSL mode used on the instance
 ${CLUSTER_OPT_IP_WHITELIST}
@@ -251,6 +254,12 @@ The waitRecovery option supports the following values:
 @li 3: block until the recovery process finishes and show progress using
 progress bars.
 
+The recoveryProgress option supports the following values:
+
+@li 0: do not show any progress information.
+@li 1: show detailed static progress information.
+@li 2: show detailed dynamic progress information using progress bars.
+
 By default, if the standard output on which the Shell is running refers to a
 terminal, the waitRecovery option has the value of 3. Otherwise, it has the
 value of 2.
@@ -280,6 +289,11 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 Please use the ipAllowlist option instead.
 
 @attention The groupSeeds option will be removed in a future release.
+
+@attention The waitRecovery option will be removed in a future release.
+Please use the recoveryProgress option instead.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -401,6 +415,8 @@ ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -471,6 +487,8 @@ a cluster. This allows to remove from the metadata an instance than can no
 longer be recovered. Otherwise, the instance must be brought back ONLINE and
 removed without the force option to avoid errors trying to add it back to a
 cluster.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -671,6 +689,8 @@ from the metadata, including instances than can no longer be recovered.
 Otherwise, the instances must be brought back ONLINE and the cluster dissolved
 without the force option to avoid errors trying to reuse the instances and add
 them back to a cluster.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -725,6 +745,8 @@ if really needed when instances are permanently not available (no longer
 reachable) or never going to be reused again in a cluster. Prefer to bring the
 non available instances back ONLINE or remove them from the cluster if they will
 no longer be used.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -789,6 +811,8 @@ options in order to automatically add or remove the instances in the metadata,
 without having to explicitly specify them.
 
 @attention The updateTopologyMode option will be removed in a future release.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -875,6 +899,13 @@ void Cluster::force_quorum_using_partition_of(
   auto instance_def = instance_def_;
   set_password_from_string(&instance_def, password);
 
+  if (password) {
+    handle_deprecated_option(mysqlshdk::db::kPassword, "");
+
+    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                    { throw std::logic_error("debug"); });
+  }
+
   // Throw an error if the cluster has already been dissolved
   assert_valid("forceQuorumUsingPartitionOf");
 
@@ -900,6 +931,9 @@ Verifies the instance gtid state in relation to the cluster.
 @param instance An instance definition.
 
 @returns resultset A JSON object with the status.
+
+@attention This function is deprecated and will be removed in a future release
+of MySQL Shell.
 
 Analyzes the instance executed GTIDs with the executed/purged GTIDs on the
 cluster to determine if the instance is valid for the cluster.
@@ -943,6 +977,10 @@ None Cluster::check_instance_state(InstanceDef instance) {}
 shcore::Value Cluster::check_instance_state(
     const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
+
+  mysqlsh::current_console()->print_warning(
+      "This function is deprecated and will be removed in a future release of "
+      "MySQL Shell.");
 
   return execute_with_pool(
       [&]() { return impl()->check_instance_state(instance_def); }, false);

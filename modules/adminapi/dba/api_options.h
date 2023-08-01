@@ -89,7 +89,7 @@ struct Configure_instance_options : public Password_interactive_options {
   std::optional<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
-  mysqlshdk::null_bool clear_read_only;
+  std::optional<bool> clear_read_only;
 };
 
 struct Configure_cluster_local_instance_options
@@ -170,9 +170,10 @@ struct Create_replicaset_options : public Interactive_option {
 
 struct Drop_metadata_schema_options {
   static const shcore::Option_pack_def<Drop_metadata_schema_options> &options();
+  void set_clear_read_only(bool value);
 
-  mysqlshdk::null_bool force;
-  mysqlshdk::null_bool clear_read_only;
+  std::optional<bool> force;
+  std::optional<bool> clear_read_only;
 };
 
 struct Reboot_cluster_options {

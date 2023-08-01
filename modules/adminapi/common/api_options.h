@@ -46,6 +46,7 @@ struct Timeout_option {
 
 struct Interactive_option {
   static const shcore::Option_pack_def<Interactive_option> &options();
+  void set_interactive(bool interactive);
   bool interactive() const;
 
  private:
@@ -54,11 +55,12 @@ struct Interactive_option {
 
 struct Wait_recovery_option {
   static const shcore::Option_pack_def<Wait_recovery_option> &options();
-  void set_wait_recovery(int value);
+  void set_wait_recovery(const std::string &option, int value);
   Recovery_progress_style get_wait_recovery();
 
  private:
   std::optional<Recovery_progress_style> m_wait_recovery;
+  std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
 struct Recovery_progress_option {

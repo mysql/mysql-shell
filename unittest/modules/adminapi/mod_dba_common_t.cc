@@ -1020,7 +1020,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), true, false);
+        mysqlshdk::mysql::Instance(session), true);
     EXPECT_TRUE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1048,7 +1048,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
 
   try {
     mysqlsh::dba::validate_super_read_only(mysqlshdk::mysql::Instance(session),
-                                           false, false);
+                                           false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1071,7 +1071,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   session->query("set global super_read_only = 1");
   try {
     mysqlsh::dba::validate_super_read_only(mysqlshdk::mysql::Instance(session),
-                                           false, false);
+                                           false);
     SCOPED_TRACE("Unexpected success calling validate_super_read_only");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
@@ -1094,7 +1094,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), true, false);
+        mysqlshdk::mysql::Instance(session), true);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1118,7 +1118,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), false, false);
+        mysqlshdk::mysql::Instance(session), false);
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1925,5 +1925,37 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
   }
 
   testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
+}
+
+TEST_F(Dba_common_test, set_wait_recovery) {
+  mysqlsh::dba::cluster::Add_instance_options options;
+
+  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 0);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::NOWAIT);
+
+  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 1);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::NOINFO);
+
+  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 2);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::TEXTUAL);
+
+  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 3);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
+
+  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 0);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::NOINFO);
+
+  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 1);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::TEXTUAL);
+
+  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 2);
+  EXPECT_EQ(options.get_wait_recovery(),
+            mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
 }
 }  // namespace testing

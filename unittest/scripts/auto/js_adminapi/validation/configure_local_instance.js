@@ -27,6 +27,7 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -50,6 +51,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -72,6 +74,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------+---------------+----------------+-----------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -95,6 +98,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -118,6 +122,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -141,6 +146,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
+
 Creating user admin@%.
 Account admin@% was successfully created.
 
@@ -175,19 +181,8 @@ NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see:
-https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
-NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
-
-1 open session(s) of 'root@localhost'.
-
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Creating user root2@%.
 Account root2@% was successfully created.
 
@@ -217,19 +212,8 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see:
-https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+Do you want to perform the required configuration changes? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
-NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
-
-1 open session(s) of 'root@localhost'.
-
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Creating user root2@%.
 Account root2@% was successfully created.
 
@@ -256,6 +240,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
+
 Creating user root5@%.
 Account root5@% was successfully created.
 
@@ -283,6 +268,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
+
 Creating user root5@%.
 Account root5@% was successfully created.
 

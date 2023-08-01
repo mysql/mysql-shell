@@ -214,6 +214,8 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 ?{}
+WARNING: The interactive option is deprecated and will be removed in a future release.
+
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -692,19 +694,8 @@ NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
-Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
-The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
-variable set to protect it from inadvertent updates from applications.
-You must first unset it to be able to perform any changes to this instance.
-For more information see:
-https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
-NOTE: There are open sessions to 'localhost:<<<__mysql_sandbox_port1>>>'.
-You may want to kill these sessions to prevent them from performing unexpected updates:
-
-1 open session(s) of 'root@localhost'.
-
-Do you want to disable super_read_only and continue? [y/N]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 Creating user newClusterAdminAccount@%.
 Account newClusterAdminAccount@% was successfully created.
 
@@ -720,8 +711,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 ||
 
 //@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
-|ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has|
-||Server in SUPER_READ_ONLY mode (RuntimeError)
+||
 
 //@ ET TEARDOWN
 ||

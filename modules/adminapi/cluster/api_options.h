@@ -40,7 +40,8 @@
 namespace mysqlsh::dba::cluster {
 
 struct Add_instance_options : public Password_interactive_options,
-                              Wait_recovery_option {
+                              Wait_recovery_option,
+                              Recovery_progress_option {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
   void set_cert_subject(const std::string &value);

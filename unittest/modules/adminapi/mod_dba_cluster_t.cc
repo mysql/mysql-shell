@@ -198,7 +198,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
       // Create the add_instance command and execute it.
       mysqlsh::dba::cluster::Add_instance_options options;
       options.gr_options = gr_opts;
-      options.set_wait_recovery(0);
+      options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 0);
       options.label = "";
 
       mysqlsh::dba::Cluster_topology_executor<

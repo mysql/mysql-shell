@@ -49,6 +49,7 @@ const shcore::Option_pack_def<Add_instance_options>
           .include(&Add_instance_options::clone_options)
           .optional(kLabel, &Add_instance_options::label)
           .include<Wait_recovery_option>()
+          .include<Recovery_progress_option>()
           .optional(kCertSubject, &Add_instance_options::set_cert_subject)
           .include<Password_interactive_options>();
   return opts;

@@ -274,7 +274,6 @@ testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "newClusterAdminAccount"});
 session.close();
 
@@ -298,11 +297,13 @@ testutil.expectPrompt("Do you want to perform the required configuration changes
 dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2", clearReadOnly: true});
 
 // ET_13 - Super read-only enabled and 'clearReadOnly' is not set with interactive is DISABLED
-// prompts the user if wants to disable super_read_only to continue with the operation.
+// super_read_only automatically disabled to execute the operation and then re-enabled back
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 //@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount3", clusterAdminPassword: "pwd"});
+
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 //@ ET TEARDOWN
 session.close();

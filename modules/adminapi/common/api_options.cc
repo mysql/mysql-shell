@@ -26,12 +26,14 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/api_options.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
 
@@ -58,9 +60,19 @@ const shcore::Option_pack_def<Interactive_option>
     &Interactive_option::options() {
   static const auto opts =
       shcore::Option_pack_def<Interactive_option>().optional(
-          kInteractive, &Interactive_option::m_interactive);
-
+          kInteractive, &Interactive_option::set_interactive, "",
+          shcore::Option_extract_mode::CASE_INSENSITIVE,
+          shcore::Option_scope::DEPRECATED);
   return opts;
+}
+
+void Interactive_option::set_interactive(bool interactive) {
+  handle_deprecated_option(kInteractive, "");
+
+  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                  { throw std::logic_error("debug"); });
+
+  m_interactive = interactive;
 }
 
 bool Interactive_option::interactive() const {
@@ -72,7 +84,9 @@ const shcore::Option_pack_def<Password_interactive_options>
   static const auto opts =
       shcore::Option_pack_def<Password_interactive_options>()
           .optional(mysqlshdk::db::kPassword,
-                    &Password_interactive_options::set_password)
+                    &Password_interactive_options::set_password, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kDbPassword,
                     &Password_interactive_options::set_password, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
@@ -85,8 +99,11 @@ const shcore::Option_pack_def<Password_interactive_options>
 const shcore::Option_pack_def<Wait_recovery_option>
     &Wait_recovery_option::options() {
   static const auto opts =
-      shcore::Option_pack_def<Wait_recovery_option>().optional(
-          kWaitRecovery, &Wait_recovery_option::set_wait_recovery);
+      shcore::Option_pack_def<Wait_recovery_option>()
+          .optional(kRecoveryProgress, &Wait_recovery_option::set_wait_recovery)
+          .optional(kWaitRecovery, &Wait_recovery_option::set_wait_recovery, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED);
 
   return opts;
 }
@@ -142,22 +159,53 @@ void validate_recovery_progress(int value) {
 }
 }  // namespace
 
-void Wait_recovery_option::set_wait_recovery(int value) {
-  // Validate waitRecovery option UInteger [0, 3]
-  validate_wait_recovery(value);
+void Wait_recovery_option::set_wait_recovery(const std::string &option,
+                                             int value) {
+  if (option == kWaitRecovery) {
+    handle_deprecated_option(kWaitRecovery, kRecoveryProgress,
+                             m_recovery_progress.has_value(), false);
 
-  switch (value) {
-    case 0:
-      m_wait_recovery = Recovery_progress_style::NOWAIT;
-      break;
-    case 1:
-      m_wait_recovery = Recovery_progress_style::NOINFO;
-      break;
-    case 2:
-      m_wait_recovery = Recovery_progress_style::TEXTUAL;
-      break;
-    default:
-      m_wait_recovery = Recovery_progress_style::PROGRESSBAR;
+    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                    { throw std::logic_error("debug"); });
+  }
+
+  // Validate waitRecovery option UInteger [0, 3]
+  if (option == kWaitRecovery) {
+    validate_wait_recovery(value);
+  } else {
+    // Validate recoveryProgress option UInteger [0, 2]
+    validate_recovery_progress(value);
+  }
+
+  if (option == kWaitRecovery) {
+    switch (value) {
+      case 0:
+        m_wait_recovery = Recovery_progress_style::NOWAIT;
+        break;
+      case 1:
+        m_wait_recovery = Recovery_progress_style::NOINFO;
+        break;
+      case 2:
+        m_wait_recovery = Recovery_progress_style::TEXTUAL;
+        break;
+      case 3:
+        m_wait_recovery = Recovery_progress_style::PROGRESSBAR;
+        break;
+    }
+  } else {
+    switch (value) {
+      case 0:
+        m_recovery_progress = Recovery_progress_style::NOINFO;
+        break;
+      case 1:
+        m_recovery_progress = Recovery_progress_style::TEXTUAL;
+        break;
+      case 2:
+        m_recovery_progress = Recovery_progress_style::PROGRESSBAR;
+        break;
+    }
+
+    m_wait_recovery = m_recovery_progress;
   }
 }
 
@@ -184,6 +232,13 @@ void Password_interactive_options::set_password(const std::string &option,
     handle_deprecated_option(mysqlshdk::db::kDbPassword,
                              mysqlshdk::db::kPassword, !password.is_null(),
                              true);
+  }
+
+  if (option == mysqlshdk::db::kPassword) {
+    handle_deprecated_option(mysqlshdk::db::kPassword, "");
+
+    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                    { throw std::logic_error("debug"); });
   }
 
   password = value;
