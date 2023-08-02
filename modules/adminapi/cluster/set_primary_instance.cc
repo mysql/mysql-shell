@@ -119,6 +119,16 @@ shcore::Value Set_primary_instance::execute() {
       target_instance_address.c_str(), m_cluster->get_name().c_str()));
   console->print_info();
 
+  // Terminate the command if the requested instance is already the Cluster's
+  // primary
+  if (m_cluster->get_cluster_server()->get_uuid() == m_target_uuid) {
+    console->print_info(shcore::str_format(
+        "The instance '%s' is already the current primary of the Cluster.",
+        target_instance_address.c_str()));
+
+    return shcore::Value();
+  }
+
   if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
     // We must stop the replication channel at the primary instance first
     // since GR won't allow changing the primary when there are running

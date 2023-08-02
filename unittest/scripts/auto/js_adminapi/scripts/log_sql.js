@@ -765,7 +765,7 @@ EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[1]);
 
 //@<> Bug#33538559: set primary instance with timeout (dba.logSql = 2). {VER(>=8.0.29)}
 WIPE_SHELL_LOG();
-c.setPrimaryInstance(__sandbox_uri2, {runningTransactionsTimeout: 11});
+c.setPrimaryInstance(__sandbox_uri3, {runningTransactionsTimeout: 11});
 EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_timeout_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_timeout_sql[1]);
 

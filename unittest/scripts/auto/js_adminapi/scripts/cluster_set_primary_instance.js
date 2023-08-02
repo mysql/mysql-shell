@@ -96,6 +96,10 @@ cluster.setPrimaryInstance(__sandbox_uri2);
 //@<OUT> WL#12052: Set new primary 2 {VER(>=8.0.13)}
 cluster.setPrimaryInstance(__sandbox_uri3);
 
+//@<> WL#12052: Set new primary (same primary) {VER(>=8.0.13)}
+EXPECT_NO_THROWS(function() { cluster.setPrimaryInstance(__endpoint3); });
+EXPECT_OUTPUT_CONTAINS("The instance '" + __endpoint3 + "' is already the current primary of the Cluster.");
+
 //@<> set new primary through hostname {VER(>=8.0.13)}
 cluster.setPrimaryInstance(hostname+":"+__mysql_sandbox_port2);
 

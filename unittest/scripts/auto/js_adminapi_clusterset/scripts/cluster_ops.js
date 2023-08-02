@@ -78,6 +78,27 @@ ensure_cs_replication_channel_ready(__sandbox_uri4, __mysql_sandbox_port1);
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
 
+//@<> Changing the primary instance of the REPLICA Cluster to the same primary must ensure the replication stream is not broken
+\option dba.logSql = 2
+WIPE_SHELL_LOG();
+
+replicacluster.setPrimaryInstance(__sandbox_uri4);
+
+var set_primary_instance_sql = [
+    "STOP REPLICA FOR CHANNEL 'clusterset_replication'",
+    "SELECT group_replication_set_as_primary(*)",
+    "START REPLICA FOR CHANNEL 'clusterset_replication'"
+];
+
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[0]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[1]);
+EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[2]);
+
+\option dba.logSql = 0
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
+
 //@<> Changing the primary instance of the REPLICA Cluster must ensure the replication stream is kept
 \option dba.logSql = 2
 WIPE_SHELL_LOG();
