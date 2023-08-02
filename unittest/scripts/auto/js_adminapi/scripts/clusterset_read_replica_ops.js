@@ -160,6 +160,19 @@ EXPECT_NO_THROWS(function() { replica_cluster.fenceAllTraffic(); });
 
 shell.connect(__sandbox_uri3);
 
+//@<> ClusterSet.status(extended) should not report Read-Replicas as Cluster members when the Cluster is offline
+status = clusterset.status({extended:1});
+print(status);
+
+read_replica1 = status["clusters"]["cluster2"]["topology"][__endpoint3]["readReplicas"][__endpoint5]
+
+EXPECT_EQ(__endpoint5, read_replica1["address"]);
+EXPECT_EQ("READ_REPLICA", read_replica1["role"]);
+EXPECT_EQ("OFFLINE", read_replica1["status"]);
+EXPECT_EQ(__version, read_replica1["version"]);
+
+EXPECT_EQ(undefined, status["clusters"]["cluster2"]["topology"][__endpoint5]);
+
 EXPECT_NO_THROWS(function() { replica_cluster = dba.rebootClusterFromCompleteOutage(); });
 
 status = clusterset.status({extended:1});

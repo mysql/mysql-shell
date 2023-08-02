@@ -1449,36 +1449,38 @@ shcore::Dictionary_t Status::get_topology(
       instances.emplace_back(std::move(mdi));
     }
   }
+
   // look for instances in MD but not in group
   for (const auto &i : m_instances) {
     bool found = false;
+
+    if (i.instance_type == Instance_type::READ_REPLICA) {
+      Read_replica_info read_replica = {};
+
+      read_replica.md = i;
+
+      Replication_sources replication_sources =
+          m_cluster->get_read_replica_replication_sources(i.uuid);
+
+      if (replication_sources.source_type != Source_type::CUSTOM) {
+        read_replica.managed_channel_info.automatic_sources = true;
+      } else {
+        read_replica.managed_channel_info.sources.swap(
+            replication_sources.replication_sources);
+      }
+
+      read_replicas.emplace_back(std::move(read_replica));
+
+      continue;
+    }
+
     for (const auto &m : member_info) {
-      if (i.instance_type == Instance_type::READ_REPLICA) {
-        Read_replica_info read_replica = {};
-
-        read_replica.md = i;
-
-        Replication_sources replication_sources =
-            m_cluster->get_read_replica_replication_sources(i.uuid);
-
-        if (replication_sources.source_type != Source_type::CUSTOM) {
-          read_replica.managed_channel_info.automatic_sources = true;
-        } else {
-          read_replica.managed_channel_info.sources.swap(
-              replication_sources.replication_sources);
-        }
-
-        read_replicas.emplace_back(read_replica);
+      if (m.uuid == i.uuid ||
+          mysqlshdk::utils::are_endpoints_equal(
+              i.endpoint,
+              mysqlshdk::utils::make_host_and_port(m.host, m.port))) {
         found = true;
         break;
-      } else {
-        if (m.uuid == i.uuid ||
-            mysqlshdk::utils::are_endpoints_equal(
-                i.endpoint,
-                mysqlshdk::utils::make_host_and_port(m.host, m.port))) {
-          found = true;
-          break;
-        }
       }
     }
     if (!found) {
@@ -1496,6 +1498,7 @@ shcore::Dictionary_t Status::get_topology(
         // the instance
         mdi.actual_server_uuid = i.uuid;
       }
+
       instances.emplace_back(std::move(mdi));
     }
   }
