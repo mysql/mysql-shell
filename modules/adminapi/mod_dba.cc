@@ -1145,6 +1145,35 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           "secondary when not possible");
     }
 
+    bool is_read_replica =
+        metadata->get_instance_by_uuid(target_member->get_uuid())
+            .instance_type == Instance_type::READ_REPLICA;
+
+    // If the instance is a read-replica connect first to a group member
+    if (is_read_replica) {
+      Cluster_metadata cluster_md;
+
+      if (!metadata->get_cluster_for_server_uuid(target_member->get_uuid(),
+                                                 &cluster_md)) {
+        throw shcore::Exception::runtime_error(
+            "Could not get the InnoDB Cluster metadata.");
+      }
+
+      ipool->set_metadata(metadata);
+      auto cluster_members =
+          ipool->get_metadata()->get_all_instances(cluster_md.cluster_id);
+
+      for (const auto &member : cluster_members) {
+        auto instance = ipool->connect_unchecked_uuid(member.uuid);
+
+        // Reset the metadata and the target_member to the group member
+        metadata = std::make_shared<MetadataStorage>(instance);
+        ipool->set_metadata(metadata);
+        target_member = instance;
+        break;
+      }
+    }
+
     // This will throw if not a cluster member
     try {
       // Connect to the target cluster member and
@@ -1165,7 +1194,12 @@ std::shared_ptr<Cluster> Dba::get_cluster(
            e.code() == SHERR_DBA_GROUP_MEMBER_NOT_ONLINE)) {
         console->print_info("Retrying getCluster() using a secondary member");
 
-        connect_to_target_group({}, &metadata, &group_server, false);
+        if (!is_read_replica) {
+          connect_to_target_group({}, &metadata, &group_server, false);
+        } else {
+          connect_to_target_group(target_member, &metadata, &group_server,
+                                  false);
+        }
       } else {
         throw;
       }

@@ -271,9 +271,27 @@ CHECK_READ_REPLICA(__sandbox_uri4, cluster, "secondary", [__endpoint2, __endpoin
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function() { cluster = dba.getCluster(); });
 
-reset_read_replica(__sandbox_uri4, cluster);
+//@<> getCluster() while connected to a read-replica and the cluster lost quorum
+shell.connect(__sandbox_uri1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
+testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+
+shell.connect(__sandbox_uri4);
+EXPECT_NO_THROWS(function() { cluster = dba.getCluster(); });
+
+// Restore quorum
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+EXPECT_NO_THROWS(function() { cluster.forceQuorumUsingPartitionOf(__sandbox_uri1); });
+
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint2); });
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint3); });
 
 //@<> addReplicaInstance() - using 'replicationSources: "[__endpoint3, __endpoint1]]'
+reset_read_replica(__sandbox_uri4, cluster);
+
 EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {replicationSources: [__endpoint3, __endpoint1]}); });
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port3);
 CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint3, __endpoint1], [__endpoint3]);
