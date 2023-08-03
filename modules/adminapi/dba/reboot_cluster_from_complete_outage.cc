@@ -172,10 +172,9 @@ TargetType::Type check_instance_type(
 void rejoin_instances(Cluster_impl *cluster_impl,
                       const Instance &target_instance,
                       const std::vector<std::shared_ptr<Instance>> &instances,
-                      const Reboot_cluster_options &options, bool enable_sro) {
+                      const Reboot_cluster_options &options, bool enable_sro,
+                      bool removed_from_set) {
   const auto console = current_console();
-
-  auto removed_from_set = cluster_impl->is_cluster_set_remove_pending();
 
   for (const auto &instance : instances) {
     // ignore seed
@@ -229,9 +228,8 @@ void rejoin_instances(Cluster_impl *cluster_impl,
       //     ClusterSet, or
       //   - It's not a ClusterSet member, or
       //   - It's an INVALIDATED Cluster
-      bool ignore_cluster_set = removed_from_set ||
-                                !cluster_impl->is_cluster_set_member() ||
-                                cluster_impl->is_invalidated();
+      bool ignore_cluster_set =
+          removed_from_set || !cluster_impl->is_cluster_set_member();
 
       Cluster_topology_executor<cluster::Rejoin_instance>{
           cluster_impl,       instance,
@@ -277,6 +275,7 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
   m_cs_info.is_primary = m_cs_info.is_member && cluster->is_primary_cluster();
   m_cs_info.is_primary_invalidated = false;
   m_cs_info.removed_from_set = false;
+  m_cs_info.invalidated_replica = false;
   m_cs_info.primary_status = Cluster_global_status::UNKNOWN;
   m_cs_info.is_init = true;
 
@@ -298,8 +297,8 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
   try {
     auto target_cluster = cs->get_cluster(cluster->get_name(), true, true);
 
-    m_cs_info.removed_from_set = target_cluster->is_invalidated();
-    if (!m_cs_info.removed_from_set) {
+    m_cs_info.invalidated_replica = target_cluster->is_invalidated();
+    if (!m_cs_info.invalidated_replica) {
       target_cluster->check_and_get_cluster_set_for_cluster();
 
       m_cs_info.removed_from_set =
@@ -314,10 +313,11 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
 
   log_info(
       "ClusterSet info: %smember, %sprimary, %sprimary_invalidated, %sremoved "
-      "from set, primary status: %s",
+      "from set, %sinvalidated replica, primary status: %s",
       m_cs_info.is_member ? "" : "not ", m_cs_info.is_primary ? "" : "not ",
       m_cs_info.is_primary_invalidated ? "" : "not ",
       m_cs_info.removed_from_set ? "" : "not ",
+      m_cs_info.invalidated_replica ? "" : "not ",
       to_string(m_cs_info.primary_status).c_str());
 }
 
@@ -1306,22 +1306,33 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
   bool rejoin_remaning_instances = true;
 
-  // don't rejoin the instances *if* cluster is in a cluster set and is
-  // invalidated (former primary) or is a replica and the primary doesn't have
-  // global status OK
+  // don't rejoin the instances *if* cluster is in a cluster set and:
+  //  - is invalidated (former primary)
+  //  - is an invalidated replica
+  //  - is a replica and the primary doesn't have global status OK
   if (m_cs_info.is_member &&
-      (m_cs_info.is_primary_invalidated ||
+      (m_cs_info.is_primary_invalidated || m_cs_info.invalidated_replica ||
        (!m_cs_info.is_primary &&
         m_cs_info.primary_status != Cluster_global_status::OK))) {
-    auto msg = m_cs_info.is_primary_invalidated
-                   ? "Skipping rejoining remaining instances because the "
-                     "Cluster belongs to a ClusterSet and is INVALIDATED. "
-                     "Please add or remove the instances after the Cluster is "
-                     "rejoined to the ClusterSet."
-                   : "Skipping rejoining remaining instances because the "
-                     "Cluster belongs to a ClusterSet and its global status is "
-                     "not OK. Please add or remove the instances after the "
-                     "Cluster is rejoined to the ClusterSet.";
+    const char *msg{nullptr};
+    if (m_cs_info.is_primary_invalidated)
+      msg =
+          "Skipping rejoining remaining instances because the Cluster was "
+          "INVALIDATED by a failover. Please add or remove the instances after "
+          "the Cluster is rejoined to the ClusterSet.";
+    else if (m_cs_info.invalidated_replica)
+      msg =
+          "Skipping rejoining remaining instances because the Cluster belongs "
+          "to a ClusterSet as a REPLICA Cluster but has been invalidated. "
+          "Please add or remove the  instances after the Cluster is rejoined "
+          "to the ClusterSet.";
+    else
+      msg =
+          "Skipping rejoining remaining instances because the Cluster belongs "
+          "to a ClusterSet and its global status is not OK. Please add or "
+          "remove the instances after the Cluster is rejoined to the "
+          "ClusterSet.";
+
     console->print_info(msg);
 
     rejoin_remaning_instances = false;
@@ -1329,7 +1340,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     // it's either a non ClusterSet instance or it is but it's not the
     // primary, so we just need to acquire the primary before rejoining the
     // instances
-    if (m_cs_info.is_member && !cluster_impl->is_cluster_set_remove_pending()) {
+    if (m_cs_info.is_member && !m_cs_info.removed_from_set) {
       std::shared_ptr<Cluster_set_impl> cs;
       try {
         cs = cluster_impl->check_and_get_cluster_set_for_cluster();
@@ -1370,7 +1381,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         if (e.code() == SHERR_DBA_METADATA_MISSING)
           cluster_impl->set_cluster_set_remove_pending(true);
       }
-    } else if (!m_cs_info.removed_from_set) {
+    } else if (!m_cs_info.removed_from_set && !m_cs_info.invalidated_replica) {
       // this is a replica cluster, so try and rejoin the cluster set
       console->print_info("Rejoining Cluster into its original ClusterSet...");
       console->print_info();
@@ -1419,13 +1430,24 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
           }
         }
       }
+    } else {
+      // reaching this point, the cluster is a replica cluster and is either
+      // removed from the ClusterSet or was invalidated. There's a chance this
+      // happened while the cluster was OFFLINE, so the MD might still assume
+      // that we are in a ClusterSet. To avoid problems with the cluster
+      // object returned by the command, we simply assume that the cluster is
+      // pending removed.
+      if (m_cs_info.removed_from_set)
+        cluster_impl->set_cluster_set_remove_pending(true);
     }
   }
 
   if (rejoin_remaning_instances && !m_options.get_dry_run()) {
     // and finally, rejoin all instances
-    rejoin_instances(cluster_impl.get(), *m_target_instance, instances,
-                     m_options, !cluster_is_multi_primary);
+    rejoin_instances(
+        cluster_impl.get(), *m_target_instance, instances, m_options,
+        !cluster_is_multi_primary,
+        m_cs_info.removed_from_set || m_cs_info.invalidated_replica);
   }
 
   if (m_options.get_dry_run()) {

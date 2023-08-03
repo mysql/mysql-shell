@@ -115,6 +115,7 @@ class Reboot_cluster_from_complete_outage {
     bool is_primary;
     bool is_primary_invalidated;
     bool removed_from_set;
+    bool invalidated_replica;
     Cluster_global_status primary_status;
     bool is_init = false;
   } m_cs_info = {};

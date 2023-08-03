@@ -247,7 +247,6 @@ EXPECT_THROWS(function(){dba.createCluster("newCluster");}, "Unable to create cl
 
 // Reboot the Cluster from Complete Outage
 EXPECT_NO_THROWS(function() {dba.rebootClusterFromCompleteOutage(); });
-EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
 
 EXPECT_NO_THROWS(function() {c = dba.getCluster(); });
 

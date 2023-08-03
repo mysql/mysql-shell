@@ -12,12 +12,12 @@ testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
-replicacluster = cs.createReplicaCluster(__sandbox_uri4, "replica");
-replicacluster.addInstance(__sandbox_uri5);
-replicacluster.addInstance(__sandbox_uri6);
+replica = cs.createReplicaCluster(__sandbox_uri4, "replica");
+replica.addInstance(__sandbox_uri5);
+replica.addInstance(__sandbox_uri6);
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
-CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replicacluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
 CHECK_CLUSTER_SET(session);
 
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
@@ -49,14 +49,14 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster", {dryRun: true}); });
 EXPECT_OUTPUT_CONTAINS("NOTE: dryRun option was specified. Validations will be executed, but no changes will be applied.");
-EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster was INVALIDATED by a failover. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("dryRun finished.");
 EXPECT_OUTPUT_NOT_CONTAINS("The Cluster was successfully rebooted.");
 
 testutil.wipeAllOutput();
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster"); });
-EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster was INVALIDATED by a failover. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
 EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
@@ -185,13 +185,19 @@ cluster.rejoinInstance(__sandbox_uri2);
 cluster.rejoinInstance(__sandbox_uri3);
 
 shell.connect(__sandbox_uri4);
-EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica", {force: true}); });
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
 
-cs.rejoinCluster("replica");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet as a REPLICA Cluster but has been invalidated. Please add or remove the  instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
+
+EXPECT_NO_THROWS(function(){ cs.rejoinCluster("replica"); });
 
 wait_channel_ready(session, __mysql_sandbox_port6, "clusterset_replication");
 
-replica.rejoinInstance(__sandbox_uri5);
+EXPECT_NO_THROWS(function(){ replica.rejoinInstance(__sandbox_uri5); });
+
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port6);
+testutil.waitMemberTransactions(__mysql_sandbox_port5, __mysql_sandbox_port4);
 
 // Rejoin creates a VCLE, so let's reconcile the GTID-set already
 cs.rejoinCluster("replica");
@@ -208,9 +214,14 @@ CHECK_CLUSTER_SET(session);
 cs.setPrimaryCluster("cluster");
 cs.removeCluster("replica2");
 
+testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
+testutil.waitMemberState(__mysql_sandbox_port6, "OFFLINE");
+
 shell.connect(__sandbox_uri4);
 replica = dba.getCluster();
 replica.addInstance(__sandbox_uri6);
+
+testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port4);
 
 shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();

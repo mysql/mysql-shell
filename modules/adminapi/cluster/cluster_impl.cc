@@ -4010,7 +4010,7 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
     auto cs = get_cluster_set_object(true, check_primary_status);
 
-    if (auto cs_primary_master = cs->get_primary_master()) {
+    if (auto cs_primary_master = cs->get_primary_master(); cs_primary_master) {
       // Check if the ClusterSet Primary is different than the Cluster's one
       auto cs_primary_master_url =
           cs_primary_master->get_connection_options().uri_endpoint();
