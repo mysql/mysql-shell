@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_config.h"
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/mod_utils.h"
@@ -69,10 +70,17 @@ void copy(const mysqlshdk::db::Connection_options &connection_options,
   copy_options->dump_options()->set_storage_config(storage);
   copy_options->dump_options()->set_output_url(output->full_path().real());
 
+  const auto version = mysqlshdk::utils::Version(
+      load_session->query("SELECT @@version")->fetch_one()->get_string(0));
+  auto is_mds = version.is_mds();
+  DBUG_EXECUTE_IF("copy_utils_force_mds", { is_mds = true; });
+
+  // if target is MDS, then we want to validate the version, so we won't copy
+  // to an unsupported version
+  copy_options->dump_options()->set_target_version(version, is_mds);
+
   // enable MDS checks if target is an MDS instance
-  if (auto version = mysqlshdk::utils::Version(
-          load_session->query("SELECT @@version")->fetch_one()->get_string(0));
-      version.is_mds()) {
+  if (is_mds) {
     copy_options->dump_options()->enable_mds_compatibility_checks();
   }
 

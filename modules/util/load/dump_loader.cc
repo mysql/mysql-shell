@@ -2042,26 +2042,36 @@ void Dump_loader::check_server_version() {
     m_default_sql_transforms.add_strip_removed_sql_modes();
   }
 
-  if (mds && !m_dump->mds_compatibility()) {
-    msg =
-        "Destination is a MySQL HeatWave Service DB System instance but the "
-        "dump was produced without the compatibility option. ";
+  if (mds) {
+    if (!m_dump->mds_compatibility()) {
+      msg =
+          "Destination is a MySQL HeatWave Service DB System instance but the "
+          "dump was produced without the compatibility option. ";
 
-    if (m_options.ignore_version()) {
-      msg +=
-          "The 'ignoreVersion' option is enabled, so loading anyway. If this "
-          "operation fails, create the dump once again with the 'ocimds' "
-          "option enabled.";
+      if (m_options.ignore_version()) {
+        msg +=
+            "The 'ignoreVersion' option is enabled, so loading anyway. If this "
+            "operation fails, create the dump once again with the 'ocimds' "
+            "option enabled.";
 
-      console->print_warning(msg);
-    } else {
-      msg +=
-          "Please enable the 'ocimds' option when dumping your database. "
-          "Alternatively, enable the 'ignoreVersion' option to load anyway.";
+        console->print_warning(msg);
+      } else {
+        msg +=
+            "Please enable the 'ocimds' option when dumping your database. "
+            "Alternatively, enable the 'ignoreVersion' option to load anyway.";
 
-      console->print_error(msg);
+        console->print_error(msg);
 
-      THROW_ERROR0(SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE);
+        THROW_ERROR0(SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE);
+      }
+    }
+
+    if (const auto &target_version = m_dump->target_version();
+        target_version.has_value() && *target_version != target_server) {
+      console->print_warning(
+          "Destination MySQL version is different than the value of the "
+          "'targetVersion' option set when the dump was created: " +
+          target_version->get_base());
     }
   }
 

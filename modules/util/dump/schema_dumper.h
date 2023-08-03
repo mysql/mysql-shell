@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/dump/compatibility.h"
@@ -53,6 +54,7 @@ class Schema_dumper {
       FIXED_BY_CREATE_INVISIBLE_PKS,
       FIXED_BY_IGNORE_MISSING_PKS,
       FIXED,
+      WARNING_DEPRECATED_DEFINERS,
       WARNING,
       FIX_MANUALLY,
       FIX_WILDCARD_GRANTS,
@@ -66,6 +68,10 @@ class Schema_dumper {
     };
 
     Issue(const std::string &d, Status s) : description(d), status(s) {}
+
+    bool operator==(const Issue &i) const {
+      return description == i.description && status == i.status;
+    }
 
     std::string description;
     Status status;
@@ -173,6 +179,8 @@ class Schema_dumper {
   bool opt_ansi_mode = false;  ///< Force the "ANSI" SQL_MODE.
   bool opt_column_statistics = false;
   bool opt_mysqlaas = false;
+  bool opt_report_deprecated_errors_as_warnings = false;
+  mysqlshdk::utils::Version opt_target_version;
   bool opt_pk_mandatory_check = false;
   bool opt_force_innodb = false;
   bool opt_strip_directory = false;
@@ -194,6 +202,15 @@ class Schema_dumper {
   } opt_set_gtid_purged_mode = SET_GTID_PURGED_AUTO;
 
  private:
+  struct Version_dependent_check {
+    bool supported = false;
+
+    struct {
+      bool report_errors = false;
+      Issue::Status status_on_error = Issue::Status::FIX_MANUALLY;
+    } deprecated;
+  };
+
   std::shared_ptr<mysqlshdk::db::ISession> m_mysql;
   const std::vector<std::string> m_mysqlaas_supported_charsets;
 
@@ -220,6 +237,8 @@ class Schema_dumper {
   const Instance_cache *m_cache = nullptr;
 
   mutable std::optional<bool> m_partial_revokes;
+
+  bool m_non_existing_definer_reported = false;
 
  private:
   int execute_no_throw(const std::string &s,
@@ -343,8 +362,18 @@ class Schema_dumper {
       const common::Filtering_options::User_filters &filters,
       bool log_error = true);
 
+  Version_dependent_check set_any_definer_check() const;
+
+  std::vector<std::string> strip_restricted_grants(
+      const std::string &user, std::string *ddl,
+      std::vector<Issue> *issues) const;
+
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);
+  FRIEND_TEST(Schema_dumper_test, check_object_for_definer_set_any_definer);
+  FRIEND_TEST(Schema_dumper_test,
+              check_object_for_definer_set_any_definer_issues);
+  FRIEND_TEST(Schema_dumper_test, strip_restricted_grants_set_any_definer);
   FRIEND_TEST(Schema_dumper_test, include_grant);
 #endif  // FRIEND_TEST
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,12 +32,16 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/version.h"
+
 namespace mysqlsh {
 namespace compatibility {
 
 extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 
 extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
+
+extern const std::unordered_set<std::string> k_mds_users_with_system_user_priv;
 
 struct Deferred_statements {
   struct Index_info {
@@ -206,6 +210,29 @@ struct Privilege_level_info {
  */
 bool parse_grant_statement(const std::string &statement,
                            Privilege_level_info *info);
+
+/**
+ * Checks if server with the given version supports SET_ANY_DEFINER privilege.
+ *
+ * @param v Version to be checked.
+ *
+ * @returns true If server supports this privilege.
+ */
+bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v);
+
+/**
+ * Replaces first occurrence of a keyword (case insensitive comparison) with the
+ * given value.
+ *
+ * @param stmt Statement to be checked.
+ * @param keyword Keyword to be replaced (cannot contain spaces).
+ * @param value Value to be replaced with.
+ * @param[out] result Statement after replacement.
+ *
+ * @returns true If keyword was found and replaced.
+ */
+bool replace_keyword(std::string_view stmt, std::string_view keyword,
+                     std::string_view value, std::string *result = nullptr);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

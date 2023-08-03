@@ -78,10 +78,10 @@ int Version::parse_token(const std::string &data) {
     value = std::stoi(data, &idx);
 
     if (idx < data.length()) error = "Only digits allowed for version numbers";
-  } catch (const std::invalid_argument &e) {
-    error = e.what();
-  } catch (const std::out_of_range &e) {
-    error = e.what();
+  } catch (const std::invalid_argument &) {
+    error = "Not an integer";
+  } catch (const std::out_of_range &) {
+    error = "Out of integer range";
   }
 
   if (!error.empty())

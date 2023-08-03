@@ -76,6 +76,10 @@ class Dump_reader {
     return m_contents.server_version;
   }
 
+  const std::optional<mysqlshdk::utils::Version> &target_version() const {
+    return m_contents.target_version;
+  }
+
   const std::string &binlog_file() const { return m_contents.binlog_file; }
 
   uint64_t binlog_position() const { return m_contents.binlog_position; }
@@ -448,6 +452,7 @@ class Dump_reader {
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;
+    std::optional<mysqlshdk::utils::Version> target_version;
     std::string origin;
     uint64_t bytes_per_chunk = 0;
     std::unordered_map<std::string, uint64_t> chunk_sizes;

@@ -144,6 +144,10 @@ EXPECT_STDOUT_CONTAINS(f"User {test_user_account} had restricted privileges")
 EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had definer clause removed")
 EXPECT_STDOUT_CONTAINS("View `sakila`.`sales_by_store` had SQL SECURITY characteristic set to INVOKER")
 
+# BUG#35740174 - note about targetVersion was printed even if target server did not support the SET_ANY_DEFINER privilege
+if __version_num < 80000:
+    EXPECT_STDOUT_NOT_CONTAINS("'targetVersion'")
+
 #@<> WL15298_TSFR_4_4_19
 EXPECT_SUCCESS(__sandbox_uri2, { "triggers": True })
 
@@ -544,6 +548,7 @@ for param in [
         "all",
         "compression",
         "ocimds",
+        "targetVersion",
         "backgroundThreads",
         "characterSet",
         "createInvisiblePKs",
@@ -578,6 +583,107 @@ for param in [
         "linesTerminatedBy"
         ]:
     EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: Invalid options: {param}", __sandbox_uri2, { param: "fails" })
+
+#@<> WL15887 - setup {not __dbug_off and VER(>=8.2.0)}
+schema_name = "wl15887"
+test_table_primary = "ttp"
+test_schema_event = "tse"
+test_schema_function = "tsf"
+test_schema_procedure = "tsp"
+test_table_trigger = "ttt"
+test_view = "tv"
+account_name = get_test_user_account("sample_account")
+role_name = get_test_user_account("sample_role")
+
+account_names = [ account_name, role_name ]
+
+def setup_db(account):
+    src_session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    src_session.run_sql("CREATE SCHEMA !", [schema_name])
+    src_session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;", [ schema_name, test_table_primary ])
+    src_session.run_sql(f"CREATE DEFINER={account} EVENT !.! ON SCHEDULE EVERY 1 HOUR DO BEGIN END;", [ schema_name, test_schema_event ])
+    src_session.run_sql(f"CREATE DEFINER={account} FUNCTION !.!(s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');", [ schema_name, test_schema_function ])
+    src_session.run_sql(f"CREATE DEFINER={account} PROCEDURE !.!() SQL SECURITY DEFINER BEGIN END", [ schema_name, test_schema_procedure ])
+    src_session.run_sql(f"CREATE DEFINER={account} TRIGGER !.! BEFORE UPDATE ON ! FOR EACH ROW BEGIN END;", [ schema_name, test_table_trigger, test_table_primary ])
+    src_session.run_sql(f"CREATE DEFINER={account} SQL SECURITY INVOKER VIEW !.! AS SELECT * FROM !.!;", [ schema_name, test_view, schema_name, test_table_primary ])
+
+setup_db(test_user_account)
+src_session.run_sql(f"CREATE USER {account_name} IDENTIFIED BY 'pass'")
+src_session.run_sql(f"CREATE ROLE {role_name}")
+testutil.dbug_set("+d,copy_utils_force_mds")
+
+#@<> WL15887-TSFR_3_1_1 - restricted accounts {not __dbug_off and VER(>=8.2.0)}
+for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "ocidbm", "ocirpl"]:
+    account = f"`{account}`@`localhost`"
+    setup_db(account)
+    WIPE_OUTPUT()
+    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_trigger, "Trigger", account).error(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_view, "View", account).error(True))
+
+# restore schema
+setup_db(test_user_account)
+
+#@<> WL15887-TSFR_3_2_1 - valid account {not __dbug_off and VER(>=8.2.0)}
+EXPECT_SUCCESS(__sandbox_uri2, { "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+
+# no warnings about DEFINER=
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_function, "Function", test_user_account).warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_procedure, "Procedure", test_user_account).warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning(True))
+
+# WL15887-TSFR_3_5_1 - no warnings about SQL SECURITY
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_schema_function, "Function").warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_schema_procedure, "Procedure").warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view, "View").warning(True))
+
+# WL15887-TSFR_3_3_1 - no account is not included in the dump
+EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning(True))
+
+#@<> WL15887-TSFR_3_3_1 - user does not exist/is excluded {not __dbug_off and VER(>=8.2.0)}
+for account in [ account_name, "`invalid-account`@`localhost`" ]:
+    setup_db(account)
+    WIPE_OUTPUT()
+    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", __sandbox_uri2, { "includeUsers": [ test_user_account ], "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_event, "Event", account).warning(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_function, "Function", account).warning(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_procedure, "Procedure", account).warning(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_table_trigger, "Trigger", account).warning(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_view, "View", account).warning(True))
+
+# restore schema
+setup_db(test_user_account)
+
+#@<> WL15887-TSFR_4_1 - note about strip_definers {not __dbug_off and VER(>=8.2.0)}
+EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_definers" ], "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+
+#@<> WL15887-TSFR_5_1 - user/role with SET_ANY_DEFINER {not __dbug_off and VER(>=8.2.0)}
+for account in account_names:
+    src_session.run_sql(f"GRANT SET_ANY_DEFINER ON *.* TO {account}")
+    WIPE_OUTPUT()
+    EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_STDOUT_NOT_CONTAINS("SET_ANY_DEFINER")
+    src_session.run_sql(f"REVOKE SET_ANY_DEFINER ON *.* FROM {account}")
+
+#@<> WL15887-TSFR_6_1 - user/role with SET_USER_ID {not __dbug_off and VER(>=8.2.0)}
+for account in account_names:
+    src_session.run_sql(f"GRANT SET_USER_ID ON *.* TO {account}")
+    WIPE_OUTPUT()
+    EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS(strip_restricted_grants_set_user_id_replaced(account).fixed(True))
+    src_session.run_sql(f"REVOKE SET_USER_ID ON *.* FROM {account}")
+
+#@<> WL15887 - cleanup {not __dbug_off and VER(>=8.2.0)}
+src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+src_session.run_sql(f"DROP USER {account_name}")
+src_session.run_sql(f"DROP ROLE {role_name}")
+testutil.dbug_set("")
 
 #@<> Cleanup
 cleanup_copy_tests()

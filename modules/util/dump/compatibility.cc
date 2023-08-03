@@ -83,6 +83,11 @@ const std::set<std::string> k_mysqlaas_allowed_authentication_plugins = {
     "sha256_password",
 };
 
+const std::unordered_set<std::string> k_mds_users_with_system_user_priv = {
+    "mysql.infoschema", "mysql.session", "mysql.sys",
+    "ociadmin",         "ocidbm",        "ocirpl",
+};
+
 namespace {
 using Offset = std::pair<std::size_t, std::size_t>;
 using Offsets = std::vector<Offset>;
@@ -304,7 +309,8 @@ std::vector<std::string> check_privileges(
     if (next.empty() || shcore::str_caseeq(next, "ON", "TO", "FROM")) break;
   }
 
-  if (out_rewritten_grant) {
+  // update output variable only if there are restricted grants
+  if (!res.empty() && out_rewritten_grant) {
     if (remaining_priv == 0)
       out_rewritten_grant->clear();
     else
@@ -1777,6 +1783,35 @@ bool parse_grant_statement(const std::string &statement,
   *info = std::move(result);
 
   return true;
+}
+
+bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v) {
+  return v >= mysqlshdk::utils::Version(8, 2, 0);
+}
+
+bool replace_keyword(std::string_view stmt, std::string_view from,
+                     std::string_view to, std::string *result) {
+  mysqlshdk::utils::SQL_iterator it(stmt);
+  std::pair<std::string_view, size_t> token;
+
+  while (it) {
+    token = it.next_token_and_offset();
+
+    if (shcore::str_caseeq(token.first, from)) {
+      if (result) {
+        // use an additional variable in case of &stmt == result
+        std::string output{stmt.substr(0, token.second)};
+        output += to;
+        output += stmt.substr(token.second + token.first.length());
+
+        *result = std::move(output);
+      }
+
+      return true;
+    }
+  }
+
+  return false;
 }
 
 }  // namespace compatibility

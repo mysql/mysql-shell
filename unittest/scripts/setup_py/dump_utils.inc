@@ -246,24 +246,26 @@ def test_user_uri(port):
 
 class Compatibility_issue:
     def __init__(self, error, fixed, warning=None):
-        self.__error_msg = "ERROR: " + error if error else ""
-        self.__warning_msg = "WARNING: " + warning if warning else ""
-        self.__fixed_msg = "NOTE: " + fixed if fixed else ""
-    def error(self):
+        self.__error_msg = "ERROR: SRC: " + error if error else ""
+        self.__warning_msg = "WARNING: SRC: " + warning if warning else ""
+        self.__fixed_msg = "NOTE: SRC: " + fixed if fixed else ""
+    def error(self, copy_op=False):
         if self.__error_msg:
-            return self.__error_msg
+            return self.__remove_src(self.__error_msg, copy_op)
         else:
             raise Exception("No error message")
-    def warning(self):
+    def warning(self, copy_op=False):
         if self.__warning_msg:
-            return self.__warning_msg
+            return self.__remove_src(self.__warning_msg, copy_op)
         else:
             raise Exception("No warning message")
-    def fixed(self):
+    def fixed(self, copy_op=False):
         if self.__fixed_msg:
-            return self.__fixed_msg
+            return self.__remove_src(self.__fixed_msg, copy_op)
         else:
             raise Exception("No fixed message")
+    def __remove_src(self, msg, copy_op):
+        return msg if copy_op else msg.replace("SRC: ", "")
 
 def strip_restricted_grants(user, privileges):
     all_privileges = ", ".join(sorted(privileges))
@@ -271,6 +273,10 @@ def strip_restricted_grants(user, privileges):
     error = f"User {user} is granted restricted privilege{plural}: {all_privileges} (fix this with 'strip_restricted_grants' compatibility option)"
     fixed = f"User {user} had restricted privilege{plural} ({all_privileges}) removed"
     return Compatibility_issue(error, fixed)
+
+def strip_restricted_grants_set_user_id_replaced(user):
+    fixed = f"User {user} had restricted privilege SET_USER_ID replaced with SET_ANY_DEFINER"
+    return Compatibility_issue(None, fixed)
 
 def strip_invalid_grants(user, grant, object_type):
     error = f"User {user} has grant statement on a non-existent {object_type} ({grant}) (fix this with 'strip_invalid_grants' compatibility option)"
@@ -302,15 +308,27 @@ def strip_tablespaces(schema, table):
     fixed = f"Table `{schema}`.`{table}` had unsupported tablespace option removed"
     return Compatibility_issue(error, fixed)
 
-def strip_definers_definer_clause(schema, name, label = "View"):
-    error = f"{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"
+def strip_definers_definer_clause(schema, name, label = "View", user = "`root`@`localhost`"):
+    error = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which can only be executed by this user or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"""
     fixed = f"{label} `{schema}`.`{name}` had definer clause removed"
-    return Compatibility_issue(error, fixed)
+    return Compatibility_issue(error, fixed, error[:error.find(" (fix")])
 
 def strip_definers_security_clause(schema, name, label = "View"):
-    error = f"{label} `{schema}`.`{name}` - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)"
+    error = f"{label} `{schema}`.`{name}` - definition does not use SQL SECURITY INVOKER characteristic, which is mandatory when the DEFINER clause is omitted or removed (fix this with 'strip_definers' compatibility option)"
     fixed = f"{label} `{schema}`.`{name}` had SQL SECURITY characteristic set to INVOKER"
-    return Compatibility_issue(error, fixed)
+    return Compatibility_issue(error, fixed, error[:error.find(" (fix")])
+
+def definer_clause_uses_restricted_user_name(schema, name, label = "View", user = "`root`@`localhost`"):
+    error = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} whose user name is restricted in MySQL HeatWave Service (this issue needs to be fixed manually)"""
+    return Compatibility_issue(error, None)
+
+def definer_clause_uses_unknown_account(schema, name, label = "View", user = "`root`@`localhost`"):
+    warning = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which does not exist or is not included"""
+    return Compatibility_issue(None, None, warning)
+
+def definer_clause_uses_unknown_account_once():
+    warning = "One or more DDL statements contain DEFINER clause but user information is not included in the dump. Loading will fail if accounts set as definers do not already exist in the target DB System instance."
+    return Compatibility_issue(None, None, warning)
 
 def skip_invalid_accounts_plugin(user, plugin):
     error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with 'skip_invalid_accounts' compatibility option)"
@@ -355,6 +373,9 @@ def ignore_wildcard_grants(user, grant):
 def grant_on_excluded_object(user, grant):
     warning = f"User {user} has a grant statement on an object which is not included in the dump ({grant})"
     return Compatibility_issue(None, None, warning)
+
+def supports_set_any_definer_privilege(ver):
+    return testutil.version_check(ver, ">=", "8.2.0")
 
 def urlencode_object_name(s):
     ret = ""

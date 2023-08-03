@@ -58,7 +58,7 @@ class Copy_options {
             .ignore({"backgroundThreads", "characterSet", "compression",
                      "createInvisiblePKs", "loadData", "loadDdl", "loadUsers",
                      "ocimds", "progressFile", "resetProgress", "showMetadata",
-                     "waitDumpTimeout"})
+                     "targetVersion", "waitDumpTimeout"})
             .include(&Copy_options::m_dump_options)
             .include(&Copy_options::m_load_options)
             .on_done(&Copy_options::on_unpacked_options);

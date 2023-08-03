@@ -22,16 +22,27 @@ setup_session(__sandbox_uri1)
 analyze_tables(session)
 create_test_user(session)
 
+tgt_version = tgt_session.run_sql('SELECT @@version').fetch_one()[0]
+
+encryption_commented_out_msg = "Database `sakila` had unsupported ENCRYPTION option commented out"
+restricted_privileges_msg = f"User {test_user_account} is granted restricted privileges"
+restricted_privileges_removed_msg = f"User {test_user_account} had restricted privileges"
+
 #@<> WL15298_TSFR_4_4_2
 clean_instance(tgt_session)
 setup_session(__sandbox_uri1)
 
 EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
-EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
-EXPECT_STDOUT_CONTAINS(f"User {test_user_account} is granted restricted privileges")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)")
+# WL15887-TSFR_7_1 - version of target instance is used during compatibility checks
+EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {tgt_version[:tgt_version.find('-')]}")
+
+EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
+EXPECT_STDOUT_CONTAINS(restricted_privileges_msg)
+
+if not supports_set_any_definer_privilege(tgt_version):
+    EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause("sakila", "get_customer_balance", "Function").error(True))
+    EXPECT_STDOUT_CONTAINS(strip_definers_security_clause("sakila", "get_customer_balance", "Function").error(True))
 
 #@<> WL15298 - copy with users succeeds
 # WL15298_TSFR_1_4
@@ -40,10 +51,10 @@ setup_session(__sandbox_uri1)
 
 EXPECT_NO_THROWS(lambda: util.copy_instance(MDS_URI, { "compatibility": [ "strip_definers", "strip_restricted_grants" ], "excludeUsers": [ "root" ], "showProgress": False }), "copy should not throw")
 
-EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
-EXPECT_STDOUT_CONTAINS(f"User {test_user_account} had restricted privileges")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had definer clause removed")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had SQL SECURITY characteristic set to INVOKER")
+EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
+EXPECT_STDOUT_CONTAINS(restricted_privileges_removed_msg)
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause("sakila", "get_customer_balance", "Function").fixed(True))
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause("sakila", "get_customer_balance", "Function").fixed(True))
 
 #@<> WL15298_TSFR_4_4_3
 clean_instance(tgt_session)
@@ -51,10 +62,13 @@ setup_session(__sandbox_uri1)
 
 EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
-EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
-EXPECT_STDOUT_NOT_CONTAINS(f"User {test_user_account} is granted restricted privileges")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)")
+EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
+EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_msg)
+EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_removed_msg)
+
+if not supports_set_any_definer_privilege(tgt_version):
+    EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause("sakila", "get_customer_balance", "Function").error(True))
+    EXPECT_STDOUT_CONTAINS(strip_definers_security_clause("sakila", "get_customer_balance", "Function").error(True))
 
 #@<> WL15298 - copy without users succeeds
 # WL15298_TSFR_1_4
@@ -63,10 +77,11 @@ setup_session(__sandbox_uri1)
 
 EXPECT_NO_THROWS(lambda: util.copy_instance(MDS_URI, { "compatibility": [ "strip_definers" ], "users": False, "showProgress": False }), "copy should not throw")
 
-EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
-EXPECT_STDOUT_NOT_CONTAINS(f"User {test_user_account} had restricted privileges")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had definer clause removed")
-EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had SQL SECURITY characteristic set to INVOKER")
+EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
+EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_msg)
+EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_removed_msg)
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause("sakila", "get_customer_balance", "Function").fixed(True))
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause("sakila", "get_customer_balance", "Function").fixed(True))
 
 #@<> WL15298 - copy back
 # WL15298_TSFR_1_4

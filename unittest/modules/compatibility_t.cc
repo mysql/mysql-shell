@@ -95,14 +95,17 @@ ENGINE = MyISAM)",
 };
 
 TEST_F(Compatibility_test, check_privileges) {
+  constexpr std::string_view k_text_marker = "<not-modified>";
   std::string rewritten;
 
+  rewritten = k_text_marker;
   EXPECT_TRUE(
       check_privileges(
           "GRANT `app_delete`@`%`,`app_read`@`%`,`app_write`@`%`,`combz`@`%` "
           "TO `combined`@`%`",
           &rewritten)
           .empty());
+  EXPECT_EQ(k_text_marker, rewritten);
 
   EXPECT_EQ(1,
             check_privileges(
@@ -150,12 +153,14 @@ TEST_F(Compatibility_test, check_privileges) {
       "TO 'empty'@'localhost';",
       rewritten);
 
+  rewritten = k_text_marker;
   EXPECT_EQ(0,
             check_privileges(
                 "REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE "
                 "TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, "
                 "ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `root`@`%`")
                 .size());
+  EXPECT_EQ(k_text_marker, rewritten);
 
   EXPECT_EQ(3,
             check_privileges(
@@ -164,7 +169,6 @@ TEST_F(Compatibility_test, check_privileges) {
                 "ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `root`@`%`",
                 &rewritten)
                 .size());
-
   EXPECT_EQ(
       "REVOKE DROP, REFERENCES, INDEX, CREATE TEMPORARY TABLES, LOCK TABLES, "
       "CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM "
@@ -2599,6 +2603,46 @@ TEST_F(Compatibility_test, replace_quoted_strings) {
   EXPECT("INSERT INTO s.`t3` VALUES (\"one\", 'two', three, 4)", "\"<secret>\"",
          "INSERT INTO s.`t3` VALUES (\"<secret>\", \"<secret>\", three, 4)",
          {"\"one\"", "'two'"});
+}
+
+TEST_F(Compatibility_test, replace_keyword) {
+  EXPECT_TRUE(replace_keyword("SELECT", "select", "Insert"));
+  EXPECT_FALSE(replace_keyword("SELECT", "Insert", "select"));
+
+  const auto EXPECT = [](std::string_view stmt, std::string_view from,
+                         std::string_view to, bool expected_result,
+                         std::string_view expected_output) {
+    SCOPED_TRACE(stmt);
+
+    std::string replaced;
+    EXPECT_EQ(expected_result, replace_keyword(stmt, from, to, &replaced));
+    EXPECT_EQ(expected_output, replaced);
+
+    if (expected_result) {
+      // if replacement happens, we want to test if it's safe to use the same
+      // variable for input and output parameters
+      std::string statement{stmt};
+      EXPECT_EQ(expected_result,
+                replace_keyword(statement, from, to, &statement));
+      EXPECT_EQ(expected_output, statement);
+    }
+  };
+
+  EXPECT("", "Insert", "select", false, {});
+
+  EXPECT("SELECT", "select", "Insert", true, "Insert");
+  EXPECT("SELECT", "Insert", "select", false, {});
+
+  EXPECT("SELECT, Insert", "select", "Insert", true, "Insert, Insert");
+  EXPECT("SELECT, Insert", "Insert", "select", true, "SELECT, select");
+
+  EXPECT("DROP SELECT insert", "select", "Insert", true, "DROP Insert insert");
+  EXPECT("DROP SELECTs insert", "select", "Insert", false, {});
+
+  EXPECT("SELECT Select Select", "select", "Insert", true,
+         "Insert Select Select");
+  EXPECT("SELECT Select Select", "select", "Select", true,
+         "Select Select Select");
 }
 
 }  // namespace compatibility

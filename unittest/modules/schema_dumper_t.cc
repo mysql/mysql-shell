@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <array>
 #include <set>
+#include <unordered_set>
 
 // needs to be included first for FRIEND_TEST
 #include "unittest/gprod_clean.h"
@@ -52,6 +53,60 @@ using ::testing::Not;
 
 using common::Filtering_options;
 using User_filters = Filtering_options::User_filters;
+
+std::string to_string(Schema_dumper::Issue::Status s) {
+  using Status = Schema_dumper::Issue::Status;
+
+  switch (s) {
+    case Status::FIXED_BY_CREATE_INVISIBLE_PKS:
+      return "FIXED_BY_CREATE_INVISIBLE_PKS";
+
+    case Status::FIXED_BY_IGNORE_MISSING_PKS:
+      return "FIXED_BY_IGNORE_MISSING_PKS";
+
+    case Status::FIXED:
+      return "FIXED";
+
+    case Status::WARNING_DEPRECATED_DEFINERS:
+      return "WARNING_DEPRECATED_STRIP_DEFINERS";
+
+    case Status::WARNING:
+      return "WARNING";
+
+    case Status::FIX_MANUALLY:
+      return "FIX_MANUALLY";
+
+    case Status::FIX_WILDCARD_GRANTS:
+      return "FIX_WILDCARD_GRANTS";
+
+    case Status::USE_CREATE_OR_IGNORE_PKS:
+      return "USE_CREATE_OR_IGNORE_PKS";
+
+    case Status::USE_FORCE_INNODB:
+      return "USE_FORCE_INNODB";
+
+    case Status::USE_STRIP_DEFINERS:
+      return "USE_STRIP_DEFINERS";
+
+    case Status::USE_STRIP_RESTRICTED_GRANTS:
+      return "USE_STRIP_RESTRICTED_GRANTS";
+
+    case Status::USE_STRIP_TABLESPACES:
+      return "USE_STRIP_TABLESPACES";
+
+    case Status::USE_SKIP_INVALID_ACCOUNTS:
+      return "USE_SKIP_INVALID_ACCOUNTS";
+
+    case Status::USE_STRIP_INVALID_GRANTS:
+      return "USE_STRIP_INVALID_GRANTS";
+  }
+
+  throw std::logic_error("Should not happen");
+}
+
+std::ostream &operator<<(std::ostream &os, const Schema_dumper::Issue &issue) {
+  return os << issue.description << " - " << to_string(issue.status);
+}
 
 class Schema_dumper_test : public Shell_core_test_wrapper {
  public:
@@ -403,7 +458,7 @@ DROP TABLE IF EXISTS `v1`;
 /*!50001 DROP VIEW IF EXISTS `v1`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
-/*!50001 CREATE VIEW `v1` AS SELECT 
+/*!50001 CREATE VIEW `v1` AS SELECT
  1 AS `a`,
  1 AS `b`,
  1 AS `c` */;
@@ -417,7 +472,7 @@ DROP TABLE IF EXISTS `v2`;
 /*!50001 DROP VIEW IF EXISTS `v2`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
-/*!50001 CREATE VIEW `v2` AS SELECT 
+/*!50001 CREATE VIEW `v2` AS SELECT
  1 AS `a` */;
 SET character_set_client = @saved_cs_client;
 
@@ -429,7 +484,7 @@ DROP TABLE IF EXISTS `v3`;
 /*!50001 DROP VIEW IF EXISTS `v3`*/;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
-/*!50001 CREATE VIEW `v3` AS SELECT 
+/*!50001 CREATE VIEW `v3` AS SELECT
  1 AS `a`,
  1 AS `b`,
  1 AS `c` */;
@@ -961,7 +1016,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   EXPECT_EQ(
       "Trigger `mysqlaas_compat`.`ins_sum` - definition uses DEFINER clause "
       "set to user `root`@`localhost` which can only be executed by this user "
-      "or a user with SET_USER_ID or SUPER privileges",
+      "or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss.front().description);
 
   EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
@@ -969,7 +1024,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   EXPECT_EQ(
       "Event `mysqlaas_compat`.`event2` - definition uses DEFINER clause set "
       "to user `root`@`localhost` which can only be executed by this user or a "
-      "user with SET_USER_ID or SUPER privileges",
+      "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss.front().description);
 
   const auto user = "`" + _user + "`@`" + _host + "`";
@@ -980,47 +1035,50 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       "to user " +
           user +
           " which can only be executed by this user or a "
-          "user with SET_USER_ID or SUPER privileges",
+          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[0].description);
   EXPECT_EQ(
       "Function `mysqlaas_compat`.`func1` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is required",
+      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
+      "clause is omitted or removed",
       iss[1].description);
   EXPECT_EQ(
       "Function `mysqlaas_compat`.`func2` - definition uses DEFINER clause set "
       "to user " +
           user +
           " which can only be executed by this user or a "
-          "user with SET_USER_ID or SUPER privileges",
+          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[2].description);
   EXPECT_EQ(
       "Procedure `mysqlaas_compat`.`labeled` - definition uses DEFINER clause "
       "set to user " +
           user +
           " which can only be executed by this user or a "
-          "user with SET_USER_ID or SUPER privileges",
+          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[3].description);
   EXPECT_EQ(
       "Procedure `mysqlaas_compat`.`labeled` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is required",
+      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
+      "clause is omitted or removed",
       iss[4].description);
   EXPECT_EQ(
       "Procedure `mysqlaas_compat`.`proc1` - definition uses DEFINER clause "
       "set to user " +
           user +
           " which can only be executed by this user or a "
-          "user with SET_USER_ID or SUPER privileges",
+          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[5].description);
   EXPECT_EQ(
       "Procedure `mysqlaas_compat`.`proc1` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is required",
+      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
+      "clause is omitted or removed",
       iss[6].description);
   EXPECT_EQ(
       "Procedure `mysqlaas_compat`.`proc2` - definition uses DEFINER clause "
       "set to user " +
           user +
           " which can only be executed by this user or a "
-          "user with SET_USER_ID or SUPER privileges",
+          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[7].description);
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
@@ -1030,11 +1088,12 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       "user " +
           user +
           " which can only be executed by this user or a user "
-          "with SET_USER_ID or SUPER privileges",
+          "with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[0].description);
   EXPECT_EQ(
       "View `mysqlaas_compat`.`view1` - definition does not use SQL SECURITY "
-      "INVOKER characteristic, which is required",
+      "INVOKER characteristic, which is mandatory when the DEFINER clause is "
+      "omitted or removed",
       iss[1].description);
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
@@ -1044,7 +1103,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       "user " +
           user +
           " which can only be executed by this user or a user "
-          "with SET_USER_ID or SUPER privileges",
+          "with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
       iss[0].description);
 
   // Users
@@ -1707,6 +1766,324 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
       }
     }
   }
+}
+
+TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
+  // WL#15887 - test if SET_ANY_DEFINER handling works with all combinations
+  Schema_dumper sd(session);
+
+  sd.opt_mysqlaas = true;
+  sd.opt_target_version = mysqlshdk::utils::Version(8, 2, 0);
+
+  Instance_cache cache;
+  cache.users = {{"root", "host"}};
+
+  sd.use_cache(&cache);
+
+  std::vector<std::string> statements = {
+      "CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} BEGIN END",
+      "CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
+      "DETERMINISTIC ${security} RETURN 1",
+      "CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
+      "COUNT(*) FROM s.t",
+  };
+
+  const std::string schema = "test_schema";
+  const std::string object = "test_object";
+  const std::string sql_security_invoker = "SQL SECURITY INVOKER";
+
+  for (const auto &stmt : statements) {
+    for (const auto &definer :
+         {"DEFINER=root", "DEFINER = root@`host`", "DEFINER = 'root'@host",
+          "DEFINER = \"root\"@\"host\"", ""}) {
+      for (const auto &security :
+           {sql_security_invoker.c_str(), "SQL SECURITY DEFINER", ""}) {
+        SCOPED_TRACE("statement: " + stmt + ", definer: " + definer +
+                     ", security: " + security);
+
+        auto ddl = shcore::str_subvars(
+            stmt,
+            [&](std::string_view var) -> std::string {
+              if ("schema" == var) return schema;
+              if ("object" == var) return object;
+              if ("definer" == var) return definer;
+              if ("security" == var) return security;
+
+              throw std::logic_error("Unknown variable: " + std::string{var});
+            },
+            "${", "}");
+        std::vector<Schema_dumper::Issue> issues;
+
+        EXPECT_NO_THROW(sd.check_object_for_definer(schema, "OBJECT", object,
+                                                    &ddl, &issues));
+      }
+    }
+  }
+}
+
+TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
+  // WL#15887 - test SET_ANY_DEFINER issues
+  using Status = Schema_dumper::Issue::Status;
+  using Version = mysqlshdk::utils::Version;
+
+  Schema_dumper sd(session);
+
+  sd.opt_mysqlaas = true;
+  sd.opt_target_version = Version(8, 2, 0);
+
+  const std::string stmt =
+      "CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} BEGIN END";
+  const std::string schema = "test_schema";
+  const std::string object = "test_object";
+  const std::string sql_security_invoker = "SQL SECURITY INVOKER";
+  const std::string sql_security_definer = "SQL SECURITY DEFINER";
+  const auto make_ddl = [&](const std::string &definer,
+                            const std::string &security = {}) {
+    return shcore::str_subvars(
+        stmt,
+        [&](std::string_view var) -> std::string {
+          if ("schema" == var) return schema;
+          if ("object" == var) return object;
+          if ("definer" == var) return definer;
+          if ("security" == var) return security;
+
+          throw std::logic_error("Unknown variable: " + std::string{var});
+        },
+        "${", "}");
+  };
+  const auto issue = [&](const std::string &text) {
+    return "Object `" + schema + "`.`" + object + "` - " + text;
+  };
+  const auto unknown_user = [&](const std::string &user) {
+    return issue("definition uses DEFINER clause set to user " + user +
+                 " which does not exist or is not included");
+  };
+  const auto restricted_user = [&](const std::string &user) {
+    return issue("definition uses DEFINER clause set to user " + user +
+                 " whose user name is restricted in MySQL HeatWave Service");
+  };
+  const auto definer_disallowed = [&](const std::string &user) {
+    return issue("definition uses DEFINER clause set to user " + user +
+                 " which can only be executed by this user or a user with "
+                 "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges");
+  };
+  const auto definer_or_invoker_required = [&]() {
+    return issue(
+        "definition does not have a DEFINER clause and does not use SQL "
+        "SECURITY INVOKER characteristic, either one of these is required");
+  };
+  const auto security_definer_disallowed = [&]() {
+    return issue(
+        "definition does not use SQL SECURITY INVOKER characteristic, which is "
+        "mandatory when the DEFINER clause is omitted or removed");
+  };
+  const auto EXPECT =
+      [&](const std::string &definer,
+          const std::vector<Schema_dumper::Issue> &expected_issues = {},
+          const std::string &security = {}) {
+        auto ddl = make_ddl(definer, security);
+
+        SCOPED_TRACE("statement: " + ddl);
+
+        std::vector<Schema_dumper::Issue> issues;
+
+        sd.check_object_for_definer(schema, "OBJECT", object, &ddl, &issues);
+        EXPECT_EQ(expected_issues, issues);
+      };
+
+  // missing cache
+  EXPECT_THROW(EXPECT("DEFINER=root@host"), std::logic_error);
+
+  // set cache
+  Instance_cache cache;
+  sd.use_cache(&cache);
+
+  // no users in cache, warning that it's not possible to verify if user exits,
+  // but only once
+  EXPECT("DEFINER=root@host",
+         {{"One or more DDL statements contain DEFINER clause but user "
+           "information is not included in the dump. Loading will fail if "
+           "accounts set as definers do not already exist in the target DB "
+           "System instance.",
+           Status::WARNING}});
+  EXPECT("DEFINER=root@host");
+
+  // add a user to cache
+  cache.users = {{"user", "host"}};
+
+  // warnings about unknown user, reported for each user
+  EXPECT("DEFINER=root@host", {{unknown_user("root@host"), Status::WARNING}});
+  EXPECT("DEFINER=user@localhost",
+         {{unknown_user("user@localhost"), Status::WARNING}});
+
+  // restricted user names
+  for (const std::string user : {
+           "mysql.infoschema",
+           "mysql.session",
+           "mysql.sys",
+           "ociadmin",
+           "ocidbm",
+           "ocirpl",
+       }) {
+    const auto account = user + "@localhost";
+    EXPECT("DEFINER=" + account,
+           {{restricted_user(account), Status::FIX_MANUALLY},
+            {unknown_user(account), Status::WARNING}});
+  }
+
+  // user known, no security clause - OK
+  EXPECT("DEFINER=user@host");
+
+  // user known, definer security - OK
+  EXPECT("DEFINER=user@host", {}, sql_security_definer);
+
+  // user known, invoker security - OK
+  EXPECT("DEFINER=user@host", {}, sql_security_invoker);
+
+  // display deprecated errors
+  sd.opt_report_deprecated_errors_as_warnings = true;
+  //  - user known, no security clause
+  EXPECT(
+      "DEFINER=user@host",
+      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS},
+       {security_definer_disallowed(), Status::WARNING_DEPRECATED_DEFINERS}});
+  //  - user known, definer security
+  EXPECT(
+      "DEFINER=user@host",
+      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS},
+       {security_definer_disallowed(), Status::WARNING_DEPRECATED_DEFINERS}},
+      sql_security_definer);
+  //  - user known, invoker security
+  EXPECT(
+      "DEFINER=user@host",
+      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS}},
+      sql_security_invoker);
+  sd.opt_report_deprecated_errors_as_warnings = false;
+
+  // version which does not support SET_ANY_DEFINER - regular error
+  sd.opt_target_version = Version(8, 1, 0);
+  //  - user known, no security clause
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
+          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}});
+  //  - user known, definer security
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
+          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}},
+         sql_security_definer);
+  //  - user known, invoker security
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS}},
+         sql_security_invoker);
+  sd.opt_target_version = Version(8, 2, 0);
+
+  // version which does not support SET_ANY_DEFINER, deprecated errors are
+  // enabled - still regular error
+  sd.opt_target_version = Version(8, 1, 0);
+  sd.opt_report_deprecated_errors_as_warnings = true;
+  //  - user known, no security clause
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
+          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}});
+  //  - user known, definer security
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
+          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}},
+         sql_security_definer);
+  //  - user known, invoker security
+  EXPECT("DEFINER=user@host",
+         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS}},
+         sql_security_invoker);
+  sd.opt_target_version = Version(8, 2, 0);
+  sd.opt_report_deprecated_errors_as_warnings = false;
+
+  // no definer & no security - error
+  // WL15887-TSFR_3_4_1
+  EXPECT("", {{definer_or_invoker_required(), Status::FIX_MANUALLY}});
+
+  // no definer clause & definer security - error
+  // WL15887-TSFR_3_4_1
+  EXPECT("", {{definer_or_invoker_required(), Status::FIX_MANUALLY}},
+         sql_security_definer);
+  // no definer clause & invoker security - OK
+  // WL15887-TSFR_3_4_1
+  EXPECT("", {}, sql_security_invoker);
+}
+
+TEST_F(Schema_dumper_test, strip_restricted_grants_set_any_definer) {
+  // WL#15887 - test SET_ANY_DEFINER grant
+  using Status = Schema_dumper::Issue::Status;
+  using Version = mysqlshdk::utils::Version;
+
+  Schema_dumper sd(session);
+
+  sd.opt_mysqlaas = true;
+
+  const std::string user = "user@host";
+  const std::string stmt = "GRANT ${privileges} ON *.* TO " + user;
+  const std::string set_user_id = "SET_USER_ID";
+  const std::string set_any_definer = "SET_ANY_DEFINER";
+  const auto make_ddl = [&](const std::vector<std::string> &privileges) {
+    return shcore::str_subvars(
+        stmt,
+        [&](std::string_view var) -> std::string {
+          if ("privileges" == var) return shcore::str_join(privileges, ", ");
+          throw std::logic_error("Unknown variable: " + std::string{var});
+        },
+        "${", "}");
+  };
+  const auto privilege_replaced = [&]() {
+    return Schema_dumper::Issue{"User " + user + " had restricted privilege " +
+                                    std::string(set_user_id) +
+                                    " replaced with " +
+                                    std::string(set_any_definer),
+                                Status::FIXED};
+  };
+  const auto EXPECT =
+      [&](const std::vector<std::string> &privileges,
+          const std::vector<std::string> &expected_restricted,
+          const std::vector<Schema_dumper::Issue> &expected_issues = {}) {
+        auto ddl = make_ddl(privileges);
+
+        SCOPED_TRACE("statement: " + ddl);
+
+        std::vector<Schema_dumper::Issue> issues;
+
+        const auto restricted = sd.strip_restricted_grants(user, &ddl, &issues);
+
+        EXPECT_EQ(expected_restricted, restricted);
+        EXPECT_EQ(expected_issues, issues);
+      };
+
+  // SET_ANY_DEFINER supported, privilege is not restricted
+  sd.opt_target_version = Version(8, 2, 0);
+  EXPECT({set_any_definer}, {});
+
+  // SET_ANY_DEFINER not supported, privilege is restricted
+  sd.opt_target_version = Version(8, 1, 0);
+  EXPECT({set_any_definer}, {set_any_definer});
+
+  // SET_ANY_DEFINER supported, SET_USER_ID is restricted
+  sd.opt_target_version = Version(8, 2, 0);
+  EXPECT({set_user_id}, {set_user_id});
+
+  // SET_ANY_DEFINER not supported, SET_USER_ID is restricted
+  sd.opt_target_version = Version(8, 1, 0);
+  EXPECT({set_user_id}, {set_user_id});
+
+  // SET_ANY_DEFINER supported, strip_restricted_grants enabled, SET_USER_ID is
+  // replaced
+  sd.opt_target_version = Version(8, 2, 0);
+  sd.opt_strip_restricted_grants = true;
+  EXPECT({set_user_id}, {}, {privilege_replaced()});
+  sd.opt_strip_restricted_grants = false;
+
+  // SET_ANY_DEFINER not supported, strip_restricted_grants enabled, SET_USER_ID
+  // is removed
+  sd.opt_target_version = Version(8, 1, 0);
+  sd.opt_strip_restricted_grants = true;
+  EXPECT({set_user_id}, {set_user_id});
+  sd.opt_strip_restricted_grants = false;
 }
 
 }  // namespace dump

@@ -120,6 +120,9 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("serverVersion"))
     m_contents.server_version = Version(md->get_string("serverVersion"));
 
+  if (md->has_key("targetVersion"))
+    m_contents.target_version = Version(md->get_string("targetVersion"));
+
   if (md->has_key("origin")) m_contents.origin = md->get_string("origin");
 
   if (md->has_key("defaultCharacterSet"))

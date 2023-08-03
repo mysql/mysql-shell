@@ -64,6 +64,11 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
   return opts;
 }
 
+const mysqlshdk::utils::Version &Dump_options::current_version() {
+  static const auto k_current_version = mysqlshdk::utils::Version(MYSH_VERSION);
+  return k_current_version;
+}
+
 void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {
   m_options = options;
 }
@@ -320,6 +325,30 @@ void Dump_options::validate_partitions() const {
   if (!valid) {
     throw std::invalid_argument("Invalid partitions");
   }
+}
+
+void Dump_options::set_target_version(const mysqlshdk::utils::Version &version,
+                                      bool validate) {
+  if (validate) {
+    const auto k_minimum_version = mysqlshdk::utils::Version(8, 0, 25);
+
+    if (version > current_version()) {
+      throw std::invalid_argument("Requested MySQL version '" +
+                                  version.get_base() +
+                                  "' is newer than the maximum version '" +
+                                  current_version().get_base() +
+                                  "' supported by this version of MySQL Shell");
+    } else if (version < k_minimum_version) {
+      // 8.0.25 is the minimum MDS version we support
+      throw std::invalid_argument("Requested MySQL version '" +
+                                  version.get_base() +
+                                  "' is older than the minimum version '" +
+                                  k_minimum_version.get_base() +
+                                  "' supported by this version of MySQL Shell");
+    }
+  }
+
+  m_target_version = version;
 }
 
 }  // namespace dump
