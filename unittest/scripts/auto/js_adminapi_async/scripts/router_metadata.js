@@ -48,6 +48,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -58,6 +59,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -68,6 +70,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "version": "8.0.19"
         },
@@ -77,6 +80,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -87,6 +91,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -97,6 +102,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -129,6 +135,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -139,6 +146,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -149,6 +157,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -159,6 +168,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -169,6 +179,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -202,6 +213,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -212,6 +224,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -222,6 +235,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "version": "8.0.19"
         },
@@ -231,6 +245,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -241,6 +256,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -251,6 +267,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -298,6 +315,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "version": "8.0.19"
         },
@@ -307,6 +325,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -317,6 +336,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -327,6 +347,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -352,6 +373,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "abc",
             "roXPort": "",
             "rwPort": "6480:foo",
+            "rwSplitPort": null,
             "rwXPort": "foo6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -362,6 +384,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "version": "8.0.19"
         },
@@ -371,6 +394,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -381,6 +405,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -391,6 +416,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -421,6 +447,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "abc",
             "roXPort": "",
             "rwPort": "6480:foo",
+            "rwSplitPort": null,
             "rwXPort": "foo6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -431,6 +458,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "version": "8.0.19"
         },
@@ -440,6 +468,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -450,6 +479,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"

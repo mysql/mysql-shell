@@ -354,11 +354,12 @@ ${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
 @li dryRun: boolean if true, all validations and steps for rejoining the
 instance are executed, but no changes are actually made.
-${CLUSTER_OPT_CLONE_DONOR}
+@li cloneDonor: The Cluster member to be used as donor when performing
+clone-based recovery. Available only for Read Replicas.
 @li timeout: maximum number of seconds to wait for the instance to sync up
 with the PRIMARY after it's provisioned and the replication channel is
 established. If reached, the operation is rolled-back. Default is 0 (no
-timeout).
+timeout). Available only for Read Replicas.
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -367,7 +368,7 @@ The recoveryMethod option supports the following values:
 
 @li incremental: uses distributed state recovery, which applies missing
 transactions copied from another cluster member. Clone will be disabled.
-@li clone: clone: uses built-in MySQL clone support, which completely replaces
+@li clone: uses built-in MySQL clone support, which completely replaces
 the state of the target instance with a full snapshot of another cluster member
 before distributed recovery starts. Requires MySQL 8.0.17 or newer.
 @li auto: let Group Replication choose whether or not a full snapshot has to be

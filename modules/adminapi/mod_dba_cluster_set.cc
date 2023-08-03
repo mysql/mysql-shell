@@ -818,8 +818,20 @@ Lists the Router instances of the ClusterSet, or a single Router instance.
 
 @returns A JSON object listing the Router instances registered in the ClusterSet.
 
-This function lists and provides information about all Router instances registered
-on the Clusters members of the ClusterSet.
+This function lists and provides information about all Router instances
+registered on the Clusters members of the ClusterSet.
+
+For each router, the following information is provided, when available:
+
+@li hostname: Hostname.
+@li lastCheckIn: Timestamp of the last statistics update (check-in).
+@li roPort: Read-only port (Classic protocol).
+@li roXPort: Read-only port (X protocol).
+@li rwPort: Read-write port (Classic protocol).
+@li rwSplitPort: Read-write split port (Classic protocol).
+@li rwXPort: Read-write port (X protocol).
+@li targetCluster: Target Cluster for Router routing operations.
+@li version: Version.
 )*");
 
 /**
@@ -861,7 +873,7 @@ is to make to its statistics in the InnoDB Cluster metadata.
 Disabled by default.
 @li tags: Associates an arbitrary JSON object with custom key/value pairs with
 the ClusterSet metadata.
-@li read_replicas_policy: Routing policy to define Router's usage of Read
+@li read_only_targets: Routing policy to define Router's usage of Read
 Replicas. Default is 'append'.
 
 The target_cluster option supports the following values:

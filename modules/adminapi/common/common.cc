@@ -2437,7 +2437,7 @@ void validate_replication_sources_option(const shcore::Value &value) {
 namespace cluster_topology_executor_ops {
 void validate_add_rejoin_options(Group_replication_options options,
                                  const std::string &communication_stack) {
-  // ipAllowList cannot be used by addInstance/rejoinInstance when the
+  // ipAllowlist cannot be used by addInstance/rejoinInstance when the
   // communication stack in use by the Cluster is 'MySQL'
   if (communication_stack == kCommunicationStackMySQL &&
       options.ip_allowlist.has_value()) {

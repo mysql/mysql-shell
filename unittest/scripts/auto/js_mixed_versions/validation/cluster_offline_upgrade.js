@@ -79,6 +79,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -89,6 +90,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -106,6 +108,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"

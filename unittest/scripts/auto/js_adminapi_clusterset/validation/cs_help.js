@@ -776,6 +776,18 @@ DESCRIPTION
       This function lists and provides information about all Router instances
       registered on the Clusters members of the ClusterSet.
 
+      For each router, the following information is provided, when available:
+
+      - hostname: Hostname.
+      - lastCheckIn: Timestamp of the last statistics update (check-in).
+      - roPort: Read-only port (Classic protocol).
+      - roXPort: Read-only port (X protocol).
+      - rwPort: Read-write port (Classic protocol).
+      - rwSplitPort: Read-write split port (Classic protocol).
+      - rwXPort: Read-write port (X protocol).
+      - targetCluster: Target Cluster for Router routing operations.
+      - version: Version.
+
 //@<OUT> routingOptions
 NAME
       routingOptions - Lists the ClusterSet Routers configuration options.
@@ -825,7 +837,7 @@ DESCRIPTION
         Clusters. Disabled by default.
       - tags: Associates an arbitrary JSON object with custom key/value pairs
         with the ClusterSet metadata.
-      - read_replicas_policy: Routing policy to define Router's usage of Read
+      - read_only_targets: Routing policy to define Router's usage of Read
         Replicas. Default is 'append'.
 
       The target_cluster option supports the following values:

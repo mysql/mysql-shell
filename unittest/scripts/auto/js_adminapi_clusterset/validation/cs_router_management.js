@@ -27,6 +27,7 @@
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "targetCluster": "cluster",
             "version": "8.0.27"
@@ -37,6 +38,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "targetCluster": null,
             "version": "8.0.27"
@@ -47,6 +49,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "targetCluster": null,
             "version": "8.0.27"
@@ -57,6 +60,7 @@
             "roPort": "mysqlro.sock",
             "roXPort": "mysqlxro.sock",
             "rwPort": "mysql.sock",
+            "rwSplitPort": null,
             "rwXPort": "mysqlx.sock",
             "targetCluster": "replicacluster",
             "version": "8.0.27"
@@ -70,6 +74,7 @@
         "roPort": "6481",
         "roXPort": "6483",
         "rwPort": "6480",
+        "rwSplitPort": null,
         "rwXPort": "6482",
         "targetCluster": "cluster",
         "version": "8.0.27"
@@ -82,6 +87,7 @@
         "roPort": "mysqlro.sock",
         "roXPort": "mysqlxro.sock",
         "rwPort": "mysql.sock",
+        "rwSplitPort": null,
         "rwXPort": "mysqlx.sock",
         "targetCluster": "replicacluster",
         "version": "8.0.27"
@@ -98,6 +104,7 @@
             "roPort": "6481",
             "roXPort": "6483",
             "rwPort": "6480",
+            "rwSplitPort": null,
             "rwXPort": "6482",
             "targetCluster": "cluster",
             "version": "8.0.27"
@@ -108,6 +115,7 @@
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "targetCluster": "replicacluster",
             "version": "8.0.27"
@@ -121,6 +129,7 @@
                 "WARNING: Router must be bootstrapped again for the ClusterSet to be recognized."
             ],
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "targetCluster": "cluster",
             "version": "8.0.27"
@@ -134,6 +143,7 @@
                 "WARNING: Router must be bootstrapped again for the ClusterSet to be recognized."
             ],
             "rwPort": "mysql.sock",
+            "rwSplitPort": null,
             "rwXPort": "mysqlx.sock",
             "targetCluster": "replicacluster",
             "version": "8.0.27"

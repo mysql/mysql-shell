@@ -98,6 +98,19 @@ Lists the Router instances.
 This function lists and provides information about all Router instances
 registered for the <<<:Type>>>.
 
+For each router, the following information is provided, when available:
+
+@li hostname: Hostname.
+@li lastCheckIn: Timestamp of the last statistics update (check-in).
+@li roPort: Read-only port (Classic protocol).
+@li roXPort: Read-only port (X protocol).
+@li rwPort: Read-write port (Classic protocol).
+@li rwSplitPort: Read-write split port (Classic protocol).
+@li rwXPort: Read-write port (X protocol).
+@li upgradeRequired: If true, it indicates Router is incompatible with the
+Cluster's metadata version and must be upgraded.
+@li version: Version.
+
 Whenever a Metadata Schema upgrade is necessary, the recommended process
 is to upgrade MySQL Router instances to the latest version before upgrading
 the Metadata itself, in order to minimize service disruption.

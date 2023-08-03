@@ -839,6 +839,19 @@ DESCRIPTION
       This function lists and provides information about all Router instances
       registered for the ReplicaSet.
 
+      For each router, the following information is provided, when available:
+
+      - hostname: Hostname.
+      - lastCheckIn: Timestamp of the last statistics update (check-in).
+      - roPort: Read-only port (Classic protocol).
+      - roXPort: Read-only port (X protocol).
+      - rwPort: Read-write port (Classic protocol).
+      - rwSplitPort: Read-write split port (Classic protocol).
+      - rwXPort: Read-write port (X protocol).
+      - upgradeRequired: If true, it indicates Router is incompatible with the
+        Cluster's metadata version and must be upgraded.
+      - version: Version.
+
       Whenever a Metadata Schema upgrade is necessary, the recommended process
       is to upgrade MySQL Router instances to the latest version before
       upgrading the Metadata itself, in order to minimize service disruption.

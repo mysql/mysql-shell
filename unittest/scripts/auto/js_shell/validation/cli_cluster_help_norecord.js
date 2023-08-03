@@ -265,7 +265,7 @@ OPTIONS
 
 --cloneDonor=<str>
             The Cluster member to be used as donor when performing clone-based
-            recovery.
+            recovery. Available only for Read Replicas.
 
 --recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
@@ -288,7 +288,7 @@ OPTIONS
             Maximum number of seconds to wait for the instance to sync up with
             the PRIMARY after it's provisioned and the replication channel is
             established. If reached, the operation is rolled-back. Default is 0
-            (no timeout).
+            (no timeout). Available only for Read Replicas.
 
 //@<OUT> CLI cluster remove-instance --help
 NAME

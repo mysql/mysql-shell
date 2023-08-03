@@ -123,7 +123,9 @@ shcore::Dictionary_t get_router_dict(const Router_metadata &router_md,
   else
     (*router)["rwXPort"] = shcore::Value(*router_md.rw_x_port);
 
-  if (router_md.rw_split_port.has_value())
+  if (!router_md.rw_split_port.has_value())
+    (*router)["rwSplitPort"] = shcore::Value::Null();
+  else
     (*router)["rwSplitPort"] = shcore::Value(*router_md.rw_split_port);
 
   return router;

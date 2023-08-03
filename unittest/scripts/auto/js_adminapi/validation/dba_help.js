@@ -1139,7 +1139,7 @@ DESCRIPTION
         selected as the primary.
       - switchCommunicationStack: The Group Replication communication stack to
         be used by the Cluster after the reboot.
-      - ipAllowList: The list of hosts allowed to connect to the instance for
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
         Group Replication traffic when using the 'XCOM' communication stack.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one when using the

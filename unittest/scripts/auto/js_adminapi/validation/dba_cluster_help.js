@@ -481,6 +481,19 @@ DESCRIPTION
       This function lists and provides information about all Router instances
       registered for the Cluster.
 
+      For each router, the following information is provided, when available:
+
+      - hostname: Hostname.
+      - lastCheckIn: Timestamp of the last statistics update (check-in).
+      - roPort: Read-only port (Classic protocol).
+      - roXPort: Read-only port (X protocol).
+      - rwPort: Read-write port (Classic protocol).
+      - rwSplitPort: Read-write split port (Classic protocol).
+      - rwXPort: Read-write port (X protocol).
+      - upgradeRequired: If true, it indicates Router is incompatible with the
+        Cluster's metadata version and must be upgraded.
+      - version: Version.
+
       Whenever a Metadata Schema upgrade is necessary, the recommended process
       is to upgrade MySQL Router instances to the latest version before
       upgrading the Metadata itself, in order to minimize service disruption.
@@ -577,11 +590,11 @@ DESCRIPTION
       - dryRun: boolean if true, all validations and steps for rejoining the
         instance are executed, but no changes are actually made.
       - cloneDonor: The Cluster member to be used as donor when performing
-        clone-based recovery.
+        clone-based recovery. Available only for Read Replicas.
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY after it's provisioned and the replication channel is
         established. If reached, the operation is rolled-back. Default is 0 (no
-        timeout).
+        timeout). Available only for Read Replicas.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -591,10 +604,10 @@ DESCRIPTION
       - incremental: uses distributed state recovery, which applies missing
         transactions copied from another cluster member. Clone will be
         disabled.
-      - clone: clone: uses built-in MySQL clone support, which completely
-        replaces the state of the target instance with a full snapshot of
-        another cluster member before distributed recovery starts. Requires
-        MySQL 8.0.17 or newer.
+      - clone: uses built-in MySQL clone support, which completely replaces the
+        state of the target instance with a full snapshot of another cluster
+        member before distributed recovery starts. Requires MySQL 8.0.17 or
+        newer.
       - auto: let Group Replication choose whether or not a full snapshot has
         to be taken, based on what the target server supports and the
         group_replication_clone_threshold sysvar. This is the default value. A

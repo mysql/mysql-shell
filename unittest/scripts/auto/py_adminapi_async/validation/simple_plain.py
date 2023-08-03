@@ -348,6 +348,7 @@ Failover finished successfully.
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -358,6 +359,7 @@ Failover finished successfully.
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -375,6 +377,7 @@ Failover finished successfully.
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"

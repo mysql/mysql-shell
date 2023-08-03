@@ -1244,11 +1244,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           get_function_name("getCluster") +
           ": Unable to find a cluster PRIMARY member from the active shell "
           "session because the cluster has too many UNREACHABLE members and "
-          "no quorum is possible.\n"
-          "Use " +
-          get_function_name("getCluster") +
-          "(null, {connectToPrimary:false}) to get a read-only cluster "
-          "handle.");
+          "no quorum is possible.");
     } else if (e.code() == SHERR_DBA_METADATA_MISSING) {
       // The Metadata does not contain this Cluster, however, the preconditions
       // checker verified the existence of the Cluster in the Metadata schema of
@@ -2877,7 +2873,7 @@ the Cluster cannot be reached, or the primary instance selected has a diverging 
 executed, but no changes are actually made. An exception will be thrown when finished.
 @li primary: Instance definition representing the instance that must be selected as the primary.
 @li switchCommunicationStack: The Group Replication communication stack to be used by the Cluster after the reboot.
-@li ipAllowList: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' communication stack.
+@li ipAllowlist: The list of hosts allowed to connect to the instance for Group Replication traffic when using the 'XCOM' communication stack.
 @li localAddress: string value with the Group Replication local address to be used instead of the automatically generated one when using the 'XCOM' communication stack.
 @li timeout: integer value with the maximum number of seconds to wait for pending transactions to be applied in each instance of the cluster (default
 value is retrieved from the 'dba.gtidWaitTimeout' shell option).

@@ -275,6 +275,7 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -285,6 +286,7 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"
@@ -302,6 +304,7 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
+            "rwSplitPort": null,
             "rwXPort": null,
             "upgradeRequired": true,
             "version": "8.0.18"

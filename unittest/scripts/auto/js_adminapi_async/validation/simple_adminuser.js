@@ -25,18 +25,18 @@ Use rs.addInstance() to add more asynchronously replicated instances to this rep
 //@<OUT> status
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
         "topology": {
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }
@@ -172,26 +172,28 @@ Failover finished successfully.
 
 //@<OUT> listRouters
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost1::system": {
-            "hostname": "routerhost1", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwSplitPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
-        }, 
+        },
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwSplitPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -199,16 +201,17 @@ Failover finished successfully.
 
 //@<OUT> removeRouterMetadata
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwSplitPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
