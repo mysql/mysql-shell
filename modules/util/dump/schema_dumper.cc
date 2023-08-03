@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <map>
@@ -1072,36 +1074,94 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
                                              const std::string &name,
                                              std::string *ddl,
                                              std::vector<Issue> *issues) {
-  if (opt_mysqlaas || opt_strip_definer) {
-    const auto rewritten = opt_strip_definer ? ddl : nullptr;
-    const auto user =
-        compatibility::check_statement_for_definer_clause(*ddl, rewritten);
-    const auto prefix = get_object_err_prefix(db, object, name);
+  if (!(opt_mysqlaas || opt_strip_definer)) {
+    return;
+  }
 
-    if (!user.empty()) {
-      if (opt_strip_definer) {
-        issues->emplace_back(prefix + "had definer clause removed",
-                             Issue::Status::FIXED);
-      } else {
+  const auto rewritten = opt_strip_definer ? ddl : nullptr;
+  const auto user =
+      compatibility::check_statement_for_definer_clause(*ddl, rewritten);
+  const auto prefix = get_object_err_prefix(db, object, name);
+
+  const auto set_any_definer = set_any_definer_check();
+
+  if (!user.empty()) {
+    if (opt_strip_definer) {
+      issues->emplace_back(prefix + "had definer clause removed",
+                           Issue::Status::FIXED);
+    } else {
+      if (set_any_definer.supported) {
+        if (!m_cache) {
+          throw std::logic_error(
+              "check_object_for_definer() requires cache to be set");
+        }
+
+        const auto account = shcore::split_account(user);
+
+        if (compatibility::k_mds_users_with_system_user_priv.count(
+                account.user)) {
+          issues->emplace_back(
+              prefix + "- definition uses DEFINER clause set to user " + user +
+                  " whose user name is restricted in MySQL HeatWave Service",
+              Issue::Status::FIX_MANUALLY);
+        }
+
+        if (m_cache->users.empty()) {
+          if (!m_non_existing_definer_reported) {
+            issues->emplace_back(
+                "One or more DDL statements contain DEFINER clause but user "
+                "information is not included in the dump. Loading will fail if "
+                "accounts set as definers do not already exist in the target "
+                "DB System instance.",
+                Issue::Status::WARNING);
+            m_non_existing_definer_reported = true;
+          }
+        } else {
+          if (m_cache->users.end() == std::find(m_cache->users.begin(),
+                                                m_cache->users.end(),
+                                                account)) {
+            issues->emplace_back(
+                prefix + "- definition uses DEFINER clause set to user " +
+                    user + " which does not exist or is not included",
+                Issue::Status::WARNING);
+          }
+        }
+      }
+
+      if (set_any_definer.deprecated.report_errors) {
         issues->emplace_back(
             prefix + "- definition uses DEFINER clause set to user " + user +
                 " which can only be executed by this user or a user with "
-                "SET_USER_ID or SUPER privileges",
-            Issue::Status::USE_STRIP_DEFINERS);
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            set_any_definer.deprecated.status_on_error);
       }
     }
+  }
 
-    if (compatibility::check_statement_for_sqlsecurity_clause(*ddl,
-                                                              rewritten)) {
-      if (opt_strip_definer) {
+  if (compatibility::check_statement_for_sqlsecurity_clause(*ddl, rewritten)) {
+    if (opt_strip_definer) {
+      issues->emplace_back(
+          prefix + "had SQL SECURITY characteristic set to INVOKER",
+          Issue::Status::FIXED);
+    } else {
+      if (set_any_definer.supported) {
+        if (user.empty()) {
+          issues->emplace_back(
+              prefix +
+                  "- definition does not have a DEFINER clause and does not "
+                  "use SQL SECURITY INVOKER characteristic, either one of "
+                  "these is required",
+              Issue::Status::FIX_MANUALLY);
+        }
+      }
+
+      if (set_any_definer.deprecated.report_errors) {
         issues->emplace_back(
-            prefix + "had SQL SECURITY characteristic set to INVOKER",
-            Issue::Status::FIXED);
-      } else {
-        issues->emplace_back(prefix +
-                                 "- definition does not use SQL SECURITY "
-                                 "INVOKER characteristic, which is required",
-                             Issue::Status::USE_STRIP_DEFINERS);
+            prefix +
+                "- definition does not use SQL SECURITY "
+                "INVOKER characteristic, which is mandatory when the DEFINER "
+                "clause is omitted or removed",
+            set_any_definer.deprecated.status_on_error);
       }
     }
   }
@@ -1263,7 +1323,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           fprintf(sql_file,
                   "SET @saved_cs_client     = @@character_set_client;\n"
                   "/*!50503 SET character_set_client = utf8mb4 */;\n"
-                  "/*!50001 CREATE VIEW %s AS SELECT \n",
+                  "/*!50001 CREATE VIEW %s AS SELECT\n",
                   result_table.c_str());
 
           /*
@@ -2703,7 +2763,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   std::vector<Issue> problems;
   std::map<std::string, std::string> default_roles;
 
-  bool compatibility = opt_strip_restricted_grants;
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
@@ -2871,23 +2930,23 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     auto grants = get_grants(user);
 
     for (auto &grant : grants) {
-      if (opt_mysqlaas || compatibility) {
-        auto mysql_table_grant =
-            compatibility::is_grant_on_object_from_mysql_schema(grant);
-        if (!mysql_table_grant.empty()) {
+      if (opt_mysqlaas || opt_strip_restricted_grants) {
+        if (const auto mysql_table_grant =
+                compatibility::is_grant_on_object_from_mysql_schema(grant);
+            !mysql_table_grant.empty()) {
           if (opt_strip_restricted_grants) {
             grant.clear();
             problems.emplace_back(
                 "User " + user +
                     " had explicit grants on mysql schema object " +
-                    std::string{mysql_table_grant} + " removed",
+                    std::string(mysql_table_grant) + " removed",
                 Issue::Status::FIXED);
             continue;
           } else {
             problems.emplace_back(
                 "User " + user +
                     " has explicit grants on mysql schema object: " +
-                    std::string{mysql_table_grant},
+                    std::string(mysql_table_grant),
                 Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
           }
         }
@@ -2895,25 +2954,16 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
         // Also, ALL PRIVILEGES can appear even in 8.0 for DB grants
-        std::string orig_grant = grant;
         std::string schema;
         grant = expand_all_privileges(grant, user, &schema);
 
         // grants on specific user schemas don't need to be filtered
-        if (schema != "" && !is_system_schema_or_ndb(schema) && schema != "*") {
-          grant = orig_grant;
-        } else {
-          std::set<std::string> allowed_privs;
-          if (opt_mysqlaas || opt_strip_restricted_grants) {
-            allowed_privs = compatibility::k_mysqlaas_allowed_privileges;
-          }
-
-          std::string rewritten;
-          const auto privs = compatibility::check_privileges(
-              grant, compatibility ? &rewritten : nullptr, allowed_privs);
-          if (!privs.empty()) {
-            restricted.insert(privs.begin(), privs.end());
-            if (compatibility) grant = rewritten;
+        if (schema.empty() || is_system_schema_or_ndb(schema) ||
+            schema == "*") {
+          if (auto privs = strip_restricted_grants(user, &grant, &problems);
+              !privs.empty()) {
+            restricted.insert(std::make_move_iterator(privs.begin()),
+                              std::make_move_iterator(privs.end()));
           }
         }
       }
@@ -3458,6 +3508,51 @@ bool Schema_dumper::partial_revokes() const {
   }
 
   return *m_partial_revokes;
+}
+
+Schema_dumper::Version_dependent_check Schema_dumper::set_any_definer_check()
+    const {
+  Version_dependent_check check;
+
+  check.supported =
+      compatibility::supports_set_any_definer_privilege(opt_target_version);
+  check.deprecated.report_errors =
+      !check.supported || opt_report_deprecated_errors_as_warnings;
+  check.deprecated.status_on_error =
+      check.supported ? Issue::Status::WARNING_DEPRECATED_DEFINERS
+                      : Issue::Status::USE_STRIP_DEFINERS;
+
+  return check;
+}
+
+std::vector<std::string> Schema_dumper::strip_restricted_grants(
+    const std::string &user, std::string *ddl,
+    std::vector<Issue> *issues) const {
+  if (!(opt_mysqlaas || opt_strip_restricted_grants)) {
+    return {};
+  }
+
+  const auto rewritten = opt_strip_restricted_grants ? ddl : nullptr;
+
+  const auto set_any_definer = set_any_definer_check();
+  auto allowed_privs = compatibility::k_mysqlaas_allowed_privileges;
+
+  if (set_any_definer.supported) {
+    constexpr std::string_view k_set_user_id = "SET_USER_ID";
+    constexpr std::string_view k_set_any_definer = "SET_ANY_DEFINER";
+
+    if (rewritten && compatibility::replace_keyword(
+                         *ddl, k_set_user_id, k_set_any_definer, rewritten)) {
+      issues->emplace_back("User " + user + " had restricted privilege " +
+                               std::string(k_set_user_id) + " replaced with " +
+                               std::string(k_set_any_definer),
+                           Issue::Status::FIXED);
+    }
+
+    allowed_privs.emplace(k_set_any_definer);
+  }
+
+  return compatibility::check_privileges(*ddl, rewritten, allowed_privs);
 }
 
 }  // namespace dump

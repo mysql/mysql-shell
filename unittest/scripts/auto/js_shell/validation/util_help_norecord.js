@@ -263,7 +263,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
-        that would be performed, without actually doing so.
+        that would be performed, without actually doing so. If target is MySQL
+        HeatWave Service, also checks for compatibility issues.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be copied in each chunk, enables chunking.
@@ -385,7 +386,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
-        that would be performed, without actually doing so.
+        that would be performed, without actually doing so. If target is MySQL
+        HeatWave Service, also checks for compatibility issues.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be copied in each chunk, enables chunking.
@@ -496,7 +498,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
-        that would be performed, without actually doing so.
+        that would be performed, without actually doing so. If target is MySQL
+        HeatWave Service, also checks for compatibility issues.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be copied in each chunk, enables chunking.
@@ -596,6 +599,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - targetVersion: string (default: current version of Shell) - Specifies
+        version of the destination MySQL server.
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -644,7 +649,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
       - dryRun: bool (default: false) - Print information about what would be
-        dumped, but do not dump anything.
+        dumped, but do not dump anything. If ocimds is enabled, also checks for
+        compatibility issues with MySQL HeatWave Service.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -869,19 +875,24 @@ DESCRIPTION
       use authentication methods (plugins) not supported by the MySQL HeatWave
       Service.
 
-      strip_definers - Strips the "DEFINER=account" clause from views,
-      routines, events and triggers. The MySQL HeatWave Service requires
-      special privileges to create these objects with a definer other than the
-      user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and routines will
-      additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
-      will be added. This ensures that the access permissions of the account
-      querying or calling these are applied, instead of the user that created
-      them. This should be sufficient for most users, but if your database
-      security model requires that views and routines have more privileges than
-      their invoker, you will need to manually modify the schema before loading
-      it.
+      strip_definers - This option should not be used if the destination MySQL
+      HeatWave Service DB System instance has version 8.2.0 or newer. In such
+      case, the administrator role is granted the SET_ANY_DEFINER privilege.
+      Users which have this privilege are able to specify any valid
+      authentication ID in the DEFINER clause.
+
+      Strips the "DEFINER=account" clause from views, routines, events and
+      triggers. The MySQL HeatWave Service requires special privileges to
+      create these objects with a definer other than the user loading the
+      schema. By stripping the DEFINER clause, these objects will be created
+      with that default definer. Views and routines will additionally have
+      their SQL SECURITY clause changed from DEFINER to INVOKER. If this
+      characteristic is missing, SQL SECURITY INVOKER clause will be added.
+      This ensures that the access permissions of the account querying or
+      calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
@@ -893,7 +904,9 @@ DESCRIPTION
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       HeatWave Service. Attempting to create users granting these privileges
       would fail, so this option allows dumped GRANT statements to be stripped
-      of these privileges.
+      of these privileges. If the destination MySQL version supports the
+      SET_ANY_DEFINER privilege, the SET_USER_ID privilege is replaced with
+      SET_ANY_DEFINER instead of being stripped.
 
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       HeatWave Service. If you'd like to have tables created in their default
@@ -1229,6 +1242,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - targetVersion: string (default: current version of Shell) - Specifies
+        version of the destination MySQL server.
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -1267,7 +1282,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
       - dryRun: bool (default: false) - Print information about what would be
-        dumped, but do not dump anything.
+        dumped, but do not dump anything. If ocimds is enabled, also checks for
+        compatibility issues with MySQL HeatWave Service.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -1481,19 +1497,24 @@ DESCRIPTION
       use authentication methods (plugins) not supported by the MySQL HeatWave
       Service.
 
-      strip_definers - Strips the "DEFINER=account" clause from views,
-      routines, events and triggers. The MySQL HeatWave Service requires
-      special privileges to create these objects with a definer other than the
-      user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and routines will
-      additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
-      will be added. This ensures that the access permissions of the account
-      querying or calling these are applied, instead of the user that created
-      them. This should be sufficient for most users, but if your database
-      security model requires that views and routines have more privileges than
-      their invoker, you will need to manually modify the schema before loading
-      it.
+      strip_definers - This option should not be used if the destination MySQL
+      HeatWave Service DB System instance has version 8.2.0 or newer. In such
+      case, the administrator role is granted the SET_ANY_DEFINER privilege.
+      Users which have this privilege are able to specify any valid
+      authentication ID in the DEFINER clause.
+
+      Strips the "DEFINER=account" clause from views, routines, events and
+      triggers. The MySQL HeatWave Service requires special privileges to
+      create these objects with a definer other than the user loading the
+      schema. By stripping the DEFINER clause, these objects will be created
+      with that default definer. Views and routines will additionally have
+      their SQL SECURITY clause changed from DEFINER to INVOKER. If this
+      characteristic is missing, SQL SECURITY INVOKER clause will be added.
+      This ensures that the access permissions of the account querying or
+      calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
@@ -1505,7 +1526,9 @@ DESCRIPTION
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       HeatWave Service. Attempting to create users granting these privileges
       would fail, so this option allows dumped GRANT statements to be stripped
-      of these privileges.
+      of these privileges. If the destination MySQL version supports the
+      SET_ANY_DEFINER privilege, the SET_USER_ID privilege is replaced with
+      SET_ANY_DEFINER instead of being stripped.
 
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       HeatWave Service. If you'd like to have tables created in their default
@@ -1840,6 +1863,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+      - targetVersion: string (default: current version of Shell) - Specifies
+        version of the destination MySQL server.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
@@ -1867,7 +1892,8 @@ DESCRIPTION
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
       - dryRun: bool (default: false) - Print information about what would be
-        dumped, but do not dump anything.
+        dumped, but do not dump anything. If ocimds is enabled, also checks for
+        compatibility issues with MySQL HeatWave Service.
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -2087,19 +2113,24 @@ DESCRIPTION
       use authentication methods (plugins) not supported by the MySQL HeatWave
       Service.
 
-      strip_definers - Strips the "DEFINER=account" clause from views,
-      routines, events and triggers. The MySQL HeatWave Service requires
-      special privileges to create these objects with a definer other than the
-      user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and routines will
-      additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
-      will be added. This ensures that the access permissions of the account
-      querying or calling these are applied, instead of the user that created
-      them. This should be sufficient for most users, but if your database
-      security model requires that views and routines have more privileges than
-      their invoker, you will need to manually modify the schema before loading
-      it.
+      strip_definers - This option should not be used if the destination MySQL
+      HeatWave Service DB System instance has version 8.2.0 or newer. In such
+      case, the administrator role is granted the SET_ANY_DEFINER privilege.
+      Users which have this privilege are able to specify any valid
+      authentication ID in the DEFINER clause.
+
+      Strips the "DEFINER=account" clause from views, routines, events and
+      triggers. The MySQL HeatWave Service requires special privileges to
+      create these objects with a definer other than the user loading the
+      schema. By stripping the DEFINER clause, these objects will be created
+      with that default definer. Views and routines will additionally have
+      their SQL SECURITY clause changed from DEFINER to INVOKER. If this
+      characteristic is missing, SQL SECURITY INVOKER clause will be added.
+      This ensures that the access permissions of the account querying or
+      calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
@@ -2111,7 +2142,9 @@ DESCRIPTION
       strip_restricted_grants - Certain privileges are restricted in the MySQL
       HeatWave Service. Attempting to create users granting these privileges
       would fail, so this option allows dumped GRANT statements to be stripped
-      of these privileges.
+      of these privileges. If the destination MySQL version supports the
+      SET_ANY_DEFINER privilege, the SET_USER_ID privilege is replaced with
+      SET_ANY_DEFINER instead of being stripped.
 
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       HeatWave Service. If you'd like to have tables created in their default

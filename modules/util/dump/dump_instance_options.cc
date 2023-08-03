@@ -85,7 +85,7 @@ void Dump_instance_options::on_unpacked_options() {
     }
   }
 
-  if (mds_compatibility().has_value()) {
+  if (mds_compatibility()) {
     // if MDS compatibility option is set, the schema name used by the OCI to
     // store the audit plugin's configuration should not be dumped
     filters().schemas().exclude("mysql_audit");

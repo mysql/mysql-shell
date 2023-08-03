@@ -1460,8 +1460,9 @@ TEST_BOOL_OPTION("ocimds")
 #   * DATA|INDEX DIRECTORY and ENCRYPTION options must be commented out.
 #   * Same restrictions for partitions.
 # * CHARSETS - checks whether db objects use any other character set than supported utf8mb4.
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True })
-EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL HeatWave Service {0}".format(__mysh_version_no_extra))
+target_version = "8.1.0"
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "targetVersion": target_version, "ocimds": True })
+EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {target_version}")
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
@@ -1483,7 +1484,7 @@ EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, inc
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).error())
 EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).error())
 
-EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL HeatWave Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
+EXPECT_STDOUT_CONTAINS(f"Compatibility issues with MySQL HeatWave Service {target_version} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.")
 
 # WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
 # WL14506-TSFR_1_14
@@ -3178,6 +3179,99 @@ TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("2 chunks (18 rows, 447 bytes) for 1 tables in 1 schemas were loaded")
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> WL15887 - setup
+schema_name = "wl15887"
+test_tables = [ test_table_primary, test_view ]
+
+def setup_db(account):
+    session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    session.run_sql("CREATE SCHEMA !", [schema_name])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY) ENGINE=InnoDB;", [ schema_name, test_table_primary ])
+    session.run_sql(f"CREATE DEFINER={account} TRIGGER !.! BEFORE UPDATE ON ! FOR EACH ROW BEGIN END;", [ schema_name, test_table_trigger, test_table_primary ])
+    session.run_sql(f"CREATE DEFINER={account} SQL SECURITY INVOKER VIEW !.! AS SELECT * FROM !.!;", [ schema_name, test_view, schema_name, test_table_primary ])
+
+create_all_schemas()
+setup_db(test_user_account)
+
+#@<> WL15887-TSFR_1_1
+help_text = """
+      - targetVersion: string (default: current version of Shell) - Specifies
+        version of the destination MySQL server.
+"""
+EXPECT_TRUE(help_text in util.help("dump_schemas"))
+
+#@<> WL15887-TSFR_1_1_2 - option type
+TEST_STRING_OPTION("targetVersion")
+
+#@<> WL15887-TSFR_1_1_1 - invalid values
+EXPECT_FAIL("ValueError", "Argument #4: Invalid value of the 'targetVersion' option: '8.1.', Error parsing version", schema_name, test_tables, test_output_absolute, { "targetVersion": "8.1.", "showProgress": False })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid value of the 'targetVersion' option: 'abc', Error parsing version", schema_name, test_tables, test_output_absolute, { "targetVersion": "abc", "showProgress": False })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid value of the 'targetVersion' option: empty", schema_name, test_tables, test_output_absolute, { "targetVersion": "", "showProgress": False })
+
+#@<> WL15887-TSFR_1_2_1 - wrong values - greater
+for i in range(3):
+    version = __mysh_version_no_extra.split(".")
+    version[i] = str(int(version[i]) + 1)
+    version = ".".join(version)
+    EXPECT_FAIL("ValueError", f"Argument #4: Requested MySQL version '{version}' is newer than the maximum version '{__mysh_version_no_extra}' supported by this version of MySQL Shell", schema_name, test_tables, test_output_absolute, { "targetVersion": version, "showProgress": False })
+
+#@<> WL15887-TSFR_1_3_1 - wrong values - lower
+EXPECT_FAIL("ValueError", "Argument #4: Requested MySQL version '8.0.24' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", schema_name, test_tables, test_output_absolute, { "targetVersion": "8.0.24", "showProgress": False })
+EXPECT_FAIL("ValueError", "Argument #4: Requested MySQL version '7.9.26' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", schema_name, test_tables, test_output_absolute, { "targetVersion": "7.9.26", "showProgress": False })
+
+#@<> WL15887 - valid values
+EXPECT_SUCCESS(schema_name, test_tables, test_output_absolute, { "targetVersion": "8.0.25", "dryRun": True, "showProgress": False })
+EXPECT_SUCCESS(schema_name, test_tables, test_output_absolute, { "targetVersion": __mysh_version_no_extra, "dryRun": True, "showProgress": False })
+
+#@<> WL15887-TSFR_1_4_1 - implict value of targetVersion
+EXPECT_SUCCESS(schema_name, test_tables, test_output_relative, { "ocimds": True, "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {__mysh_version_no_extra}")
+
+# WL15887-TSFR_2_1 - implict value of targetVersion, warnings
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning())
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning())
+
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view, "View").warning())
+
+EXPECT_STDOUT_CONTAINS(f"""
+NOTE: One or more objects with the DEFINER clause were found.
+
+      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service {__mysh_version_no_extra}.
+      Loading the dump will fail if it is loaded into an DB System instance that does not support the SET_ANY_DEFINER privilege, which was introduced in 8.2.0.
+""")
+
+#@<> WL15887-TSFR_3_1_1 - restricted accounts
+for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "ocidbm", "ocirpl"]:
+    account = f"`{account}`@`localhost`"
+    setup_db(account)
+    WIPE_OUTPUT()
+    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", schema_name, test_tables, test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_trigger, "Trigger", account).error())
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_view, "View", account).error())
+
+# restore schema
+setup_db(test_user_account)
+
+#@<> WL15887-TSFR_3_2_1 - valid account
+EXPECT_SUCCESS(schema_name, test_tables, test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+
+# no warnings about DEFINER=
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning())
+
+# WL15887-TSFR_3_5_1 - no warnings about SQL SECURITY
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view, "View").warning())
+
+# WL15887-TSFR_3_3_1 - no account is not included in the dump
+EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning())
+
+#@<> WL15887-TSFR_4_1 - note about strip_definers
+EXPECT_SUCCESS(schema_name, test_tables, test_output_relative, { "compatibility": [ "strip_definers" ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+
+#@<> WL15887 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
 #@<> Cleanup
 drop_all_schemas()

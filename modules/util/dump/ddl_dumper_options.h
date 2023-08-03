@@ -24,7 +24,9 @@
 #ifndef MODULES_UTIL_DUMP_DDL_DUMPER_OPTIONS_H_
 #define MODULES_UTIL_DUMP_DDL_DUMPER_OPTIONS_H_
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
@@ -83,6 +85,7 @@ class Ddl_dumper_options : public Dump_options {
   }
 
   void enable_mds_compatibility_checks();
+  using Dump_options::set_target_version;
   void set_output_url(const std::string &url) override;
 
  protected:
@@ -97,6 +100,7 @@ class Ddl_dumper_options : public Dump_options {
   void set_bytes_per_chunk(const std::string &value);
   void set_ocimds(bool value);
   void set_compatibility_options(const std::vector<std::string> &options);
+  void set_target_version_str(const std::string &value);
   void set_dry_run(bool dry_run);
   void set_threads(uint64_t threads);
   const Object_storage_options *object_storage_options() const;

@@ -2713,7 +2713,7 @@ dump_dir = os.path.join(outdir, "bug_34566034")
 # setup
 shell.connect(__sandbox_uri2)
 wipeout_server(session)
-dba.create_cluster("C")
+c = dba.create_cluster("C")
 
 # dump
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
@@ -2723,7 +2723,8 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", 
 
 #@<> BUG#34566034 - cleanup
 shell.connect(__sandbox_uri2)
-dba.drop_metadata_schema({ 'force': True })
+c.dissolve({ 'force': True })
+session.run_sql("SET GLOBAL super_read_only = 0")
 
 #@<> BUG#35304391 - loader should notify if rows were replaced during load
 # constants
@@ -2760,6 +2761,32 @@ EXPECT_STDOUT_CONTAINS("1 rows were replaced")
 #@<> BUG#35304391 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+#@<> WL#15887 - warning when loading to a different version than requested during dump {not __dbug_off}
+# constants
+dump_dir = os.path.join(outdir, "wl_15887")
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "targetVersion": __mysh_version_no_extra, "ddlOnly": True, "showProgress": False }), "Dump should not fail")
+
+# setup
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+# load
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "Load should not fail")
+
+# verification
+if __mysh_version_no_extra == __version:
+    # version match, no warning
+    EXPECT_STDOUT_NOT_CONTAINS("'targetVersion'")
+else:
+    EXPECT_STDOUT_CONTAINS(f"Destination MySQL version is different than the value of the 'targetVersion' option set when the dump was created: {__mysh_version_no_extra}")
+
+# cleanup
+testutil.dbug_set("")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

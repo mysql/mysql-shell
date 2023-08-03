@@ -1361,7 +1361,13 @@ wildcards, which are interpreted differently in systems where
 <b>skip_invalid_accounts</b> - Skips accounts which do not have a password or
 use authentication methods (plugins) not supported by the MySQL HeatWave Service.
 
-<b>strip_definers</b> - Strips the "DEFINER=account" clause from views, routines,
+<b>strip_definers</b> - This option should not be used if the destination MySQL
+HeatWave Service DB System instance has version 8.2.0 or newer. In such case,
+the <b>administrator</b> role is granted the SET_ANY_DEFINER privilege. Users
+which have this privilege are able to specify any valid authentication ID in the
+DEFINER clause.
+
+Strips the "DEFINER=account" clause from views, routines,
 events and triggers. The MySQL HeatWave Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
@@ -1382,7 +1388,9 @@ exist.
 <b>strip_restricted_grants</b> - Certain privileges are restricted in the MySQL
 HeatWave Service. Attempting to create users granting these privileges would
 fail, so this option allows dumped GRANT statements to be stripped of these
-privileges.
+privileges. If the destination MySQL version supports the SET_ANY_DEFINER
+privilege, the SET_USER_ID privilege is replaced with SET_ANY_DEFINER instead of
+being stripped.
 
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL
 HeatWave Service. If you'd like to have tables created in their default
@@ -1511,7 +1519,8 @@ backup lock cannot not be acquired.
 (DDL) from the database.
 @li <b>dataOnly</b>: bool (default: false) - Only dump data from the database.
 @li <b>dryRun</b>: bool (default: false) - Print information about what would be
-dumped, but do not dump anything.
+dumped, but do not dump anything. If <b>ocimds</b> is enabled, also checks for
+compatibility issues with MySQL HeatWave Service.
 
 @li <b>chunking</b>: bool (default: true) - Enable chunking of the tables.
 @li <b>bytesPerChunk</b>: string (default: "64M") - Sets average estimated
@@ -1532,7 +1541,9 @@ MySQL HeatWave Service.
 HeatWave Service compatibility modifications when writing dump files. Supported
 values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
 "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-"strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".)*");
+"strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+@li <b>targetVersion</b>: string (default: current version of Shell) - Specifies
+version of the destination MySQL server.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables or
@@ -2263,7 +2274,8 @@ backup lock cannot not be acquired.
 (DDL) from the database.
 @li <b>dataOnly</b>: bool (default: false) - Only copy data from the database.
 @li <b>dryRun</b>: bool (default: false) - Simulates a copy and prints
-everything that would be performed, without actually doing so.
+everything that would be performed, without actually doing so. If target is
+MySQL HeatWave Service, also checks for compatibility issues.
 
 @li <b>chunking</b>: bool (default: true) - Enable chunking of the tables.
 @li <b>bytesPerChunk</b>: string (default: "64M") - Sets average estimated

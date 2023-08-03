@@ -269,7 +269,8 @@ OPTIONS
 
 --dryRun=<bool>
             Simulates a copy and prints everything that would be performed,
-            without actually doing so. Default: false.
+            without actually doing so. If target is MySQL HeatWave Service,
+            also checks for compatibility issues. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data copies. When enabled, produces a
@@ -468,7 +469,8 @@ OPTIONS
 
 --dryRun=<bool>
             Simulates a copy and prints everything that would be performed,
-            without actually doing so. Default: false.
+            without actually doing so. If target is MySQL HeatWave Service,
+            also checks for compatibility issues. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data copies. When enabled, produces a
@@ -649,7 +651,8 @@ OPTIONS
 
 --dryRun=<bool>
             Simulates a copy and prints everything that would be performed,
-            without actually doing so. Default: false.
+            without actually doing so. If target is MySQL HeatWave Service,
+            also checks for compatibility issues. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data copies. When enabled, produces a
@@ -831,7 +834,8 @@ OPTIONS
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
-            anything. Default: false.
+            anything. If ocimds is enabled, also checks for compatibility
+            issues with MySQL HeatWave Service. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data dumps. When enabled, produces a
@@ -853,6 +857,10 @@ OPTIONS
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
+
+--targetVersion=<str>
+            Specifies version of the destination MySQL server. Default: current
+            version of Shell.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
@@ -1064,7 +1072,8 @@ OPTIONS
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
-            anything. Default: false.
+            anything. If ocimds is enabled, also checks for compatibility
+            issues with MySQL HeatWave Service. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data dumps. When enabled, produces a
@@ -1086,6 +1095,10 @@ OPTIONS
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
+
+--targetVersion=<str>
+            Specifies version of the destination MySQL server. Default: current
+            version of Shell.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
@@ -1278,7 +1291,8 @@ OPTIONS
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
-            anything. Default: false.
+            anything. If ocimds is enabled, also checks for compatibility
+            issues with MySQL HeatWave Service. Default: false.
 
 --consistent=<bool>
             Enable or disable consistent data dumps. When enabled, produces a
@@ -1300,6 +1314,10 @@ OPTIONS
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces". Default: empty.
+
+--targetVersion=<str>
+            Specifies version of the destination MySQL server. Default: current
+            version of Shell.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of

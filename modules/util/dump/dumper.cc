@@ -102,6 +102,7 @@ enum class Issue_status {
   FIXED_CREATE_PKS,
   FIXED_IGNORE_PKS,
   WARNING,
+  WARNING_DEPRECATED_DEFINERS,
   ERROR,
   ERROR_MISSING_PKS,
   ERROR_HAS_INVALID_GRANTS,
@@ -158,8 +159,14 @@ Issue_status_set show_issues(const std::vector<Schema_dumper::Issue> &issues) {
       }
 
       console->print_note(issue.description);
-    } else if (issue.status == Schema_dumper::Issue::Status::WARNING) {
+    } else if (issue.status <= Schema_dumper::Issue::Status::WARNING) {
       status.set(Issue_status::WARNING);
+
+      if (Schema_dumper::Issue::Status::WARNING_DEPRECATED_DEFINERS ==
+          issue.status) {
+        status.set(Issue_status::WARNING_DEPRECATED_DEFINERS);
+      }
+
       console->print_warning(issue.description);
     } else {
       status.set(Issue_status::ERROR);
@@ -1796,6 +1803,17 @@ Dumper::Dumper(const Dump_options &options)
 
   m_table_data_extension +=
       mysqlshdk::storage::get_extension(m_options.compression());
+
+  if (m_options.compatibility_options().is_set(
+          Compatibility_option::STRIP_DEFINERS) &&
+      compatibility::supports_set_any_definer_privilege(
+          m_options.target_version())) {
+    current_console()->print_note(
+        "The 'targetVersion' option is set to " +
+        m_options.target_version().get_base() +
+        ". This version supports the SET_ANY_DEFINER privilege, using the "
+        "'strip_definers' compatibility option is unnecessary.");
+  }
 }
 
 void Dumper::run() {
@@ -2007,7 +2025,10 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   dumper->opt_drop_trigger = true;
   dumper->opt_reexecutable = true;
   dumper->opt_tz_utc = m_options.use_timezone_utc();
-  dumper->opt_mysqlaas = m_options.mds_compatibility().has_value();
+  dumper->opt_mysqlaas = m_options.mds_compatibility();
+  dumper->opt_target_version = m_options.target_version();
+  dumper->opt_report_deprecated_errors_as_warnings =
+      m_options.implicit_target_version();
   dumper->opt_character_set_results = m_options.character_set();
   dumper->opt_column_statistics = false;
 
@@ -2549,13 +2570,13 @@ void Dumper::create_schema_tasks() {
 }
 
 void Dumper::validate_mds() const {
-  if (!m_options.mds_compatibility().has_value() ||
+  if (!m_options.mds_compatibility() ||
       (!m_options.dump_ddl() && !dump_users())) {
     return;
   }
 
   const auto console = current_console();
-  const auto version = m_options.mds_compatibility()->get_base();
+  const auto version = m_options.target_version().get_base();
   Issue_status_set status;
 
   console->print_note(
@@ -2624,6 +2645,19 @@ void Dumper::validate_mds() const {
         ++objects_checked;
       }
     }
+  }
+
+  if (m_options.implicit_target_version() &&
+      status.is_set(Issue_status::WARNING_DEPRECATED_DEFINERS)) {
+    console->print_info();
+    console->print_note(
+        "One or more objects with the DEFINER clause were found.");
+    console->print_info(
+        shcore::str_format(R"(
+      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service %s.
+      Loading the dump will fail if it is loaded into an DB System instance that does not support the SET_ANY_DEFINER privilege, which was introduced in 8.2.0.
+)",
+                           m_options.target_version().get_base().c_str()));
   }
 
   if (status.is_set(Issue_status::ERROR_MISSING_PKS)) {
@@ -2894,7 +2928,7 @@ void Dumper::dump_users_ddl() const {
 
 void Dumper::write_ddl(const Memory_dumper &in_memory,
                        const std::string &file) const {
-  if (!m_options.mds_compatibility().has_value()) {
+  if (!m_options.mds_compatibility()) {
     // if MDS is on, changes done by compatibility options were printed earlier
     const auto status = show_issues(in_memory.issues());
 
@@ -3339,9 +3373,12 @@ void Dumper::write_dump_started_metadata() const {
                 is_gtid_executed_inconsistent(), a);
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
 
-  if (m_options.mds_compatibility().has_value()) {
+  if (m_options.mds_compatibility()) {
     doc.AddMember(StringRef("mdsCompatibility"), true, a);
   }
+
+  doc.AddMember(StringRef("targetVersion"),
+                {m_options.target_version().get_full().c_str(), a}, a);
 
   doc.AddMember(StringRef("partialRevokes"), m_cache.partial_revokes, a);
 
@@ -4260,12 +4297,12 @@ void Dumper::fetch_server_information() {
 }
 
 bool Dumper::check_for_upgrade_errors() const {
-  if (!m_options.mds_compatibility().has_value()) {
+  if (!m_options.mds_compatibility()) {
     return false;
   }
 
   Upgrade_check_options options;
-  options.target_version = *m_options.mds_compatibility();
+  options.target_version = m_options.target_version();
   Upgrade_check_config config{options};
 
   config.set_session(session());

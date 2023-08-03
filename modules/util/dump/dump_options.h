@@ -69,6 +69,8 @@ class Dump_options {
 
   static const shcore::Option_pack_def<Dump_options> &options();
 
+  static const mysqlshdk::utils::Version &current_version();
+
   void validate() const;
 
   // setters
@@ -114,9 +116,7 @@ class Dump_options {
 
   const std::string &character_set() const { return m_character_set; }
 
-  const std::optional<mysqlshdk::utils::Version> &mds_compatibility() const {
-    return m_mds;
-  }
+  bool mds_compatibility() const { return m_is_mds; }
 
   const Compatibility_options &compatibility_options() const {
     return m_compatibility_options;
@@ -126,6 +126,16 @@ class Dump_options {
   const common::Filtering_options &filters() const {
     return m_filtering_options;
   }
+
+  const mysqlshdk::utils::Version &target_version() const {
+    if (m_target_version.has_value()) {
+      return *m_target_version;
+    } else {
+      return current_version();
+    }
+  }
+
+  bool implicit_target_version() const { return !m_target_version.has_value(); }
 
   const Instance_cache_builder::Partition_filters &included_partitions() const {
     return m_partitions;
@@ -177,14 +187,14 @@ class Dump_options {
   virtual bool par_manifest() const = 0;
 
  protected:
-  void set_mds_compatibility(
-      const std::optional<mysqlshdk::utils::Version> &mds) {
-    m_mds = mds;
-  }
+  void enable_mds_compatibility() { m_is_mds = true; }
 
   void set_compatibility_option(Compatibility_option c) {
     m_compatibility_options |= c;
   }
+
+  void set_target_version(const mysqlshdk::utils::Version &version,
+                          bool validate = true);
 
   void set_where_clause(const std::map<std::string, std::string> &where);
 
@@ -275,8 +285,9 @@ class Dump_options {
   // a reference
 
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
-  std::optional<mysqlshdk::utils::Version> m_mds;
+  bool m_is_mds = false;
   Compatibility_options m_compatibility_options;
+  std::optional<mysqlshdk::utils::Version> m_target_version;
 };
 
 }  // namespace dump

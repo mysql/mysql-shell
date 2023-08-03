@@ -28,16 +28,19 @@
 #include "modules/util/common/dump/utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/compatibility_option.h"
 
 namespace mysqlsh {
 namespace dump {
 
 using mysqlshdk::utils::expand_to_bytes;
+using mysqlshdk::utils::Version;
 
 namespace {
 
@@ -77,6 +80,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("ocimds", &Ddl_dumper_options::set_ocimds)
           .optional("compatibility",
                     &Ddl_dumper_options::set_compatibility_options)
+          .optional("targetVersion",
+                    &Ddl_dumper_options::set_target_version_str)
           .include(&Ddl_dumper_options::m_filtering_options,
                    &common::Filtering_options::triggers)
           .optional("where", &Ddl_dumper_options::set_where_clause)
@@ -103,6 +108,25 @@ void Ddl_dumper_options::set_compatibility_options(
   }
 }
 
+void Ddl_dumper_options::set_target_version_str(const std::string &value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "Invalid value of the 'targetVersion' option: empty");
+  }
+
+  Version ver;
+
+  try {
+    ver = Version(value);
+  } catch (const std::exception &e) {
+    throw std::invalid_argument(
+        "Invalid value of the 'targetVersion' option: '" + value + "', " +
+        e.what());
+  }
+
+  set_target_version(ver);
+}
+
 void Ddl_dumper_options::on_unpacked_options() {
   m_s3_bucket_options.throw_on_conflict(m_dump_manifest_options);
   m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
@@ -124,7 +148,7 @@ void Ddl_dumper_options::on_unpacked_options() {
     throw std::invalid_argument(
         "The value of 'bytesPerChunk' option must be greater than or equal "
         "to " +
-        std::string{k_minimum_chunk_size} + ".");
+        std::string(k_minimum_chunk_size) + ".");
   }
 
   if (0 == m_threads) {
@@ -167,7 +191,7 @@ void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {
 }
 
 void Ddl_dumper_options::enable_mds_compatibility_checks() {
-  set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+  enable_mds_compatibility();
 }
 
 void Ddl_dumper_options::set_dry_run(bool dry_run) {
