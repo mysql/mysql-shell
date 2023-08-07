@@ -71,23 +71,39 @@ void clear_buffer(std::string *buffer) {
   buffer->clear();
 }
 
+std::string_view SHCORE_PUBLIC str_strip_view(std::string_view s,
+                                              std::string_view chars) {
+  auto begin = s.find_first_not_of(chars);
+  if (begin == std::string_view::npos) return {};
+
+  auto end = s.find_last_not_of(chars);
+  return s.substr(begin, end - begin + 1);
+}
+
+std::string_view SHCORE_PUBLIC str_lstrip_view(std::string_view s,
+                                               std::string_view chars) {
+  auto begin = s.find_first_not_of(chars);
+  if (begin == std::string_view::npos) return {};
+  return s.substr(begin);
+}
+
+std::string_view SHCORE_PUBLIC str_rstrip_view(std::string_view s,
+                                               std::string_view chars) {
+  auto end = s.find_last_not_of(chars);
+  if (end == std::string_view::npos) return {};
+  return s.substr(0, end + 1);
+}
+
 std::string str_strip(std::string_view s, std::string_view chars) {
-  size_t begin = s.find_first_not_of(chars);
-  size_t end = s.find_last_not_of(chars);
-  if (begin == std::string::npos) return std::string();
-  return std::string{s.substr(begin, end - begin + 1)};
+  return std::string{str_strip_view(s, chars)};
 }
 
 std::string str_lstrip(std::string_view s, std::string_view chars) {
-  size_t begin = s.find_first_not_of(chars);
-  if (begin == std::string::npos) return std::string();
-  return std::string{s.substr(begin)};
+  return std::string{str_lstrip_view(s, chars)};
 }
 
 std::string str_rstrip(std::string_view s, std::string_view chars) {
-  size_t end = s.find_last_not_of(chars);
-  if (end == std::string::npos) return std::string();
-  return std::string{s.substr(0, end + 1)};
+  return std::string{str_rstrip_view(s, chars)};
 }
 
 std::string str_format(const char *formats, ...) {

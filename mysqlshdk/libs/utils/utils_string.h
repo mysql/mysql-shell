@@ -433,6 +433,13 @@ inline bool str_itersplit(const std::string &input,
 }
 
 /** Strip a string out of blank chars */
+std::string_view SHCORE_PUBLIC
+str_strip_view(std::string_view s, std::string_view chars = " \r\n\t");
+std::string_view SHCORE_PUBLIC
+str_lstrip_view(std::string_view s, std::string_view chars = " \r\n\t");
+std::string_view SHCORE_PUBLIC
+str_rstrip_view(std::string_view s, std::string_view chars = " \r\n\t");
+
 std::string SHCORE_PUBLIC str_strip(std::string_view s,
                                     std::string_view chars = " \r\n\t");
 std::string SHCORE_PUBLIC str_lstrip(std::string_view s,
