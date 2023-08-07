@@ -26,11 +26,14 @@
 
 #include <memory>
 #include <string>
+#include <variant>
+#include <vector>
 
 #include "mysqlshdk/include/scripting/type_info.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -210,6 +213,46 @@ struct Validator_for<Option_pack_ref<T>> {
     // Option validators should be disabled as validation is done on unpacking
     validator->set_enabled(false);
     return validator;
+  }
+};
+
+template <typename... Types>
+struct Type_info<std::variant<Types...>> {
+  static std::variant<Types...> to_native(const shcore::Value &in) {
+    std::variant<Types...> result;
+
+    if ((to_native<Types>(in, &result) || ...)) {
+      return result;
+    } else {
+      throw Exception::type_error("is expected to be " + desc());
+    }
+  }
+
+  static std::variant<Types...> default_value() { return {}; }
+
+  static Value_type vtype() {
+    // using undefined allows to postpone validation until to_native() is called
+    return shcore::Value_type::Undefined;
+  }
+
+  static const char *code() { return "V"; }
+
+  static std::string desc() {
+    return "either " + shcore::str_join(
+                           std::vector<std::string>{
+                               type_description(Type_info<Types>::vtype())...},
+                           " or ");
+  }
+
+ private:
+  template <typename T>
+  static bool to_native(const Value &v, std::variant<Types...> *out) {
+    try {
+      *out = Type_info<T>::to_native(v);
+      return true;
+    } catch (...) {
+      return false;
+    }
   }
 };
 

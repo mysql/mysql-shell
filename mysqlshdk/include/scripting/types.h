@@ -44,6 +44,7 @@
 #include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 // For error codes used by the shell
 #define SHERR_FIRST 50000
@@ -820,6 +821,37 @@ struct value_type_for_native<Function_base_ref> {
   static const Value_type type = Function;
   static shcore::Function_base_ref extract(const Value &value) {
     return value.as_function();
+  }
+};
+
+template <typename... Types>
+struct value_type_for_native<std::variant<Types...>> {
+  static const Value_type type = Undefined;
+
+  static std::variant<Types...> extract(const Value &value) {
+    std::variant<Types...> result;
+
+    if ((extract<Types>(value, &result) || ...)) {
+      return result;
+    } else {
+      throw std::invalid_argument(
+          "is expected to be of type " +
+          shcore::str_join(std::vector<std::string>{type_name(
+                               value_type_for_native<Types>::type)...},
+                           " or ") +
+          ", but is " + type_name(value.get_type()));
+    }
+  }
+
+ private:
+  template <typename T>
+  static bool extract(const Value &value, std::variant<Types...> *out) {
+    try {
+      *out = value_type_for_native<T>::extract(value);
+      return true;
+    } catch (...) {
+      return false;
+    }
   }
 };
 
