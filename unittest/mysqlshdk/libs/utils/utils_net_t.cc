@@ -27,10 +27,30 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
 
 namespace mysqlshdk {
 namespace utils {
+
+namespace {
+template <class TCallback>
+void iterate_hosts(TCallback &&host_cb) {
+  auto hosts = std::getenv("MYSQLSH_TEST_HOSTS");
+  if (!hosts) return;
+
+  shcore::str_itersplit(
+      hosts,
+      [&host_cb](auto host) {
+        auto clear_host = shcore::str_strip_view(host);
+        if (clear_host.empty()) return true;
+
+        host_cb(std::string{clear_host});
+        return true;
+      },
+      ";");
+}
+}  // namespace
 
 TEST(utils_net, resolve_hostname_ipv4) {
   EXPECT_EQ("0.0.0.0", Net::resolve_hostname_ipv4("0.0.0.0"));
@@ -42,7 +62,8 @@ TEST(utils_net, resolve_hostname_ipv4) {
   EXPECT_EQ("127.0.0.1", Net::resolve_hostname_ipv4("0x7F.0.0.1"));
 
   EXPECT_NO_THROW(Net::resolve_hostname_ipv4("localhost"));
-  EXPECT_NO_THROW(Net::resolve_hostname_ipv4("google.pl"));
+  iterate_hosts(
+      [](auto host) { EXPECT_NO_THROW(Net::resolve_hostname_ipv4(host)); });
 
 #ifdef WIN32
   // On Windows, using an empty string will resolve to any registered
@@ -70,18 +91,17 @@ TEST(utils_net, resolve_hostname_ipv4_all) {
     }
   }
 
-  {
+  iterate_hosts([](auto host) {
     try {
-      std::vector<std::string> addrs =
-          Net::resolve_hostname_ipv4_all("oracle.com");
+      std::vector<std::string> addrs = Net::resolve_hostname_ipv4_all(host);
       for (const auto &a : addrs) {
-        std::cout << "oracle.com: " << a << "\n";
+        std::cout << host << ": " << a << "\n";
       }
     } catch (const std::runtime_error &err) {
-      std::cout << "Unable to resolve hostname oracle.com as IPv4 address: "
-                << err.what() << std::endl;
+      std::cout << "Unable to resolve hostname '" << host
+                << "' as IPv4 address: " << err.what() << std::endl;
     }
-  }
+  });
 
   {
     try {
@@ -112,18 +132,17 @@ TEST(utils_net, resolve_hostname_ipv6_all) {
     }
   }
 
-  {
+  iterate_hosts([](auto host) {
     try {
-      std::vector<std::string> addrs =
-          Net::resolve_hostname_ipv6_all("google.com");
+      std::vector<std::string> addrs = Net::resolve_hostname_ipv6_all(host);
       for (const auto &a : addrs) {
-        std::cout << "google.com: " << a << "\n";
+        std::cout << host << ": " << a << "\n";
       }
     } catch (const std::runtime_error &err) {
-      std::cout << "Unable to resolve hostname google.com as IPv6 address: "
-                << err.what() << std::endl;
+      std::cout << "Unable to resolve hostname ´" << host
+                << "' as IPv6 address: " << err.what() << std::endl;
     }
-  }
+  });
 
   {
     try {
@@ -152,17 +171,17 @@ TEST(utils_net, get_hostname_ips) {
     }
   }
 
-  {
+  iterate_hosts([](auto host) {
     try {
-      std::vector<std::string> addrs = Net::get_hostname_ips("oracle.com");
+      std::vector<std::string> addrs = Net::get_hostname_ips(host);
       for (const auto &a : addrs) {
-        std::cout << "google.com: " << a << "\n";
+        std::cout << host << ": " << a << "\n ";
       }
     } catch (const std::runtime_error &err) {
-      std::cout << "Unable to resolve hostname oracle.com: " << err.what()
+      std::cout << "Unable to resolve hostname '" << host << "': " << err.what()
                 << std::endl;
     }
-  }
+  });
 
   {
     try {
@@ -188,7 +207,6 @@ TEST(utils_net, is_ipv4) {
 
   EXPECT_FALSE(Net::is_ipv4(""));
   EXPECT_FALSE(Net::is_ipv4("localhost"));
-  EXPECT_FALSE(Net::is_ipv4("google.pl"));
   EXPECT_FALSE(Net::is_ipv4("unknown_host"));
   EXPECT_FALSE(Net::is_ipv4("::8.8.8.8"));
   EXPECT_FALSE(Net::is_ipv4("255.255.255.256"));
@@ -219,7 +237,6 @@ TEST(utils_net, is_ipv6) {
 
   EXPECT_FALSE(Net::is_ipv6(""));
   EXPECT_FALSE(Net::is_ipv6("localhost"));
-  EXPECT_FALSE(Net::is_ipv6("google.pl"));
   EXPECT_FALSE(Net::is_ipv6("unknown_host"));
   EXPECT_FALSE(Net::is_ipv6("127.0.0.1"));
   EXPECT_FALSE(Net::is_ipv6("FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:"));
@@ -238,7 +255,6 @@ TEST(utils_net, is_loopback) {
   EXPECT_TRUE(Net::is_loopback("localhost"));
 
   EXPECT_FALSE(Net::is_loopback("192.168.1.1"));
-  EXPECT_FALSE(Net::is_loopback("127.bing.com"));
 }
 
 TEST(utils_net, is_local_address) {
@@ -249,8 +265,7 @@ TEST(utils_net, is_local_address) {
   EXPECT_TRUE(
       Net::is_local_address(Net::resolve_hostname_ipv4(Net::get_hostname())));
 
-  EXPECT_FALSE(Net::is_local_address("127.bing.com"));
-  EXPECT_FALSE(Net::is_local_address("oracle.com"));
+  iterate_hosts([](auto host) { EXPECT_FALSE(Net::is_local_address(host)); });
   EXPECT_FALSE(Net::is_local_address("bogus-host"));
   EXPECT_FALSE(Net::is_local_address("8.8.8.8"));
 }
@@ -263,21 +278,24 @@ TEST(utils_net, is_externally_addressable) {
   EXPECT_FALSE(Net::is_externally_addressable("127.0.2.1"));
   EXPECT_FALSE(Net::is_externally_addressable("127.1.2.1"));
 
-  const auto hostname = Net::get_hostname();
-  const auto self_fqdn = Net::get_fqdn(hostname);
-  const std::string domain{".oracle.com"};
+  iterate_hosts([](auto host) {
+    const auto hostname = Net::get_hostname();
+    const auto self_fqdn = Net::get_fqdn(hostname);
+    const auto domain = shcore::str_format(".%s", host.c_str());
 
-  auto contains_domain = std::search(self_fqdn.begin(), self_fqdn.end(),
-                                     domain.begin(), domain.end());
-  if (contains_domain != self_fqdn.end()) {
-    std::advance(contains_domain, domain.size());
-    if (contains_domain == self_fqdn.end()) {
-      EXPECT_TRUE(Net::is_externally_addressable(self_fqdn));
+    auto contains_domain = std::search(self_fqdn.begin(), self_fqdn.end(),
+                                       domain.begin(), domain.end());
+    if (contains_domain != self_fqdn.end()) {
+      std::advance(contains_domain, domain.size());
+      if (contains_domain == self_fqdn.end()) {
+        EXPECT_TRUE(Net::is_externally_addressable(self_fqdn));
+      }
     }
-  }
-  EXPECT_TRUE(Net::is_externally_addressable("oracle.com"));
+
+    EXPECT_TRUE(Net::is_externally_addressable(host));
+  });
+
   EXPECT_TRUE(Net::is_externally_addressable("8.8.4.4"));
-  EXPECT_TRUE(Net::is_externally_addressable("127.bing.com"));
 }
 
 TEST(utils_net, is_port_listening) {
