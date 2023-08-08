@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,7 @@ class Dump_manifest_options : public mysqlshdk::oci::Oci_bucket_options {
   create_config() const override;
 
   void set_par_manifest(bool enabled);
+  void set_par_expire_time(const std::string &value);
 
   std::optional<bool> m_par_manifest;
   std::string m_par_expire_time;

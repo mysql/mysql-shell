@@ -1116,6 +1116,31 @@ TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
         "The --dbuser option was deprecated, please use --user instead.",
         cout.str());
   }
+  {
+    SCOPED_TRACE("TESTING: deprecated --recreate-schema argument");
+    firstArg = "root@localhost:3301/some-schema";
+    secondArg = "--recreate-schema";
+
+    char *argv[] = {const_cast<char *>("ut"),
+                    const_cast<char *>(firstArg.c_str()),
+                    const_cast<char *>(secondArg.c_str()), NULL};
+
+    // Redirect cout.
+    std::streambuf *cout_backup = std::cout.rdbuf();
+    std::ostringstream cout;
+    std::cout.rdbuf(cout.rdbuf());
+
+    Shell_options cmd_options(3, argv);
+
+    // Restore old cout.
+    std::cout.rdbuf(cout_backup);
+
+    EXPECT_EQ(0, cmd_options.get().exit_code);
+    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
+                 "root@localhost:3301/some-schema");
+    MY_EXPECT_OUTPUT_CONTAINS("The --recreate-schema option was deprecated.",
+                              cout.str());
+  }
 }
 
 TEST_F(Shell_cmdline_options, test_positional_argument) {

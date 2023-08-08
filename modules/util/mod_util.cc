@@ -1466,9 +1466,9 @@ instead of the default one.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS, R"*(
 @li <b>ociParManifest</b>: bool (default: not set) - Enables the generation of
-the PAR manifest while the dump operation is being executed.
+the PAR manifest while the dump operation is being executed. Deprecated.
 @li <b>ociParExpireTime</b>: string (default: not set) - Allows defining the
-expiration time for the PARs generated when ociParManifest is enabled.
+expiration time for the PARs generated when ociParManifest is enabled. Deprecated.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
@@ -1681,6 +1681,8 @@ permissions:
 The generated URL can be used to load the dump, see \? <<<loadDump>>> for more
 details.
 
+@attention The ociParManifest and ociParExpireTime options described below are
+deprecated and will be removed in a future release.
 
 Another way to enable loading a dump without requiring an OCI Profile, is to
 execute the dump operations enabling the ociParManifest option which will

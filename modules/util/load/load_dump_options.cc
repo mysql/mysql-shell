@@ -313,6 +313,11 @@ void Load_dump_options::validate() {
     if (config && config->valid()) {
       if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type() ||
           mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
+        if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type()) {
+          current_console()->print_warning(
+              "Support for PAR Manifest is deprecated and will be removed in a "
+              "future release. Please use a prefix PAR instead.");
+        }
         if (!m_progress_file.has_value()) {
           throw shcore::Exception::argument_error(
               "When using a PAR to load a dump, the progressFile option must "

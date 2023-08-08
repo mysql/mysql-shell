@@ -52,6 +52,7 @@ for par in [all_read_par, all_read_par_converted]:
     EXPECT_NO_THROWS(lambda: util.load_dump(par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
     EXPECT_PAR_IS_SECRET()
     EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+    EXPECT_STDOUT_NOT_CONTAINS("Support for PAR Manifest is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
     validate_load_progress(local_progress_file)
     session.run_sql("drop schema if exists sample")
 

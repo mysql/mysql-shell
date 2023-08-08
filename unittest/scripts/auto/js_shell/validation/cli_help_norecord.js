@@ -343,14 +343,6 @@ OPTIONS
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
-
---ociParExpireTime=<str>
-            Allows defining the expiration time for the PARs generated when
-            ociParManifest is enabled. Default: not set.
-
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
             Default: not set.
@@ -582,14 +574,6 @@ OPTIONS
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
-
---ociParExpireTime=<str>
-            Allows defining the expiration time for the PARs generated when
-            ociParManifest is enabled. Default: not set.
-
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
             Default: not set.
@@ -801,14 +785,6 @@ OPTIONS
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
-
---ociParManifest=<bool>
-            Enables the generation of the PAR manifest while the dump operation
-            is being executed. Default: not set.
-
---ociParExpireTime=<str>
-            Allows defining the expiration time for the PARs generated when
-            ociParManifest is enabled. Default: not set.
 
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.

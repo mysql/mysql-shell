@@ -287,9 +287,10 @@ DESCRIPTION
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed.
+        PAR manifest while the dump operation is being executed. Deprecated.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -548,6 +549,9 @@ DESCRIPTION
 
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
+
+      ATTENTION: The ociParManifest and ociParExpireTime options described
+                 below are deprecated and will be removed in a future release.
 
       Another way to enable loading a dump without requiring an OCI Profile, is
       to execute the dump operations enabling the ociParManifest option which
@@ -854,9 +858,10 @@ DESCRIPTION
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed.
+        PAR manifest while the dump operation is being executed. Deprecated.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1104,6 +1109,9 @@ DESCRIPTION
 
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
+
+      ATTENTION: The ociParManifest and ociParExpireTime options described
+                 below are deprecated and will be removed in a future release.
 
       Another way to enable loading a dump without requiring an OCI Profile, is
       to execute the dump operations enabling the ociParManifest option which
@@ -1398,9 +1406,10 @@ DESCRIPTION
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
       - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed.
+        PAR manifest while the dump operation is being executed. Deprecated.
       - ociParExpireTime: string (default: not set) - Allows defining the
         expiration time for the PARs generated when ociParManifest is enabled.
+        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1654,6 +1663,9 @@ DESCRIPTION
 
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
+
+      ATTENTION: The ociParManifest and ociParExpireTime options described
+                 below are deprecated and will be removed in a future release.
 
       Another way to enable loading a dump without requiring an OCI Profile, is
       to execute the dump operations enabling the ociParManifest option which

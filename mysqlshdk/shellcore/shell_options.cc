@@ -456,9 +456,10 @@ Shell_options::Shell_options(
         cmdline("--fido-register-factor=<name>"),
         "Specifies authentication factor, for which registration needs to be "
         "done.")
-    (&storage.recreate_database, false, "recreateDatabase",
-        cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
-        "Schema will be deleted if it exists!");
+    (cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
+        "Schema will be deleted if it exists!", deprecated(m_on_warning, nullptr, [this](const std::string&, const char* ) {
+          storage.recreate_database = true;
+        }));
 
   add_startup_options(true)
     (cmdline("--mx", "--mysqlx"),
@@ -1202,6 +1203,12 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       iterator->next_no_value();
     }
   } else if ("--import" == option) {
+    m_on_warning(
+        "WARNING: The --import option was deprecated and will be removed in "
+        "a future version of the MySQL Shell. Please consider using the CLI "
+        "call for import-json instead.\nFor additional information: mysqlsh -- "
+        "util import-json --help");
+
     const auto cmdline = iterator->iterator();
 
     storage.import_args.push_back(cmdline->get());  // omit --import

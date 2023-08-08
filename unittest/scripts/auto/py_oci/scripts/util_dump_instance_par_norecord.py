@@ -30,9 +30,12 @@ shell.connect(__sandbox_uri1)
 prefix = 'instance'
 
 #@<> WL14154-TSFR2_2 Validate that the option ociParExpireTime only take string values with RFC3339 format
+WIPE_OUTPUT()
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "ociParExpireTime":"InvalidValue"}),
     "Error: Shell Error (52011): Util.dump_instance: While 'Gathering information': Failed creating PAR for object '{}/@.json': Failed to create ObjectRead PAR for object {}/@.json: PAR expiration must conform to RFC 3339: InvalidValue".format(prefix, prefix))
+EXPECT_STDOUT_CONTAINS("The ociParManifest option is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
+EXPECT_STDOUT_CONTAINS("The ociParExpireTime option is deprecated and will be removed in a future release.")
 
 #@<> Doing a dump to OCI with ocimds set to True. The ociParManifest is not set and defaults to false, manifest is not created.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
@@ -41,21 +44,30 @@ EXPECT_THROWS(lambda:testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, 
     f"Error: Shell Error (54404): Testutils.download_oci_object: Failed opening object '{prefix}/@.manifest.json' in READ mode: Failed to get summary for object '{prefix}/@.manifest.json': Not Found (404)")
 
 #@<> WL14154-TSFR1_6 - Doing a dump to OCI with ociParManifest set to True. Validate that PAR objects are generated for each file of the dump.
+WIPE_OUTPUT()
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True})
+EXPECT_STDOUT_CONTAINS("The ociParManifest option is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
 validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, today_plus_days(7))
 
 #@<> WL14154-TSFR2_3 - Doing a dump to OCI ociParManifest set to True and ociParExpireTime set to a valid value. Validate that the dump success and the expiration date for the PAR objects matches the set to the option ociParExpireTime.
+WIPE_OUTPUT()
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 tomorrow = today_plus_days(1, RFC3339)
 util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "ociParExpireTime":tomorrow})
 validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, tomorrow)
+EXPECT_STDOUT_CONTAINS("The ociParManifest option is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
+EXPECT_STDOUT_CONTAINS("The ociParExpireTime option is deprecated and will be removed in a future release.")
+
 
 #@<> WL14154-TSFR2_8
+WIPE_OUTPUT()
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParManifest": False})
 EXPECT_THROWS(lambda:testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, prefix + '/@.manifest.json', "@.manifest.json"),
     f"Error: Shell Error (54404): Testutils.download_oci_object: Failed opening object '{prefix}/@.manifest.json' in READ mode: Failed to get summary for object '{prefix}/@.manifest.json': Not Found (404)")
+EXPECT_STDOUT_CONTAINS("The ociParManifest option is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
+
 
 #@<> Doing a dump to OCI ociParManifest not set, ocimds set to True and ociParExpireTime set to a valid value. The ociParManifest is not set and defaults to false, ociParExpireTime cannot be used.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
