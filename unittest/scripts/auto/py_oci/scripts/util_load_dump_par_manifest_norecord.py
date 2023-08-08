@@ -48,8 +48,10 @@ manifest_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-pa
 manifest_par_converted = convert_par(manifest_par)
 
 #@<> WL14154-TSFR7_1 - When doing a load using a PAR for a manifest file with the progressFile option not set. Validate that the load fail because progressFile option is mandatory.
+WIPE_OUTPUT()
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda:util.load_dump(manifest_par), "Util.load_dump: When using a PAR to load a dump, the progressFile option must be defined")
+EXPECT_STDOUT_CONTAINS("Support for PAR Manifest is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
 EXPECT_PAR_IS_SECRET()
 
 #@<> Attempt to load using a manifest PAR as progress PAR.
@@ -86,11 +88,13 @@ for par in [progress_par, progress_par_converted]:
     delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
 #@<> Use the progressFile option set to a read/write PAR object for a file that is not in the same bucket where the dump is.
+WIPE_OUTPUT()
 prepare_empty_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME + '-par-test', "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/another-bucket-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_NO_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file in another bucket")
+EXPECT_STDOUT_CONTAINS("Support for PAR Manifest is deprecated and will be removed in a future release. Please use a prefix PAR instead.")
 EXPECT_PAR_IS_SECRET()
 
 # verify if everything was OK

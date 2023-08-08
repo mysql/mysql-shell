@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,10 +26,10 @@
 #include <memory>
 #include <stdexcept>
 
+#include "modules/util/dump/dump_manifest_config.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
-
-#include "modules/util/dump/dump_manifest_config.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -44,9 +44,13 @@ const shcore::Option_pack_def<Dump_manifest_options>
           .optional(config_file_option(), &Dump_manifest_options::m_config_file)
           .optional(profile_option(), &Dump_manifest_options::m_config_profile)
           .optional(par_manifest_option(),
-                    &Dump_manifest_options::set_par_manifest)
+                    &Dump_manifest_options::set_par_manifest, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED)
           .optional(par_expire_time_option(),
-                    &Dump_manifest_options::m_par_expire_time)
+                    &Dump_manifest_options::set_par_expire_time, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED)
           .on_done(&Dump_manifest_options::on_unpacked_options);
 
   return opts;
@@ -78,7 +82,19 @@ Dump_manifest_options::create_config() const {
 }
 
 void Dump_manifest_options::set_par_manifest(bool enabled) {
+  mysqlsh::current_console()->print_warning(
+      "The ociParManifest option is deprecated and will be removed in a future "
+      "release. Please use a prefix PAR instead.");
+
   m_par_manifest = enabled;
+}
+
+void Dump_manifest_options::set_par_expire_time(const std::string &value) {
+  mysqlsh::current_console()->print_warning(
+      "The ociParExpireTime option is deprecated and will be removed in a "
+      "future release.");
+
+  m_par_expire_time = value;
 }
 
 }  // namespace dump

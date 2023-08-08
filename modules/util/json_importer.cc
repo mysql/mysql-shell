@@ -49,6 +49,10 @@ void Prepare_json_import::set_defaults() {
       this->guess_table();
     }
   }
+
+  if (m_source.path == "-") {
+    use_stdin();
+  }
 }
 
 void Prepare_json_import::validate() {
