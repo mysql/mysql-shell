@@ -37,7 +37,7 @@ test_role = "sample_role"
 test_user_no_pwd = get_test_user_account("sample_user_no_pwd")
 test_privileges = [ "FILE" ]
 if __version_num >= 80000:
-    test_privileges.append("ROLE_ADMIN")
+    test_privileges.append("RESOURCE_GROUP_ADMIN")
 test_all_allowed_privileges = "allowed_privileges"
 test_disallowed_privileges = "disallowed_privileges"
 
@@ -83,7 +83,6 @@ allowed_privileges = [
     "LOCK TABLES",
     "PROCESS",
     "REFERENCES",
-    "REPLICATION_APPLIER",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
     "SELECT",
@@ -93,9 +92,15 @@ allowed_privileges = [
     "UPDATE",
     # global dynamic privileges
     "APPLICATION_PASSWORD_ADMIN",
+    "AUDIT_ADMIN",
+    "BACKUP_ADMIN",
     "CONNECTION_ADMIN",
-    "RESOURCE_GROUP_ADMIN",
-    "RESOURCE_GROUP_USER",
+    "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_STATUS",
+    "FLUSH_TABLES",
+    "FLUSH_USER_RESOURCES",
+    "REPLICATION_APPLIER",
+    "ROLE_ADMIN",
     "XA_RECOVER_ADMIN",
 ]
 
