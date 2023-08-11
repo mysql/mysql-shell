@@ -56,7 +56,6 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "LOCK TABLES",
     "PROCESS",
     "REFERENCES",
-    "REPLICATION_APPLIER",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
     "SELECT",
@@ -66,9 +65,15 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "UPDATE",
     // global dynamic privileges
     "APPLICATION_PASSWORD_ADMIN",
+    "AUDIT_ADMIN",
+    "BACKUP_ADMIN",
     "CONNECTION_ADMIN",
-    "RESOURCE_GROUP_ADMIN",
-    "RESOURCE_GROUP_USER",
+    "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_STATUS",
+    "FLUSH_TABLES",
+    "FLUSH_USER_RESOURCES",
+    "REPLICATION_APPLIER",
+    "ROLE_ADMIN",
     "XA_RECOVER_ADMIN",
 };
 
