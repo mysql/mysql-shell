@@ -49,8 +49,6 @@ namespace import_table {
 struct Transaction_options {
   uint64_t max_trx_size = 0;  //< 0 disables the sub-chunking
   uint64_t skip_bytes = 0;    //< start transaction at this offset
-  const std::vector<uint64_t> *offsets =
-      nullptr;  //< offsets which point to end of a row
   std::function<void()> transaction_started;
   std::function<void(uint64_t)> transaction_finished;
 };
@@ -99,8 +97,6 @@ class Transaction_buffer {
   uint64_t find_first_row_boundary_after_impl_escape() const;
   uint64_t find_last_row_boundary_before_impl_escape(uint64_t limit);
 
-  uint64_t adjust_line_offset(uint64_t offset);
-
   void set_trx_end_offset(uint64_t end) { m_trx_end_offset = m_trx_size + end; }
 
   Dialect m_dialect;
@@ -112,9 +108,6 @@ class Transaction_buffer {
       0;  // offset of the end of the trx once we know it
   bool m_partial_row_sent = false;
   bool m_eof = false;
-
-  std::size_t m_offset_index = 0;  //< points to the last offset used
-  uint64_t m_current_offset = 0;
 
   std::string m_data;
 

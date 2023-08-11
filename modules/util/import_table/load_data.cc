@@ -174,7 +174,6 @@ int Transaction_buffer::consume(char *buffer, unsigned int length) {
     }
 
     m_trx_size += length;
-    m_current_offset += length;
 
     if (length > m_options.max_trx_size) {
       // in a single read, we got more bytes than the transaction limit, either
@@ -346,7 +345,6 @@ uint64_t Transaction_buffer::find_last_row_boundary_before_impl_default(
 
   if (p == 0) return 0;
 
-  p = adjust_line_offset(p);
   p = m_data.rfind(needle, p);
 
   if (p >= m_data.length()) return 0;
@@ -378,7 +376,6 @@ uint64_t Transaction_buffer::find_last_row_boundary_before_impl_no_escape(
 
   if (p < needle.size()) return 0;
 
-  p = adjust_line_offset(p);
   p = m_data.rfind(needle, p);
 
   if (p >= m_data.length()) return 0;
@@ -417,7 +414,6 @@ uint64_t Transaction_buffer::find_last_row_boundary_before_impl_escape(
 
   if (p < needle.size()) return 0;
 
-  p = adjust_line_offset(p);
   p = m_data.rfind(needle, p);
 
   while (p != std::string::npos) {
@@ -436,35 +432,6 @@ uint64_t Transaction_buffer::find_last_row_boundary_before_impl_escape(
 
   return 0;
 }
-
-uint64_t Transaction_buffer::adjust_line_offset(uint64_t offset) {
-  // find boundary of the last row that will fit within the given limit
-  if (m_options.offsets) {
-    const auto size = m_options.offsets->size();
-    bool index_changed = false;
-
-    for (; m_offset_index < size; ++m_offset_index, index_changed = true) {
-      const auto &o = (*m_options.offsets)[m_offset_index];
-
-      if (o > m_current_offset) {
-        const auto new_offset = o - m_current_offset;
-
-        if (new_offset > offset) {
-          if (index_changed) {
-            --m_offset_index;
-          }
-
-          break;
-        }
-
-        return new_offset;
-      }
-    }
-  }
-
-  return offset;
-}
-
 // ------
 
 int local_infile_init(void **buffer, const char * /* filename */,
