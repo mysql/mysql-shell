@@ -255,11 +255,6 @@ class Index_file {
     return m_data_size;
   }
 
-  const std::vector<uint64_t> &offsets() {
-    load_offsets();
-    return m_offsets;
-  }
-
  private:
   void load_metadata() {
     if (m_metadata_loaded) {
@@ -282,48 +277,6 @@ class Index_file {
     m_idx_file->close();
 
     m_data_size = mysqlshdk::utils::network_to_host(m_data_size);
-
-    m_metadata_loaded = true;
-
-    if (1 == m_entries) {
-      // there's only one entry: the data size, we can initialize the offsets
-      // right away
-      m_offsets.emplace_back(m_data_size);
-      m_offsets_loaded = true;
-    }
-  }
-
-  void load_offsets() {
-    if (m_offsets_loaded) {
-      return;
-    }
-
-    load_metadata();
-
-    if (m_entries > 0) {
-      m_offsets.resize(m_entries);
-
-      m_idx_file->open(mysqlshdk::storage::Mode::READ);
-      m_idx_file->read(&m_offsets[0], m_file_size);
-      m_idx_file->close();
-
-      uint64_t prev = 0;
-      bool invalid = false;
-
-      std::transform(m_offsets.begin(), m_offsets.end(), m_offsets.begin(),
-                     [&prev, &invalid](uint64_t offset) {
-                       const auto next =
-                           mysqlshdk::utils::network_to_host(offset);
-                       invalid |= prev > next;
-                       prev = next;
-                       return next;
-                     });
-
-      if (invalid) {
-        m_offsets.clear();
-      }
-    }
-    m_offsets_loaded = true;
   }
 
   static constexpr uint64_t k_entry_size = sizeof(uint64_t);
@@ -336,11 +289,7 @@ class Index_file {
 
   uint64_t m_data_size = 0;
 
-  std::vector<uint64_t> m_offsets;
-
   bool m_metadata_loaded = false;
-
-  bool m_offsets_loaded = false;
 };
 
 std::string format_table(const std::string &schema, const std::string &table,
@@ -790,11 +739,6 @@ void Dump_loader::Worker::Load_chunk_task::load(
         if (chunk_file_size < max_chunk_size) {
           // chunk is small enough, so don't sub-chunk
           options.max_trx_size = 0;
-        } else {
-          // data will not fit into a single transaction and needs to be divided
-          // load the row offsets from the IDX file
-          options.offsets = &idx_file.offsets();
-          if (options.offsets->empty()) options.offsets = nullptr;
         }
       }
     }
