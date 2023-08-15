@@ -239,8 +239,21 @@ IF(HAVE_PYTHON)
     FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
     IF (APPLE)
       IF(BUNDLED_OPENSSL_DIR)
-        FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
-        SET_BUNDLED_OPEN_SSL(BINARIES ${OCI_OPEN_SSL_LIBRARIES})
+        # The python deps are build and some use the same openssl that will be used
+        # in the shell, when OpenSSL is bundled, we need to update the reference on
+        # such libs to point it to the bundled OpenSSL
+        FILE(GLOB_RECURSE PYTHON_DEPS_LIBRARIES "${PYTHON_DEPS}/*.so")
+        FOREACH(PYTHON_DEP_LIBRARY ${PYTHON_DEPS_LIBRARIES})
+          EXECUTE_PROCESS(
+            COMMAND otool -L "${PYTHON_DEP_LIBRARY}"
+            OUTPUT_VARIABLE PYTHON_DEP_LIBRARY_DEPS)
+
+          # Any library depending on the bundled OpenSSL libns should be updated
+          STRING(REGEX MATCH "${CRYPTO_VERSION}|${OPENSSL_VERSION}" MY_MATCH ${PYTHON_DEP_LIBRARY_DEPS})
+          IF (MY_MATCH)
+            SET_BUNDLED_OPEN_SSL(BINARIES ${PYTHON_DEP_LIBRARY})
+          ENDIF()
+        ENDFOREACH()
       ENDIF()
     ENDIF()
   ENDIF()
