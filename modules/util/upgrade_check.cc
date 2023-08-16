@@ -2048,6 +2048,10 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
     }
   };
 
+  // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present up
+  // to 5.7.39
+  config.session()->execute("USE mysql;");
+
   for (const auto &check : checklist)
     if (check->is_runnable()) {
       try {
