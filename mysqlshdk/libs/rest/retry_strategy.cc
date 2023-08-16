@@ -59,6 +59,10 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
   retry_strategy->add_retriable_error_code(Error_code::PARTIAL_FILE);
   // retry if operation times out, sometimes servers get stuck...
   retry_strategy->add_retriable_error_code(Error_code::OPERATION_TIMEDOUT);
+  // retry when server returns an empty response
+  retry_strategy->add_retriable_error_code(Error_code::GOT_NOTHING);
+  // retry in case of failure in receiving network data
+  retry_strategy->add_retriable_error_code(Error_code::RECV_ERROR);
 
   // Throttling handling: equal jitter guarantees some wait time before next
   // attempt
