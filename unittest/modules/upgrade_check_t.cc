@@ -1719,4 +1719,56 @@ TEST_F(MySQL_upgrade_check_test, invalid_engine_foreign_key_check) {
   ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS inv_eng_db;"));
 }
 
+TEST_F(MySQL_upgrade_check_test, no_database_selected_corrupted_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(5, 7, 40));
+
+  PrepareTestDatabase("test");
+
+  ASSERT_NO_THROW(
+      session->execute("create table test_table (test_column INT);"));
+  ASSERT_NO_THROW(session->execute(
+      "create view test_view as select `t`.`test_column` from (select "
+      "`test`.`test_table`.`test_column` as `test_column` from "
+      "`test`.`test_table` group by `test`.`test_table`.`test_column`) t;"));
+
+  // clear current USE to null
+  ASSERT_NO_THROW(session->execute("create database temp_db;"));
+  ASSERT_NO_THROW(session->execute("use temp_db;"));
+  ASSERT_NO_THROW(session->execute("drop database temp_db;"));
+
+  const auto check = std::make_unique<Check_table_command>();
+  EXPECT_ISSUES(check.get(), 2);
+  EXPECT_EQ("test", issues[0].schema);
+  EXPECT_EQ("test_view", issues[0].table);
+  EXPECT_EQ("No database selected", issues[0].description);
+  EXPECT_EQ("test", issues[1].schema);
+  EXPECT_EQ("test_view", issues[1].table);
+  EXPECT_EQ("Corrupt", issues[1].description);
+
+  ASSERT_NO_THROW(session->execute("use mysql;"));
+
+  EXPECT_NO_ISSUES(check.get());
+
+  // clear current USE to null
+  ASSERT_NO_THROW(session->execute("create database temp_db;"));
+  ASSERT_NO_THROW(session->execute("use temp_db;"));
+  ASSERT_NO_THROW(session->execute("drop database temp_db;"));
+
+  auto cfg = Upgrade_check_config(Upgrade_check_options());
+  cfg.set_user_privileges(nullptr);
+  cfg.set_session(session);
+  cfg.set_issue_filter([](const Upgrade_issue &issue) {
+    if (issue.schema != "test") return false;
+    if (issue.table != "test_view") return false;
+    if (issue.description != "No database selected" &&
+        issue.description != "Corrupt")
+      return false;
+    return true;
+  });
+
+  EXPECT_TRUE(check_for_upgrade(cfg));
+
+  ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
 }  // namespace mysqlsh
