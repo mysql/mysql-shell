@@ -113,17 +113,6 @@ std::unique_ptr<rest::Signer> S3_bucket_config::signer() const {
   return std::make_unique<Aws_signer>(*this);
 }
 
-std::unique_ptr<rest::Retry_strategy> S3_bucket_config::retry_strategy() const {
-  auto strategy = Signed_rest_service_config::retry_strategy();
-
-  // retry when server returns an empty response
-  strategy->add_retriable_error_code(rest::Error_code::GOT_NOTHING);
-  // retry in case of failure in receiving network data
-  strategy->add_retriable_error_code(rest::Error_code::RECV_ERROR);
-
-  return strategy;
-}
-
 std::unique_ptr<storage::backend::object_storage::Container>
 S3_bucket_config::container() const {
   return s3_bucket();
