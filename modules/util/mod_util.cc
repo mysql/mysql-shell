@@ -1322,7 +1322,8 @@ The MySQL Database Service has a few security related restrictions that
 are not present in a regular, on-premise instance of MySQL. In order to make it
 easier to load existing databases into the Service, the dump commands in the
 MySQL Shell has options to detect potential issues and in some cases, to
-automatically adjust your schema definition to be compliant.
+automatically adjust your schema definition to be compliant. For best results,
+always use the latest available version of MySQL Shell.
 
 The <b>ocimds</b> option, when set to true, will perform schema checks for
 most of these issues and abort the dump if any are found. The <<<loadDump>>>()
