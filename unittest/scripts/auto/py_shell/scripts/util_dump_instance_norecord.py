@@ -1609,6 +1609,10 @@ for table in missing_pks[test_schema]:
 
 recreate_verification_schema()
 EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
+
+# BUG#35663805 print a note to always use the lastest shell
+EXPECT_STDOUT_CONTAINS("NOTE: When migrating to MySQL HeatWave Service, please always use the latest available version of MySQL Shell.")
+
 EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version_no_extra))
 
 if __version_num < 80000:

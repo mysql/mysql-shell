@@ -2564,6 +2564,10 @@ void Dumper::validate_mds() const {
   const auto version = m_options.mds_compatibility()->get_base();
   Issue_status_set status;
 
+  console->print_note(
+      "When migrating to MySQL HeatWave Service, please always use the latest "
+      "available version of MySQL Shell.");
+
   console->print_info(
       "Checking for compatibility with MySQL Database Service " + version);
 

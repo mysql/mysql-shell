@@ -425,7 +425,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
@@ -976,7 +977,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
@@ -1521,7 +1523,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
