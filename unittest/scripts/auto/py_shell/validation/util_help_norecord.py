@@ -826,7 +826,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
@@ -954,14 +955,14 @@ DESCRIPTION
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket: 
+      bucket PAR to create dump at the root folder of the 'test' bucket:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix: 
+      The PAR was created using 'dump' as prefix:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
 
@@ -1437,7 +1438,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
@@ -1565,14 +1567,14 @@ DESCRIPTION
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket: 
+      bucket PAR to create dump at the root folder of the 'test' bucket:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix: 
+      The PAR was created using 'dump' as prefix:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
 
@@ -2042,7 +2044,8 @@ DESCRIPTION
       make it easier to load existing databases into the Service, the dump
       commands in the MySQL Shell has options to detect potential issues and in
       some cases, to automatically adjust your schema definition to be
-      compliant.
+      compliant. For best results, always use the latest available version of
+      MySQL Shell.
 
       The ocimds option, when set to true, will perform schema checks for most
       of these issues and abort the dump if any are found. The load_dump()
@@ -2170,14 +2173,14 @@ DESCRIPTION
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket: 
+      bucket PAR to create dump at the root folder of the 'test' bucket:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix: 
+      The PAR was created using 'dump' as prefix:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
 
@@ -2559,14 +2562,14 @@ DESCRIPTION
 
       When using a bucket PAR, the generated PAR URL should be used as the
       output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket: 
+      bucket PAR to create dump at the root folder of the 'test' bucket:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix: 
+      The PAR was created using 'dump' as prefix:
 
           https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
 
@@ -3428,7 +3431,7 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
-      Examples: 
+      Examples:
 
       util.load_dump('sakila_dump')
 
@@ -3449,7 +3452,7 @@ DESCRIPTION
       Given a dump located at a bucket root and a PAR created for the bucket,
       the dump can be loaded by providing the PAR as the url parameter:
 
-      Example: 
+      Example:
 
       Dump Location: root of 'test' bucket
 
@@ -3463,7 +3466,7 @@ DESCRIPTION
       the given folder, the dump can be loaded by providing the PAR and the
       prefix as the url parameter:
 
-      Example: 
+      Example:
 
       Dump Location: folder 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
@@ -3491,12 +3494,12 @@ DESCRIPTION
       located on the same location of the "@.manifest.json" file. Finally
       specify the PAR URL on the progressFile option.
 
-      Example: 
+      Example:
 
       Dump Location: root of 'test' bucket:
 
       util.load_dump(
-      
+
       'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
         { 'progressFile': 'load_progress.txt' }
       )
@@ -3725,4 +3728,3 @@ DESCRIPTION
         once, before the metrics collection loop. If prefixed with `after:`, it
         will be executed after the loop. If prefixed with `during:`, it will be
         executed once for each iteration of the collection loop.
-
