@@ -44,8 +44,12 @@
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/star_global_topology_manager.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/replica_set/describe.h"
+#include "modules/adminapi/replica_set/dissolve.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
+#include "modules/adminapi/replica_set/rescan.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -55,10 +59,13 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "scripting/types.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 namespace {
+
+// Constants with the names used to lock the cluster
+constexpr std::string_view k_lock_ns{"AdminAPI_replicaset"};
+constexpr std::string_view k_lock_name{"AdminAPI_lock"};
 
 constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
 
@@ -125,84 +132,34 @@ void validate_instance(Instance *target_server) {
                           SHERR_DBA_INVALID_SERVER_CONFIGURATION);
 }
 
-std::vector<std::pair<mysqlshdk::mysql::Slave_host, std::string>>
-get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
-  auto slaves = get_slaves(*instance);
-  if (slaves.empty()) return {};
-
-  std::vector<std::pair<mysqlshdk::mysql::Slave_host, std::string>> real_slaves;
-  real_slaves.reserve(slaves.size());
-
-  auto ipool = current_ipool();
-
-  for (const auto &ch : slaves) {
-    // This is a bit unnecessary, but we do it to avoid false positives,
-    // specially in tests. The problem is that SHOW SLAVE HOSTS will include
-    // slaves that have stopped replicating, so we need to double-check that
-    // the channel is still active to prevent false positives.
-
-    std::string endpoint =
-        mysqlshdk::utils::make_host_and_port(ch.host, ch.port);
-    std::string channel_name;
-    bool ghost_slave = true;
-
-    try {
-      Scoped_instance slave(ipool->connect_unchecked_endpoint(endpoint));
-
-      auto slave_channels = mysqlshdk::mysql::get_incoming_channels(*slave);
-      for (const auto &slave_channel : slave_channels) {
-        if (slave_channel.source_uuid == instance->get_uuid()) {
-          channel_name = slave_channel.channel_name;
-          ghost_slave = false;
-          break;
-        }
-      }
-    } catch (const shcore::Exception &e) {
-      log_info(
-          "Could not connect to %s, which is listed as a replica for %s: %s",
-          endpoint.c_str(), instance->descr().c_str(), e.format().c_str());
-      real_slaves.push_back({ch, ""});
-      continue;
-    }
-
-    if (ghost_slave) {
-      log_info("Ignoring stale replica host %s for %s", endpoint.c_str(),
-               instance->descr().c_str());
-      continue;
-    }
-
-    real_slaves.push_back({ch, "'" + channel_name + "'"});
-  }
-
-  return real_slaves;
-}
-
 void validate_instance_is_standalone(Instance *target_server,
                                      bool add_op = false) {
   // Look for unexpected replication channels
   auto channels = mysqlshdk::mysql::get_incoming_channels(*target_server);
-  auto slaves = get_valid_slaves(target_server);
+  auto slaves = Replica_set_impl::get_valid_slaves(*target_server, nullptr);
   if (channels.empty() && slaves.empty()) return;
 
   auto console = current_console();
-  console->print_error("Extraneous replication channels found at " +
-                       target_server->descr() + ":");
+  console->print_error(
+      shcore::str_format("Extraneous replication channels found at '%s':",
+                         target_server->descr().c_str()));
   for (const auto &ch : channels) {
-    console->print_info("- channel '" + ch.channel_name + "' from " +
-                        mysqlshdk::utils::make_host_and_port(ch.host, ch.port));
+    console->print_info(shcore::str_format(
+        "- channel '%s' from %s", ch.channel_name.c_str(),
+        mysqlshdk::utils::make_host_and_port(ch.host, ch.port).c_str()));
   }
 
-  for (const auto &sl : slaves) {
-    if (sl.second.empty())
-      console->print_info(
-          "- " +
-          mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
-          " replicates from this instance");
+  for (const auto &[slave, channel_name] : slaves) {
+    if (channel_name.empty())
+      console->print_info(shcore::str_format(
+          "- %s replicates from this instance",
+          mysqlshdk::utils::make_host_and_port(slave.host, slave.port)
+              .c_str()));
     else
-      console->print_info(
-          "- " +
-          mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
-          " replicates from this instance (channel " + sl.second + ")");
+      console->print_info(shcore::str_format(
+          "- %s replicates from this instance (channel '%s')",
+          mysqlshdk::utils::make_host_and_port(slave.host, slave.port).c_str(),
+          channel_name.c_str()));
   }
 
   console->print_info();
@@ -215,14 +172,18 @@ void validate_instance_is_standalone(Instance *target_server,
   if (add_op) {
     std::string replica_term =
         mysqlshdk::mysql::get_replica_keyword(target_server->get_version());
-    info_msg.append(
-        " If the <<<addInstance>>>() operation previously failed for the "
-        "target instance and you are trying to add it again, then after "
-        "fixing the issue you should reset the current replication settings "
-        "before retrying to execute the operation. To reset the replication "
-        "settings on the target instance execute the following statements: "
-        "'STOP " +
-        replica_term + ";' and 'RESET " + replica_term + " ALL;'.");
+    info_msg
+        .append(
+            " If the <<<addInstance>>>() operation previously failed for the "
+            "target instance and you are trying to add it again, then after "
+            "fixing the issue you should reset the current replication "
+            "settings before retrying to execute the operation. To reset the "
+            "replication settings on the target instance execute the following "
+            "statements: 'STOP ")
+        .append(replica_term)
+        .append(";' and 'RESET ")
+        .append(replica_term)
+        .append(" ALL;'.");
   }
 
   console->print_para(info_msg);
@@ -339,6 +300,65 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
   }
 
   return cluster;
+}
+
+std::vector<std::tuple<mysqlshdk::mysql::Slave_host, std::string>>
+Replica_set_impl::get_valid_slaves(
+    const mysqlshdk::mysql::IInstance &instance,
+    std::vector<std::tuple<mysqlshdk::mysql::Slave_host, std::string>>
+        *ghost_slaves) {
+  auto slaves = get_slaves(instance);
+  if (slaves.empty()) return {};
+
+  std::vector<std::tuple<mysqlshdk::mysql::Slave_host, std::string>>
+      real_slaves;
+  real_slaves.reserve(slaves.size());
+
+  auto ipool = current_ipool();
+
+  for (const auto &ch : slaves) {
+    // This is a bit unnecessary, but we do it to avoid false positives,
+    // specially in tests. The problem is that SHOW SLAVE HOSTS will include
+    // slaves that have stopped replicating, so we need to double-check that
+    // the channel is still active to prevent false positives.
+
+    auto endpoint = mysqlshdk::utils::make_host_and_port(ch.host, ch.port);
+    std::string channel_name;
+    bool ghost_slave = true;
+
+    try {
+      Scoped_instance slave(ipool->connect_unchecked_endpoint(endpoint));
+
+      auto slave_channels = mysqlshdk::mysql::get_incoming_channels(*slave);
+      for (const auto &slave_channel : slave_channels) {
+        if (slave_channel.source_uuid != instance.get_uuid()) continue;
+
+        channel_name = slave_channel.channel_name;
+        ghost_slave = false;
+        break;
+      }
+    } catch (const shcore::Exception &e) {
+      log_info(
+          "Could not connect to %s, which is listed as a replica for %s: %s",
+          endpoint.c_str(), instance.descr().c_str(), e.format().c_str());
+      real_slaves.push_back({ch, ""});
+      continue;
+    }
+
+    if (ghost_slave) {
+      log_info("Ignoring stale replica host %s for %s", endpoint.c_str(),
+               instance.descr().c_str());
+      if (ghost_slaves)
+        ghost_slaves->push_back(
+            {ch, shcore::str_format("'%s'", channel_name.c_str())});
+      continue;
+    }
+
+    real_slaves.push_back(
+        {ch, shcore::str_format("'%s'", channel_name.c_str())});
+  }
+
+  return real_slaves;
 }
 
 void Replica_set_impl::create(const Create_replicaset_options &options,
@@ -833,8 +853,7 @@ void Replica_set_impl::add_instance(
   DBUG_EXECUTE_IF("dba_add_instance_master_delay", { ar_options.delay = 3; });
 
   // Connect to the target Instance.
-  const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def));
+  const Scoped_instance target_instance(connect_target_instance(instance_def));
   const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (acquired on primary after).
@@ -849,7 +868,7 @@ void Replica_set_impl::add_instance(
   if (target_uuid.empty() || target_uuid != get_primary_master()->get_uuid())
     plock = get_primary_master()->get_lock_shared();
 
-  auto topology = setup_topology_manager();
+  auto topology = get_topology_manager();
 
   auto console = current_console();
   console->print_info("Adding instance to the replicaset...");
@@ -964,14 +983,11 @@ void Replica_set_impl::add_instance(
         sync_transactions(*target_instance, {k_replicaset_channel_name},
                           sync_timeout);
       } catch (const shcore::Exception &e) {
-        if (e.code() == SHERR_DBA_GTID_SYNC_TIMEOUT) {
-          console->print_info(
-              "You may increase or disable the transaction sync timeout with "
-              "the timeout option for <<<addInstance>>>()");
-        }
-        throw;
+        if (e.code() != SHERR_DBA_GTID_SYNC_TIMEOUT) throw;
+        console->print_info(
+            "You may increase or disable the transaction sync timeout with "
+            "the timeout option for <<<addInstance>>>()");
       } catch (const cancel_sync &) {
-        // Throw it up
         throw;
       }
     }
@@ -1134,7 +1150,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   auto i_lock = target_instance->get_lock_exclusive();
 
   log_debug("Setting up topology manager.");
-  auto topology_mng = setup_topology_manager(nullptr, true);
+  auto topology_mng = get_topology_manager(nullptr, true);
 
   log_debug("Get current PRIMARY and ensure it is healthy (updatable).");
 
@@ -1442,7 +1458,7 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   std::string instance_def = Connection_options(instance_def_).uri_endpoint();
 
   log_debug("Setting up topology manager.");
-  auto topology = setup_topology_manager();
+  auto topology = get_topology_manager();
 
   log_debug("Connecting to target instance.");
   Scoped_instance target_server;
@@ -1637,7 +1653,7 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   auto plock = get_primary_master()->get_lock_exclusive();
 
   topology::Server_global_topology *srv_topology = nullptr;
-  auto topology = setup_topology_manager(&srv_topology);
+  auto topology = get_topology_manager(&srv_topology);
   // topology->set_sync_timeout(timeout);
 
   const topology::Server *promoted =
@@ -1896,7 +1912,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   auto ipool = current_ipool();
 
   topology::Server_global_topology *srv_topology = nullptr;
-  auto topology = setup_topology_manager(&srv_topology);
+  auto topology = get_topology_manager(&srv_topology);
 
   const topology::Server *demoted = static_cast<const topology::Server *>(
       srv_topology->get_primary_master_node());
@@ -2171,6 +2187,46 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   }
 }
 
+void Replica_set_impl::dissolve(const replicaset::Dissolve_options &options) {
+  check_preconditions("dissolve");
+
+  auto rs_lock = get_lock_exclusive();
+
+  // TODO: remove these when BUG#35913824 is implemented and all other commands
+  // in ReplicaSet implements replicaset-wide locks (otherwise, the previously
+  // acquired replicaset lock doesn't work).
+  Scoped_instance_list current_members(
+      connect_all_members(0, false, nullptr, true));
+  auto i_locks = get_instance_lock_exclusive(current_members.list(),
+                                             std::chrono::seconds::zero());
+
+  Topology_executor<replicaset::Dissolve>{*this}.run(options.force,
+                                                     options.timeout());
+}
+
+void Replica_set_impl::rescan(const replicaset::Rescan_options &options) {
+  check_preconditions_and_primary_availability("rescan");
+
+  auto rs_lock = get_lock_exclusive();
+
+  // TODO: remove these when BUG#35913824 is implemented and all other commands
+  // in ReplicaSet implements replicaset-wide locks (otherwise, the previously
+  // acquired replicaset lock doesn't work).
+  Scoped_instance_list current_members(
+      connect_all_members(0, false, nullptr, true));
+  auto i_locks = get_instance_lock_exclusive(current_members.list(),
+                                             std::chrono::seconds::zero());
+
+  Topology_executor<replicaset::Rescan>{*this}.run(options.add_unmanaged,
+                                                   options.remove_obsolete);
+}
+
+shcore::Value Replica_set_impl::describe() {
+  check_preconditions_and_primary_availability("describe", false);
+
+  return Topology_executor<replicaset::Describe>{*this}.run();
+}
+
 shcore::Value Replica_set_impl::status(int extended) {
   check_preconditions_and_primary_availability("status", false);
 
@@ -2191,6 +2247,15 @@ shcore::Value Replica_set_impl::status(int extended) {
         topo->as<const topology::Server_global_topology>(), opts);
 
     status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
+
+    auto get_instance_errors = [](const shcore::Value::Map_type &topo_status,
+                                  const std::string &endpoint) {
+      auto topo_errors = topo_status.get_map(endpoint);
+      if (!topo_errors->has_key("instanceErrors"))
+        topo_errors->set("instanceErrors", shcore::Value(shcore::make_array()));
+
+      return topo_errors->get_array("instanceErrors", nullptr);
+    };
 
     // check for replication options mismatch
     for (const topology::Server &server :
@@ -2228,23 +2293,37 @@ shcore::Value Replica_set_impl::status(int extended) {
         Async_replication_options ar_options;
         read_replication_options(i->uuid, &ar_options, &has_null_options);
 
+        bool not_configured{true};
         if (!has_null_options) {
           auto options_to_update = async_merge_repl_options(
               ar_options, i->master_channel->master_info);
 
-          if (!options_to_update.has_value()) continue;
+          if (!options_to_update.has_value()) {
+            not_configured = false;
+          }
         }
 
-        auto topo_errors = topo_status->get_map(i->endpoint);
-        if (!topo_errors->has_key("instanceErrors"))
-          topo_errors->set("instanceErrors",
-                           shcore::Value(shcore::make_array()));
+        if (not_configured)
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(
+                  "WARNING: The instance replication channel is not configured "
+                  "as expected (to see the affected options, use options()). "
+                  "Please call rejoinInstance() to reconfigure the channel "
+                  "accordingly."));
+      }
 
-        auto errors = topo_errors->get_array("instanceErrors", nullptr);
-        errors->push_back(shcore::Value(
-            "WARNING: The instance replication channel is not configured as "
-            "expected (to see the affected options, use options()). Please "
-            "call rejoinInstance() to reconfigure the channel accordingly."));
+      // check replication accounts
+      {
+        auto [account_user, account_host] =
+            get_metadata_storage()->get_instance_repl_account(
+                i->uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
+
+        if (account_user.empty() || account_host.empty()) {
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(shcore::str_format(
+                  "ERROR: the instance is missing its replication account info "
+                  "from the metadata. Please call rescan() to fix this.")));
+        }
       }
     }
   }
@@ -2308,8 +2387,7 @@ shcore::Value Replica_set_impl::status(int extended) {
   return shcore::Value(status);
 }
 
-std::shared_ptr<Global_topology_manager>
-Replica_set_impl::setup_topology_manager(
+std::shared_ptr<Global_topology_manager> Replica_set_impl::get_topology_manager(
     topology::Server_global_topology **out_topology, bool deep) {
   Cluster_metadata cmd;
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd))
@@ -2327,6 +2405,16 @@ Replica_set_impl::setup_topology_manager(
         dynamic_cast<topology::Server_global_topology *>(gtm->topology());
 
   return gtm;
+}
+
+mysqlshdk::mysql::Lock_scoped Replica_set_impl::get_lock_shared(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::SHARED, timeout);
+}
+
+mysqlshdk::mysql::Lock_scoped Replica_set_impl::get_lock_exclusive(
+    std::chrono::seconds timeout) {
+  return get_lock(mysqlshdk::mysql::Lock_mode::EXCLUSIVE, timeout);
 }
 
 std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
@@ -2567,7 +2655,7 @@ void Replica_set_impl::ensure_compatible_clone_donor(
 
   // Check if the instance is ONLINE
   {
-    auto topology_mng = setup_topology_manager();
+    auto topology_mng = get_topology_manager();
 
     auto topology_node =
         topology_mng->topology()->try_get_node_for_uuid(donor.get_uuid());
@@ -2594,7 +2682,7 @@ void Replica_set_impl::ensure_compatible_clone_donor(
 std::string Replica_set_impl::pick_clone_donor(
     mysqlshdk::mysql::IInstance *recipient) {
   std::string r;
-  auto topology_mng = setup_topology_manager();
+  auto topology_mng = get_topology_manager();
   auto topology = topology_mng->topology();
 
   // Get the ReplicaSet primary member
@@ -2781,7 +2869,7 @@ const topology::Server *Replica_set_impl::check_target_member(
 
 std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
     uint32_t read_timeout, bool skip_primary,
-    std::list<Instance_metadata> *out_unreachable) {
+    std::list<Instance_metadata> *out_unreachable, bool silent) {
   std::vector<Instance_metadata> instances =
       get_metadata_storage()->get_all_instances(get_id());
 
@@ -2800,7 +2888,10 @@ std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
         // have no server-side timeouts to not block the shell indefinitely.
         if (read_timeout > 0) opts.set_net_read_timeout(read_timeout * 1000);
 
-        console->print_info("** Connecting to " + i.label);
+        if (!silent)
+          console->print_info(
+              shcore::str_format("** Connecting to %s", i.label.c_str()));
+
         r.emplace_back(ipool->connect_unchecked(opts));
       }
       CATCH_AND_THROW_CONNECTION_ERROR(i.endpoint)
@@ -2810,11 +2901,12 @@ std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
         if (out_unreachable) out_unreachable->push_back(i);
 
         if (i.primary_master)
-          console->print_warning("Could not connect to PRIMARY instance: " +
-                                 e.format());
+          console->print_warning(shcore::str_format(
+              "Could not connect to PRIMARY instance: %s", e.format().c_str()));
         else
-          console->print_warning("Could not connect to SECONDARY instance: " +
-                                 e.format());
+          console->print_warning(
+              shcore::str_format("Could not connect to SECONDARY instance: %s",
+                                 e.format().c_str()));
       } else {
         throw;
       }
@@ -3067,6 +3159,32 @@ void Replica_set_impl::drop_replication_user(
   }
 }
 
+void Replica_set_impl::drop_all_replication_users() {
+  auto primary = get_primary_master();
+  assert(primary);
+
+  std::vector<std::string> accounts_to_drop;
+  {
+    auto result = primary->queryf(
+        "SELECT DISTINCT user from mysql.user WHERE user LIKE ?",
+        shcore::str_format("%s%%", k_async_cluster_user_name).c_str());
+
+    while (auto row = result->fetch_one())
+      accounts_to_drop.push_back(row->get_string(0));
+  }
+
+  for (const auto &account : accounts_to_drop) {
+    log_info("Removing account '%s'", account.c_str());
+    try {
+      mysqlshdk::mysql::drop_all_accounts_for_user(*primary, account);
+    } catch (const std::exception &e) {
+      mysqlsh::current_console()->print_warning(
+          shcore::str_format("Error dropping accounts for user '%s': %s",
+                             account.c_str(), e.what()));
+    }
+  }
+}
+
 std::pair<mysqlshdk::mysql::Auth_options, std::string>
 Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
                                           std::string_view auth_cert_subject,
@@ -3074,9 +3192,7 @@ Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
                                           mysqlshdk::mysql::IInstance *master) {
   if (!master) master = m_primary_master.get();
 
-  mysqlshdk::mysql::Auth_options creds;
   std::string host = "%";
-
   if (shcore::Value allowed_host;
       !dry_run &&
       get_metadata_storage()->query_cluster_attribute(
@@ -3087,6 +3203,7 @@ Replica_set_impl::create_replication_user(mysqlshdk::mysql::IInstance *slave,
     host = allowed_host.as_string();
   }
 
+  mysqlshdk::mysql::Auth_options creds;
   creds.user = make_replication_user_name(slave->get_server_id(),
                                           k_async_cluster_user_name);
 
@@ -3380,7 +3497,7 @@ void Replica_set_impl::_set_instance_option(const std::string &instance_def,
     bool instance_is_primary{false};
     {
       topology::Server_global_topology *srv_topology = nullptr;
-      auto topology = setup_topology_manager(&srv_topology);
+      auto topology = get_topology_manager(&srv_topology);
 
       instance_is_primary = (srv_topology->get_server(target_uuid)->role() ==
                              topology::Node_role::PRIMARY);
@@ -3604,34 +3721,128 @@ void Replica_set_impl::check_preconditions_and_primary_availability(
   try {
     check_preconditions(function_name);
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
-      auto console = mysqlsh::current_console();
-      std::string err = "Unable to connect to the PRIMARY of the ReplicaSet " +
-                        get_name() + ": " + e.format();
+    if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
 
-      if (throw_if_primary_unavailable) {
-        console->print_error(err);
-      } else {
-        console->print_warning(err);
-      }
+    auto console = mysqlsh::current_console();
 
-      console->print_info(
-          "Cluster change operations will not be possible unless the PRIMARY "
-          "can be reached.");
-      console->print_info(
-          "If the PRIMARY is unavailable, you must either repair it or "
-          "perform a forced failover.");
-      console->print_info(
-          "See \\help <<<forcePrimaryInstance>>> for more information.");
+    auto err = shcore::str_format(
+        "Unable to connect to the PRIMARY of the ReplicaSet '%s': %s",
+        get_name().c_str(), e.format().c_str());
 
-      if (throw_if_primary_unavailable) {
-        throw shcore::Exception("PRIMARY instance is unavailable", e.code());
-      }
+    if (throw_if_primary_unavailable) {
+      console->print_error(err);
     } else {
-      throw;
+      console->print_warning(err);
+    }
+
+    console->print_info(
+        "ReplicaSet change operations will not be possible unless the PRIMARY "
+        "can be reached.");
+    console->print_info(
+        "If the PRIMARY is unavailable, you must either repair it or perform a "
+        "failover.");
+    console->print_info(
+        "See \\help <<<forcePrimaryInstance>>> for more information.");
+
+    if (throw_if_primary_unavailable) {
+      throw shcore::Exception("PRIMARY instance is unavailable", e.code());
     }
   }
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+mysqlshdk::mysql::Lock_scoped Replica_set_impl::get_lock(
+    mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout) {
+  if (!m_cluster_server->is_lock_service_installed()) {
+    bool lock_service_installed = false;
+    // if SRO is disabled, we have a chance to install the lock service
+    if (bool super_read_only =
+            m_cluster_server->get_sysvar_bool("super_read_only", false);
+        !super_read_only) {
+      // we must disable log_bin to prevent the installation from being
+      // replicated
+      mysqlshdk::mysql::Suppress_binary_log nobinlog(m_cluster_server.get());
+
+      lock_service_installed =
+          m_cluster_server->ensure_lock_service_is_installed(false);
+    }
+
+    if (!lock_service_installed) {
+      log_warning(
+          "The required MySQL Locking Service isn't installed on instance "
+          "'%s'. The operation will continue without concurrent execution "
+          "protection.",
+          m_cluster_server->descr().c_str());
+      return nullptr;
+    }
+  }
+
+  DBUG_EXECUTE_IF("dba_locking_timeout_one",
+                  { timeout = std::chrono::seconds{1}; });
+
+  // Try to acquire the specified lock.
+  //
+  // NOTE: Only one lock per namespace is used because lock release is
+  // performed by namespace.
+  try {
+    log_debug("Acquiring %s lock ('%.*s', '%.*s') on '%s'.",
+              mysqlshdk::mysql::to_string(mode).c_str(),
+              static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+              static_cast<int>(k_lock_name.size()), k_lock_name.data(),
+              m_cluster_server->descr().c_str());
+    mysqlshdk::mysql::get_lock(*m_cluster_server, k_lock_ns, k_lock_name, mode,
+                               timeout.count());
+  } catch (const shcore::Error &err) {
+    // Abort the operation in case the required lock cannot be acquired.
+    log_info("Failed to get %s lock ('%.*s', '%.*s') on '%s': %s",
+             mysqlshdk::mysql::to_string(mode).c_str(),
+             static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+             static_cast<int>(k_lock_name.size()), k_lock_name.data(),
+             m_cluster_server->descr().c_str(), err.what());
+
+    if (err.code() == ER_LOCKING_SERVICE_TIMEOUT) {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "ReplicaSet lock through primary member '%s'. Another operation "
+          "requiring access to the member is still in progress, please wait "
+          "for it to finish and try again.",
+          m_cluster_server->descr().c_str()));
+      throw shcore::Exception(
+          shcore::str_format(
+              "Failed to acquire ReplicaSet lock through primary member '%s'",
+              m_cluster_server->descr().c_str()),
+          SHERR_DBA_LOCK_GET_FAILED);
+    } else {
+      current_console()->print_error(shcore::str_format(
+          "The operation cannot be executed because it failed to acquire the "
+          "ReplicaSet lock through primary member '%s': %s",
+          m_cluster_server->descr().c_str(), err.what()));
+
+      throw;
+    }
+  }
+
+  auto release_cb = [instance = m_cluster_server]() {
+    // Release all instance locks in the k_lock_ns namespace.
+    //
+    // NOTE: Only perform the operation if the lock service is
+    // available, otherwise do nothing (ignore if concurrent execution is not
+    // supported, e.g., lock service plugin not available).
+    try {
+      log_debug("Releasing locks for '%.*s' on %s.",
+                static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+                instance->descr().c_str());
+      mysqlshdk::mysql::release_lock(*instance, k_lock_ns);
+
+    } catch (const shcore::Error &error) {
+      // Ignore any error trying to release locks (e.g., might have not
+      // been previously acquired due to lack of permissions).
+      log_error("Unable to release '%.*s' locks for '%s': %s",
+                static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+                instance->descr().c_str(), error.what());
+    }
+  };
+
+  return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
+}
+
+}  // namespace mysqlsh::dba

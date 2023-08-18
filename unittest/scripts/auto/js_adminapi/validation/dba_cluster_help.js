@@ -1223,14 +1223,14 @@ DESCRIPTION
 
       - addInstances: List with the connection data of the new active instances
         to add to the metadata, or "auto" to automatically add missing
-        instances to the metadata.
+        instances to the metadata. Deprecated.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode. Deprecated.
       - removeInstances: List with the connection data of the obsolete
         instances to remove from the metadata, or "auto" to automatically
-        remove obsolete instances from the metadata.
+        remove obsolete instances from the metadata. Deprecated.
       - updateTopologyMode: boolean value used to indicate if the topology mode
         (single-primary or multi-primary) in the metadata should be updated
         (true) or not (false) to match the one being used by the cluster. By
@@ -1241,6 +1241,12 @@ DESCRIPTION
         should generate and set a value for Group Replication View Change UUID
         in the whole Cluster. Required for InnoDB ClusterSet usage (if running
         MySQL version lower than 8.3.0).
+      - addUnmanaged: set to true to automatically add newly discovered
+        instances, i.e. already part of the replication topology but not
+        managed in the Cluster, to the metadata. Defaults to false.
+      - removeObsolete: set to true to automatically remove all obsolete
+        instances, i.e. no longer part of the replication topology, from the
+        metadata. Defaults to false.
 
       The value for addInstances and removeInstances is used to specify which
       instances to add or remove from the metadata, respectively. Both options
@@ -1252,6 +1258,10 @@ DESCRIPTION
                  release.
 
       ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The addInstances and removeInstances options will be removed
+                 in a future release. Use addUnmanaged and removeObsolete
+                 instead.
 
 //@<OUT> Status
 NAME

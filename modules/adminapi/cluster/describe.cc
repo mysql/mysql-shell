@@ -87,7 +87,7 @@ shcore::Array_t Describe::get_topology() {
     shcore::Dictionary_t member = shcore::make_dict();
     feed_metadata_info(member, instance_def);
 
-    instances_list->push_back(shcore::Value(member));
+    instances_list->push_back(shcore::Value(std::move(member)));
   }
 
   return instances_list;
@@ -96,9 +96,7 @@ shcore::Array_t Describe::get_topology() {
 shcore::Dictionary_t Describe::collect_replicaset_description() {
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  // Set Cluster name and topologyMode
   (*ret)["name"] = shcore::Value("default");
-
   (*ret)["topologyMode"] = shcore::Value(m_cluster.get_topology_type());
 
   // Get and set the topology (all instances)
@@ -107,54 +105,13 @@ shcore::Dictionary_t Describe::collect_replicaset_description() {
   return ret;
 }
 
-shcore::Value Describe::get_default_replicaset_description() {
-  // Get the Default Cluster description
-  shcore::Dictionary_t replicaset_dict;
-
-  replicaset_dict = collect_replicaset_description();
-
-  // Check if the Cluster group session is established to an instance with
-  // a state different than
-  //   - Online R/W
-  //   - Online R/O
-  //
-  // Possibly with the state:
-  //
-  //   - RECOVERING
-  //   - OFFLINE
-  //   - ERROR
-  //
-  // If that's the case, a warning must be added to the resulting JSON object
-
-  if (auto group_instance = m_cluster.get_cluster_server()) {
-    auto state = get_replication_group_state(
-        *group_instance, get_gr_instance_type(*group_instance));
-
-    bool warning = (state.source_state != ManagedInstance::OnlineRW &&
-                    state.source_state != ManagedInstance::OnlineRO);
-    if (warning) {
-      std::string warning_msg =
-          "The cluster description may be inaccurate as it was generated from "
-          "an instance in ";
-      warning_msg.append(ManagedInstance::describe(
-          static_cast<ManagedInstance::State>(state.source_state)));
-      warning_msg.append(" state");
-      (*replicaset_dict)["warning"] = shcore::Value(warning_msg);
-    }
-  }
-
-  return shcore::Value(replicaset_dict);
-}
-
 shcore::Value Describe::execute() {
   shcore::Dictionary_t dict = shcore::make_dict();
-
   (*dict)["clusterName"] = shcore::Value(m_cluster.get_name());
+  (*dict)["defaultReplicaSet"] =
+      shcore::Value(collect_replicaset_description());
 
-  // Get the default replicaSet description
-  (*dict)["defaultReplicaSet"] = get_default_replicaset_description();
-
-  return shcore::Value(dict);
+  return shcore::Value(std::move(dict));
 }
 
 void Describe::finish() {

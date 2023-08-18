@@ -847,7 +847,7 @@ void Cpp_object_bridge::detect_overload_conflicts(
         break;
     if (i == args_num)
       throw Exception::attrib_error(
-          "Ambiguous overload detected for funtion: " + name);
+          "Ambiguous overload detected for function: " + name);
   }
 }
 

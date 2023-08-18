@@ -231,7 +231,7 @@
                 "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
                 "fenced": false,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.",
+                    "WARNING: Instance was INVALIDATED and must be rejoined or removed from the replicaset.",
                     "ERROR: Instance is NOT a PRIMARY but super_read_only option is OFF. Accidental updates to this instance are possible and will cause inconsistencies in the replicaset."
                 ],
                 "instanceRole": null,
@@ -243,7 +243,7 @@
                 "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
                 "fenced": true,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset."
+                    "WARNING: Instance was INVALIDATED and must be rejoined or removed from the replicaset."
                 ],
                 "instanceRole": null,
                 "mode": null,
@@ -282,7 +282,7 @@
                 "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
                 "fenced": false,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.",
+                    "WARNING: Instance was INVALIDATED and must be rejoined or removed from the replicaset.",
                     "ERROR: Instance is NOT a PRIMARY but super_read_only option is OFF. Accidental updates to this instance are possible and will cause inconsistencies in the replicaset."
                 ],
                 "instanceRole": null,
@@ -294,7 +294,7 @@
                 "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
                 "fenced": true,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset."
+                    "WARNING: Instance was INVALIDATED and must be rejoined or removed from the replicaset."
                 ],
                 "instanceRole": null,
                 "mode": null,

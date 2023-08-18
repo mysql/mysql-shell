@@ -27,6 +27,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -39,12 +40,13 @@
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/dba/api_options.h"
+#include "modules/adminapi/replica_set/api_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace dba {
 
-class Replica_set_impl : public Base_cluster_impl {
+class Replica_set_impl final : public Base_cluster_impl {
  public:
   Replica_set_impl(const std::string &cluster_name,
                    const std::shared_ptr<Instance> &target,
@@ -71,10 +73,13 @@ class Replica_set_impl : public Base_cluster_impl {
       const std::shared_ptr<Instance> &target_server,
       const Create_replicaset_options &options);
 
-  shcore::Value describe() {
-    check_preconditions("describe");
-    throw std::logic_error("not implemented");
-  }
+  static std::vector<std::tuple<mysqlshdk::mysql::Slave_host, std::string>>
+  get_valid_slaves(
+      const mysqlshdk::mysql::IInstance &instance,
+      std::vector<std::tuple<mysqlshdk::mysql::Slave_host, std::string>>
+          *ghost_slaves);
+
+  shcore::Value describe();
 
   shcore::Value status(int extended);
 
@@ -99,12 +104,10 @@ class Replica_set_impl : public Base_cluster_impl {
   void force_primary_instance(const std::string &instance_def, uint32_t timeout,
                               bool invalidate_error_instances, bool dry_run);
 
-  shcore::Value options();
+  void dissolve(const replicaset::Dissolve_options &options);
+  void rescan(const replicaset::Rescan_options &options);
 
-  void dissolve(const shcore::Dictionary_t & /*opts*/ = {}) {
-    check_preconditions("dissolve");
-    throw std::logic_error("not supported");
-  }
+  shcore::Value options();
 
   shcore::Value check_instance_state(
       const Connection_options & /*instance_def*/) {
@@ -125,7 +128,7 @@ class Replica_set_impl : public Base_cluster_impl {
 
   std::list<std::shared_ptr<Instance>> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
-      std::list<Instance_metadata> *out_unreachable);
+      std::list<Instance_metadata> *out_unreachable, bool silent = false);
 
   std::tuple<mysqlsh::dba::Instance *, mysqlshdk::mysql::Lock_scoped>
   acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
@@ -144,6 +147,8 @@ class Replica_set_impl : public Base_cluster_impl {
   void drop_replication_user(const std::string &server_uuid,
                              mysqlshdk::mysql::IInstance *slave = nullptr);
 
+  void drop_all_replication_users();
+
   std::pair<mysqlshdk::mysql::Auth_options, std::string>
   create_replication_user(mysqlshdk::mysql::IInstance *slave,
                           std::string_view auth_cert_subject, bool dry_run,
@@ -154,6 +159,18 @@ class Replica_set_impl : public Base_cluster_impl {
   void ensure_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient) override;
+
+  std::shared_ptr<Global_topology_manager> get_topology_manager(
+      topology::Server_global_topology **out_topology = nullptr,
+      bool deep = false);
+
+  // Lock methods
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
+      std::chrono::seconds timeout = {}) override;
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
+      std::chrono::seconds timeout = {}) override;
 
  private:
   void _set_option(const std::string &option,
@@ -196,10 +213,6 @@ class Replica_set_impl : public Base_cluster_impl {
       Instance *master, Instance *new_master,
       const std::list<std::shared_ptr<Instance>> &instances,
       const Async_replication_options &master_ar_options, bool dry_run);
-
-  std::shared_ptr<Global_topology_manager> setup_topology_manager(
-      topology::Server_global_topology **out_topology = nullptr,
-      bool deep = false);
 
   const topology::Server *check_target_member(
       topology::Server_global_topology *topology,
@@ -247,6 +260,9 @@ class Replica_set_impl : public Base_cluster_impl {
                                 Async_replication_options *ar_options,
                                 bool *has_null_options = nullptr);
   void cleanup_replication_options(const mysqlshdk::mysql::IInstance &instance);
+
+  [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
+      mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   Global_topology_type m_topology_type;
 };

@@ -182,34 +182,64 @@ cluster.rescan();
 var final_atts = session.runSql(`SELECT attributes->'$.server_id' AS server_id FROM mysql_innodb_cluster_metadata.instances WHERE address = '${hostname}:${__mysql_sandbox_port3}'`).fetchOneObject();
 EXPECT_EQ(initial_atts.server_id, final_atts.server_id);
 
+//@<> WL10644 - TSF2_6: empty addInstances throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: []});
+}, `The list for 'addInstances' option cannot be empty.`);
+EXPECT_OUTPUT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
 
-//@ WL10644 - TSF2_6: empty addInstances throw ArgumentError.
-cluster.rescan({addInstances: []});
+//@<> WL10644 - TSF2_8: invalid addInstances list throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: [,]});
+}, `Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: ["localhost"]});
+}, `Invalid value 'localhost' for 'addInstances' option: port is missing.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: ["localhost:3300", ":3301"]});
+}, `Invalid value ':3301' for 'addInstances' option: host cannot be empty.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: ["localhost:3300", "@", "myhost:3301"]});
+}, `Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: [{}]});
+}, `Invalid value '{}' for 'addInstances' option: Invalid connection options, no options provided.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: [{host: "myhost"}]});
+}, `Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
+}, `Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string.`);
 
-//@ WL10644 - TSF2_8: invalid addInstances list throw ArgumentError.
-cluster.rescan({addInstances: [,]});
-cluster.rescan({addInstances: ["localhost"]});
-cluster.rescan({addInstances: ["localhost:3300", ":3301"]});
-cluster.rescan({addInstances: ["localhost:3300", "@", "myhost:3301"]});
-cluster.rescan({addInstances: [{}]});
-cluster.rescan({addInstances: [{host: "myhost"}]});
-cluster.rescan({addInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
+//@<> WL10644: Duplicated values for addInstances.
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
+}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
+}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
+}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
 
-//@ WL10644: Duplicated values for addInstances.
-cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
-cluster.rescan({addInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
-cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
+//@<> WL10644 - TSF2_9: invalid value with addInstances throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: "invalid"});
+}, `Option 'addInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected.`);
 
-//@ WL10644 - TSF2_9: invalid value with addInstances throw ArgumentError.
-cluster.rescan({addInstances: "invalid"});
+//@<> WL10644 - TSF2_7: "auto" is case insensitive, no error.
+EXPECT_NO_THROWS(function(){ cluster.rescan({addInstances: "AuTo"}); });
 
-//@ WL10644 - TSF2_7: "auto" is case insensitive, no error.
-cluster.rescan({addInstances: "AuTo"});
-
-//@ WL10644: Invalid type used for addInstances.
-cluster.rescan({addInstances: {}});
-cluster.rescan({addInstances: true});
-cluster.rescan({addInstances: 123});
+//@<> WL10644: Invalid type used for addInstances.
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: {}});
+}, `The 'addInstances' option must be a string or a list of strings.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: true});
+}, `The 'addInstances' option must be a string or a list of strings.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: 123});
+}, `The 'addInstances' option must be a string or a list of strings.`);
 
 //@<> WL10644 - TSF2_10: not active member in addInstances throw RuntimeError.
 cluster.rescan({addInstances: ["localhost:1111"]});
@@ -218,35 +248,92 @@ cluster.rescan({addInstances: ["localhost:1111"]});
 var member_address = hostname + ":" + __mysql_sandbox_port1;
 cluster.rescan({addInstances: [member_address]});
 
-//@ WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
-cluster.rescan({removeInstances: []});
+//@<> WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: []});
+}, `The list for 'removeInstances' option cannot be empty.`);
+EXPECT_OUTPUT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
 
-//@ WL10644 - TSF3_8: invalid removeInstances list throw ArgumentError.
-cluster.rescan({removeInstances: [,]});
-cluster.rescan({removeInstances: ["localhost"]});
-cluster.rescan({removeInstances: ["localhost:3300", ":3301"]});
-cluster.rescan({removeInstances: ["localhost:3300", "@", "myhost:3301"]});
-cluster.rescan({removeInstances: [{}]});
-cluster.rescan({removeInstances: [{host: "myhost"}]});
-cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {port:3301}]});
-cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {user: "root"}, {host: "localhost", port:3301}]});
-cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
+//@<> WL10644 - TSF3_8: invalid removeInstances list throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [,]});
+}, `Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: ["localhost"]});
+}, `Invalid value 'localhost' for 'removeInstances' option: port is missing.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: ["localhost:3300", ":3301"]});
+}, `Invalid value ':3301' for 'removeInstances' option: host cannot be empty.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: ["localhost:3300", "@", "myhost:3301"]});
+}, `Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{}]});
+}, `Invalid value '{}' for 'removeInstances' option: Invalid connection options, no options provided.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{host: "myhost"}]});
+}, `Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {port:3301}]});
+}, `Invalid value '{"port": 3301}' for 'removeInstances' option: The connection option 'host' has no value.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {user: "root"}, {host: "localhost", port:3301}]});
+}, `Invalid value '{"user": "root"}' for 'removeInstances' option: The connection option 'host' has no value.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
+}, `Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string.`);
 
-//@ WL10644: Duplicated values for removeInstances.
-cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
-cluster.rescan({removeInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
-cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
+//@<> WL10644: Duplicated values for removeInstances.
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
+}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
+}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
+}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
 
-//@ WL10644 - TSF3_9: invalid value with removeInstances throw ArgumentError.
-cluster.rescan({removeInstances: "invalid"});
+//@<> WL10644 - TSF3_9: invalid value with removeInstances throw ArgumentError.
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: "invalid"});
+}, `Option 'removeInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected.`);
 
-//@ WL10644 - TSF3_7: "auto" is case insensitive, no error.
-cluster.rescan({removeInstances: "aUtO"});
+//@<> WL10644 - TSF3_7: "auto" is case insensitive, no error.
+EXPECT_NO_THROWS(function(){ cluster.rescan({removeInstances: "aUtO"}); });
 
-//@ WL10644: Invalid type used for removeInstances.
-cluster.rescan({removeInstances: {}});
-cluster.rescan({removeInstances: true});
-cluster.rescan({removeInstances: 123});
+//@<> WL10644: Invalid type used for removeInstances.
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: {}});
+}, `The 'removeInstances' option must be a string or a list of strings.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: true});
+}, `The 'removeInstances' option must be a string or a list of strings.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: 123});
+}, `The 'removeInstances' option must be a string or a list of strings.`);
+
+//@<> Check bool type for addUnmanaged and removeObsolete
+EXPECT_THROWS(function() {
+    cluster.rescan({addUnmanaged: ""});
+}, `Option 'addUnmanaged' Bool expected, but value is String`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeObsolete: ""});
+}, `Option 'removeObsolete' Bool expected, but value is String`);
+
+//@<> Can't mix both new and deprecated options
+EXPECT_THROWS(function() {
+    cluster.rescan({addInstances: "auto", addUnmanaged: true});
+}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeObsolete: true, addInstances: "auto"});
+}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeInstances: "auto", addUnmanaged: true});
+}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
+EXPECT_THROWS(function() {
+    cluster.rescan({removeObsolete: true, removeInstances: "auto"});
+}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
 
 //@<> WL10644 - TSF3_10: active member in removeInstances throw RuntimeError.
 cluster.rescan({removeInstances: [member_address]});
@@ -323,6 +410,21 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
+//@<> Make sure that "addUnmanaged: true" behaves as addInstances "auto".
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
+
+cluster.rescan({addUnmanaged: true, interactive: true});
+EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
+
 //@<> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
@@ -338,7 +440,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
-//@ WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
+//@<> WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
 //      are lost when the server is stopped.
 var s2 = mysql.getSession(__sandbox_uri2);
@@ -360,28 +462,28 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_1: Number of instances in the MD before rescan().
-count_in_metadata_schema();
+EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_1: Rescan with removeInstances:[complete_valid_list].
 cluster.rescan({removeInstances: [member_address2, member_address3]});
 
 //@<> WL10644 - TSF3_1: Number of instances in the MD after rescan().
-count_in_metadata_schema();
+EXPECT_EQ(1, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_1: Validate that the instances were removed.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
                                    [__mysql_sandbox_port3, "N/A"]]);
 
-//@ WL10644 - TSF3_2: Start instances and add them back to the cluster.
+//@<> WL10644 - TSF3_2: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 cluster.addInstance(__hostname_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ WL10644 - TSF3_2: Disable GR in persisted settings {VER(>=8.0.11)}.
+//@<> WL10644 - TSF3_2: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
 //      are lost when the server is stopped.
 var s2 = mysql.getSession(__sandbox_uri2);
@@ -403,7 +505,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_2: Number of instances in the MD before rescan().
-count_in_metadata_schema();
+EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_2: Rescan with removeInstances:[incomplete_valid_list] and interactive:true.
 testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]:", "y");
@@ -412,22 +514,22 @@ var member_fqdn_address3 = hostname + ":" + __mysql_sandbox_port3;
 cluster.rescan({removeInstances: [member_fqdn_address2], interactive: true});
 
 //@<> WL10644 - TSF3_2: Number of instances in the MD after rescan().
-count_in_metadata_schema();
+EXPECT_EQ(1, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_2: Validate that the instances were removed.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
                                    [__mysql_sandbox_port3, "N/A"]]);
 
-//@ WL10644 - TSF3_3: Start instances and add them back to the cluster.
+//@<> WL10644 - TSF3_3: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 cluster.addInstance(__hostname_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ WL10644 - TSF3_3: Disable GR in persisted settings {VER(>=8.0.11)}.
+//@<> WL10644 - TSF3_3: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
 //      are lost when the server is stopped.
 var s2 = mysql.getSession(__sandbox_uri2);
@@ -449,26 +551,26 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_3: Number of instances in the MD before rescan().
-count_in_metadata_schema();
+EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_3: Rescan with removeInstances:[incomplete_valid_list] and interactive:false.
 cluster.rescan({removeInstances: [member_fqdn_address2], interactive: false});
 
 //@<> WL10644 - TSF3_3: Number of instances in the MD after rescan().
-count_in_metadata_schema();
+EXPECT_EQ(2, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_3: Validate that the instances were removed.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
-//@ WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
+//@<> WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
 //NOTE: Not need for instance 3 (no removed from MD in previous test).
 testutil.startSandbox(__mysql_sandbox_port2);
 cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ WL10644 - TSF3_4: Disable GR in persisted settings {VER(>=8.0.11)}.
+//@<> WL10644 - TSF3_4: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
 //      are lost when the server is stopped.
 var s2 = mysql.getSession(__sandbox_uri2);
@@ -485,28 +587,58 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_4: Number of instances in the MD before rescan().
-count_in_metadata_schema();
+EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_4: Rescan with removeInstances:"auto" and interactive:true.
 cluster.rescan({removeInstances: "auto", interactive: true});
 
 //@<> WL10644 - TSF3_4: Number of instances in the MD after rescan().
-count_in_metadata_schema();
+EXPECT_EQ(1, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_4: Validate that the instances were removed.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
                                    [__mysql_sandbox_port3, "N/A"]]);
 
-//@ WL10644 - TSF3_5: Start instances and add them back to the cluster.
+//@<> Make sure that "removeObsolete: true" behaves as removeInstances "auto".
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 cluster.addInstance(__hostname_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ WL10644 - TSF3_5: Disable GR in persisted settings {VER(>=8.0.11)}.
+EXPECT_EQ(3, count_in_metadata_schema());
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
+
+cluster.rescan({removeObsolete: true, interactive: true});
+EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
+
+EXPECT_EQ(1, count_in_metadata_schema());
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "N/A"]]);
+
+//@<> WL10644 - TSF3_5: Start instances and add them back to the cluster.
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+cluster.addInstance(__hostname_uri2);
+cluster.addInstance(__hostname_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+//@<> WL10644 - TSF3_5: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
 //      are lost when the server is stopped.
 var s2 = mysql.getSession(__sandbox_uri2);
@@ -528,34 +660,34 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_5: Number of instances in the MD before rescan().
-count_in_metadata_schema();
+EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_5: Rescan with removeInstances:"auto" and interactive:false.
 cluster.rescan({removeInstances: "AUTO", interactive: false});
 
 //@<> WL10644 - TSF3_5: Number of instances in the MD after rescan().
-count_in_metadata_schema();
+EXPECT_EQ(1, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_5: Validate that the instances were removed.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
                                    [__mysql_sandbox_port3, "N/A"]]);
 
-//@ WL10644: Start instances and add them back to the cluster again.
+//@<> WL10644: Start instances and add them back to the cluster again.
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 cluster.addInstance(__hostname_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ WL10644 - TSF4_1: Change the topology mode in the MD to the wrong value.
+//@<> WL10644 - TSF4_1: Change the topology mode in the MD to the wrong value.
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'mm'");
 
 //@<> WL10644 - TSF4_1: Topology mode in MD before rescan().
-get_metadata_topology_mode();
+EXPECT_EQ("mm", get_metadata_topology_mode());
 
-//@ WL10644 - TSF4_5: Set auto_increment settings to unused values.
+//@<> WL10644 - TSF4_5: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
 set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
@@ -604,13 +736,13 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
-//@ WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
+//@<> WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'pm'");
 
 //@<> WL10644 - TSF4_3: Topology mode in MD before rescan().
-get_metadata_topology_mode();
+EXPECT_EQ("pm", get_metadata_topology_mode());
 
-//@ WL10644 - TSF4_6: Set auto_increment settings to unused values.
+//@<> WL10644 - TSF4_6: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
 set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
@@ -619,7 +751,7 @@ set_auto_increment_to_unused_values(__sandbox_uri3);
 cluster.rescan({interactive: true});
 
 //@<> WL10644 - TSF4_3: Check topology mode in MD after rescan().
-get_metadata_topology_mode();
+EXPECT_EQ("mm", get_metadata_topology_mode());
 
 //@<> WL10644 - TSF4_6: Check auto_increment settings after change to multi-primary.
 offset1 = 1 + instance1_id % 7;
@@ -629,17 +761,17 @@ check_auto_increment_settings(__sandbox_uri1);
 check_auto_increment_settings(__sandbox_uri2);
 check_auto_increment_settings(__sandbox_uri3);
 
-//@ WL10644 - TSF4_4: Change the topology mode in the MD to the wrong value.
+//@<> WL10644 - TSF4_4: Change the topology mode in the MD to the wrong value.
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'pm'");
 
 //@<> WL10644 - TSF4_4: Topology mode in MD before rescan().
-get_metadata_topology_mode();
+EXPECT_EQ("pm", get_metadata_topology_mode());
 
 //@<> WL10644 - TSF4_4: Rescan with interactive:false and change needed.
 cluster.rescan({interactive: false});
 
 //@<> WL10644 - TSF4_4: Check topology mode in MD after rescan().
-get_metadata_topology_mode();
+EXPECT_EQ("mm", get_metadata_topology_mode());
 
 // Tests for cluster.rescan() handling of group_replication_view_change_uuid:
 //

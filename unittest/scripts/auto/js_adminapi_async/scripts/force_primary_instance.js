@@ -93,7 +93,7 @@ strip_status(rs.status());
 rs.forcePrimaryInstance(__sandbox2);
 
 // Wait for all transaction to be applied in sandbox 3 before checking its metadata.
-// NOTE: Might need a new testutils funtion to also consider the GTID_RETRIEVED.
+// NOTE: Might need a new testutils function to also consider the GTID_RETRIEVED.
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port2);
 
 // SRO

@@ -185,3 +185,22 @@ function inject_empty_trx(session, trx_gtid) {
     session.runSql("COMMIT");
     session.runSql("SET GTID_NEXT='AUTOMATIC'");
 }
+
+function check_dissolved_replica(primary, target_session) {
+  // MD schema must not exist
+  var row = primary.runSql("show schemas like 'mysql_innodb_cluster_metadata'").fetchOne();
+  EXPECT_EQ(null, row, "metadata_schema_found");
+
+  // No recovery accounts must exist: mysql_innodb_rs_%
+  var recovery_accounts = primary.runSql("select user from mysql.user where user like 'mysql_innodb_rs_%'").fetchAll();
+  EXPECT_EQ([], recovery_accounts, "unexpected_recovery_accounts primary");
+
+  // No recovery accounts must exist: mysql_innodb_rs_%
+  recovery_accounts = target_session.runSql("select user from mysql.user where user like 'mysql_innodb_rs_%'").fetchAll();
+  EXPECT_EQ([], recovery_accounts, "unexpected_recovery_accounts target instance");
+
+  // Check replication channel is reset
+  var res = target_session.runSql("select c.host, c.port, c.user, c.source_connection_auto_failover, s.service_state, s.source_uuid from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name=''");
+  var r = res.fetchOne();
+  EXPECT_EQ(null, r, ".async repl")
+}

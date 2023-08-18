@@ -21,7 +21,7 @@
 ||This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
 //@# create with unmanaged AR (should fail)
-|ERROR: Extraneous replication channels found at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>:|
+|ERROR: Extraneous replication channels found at '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>':|
 |- channel '' from <<<__endpoint_uri2>>>|
 |Unmanaged replication channels are not supported in a replicaset. If you'd like|
 |to manage an existing MySQL replication topology with the Shell, use the|
@@ -29,13 +29,13 @@
 ||Unexpected replication channel (MYSQLSH 51150)
 
 //@ create with unmanaged AR from the master (should fail)
-|ERROR: Extraneous replication channels found at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>:|
+|ERROR: Extraneous replication channels found at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>':|
 |- <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> replicates from this instance|
 |Unmanaged replication channels are not supported in a replicaset. If|
 ||Unexpected replication channel (MYSQLSH 51150)
 
 //@# create with existing replicaset (should fail)
-||Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
+||Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it or dba.dropMetadataSchema() to drop the metadata if the replicaset was dissolved. (MYSQLSH 51306)
 
 //@# create with insufficient privs (should fail)
 ||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)

@@ -38,6 +38,12 @@ rs.help("disconnect");
 //@ Disconnect \? [USE:Disconnect]
 \? ReplicaSet.disconnect
 
+//@ Dissolve
+rs.help("dissolve");
+
+//@ Dissolve \? [USE:Dissolve]
+\? ReplicaSet.dissolve
+
 //@ Force Primary Instance
 rs.help("forcePrimaryInstance");
 
@@ -89,6 +95,12 @@ rs.help("setupRouterAccount")
 //@ setupRouterAccount. \? [USE:setupRouterAccount]
 \? ReplicaSet.setupRouterAccount
 
+//@ Rescan
+rs.help("rescan");
+
+//@ Rescan \? [USE:Rescan]
+\? ReplicaSet.rescan
+
 //@ routingOptions
 rs.help("routingOptions")
 
@@ -100,6 +112,12 @@ rs.help("setRoutingOption")
 
 //@ setRoutingOption. \? [USE:setRoutingOption]
 \? ReplicaSet.setRoutingOption
+
+//@ Describe
+rs.help("describe");
+
+//@ Describe \? [USE:Describe]
+\? ReplicaSet.describe
 
 //@ Status
 rs.help("status");

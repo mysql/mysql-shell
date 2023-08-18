@@ -1888,19 +1888,7 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
                             bool cancelable) {
-  size_t total_transactions_primary, missing_transactions;
-  // The GTID wait will not abort if an error occurs, so calling it without a
-  // timeout will just freeze forever. To prevent that, we call the wait with
-  // smaller incremental timeouts and wait for errors during that.
-
-  // wait for at most 10s at a time
-  int incremental_timeout = std::min(timeout, 10);
-  if (incremental_timeout == 0) incremental_timeout = 2;
-
-  int time_elapsed = 0;
-
   bool stop = false;
-
   shcore::Interrupt_handler intr(
       [&stop]() {
         stop = true;
@@ -1908,12 +1896,7 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       },
       !cancelable);
 
-  bool sync_res;
-
   // Get the Progress_reporting style option in use
-  auto progress_reporting = current_shell_options()->get().progress_reporting;
-  std::unique_ptr<mysqlshdk::textui::Progress_vt100> progress_bar;
-
   const auto update_progress = [](mysqlshdk::textui::Progress_vt100 *bar,
                                   uint64_t total, size_t missing) {
     bar->set_current(total - missing);
@@ -1923,9 +1906,25 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
   // Get the total count of GTID_EXECUTED from the primary
   auto gtid_set_primary =
       mysqlshdk::mysql::Gtid_set::from_normalized_string(gtid_set);
-  total_transactions_primary = gtid_set_primary.count();
+  auto total_transactions_primary =
+      static_cast<size_t>(gtid_set_primary.count());
+
+  // calculate missing transactions
+  const auto calc_missing_transactions = [&target_instance,
+                                          &gtid_set_primary]() -> size_t {
+    auto gtid_set_target =
+        mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
+
+    return mysqlshdk::mysql::estimate_gtid_set_size(
+        gtid_set_primary.subtract(gtid_set_target, target_instance));
+  };
 
   using Progress_reporting = Shell_options::Storage::Progress_reporting;
+
+  auto progress_reporting = current_shell_options()->get().progress_reporting;
+
+  std::unique_ptr<mysqlshdk::textui::Progress_vt100> progress_bar;
+  shcore::Scoped_callback end_progress_bar;
 
   if (progress_reporting == Progress_reporting::PROGRESSBAR) {
     // Init the progress bar
@@ -1937,43 +1936,42 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
     // Always terminate the progress bar when going out of the scope of the
     // function. That must happen regardless if the function ended successfully
     // or not, or because of an exception, to ensure the output is cleared out.
-    shcore::Scoped_callback end_progress_bar(
-        [&progress_bar]() { progress_bar->end(); });
+    end_progress_bar =
+        shcore::Scoped_callback([&progress_bar]() { progress_bar->end(); });
 
     // Update the progress bar to show the current state of the transactions
     // missing
-    auto gtid_set_target =
-        mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
-    missing_transactions = mysqlshdk::mysql::estimate_gtid_set_size(
-        gtid_set_primary.subtract(gtid_set_target, target_instance));
-
     update_progress(progress_bar.get(), total_transactions_primary,
-                    missing_transactions);
+                    calc_missing_transactions());
   }
 
+  // The GTID wait will not abort if an error occurs, so calling it without a
+  // timeout will just freeze forever. To prevent that, we call the wait with
+  // smaller incremental timeouts and wait for errors during that.
+  //
+  // wait for at most 10s at a time
+  int incremental_timeout = std::min(timeout, 10);
+  if (incremental_timeout == 0) incremental_timeout = 2;
+
+  bool sync_res;
+  int time_elapsed = 0;
   do {
     // Every minute, get the executed gtid_set at the target instance to check
     // how many transactions are still missing to provide that info to the user
     if (time_elapsed != 0 && time_elapsed % 60 == 0) {
-      auto gtid_set_target =
-          mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
-
-      missing_transactions = mysqlshdk::mysql::estimate_gtid_set_size(
-          gtid_set_primary.subtract(gtid_set_target, target_instance));
-
       switch (progress_reporting) {
         case Progress_reporting::PROGRESSBAR: {
+          assert(progress_bar);
           update_progress(progress_bar.get(), total_transactions_primary,
-                          missing_transactions);
+                          calc_missing_transactions());
           break;
         }
         case Progress_reporting::SIMPLE: {
           // Simple progress reporting, just print info about the transactions
           // left
-          mysqlsh::current_console()->print_info(
-              "** " + std::to_string(missing_transactions) + " of " +
-              std::to_string(total_transactions_primary) +
-              " transactions left");
+          mysqlsh::current_console()->print_info(shcore::str_format(
+              "** %zu of %zu transactions left", calc_missing_transactions(),
+              total_transactions_primary));
           break;
         }
         default:
@@ -1996,6 +1994,7 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
     } else {
       // wait succeeded, get out of here
       if (progress_reporting == Progress_reporting::PROGRESSBAR) {
+        assert(progress_bar);
         update_progress(progress_bar.get(), total_transactions_primary, 0);
       }
       break;

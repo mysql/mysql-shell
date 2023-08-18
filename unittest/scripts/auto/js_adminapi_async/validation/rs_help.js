@@ -15,8 +15,14 @@ FUNCTIONS
       addInstance(instance[, options])
             Adds an instance to the replicaset.
 
+      describe()
+            Describe the structure of the ReplicaSet.
+
       disconnect()
             Disconnects all internal sessions used by the replicaset object.
+
+      dissolve(options)
+            Dissolves the ReplicaSet.
 
       forcePrimaryInstance(instance, options)
             Performs a failover in a replicaset with an unavailable PRIMARY.
@@ -41,6 +47,9 @@ FUNCTIONS
 
       removeRouterMetadata(routerDef)
             Removes metadata for a router instance.
+
+      rescan(options)
+            Rescans the ReplicaSet.
 
       routingOptions([router])
             Lists the ReplicaSet Routers configuration options.
@@ -234,6 +243,45 @@ DESCRIPTION
       Disconnects the internal MySQL sessions used by the replicaset to query
       for metadata and replication information.
 
+//@<OUT> Dissolve
+NAME
+      dissolve - Dissolves the ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.dissolve(options)
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function stops and deletes asynchronous replication channels and
+      unregisters all members from the ReplicaSet metadata.
+
+      It keeps all the user's data intact.
+
+      Options
+
+      The options dictionary may contain the following attributes:
+
+      - force: set to true to confirm that the dissolve operation must be
+        executed, even if some members of the ReplicaSet cannot be reached or
+        the timeout was reached when waiting for members to catch up with
+        replication changes. By default, set to false.
+      - timeout: maximum number of seconds to wait for pending transactions to
+        be applied in each reachable instance of the ReplicaSet (default value
+        is retrieved from the 'dba.gtidWaitTimeout' shell option).
+
+      The force option (set to true) must only be used to dissolve a ReplicaSet
+      with instances that are permanently not available (no longer reachable)
+      or never to be reused again in a ReplicaSet. This allows a ReplicaSet to
+      be dissolved and remove it from the metadata, including instances than
+      can no longer be recovered. Otherwise, the instances must be brought back
+      ONLINE and the ReplicaSet dissolved without the force option to avoid
+      errors trying to reuse the instances and add them back to a ReplicaSet.
+
 //@<OUT> Force Primary Instance
 NAME
       forcePrimaryInstance - Performs a failover in a replicaset with an
@@ -251,24 +299,24 @@ RETURNS
       Nothing
 
 DESCRIPTION
-      This command will perform a forced failover of the PRIMARY of a
-      replicaset in disaster scenarios where the current PRIMARY is unavailable
-      and cannot be restored. If given, the target instance will be promoted to
-      a PRIMARY, while other reachable SECONDARY instances will be switched to
-      the new PRIMARY. The target instance must have the most up-to-date
-      GTID_EXECUTED set among reachable instances, otherwise the operation will
-      fail. If a target instance is not given (or is null), the most up-to-date
-      instance will be automatically selected and promoted.
+      This command will perform a failover of the PRIMARY of a replicaset in
+      disaster scenarios where the current PRIMARY is unavailable and cannot be
+      restored. If given, the target instance will be promoted to a PRIMARY,
+      while other reachable SECONDARY instances will be switched to the new
+      PRIMARY. The target instance must have the most up-to-date GTID_EXECUTED
+      set among reachable instances, otherwise the operation will fail. If a
+      target instance is not given (or is null), the most up-to-date instance
+      will be automatically selected and promoted.
 
-      After a forced failover, the old PRIMARY will be considered invalid by
-      the new PRIMARY and can no longer be part of the replicaset. If the
-      instance is still usable, it must be removed from the replicaset and
-      re-added as a new instance. If there were any SECONDARY instances that
-      could not be switched to the new PRIMARY during the failover, they will
-      also be considered invalid.
+      After a failover, the old PRIMARY will be considered invalid by the new
+      PRIMARY and can no longer be part of the replicaset. If the instance is
+      still usable, it must be removed from the replicaset and re-added as a
+      new instance. If there were any SECONDARY instances that could not be
+      switched to the new PRIMARY during the failover, they will also be
+      considered invalid.
 
-      ATTENTION: a forced failover is a potentially destructive action and
-                 should only be used as a last resort measure.
+      ATTENTION: a failover is a potentially destructive action and should only
+                 be used as a last resort measure.
 
       Data loss is possible after a failover, because the old PRIMARY may have
       had transactions that were not yet replicated to the SECONDARY being
@@ -279,7 +327,7 @@ DESCRIPTION
       re-conciliating diverged transaction sets requires manual intervention
       and may some times not be possible, even if the failed MySQL servers can
       be recovered. In many cases, the fastest and simplest way to recover from
-      a disaster that required a forced failover is by discarding such diverged
+      a disaster that required a failover is by discarding such diverged
       transactions and re-provisioning a new instance from the newly promoted
       PRIMARY.
 
@@ -497,8 +545,8 @@ DESCRIPTION
 
       For a safe switchover to be possible, all replicaset instances must be
       reachable from the shell and have consistent transaction sets. If the
-      PRIMARY is not available, a forced failover must be performed instead,
-      using forcePrimaryInstance().
+      PRIMARY is not available, a failover must be performed instead, using
+      forcePrimaryInstance().
 
       Options
 
@@ -639,6 +687,34 @@ DESCRIPTION
 
       ATTENTION: The interactive option will be removed in a future release.
 
+//@<OUT> Rescan
+NAME
+      rescan - Rescans the ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.rescan(options)
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This function re-scans the ReplicaSet for new (already part of the
+      replication topology but not managed in the ReplicaSet) and obsolete (no
+      longer part of the topology) replication members/instances, as well as
+      change to the instances configurations.
+
+      Options
+
+      The options dictionary may contain the following attributes:
+
+      - addUnmanaged: if true, all newly discovered instances will be
+        automatically added to the metadata. Defaults to false.
+      - removeObsolete: if true, all obsolete instances will be automatically
+        removed from the metadata. Defaults to false.
+
 //@<OUT> routingOptions
 NAME
       routingOptions - Lists the ReplicaSet Routers configuration options.
@@ -698,6 +774,32 @@ DESCRIPTION
 
       If the value is null, the option value is cleared and the default value
       (0) takes effect.
+
+//@<OUT> Describe
+NAME
+      describe - Describe the structure of the ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.describe()
+
+RETURNS
+      A JSON object describing the structure of the ReplicaSet.
+
+DESCRIPTION
+      This function describes the structure of the ReplicaSet including all its
+      Instances.
+
+      The returned JSON object contains the following attributes:
+
+      - name: the ReplicaSet name
+      - topology: a list of dictionaries describing each instance belonging to
+        the ReplicaSet.
+
+      Each instance dictionary contains the following attributes:
+
+      - address: the instance address in the form of host:port
+      - label: the instance name identifier
+      - instanceRole: the instance role (either "PRIMARY" or "REPLICA")
 
 //@<OUT> Status
 NAME

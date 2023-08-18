@@ -1146,7 +1146,7 @@ int main(int argc, char **argv) {
   }
   {
     std::cout << "mycnf defaults: "
-              << system((mysqlsh_path + " --print-defaults").c_str());
+              << system((mysqlsh_path + " --print-defaults").c_str()) << "\n";
   }
 
   switch (g_test_recording_mode) {

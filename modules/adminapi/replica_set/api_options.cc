@@ -20,24 +20,14 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/adminapi/replica_set/api_options.h"
 
-#include <cinttypes>
-#include <utility>
-#include <vector>
-
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace replicaset {
+namespace mysqlsh::dba::replicaset {
 
 const shcore::Option_pack_def<Wait_recovery_option>
     &Wait_recovery_option::options() {
@@ -288,6 +278,39 @@ const shcore::Option_pack_def<Force_primary_instance_options>
   return opts;
 }
 
-}  // namespace replicaset
-}  // namespace dba
-}  // namespace mysqlsh
+const shcore::Option_pack_def<Dissolve_options> &Dissolve_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dissolve_options>()
+          .optional(kForce, &Dissolve_options::force)
+          .optional(kTimeout, &Dissolve_options::set_timeout);
+
+  return opts;
+}
+
+std::chrono::seconds Dissolve_options::timeout() const {
+  if (m_timeout.has_value()) return m_timeout.value();
+
+  return std::chrono::seconds{
+      current_shell_options()->get().dba_gtid_wait_timeout};
+}
+
+void Dissolve_options::set_timeout(int timeout) {
+  if (timeout < 0)
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value '%d' for option '%s'. It must be a positive integer "
+        "representing the maximum number of seconds to wait.",
+        timeout, kTimeout));
+
+  m_timeout = std::chrono::seconds{timeout};
+}
+
+const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Rescan_options>()
+          .optional(kAddUnmanaged, &Rescan_options::add_unmanaged)
+          .optional(kRemoveObsolete, &Rescan_options::remove_obsolete);
+
+  return opts;
+}
+
+}  // namespace mysqlsh::dba::replicaset

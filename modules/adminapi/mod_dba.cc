@@ -2024,20 +2024,26 @@ shcore::Value Dba::create_replica_set(
     check_function_preconditions("Dba.createReplicaSet", metadata,
                                  target_server);
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
-      throw shcore::Exception("Unable to create replicaset. The instance '" +
-                                  target_server->descr() +
-                                  "' already belongs to an InnoDB cluster. Use "
-                                  "dba.<<<getCluster>>>() to access it.",
-                              e.code());
-    } else if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET) {
-      throw shcore::Exception("Unable to create replicaset. The instance '" +
-                                  target_server->descr() +
-                                  "' already belongs to a replicaset. Use "
-                                  "dba.<<<getReplicaSet>>>() to access it.",
-                              e.code());
-    } else {
-      throw;
+    switch (e.code()) {
+      case SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER:
+        throw shcore::Exception(
+            shcore::str_format("Unable to create replicaset. The instance '%s' "
+                               "already belongs to an InnoDB cluster. Use "
+                               "dba.<<<getCluster>>>() to access it.",
+                               target_server->descr().c_str()),
+            e.code());
+
+      case SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET:
+        throw shcore::Exception(
+            shcore::str_format("Unable to create replicaset. The instance '%s' "
+                               "already belongs to a replicaset. Use "
+                               "dba.<<<getReplicaSet>>>() to access it or "
+                               "dba.<<<dropMetadataSchema>>>() to drop the "
+                               "metadata if the replicaset was dissolved.",
+                               target_server->descr().c_str()),
+            e.code());
+      default:
+        throw;
     }
   } catch (const shcore::Error &dberr) {
     throw shcore::Exception::mysql_error_with_code(dberr.what(), dberr.code());

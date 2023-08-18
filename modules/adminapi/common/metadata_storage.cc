@@ -1323,6 +1323,18 @@ void MetadataStorage::update_instance_repl_account(
   execute_sql(query);
 }
 
+void MetadataStorage::update_instance_uuid(Cluster_id cluster_id,
+                                           Instance_id instance_id,
+                                           std::string_view instance_uuid) {
+  auto query =
+      "UPDATE mysql_innodb_cluster_metadata.instances SET mysql_server_uuid = "
+      "? WHERE (cluster_id = ?) AND (instance_id = ?);"_sql
+      << instance_uuid << cluster_id << instance_id;
+  query.done();
+
+  execute_sql(query);
+}
+
 std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
     const std::string &instance_uuid, Cluster_type type,
     Replica_type replica_type) {
@@ -1594,7 +1606,7 @@ size_t MetadataStorage::iterate_recovery_account(
   return num_accounts;
 }
 
-void MetadataStorage::remove_instance(const std::string &instance_address,
+void MetadataStorage::remove_instance(std::string_view instance_address,
                                       Transaction_undo *undo) {
   // Remove the instance
   auto query = ("DELETE FROM mysql_innodb_cluster_metadata.instances "

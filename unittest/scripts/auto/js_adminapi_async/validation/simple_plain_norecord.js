@@ -208,9 +208,9 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@<OUT> forcePrimaryInstance (prepare)
-WARNING: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])
-Cluster change operations will not be possible unless the PRIMARY can be reached.
-If the PRIMARY is unavailable, you must either repair it or perform a forced failover.
+WARNING: Unable to connect to the PRIMARY of the ReplicaSet 'myrs': MYSQLSH 51118: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])
+ReplicaSet change operations will not be possible unless the PRIMARY can be reached.
+If the PRIMARY is unavailable, you must either repair it or perform a failover.
 See \help forcePrimaryInstance for more information.
 {
     "replicaSet": {
@@ -382,6 +382,9 @@ true
             },
             "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",
+                "instanceErrors": [
+                    "ERROR: the instance is missing its replication account info from the metadata. Please call rescan() to fix this."
+                ],
                 "instanceRole": "SECONDARY",
                 "mode": "R/O",
                 "replication": {
@@ -397,6 +400,9 @@ true
             },
             "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>",
+                "instanceErrors": [
+                    "ERROR: the instance is missing its replication account info from the metadata. Please call rescan() to fix this."
+                ],
                 "instanceRole": "SECONDARY",
                 "mode": "R/O",
                 "replication": {

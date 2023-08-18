@@ -46,7 +46,7 @@ EXPECT_THROWS(function () { rs.removeInstance([__sandbox_uri1]); }, "Argument #1
 
 //@<> disconnected rs object (should fail)
 rs.disconnect();
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `The replicaset object is disconnected. Please use dba.\<\<\<getReplicaSet\>\>\>() to obtain a new object.`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object.`);
 
 rs = dba.getReplicaSet();
 

@@ -69,6 +69,7 @@ void ReplicaSet::init() {
   expose("removeInstance", &ReplicaSet::remove_instance, "instance", "?options")
       ->cli();
 
+  expose("describe", &ReplicaSet::describe)->cli();
   expose("status", &ReplicaSet::status, "?options")->cli();
   expose("disconnect", &ReplicaSet::disconnect)->cli(false);
 
@@ -78,6 +79,10 @@ void ReplicaSet::init() {
   expose("forcePrimaryInstance", &ReplicaSet::force_primary_instance,
          "?instance", "?options")
       ->cli();
+
+  expose("dissolve", &ReplicaSet::dissolve, "?options")->cli();
+
+  expose("rescan", &ReplicaSet::rescan, "?options")->cli();
 
   expose("removeRouterMetadata", &ReplicaSet::remove_router_metadata,
          "routerDef")
@@ -100,11 +105,6 @@ void ReplicaSet::init() {
          "value");
   expose("setRoutingOption", &ReplicaSet::set_routing_option, "router",
          "option", "value");
-
-  // TODO(alfredo):
-  // - dissolve()
-  // - restore() - fixes replication configuration and fencing status according
-  // to metadata
 }
 
 // Documentation of the getName function
@@ -129,27 +129,27 @@ str ReplicaSet::get_name() {}
 #endif
 
 void ReplicaSet::assert_valid(const std::string &option_name) const {
-  std::string name;
-
   if (option_name == "disconnect") return;
 
   if (has_member(option_name) && m_invalidated) {
     if (has_method(option_name)) {
-      name = get_function_name(option_name, false);
-      throw shcore::Exception::runtime_error(class_name() + "." + name + ": " +
-                                             "Can't call function '" + name +
-                                             "' on a dissolved replicaset");
+      auto name = get_function_name(option_name, false);
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "%s.%s: Can't call function '%s' on a dissolved replicaset",
+          class_name().c_str(), name.c_str(), name.c_str()));
+
     } else {
-      name = get_member_name(option_name, shcore::current_naming_style());
-      throw shcore::Exception::runtime_error(
-          class_name() + "." + name + ": " + "Can't access object member '" +
-          name + "' on a dissolved replicaset");
+      auto name = get_member_name(option_name, shcore::current_naming_style());
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "%s.%s: Can't access object member '%s' on a dissolved replicaset",
+          class_name().c_str(), name.c_str(), name.c_str()));
     }
   }
+
   if (!impl()->check_valid()) {
-    throw shcore::Exception::runtime_error(
+    throw shcore::Exception::runtime_error(shcore::str_subvars(
         "The replicaset object is disconnected. Please use "
-        "dba.<<<getReplicaSet>>>() to obtain a new object.");
+        "dba.<<<getReplicaSet>>>() to obtain a new object."));
   }
 }
 
@@ -297,7 +297,6 @@ None ReplicaSet::add_instance(str instance, dict options) {}
 void ReplicaSet::add_instance(
     const std::string &instance_def,
     const shcore::Option_pack_ref<replicaset::Add_instance_options> &options) {
-  // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
   // this validates the instance_def
@@ -434,7 +433,6 @@ void ReplicaSet::rejoin_instance(
     const std::string &instance_def,
     const shcore::Option_pack_ref<replicaset::Rejoin_instance_options>
         &options) {
-  // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
   std::string clone_donor;
@@ -504,7 +502,6 @@ void ReplicaSet::remove_instance(
     const std::string &instance_def,
     const shcore::Option_pack_ref<replicaset::Remove_instance_options>
         &options) {
-  // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
   // Remove the Instance from the Default ReplicaSet
@@ -520,6 +517,45 @@ void ReplicaSet::remove_instance(
         return shcore::Value();
       },
       interactive);
+}
+
+REGISTER_HELP_FUNCTION(describe, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_DESCRIBE, R"*(
+Describe the structure of the ReplicaSet.
+
+@returns A JSON object describing the structure of the ReplicaSet.
+
+This function describes the structure of the ReplicaSet including all
+its Instances.
+
+The returned JSON object contains the following attributes:
+
+@li name: the ReplicaSet name
+@li topology: a list of dictionaries describing each instance belonging to
+the ReplicaSet.
+
+Each instance dictionary contains the following attributes:
+
+@li address: the instance address in the form of host:port
+@li label: the instance name identifier
+@li instanceRole: the instance role (either "PRIMARY" or "REPLICA")
+)*");
+
+/**
+ * $(REPLICASET_DESCRIBE_BRIEF)
+ *
+ * $(REPLICASET_DESCRIBE)
+ */
+#if DOXYGEN_JS
+Dictionary ReplicaSet::describe() {}
+#elif DOXYGEN_PY
+dict ReplicaSet::describe() {}
+#endif
+
+shcore::Value ReplicaSet::describe() {
+  assert_valid("describe");
+
+  return execute_with_pool([&]() { return impl()->describe(); }, false);
 }
 
 REGISTER_HELP_FUNCTION(status, ReplicaSet);
@@ -617,8 +653,7 @@ repaired or removed from the replicaset for the fail over to be possible.
 
 For a safe switchover to be possible, all replicaset instances must be reachable
 from the shell and have consistent transaction sets. If the PRIMARY is not
-available, a forced failover must be performed instead, using
-<<<forcePrimaryInstance>>>().
+available, a failover must be performed instead, using <<<forcePrimaryInstance>>>().
 
 <b>Options</b>
 
@@ -666,7 +701,7 @@ suitable instance will be selected automatically.
 @param options Dictionary with additional options.
 @returns Nothing
 
-This command will perform a forced failover of the PRIMARY of a replicaset
+This command will perform a failover of the PRIMARY of a replicaset
 in disaster scenarios where the current PRIMARY is unavailable and cannot be
 restored. If given, the target instance will be promoted to a PRIMARY, while
 other reachable SECONDARY instances will be switched to the new PRIMARY. The
@@ -675,14 +710,14 @@ instances, otherwise the operation will fail. If a target instance is not given
 (or is null), the most up-to-date instance will be automatically selected and
 promoted.
 
-After a forced failover, the old PRIMARY will be considered invalid by
+After a failover, the old PRIMARY will be considered invalid by
 the new PRIMARY and can no longer be part of the replicaset. If the instance
 is still usable, it must be removed from the replicaset and re-added as a
 new instance. If there were any SECONDARY instances that could not be
 switched to the new PRIMARY during the failover, they will also be considered
 invalid.
 
-@attention a forced failover is a potentially destructive action and should
+@attention a failover is a potentially destructive action and should
 only be used as a last resort measure.
 
 Data loss is possible after a failover, because the old PRIMARY may
@@ -694,7 +729,7 @@ from the promoted clusters.
 Recovering or re-conciliating diverged transaction sets requires
 manual intervention and may some times not be possible, even if the failed
 MySQL servers can be recovered. In many cases, the fastest and simplest
-way to recover from a disaster that required a forced failover is by
+way to recover from a disaster that required a failover is by
 discarding such diverged transactions and re-provisioning a new instance
 from the newly promoted PRIMARY.
 
@@ -734,9 +769,99 @@ void ReplicaSet::force_primary_instance(
         impl()->force_primary_instance(instance_def, options->timeout(),
                                        options->invalidate_instances,
                                        options->dry_run);
-        return shcore::Value();
       },
       false);
+}
+
+REGISTER_HELP_FUNCTION(dissolve, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_DISSOLVE, R"*(
+Dissolves the ReplicaSet.
+
+@param options Dictionary with options for the operation.
+@returns Nothing
+
+This function stops and deletes asynchronous replication channels and
+unregisters all members from the ReplicaSet metadata.
+
+It keeps all the user's data intact.
+
+<b>Options</b>
+
+The options dictionary may contain the following attributes:
+
+@li force: set to true to confirm that the dissolve operation must
+be executed, even if some members of the ReplicaSet cannot be reached
+or the timeout was reached when waiting for members to catch up with
+replication changes. By default, set to false.
+@li timeout: maximum number of seconds to wait for pending transactions
+to be applied in each reachable instance of the ReplicaSet (default
+value is retrieved from the 'dba.gtidWaitTimeout' shell option).
+
+The force option (set to true) must only be used to dissolve a ReplicaSet
+with instances that are permanently not available (no longer reachable)
+or never to be reused again in a ReplicaSet. This allows a ReplicaSet to be
+dissolved and remove it from the metadata, including instances than can no
+longer be recovered. Otherwise, the instances must be brought back ONLINE
+and the ReplicaSet dissolved without the force option to avoid errors
+trying to reuse the instances and add them back to a ReplicaSet.
+)*");
+
+/**
+ * $(REPLICASET_DISSOLVE_BRIEF)
+ *
+ * $(REPLICASET_DISSOLVE)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::dissolve(Dictionary options) {}
+#elif DOXYGEN_PY
+None ReplicaSet::dissolve(dict options) {}
+#endif
+
+void ReplicaSet::dissolve(
+    const shcore::Option_pack_ref<replicaset::Dissolve_options> &options) {
+  assert_valid("dissolve");
+
+  execute_with_pool([this, &options]() { impl()->dissolve(*options); }, false);
+}
+
+REGISTER_HELP_FUNCTION(rescan, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_RESCAN, R"*(
+Rescans the ReplicaSet.
+
+@param options Dictionary with options for the operation.
+@returns Nothing
+
+This function re-scans the ReplicaSet for new (already part of the replication
+topology but not managed in the ReplicaSet) and obsolete (no longer part of the
+topology) replication members/instances, as well as change to the instances
+configurations.
+
+<b>Options</b>
+
+The options dictionary may contain the following attributes:
+
+@li addUnmanaged: if true, all newly discovered instances will be automatically
+added to the metadata. Defaults to false.
+@li removeObsolete: if true, all obsolete instances will be automatically
+removed from the metadata. Defaults to false.
+)*");
+
+/**
+ * $(REPLICASET_RESCAN_BRIEF)
+ *
+ * $(REPLICASET_RESCAN)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::rescan(Dictionary options) {}
+#elif DOXYGEN_PY
+None ReplicaSet::rescan(dict options) {}
+#endif
+
+void ReplicaSet::rescan(
+    const shcore::Option_pack_ref<replicaset::Rescan_options> &options) {
+  assert_valid("rescan");
+
+  execute_with_pool([this, &options]() { impl()->rescan(*options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, ReplicaSet);
@@ -780,7 +905,6 @@ String ReplicaSet::removeRouterMetadata(RouterDef routerDef) {}
 str ReplicaSet::remove_router_metadata(RouterDef routerDef) {}
 #endif
 void ReplicaSet::remove_router_metadata(const std::string &router_def) {
-  // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
   return execute_with_pool(
@@ -916,7 +1040,6 @@ str ReplicaSet::options() {}
 #endif
 
 shcore::Value ReplicaSet::options() {
-  // Throw an error if the replicaset is invalid
   assert_valid("options");
 
   return execute_with_pool([&]() { return impl()->options(); }, false);

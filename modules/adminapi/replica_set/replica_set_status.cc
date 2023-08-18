@@ -49,8 +49,8 @@ void instance_diagnostics(shcore::Dictionary_t status,
   // invalidated member
   if (server.invalidated) {
     issues->push_back(
-        shcore::Value("WARNING: Instance was INVALIDATED and must be removed "
-                      "from the replicaset."));
+        shcore::Value("WARNING: Instance was INVALIDATED and must be rejoined "
+                      "or removed from the replicaset."));
   }
 
   // PRIMARY that's SRO

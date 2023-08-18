@@ -106,21 +106,19 @@ void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance) {
 }
 
 void get_lock(const mysqlshdk::mysql::IInstance &instance,
-              const std::string &name_space, const std::string &lock_name,
+              std::string_view name_space, std::string_view lock_name,
               Lock_mode lock_mode, unsigned int timeout) {
   shcore::sqlstring stmt;
   if (lock_mode == Lock_mode::EXCLUSIVE) {
-    stmt = shcore::sqlstring("SELECT service_get_write_locks(?, ?, ?)", 0);
+    stmt = "SELECT service_get_write_locks(?, ?, ?)"_sql;
   } else if (lock_mode == Lock_mode::SHARED) {
-    stmt = shcore::sqlstring("SELECT service_get_read_locks(?, ?, ?)", 0);
+    stmt = "SELECT service_get_read_locks(?, ?, ?)"_sql;
   } else {
     throw shcore::Exception::logic_error("Invalid lock mode for get_lock(): " +
                                          to_string(lock_mode));
   }
-  stmt << name_space;
-  stmt << lock_name;
-  stmt << timeout;
-  stmt.done();
+
+  (stmt << name_space << lock_name << timeout).done();
 
   // NOTE: Need to fetch the results (row) from the query otherwise the  error
   // "Service lock wait timeout exceeded." is not thrown.
@@ -128,10 +126,9 @@ void get_lock(const mysqlshdk::mysql::IInstance &instance,
 }
 
 void release_lock(const mysqlshdk::mysql::IInstance &instance,
-                  const std::string &name_space) {
-  shcore::sqlstring stmt =
-      shcore::sqlstring("SELECT service_release_locks(?)", 0);
-  stmt << name_space;
+                  std::string_view name_space) {
+  auto stmt = ("SELECT service_release_locks(?)"_sql << name_space);
+
   stmt.done();
   instance.query(stmt)->fetch_one();
 }

@@ -50,7 +50,7 @@ cluster.help("disconnect")
 cluster.help("dissolve")
 
 //@ Dissolve, \? [USE:Dissolve]
-\? dissolve
+\? cluster.dissolve
 
 //@ Force Quorum Using Partition Of
 cluster.help("forceQuorumUsingPartitionOf")
@@ -135,7 +135,7 @@ cluster.help("setupRouterAccount")
 cluster.help("rescan")
 
 //@ Rescan, \? [USE:Rescan]
-\? rescan
+\? cluster.rescan
 
 //@ Status
 cluster.help("status")

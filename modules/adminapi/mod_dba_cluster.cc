@@ -516,9 +516,6 @@ void Cluster::remove_instance(
     instance_def.set_password(*(options->password));
   }
 
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("removeInstance");
-
   return execute_with_pool(
       [&]() {
         // Remove the Instance from the Cluster
@@ -562,9 +559,9 @@ Each instance dictionary contains the following attributes:
  * $(CLUSTER_DESCRIBE)
  */
 #if DOXYGEN_JS
-String Cluster::describe() {}
+Dictionary Cluster::describe() {}
 #elif DOXYGEN_PY
-str Cluster::describe() {}
+dict Cluster::describe() {}
 #endif
 
 shcore::Value Cluster::describe(void) {
@@ -792,11 +789,11 @@ The options dictionary may contain the following attributes:
 
 @li addInstances: List with the connection data of the new active instances to
 add to the metadata, or "auto" to automatically add missing instances to the
-metadata.
+metadata. Deprecated.
 ${OPT_INTERACTIVE}
 @li removeInstances: List with the connection data of the obsolete instances to
 remove from the metadata, or "auto" to automatically remove obsolete instances
-from the metadata.
+from the metadata. Deprecated.
 @li updateTopologyMode: boolean value used to indicate if the topology mode
 (single-primary or multi-primary) in the metadata should be updated (true) or
 not (false) to match the one being used by the cluster. By default, the
@@ -807,6 +804,12 @@ communication protocol to the highest version possible.
 generate and set a value for Group Replication View Change UUID in the whole
 Cluster. Required for InnoDB ClusterSet usage (if running MySQL version lower
 than 8.3.0).
+@li addUnmanaged: set to true to automatically add newly discovered instances,
+i.e. already part of the replication topology but not managed in the Cluster,
+to the metadata. Defaults to false.
+@li removeObsolete: set to true to automatically remove all obsolete instances,
+i.e. no longer part of the replication topology, from the metadata. Defaults
+to false.
 
 The value for addInstances and removeInstances is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept
@@ -817,6 +820,9 @@ without having to explicitly specify them.
 @attention The updateTopologyMode option will be removed in a future release.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The addInstances and removeInstances options will be removed in a
+future release. Use addUnmanaged and removeObsolete instead.
 )*");
 
 /**

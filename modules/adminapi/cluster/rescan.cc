@@ -223,7 +223,7 @@ void Rescan::prepare() {
                                     Precondition_checker::k_min_cs_version;
 
   // Validate the usage of the option 'updateViewChangeUuid'
-  if (m_options.update_view_change_uuid.get_safe() &&
+  if (m_options.update_view_change_uuid.value_or(false) &&
       !m_is_view_change_uuid_supported) {
     throw shcore::Exception::argument_error(
         "The Cluster cannot be configured to use "
@@ -1052,7 +1052,7 @@ shcore::Value Rescan::execute() {
         "group_replication_view_change_uuid", "");
 
     if (view_change_uuid == "AUTOMATIC") {
-      if (m_options.update_view_change_uuid.is_null() &&
+      if (!m_options.update_view_change_uuid.has_value() &&
           m_cluster->get_lowest_instance_version() <
               k_view_change_uuid_deprecated) {
         console->print_note(
@@ -1073,7 +1073,7 @@ shcore::Value Rescan::execute() {
               "Use the 'updateViewChangeUuid' option to generate and "
               "configure a value for the Cluster.");
         }
-      } else if (m_options.update_view_change_uuid.get_safe()) {
+      } else if (m_options.update_view_change_uuid.value_or(false)) {
         ensure_view_change_uuid_set();
       }
     } else {

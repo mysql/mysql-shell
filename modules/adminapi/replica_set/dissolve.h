@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,24 +21,28 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
-#define MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
+#ifndef MODULES_ADMINAPI_REPLICA_SET_DISSOLVE_H_
+#define MODULES_ADMINAPI_REPLICA_SET_DISSOLVE_H_
 
-#include "modules/adminapi/common/global_topology.h"
+#include <chrono>
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
+class Replica_set_impl;
+}
 
-struct Status_options {
-  bool show_members = false;
-  int show_details = 0;
+namespace mysqlsh::dba::replicaset {
+
+class Dissolve {
+ protected:
+  Dissolve(Replica_set_impl &rset) noexcept : m_rset(rset) {}
+
+  void do_run(bool force, std::chrono::seconds timeout);
+  static constexpr bool supports_undo() noexcept { return false; }
+
+ private:
+  Replica_set_impl &m_rset;
 };
 
-shcore::Dictionary_t replica_set_status(
-    const topology::Server_global_topology &topology,
-    const Status_options &opts);
+}  // namespace mysqlsh::dba::replicaset
 
-}  // namespace dba
-}  // namespace mysqlsh
-
-#endif  // MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
+#endif  // MODULES_ADMINAPI_REPLICA_SET_DISSOLVE_H_

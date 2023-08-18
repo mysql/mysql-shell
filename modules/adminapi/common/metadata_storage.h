@@ -234,7 +234,7 @@ class MetadataStorage {
   Instance_id insert_instance(const Instance_metadata &instance,
                               Transaction_undo *undo = nullptr);
   void update_instance(const Instance_metadata &instance);
-  void remove_instance(const std::string &instance_address,
+  void remove_instance(std::string_view instance_address,
                        Transaction_undo *undo = nullptr);
   void drop_cluster(const std::string &cluster_name,
                     Transaction_undo *undo = nullptr);
@@ -336,6 +336,10 @@ class MetadataStorage {
                                     std::string_view recovery_account_user,
                                     std::string_view recovery_account_host,
                                     Transaction_undo *undo = nullptr) const;
+
+  void update_instance_uuid(Cluster_id cluster_id, Instance_id instance_id,
+                            std::string_view instance_uuid);
+
   /**
    * Fetch from the metadata the recovery account being used by the instance
    * with the given uuid.

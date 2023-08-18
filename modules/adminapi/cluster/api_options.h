@@ -89,16 +89,20 @@ struct Options_options {
 
 struct Rescan_options : public Interactive_option {
   static const shcore::Option_pack_def<Rescan_options> &options();
+  void set_bool_option(const std::string &option, bool value);
   void set_list_option(const std::string &option, const shcore::Value &value);
   void set_update_topology_mode(bool value);
 
-  mysqlshdk::null_bool update_topology_mode;
+  std::optional<bool> update_topology_mode;
   std::vector<mysqlshdk::db::Connection_options> add_instances_list;
   std::vector<mysqlshdk::db::Connection_options> remove_instances_list;
   bool auto_add = false;
   bool auto_remove = false;
   bool upgrade_comm_protocol = false;
-  mysqlshdk::null_bool update_view_change_uuid;
+  std::optional<bool> update_view_change_uuid;
+
+ private:
+  std::optional<bool> m_used_deprecated;
 };
 
 struct Set_primary_instance_options {

@@ -188,7 +188,7 @@
 ||The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object.
 
 //@# add while PRIMARY down (should fail)
-|Cluster change operations will not be possible unless the PRIMARY can be reached.|
+|ReplicaSet change operations will not be possible unless the PRIMARY can be reached.|
 ||PRIMARY instance is unavailable (MYSQLSH 51118)
 
 //@# add while some secondary down

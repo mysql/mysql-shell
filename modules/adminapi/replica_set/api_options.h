@@ -35,9 +35,7 @@
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace replicaset {
+namespace mysqlsh::dba::replicaset {
 
 struct Wait_recovery_option {
   static const shcore::Option_pack_def<Wait_recovery_option> &options();
@@ -110,7 +108,25 @@ struct Force_primary_instance_options : public Set_primary_instance_options {
   bool invalidate_instances = false;
 };
 
-}  // namespace replicaset
-}  // namespace dba
-}  // namespace mysqlsh
+struct Dissolve_options {
+  static const shcore::Option_pack_def<Dissolve_options> &options();
+
+  bool force{false};
+
+  std::chrono::seconds timeout() const;
+  void set_timeout(int value);
+
+ private:
+  std::optional<std::chrono::seconds> m_timeout;
+};
+
+struct Rescan_options {
+  static const shcore::Option_pack_def<Rescan_options> &options();
+
+  bool add_unmanaged = false;
+  bool remove_obsolete = false;
+};
+
+}  // namespace mysqlsh::dba::replicaset
+
 #endif  // MODULES_ADMINAPI_REPLICA_SET_API_OPTIONS_H_

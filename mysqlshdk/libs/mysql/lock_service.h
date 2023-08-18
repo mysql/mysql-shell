@@ -188,7 +188,7 @@ void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance);
  *         length greater than 64 characters).
  */
 void get_lock(const mysqlshdk::mysql::IInstance &instance,
-              const std::string &name_space, const std::string &lock_name,
+              std::string_view name_space, std::string_view lock_name,
               Lock_mode lock_mode, unsigned int timeout = 0);
 
 /**
@@ -203,7 +203,7 @@ void get_lock(const mysqlshdk::mysql::IInstance &instance,
  *         greater than 64 characters).
  */
 void release_lock(const mysqlshdk::mysql::IInstance &instance,
-                  const std::string &name_space);
+                  std::string_view name_space);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

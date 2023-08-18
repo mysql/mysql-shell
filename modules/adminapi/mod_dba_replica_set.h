@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+
 #include "modules/adminapi/base_cluster.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/replica_set/api_options.h"
@@ -55,7 +56,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined addInstance(String instance, Dictionary options);
   Dictionary describe();
   Undefined disconnect();
-  Undefined dissolve(Dictionary options);
   String getName();
   Dictionary listRouters(Dictionary options);
   Undefined setRoutingOption(String option, String value);
@@ -66,6 +66,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Dictionary status(Dictionary options);
   Undefined setPrimaryInstance(String instance, Dictionary options);
   Undefined forcePrimaryInstance(String instance, Dictionary options);
+  Undefined dissolve(Dictionary options);
+  Undefined rescan(Dictionary options);
   Boolean removeRouterMetadata(RouterDef routerDef);
   Undefined setupAdminAccount(String user, Dictionary options);
   Undefined setupRouterAccount(String user, Dictionary options);
@@ -77,7 +79,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None add_instance(str instance, dict options);
   dict describe();
   None disconnect();
-  None dissolve(dict options);
   str get_name();
   dict list_routers(dict options);
   None set_routing_option(str option, str value);
@@ -88,6 +89,8 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   dict status(dict options);
   None set_primary_instance(str instance, dict options);
   None force_primary_instance(str instance, dict options);
+  None dissolve(dict options);
+  None rescan(dict options);
   bool remove_router_metadata(RouterDef routerDef);
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
@@ -123,9 +126,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
           &options);
 
   shcore::Value describe(void);
+
   shcore::Value status(
       const shcore::Option_pack_ref<replicaset::Status_options> &options);
-  void dissolve(const shcore::Dictionary_t &options);
 
   void disconnect();
 
@@ -138,6 +141,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
       const std::string &instance_def,
       const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
           &options);
+
+  void dissolve(
+      const shcore::Option_pack_ref<replicaset::Dissolve_options> &options);
+
+  void rescan(
+      const shcore::Option_pack_ref<replicaset::Rescan_options> &options);
 
   void remove_router_metadata(const std::string &router_def);
 

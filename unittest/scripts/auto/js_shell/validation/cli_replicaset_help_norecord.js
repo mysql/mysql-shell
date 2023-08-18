@@ -4,6 +4,12 @@ The following operations are available at 'rs':
    add-instance
       Adds an instance to the replicaset.
 
+   describe
+      Describe the structure of the ReplicaSet.
+
+   dissolve
+      Dissolves the ReplicaSet.
+
    force-primary-instance
       Performs a failover in a replicaset with an unavailable PRIMARY.
 
@@ -21,6 +27,9 @@ The following operations are available at 'rs':
 
    remove-router-metadata
       Removes metadata for a router instance.
+
+   rescan
+      Rescans the ReplicaSet.
 
    routing-options
       Lists the ReplicaSet Routers configuration options.

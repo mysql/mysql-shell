@@ -22,24 +22,25 @@
  */
 #include "modules/adminapi/cluster/api_options.h"
 
-#include <cinttypes>
-#include <utility>
 #include <vector>
 
 #include "adminapi/common/api_options.h"
 #include "adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "shellcore/shell_options.h"
-#include "utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
 namespace cluster {
+
+namespace {
+void throw_rescan_mixing_exception() {
+  throw shcore::Exception::argument_error(shcore::str_format(
+      "Options '%s' and '%s' are mutually exclusive with deprecated options "
+      "'%s' and '%s'. Mixing either one from both groups isn't allowed.",
+      kAddUnmanaged, kRemoveObsolete, kAddInstances, kRemoveInstances));
+}
+}  // namespace
 
 const shcore::Option_pack_def<Add_instance_options>
     &Add_instance_options::options() {
@@ -143,6 +144,8 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
                     &Rescan_options::set_update_topology_mode)
           .optional(kAddInstances, &Rescan_options::set_list_option)
           .optional(kRemoveInstances, &Rescan_options::set_list_option)
+          .optional(kAddUnmanaged, &Rescan_options::set_bool_option)
+          .optional(kRemoveObsolete, &Rescan_options::set_bool_option)
           .optional(kUpgradeCommProtocol,
                     &Rescan_options::upgrade_comm_protocol)
           .optional(kUpdateViewChangeUuid,
@@ -160,8 +163,32 @@ void Rescan_options::set_update_topology_mode(bool /*value*/) {
   console->print_info();
 }
 
+void Rescan_options::set_bool_option(const std::string &option, bool value) {
+  if (m_used_deprecated.has_value() && !m_used_deprecated.value())
+    throw_rescan_mixing_exception();
+
+  m_used_deprecated = true;
+
+  if (option == kAddUnmanaged)
+    auto_add = value;
+  else
+    auto_remove = value;
+}
+
 void Rescan_options::set_list_option(const std::string &option,
                                      const shcore::Value &value) {
+  if (m_used_deprecated.has_value() && m_used_deprecated.value())
+    throw_rescan_mixing_exception();
+
+  m_used_deprecated = false;
+
+  auto console = mysqlsh::current_console();
+  console->print_info(shcore::str_format(
+      "The '%s' and '%s' options are deprecated. Please use '%s' and/or '%s' "
+      "instead.",
+      kAddInstances, kRemoveInstances, kAddUnmanaged, kRemoveObsolete));
+  console->print_info();
+
   std::vector<mysqlshdk::db::Connection_options> *instances_list;
 
   // Selects the target list

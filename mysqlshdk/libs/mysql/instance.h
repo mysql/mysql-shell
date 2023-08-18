@@ -346,14 +346,14 @@ class Set_variable final {
     }
   }
 
-  void restore_nothrow() {
+  void restore_nothrow() noexcept {
     try {
       restore();
     } catch (...) {
     }
   }
 
-  ~Set_variable() { restore_nothrow(); }
+  ~Set_variable() noexcept { restore_nothrow(); }
 
  private:
   const IInstance &m_instance;

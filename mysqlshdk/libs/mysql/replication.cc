@@ -618,7 +618,7 @@ std::vector<Slave_host> get_slaves(
     slaves.push_back(std::move(host));
   }
 
-  // Sort by host/name to ensure deterministic output
+  // Sort by host/port to ensure deterministic output
   std::sort(slaves.begin(), slaves.end(),
             [](const Slave_host &a, const Slave_host &b) {
               return a.host < b.host || (a.host == b.host && a.port < b.port);

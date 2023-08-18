@@ -332,12 +332,22 @@ OPTIONS
 --addInstances[:<type>]=<value>
             List with the connection data of the new active instances to add to
             the metadata, or "auto" to automatically add missing instances to
-            the metadata.
+            the metadata. Deprecated.
 
 --removeInstances[:<type>]=<value>
             List with the connection data of the obsolete instances to remove
             from the metadata, or "auto" to automatically remove obsolete
-            instances from the metadata.
+            instances from the metadata. Deprecated.
+
+--addUnmanaged=<bool>
+            Set to true to automatically add newly discovered instances, i.e.
+            already part of the replication topology but not managed in the
+            Cluster, to the metadata. Defaults to false.
+
+--removeObsolete=<bool>
+            Set to true to automatically remove all obsolete instances, i.e. no
+            longer part of the replication topology, from the metadata.
+            Defaults to false.
 
 --upgradeCommProtocol=<bool>
             Boolean. Set to true to upgrade the Group Replication communication

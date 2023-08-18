@@ -22,10 +22,10 @@
 ||group_replication active (MYSQLSH 51150)
 
 //@# adopt with existing replicaset (should fail)
-||Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
+||Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it or dba.dropMetadataSchema() to drop the metadata if the replicaset was dissolved. (MYSQLSH 51306)
 
 //@# indirect adopt with existing replicaset (should fail)
-||Unable to create replicaset. The instance '<<<__address2>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
+||Unable to create replicaset. The instance '<<<__address2>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it or dba.dropMetadataSchema() to drop the metadata if the replicaset was dissolved. (MYSQLSH 51306)
 
 //@# adopt with insufficient privs (should fail)
 ||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)

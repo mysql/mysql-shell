@@ -193,9 +193,9 @@ dryRun finished.
 
 //@# primary is down (should fail)
 ||The replicaset object is disconnected.
-|ERROR: Unable to connect to the PRIMARY of the ReplicaSet myrs: MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port1)>>>'|
-|Cluster change operations will not be possible unless the PRIMARY can be reached.|
-|If the PRIMARY is unavailable, you must either repair it or perform a forced failover.|
+|ERROR: Unable to connect to the PRIMARY of the ReplicaSet 'myrs': MYSQLSH 51118: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port1)>>>'|
+|ReplicaSet change operations will not be possible unless the PRIMARY can be reached.|
+|If the PRIMARY is unavailable, you must either repair it or perform a failover.|
 |See \help forcePrimaryInstance for more information.|
 ||PRIMARY instance is unavailable (MYSQLSH 51118)
 
