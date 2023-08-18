@@ -956,14 +956,14 @@ DESCRIPTION
       output_url argument for the dump operation. i.e. the following is a
       bucket PAR to create dump at the root folder of the 'test' bucket:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
       The PAR was created using 'dump' as prefix:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
@@ -1568,14 +1568,14 @@ DESCRIPTION
       output_url argument for the dump operation. i.e. the following is a
       bucket PAR to create dump at the root folder of the 'test' bucket:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
       The PAR was created using 'dump' as prefix:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
@@ -2174,14 +2174,14 @@ DESCRIPTION
       output_url argument for the dump operation. i.e. the following is a
       bucket PAR to create dump at the root folder of the 'test' bucket:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
       The PAR was created using 'dump' as prefix:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
@@ -2563,14 +2563,14 @@ DESCRIPTION
       output_url argument for the dump operation. i.e. the following is a
       bucket PAR to create dump at the root folder of the 'test' bucket:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
 
       When using a prefix PAR, the output_url argument should contain the PAR
       URL itself and the prefix used to generate it. i.e. the following is a
       prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
       The PAR was created using 'dump' as prefix:
 
-          https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
@@ -3455,11 +3455,9 @@ DESCRIPTION
 
       Dump Location: root of 'test' bucket
 
-      util.loadDump(
-        'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/', {
-          'progressFile': 'load_progress.txt'
-        }
-      )
+      uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/'
+
+      util.loadDump(uri, { 'progressFile': 'load_progress.txt' })
 
       Given a dump located at some folder within a bucket and a PAR created for
       the given folder, the dump can be loaded by providing the PAR and the
@@ -3470,11 +3468,10 @@ DESCRIPTION
       Dump Location: folder 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
 
-      util.loadDump(
-        'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/', {
-          'progressFile': 'load_progress.txt'
-        }
-      )
+      uri =
+      'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/'
+
+      util.loadDump(uri, { 'progressFile': 'load_progress.txt' })
 
       In both of the above cases the load is done using pure HTTP GET requests
       and the progressFile option is mandatory.
@@ -3497,8 +3494,7 @@ DESCRIPTION
 
       Dump Location: root of 'test' bucket:
 
-      util.loadDump(
+      uri =
+      'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/@.manifest.json'
 
-      'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
-        { 'progressFile': 'load_progress.txt' }
-      )
+      util.loadDump(uri, { 'progressFile': 'load_progress.txt' })

@@ -192,8 +192,8 @@ std::unique_ptr<storage::IDirectory> General_par_config::directory(
     const std::string &) const {
   throw std::invalid_argument(
       "Invalid PAR, expected: "
-      "https://objectstorage.<region>.oraclecloud.com/p/<secret>/n/"
-      "<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]");
+      "https://<namespace>.objectstorage.<region>.oci.customer-oci.com/p/"
+      "<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]");
 }
 
 }  // namespace oci

@@ -57,14 +57,13 @@ Oci_bucket_config::Oci_bucket_config(const Oci_bucket_options &options)
 
   const auto &config = oci_setup.get_cfg();
 
-  m_host = "objectstorage." + *config.get(m_config_profile, "region") +
-           ".oraclecloud.com";
-  m_endpoint = "https://" + m_host;
-
+  m_region = *config.get(m_config_profile, "region");
   m_tenancy_id = *config.get(m_config_profile, "tenancy");
   m_user = *config.get(m_config_profile, "user");
   m_fingerprint = *config.get(m_config_profile, "fingerprint");
   m_key_file = *config.get(m_config_profile, "key_file");
+
+  configure_endpoint();
 
   load_key(&oci_setup);
   fetch_namespace();
@@ -121,6 +120,8 @@ void Oci_bucket_config::fetch_namespace() {
     }
 
     m_namespace = tenancy_name->second;
+    // namespace was missing, need to update the endpoint
+    configure_endpoint();
   }
 }
 
@@ -167,6 +168,16 @@ const std::string &Oci_bucket_config::hash() const {
 
 std::string Oci_bucket_config::describe_self() const {
   return "OCI ObjectStorage bucket=" + m_container_name;
+}
+
+void Oci_bucket_config::configure_endpoint() {
+  m_host = "objectstorage." + m_region + ".oci.customer-oci.com";
+
+  if (!m_namespace.empty()) {
+    m_host = m_namespace + '.' + m_host;
+  }
+
+  m_endpoint = "https://" + m_host;
 }
 
 }  // namespace oci

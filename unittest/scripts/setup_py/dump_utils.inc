@@ -2,11 +2,6 @@ import json
 import re
 import urllib.parse
 
-# Sample PAR URLs to test option conflict with the supported object storages (Oci/Aws/Azure)
-sample_bucket_par="https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/"
-sample_prefix_par="https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/prefix/"
-
-
 def md5_table(session, schema, table, where = "", partitions = []):
     columns = []
     has_pri = 0 != session.run_sql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetch_one()[0]
