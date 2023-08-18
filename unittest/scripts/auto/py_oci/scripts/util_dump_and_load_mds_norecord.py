@@ -50,7 +50,7 @@ WIPE_OUTPUT()
 shell.connect(MDS_URI)
 session.run_sql("drop schema if exists mysqlaas_compat")
 util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE})
-EXPECT_STDERR_CONTAINS("Util.load_dump: Dump is not MDS compatible")
+EXPECT_STDERR_CONTAINS("Util.load_dump: Dump is not compatible with MySQL HeatWave Service")
 WIPE_OUTPUT()
 
 #@<> Dump mysqlaas_compat to OS with MDS compatibility

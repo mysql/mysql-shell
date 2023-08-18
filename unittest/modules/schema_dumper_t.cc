@@ -943,7 +943,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
        "Table `mysqlaas_compat`.`blackhole_tbl1` uses unsupported storage "
        "engine BLACKHOLE",
        "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
-       "which is required for High Availability in MDS"});
+       "which is required for High Availability in MySQL HeatWave Service"});
 
   EXPECT_TABLE("myisam_tbl2",
                {"Table `mysqlaas_compat`.`myisam_tbl2` uses unsupported "

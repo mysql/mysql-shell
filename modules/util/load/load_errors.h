@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,7 +70,8 @@
   "Loading dumps is only supported in MySQL 5.7 or newer"
 
 #define SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE 53010
-#define SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE_MSG "Dump is not MDS compatible"
+#define SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE_MSG \
+  "Dump is not compatible with MySQL HeatWave Service"
 
 #define SHERR_LOAD_SERVER_VERSION_MISMATCH 53011
 #define SHERR_LOAD_SERVER_VERSION_MISMATCH_MSG "MySQL version mismatch"

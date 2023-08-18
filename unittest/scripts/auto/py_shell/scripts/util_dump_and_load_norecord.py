@@ -692,15 +692,15 @@ testutil.dbug_set("+d,dump_loader_force_mds")
 
 # loading non-MDS dump into MDS should fail
 
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Error: Shell Error (53010): Util.load_dump: Dump is not MDS compatible")
-EXPECT_STDOUT_CONTAINS("ERROR: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. Please enable the 'ocimds' option when dumping your database. Alternatively, enable the 'ignoreVersion' option to load anyway.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Error: Shell Error (53010): Util.load_dump: Dump is not compatible with MySQL HeatWave Service")
+EXPECT_STDOUT_CONTAINS("ERROR: Destination is a MySQL HeatWave Service DB System instance but the dump was produced without the compatibility option. Please enable the 'ocimds' option when dumping your database. Alternatively, enable the 'ignoreVersion' option to load anyway.")
 
 # loading non-MDS dump into MDS with the 'ignoreVersion' option enabled should succeed
 wipeout_server(session2)
 WIPE_OUTPUT()
 
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "Loading with 'ignoreVersion' should succeed")
-EXPECT_STDOUT_CONTAINS("WARNING: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. The 'ignoreVersion' option is enabled, so loading anyway. If this operation fails, create the dump once again with the 'ocimds' option enabled.")
+EXPECT_STDOUT_CONTAINS("WARNING: Destination is a MySQL HeatWave Service DB System instance but the dump was produced without the compatibility option. The 'ignoreVersion' option is enabled, so loading anyway. If this operation fails, create the dump once again with the 'ocimds' option enabled.")
 
 testutil.dbug_set("")
 
@@ -817,7 +817,7 @@ EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True }, False, "The 'createIn
 testutil.dbug_set("+d,dump_loader_force_mds")
 
 EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": False, "ignoreVersion": True }, False)
-EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to false, this dump cannot be loaded into an MySQL Database Service instance with High Availability.")
+EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to false, this dump cannot be loaded into an MySQL HeatWave Service DB System instance with High Availability.")
 
 # all tables have primary keys, no warning
 EXPECT_PK(dump_just_pk_dir, { "createInvisiblePKs": False, "ignoreVersion": True }, False)
@@ -830,7 +830,7 @@ testutil.dbug_set("")
 testutil.dbug_set("+d,dump_loader_force_mds")
 
 EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, True)
-EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL Database Service instance with High Availability (at the time of the release of MySQL Shell 8.0.24) cannot be used with this dump.")
+EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL HeatWave Service DB System instance with High Availability (at the time of the release of MySQL Shell 8.0.24) cannot be used with this dump.")
 
 # all tables have primary keys, no warning
 EXPECT_PK(dump_just_pk_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, False)
