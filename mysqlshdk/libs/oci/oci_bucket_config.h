@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,10 +77,13 @@ class Oci_bucket_config
 
   void fetch_namespace();
 
+  void configure_endpoint();
+
   std::string m_label = "OCI-OS";
   std::string m_namespace;
   std::string m_host;
   std::string m_endpoint;
+  std::string m_region;
   std::string m_tenancy_id;
   std::string m_user;
   std::string m_fingerprint;

@@ -1223,11 +1223,9 @@ Example:
 @code
 Dump Location: root of 'test' bucket
 
-util.<<<loadDump>>>(
-  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/', {
-    'progressFile': 'load_progress.txt'
-  }
-)
+uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/'
+
+util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 @endcode
 
 Given a dump located at some folder within a bucket and a PAR created for the
@@ -1240,11 +1238,9 @@ Example:
 Dump Location: folder 'dump' at the 'test' bucket
 PAR created using the 'dump/' prefix.
 
-util.<<<loadDump>>>(
-  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/', {
-    'progressFile': 'load_progress.txt'
-  }
-)
+uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/'
+
+util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 @endcode
 
 In both of the above cases the load is done using pure HTTP GET requests and the
@@ -1267,10 +1263,9 @@ Example:
 @code
 Dump Location: root of 'test' bucket:
 
-util.<<<loadDump>>>(
-  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
-  { 'progressFile': 'load_progress.txt' }
-)
+uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/@.manifest.json'
+
+util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 @endcode
 )*");
 /**
@@ -1705,7 +1700,7 @@ argument for the dump operation. i.e. the following is a bucket PAR to create du
 the root folder of the 'test' bucket:
 <br>
 @code
-    https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/
+    https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
 @endcode
 
 When using a prefix PAR, the <b>output_url</b> argument should contain the PAR URL
@@ -1714,7 +1709,7 @@ create a dump at the 'dump' folder of the 'test' bucket. The PAR was created usi
 'dump' as prefix:
 <br>
 @code
-    https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/
+    https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
 @endcode
 
 Note that both the bucket and the prefix PAR URLs must end with a slash, otherwise

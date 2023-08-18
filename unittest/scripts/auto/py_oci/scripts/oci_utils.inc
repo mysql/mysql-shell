@@ -155,9 +155,9 @@ def create_par(namespace, bucket, access_type, name, time_expires, object_name =
     os_client = oci.object_storage.ObjectStorageClient(config)
     par = os_client.create_preauthenticated_request(namespace, bucket, details)
     if par.data.access_type.startswith("Any") and object_name is not None:
-        return "https://objectstorage.{}.oraclecloud.com{}{}".format(config["region"], par.data.access_uri,par.data.object_name)
+        return f"https://{namespace}.objectstorage.{config['region']}.oci.customer-oci.com{par.data.access_uri}{par.data.object_name}"
     else:
-        return "https://objectstorage.{}.oraclecloud.com{}".format(config["region"], par.data.access_uri)
+        return f"https://{namespace}.objectstorage.{config['region']}.oci.customer-oci.com{par.data.access_uri}"
 
 def put_object(namespace, bucket, name, content):
     config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))

@@ -135,7 +135,7 @@ EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}
 EXPECT_PAR_IS_SECRET()
 
 # BUG#32593125 - check if details of failed operation are logged
-EXPECT_SHELL_LOG_CONTAINS(f"Warning: Request failed: https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/ PUT read-only-progress.json (404 - Not Found)")
+EXPECT_SHELL_LOG_CONTAINS(f"Warning: Request failed: https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/ PUT read-only-progress.json (404 - Not Found)")
 EXPECT_SHELL_LOG_CONTAINS("Info: REQUEST HEADERS:")
 EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE HEADERS:")
 EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE BODY:")
@@ -191,7 +191,7 @@ delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#31606223 - read only, empty progress file
@@ -200,7 +200,7 @@ open("par-load-progress.json", "w").close()
 testutil.anycopy("par-load-progress.json", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://objectstorage.{config['region']}.oraclecloud.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), f"Error: Shell Error (54404): Util.load_dump: Failed to put object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/par-load-progress.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)")
 EXPECT_PAR_IS_SECRET()
 
 os.remove("par-load-progress.json")
