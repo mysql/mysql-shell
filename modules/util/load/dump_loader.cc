@@ -2024,7 +2024,7 @@ void Dump_loader::check_server_version() {
   mysqlshdk::mysql::Instance session(m_options.base_session());
 
   std::string msg = "Target is MySQL " + target_server.get_full();
-  if (mds) msg += " (MySQL Database Service)";
+  if (mds) msg += " (MySQL HeatWave Service)";
   msg += ". Dump was produced from MySQL " + source_server.get_full();
 
   console->print_info(msg);
@@ -2042,8 +2042,8 @@ void Dump_loader::check_server_version() {
 
   if (mds && !m_dump->mds_compatibility()) {
     msg =
-        "Destination is a MySQL Database Service instance but the dump was "
-        "produced without the compatibility option. ";
+        "Destination is a MySQL HeatWave Service DB System instance but the "
+        "dump was produced without the compatibility option. ";
 
     if (m_options.ignore_version()) {
       msg +=
@@ -2190,13 +2190,13 @@ void Dump_loader::check_tables_without_primary_key() {
 
     if (should_create_pks()) {
       msg +=
-          "true, Inbound Replication into an MySQL Database Service instance "
-          "with High Availability (at the time of the release of MySQL Shell "
-          "8.0.24) cannot be used with this dump.";
+          "true, Inbound Replication into an MySQL HeatWave Service DB System "
+          "instance with High Availability (at the time of the release of "
+          "MySQL Shell 8.0.24) cannot be used with this dump.";
     } else {
       msg +=
-          "false, this dump cannot be loaded into an MySQL Database Service "
-          "instance with High Availability.";
+          "false, this dump cannot be loaded into an MySQL HeatWave Service "
+          "DB System instance with High Availability.";
     }
 
     current_console()->print_warning(msg);

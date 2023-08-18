@@ -282,7 +282,7 @@ OPTIONS
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
@@ -481,7 +481,7 @@ OPTIONS
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
@@ -662,7 +662,7 @@ OPTIONS
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
@@ -844,11 +844,11 @@ OPTIONS
             Default: false.
 
 --ocimds=<bool>
-            Enable checks for compatibility with MySQL Database Service (MDS)
+            Enable checks for compatibility with MySQL HeatWave Service.
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
@@ -1077,11 +1077,11 @@ OPTIONS
             Default: false.
 
 --ocimds=<bool>
-            Enable checks for compatibility with MySQL Database Service (MDS)
+            Enable checks for compatibility with MySQL HeatWave Service.
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
@@ -1291,11 +1291,11 @@ OPTIONS
             Default: false.
 
 --ocimds=<bool>
-            Enable checks for compatibility with MySQL Database Service (MDS)
+            Enable checks for compatibility with MySQL HeatWave Service.
             Default: false.
 
 --compatibility=<str list>
-            Apply MySQL Database Service compatibility modifications when
+            Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants",
             "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",

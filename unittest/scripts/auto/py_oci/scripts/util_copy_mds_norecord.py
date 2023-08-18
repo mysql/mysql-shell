@@ -26,7 +26,7 @@ create_test_user(session)
 clean_instance(tgt_session)
 setup_session(__sandbox_uri1)
 
-EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MDS compatibility': Compatibility issues were found", "copy should throw")
+EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
 EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
 EXPECT_STDOUT_CONTAINS(f"User {test_user_account} is granted restricted privileges")
@@ -49,7 +49,7 @@ EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had SQL SECURIT
 clean_instance(tgt_session)
 setup_session(__sandbox_uri1)
 
-EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MDS compatibility': Compatibility issues were found", "copy should throw")
+EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
 EXPECT_STDOUT_CONTAINS("Database `sakila` had unsupported ENCRYPTION option commented out")
 EXPECT_STDOUT_NOT_CONTAINS(f"User {test_user_account} is granted restricted privileges")

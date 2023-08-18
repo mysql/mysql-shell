@@ -1557,9 +1557,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
       res.emplace_back(prefix + "this is ignored",
                        Issue::Status::FIXED_BY_IGNORE_MISSING_PKS);
     } else if (opt_mysqlaas) {
-      res.emplace_back(
-          prefix + "which is required for High Availability in MDS",
-          Issue::Status::USE_CREATE_OR_IGNORE_PKS);
+      res.emplace_back(prefix +
+                           "which is required for High Availability in MySQL "
+                           "HeatWave Service",
+                       Issue::Status::USE_CREATE_OR_IGNORE_PKS);
     }
   }
 
