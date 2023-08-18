@@ -2569,7 +2569,7 @@ void Dumper::validate_mds() const {
       "available version of MySQL Shell.");
 
   console->print_info(
-      "Checking for compatibility with MySQL Database Service " + version);
+      "Checking for compatibility with MySQL HeatWave Service " + version);
 
   if (!m_cache.server_version.is_8_0) {
     console->print_note("MySQL Server " +
@@ -2592,7 +2592,7 @@ void Dumper::validate_mds() const {
   config.total = [this]() { return m_total_objects; };
 
   m_current_stage = m_progress_thread.start_stage(
-      "Validating MDS compatibility", std::move(config));
+      "Validating MySQL HeatWave Service compatibility", std::move(config));
   shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
 
   const auto issues = [&status](const auto &memory) {
@@ -2636,21 +2636,21 @@ void Dumper::validate_mds() const {
     console->print_info();
     console->print_error("One or more tables without Primary Keys were found.");
     console->print_info(R"(
-       MySQL Database Service High Availability (MDS HA) requires Primary Keys to be present in all tables.
+       MySQL HeatWave Service High Availability (MySQL HeatWave Service HA) requires Primary Keys to be present in all tables.
        To continue with the dump you must do one of the following:
 
        * Create PRIMARY keys in all tables before dumping them.
          MySQL 8.0.23 supports the creation of invisible columns to allow creating Primary Key columns with no impact to applications. For more details, see https://dev.mysql.com/doc/refman/en/invisible-columns.html.
-         This is considered a best practice for both performance and usability and will work seamlessly with MDS.
+         This is considered a best practice for both performance and usability and will work seamlessly with MySQL HeatWave Service.
 
        * Add the "create_invisible_pks" to the "compatibility" option.
-         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MDS.
-         This will make it possible to enable HA in MDS without application impact.
-         However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MySQL HeatWave Service.
+         This will make it possible to enable HA in MySQL HeatWave Service without application impact.
+         However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
 
        * Add the "ignore_missing_pks" to the "compatibility" option.
          This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
-         It will not be possible to load the dump in an HA enabled MDS instance.
+         It will not be possible to load the dump in an HA enabled DB System instance.
 )");
   }
 
@@ -2660,7 +2660,7 @@ void Dumper::validate_mds() const {
         "One or more accounts with database level grants containing wildcard "
         "characters were found.");
     console->print_info(R"(
-      Loading these grants into an MDS instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
+      Loading these grants into a DB System instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
       To continue with the dump you must do one of the following:
 
       * Use the "excludeUsers" dump option to exclude problematic accounts.
@@ -2675,7 +2675,7 @@ void Dumper::validate_mds() const {
 
   if (status.is_set(Issue_status::ERROR)) {
     console->print_info(
-        "Compatibility issues with MySQL Database Service " + version +
+        "Compatibility issues with MySQL HeatWave Service " + version +
         " were found. Please use the 'compatibility' option to apply "
         "compatibility adaptations to the dumped DDL.");
     THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
@@ -2690,20 +2690,20 @@ void Dumper::validate_mds() const {
   if (status.is_set(Issue_status::FIXED_CREATE_PKS)) {
     console->print_info(R"(
       Missing Primary Keys will be created automatically when this dump is loaded.
-      This will make it possible to enable High Availability in MySQL Database Service instance without application impact.
-      However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+      This will make it possible to enable High Availability in MySQL HeatWave Service DB System instance without application impact.
+      However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
 )");
   }
 
   if (status.is_set(Issue_status::FIXED_IGNORE_PKS)) {
     console->print_info(R"(
       This issue is ignored.
-      This dump cannot be loaded into an MySQL Database Service instance with High Availability.
+      This dump cannot be loaded into an MySQL HeatWave Service DB System instance with High Availability.
 )");
   }
 
   if (status.is_set(Issue_status::FIXED)) {
-    console->print_info("Compatibility issues with MySQL Database Service " +
+    console->print_info("Compatibility issues with MySQL HeatWave Service " +
                         version +
                         " were found and repaired. Please review the changes "
                         "made before loading them.");

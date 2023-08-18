@@ -1307,9 +1307,9 @@ void Util::load_dump(
 }
 
 REGISTER_HELP_TOPIC_TEXT(TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION, R"*(
-<b>MySQL Database Service Compatibility</b>
+<b>MySQL HeatWave Service Compatibility</b>
 
-The MySQL Database Service has a few security related restrictions that
+The MySQL HeatWave Service has a few security related restrictions that
 are not present in a regular, on-premise instance of MySQL. In order to make it
 easier to load existing databases into the Service, the dump commands in the
 MySQL Shell has options to detect potential issues and in some cases, to
@@ -1323,7 +1323,7 @@ command will also only allow loading dumps that have been created with the
 
 Some issues found by the <b>ocimds</b> option may require you to manually
 make changes to your database schema before it can be loaded into the MySQL
-Database Service. However, the <b>compatibility</b> option can be used to
+HeatWave Service. However, the <b>compatibility</b> option can be used to
 automatically modify the dumped schema SQL scripts, resolving some of these
 compatibility issues. You may pass one or more of the following values to
 the "compatibility" option.
@@ -1335,19 +1335,19 @@ to the table:
 `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
 @endcode
 At the time of the release of MySQL Shell 8.0.24, dumps created with this value
-cannot be used with Inbound Replication into an MySQL Database Service instance
-with High Availability. Mutually exclusive with the <b>ignore_missing_pks</b>
-value.
+cannot be used with Inbound Replication into an MySQL HeatWave Service DB System
+instance with High Availability. Mutually exclusive with the
+<b>ignore_missing_pks</b> value.
 
-<b>force_innodb</b> - The MySQL Database Service requires use of the InnoDB
+<b>force_innodb</b> - The MySQL HeatWave Service requires use of the InnoDB
 storage engine. This option will modify the ENGINE= clause of CREATE TABLE
 statements that use incompatible storage engines and replace them with InnoDB.
 It will also remove the ROW_FORMAT=FIXED option, as it is not supported by the
 InnoDB storage engine.
 
 <b>ignore_missing_pks</b> - Ignore errors caused by tables which do not have
-Primary Keys. Dumps created with this value cannot be used in MySQL Database
-Service instance with High Availability. Mutually exclusive with the
+Primary Keys. Dumps created with this value cannot be used in MySQL HeatWave
+Service DB System instance with High Availability. Mutually exclusive with the
 <b>create_invisible_pks</b> value.
 
 <b>ignore_wildcard_grants</b> - Ignore errors from grants on schemas with
@@ -1355,10 +1355,10 @@ wildcards, which are interpreted differently in systems where
 <b>partial_revokes</b> system variable is enabled.
 
 <b>skip_invalid_accounts</b> - Skips accounts which do not have a password or
-use authentication methods (plugins) not supported by the MySQL Database Service.
+use authentication methods (plugins) not supported by the MySQL HeatWave Service.
 
 <b>strip_definers</b> - Strips the "DEFINER=account" clause from views, routines,
-events and triggers. The MySQL Database Service requires special privileges to
+events and triggers. The MySQL HeatWave Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
 definer. Views and routines will additionally have their SQL SECURITY clause
@@ -1376,12 +1376,12 @@ users are loaded, i.e. grants referring to a specific routine which does not
 exist.
 
 <b>strip_restricted_grants</b> - Certain privileges are restricted in the MySQL
-Database Service. Attempting to create users granting these privileges would
+HeatWave Service. Attempting to create users granting these privileges would
 fail, so this option allows dumped GRANT statements to be stripped of these
 privileges.
 
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL
-Database Service. If you'd like to have tables created in their default
+HeatWave Service. If you'd like to have tables created in their default
 tablespaces, this option will strip the TABLESPACE= option from CREATE TABLE
 statements.
 
@@ -1392,17 +1392,18 @@ when the <b>ocimds</b> option is enabled:
 in <b>CREATE TABLE</b> statements will be commented out.
 
 At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
-Replication into an MySQL Database Service instance with High Availability, all
-tables at the source server need to have Primary Keys. This needs to be fixed
-manually before running the dump. Starting with MySQL 8.0.23 invisible columns
-may be used to add Primary Keys without changing the schema compatibility, for
-more information see: https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+Replication into an MySQL HeatWave Service DB System instance with High
+Availability, all tables at the source server need to have Primary Keys. This
+needs to be fixed manually before running the dump. Starting with MySQL 8.0.23
+invisible columns may be used to add Primary Keys without changing the schema
+compatibility, for more information see:
+https://dev.mysql.com/doc/refman/en/invisible-columns.html.
 
-In order to use MySQL Database Service instance with High Availability, all
-tables at the MDS server need to have Primary Keys. This can be fixed
+In order to use MySQL HeatWave Service DB Service instance with High
+Availability, all tables must have a Primary Key. This can be fixed
 automatically using the <b>create_invisible_pks</b> compatibility value.
 
-Please refer to the MySQL Database Service documentation for more information
+Please refer to the MySQL HeatWave Service documentation for more information
 about restrictions and compatibility.
 )*");
 
@@ -1512,9 +1513,9 @@ the data dump files, one of: "none", "gzip", "zstd".
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
 @li <b>ocimds</b>: bool (default: false) - Enable checks for compatibility with
-MySQL Database Service (MDS)
+MySQL HeatWave Service.
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
-Database Service compatibility modifications when writing dump files. Supported
+HeatWave Service compatibility modifications when writing dump files. Supported
 values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
 "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
 "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".)*");

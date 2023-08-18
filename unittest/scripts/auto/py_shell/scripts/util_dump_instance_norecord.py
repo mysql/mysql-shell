@@ -1543,7 +1543,7 @@ for f in os.listdir(test_output_absolute):
     EXPECT_EQ(0o640, stat.S_IMODE(os.stat(path).st_mode))
     EXPECT_EQ(os.getuid(), os.stat(path).st_uid)
 
-#@<> WL13807-FR16.1 - The `options` dictionary may contain a `ocimds` key with a Boolean or string value, which specifies whether the compatibility checks with `MySQL Database Service` and DDL substitutions should be done.
+#@<> WL13807-FR16.1 - The `options` dictionary may contain a `ocimds` key with a Boolean or string value, which specifies whether the compatibility checks with `MySQL HeatWave Service` and DDL substitutions should be done.
 TEST_BOOL_OPTION("ocimds")
 
 #@<> tables with missing PKs
@@ -1613,12 +1613,12 @@ for table in missing_pks[test_schema]:
     excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
 
 recreate_verification_schema()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
 
 # BUG#35663805 print a note to always use the lastest shell
 EXPECT_STDOUT_CONTAINS("NOTE: When migrating to MySQL HeatWave Service, please always use the latest available version of MySQL Shell.")
 
-EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version_no_extra))
+EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL HeatWave Service {0}".format(__mysh_version_no_extra))
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
@@ -1643,7 +1643,7 @@ EXPECT_STDOUT_CONTAINS(force_innodb_row_format_fixed(incompatible_schema, incomp
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).error())
 EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).error())
 
-EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
+EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL HeatWave Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
 
 for plugin in allowed_authentication_plugins:
     EXPECT_STDOUT_NOT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).error())
@@ -1680,21 +1680,21 @@ for table in missing_pks["xtest"] + missing_pks[test_schema]:
 EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more tables without Primary Keys were found.
 
-       MySQL Database Service High Availability (MDS HA) requires Primary Keys to be present in all tables.
+       MySQL HeatWave Service High Availability (MySQL HeatWave Service HA) requires Primary Keys to be present in all tables.
        To continue with the dump you must do one of the following:
 
        * Create PRIMARY keys in all tables before dumping them.
          MySQL 8.0.23 supports the creation of invisible columns to allow creating Primary Key columns with no impact to applications. For more details, see https://dev.mysql.com/doc/refman/en/invisible-columns.html.
-         This is considered a best practice for both performance and usability and will work seamlessly with MDS.
+         This is considered a best practice for both performance and usability and will work seamlessly with MySQL HeatWave Service.
 
        * Add the "create_invisible_pks" to the "compatibility" option.
-         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MDS.
-         This will make it possible to enable HA in MDS without application impact.
-         However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MySQL HeatWave Service.
+         This will make it possible to enable HA in MySQL HeatWave Service without application impact.
+         However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
 
        * Add the "ignore_missing_pks" to the "compatibility" option.
          This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
-         It will not be possible to load the dump in an HA enabled MDS instance.
+         It will not be possible to load the dump in an HA enabled DB System instance.
 """)
 
 #@<> BUG#33159903 table with too many columns
@@ -1707,7 +1707,7 @@ session.run_sql(f"CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql(f"CREATE TABLE !.! ({', '.join(f'col{i} int' for i in range(columns_count))}) ENGINE=MyISAM;", [ tested_schema, tested_table ])
 
 # test
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True })
 EXPECT_STDOUT_CONTAINS(too_many_columns(tested_schema, tested_table, columns_count).error())
 
 # cleanup
@@ -1723,32 +1723,32 @@ EXPECT_STDOUT_CONTAINS("""
       `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
 
       At the time of the release of MySQL Shell 8.0.24, dumps created with this
-      value cannot be used with Inbound Replication into an MySQL Database
-      Service instance with High Availability. Mutually exclusive with the
-      ignore_missing_pks value.
+      value cannot be used with Inbound Replication into an MySQL HeatWave
+      Service DB System instance with High Availability. Mutually exclusive
+      with the ignore_missing_pks value.
 """)
 EXPECT_STDOUT_CONTAINS("""
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL
-      Database Service instance with High Availability. Mutually exclusive with
-      the create_invisible_pks value.
+      HeatWave Service DB System instance with High Availability. Mutually
+      exclusive with the create_invisible_pks value.
 """)
 EXPECT_STDOUT_CONTAINS("""
       At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
-      Replication into an MySQL Database Service instance with High
+      Replication into an MySQL HeatWave Service DB System instance with High
       Availability, all tables at the source server need to have Primary Keys.
       This needs to be fixed manually before running the dump. Starting with
       MySQL 8.0.23 invisible columns may be used to add Primary Keys without
       changing the schema compatibility, for more information see:
       https://dev.mysql.com/doc/refman/en/invisible-columns.html.
 
-      In order to use MySQL Database Service instance with High Availability,
-      all tables at the MDS server need to have Primary Keys. This can be fixed
+      In order to use MySQL HeatWave Service DB Service instance with High
+      Availability, all tables must have a Primary Key. This can be fixed
       automatically using the create_invisible_pks compatibility value.
 """)
 
 #@<> BUG#31403104: if users is false, errors about the users should not be included
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
 EXPECT_STDOUT_NOT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
 for plugin in disallowed_authentication_plugins:
@@ -1763,7 +1763,7 @@ EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "d
 # WL14506-TSFR_1_1
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807-FR16.2 - The `options` dictionary may contain a `compatibility` key with an array of strings value, which specifies the `MySQL Database Service`-related compatibility modifications that should be applied when creating the DDL files.
+#@<> WL13807-FR16.2 - The `options` dictionary may contain a `compatibility` key with an array of strings value, which specifies the `MySQL HeatWave Service`-related compatibility modifications that should be applied when creating the DDL files.
 TEST_ARRAY_OF_STRINGS_OPTION("compatibility")
 
 EXPECT_FAIL("ValueError", "Argument #2: Unknown compatibility option: dummy", test_output_relative, { "compatibility": [ "dummy" ] })
@@ -1785,7 +1785,7 @@ EXPECT_STDOUT_CONTAINS("""
 NOTE: One or more tables without Primary Keys were found.
 
       This issue is ignored.
-      This dump cannot be loaded into an MySQL Database Service instance with High Availability.
+      This dump cannot be loaded into an MySQL HeatWave Service DB System instance with High Availability.
 """)
 
 # WL14506-FR3 - The compatibility option of the dump utilities must support a new value: create_invisible_pks.
@@ -1799,8 +1799,8 @@ EXPECT_STDOUT_CONTAINS("""
 NOTE: One or more tables without Primary Keys were found.
 
       Missing Primary Keys will be created automatically when this dump is loaded.
-      This will make it possible to enable High Availability in MySQL Database Service instance without application impact.
-      However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+      This will make it possible to enable High Availability in MySQL HeatWave Service DB System instance without application impact.
+      However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
 """)
 
 #@<> WL14506-FR3.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key, an information should be printed that an invisible primary key will be created when loading the dump.
@@ -1819,7 +1819,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, t
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
@@ -1833,7 +1833,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1848,7 +1848,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1865,7 +1865,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -3540,12 +3540,12 @@ schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `all\\%`.* TO {accou
 session.run_sql(schema_level_grant_with_escaped_percent)
 
 #@<> BUG#34952027 - dumping with ocimds fails
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MDS compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
 
 EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more accounts with database level grants containing wildcard characters were found.
 
-      Loading these grants into an MDS instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
+      Loading these grants into a DB System instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
       To continue with the dump you must do one of the following:
 
       * Use the "excludeUsers" dump option to exclude problematic accounts.
