@@ -41,7 +41,7 @@ EXPECT_OUTPUT_CONTAINS('{"error":{"code":4055,"line":1,"message":"Authentication
 // This test confirms the print callback is properly set on the FIDO authentication client plugin as
 // a JSON document is generated for the error coming from the plugin, instead of raw text in stderr
 testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--fido-register-factor=2", "--sql", "-e", 'select user()']);
-EXPECT_OUTPUT_CONTAINS('{"info":"No FIDO device available on client host.\\n"}');
+EXPECT_OUTPUT_CONTAINS('{"info":"Failed to open FIDO device.\\n"}');
 
 //@<> Test loading the plugin {!fido_available}
 WIPE_SHELL_LOG();
