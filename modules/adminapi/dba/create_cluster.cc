@@ -45,12 +45,14 @@
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "utils/debug.h"
 #include "utils/version.h"
 
 namespace mysqlsh {
@@ -1143,6 +1145,10 @@ shcore::Value Create_cluster::execute() {
       }
     }
 
+    DBUG_EXECUTE_IF("dba_revert_trigger_exception", {
+      throw shcore::Exception("Exception while creating the cluster.", 0);
+    });
+
     // Everything after this should not affect the result of the createCluster()
     // even if an exception is thrown.
     trx.commit();
@@ -1158,6 +1164,13 @@ shcore::Value Create_cluster::execute() {
       log_info("createCluster() failed: Trying to revert changes...");
 
       undo_list.call();
+
+      {
+        auto srv_cfg = dynamic_cast<mysqlshdk::config::Config_server_handler *>(
+            m_cfg->get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
+
+        if (srv_cfg) srv_cfg->undo_changes();
+      }
 
       mysqlshdk::mysql::drop_indicator_tag(*m_target_instance,
                                            metadata::kClusterSetupIndicatorTag);

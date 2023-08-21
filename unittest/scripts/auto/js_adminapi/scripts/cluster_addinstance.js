@@ -52,7 +52,7 @@ function check_auto_increment_multi_primary(session, base_value) {
 
 // Test in single-primary mode
 
-//@ BUG#27084767: Initialize new instances
+//@<> BUG#27084767: Initialize new instances
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -66,15 +66,15 @@ session.runSql("SET GLOBAL offline_mode=1");
 session2.runSql("SET GLOBAL offline_mode=1");
 session2.close();
 
-//@ BUG#27084767: Create a cluster in single-primary mode
+//@<> BUG#27084767: Create a cluster in single-primary mode
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance
 EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
 EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"));
 
-//@ BUG#27084767: Add instance to cluster in single-primary mode
-c.addInstance(__sandbox_uri2)
+//@<> BUG#27084767: Add instance to cluster in single-primary mode
+EXPECT_NO_THROWS(function(){ c.addInstance(__sandbox_uri2); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> BUG#27084767: Verify the values of auto_increment_%
@@ -102,13 +102,13 @@ session2.close();
 
 // Test in multi-primary mode
 
-//@ BUG#27084767: Dissolve the cluster
+//@<> BUG#27084767: Dissolve the cluster
 c.dissolve({force: true})
 session.close();
 
 shell.connect(__sandbox_uri1);
 
-//@ BUG#27084767: Create a cluster in multi-primary mode
+//@<> BUG#27084767: Create a cluster in multi-primary mode
 var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
@@ -119,8 +119,8 @@ shell.connect(__sandbox_uri1);
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance in multi-primary mode
 check_auto_increment_multi_primary(session, 7);
 
-//@ BUG#27084767: Add instance to cluster in multi-primary mode
-c.addInstance(__sandbox_uri2)
+//@<> BUG#27084767: Add instance to cluster in multi-primary mode
+EXPECT_NO_THROWS(function(){ c.addInstance(__sandbox_uri2); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Connect to the instance 2 to perform the auto_increment_% validations
@@ -152,7 +152,7 @@ check_auto_increment_multi_primary(session, 8);
 shell.connect(__sandbox_uri1);
 check_auto_increment_multi_primary(session, 8);
 
-//@ BUG#27084767: Finalization
+//@<> BUG#27084767: Finalization
 c.disconnect()
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -162,7 +162,7 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 
 // Test in single-primary mode
 
-//@ BUG#27084767: Initialize new non-sandbox instance
+//@<> BUG#27084767: Initialize new non-sandbox instance
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deployRawSandbox(__mysql_sandbox_port2, 'root', {report_host: hostname});
@@ -179,15 +179,15 @@ testutil.startSandbox(__mysql_sandbox_port2);
 // Connect to instance1 to create the cluster
 shell.connect(__hostname_uri1);
 
-//@ BUG#27084767: Create a cluster in single-primary mode non-sandbox
+//@<> BUG#27084767: Create a cluster in single-primary mode non-sandbox
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
 //@<> BUG#27084767: Verify the values of auto_increment_% in the seed instance non-sandbox
 EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
 EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"));
 
-//@ BUG#27084767: Add instance to cluster in single-primary mode non-sandbox
-c.addInstance(__hostname_uri2)
+//@<> BUG#27084767: Add instance to cluster in single-primary mode non-sandbox
+EXPECT_NO_THROWS(function(){ c.addInstance(__hostname_uri2); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> BUG#27084767: Verify the values of auto_increment_% non-sandbox
@@ -196,13 +196,13 @@ EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
 // Test in multi-primary mode
 
-//@ BUG#27084767: Dissolve the cluster non-sandbox
+//@<> BUG#27084767: Dissolve the cluster non-sandbox
 c.dissolve({force: true})
 
 // Connect to instance1 to create the cluster
 shell.connect(__hostname_uri1);
 
-//@ BUG#27084767: Create a cluster in multi-primary mode non-sandbox
+//@<> BUG#27084767: Create a cluster in multi-primary mode non-sandbox
 var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
@@ -221,8 +221,8 @@ var __expected_auto_inc_offset = 1 + server_id%7
 EXPECT_EQ(7, get_sysvar(session, "auto_increment_increment"));
 EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(session, "auto_increment_offset"));
 
-//@ BUG#27084767: Add instance to cluster in multi-primary mode non-sandbox
-c.addInstance(__hostname_uri2)
+//@<> BUG#27084767: Add instance to cluster in multi-primary mode non-sandbox
+EXPECT_NO_THROWS(function(){ c.addInstance(__hostname_uri2); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 // Connect to the instance 2 to perform the auto_increment_% validations
@@ -240,20 +240,21 @@ var __expected_auto_inc_offset = 1 + server_id%7
 EXPECT_EQ(7, get_sysvar(__mysql_sandbox_port2, "auto_increment_increment"));
 EXPECT_EQ(__expected_auto_inc_offset, get_sysvar(__mysql_sandbox_port2, "auto_increment_offset"));
 
-//@ BUG#27084767: Finalization non-sandbox
+//@<> BUG#27084767: Finalization non-sandbox
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
-//@ BUG#27677227 cluster with x protocol disabled setup
+//@<> BUG#27677227 cluster with x protocol disabled setup
 WIPE_SHELL_LOG();
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"mysqlx":"0", report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"mysqlx":"0", report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 c = dba.createCluster('noxplugin', {gtidSetIsComplete: true});
-c.addInstance(__sandbox_uri2);
+
+EXPECT_NO_THROWS(function(){ c.addInstance(__sandbox_uri2); });
 
 var msg1 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port1 + "'.";
 var msg2 = "The X plugin is not enabled on instance '" + hostname + ":" + __mysql_sandbox_port2 + "'.";

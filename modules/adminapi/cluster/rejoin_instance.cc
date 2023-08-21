@@ -22,10 +22,14 @@
  */
 
 #include "modules/adminapi/cluster/rejoin_instance.h"
+
 #include <stdexcept>
+
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/provision.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/clone.h"
+#include "utils/debug.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -186,9 +190,9 @@ void Rejoin_instance::do_run() {
           m_cluster_impl->get_id()) -
       1;
 
-  const auto post_failure_actions = [this](bool owns_rpl_user,
-                                           int64_t restore_clone_thrsh,
-                                           bool restore_rec_accounts) {
+  const auto post_failure_actions = [this, &cfg](bool owns_rpl_user,
+                                                 int64_t restore_clone_thrsh,
+                                                 bool restore_rec_accounts) {
     assert(restore_clone_thrsh >= -1);
 
     bool credentials_exist = m_gr_opts.recovery_credentials &&
@@ -232,6 +236,17 @@ void Rejoin_instance::do_run() {
             "Could not restore value of group_replication_clone_threshold: "
             "%s. Not a fatal error.",
             e.what());
+      }
+    }
+
+    // Restore remaining variables
+    {
+      auto srv_cfg = dynamic_cast<mysqlshdk::config::Config_server_handler *>(
+          cfg->get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
+
+      if (srv_cfg) {
+        srv_cfg->remove_from_undo("group_replication_clone_threshold");
+        srv_cfg->undo_changes();
       }
     }
   };
@@ -360,6 +375,10 @@ void Rejoin_instance::do_run() {
     if (!m_options.dry_run) {
       m_cluster_impl->ensure_metadata_has_server_id(*m_target_instance);
     }
+
+    DBUG_EXECUTE_IF("dba_revert_trigger_exception", {
+      throw shcore::Exception("Exception while rejoining instance.", 0);
+    });
 
     console->print_info("The instance '" + m_target_instance->descr() +
                         "' was successfully rejoined to the cluster.");

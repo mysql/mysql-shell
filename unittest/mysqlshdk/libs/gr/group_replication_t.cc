@@ -1472,7 +1472,17 @@ TEST_F(Group_replication_test, update_auto_increment) {
 
   // Set auto-increment for single-primary (3 instances).
   for (int i = 0; i < 3; i++) {
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('auto_increment_increment')")
+        .then({""});
     mock_session->expect_query("SET GLOBAL `auto_increment_increment` = 1")
+        .then({""});
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('auto_increment_offset')")
         .then({""});
     mock_session->expect_query("SET GLOBAL `auto_increment_offset` = 2")
         .then({""});
@@ -1494,7 +1504,17 @@ TEST_F(Group_replication_test, update_auto_increment) {
 
   // Set auto-increment for single-primary (10 instances with PERSIST support).
   for (int i = 0; i < 10; i++) {
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('auto_increment_increment')")
+        .then({""});
     mock_session->expect_query("SET PERSIST `auto_increment_increment` = 1")
+        .then({""});
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('auto_increment_offset')")
         .then({""});
     mock_session->expect_query("SET PERSIST `auto_increment_offset` = 2")
         .then({""});
@@ -1524,7 +1544,17 @@ TEST_F(Group_replication_test, update_auto_increment) {
                      {Type::String, Type::String},
                      {{"server_id", "4"}}}});
 
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('auto_increment_increment')")
+      .then({""});
   mock_session->expect_query("SET GLOBAL `auto_increment_increment` = 7")
+      .then({""});
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('auto_increment_offset')")
       .then({""});
   mock_session->expect_query("SET GLOBAL `auto_increment_offset` = 5")
       .then({""});
@@ -1551,7 +1581,17 @@ TEST_F(Group_replication_test, update_auto_increment) {
                      {Type::String, Type::String},
                      {{"server_id", "7"}}}});
 
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('auto_increment_increment')")
+      .then({""});
   mock_session->expect_query("SET PERSIST `auto_increment_increment` = 7")
+      .then({""});
+  mock_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('auto_increment_offset')")
       .then({""});
   mock_session->expect_query("SET PERSIST `auto_increment_offset` = 1")
       .then({""});

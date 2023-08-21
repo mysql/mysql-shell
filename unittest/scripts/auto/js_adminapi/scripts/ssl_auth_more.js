@@ -171,6 +171,71 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 EXPECT_SHELL_LOG_CONTAINS("Restoring recovery accounts with certificates only.");
 
+testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+//@<> Make sure that variables are reverted in case the command fails (createCluster) {VER(>= 8.0.17)}
+
+shell.connect(__sandbox_uri1);
+
+shell.options["dba.connectivityChecks"] = false;
+
+set_sysvar(session, "auto_increment_increment", 56);
+set_sysvar(session, "auto_increment_offset", 77);
+set_sysvar(session, "group_replication_ssl_mode", "DISABLED");
+set_sysvar(session, "group_replication_recovery_use_ssl", "OFF");
+old_group_replication_group_name = get_sysvar(session, "group_replication_group_name");
+old_group_replication_communication_stack = get_sysvar(session, "group_replication_communication_stack");
+
+EXPECT_THROWS(function() {
+    dba.createCluster("cluster", { memberAuthType: "CERT_SUBJECT", certIssuer: "/CN=foo", certSubject: `/CN=bar` });
+}, "The server is not configured properly to be an active member of the group. Please see more details on error log.");
+
+EXPECT_SHELL_LOG_CONTAINS("createCluster() failed: Trying to revert changes...");
+
+EXPECT_EQ(56, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(77, get_sysvar(session, "auto_increment_offset"));
+EXPECT_EQ("DISABLED", get_sysvar(session, "group_replication_ssl_mode"));
+EXPECT_EQ(0, get_sysvar(session, "group_replication_recovery_use_ssl"));
+EXPECT_EQ(old_group_replication_group_name, get_sysvar(session, "group_replication_group_name"));
+EXPECT_EQ(old_group_replication_communication_stack, get_sysvar(session, "group_replication_communication_stack"));
+
+reset_instance(session);
+
+//@<> Make sure that variables are reverted in case the command fails (addInstance) {VER(>= 8.0.17)}
+
+shell.connect(__sandbox_uri1);
+
+var cluster;
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { memberAuthType: "CERT_SUBJECT", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}/L=machine1` }); });
+
+shell.options["dba.connectivityChecks"] = false;
+
+shell.connect(__sandbox_uri2);
+
+set_sysvar(session, "auto_increment_increment", 57);
+set_sysvar(session, "auto_increment_offset", 78);
+set_sysvar(session, "group_replication_ssl_mode", "DISABLED");
+set_sysvar(session, "group_replication_recovery_use_ssl", "OFF");
+old_group_replication_group_name = get_sysvar(session, "group_replication_group_name");
+old_group_replication_communication_stack = get_sysvar(session, "group_replication_communication_stack");
+
+EXPECT_THROWS(function() {
+    cluster.addInstance(__sandbox_uri2, { recoveryMethod: "clone", certSubject: `/CN=foo` });
+}, "The server is not configured properly to be an active member of the group. Please see more details on error log.");
+
+EXPECT_EQ(57, get_sysvar(session, "auto_increment_increment"));
+EXPECT_EQ(78, get_sysvar(session, "auto_increment_offset"));
+EXPECT_EQ("DISABLED", get_sysvar(session, "group_replication_ssl_mode"));
+EXPECT_EQ(0, get_sysvar(session, "group_replication_recovery_use_ssl"));
+EXPECT_EQ(old_group_replication_group_name, get_sysvar(session, "group_replication_group_name"));
+EXPECT_EQ(old_group_replication_communication_stack, get_sysvar(session, "group_replication_communication_stack"));
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

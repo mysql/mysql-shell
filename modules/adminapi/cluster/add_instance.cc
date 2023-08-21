@@ -23,22 +23,18 @@
 
 #include "modules/adminapi/cluster/add_instance.h"
 
-#include <functional>
-
 #include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_validations.h"
-#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
-#include "modules/adminapi/common/validations.h"
+#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -577,10 +573,10 @@ void Add_instance::do_run() {
     m_cluster_impl->configure_cluster_set_member(m_target_instance);
   }
 
-  const auto post_failure_actions = [this](bool owns_rpl_user,
-                                           bool drop_rpl_user,
-                                           int64_t restore_clone_thrsh,
-                                           bool restore_rec_accounts) {
+  const auto post_failure_actions = [this, &cfg](bool owns_rpl_user,
+                                                 bool drop_rpl_user,
+                                                 int64_t restore_clone_thrsh,
+                                                 bool restore_rec_accounts) {
     assert(restore_clone_thrsh >= -1);
 
     bool credentials_exist = m_gr_opts.recovery_credentials &&
@@ -621,10 +617,20 @@ void Add_instance::do_run() {
         }
       } catch (const shcore::Error &e) {
         log_info(
-            "Could not restore value of group_replication_clone_threshold: "
-            "%s. "
+            "Could not restore value of group_replication_clone_threshold: %s. "
             "Not a fatal error.",
             e.what());
+      }
+    }
+
+    // Restore remaining variables
+    {
+      auto srv_cfg = dynamic_cast<mysqlshdk::config::Config_server_handler *>(
+          cfg->get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
+
+      if (srv_cfg) {
+        srv_cfg->remove_from_undo("group_replication_clone_threshold");
+        srv_cfg->undo_changes();
       }
     }
   };
@@ -716,6 +722,10 @@ void Add_instance::do_run() {
           restore_recovery_accounts = true;
         }
 
+        DBUG_EXECUTE_IF("dba_revert_trigger_exception", {
+          throw shcore::Exception("Exception while adding instance.", 0);
+        });
+
         // Join the instance to the Group Replication group.
         mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance,
                                    m_gr_opts, recovery_certificates,
@@ -745,6 +755,17 @@ void Add_instance::do_run() {
               m_target_instance->descr().c_str(),
               is_instance_on_md ? "is already in the Metadata."
                                 : "is being added to the Metadata...");
+
+    // at this point, GR is already running, so if something wrong happens we
+    // don't want to clear any variables
+    {
+      auto srv_cfg = dynamic_cast<mysqlshdk::config::Config_server_handler *>(
+          cfg->get_handler(mysqlshdk::config::k_dft_cfg_server_handler));
+
+      if (srv_cfg) {
+        srv_cfg->remove_all_from_undo();
+      }
+    }
 
     MetadataStorage::Transaction trx(m_cluster_impl->get_metadata_storage());
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -200,19 +200,17 @@ TEST_F(Config_server_handler_test, config_interface_global_vars) {
   EXPECT_FALSE(!string_val.has_value());
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
-  // Restore previous setting directly on the server, using set_now().
-  // NOTE: Use 1 ms delay to set one of the variables.
-  SCOPED_TRACE("Restore initial settings using set_now().");
-  cfg_h.set_now("sql_warnings", std::optional<bool>(false),
-                Var_qualifier::GLOBAL, std::chrono::milliseconds{1});
-  cfg_h.set_now("wait_timeout", wait_timeout, Var_qualifier::GLOBAL);
-  cfg_h.set_now("lc_messages", std::optional<std::string>("en_US"),
-                Var_qualifier::GLOBAL);
-  cfg_h.set_now("sql_warnings", std::optional<bool>(false),
-                Var_qualifier::SESSION, std::chrono::milliseconds{1});
-  cfg_h.set_now("wait_timeout", wait_timeout, Var_qualifier::SESSION);
-  cfg_h.set_now("lc_messages", std::optional<std::string>("en_US"),
-                Var_qualifier::SESSION);
+  // Restore previous setting directly on the server.
+  SCOPED_TRACE("Restore initial settings.");
+  cfg_h.set("sql_warnings", std::optional<bool>(false), Var_qualifier::GLOBAL);
+  cfg_h.set("wait_timeout", wait_timeout, Var_qualifier::GLOBAL);
+  cfg_h.set("lc_messages", std::optional<std::string>("en_US"),
+            Var_qualifier::GLOBAL);
+  cfg_h.set("sql_warnings", std::optional<bool>(false), Var_qualifier::SESSION);
+  cfg_h.set("wait_timeout", wait_timeout, Var_qualifier::SESSION);
+  cfg_h.set("lc_messages", std::optional<std::string>("en_US"),
+            Var_qualifier::SESSION);
+  cfg_h.apply();
 
   // Confirm values where restored properly.
   SCOPED_TRACE("Verify initail settings were restored.");
@@ -375,21 +373,17 @@ TEST_F(Config_server_handler_test, config_interface_session_vars) {
   EXPECT_FALSE(!string_val.has_value());
   EXPECT_STREQ("pt_PT", (*string_val).c_str());
 
-  // Restore previous setting directly on the server, using set_now().
-  // NOTE: Use 1 ms delay to set one of the variables.
+  // Restore previous setting directly on the server.
   SCOPED_TRACE("Restore initial settings using set_now().");
-  cfg_h.set_now("sql_warnings", std::optional<bool>(false),
-                Var_qualifier::SESSION);
-  cfg_h.set_now("wait_timeout", wait_timeout, Var_qualifier::SESSION,
-                std::chrono::milliseconds{1});
-  cfg_h.set_now("lc_messages", std::optional<std::string>("en_US"),
-                Var_qualifier::SESSION);
-  cfg_h.set_now("sql_warnings", std::optional<bool>(false),
-                Var_qualifier::GLOBAL);
-  cfg_h.set_now("wait_timeout", wait_timeout, Var_qualifier::GLOBAL,
-                std::chrono::milliseconds{1});
-  cfg_h.set_now("lc_messages", std::optional<std::string>("en_US"),
-                Var_qualifier::GLOBAL);
+  cfg_h.set("sql_warnings", std::optional<bool>(false), Var_qualifier::SESSION);
+  cfg_h.set("wait_timeout", wait_timeout, Var_qualifier::SESSION);
+  cfg_h.set("lc_messages", std::optional<std::string>("en_US"),
+            Var_qualifier::SESSION);
+  cfg_h.set("sql_warnings", std::optional<bool>(false), Var_qualifier::GLOBAL);
+  cfg_h.set("wait_timeout", wait_timeout, Var_qualifier::GLOBAL);
+  cfg_h.set("lc_messages", std::optional<std::string>("en_US"),
+            Var_qualifier::GLOBAL);
+  cfg_h.apply();
 
   // Confirm values where restored properly.
   SCOPED_TRACE("Verify initail settings were restored.");
@@ -461,32 +455,17 @@ TEST_F(Config_server_handler_test, errors) {
                               Var_qualifier::SESSION),
                     std::invalid_argument,
                     "The value parameter cannot be null.");
-  EXPECT_THROW_LIKE(cfg_h.set_now("sql_warnings", std::optional<bool>(),
-                                  Var_qualifier::GLOBAL),
-                    std::invalid_argument,
-                    "The value parameter cannot be null.");
-  EXPECT_THROW_LIKE(cfg_h.set_now("wait_timeout", std::optional<int64_t>(),
-                                  Var_qualifier::GLOBAL),
-                    std::invalid_argument,
-                    "The value parameter cannot be null.");
-  EXPECT_THROW_LIKE(cfg_h.set_now("lc_messages", std::optional<std::string>(),
-                                  Var_qualifier::GLOBAL),
-                    std::invalid_argument,
-                    "The value parameter cannot be null.");
-
-  // Error if trying to immediately set a variable that does not exists.
-  EXPECT_THROW_LIKE(cfg_h.set_now("not-exist", std::optional<bool>(true),
-                                  Var_qualifier::GLOBAL),
-                    mysqlshdk::db::Error,
-                    "Unknown system variable 'not-exist'");
-  EXPECT_THROW_LIKE(cfg_h.set_now("not-exist", std::optional<int64_t>(1234),
-                                  Var_qualifier::GLOBAL),
-                    mysqlshdk::db::Error,
-                    "Unknown system variable 'not-exist'");
   EXPECT_THROW_LIKE(
-      cfg_h.set_now("not-exist", std::optional<std::string>("mystr"),
-                    Var_qualifier::GLOBAL),
-      mysqlshdk::db::Error, "Unknown system variable 'not-exist'");
+      cfg_h.set("sql_warnings", std::optional<bool>(), Var_qualifier::GLOBAL),
+      std::invalid_argument, "The value parameter cannot be null.");
+  EXPECT_THROW_LIKE(cfg_h.set("wait_timeout", std::optional<int64_t>(),
+                              Var_qualifier::GLOBAL),
+                    std::invalid_argument,
+                    "The value parameter cannot be null.");
+  EXPECT_THROW_LIKE(cfg_h.set("lc_messages", std::optional<std::string>(),
+                              Var_qualifier::GLOBAL),
+                    std::invalid_argument,
+                    "The value parameter cannot be null.");
 
   // Error if trying to apply a variable that does not exists.
   cfg_h.set("not-exist-bool", std::optional<bool>(true));
@@ -629,8 +608,8 @@ TEST_F(Config_server_handler_test, get_persisted_value) {
     EXPECT_TRUE(!res);
 
     // Get variable with persisted value.
-    cfg_h.set_now("gtid_mode", std::optional<std::string>("ON"),
-                  Var_qualifier::PERSIST_ONLY);
+    instance.set_sysvar("gtid_mode", std::string{"ON"},
+                        Var_qualifier::PERSIST_ONLY);
     res = cfg_h.get_persisted_value("gtid_mode");
     EXPECT_FALSE(!res);
     EXPECT_STREQ("ON", (*res).c_str());
@@ -642,6 +621,127 @@ TEST_F(Config_server_handler_test, get_persisted_value) {
     EXPECT_THROW_LIKE(cfg_h.get_persisted_value("not_exist"),
                       std::runtime_error,
                       "Unable to get persisted value for 'not_exist': ");
+  }
+}
+
+TEST_F(Config_server_handler_test, undo) {
+  mysqlshdk::mysql::Instance instance(m_session);
+  Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+
+  // default values
+  instance.set_sysvar("auto_increment_increment", int64_t{11},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("enforce_gtid_consistency", bool{true},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("character_set_client", std::string{"greek"},
+                      Var_qualifier::GLOBAL);
+
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
+  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(false));
+  cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
+  cfg_h.apply();
+
+  cfg_h.undo_changes();
+
+  {
+    auto var = instance.get_sysvar_int("auto_increment_increment");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), 11);
+  }
+
+  {
+    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), true);
+  }
+
+  {
+    auto var = instance.get_sysvar_string("character_set_client");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), "greek");
+  }
+}
+
+TEST_F(Config_server_handler_test, undo_ignore) {
+  mysqlshdk::mysql::Instance instance(m_session);
+  Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+
+  // default values
+  instance.set_sysvar("auto_increment_increment", int64_t{11},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("enforce_gtid_consistency", bool{true},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("character_set_client", std::string{"greek"},
+                      Var_qualifier::GLOBAL);
+
+  cfg_h.remove_from_undo("enforce_gtid_consistency");
+
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
+  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(false));
+  cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
+  cfg_h.apply();
+
+  cfg_h.remove_from_undo("character_set_client");
+  cfg_h.undo_changes();
+
+  {
+    auto var = instance.get_sysvar_int("auto_increment_increment");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), 11);
+  }
+
+  {
+    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), false);
+  }
+
+  {
+    auto var = instance.get_sysvar_string("character_set_client");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), "latin2");
+  }
+}
+
+TEST_F(Config_server_handler_test, undo_ignore_all) {
+  mysqlshdk::mysql::Instance instance(m_session);
+  Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
+
+  // default values
+  instance.set_sysvar("auto_increment_increment", int64_t{11},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("enforce_gtid_consistency", bool{false},
+                      Var_qualifier::GLOBAL);
+  instance.set_sysvar("character_set_client", std::string{"greek"},
+                      Var_qualifier::GLOBAL);
+
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
+  cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
+  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(true));
+  cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
+  cfg_h.apply();
+
+  cfg_h.remove_all_from_undo();
+  cfg_h.undo_changes();
+
+  {
+    auto var = instance.get_sysvar_int("auto_increment_increment");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), 9);
+  }
+
+  {
+    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), true);
+  }
+
+  {
+    auto var = instance.get_sysvar_string("character_set_client");
+    EXPECT_TRUE(var.has_value());
+    EXPECT_EQ(var.value(), "latin2");
   }
 }
 

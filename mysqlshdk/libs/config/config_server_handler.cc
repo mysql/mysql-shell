@@ -28,8 +28,51 @@
 namespace mysqlshdk {
 namespace config {
 
-Config_server_handler::Config_server_handler(mysql::IInstance *instance,
-                                             mysql::Var_qualifier var_qualifier)
+namespace {
+/**
+ * Auxiliary function to convert a shcore::Value (holding a bool) to a
+ * mysqlshdk::std::optional<bool>.
+ *
+ * @param value Value (with the bool) to convert
+ * @return std::optional<bool> object corresponding to the specified Value
+ *         object (with a bool).
+ */
+std::optional<bool> value_to_nullable_bool(const shcore::Value &value) {
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
+  return value.as_bool();
+}
+
+/**
+ * Auxiliary function to convert a shcore::Value (holding a int64_t) to a
+ * mysqlshdk::std::optional<int64_t>.
+ *
+ * @param value Value (with the int64_t) to convert
+ * @return std::optional<int64_t> object corresponding to the specified
+ *         Value object (with a int64_t).
+ */
+std::optional<int64_t> value_to_nullable_int(const shcore::Value &value) {
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
+  return value.as_int();
+}
+
+/**
+ * Auxiliary function to convert a shcore::Value (holding a std::string) to a
+ * mysqlshdk::std::optional<std::string>.
+ *
+ * @param value Value (with the std::string) to convert
+ * @return std::optional<std::string> object corresponding to the specified
+ *         Value object (with a std::string).
+ */
+std::optional<std::string> value_to_nullable_string(
+    const shcore::Value &value) {
+  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
+  return value.as_string();
+}
+
+}  // namespace
+
+Config_server_handler::Config_server_handler(
+    mysql::IInstance *instance, mysql::Var_qualifier var_qualifier) noexcept
     : m_instance(instance), m_var_qualifier(var_qualifier) {
   assert(instance);
   m_get_scope = (var_qualifier == mysql::Var_qualifier::SESSION)
@@ -39,35 +82,12 @@ Config_server_handler::Config_server_handler(mysql::IInstance *instance,
 
 Config_server_handler::Config_server_handler(
     std::shared_ptr<mysql::IInstance> instance,
-    mysql::Var_qualifier var_qualifier)
-    : m_instance(instance.get()),
-      m_instance_shared_ptr(std::move(instance)),
-      m_var_qualifier(var_qualifier) {
-  assert(m_instance);
-  m_get_scope = (var_qualifier == mysql::Var_qualifier::SESSION)
-                    ? mysql::Var_qualifier::SESSION
-                    : mysql::Var_qualifier::GLOBAL;
+    mysql::Var_qualifier var_qualifier) noexcept
+    : Config_server_handler(instance.get(), var_qualifier) {
+  m_instance_shared_ptr = std::move(instance);
 }
 
 Config_server_handler::~Config_server_handler() = default;
-
-std::optional<bool> Config_server_handler::value_to_nullable_bool(
-    const shcore::Value &value) {
-  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
-  return value.as_bool();
-}
-
-std::optional<int64_t> Config_server_handler::value_to_nullable_int(
-    const shcore::Value &value) {
-  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
-  return value.as_int();
-}
-
-std::optional<std::string> Config_server_handler::value_to_nullable_string(
-    const shcore::Value &value) {
-  if (value.get_type() == shcore::Value_type::Null) return std::nullopt;
-  return value.as_string();
-}
 
 std::optional<bool> Config_server_handler::get_bool(
     const std::string &name) const {
@@ -103,18 +123,26 @@ void Config_server_handler::set(const std::string &name,
 }
 
 void Config_server_handler::apply() {
+  log_info("Applying configs...");
+
   for (const auto &var : m_change_sequence) {
     auto var_type = var.value.get_type();
     try {
       if (var_type == shcore::Value_type::Bool) {
+        add_undo_change<bool>(var.name, var.qualifier);
+
         bool value = *value_to_nullable_bool(var.value);
         log_debug("Set '%s'=%s", var.name.c_str(), value ? "true" : "false");
         m_instance->set_sysvar(var.name, value, var.qualifier);
       } else if (var_type == shcore::Value_type::Integer) {
+        add_undo_change<int64_t>(var.name, var.qualifier);
+
         int64_t value = *value_to_nullable_int(var.value);
         log_debug("Set '%s'=%" PRId64, var.name.c_str(), value);
         m_instance->set_sysvar(var.name, value, var.qualifier);
       } else {
+        add_undo_change<std::string>(var.name, var.qualifier);
+
         std::string value = *value_to_nullable_string(var.value);
         log_debug("Set '%s'='%s'", var.name.c_str(), value.c_str());
         m_instance->set_sysvar(var.name, value, var.qualifier);
@@ -240,6 +268,60 @@ std::optional<std::string> Config_server_handler::get_persisted_value(
     throw std::runtime_error{"Unable to get persisted value for '" + name +
                              "': " + err.what()};
   }
+}
+
+void Config_server_handler::undo_changes() {
+  if (m_change_undo_sequence.empty() || m_change_undo_ignore.count("*")) return;
+
+  log_info("Reverting back configs...");
+
+  for (const auto &var : m_change_undo_sequence) {
+    if (m_change_undo_ignore.count(var.name)) continue;
+
+    if ((var.value.get_type() == shcore::Null) &&
+        ((var.qualifier == mysql::Var_qualifier::PERSIST) ||
+         (var.qualifier == mysql::Var_qualifier::PERSIST_ONLY))) {
+      log_debug("Revert '%s' back to default value.", var.name.c_str());
+      m_instance->set_sysvar_default(var.name, var.qualifier);
+      continue;
+    }
+
+    try {
+      switch (var.value.get_type()) {
+        case shcore::Value_type::Bool: {
+          auto value = *value_to_nullable_bool(var.value);
+          log_debug("Revert '%s' back to %s.", var.name.c_str(),
+                    value ? "true" : "false");
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+        } break;
+        case shcore::Value_type::Integer: {
+          auto value = *value_to_nullable_int(var.value);
+          log_debug("Revert '%s' back to %" PRId64 ".", var.name.c_str(),
+                    value);
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+        } break;
+        default: {
+          auto value = *value_to_nullable_string(var.value);
+          log_debug("Revert '%s' back to \"%s\".", var.name.c_str(),
+                    value.c_str());
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+        } break;
+      }
+    } catch (const mysqlshdk::db::Error &err) {
+      log_debug("Unable to revert '%s': %s", var.name.c_str(), err.what());
+    }
+  }
+
+  m_change_undo_sequence.clear();
+}
+
+void Config_server_handler::remove_all_from_undo() {
+  m_change_undo_ignore.clear();
+  m_change_undo_ignore.insert("*");  //'*' ignores all configs
+}
+
+void Config_server_handler::remove_from_undo(const std::string &name) {
+  m_change_undo_ignore.insert(name);
 }
 
 }  // namespace config
