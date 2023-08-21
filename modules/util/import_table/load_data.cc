@@ -587,7 +587,14 @@ int local_infile_read(void *userdata, char *buffer,
   return bytes;
 }
 
-void local_infile_end(void *) noexcept {}
+void local_infile_end(void *userdata) noexcept {
+  assert(userdata);
+  const auto file_info = static_cast<File_info *>(userdata);
+
+  if (file_info->on_infile_read_end) {
+    file_info->on_infile_read_end();
+  }
+}
 
 int local_infile_error(void *userdata, char *error_msg,
                        unsigned int error_msg_len) noexcept {
@@ -625,7 +632,10 @@ Load_data_worker::Load_data_worker(
       m_range_queue(range_queue),
       m_thread_exception(*thread_exception),
       m_stats(*stats),
-      m_query_comment(query_comment) {}
+      m_query_comment(query_comment) {
+  m_state = Thread_state::IDLE;
+  ++m_stats.thread_states[m_state];
+}
 
 void Load_data_worker::operator()() {
   mysqlsh::Mysql_thread t;
@@ -645,7 +655,7 @@ void Load_data_worker::operator()() {
     auto const conn_opts = m_opt.connection_options();
     session->connect(conn_opts);
   } catch (...) {
-    m_thread_exception[m_thread_id] = std::current_exception();
+    handle_exception();
     return;
   }
 
@@ -666,6 +676,7 @@ void Load_data_worker::execute(
     fi.prog_file_bytes = m_prog_file_bytes;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
+    fi.on_infile_read_end = [this]() { set_state(Thread_state::COMMITTING); };
     uint64_t max_trx_size = 0;
     const auto query = [&session](const auto &sql) {
       return session->query(sql);
@@ -875,7 +886,7 @@ void Load_data_worker::execute(
           fi.bytes_left = 0;
         }
       } catch (const std::exception &e) {
-        m_thread_exception[m_thread_id] = std::current_exception();
+        handle_exception();
         mysqlsh::current_console()->print_error(format_error_message(e.what()));
         throw std::exception(e);
       }
@@ -901,8 +912,10 @@ void Load_data_worker::execute(
       });
 
       try {
+        set_state(Thread_state::READING);
         fi.buffer.before_query();
         load_result = query(m_query_comment + full_query);
+        set_state(Thread_state::IDLE);
         fi.buffer.flush_done(&fi.continuation);
         m_stats.total_data_bytes += fi.data_bytes;
         m_stats.total_file_bytes += fi.file_bytes;
@@ -912,7 +925,7 @@ void Load_data_worker::execute(
           ++m_stats.total_files_processed;
         }
       } catch (const mysqlshdk::db::Error &e) {
-        m_thread_exception[m_thread_id] = std::current_exception();
+        handle_exception();
         const auto error_msg = format_error_message(e.format(), full_query);
         mysqlsh::current_console()->print_error(error_msg);
 
@@ -925,12 +938,12 @@ void Load_data_worker::execute(
 
         throw std::runtime_error(error_msg);
       } catch (const mysqlshdk::rest::Connection_error &e) {
-        m_thread_exception[m_thread_id] = std::current_exception();
+        handle_exception();
         const auto error_msg = format_error_message(e.what());
         mysqlsh::current_console()->print_error(error_msg);
         throw std::runtime_error(error_msg);
       } catch (const std::exception &e) {
-        m_thread_exception[m_thread_id] = std::current_exception();
+        handle_exception();
         const auto error_msg = format_error_message(e.what());
         mysqlsh::current_console()->print_error(error_msg);
         throw std::exception(e);
@@ -1028,10 +1041,23 @@ void Load_data_worker::execute(
   } catch (const std::exception &e) {
     if (!m_thread_exception[m_thread_id]) {
       mysqlsh::current_console()->print_error(worker_name + e.what());
-      m_thread_exception[m_thread_id] = std::current_exception();
+      handle_exception();
     }
   } catch (...) {
-    m_thread_exception[m_thread_id] = std::current_exception();
+    handle_exception();
+  }
+}
+
+void Load_data_worker::handle_exception() {
+  set_state(Thread_state::ERROR);
+  m_thread_exception[m_thread_id] = std::current_exception();
+}
+
+void Load_data_worker::set_state(Thread_state new_state) {
+  if (m_state != new_state) {
+    --m_stats.thread_states[m_state];
+    m_state = new_state;
+    ++m_stats.thread_states[m_state];
   }
 }
 

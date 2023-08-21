@@ -143,7 +143,10 @@ struct File_info {
   Transaction_buffer buffer;  //< buffered file wrapper
   std::exception_ptr last_error;
   bool continuation = false;  //< True if we hit transaction limit and we have
-                              // more data waiting to sent in Transaction_buffer
+  // more data waiting to sent in Transaction_buffer
+
+  // called once LOAD INFILE read operation finishes
+  std::function<void()> on_infile_read_end;
 };
 
 // Functions for local infile callbacks.
@@ -179,6 +182,10 @@ class Load_data_worker final {
                const Transaction_options &options = {});
 
  private:
+  void handle_exception();
+
+  void set_state(Thread_state new_state);
+
   const Import_table_options &m_opt;
   int64_t m_thread_id;
   std::atomic<size_t> *m_prog_sent_bytes;
@@ -188,6 +195,7 @@ class Load_data_worker final {
   std::vector<std::exception_ptr> &m_thread_exception;
   Stats &m_stats;
   std::string m_query_comment;
+  Thread_state m_state;
 };
 
 }  // namespace import_table
