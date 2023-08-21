@@ -24,6 +24,7 @@
 #include "modules/util/import_table/import_table.h"
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <limits>
 #include <utility>
@@ -95,6 +96,33 @@ void Import_table::progress_setup() {
   config.current = [this]() -> uint64_t { return m_prog_file_bytes; };
   config.total = [this]() {
     return m_prog_total_file_bytes.value_or(m_total_file_size);
+  };
+
+  config.left_label = [this]() {
+    std::string label;
+
+    if (const auto loading =
+            m_stats.thread_states[Thread_state::READING].load()) {
+      label += std::to_string(loading) + " thds loading - ";
+    }
+
+    if (const auto committing =
+            m_stats.thread_states[Thread_state::COMMITTING].load()) {
+      label += std::to_string(committing) + " thds committing - ";
+    }
+
+    constexpr std::array k_progress_spin = {'-', '\\', '|', '/'};
+    static thread_local size_t progress_idx = 0;
+
+    if (label.length() > 2) {
+      label[label.length() - 2] = k_progress_spin[progress_idx++];
+
+      if (progress_idx >= k_progress_spin.size()) {
+        progress_idx = 0;
+      }
+    }
+
+    return label;
   };
 
   m_progress_thread.start_stage("Parallel load data", std::move(config));

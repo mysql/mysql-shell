@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_H_
 #define MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_H_
 
+#include <array>
 #include <atomic>
 #include <exception>
 #include <memory>
@@ -49,6 +50,14 @@ class Allocator;
 namespace mysqlsh {
 namespace import_table {
 
+enum Thread_state {
+  IDLE = 0,
+  READING = 1,
+  COMMITTING = 2,
+  ERROR = 3,
+  LAST = 4,
+};
+
 struct Stats {
   std::atomic<size_t> total_records{0};
   std::atomic<size_t> total_deleted{0};
@@ -59,6 +68,8 @@ struct Stats {
   // total number of physical bytes processed
   std::atomic<size_t> total_file_bytes{0};
   std::atomic<size_t> total_files_processed{0};
+
+  std::array<std::atomic<size_t>, Thread_state::LAST> thread_states{};
 
   std::string to_string() const {
     return std::string{"Records: " + std::to_string(total_records) +
