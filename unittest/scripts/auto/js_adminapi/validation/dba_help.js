@@ -167,7 +167,7 @@ DESCRIPTION
         instance. If this option is given, the configuration file will be
         verified for the expected option values, in addition to the global
         MySQL system variables.
-      - password: The password to get connected to the instance.
+      - password: The password to get connected to the instance. Deprecated.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
@@ -195,6 +195,8 @@ DESCRIPTION
       - Restart the server.
 
       ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Configure Instance
 NAME
@@ -224,7 +226,7 @@ DESCRIPTION
       - mycnfPath: The path to the MySQL configuration file of the instance.
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
-      - password: The password to be used on the connection.
+      - password: The password to be used on the connection. Deprecated.
       - clusterAdmin: The name of the "cluster administrator" account.
       - clusterAdminPassword: The password for the "cluster administrator"
         account.
@@ -277,6 +279,8 @@ DESCRIPTION
 
       ATTENTION: The interactive option will be removed in a future release.
 
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Configure Local Instance
 NAME
       configureLocalInstance - Validates and configures a local instance for
@@ -309,7 +313,7 @@ DESCRIPTION
       - mycnfPath: The path to the MySQL configuration file of the instance.
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
-      - password: The password to be used on the connection.
+      - password: The password to be used on the connection. Deprecated.
       - clusterAdmin: The name of the "cluster administrator" account.
       - clusterAdminPassword: The password for the "cluster administrator"
         account.
@@ -360,6 +364,8 @@ DESCRIPTION
 
       ATTENTION: The interactive option will be removed in a future release.
 
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Configure ReplicaSet Instance
 NAME
       configureReplicaSetInstance - Validates and configures an instance for
@@ -395,7 +401,7 @@ DESCRIPTION
 
       The options dictionary may contain the following options:
 
-      - password: The password to be used on the connection.
+      - password: The password to be used on the connection. Deprecated.
       - clusterAdmin: The name of a "cluster administrator" user to be created.
         The supported format is the standard MySQL account name format.
       - clusterAdminPassword: The password for the "cluster administrator"
@@ -432,6 +438,8 @@ DESCRIPTION
       - Required Value: the required value for the configuration variable.
 
       ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Create Cluster
 NAME
@@ -1157,7 +1165,7 @@ DESCRIPTION
 
       - user: The user used for the instances sessions required operations.
       - password: The password used for the instances sessions required
-        operations.
+        operations. Deprecated.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
       - force: boolean value to indicate that the operation must be executed

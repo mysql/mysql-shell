@@ -1729,7 +1729,7 @@ Alias for verifyMyCnf
 @li verifyMyCnf: Optional path to the MySQL configuration file for the
 instance. If this option is given, the configuration file will be verified for
 the expected option values, in addition to the global MySQL system variables.
-@li password: The password to get connected to the instance.
+@li password: The password to get connected to the instance. Deprecated.
 ${OPT_INTERACTIVE}
 
 The connection password may be contained on the instance definition, however,
@@ -1753,6 +1753,8 @@ The note can be one of the following:
 @li Restart the server.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2661,6 +2663,8 @@ ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
 it's no longer needed, super_read_only is automatically cleared.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2717,6 +2721,8 @@ ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
 it's no longer needed, super_read_only is automatically cleared.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
@@ -2725,7 +2731,7 @@ The options dictionary may contain the following options:
 @li mycnfPath: The path to the MySQL configuration file of the instance.
 @li outputMycnfPath: Alternative output path to write the MySQL configuration
 file of the instance.
-@li password: The password to be used on the connection.
+@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of the "cluster administrator" account.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
 @li clusterAdminPasswordExpiration: Password expiration setting for the account.
@@ -2809,7 +2815,7 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following options:
 
-@li password: The password to be used on the connection.
+@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
@@ -2838,6 +2844,8 @@ and a table with the following information:
 @li Required Value: the required value for the configuration variable.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2873,7 +2881,7 @@ this function.
 The options dictionary can contain the next values:
 
 @li user: The user used for the instances sessions required operations.
-@li password: The password used for the instances sessions required operations.
+@li password: The password used for the instances sessions required operations. Deprecated.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled.
 @li force: boolean value to indicate that the operation must be executed even if some members of

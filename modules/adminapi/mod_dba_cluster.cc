@@ -34,8 +34,6 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
-using std::placeholders::_1;
-
 DEBUG_OBJ_ENABLE(Cluster);
 
 namespace mysqlsh {
@@ -222,7 +220,7 @@ incremental. Default is auto.
 recovery process to finish and its verbosity level. Deprecated.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
 level.
-@li password: the instance connection password
+@li password: the instance connection password. Deprecated.
 @li memberSslMode: SSL mode used on the instance
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
@@ -301,6 +299,8 @@ Please use the ipAllowlist option instead.
 Please use the recoveryProgress option instead.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -352,7 +352,7 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
-@li password: the instance connection password
+@li password: the instance connection password. Deprecated.
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
@@ -414,6 +414,8 @@ ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 Please use the ipAllowlist option instead.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -464,7 +466,7 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
-@li password: the instance connection password
+@li password: the instance connection password. Deprecated.
 @li force: boolean, indicating if the instance must be removed (even if only
 from metadata) in case it cannot be reached. By default, set to false.
 ${OPT_INTERACTIVE}
@@ -486,6 +488,8 @@ removed without the force option to avoid errors trying to add it back to a
 cluster.
 
 @attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -858,7 +862,7 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FORCEQUORUMUSINGPARTITIONOF, R"*(
 Restores the cluster from quorum loss.
 
 @param instance An instance definition to derive the forced group from.
-@param password Optional string with the password for the connection.
+@param password Optional string with the password for the connection. Deprecated.
 
 @returns Nothing.
 
@@ -877,6 +881,8 @@ in the network, but not accessible from your location.
 
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -910,8 +916,6 @@ void Cluster::force_quorum_using_partition_of(
   if (!instance_def.has_port() && !instance_def.has_socket()) {
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
   }
-
-  instance_def.set_default_data();
 
   bool interactive = current_shell_options()->get().wizards;
 

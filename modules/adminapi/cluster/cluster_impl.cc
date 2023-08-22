@@ -26,19 +26,16 @@
 #include <cstdint>
 #include <exception>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "adminapi/common/clone_options.h"
 #include "adminapi/common/instance_pool.h"
-#include "modules/adminapi/base_cluster.h"
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/cluster/add_replica_instance.h"
 #include "modules/adminapi/cluster/check_instance_state.h"
@@ -58,7 +55,6 @@
 #include "modules/adminapi/cluster/switch_to_multi_primary_mode.h"
 #include "modules/adminapi/cluster/switch_to_single_primary_mode.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
-#include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/cluster_types.h"
@@ -70,15 +66,12 @@
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
-#include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
-#include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -87,10 +80,8 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/undo.h"
 #include "mysqlshdk/libs/mysql/utils.h"
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "scripting/types.h"
-#include "shellcore/utils_help.h"
 #include "utils/debug.h"
 #include "utils/logger.h"
 #include "utils/utils_general.h"
@@ -2546,17 +2537,8 @@ void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
 
 void Cluster_impl::force_quorum_using_partition_of(
     const Connection_options &instance_def, const bool interactive) {
-  std::shared_ptr<Instance> target_instance;
-  std::string instance_address =
-      instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
-  try {
-    log_info("Opening a new session to the partition instance %s",
-             instance_address.c_str());
-    target_instance =
-        Instance::connect(instance_def, current_shell_options()->get().wizards);
-  }
-  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
+  Scoped_instance target_instance{
+      connect_target_instance(instance_def, true, true)};
 
   check_preconditions("forceQuorumUsingPartitionOf");
 
@@ -2584,11 +2566,10 @@ void Cluster_impl::force_quorum_using_partition_of(
       // Remove the trailing comma of group_peers_print
       if (group_peers_print.back() == ',') group_peers_print.pop_back();
 
-      std::string message = "Restoring cluster '" + get_name() +
-                            "' from loss of quorum, by using the partition "
-                            "composed of [" +
-                            group_peers_print + "]\n";
-      console->print_info(message);
+      console->print_info(
+          shcore::str_format("Restoring cluster '%s' from loss of quorum, by "
+                             "using the partition composed of [%s]\n",
+                             get_name().c_str(), group_peers_print.c_str()));
 
       console->print_info("Restoring the InnoDB cluster ...");
       console->print_info();
@@ -2601,6 +2582,9 @@ void Cluster_impl::force_quorum_using_partition_of(
   // TODO(miguel): test if the instance if part of the current cluster, for
   // the scenario of restoring a cluster quorum from another
 
+  std::string instance_address =
+      instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport());
+
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
   // Metadata (BUG #26159339)
@@ -2610,23 +2594,19 @@ void Cluster_impl::force_quorum_using_partition_of(
 
     // Check if the instance belongs to the Cluster on the Metadata
     if (!contains_instance_with_address(md_address)) {
-      std::string message = "The instance '" + instance_address + "'";
-      message.append(" does not belong to the cluster: '" + get_name() + "'.");
-      throw shcore::Exception::runtime_error(message);
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "The instance '%s' does not belong to the cluster: '%s'.",
+          instance_address.c_str(), get_name().c_str()));
     }
 
     if (!validate_cluster_group_name(*target_instance, get_group_name())) {
-      std::string nice_error =
-          "The instance '" + instance_address +
-          "' "
-          "cannot be used to restore the cluster as it "
-          "may belong to a different cluster as the one registered "
-          "in the Metadata since the value of "
-          "'group_replication_group_name' does not match the one "
-          "registered in the cluster's Metadata: possible split-brain "
-          "scenario.";
-
-      throw shcore::Exception::runtime_error(nice_error);
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "The instance '%s' cannot be used to restore the cluster as it may "
+          "belong to a different cluster as the one registered in the Metadata "
+          "since the value of 'group_replication_group_name' does not match "
+          "the one registered in the cluster's Metadata: possible split-brain "
+          "scenario.",
+          instance_address.c_str()));
     }
   }
 
@@ -2642,21 +2622,19 @@ void Cluster_impl::force_quorum_using_partition_of(
 
     if (state.source_state != ManagedInstance::OnlineRW &&
         state.source_state != ManagedInstance::OnlineRO) {
-      std::string message = "The instance '" + instance_address + "'";
-      message.append(" cannot be used to restore the cluster as it is on a ");
-      message.append(ManagedInstance::describe(
-          static_cast<ManagedInstance::State>(state.source_state)));
-      message.append(" state, and should be ONLINE");
-
-      throw shcore::Exception::runtime_error(message);
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "The instance '%s' cannot be used to restore the cluster as it is on "
+          "a %s state, and should be ONLINE",
+          instance_address.c_str(),
+          ManagedInstance::describe(
+              static_cast<ManagedInstance::State>(state.source_state))
+              .c_str()));
     }
   } else {
-    std::string message = "The instance '" + instance_address + "'";
-    message.append(
-        " cannot be used to restore the cluster as it is not an active member "
-        "of replication group.");
-
-    throw shcore::Exception::runtime_error(message);
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "The instance '%s' cannot be used to restore the cluster as it is not "
+        "an active member of replication group.",
+        instance_address.c_str()));
   }
 
   // Check if there is quorum to issue an error.
@@ -2666,8 +2644,8 @@ void Cluster_impl::force_quorum_using_partition_of(
         "be used to restore a cluster from quorum loss.");
 
     throw shcore::Exception::runtime_error(
-        "The cluster has quorum according to instance '" + instance_address +
-        "'");
+        shcore::str_format("The cluster has quorum according to instance '%s'",
+                           instance_address.c_str()));
   }
 
   // Get the all instances from MD and members visible by the target instance.
@@ -2808,11 +2786,12 @@ void Cluster_impl::force_quorum_using_partition_of(
   if (interactive) {
     const auto console = current_console();
 
-    console->print_info(
-        "The InnoDB cluster was successfully restored using the partition "
-        "from the instance '" +
-        instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
-        "'.");
+    console->print_info(shcore::str_format(
+        "The InnoDB cluster was successfully restored using the partition from "
+        "the instance '%s'.",
+        instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport())
+            .c_str()));
+
     console->print_info();
     console->print_info(
         "WARNING: To avoid a split-brain scenario, ensure that all other "

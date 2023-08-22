@@ -155,7 +155,7 @@ DESCRIPTION
         the recovery process to finish and its verbosity level. Deprecated.
       - recoveryProgress: Integer value to indicate the recovery process
         verbosity level.
-      - password: the instance connection password
+      - password: the instance connection password. Deprecated.
       - memberSslMode: SSL mode used on the instance
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
@@ -300,6 +300,8 @@ DESCRIPTION
 
       ATTENTION: The interactive option will be removed in a future release.
 
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Check Instance State
 NAME
       checkInstanceState - Verifies the instance gtid state in relation to the
@@ -442,7 +444,7 @@ SYNTAX
 
 WHERE
       instance: An instance definition to derive the forced group from.
-      password: String with the password for the connection.
+      password: String with the password for the connection. Deprecated.
 
 RETURNS
       Nothing.
@@ -464,6 +466,8 @@ DESCRIPTION
       When this function is used, all the members that are ONLINE from the
       point of view of the given instance definition will be added to the
       group.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Get Name
 NAME
@@ -592,7 +596,7 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - password: the instance connection password
+      - password: the instance connection password. Deprecated.
       - recoveryMethod: Preferred method of state recovery. May be auto, clone
         or incremental. Default is auto.
       - recoveryProgress: Integer value to indicate the recovery process
@@ -679,6 +683,8 @@ DESCRIPTION
 
       ATTENTION: The interactive option will be removed in a future release.
 
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Remove Instance
 NAME
       removeInstance - Removes an Instance from the cluster.
@@ -702,7 +708,7 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - password: the instance connection password
+      - password: the instance connection password. Deprecated.
       - force: boolean, indicating if the instance must be removed (even if
         only from metadata) in case it cannot be reached. By default, set to
         false.
@@ -728,6 +734,8 @@ DESCRIPTION
       to add it back to a cluster.
 
       ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> SetInstanceOption
 NAME

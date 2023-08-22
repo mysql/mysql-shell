@@ -185,7 +185,7 @@ SYNTAX
 
 WHERE
       instance: An instance definition to derive the forced group from.
-      password: String with the password for the connection.
+      password: String with the password for the connection. Deprecated.
 
 RETURNS
       Nothing.

@@ -85,23 +85,23 @@ cluster.disconnect();
 session.close();
 shell.connect(__sandbox_uri1);
 
-//@<OUT> Get cluster operation must show a warning because there is no quorum
+//@<> Get cluster operation must show a warning because there is no quorum
 // Regression for BUG#27148943: getCluster() should warn when connected to member with no quorum
 var cluster = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: Cluster has no quorum and cannot process write transactions: Group has no quorum");
 
-//@ Cluster.forceQuorumUsingPartitionOf errors
-cluster.forceQuorumUsingPartitionOf();
-cluster.forceQuorumUsingPartitionOf(1);
-cluster.forceQuorumUsingPartitionOf("");
-cluster.forceQuorumUsingPartitionOf(1, "");
-cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'});
+//@<> Cluster.forceQuorumUsingPartitionOf errors
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(1); }, "Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary");
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(""); }, "Argument #1: Invalid URI: empty.");
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(1, ""); }, "Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary");
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}); }, `The instance '${localhost}:${__mysql_sandbox_port2}' cannot be used to restore the cluster as it is not an active member of replication group.`);
 
 //@<> enable interactive mode
 shell.options.useWizards=true;
 
-//@<> Cluster.forceQuorumUsingPartitionOf success interactive
-testutil.expectPassword(`Please provide the password for 'root@localhost:${__mysql_sandbox_port1}': `, "root");
-cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'});
+//@<> Cluster.forceQuorumUsingPartitionOf success (no password)
+EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'}); });
 
 EXPECT_OUTPUT_CONTAINS("Restoring cluster 'cluster' from loss of quorum, by using the partition composed of [" + __endpoint1 + "]");
 EXPECT_OUTPUT_CONTAINS("Restoring the InnoDB cluster ...");
@@ -121,13 +121,57 @@ scene.make_no_quorum([__mysql_sandbox_port1]);
 //killed and restarted, restoring the quorum can result in a timeout.
 //Since this bug was only fixed in 8.0 and not ported to 5.7, we must
 //not restart the killed instances.
-cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'});
+EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'}); });
 
-//@<> Cluster status after force quorum and rejoins
+//@<> Cluster.forceQuorumUsingPartitionOf success (explicit password)
+
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+scene.make_no_quorum([__mysql_sandbox_port1]);
+
+EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'}, 'root'); });
+
+//@<> Cluster.forceQuorumUsingPartitionOf check paswword mismatch
+
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+scene.make_no_quorum([__mysql_sandbox_port1]);
+
+WIPE_OUTPUT();
+
+EXPECT_THROWS(function(){
+    cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'foo'});
+}, "Invalid target instance specification");
+EXPECT_OUTPUT_CONTAINS(`Password for user root at ${localhost}:${__mysql_sandbox_port1} must be the same as in the rest of the cluster.`);
+
+WIPE_OUTPUT();
+
+EXPECT_THROWS(function(){
+    cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'}, "bar");
+}, "Invalid target instance specification");
+EXPECT_OUTPUT_CONTAINS(`Password for user root at ${localhost}:${__mysql_sandbox_port1} must be the same as in the rest of the cluster.`);
+
+//@<> Cluster.forceQuorumUsingPartitionOf check user mismatch
+
+EXPECT_THROWS(function(){
+    cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'foo'});
+}, `Could not open connection to '${localhost}:${__mysql_sandbox_port1}': Access denied for user 'foo'@'localhost'`);
+EXPECT_OUTPUT_CONTAINS(`Unable to connect to the target instance '${localhost}:${__mysql_sandbox_port1}'. Please verify the connection settings, make sure the instance is available and try again.`);
+
+//@<> Cluster.forceQuorumUsingPartitionOf success (user omitted, must fetch from the cluster)
+EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1}); });
+
+//@<> Cluster status after force quorum and rejoins
+
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
 var status = cluster.status();
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
@@ -166,8 +210,30 @@ testutil.startSandbox(__mysql_sandbox_port3);
 //@<> BUG#30739252: force quorum {VER(>=8.0.16)}
 c.forceQuorumUsingPartitionOf(__sandbox_uri2);
 
-//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16)}
-shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"), "tabbed");
+//@<> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16) && VER(<8.0.27)}
+shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"), "json");
+EXPECT_STDOUT_CONTAINS_MULTILINE(`{
+    "CHANNEL_NAME": "group_replication_applier",
+    "MEMBER_ID": "[[*]]",
+    "MEMBER_HOST": "${hostname}",
+    "MEMBER_PORT": ${__mysql_sandbox_port2},
+    "MEMBER_STATE": "ONLINE",
+    "MEMBER_ROLE": "PRIMARY",
+    "MEMBER_VERSION": "${__version}"
+}`);
+
+//@<> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.27)}
+shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"), "json");
+EXPECT_STDOUT_CONTAINS_MULTILINE(`{
+    "CHANNEL_NAME": "group_replication_applier",
+    "MEMBER_ID": "[[*]]",
+    "MEMBER_HOST": "${hostname}",
+    "MEMBER_PORT": ${__mysql_sandbox_port2},
+    "MEMBER_STATE": "ONLINE",
+    "MEMBER_ROLE": "PRIMARY",
+    "MEMBER_VERSION": "${__version}",
+    "MEMBER_COMMUNICATION_STACK": "MySQL"
+}`);
 
 // --- END --- BUG#30739252 : race condition in forcequorum
 

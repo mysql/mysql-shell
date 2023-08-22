@@ -20,6 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "mysqlshdk/libs/db/connection_options.h"
 
 #include <algorithm>
@@ -715,17 +716,13 @@ bool Connection_options::operator!=(const Connection_options &other) const {
 }
 
 mysqlsh::SessionType Connection_options::get_session_type() const {
-  if (!has_scheme()) {
-    return mysqlsh::SessionType::Auto;
-  } else {
-    std::string scheme = get_scheme();
-    if (scheme == "mysqlx")
-      return mysqlsh::SessionType::X;
-    else if (scheme == "mysql")
-      return mysqlsh::SessionType::Classic;
-    else
-      throw std::invalid_argument("Unknown MySQL URI type " + scheme);
-  }
+  if (!has_scheme()) return mysqlsh::SessionType::Auto;
+
+  const auto &scheme = get_scheme();
+  if (scheme == "mysqlx") return mysqlsh::SessionType::X;
+  if (scheme == "mysql") return mysqlsh::SessionType::Classic;
+
+  throw std::invalid_argument("Unknown MySQL URI type " + scheme);
 }
 
 void Connection_options::set_default_data() {
