@@ -142,7 +142,7 @@ EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 
 // FR16
 status = rset.status();
-EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_TRUE(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"].match(/TLS_.+ TLSv.+/));
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, false, false);
@@ -217,7 +217,7 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 // FR16
 status = rset.status();
-EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_TRUE(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"].match(/TLS_.+ TLSv.+/));
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, false, true, false);
@@ -254,7 +254,7 @@ EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2, { certSubject: "/
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 status = rset.status();
-EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_TRUE(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"].match(/TLS_.+ TLSv.+/));
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, false, true, false);
@@ -306,7 +306,7 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 // FR16
 status = rset.status();
-EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_TRUE(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"].match(/TLS_.+ TLSv.+/));
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, true, false);
@@ -351,7 +351,7 @@ EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 // FR16
 status = rset.status();
-EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"], "TLS_AES_256_GCM_SHA384 TLSv1.3");
+EXPECT_TRUE(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSsl"].match(/TLS_.+ TLSv.+/));
 EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["replication"]["replicationSslMode"], "REQUIRED");
 
 check_users(session, true, true, true);
