@@ -62,7 +62,7 @@ function expect_rs_variable() {
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -100,7 +100,7 @@ function expect_rs_variable() {
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for ${__source_keyword} to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"

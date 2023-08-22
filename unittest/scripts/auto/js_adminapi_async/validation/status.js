@@ -32,7 +32,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -79,7 +79,7 @@
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
                 },
@@ -135,7 +135,7 @@
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
                 },
@@ -175,7 +175,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -229,7 +229,7 @@
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
                 },
@@ -267,7 +267,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -322,7 +322,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -360,7 +360,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -403,7 +403,7 @@
                     "receiverStatus": "OFF",
                     "receiverThreadState": "",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
                 },
@@ -453,7 +453,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                    "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"

@@ -98,7 +98,7 @@
                 "receiver": "<<<hostname>>>:<<<__mysql_sandbox_port4>>>",
                 "receiverStatus": "ON",
                 "receiverThreadState": "Waiting for source to send event",
-                "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                "replicationSsl": "TLS_[[*]]",
                 "replicationSslMode": "REQUIRED",
                 "source": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
             },
@@ -144,7 +144,7 @@
                 "receiver": "<<<hostname>>>:<<<__mysql_sandbox_port6>>>",
                 "receiverStatus": "ON",
                 "receiverThreadState": "Waiting for source to send event",
-                "replicationSsl": "TLS_AES_256_GCM_SHA384 TLSv1.3",
+                "replicationSsl": "TLS_[[*]]",
                 "replicationSslMode": "REQUIRED",
                 "source": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
             },
