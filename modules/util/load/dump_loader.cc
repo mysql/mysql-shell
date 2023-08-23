@@ -277,6 +277,8 @@ class Index_file {
     m_idx_file->close();
 
     m_data_size = mysqlshdk::utils::network_to_host(m_data_size);
+
+    m_metadata_loaded = true;
   }
 
   static constexpr uint64_t k_entry_size = sizeof(uint64_t);
