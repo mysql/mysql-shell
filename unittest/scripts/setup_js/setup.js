@@ -351,7 +351,7 @@ function getAuthServerConfig(context) {
 
 
 function isAuthMethodSupported(context) {
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'OCI_AUTH'].indexOf(context) == -1) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH'].indexOf(context) == -1) {
     return false;
   }
 
@@ -367,6 +367,8 @@ function isAuthMethodSupported(context) {
     plugin = 'authentication_kerberos';
   } else if (context == 'FIDO') {
     plugin = 'authentication_fido';
+  } else if (context == 'WEBAUTHN') {
+    plugin = 'authentication_webauthn';
   } else if (context == 'OCI_AUTH') {
     // we're using an external server, so this is always supported
     return true;

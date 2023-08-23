@@ -30,6 +30,7 @@
 #include <mysql/plugin_trace.h>
 #include <cstring>
 
+#include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
@@ -119,9 +120,10 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
     log_protocol_event("PLUGIN-EVENT: %s.%s.%s", args.plugin_name,
                        protocol_stage_str(stage), trace_event_str(ev));
 
-    if (0 == strcmp(args.plugin_name, "authentication_fido_client")) {
+    if (0 == strcmp(args.plugin_name, "authentication_fido_client") ||
+        0 == strcmp(args.plugin_name, "authentication_webauthn_client")) {
       // Instantiating the fido handler will set the print callback
-      fido::register_print_callback(conn);
+      fido::register_callbacks(conn, args.plugin_name);
     } else if (0 == strcmp(args.plugin_name, "authentication_oci_client")) {
       // make sure that the configured OCI config file is used for
       // authentication

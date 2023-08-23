@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,10 +46,47 @@ namespace {
 constexpr int HOSTNAME_LENGTH = 255;
 
 /**
- * Callback for print operations on the authentication_fido_client plugin
+ * Callback for print operations on the authentication_fido_client and
+ * authentication_webauthn_client plugins
  */
 void plugin_messages_callback(const char *msg) {
   mysqlsh::current_console()->print_info(msg);
+}
+
+/**
+ * Webauthn callback for password retrieval when the FIDO device has PIN
+ */
+int plugin_messages_callback_get_password(char *buffer,
+                                          const unsigned int buffer_len) {
+  std::string reply;
+  // The empty prompt is because the plugin already printed the prompt using the
+  // message callback.
+  if (mysqlsh::current_console()->prompt_password("", &reply) ==
+      shcore::Prompt_result::Ok) {
+    memcpy(buffer, reply.c_str(), buffer_len);
+    return 0;
+  }
+  return 1;
+}
+
+/**
+ * Webauthn callback for item selection when multiple credentials are found on
+ * the device.
+ */
+int plugin_messages_callback_get_uint(unsigned int *val) {
+  std::string reply;
+  // The empty prompt is because the plugin already printed the prompt using the
+  // message callback.
+  if (mysqlsh::current_console()->prompt("", &reply) ==
+      shcore::Prompt_result::Ok) {
+    try {
+      *val = shcore::lexical_cast<unsigned int>(reply);
+      return 0;
+    } catch (const std::invalid_argument &) {
+      // NO-OP, plugin will handle it through the returned value
+    }
+  }
+  return 1;
 }
 
 /**
@@ -80,25 +117,36 @@ bool parse_register_factor(const char *what_factor,
   return true;
 }
 
-struct st_mysql_client_plugin *get_authentication_fido_client(MYSQL *conn) {
-  /* load fido client authentication plugin if required */
-  return auth::get_authentication_plugin(conn, "authentication_fido_client");
-}
+void set_callbacks(struct st_mysql_client_plugin *plugin,
+                   const std::string &plugin_name) {
+  bool is_webauthn = plugin_name == "authentication_webauthn_client";
+  const char *callback_option =
+      is_webauthn ? "plugin_authentication_webauthn_client_messages_callback"
+                  : "fido_messages_callback";
 
-void set_print_callback(struct st_mysql_client_plugin *plugin) {
   /* set plugin message handler */
-  if (mysql_plugin_options(plugin, "fido_messages_callback",
+  if (mysql_plugin_options(plugin, callback_option,
                            (const void *)&plugin_messages_callback)) {
-    throw std::runtime_error(
-        "Failed to set message callback on authentication_fido_client plugin.");
+    throw std::runtime_error(shcore::str_format(
+        "Failed to set message callback on %s plugin.", plugin_name.c_str()));
+  }
+
+  if (is_webauthn) {
+    mysql_plugin_options(
+        plugin, "plugin_authentication_webauthn_client_callback_get_password",
+        (const void *)&plugin_messages_callback_get_password);
+
+    mysql_plugin_options(
+        plugin, "plugin_authentication_webauthn_client_callback_get_uint",
+        (const void *)&plugin_messages_callback_get_uint);
   }
 }
 
 }  // namespace
 
-void register_print_callback(MYSQL *conn) {
-  auto plugin = get_authentication_fido_client(conn);
-  set_print_callback(plugin);
+void register_callbacks(MYSQL *conn, const std::string &plugin_name) {
+  auto plugin = auth::get_authentication_plugin(conn, plugin_name.c_str());
+  set_callbacks(plugin, plugin_name);
 }
 
 /**
@@ -115,8 +163,7 @@ void register_device(MYSQL *conn, const char *factor) {
         "Correct values can be '2', '3', '2,3' or '3,2'.");
   }
 
-  auto plugin = get_authentication_fido_client(conn);
-  set_print_callback(plugin);
+  st_mysql_client_plugin *plugin = nullptr;
 
   for (auto this_factor : list) {
     shcore::sqlstring init("ALTER USER USER() ? FACTOR INITIATE REGISTRATION",
@@ -133,12 +180,32 @@ void register_device(MYSQL *conn, const char *factor) {
       auth::handle_mysql_error(conn);
     }
 
-    if (mysql_num_rows(result) > 1) {
-      auth::handle_mysql_error(conn);
+    if (auto count = mysql_num_rows(result) != 1) {
+      const char *reason = count == 0 ? "no" : "multiple";
+      throw std::runtime_error(shcore::str_format(
+          "Device registration failed, %s server challenge returned.", reason));
     }
 
     MYSQL_ROW row = mysql_fetch_row(result);
+    if (!row) {
+      // This should not happen since mysql_store_result was used, so a row is
+      // always expected
+      throw std::runtime_error("Unexpected failure getting server challenge.");
+    }
+
     unsigned long *lengths = mysql_fetch_lengths(result);
+    if (!lengths) {
+      auth::handle_mysql_error(conn);
+    }
+
+    // Servers < 8.2.0 return server challenge (only fido authentication is
+    // supported). Newer versions return server challenge and plugin name
+    std::string plugin_name = "authentication_fido_client";
+    int field_count = mysql_field_count(conn);
+    if (field_count > 1) {
+      plugin_name.assign(row[1], lengths[1]);
+    }
+
     /*
       max length of challenge can be 32 (random challenge) +
       255 (relying party ID) + 255 (host name) + 32 (user name) + 4 byte for
@@ -154,16 +221,25 @@ void register_device(MYSQL *conn, const char *factor) {
     uchar server_challenge[CHALLENGE_LENGTH + RELYING_PARTY_ID_LENGTH +
                            HOSTNAME_LENGTH + USERNAME_LENGTH + 4];
 
+    memset(server_challenge, 0,
+           CHALLENGE_LENGTH + RELYING_PARTY_ID_LENGTH + HOSTNAME_LENGTH +
+               USERNAME_LENGTH + 4);
+
     memcpy(&server_challenge[0], row[0], lengths[0]);
     mysql_free_result(result);
+
+    if (nullptr == plugin) {
+      plugin = auth::get_authentication_plugin(conn, plugin_name.c_str());
+    }
 
     /* set server challenge in plugin */
     if (mysql_plugin_options(plugin, "registration_challenge",
                              &server_challenge[0])) {
       // my_free(server_challenge);
       throw std::runtime_error(
-          "Failed to set \"registration_challenge\" for authentication_fido "
-          "plugin");
+          shcore::str_format("Failed to set \"registration_challenge\" for %s "
+                             "plugin",
+                             plugin_name.c_str()));
     }
 
     /* get challenge response from plugin */
@@ -173,8 +249,9 @@ void register_device(MYSQL *conn, const char *factor) {
     if (mysql_plugin_get_option(plugin, "registration_response",
                                 &server_challenge_response)) {
       throw std::runtime_error(
-          "Failed to get \"registration_response\" on authentication_fido "
-          "plugin");
+          shcore::str_format("Failed to get \"registration_response\" on %s "
+                             "plugin",
+                             plugin_name.c_str()));
     }
 
     shcore::sqlstring finish(
