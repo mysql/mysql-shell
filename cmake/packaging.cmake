@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -69,7 +69,10 @@ if(WIN32)
   set(CPACK_WIX_PROGRAM_MENU_FOLDER   "MySQL")
   if(NOT BUNDLE_RUNTIME_LIBRARIES)
     set(CPACK_WIX_VS_REDIST_CHECK     "1")
-    if(MSVC_VERSION GREATER_EQUAL 1920 AND MSVC_VERSION LESS_EQUAL 1929)
+    if(MSVC_VERSION GREATER_EQUAL 1930 AND MSVC_VERSION LESS_EQUAL 1939)
+      set(CPACK_WIX_REDIST_YEAR "2022")
+      set(CPACK_WIX_REDIST_VERSION "14.30.0")
+    elseif(MSVC_VERSION GREATER_EQUAL 1920 AND MSVC_VERSION LESS_EQUAL 1929)
       set(CPACK_WIX_REDIST_YEAR "2019")
       set(CPACK_WIX_REDIST_VERSION "14.20.0")
     elseif(MSVC_VERSION GREATER_EQUAL 1910 AND MSVC_VERSION LESS_EQUAL 1919)
