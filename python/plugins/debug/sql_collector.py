@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -1281,10 +1281,13 @@ def collect_cluster_metadata(zf: zipfile.ZipFile, prefix: str,
         if t == "ar":
             cluster_type = "ar"
         else:
-            t = session.run_sql(
-                "select count(*) from mysql_innodb_cluster_metadata.v2_cs_clustersets").fetch_one()[0]
-            if t:
-                cluster_type = "cs"
+            try:
+                t = session.run_sql(
+                    "select count(*) from mysql_innodb_cluster_metadata.v2_cs_clustersets").fetch_one()[0]
+                if t:
+                    cluster_type = "cs"
+            except:
+                pass
     return cluster_type
 
 
