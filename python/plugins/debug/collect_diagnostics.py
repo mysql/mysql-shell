@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -55,12 +55,18 @@ yaml.representer.BaseRepresenter.represent_scalar = repr_yaml_text
 
 def copy_local_file(zf: zipfile.ZipFile, path: str, source_path: str):
     with zf.open(make_zipinfo(path), "w") as f:
-        with open(source_path, "rb") as inf:
-            while True:
-                data = inf.read(1024*1024)
-                if not data:
-                    break
-                f.write(data)
+        try:
+            with open(source_path, "rb") as inf:
+                while True:
+                    data = inf.read(1024*1024)
+                    if not data:
+                        break
+                    f.write(data)
+        except:
+            import traceback
+            print(f"WARNING: Could not copy '{source_path}'\n")
+            f.write(f"Error copying file {source_path}\n".encode("utf-8"))
+            f.write(traceback.format_exc().encode("utf-8"))
 
 
 def collect_error_log(zf: zipfile.ZipFile, path: str, *, local_target: bool, session: InstanceSession, ignore_errors: bool):
