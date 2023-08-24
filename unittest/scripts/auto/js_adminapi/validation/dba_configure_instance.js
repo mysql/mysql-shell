@@ -161,7 +161,7 @@ Account repl_admin@% was successfully created.
 
 Configuring instance...
 ?{}
-?{VER(>=8.2.0) && !__replaying}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}

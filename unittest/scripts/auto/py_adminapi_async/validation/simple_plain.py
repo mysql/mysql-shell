@@ -59,7 +59,7 @@ Creating user admin@%.
 Account admin@% was successfully created.
 
 Configuring instance...
-?{VER(>=8.2.0) and not __replaying}
+?{((VER(>=8.0.35) and VER(<8.1.0)) or VER(>=8.2.0)) and not __replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}

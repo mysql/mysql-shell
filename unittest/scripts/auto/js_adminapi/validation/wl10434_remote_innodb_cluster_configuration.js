@@ -271,7 +271,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
-?{VER(>=8.2.0) && !__replaying}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}
@@ -414,7 +414,7 @@ Some variables need to be changed, but cannot be done dynamically on the server:
 NOTE: persisted_globals_load option is OFF
 Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.
 Configuring instance...
-?{VER(>=8.2.0) && !__replaying}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}
@@ -579,7 +579,7 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
-?{VER(>=8.2.0) && !__replaying}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}
@@ -668,7 +668,7 @@ Creating user clusterAdminAccount@%.
 Account clusterAdminAccount@% was successfully created.
 
 Configuring instance...
-?{VER(>=8.2.0) && !__replaying}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}
