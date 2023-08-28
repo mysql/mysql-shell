@@ -1677,4 +1677,46 @@ TEST_F(MySQL_upgrade_check_test, empty_dot_table_syntax_check) {
   ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS dot_table_test;"));
 }
 
+TEST_F(MySQL_upgrade_check_test, invalid_engine_foreign_key_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
+  PrepareTestDatabase("inv_eng_db");
+
+  ASSERT_NO_THROW(session->execute("SET SESSION foreign_key_checks = OFF;"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE `testtable` (
+  `column_idColumn` int NOT NULL,
+      KEY `fk_TestTable_SecondTable` (`column_idColumn`),
+      CONSTRAINT `const_TestTable_SecondTable` FOREIGN
+          KEY(`column_idColumn`)
+              REFERENCES `secondtable` (`idColumn`) ON DELETE NO ACTION)
+      ENGINE = InnoDB;)"));
+
+  ASSERT_NO_THROW(session->execute(R"(CREATE TABLE `secondtable` (
+  `idColumn` int NOT NULL, PRIMARY KEY(`idColumn`)) ENGINE = InnoDB;)"));
+
+  const auto check = Sql_upgrade_check::get_invalid_engine_foreign_key_check();
+  EXPECT_NO_ISSUES(check.get());
+
+  ASSERT_NO_THROW(session->execute("DROP TABLE secondtable;"));
+
+  ASSERT_NO_THROW(session->execute(R"(CREATE TABLE `secondtable` (
+  `idColumn` int NOT NULL, PRIMARY KEY(`idColumn`)) ENGINE = MyISAM;)"));
+
+  EXPECT_ISSUES(check.get(), 1);
+
+  EXPECT_EQ("inv_eng_db", issues[0].schema);
+  EXPECT_EQ("testtable", issues[0].table);
+  EXPECT_EQ("column_idColumn", issues[0].column);
+  EXPECT_EQ(
+      "column has invalid foreign key to column 'idColumn' from table "
+      "'inv_eng_db/secondtable' that is from a different database engine "
+      "(MyISAM).",
+      issues[0].description);
+
+  ASSERT_NO_THROW(session->execute("SET SESSION foreign_key_checks = ON;"));
+  ASSERT_NO_THROW(session->execute("DROP SCHEMA IF EXISTS inv_eng_db;"));
+}
+
 }  // namespace mysqlsh

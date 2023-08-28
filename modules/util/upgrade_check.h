@@ -214,6 +214,8 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check();
   static std::unique_ptr<Sql_upgrade_check> get_index_too_large_check();
   static std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check();
+  static std::unique_ptr<Sql_upgrade_check>
+  get_invalid_engine_foreign_key_check();
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
