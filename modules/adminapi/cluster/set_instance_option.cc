@@ -119,9 +119,11 @@ void Set_instance_option::ensure_option_valid() {
     // Check if there's already an instance with the label we want to set
     if (!m_cluster.get_metadata_storage()->is_instance_label_unique(
             m_cluster.get_id(), *m_value_str)) {
-      throw shcore::Exception::argument_error(
-          "An instance with label '" + *m_value_str +
-          "' is already part of this InnoDB cluster");
+      auto instance_md =
+          m_cluster.get_metadata_storage()->get_instance_by_label(*m_value_str);
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Instance '%s' is already using label '%s'.",
+          instance_md.address.c_str(), m_value_str->c_str()));
     }
   } else {
     if (k_instance_supported_options.count(m_option) == 0) {

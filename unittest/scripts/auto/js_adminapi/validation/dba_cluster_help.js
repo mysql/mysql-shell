@@ -763,7 +763,7 @@ DESCRIPTION
         instance will attempt to rejoin the cluster after being expelled.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
-      - label a string identifier of the instance.
+      - label: a string identifier of the instance.
       - replicationSources: The list of sources for a Read Replica Instance.
 
       The exitStateAction option supports the following values:

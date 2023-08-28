@@ -34,12 +34,6 @@ Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 
 //@ WL#11465: Re-create the cluster
 ||
 
-//@<ERR> WL#11465: setInstanceOption label with invalid value for label 1
-Cluster.setInstanceOption: The label can only start with an alphanumeric or the '_' character. (ArgumentError)
-
-//@<ERR> WL#11465: setInstanceOption label with invalid value for label 2
-Cluster.setInstanceOption: An instance with label '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster (ArgumentError)
-
 //@<OUT> WL#11465: setInstanceOption label
 Setting the value of 'label' to 'newLabel' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
