@@ -23,14 +23,12 @@
 
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 
-#include <mysql.h>
 #include <mysqld_error.h>
 
-#include <future>
-#include <thread>
 #include <tuple>
 #include <utility>
 
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
@@ -40,9 +38,6 @@
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/gtid_validations.h"
-#include "modules/adminapi/common/instance_monitoring.h"
-#include "modules/adminapi/common/instance_validations.h"
-#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/router.h"
@@ -51,20 +46,13 @@
 #include "modules/adminapi/common/star_global_topology_manager.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
-#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/include/shellcore/interrupt_handler.h"
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
-#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/types.h"
 
 namespace mysqlsh {
@@ -140,7 +128,11 @@ void validate_instance(Instance *target_server) {
 std::vector<std::pair<mysqlshdk::mysql::Slave_host, std::string>>
 get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
   auto slaves = get_slaves(*instance);
+  if (slaves.empty()) return {};
+
   std::vector<std::pair<mysqlshdk::mysql::Slave_host, std::string>> real_slaves;
+  real_slaves.reserve(slaves.size());
+
   auto ipool = current_ipool();
 
   for (const auto &ch : slaves) {
@@ -187,54 +179,55 @@ get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
 
 void validate_instance_is_standalone(Instance *target_server,
                                      bool add_op = false) {
-  auto console = current_console();
-
   // Look for unexpected replication channels
   auto channels = mysqlshdk::mysql::get_incoming_channels(*target_server);
   auto slaves = get_valid_slaves(target_server);
+  if (channels.empty() && slaves.empty()) return;
 
-  if (!channels.empty() || !slaves.empty()) {
-    console->print_error("Extraneous replication channels found at " +
-                         target_server->descr() + ":");
-    for (const auto &ch : channels) {
-      console->print_info(
-          "- channel '" + ch.channel_name + "' from " +
-          mysqlshdk::utils::make_host_and_port(ch.host, ch.port));
-    }
-    for (const auto &sl : slaves) {
-      if (sl.second.empty())
-        console->print_info(
-            "- " +
-            mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
-            " replicates from this instance");
-      else
-        console->print_info(
-            "- " +
-            mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
-            " replicates from this instance (channel " + sl.second + ")");
-    }
-    console->print_info();
-    std::string info_msg =
-        "Unmanaged replication channels are not supported in a replicaset. If "
-        "you'd like to manage an existing MySQL replication topology with the "
-        "Shell, use the <<<createReplicaSet>>>() operation with the "
-        "adoptFromAR option.";
-    if (add_op) {
-      std::string replica_term =
-          mysqlshdk::mysql::get_replica_keyword(target_server->get_version());
-      info_msg.append(
-          " If the <<<addInstance>>>() operation previously failed for the "
-          "target instance and you are trying to add it again, then after "
-          "fixing the issue you should reset the current replication settings "
-          "before retrying to execute the operation. To reset the replication "
-          "settings on the target instance execute the following statements: "
-          "'STOP " +
-          replica_term + ";' and 'RESET " + replica_term + " ALL;'.");
-    }
-    console->print_para(info_msg);
-    throw shcore::Exception("Unexpected replication channel",
-                            SHERR_DBA_INVALID_SERVER_CONFIGURATION);
+  auto console = current_console();
+  console->print_error("Extraneous replication channels found at " +
+                       target_server->descr() + ":");
+  for (const auto &ch : channels) {
+    console->print_info("- channel '" + ch.channel_name + "' from " +
+                        mysqlshdk::utils::make_host_and_port(ch.host, ch.port));
   }
+
+  for (const auto &sl : slaves) {
+    if (sl.second.empty())
+      console->print_info(
+          "- " +
+          mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
+          " replicates from this instance");
+    else
+      console->print_info(
+          "- " +
+          mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
+          " replicates from this instance (channel " + sl.second + ")");
+  }
+
+  console->print_info();
+  std::string info_msg =
+      "Unmanaged replication channels are not supported in a replicaset. If "
+      "you'd like to manage an existing MySQL replication topology with the "
+      "Shell, use the <<<createReplicaSet>>>() operation with the "
+      "adoptFromAR option.";
+
+  if (add_op) {
+    std::string replica_term =
+        mysqlshdk::mysql::get_replica_keyword(target_server->get_version());
+    info_msg.append(
+        " If the <<<addInstance>>>() operation previously failed for the "
+        "target instance and you are trying to add it again, then after "
+        "fixing the issue you should reset the current replication settings "
+        "before retrying to execute the operation. To reset the replication "
+        "settings on the target instance execute the following statements: "
+        "'STOP " +
+        replica_term + ";' and 'RESET " + replica_term + " ALL;'.");
+  }
+
+  console->print_para(info_msg);
+  throw shcore::Exception("Unexpected replication channel",
+                          SHERR_DBA_INVALID_SERVER_CONFIGURATION);
 }
 
 void validate_adopted_topology(Global_topology_manager *topology,
@@ -441,9 +434,16 @@ void Replica_set_impl::create(const Create_replicaset_options &options,
           shcore::Value(options.member_auth_options.cert_subject));
 
       // Set and store the default Routing Options
-      for (const auto &[option, value] : k_default_replicaset_router_options) {
-        m_metadata_storage->set_global_routing_option(
-            Cluster_type::ASYNC_REPLICATION, id, option, value);
+      {
+        MetadataStorage::Transaction trx(m_metadata_storage);
+
+        for (const auto &[option, value] :
+             k_default_replicaset_router_options) {
+          m_metadata_storage->set_global_routing_option(
+              Cluster_type::ASYNC_REPLICATION, id, option, value);
+        }
+
+        trx.commit();
       }
     }
     console->print_info();
@@ -989,28 +989,34 @@ void Replica_set_impl::add_instance(
           target_instance->get_uuid(), k_instance_attribute_cert_subject,
           shcore::Value(auth_cert_subject));
 
-      auto update_repl_attrib = [this, &target_instance](
-                                    const auto &value,
-                                    std::string_view attrib_name) {
-        if (!value.has_value()) return;
-        get_metadata_storage()->update_instance_attribute(
-            target_instance->get_uuid(), attrib_name,
-            shcore::Value(value.value()));
-      };
+      {
+        MetadataStorage::Transaction trx(get_metadata_storage());
 
-      update_repl_attrib(ar_options.connect_retry,
-                         k_instance_attribute_replConnectRetry);
-      update_repl_attrib(ar_options.retry_count,
-                         k_instance_attribute_replRetryCount);
-      update_repl_attrib(ar_options.heartbeat_period,
-                         k_instance_attribute_replHeartbeatPeriod);
-      update_repl_attrib(ar_options.compression_algos,
-                         k_instance_attribute_replCompressionAlgorithms);
-      update_repl_attrib(ar_options.zstd_compression_level,
-                         k_instance_attribute_replZstdCompressionLevel);
-      update_repl_attrib(ar_options.bind, k_instance_attribute_replBind);
-      update_repl_attrib(ar_options.network_namespace,
-                         k_instance_attribute_replNetworkNamespace);
+        auto update_repl_attrib = [this, &target_instance](
+                                      const auto &value,
+                                      std::string_view attrib_name) {
+          if (!value.has_value()) return;
+          get_metadata_storage()->update_instance_attribute(
+              target_instance->get_uuid(), attrib_name,
+              shcore::Value(value.value()));
+        };
+
+        update_repl_attrib(ar_options.connect_retry,
+                           k_instance_attribute_replConnectRetry);
+        update_repl_attrib(ar_options.retry_count,
+                           k_instance_attribute_replRetryCount);
+        update_repl_attrib(ar_options.heartbeat_period,
+                           k_instance_attribute_replHeartbeatPeriod);
+        update_repl_attrib(ar_options.compression_algos,
+                           k_instance_attribute_replCompressionAlgorithms);
+        update_repl_attrib(ar_options.zstd_compression_level,
+                           k_instance_attribute_replZstdCompressionLevel);
+        update_repl_attrib(ar_options.bind, k_instance_attribute_replBind);
+        update_repl_attrib(ar_options.network_namespace,
+                           k_instance_attribute_replNetworkNamespace);
+
+        trx.commit();
+      }
     }
   } catch (const cancel_sync &) {
     if (!dry_run) {
@@ -1341,9 +1347,10 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
               ->instance_id;
       instance_md.primary_master = false;
       m_metadata_storage->record_async_member_rejoined(instance_md);
-      trx.commit();
 
       ensure_metadata_has_server_uuid(*target_instance);
+
+      trx.commit();
     }
   } catch (const cancel_sync &) {
     stop_channel(*target_instance, k_replicaset_channel_name, true, false);
@@ -1554,9 +1561,11 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
 
   // update metadata
   log_debug("Removing instance from the Metadata.");
-  MetadataStorage::Transaction trx(get_metadata_storage());
-  m_metadata_storage->record_async_member_removed(md.cluster_id, md.id);
-  trx.commit();
+  {
+    MetadataStorage::Transaction trx(get_metadata_storage());
+    m_metadata_storage->record_async_member_removed(md.cluster_id, md.id);
+    trx.commit();
+  }
 
   if (target_server.get()) {
     if (repl_working && timeout >= 0) {
@@ -2060,6 +2069,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
 
       try {
         MetadataStorage::Transaction trx(get_metadata_storage());
+
         m_metadata_storage->record_async_primary_forced_switch(
             promoted->instance_id, invalidate_ids);
 
@@ -2513,9 +2523,8 @@ void Replica_set_impl::invalidate_handle() {
 
 void Replica_set_impl::ensure_metadata_has_server_uuid(
     const mysqlsh::dba::Instance &instance) {
-  const auto target_uuid = instance.get_uuid();
-
   try {
+    auto &target_uuid = instance.get_uuid();
     m_metadata_storage->get_instance_by_uuid(target_uuid);
     return;  // uuid is in metadata
   } catch (const shcore::Exception &e) {
@@ -2525,7 +2534,7 @@ void Replica_set_impl::ensure_metadata_has_server_uuid(
   log_info("Updating instance '%s' server UUID in metadata.",
            instance.descr().c_str());
 
-  Instance_metadata instance_md(query_instance_info(instance, false));
+  auto instance_md = query_instance_info(instance, false);
   instance_md.cluster_id = get_id();
   m_metadata_storage->update_instance(instance_md);
 }
@@ -2584,8 +2593,6 @@ void Replica_set_impl::ensure_compatible_clone_donor(
 
 std::string Replica_set_impl::pick_clone_donor(
     mysqlshdk::mysql::IInstance *recipient) {
-  auto console = current_console();
-
   std::string r;
   auto topology_mng = setup_topology_manager();
   auto topology = topology_mng->topology();
@@ -2603,32 +2610,32 @@ std::string Replica_set_impl::pick_clone_donor(
   // then it must be the primary
   if (!secondaries.empty()) {
     for (const auto *s : secondaries) {
-      if (recipient->get_uuid() != s->get_primary_member()->uuid) {
-        std::string instance_def = s->get_primary_member()->endpoint;
+      if (recipient->get_uuid() == s->get_primary_member()->uuid) continue;
 
-        try {
-          if (mysqlshdk::utils::Net::is_ipv6(
-                  mysqlshdk::utils::split_host_and_port(instance_def).first))
-            throw shcore::Exception::runtime_error(
-                "Instance hostname/report_host is an IPv6 address, which is "
-                "not supported for cloning");
+      std::string instance_def = s->get_primary_member()->endpoint;
 
-          const auto donor_instance =
-              Scoped_instance(connect_target_instance(instance_def));
+      try {
+        if (mysqlshdk::utils::Net::is_ipv6(
+                mysqlshdk::utils::split_host_and_port(instance_def).first))
+          throw shcore::Exception::runtime_error(
+              "Instance hostname/report_host is an IPv6 address, which is "
+              "not supported for cloning");
 
-          ensure_compatible_clone_donor(donor_instance, *recipient);
+        const auto donor_instance =
+            Scoped_instance(connect_target_instance(instance_def));
 
-          r = instance_def;
+        ensure_compatible_clone_donor(donor_instance, *recipient);
 
-          // No need to continue looking for more
-          break;
-        } catch (const shcore::Exception &e) {
-          std::string msg = "SECONDARY '" + instance_def +
-                            "' is not a suitable clone donor: " + e.what();
-          log_info("%s", msg.c_str());
-          full_msg += msg + "\n";
-          continue;
-        }
+        r = instance_def;
+
+        // No need to continue looking for more
+        break;
+      } catch (const shcore::Exception &e) {
+        std::string msg = "SECONDARY '" + instance_def +
+                          "' is not a suitable clone donor: " + e.what();
+        log_info("%s", msg.c_str());
+        full_msg += msg + "\n";
+        continue;
       }
     }
   }
@@ -2660,6 +2667,7 @@ std::string Replica_set_impl::pick_clone_donor(
 
   // If nobody is compatible...
   if (r.empty()) {
+    auto console = current_console();
     console->print_error(
         "None of the members in the replicaSet are compatible to be used as "
         "clone donors for " +
@@ -2752,15 +2760,14 @@ Instance_id Replica_set_impl::manage_instance(
 const topology::Server *Replica_set_impl::check_target_member(
     topology::Server_global_topology *topology,
     const std::string &instance_def) {
-  auto console = current_console();
   // we can't print instance_def directly because it may contain credentials
-  std::string instance_label = Connection_options(instance_def).uri_endpoint();
-  const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def));
+  Scoped_instance target_instance(connect_target_instance(instance_def));
 
   try {
     return topology->get_server(target_instance->get_uuid());
   } catch (const shcore::Exception &e) {
+    std::string instance_label =
+        Connection_options(instance_def).uri_endpoint();
     log_warning("%s: %s", instance_label.c_str(), e.format().c_str());
 
     if (e.code() == SHERR_DBA_CLUSTER_METADATA_MISSING) {
@@ -2949,8 +2956,7 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
   return r;
 }
 
-void Replica_set_impl::remove_router_metadata(const std::string &router,
-                                              bool lock_metadata) {
+void Replica_set_impl::remove_router_metadata(const std::string &router) {
   check_preconditions_and_primary_availability("removeRouterMetadata");
 
   // Acquire a shared lock on the primary. The metadata instance (primary)
@@ -2959,7 +2965,7 @@ void Replica_set_impl::remove_router_metadata(const std::string &router,
   auto primary = get_primary_master();
   auto plock = primary->get_lock_shared();
 
-  Base_cluster_impl::remove_router_metadata(router, lock_metadata);
+  Base_cluster_impl::remove_router_metadata(router);
 }
 
 void Replica_set_impl::setup_admin_account(

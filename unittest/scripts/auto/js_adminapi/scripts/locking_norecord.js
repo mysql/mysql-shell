@@ -17,8 +17,6 @@ function cluster_lock_check(func, test_shared = true) {
         EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
         testutil.releaseLocks(session, "AdminAPI_cluster");
     }
-
-    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 function instance_lock_check(session_lock, session_port, func, test_shared = true) {
@@ -40,8 +38,6 @@ function instance_lock_check(session_lock, session_port, func, test_shared = tru
         EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the lock on instance '${hostname}:${session_port}'. Another operation requiring access to the instance is still in progress, please wait for it to finish and try again.`);
         testutil.releaseLocks(session_lock, "AdminAPI_instance");
     }
-
-    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 //@<> INCLUDE gr_utils.inc

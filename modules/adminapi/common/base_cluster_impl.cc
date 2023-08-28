@@ -23,10 +23,7 @@
 
 #include "modules/adminapi/common/base_cluster_impl.h"
 
-#include <iomanip>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -45,18 +42,12 @@
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/setup_account.h"
-#include "modules/adminapi/common/sql.h"
-#include "modules/mod_shell.h"
-#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -878,21 +869,19 @@ void Base_cluster_impl::setup_router_account(
   setup_account_common(username, host, options, Setup_account_type::ROUTER);
 }
 
-void Base_cluster_impl::remove_router_metadata(const std::string &router,
-                                               bool lock_metadata) {
+void Base_cluster_impl::remove_router_metadata(const std::string &router) {
   check_preconditions("removeRouterMetadata");
 
   auto c_lock = get_lock_shared();
 
-  /*
-   * The metadata lock is currently only used in ReplicaSet, and only until it's
-   * removed (deprecated because we use DB transactions). At that time, all
-   * metadata locks will be removed, along with this parameter.
-   */
-  if (!get_metadata_storage()->remove_router(router, lock_metadata)) {
+  MetadataStorage::Transaction trx(get_metadata_storage());
+
+  if (!get_metadata_storage()->remove_router(router)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +
                                             router + "'");
   }
+
+  trx.commit();
 }
 
 void Base_cluster_impl::set_instance_tag(const std::string &instance_def,

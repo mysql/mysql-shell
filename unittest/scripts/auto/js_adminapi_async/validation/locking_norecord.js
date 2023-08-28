@@ -90,31 +90,3 @@ ERROR: The operation cannot be executed because it failed to acquire the lock on
 
 //@<ERR> Upgrade Metadata another operation in progress (fail)
 Dba.upgradeMetadata: Failed to acquire lock on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>' (MYSQLSH 51500)
-
-//@<OUT> Metadata lock error for remove instance (fail) {__dbug_off == 0}
-ERROR: Cannot update the metadata because the maximum wait time to acquire a write lock has been reached.
-Other operations requiring exclusive access to the metadata are running concurrently, please wait for those operations to finish and try again.
-
-//@<ERR> Metadata lock error for remove instance (fail) {__dbug_off == 0}
-ReplicaSet.removeInstance: Failed to acquire lock to update the metadata on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>', wait timeout exceeded (MYSQLSH 51501)
-
-//@<OUT> Metadata lock error for add instance (fail) {__dbug_off == 0}
-ERROR: Cannot update the metadata because the maximum wait time to acquire a write lock has been reached.
-Other operations requiring exclusive access to the metadata are running concurrently, please wait for those operations to finish and try again.
-
-//@<ERR> Metadata lock error for add instance (fail) {__dbug_off == 0}
-ReplicaSet.addInstance: Failed to acquire lock to update the metadata on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>', wait timeout exceeded (MYSQLSH 51501)
-
-//@<OUT> Metadata lock error for rejoin instance (fail) {__dbug_off == 0}
-ERROR: Cannot update the metadata because the maximum wait time to acquire a write lock has been reached.
-Other operations requiring exclusive access to the metadata are running concurrently, please wait for those operations to finish and try again.
-
-//@<ERR> Metadata lock error for rejoin instance (fail) {__dbug_off == 0}
-ReplicaSet.rejoinInstance: Failed to acquire lock to update the metadata on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>', wait timeout exceeded (MYSQLSH 51501)
-
-//@<OUT> Metadata lock error for remove router metadata (fail) {__dbug_off == 0}
-ERROR: Cannot update the metadata because the maximum wait time to acquire a write lock has been reached.
-Other operations requiring exclusive access to the metadata are running concurrently, please wait for those operations to finish and try again.
-
-//@<ERR> Metadata lock error for remove router metadata (fail) {__dbug_off == 0}
-ReplicaSet.removeRouterMetadata: Failed to acquire lock to update the metadata on instance '<<<localhost>>>:<<<__mysql_sandbox_port1>>>', wait timeout exceeded (MYSQLSH 51501)

@@ -8,8 +8,6 @@ function clusterset_lock_check(func, test_shared = true) {
     }, `Failed to acquire ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'`);
     EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the ClusterSet lock through global primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
     testutil.releaseLocks(session, "AdminAPI_clusterset");
-
-    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 function cluster_lock_check(func) {
@@ -27,8 +25,6 @@ function cluster_lock_check(func) {
     }, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'`);
     EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
     testutil.releaseLocks(session, "AdminAPI_cluster");
-
-    EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 }
 
 //@<> INCLUDE gr_utils.inc

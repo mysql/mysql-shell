@@ -28,6 +28,7 @@
 #include <string>
 
 #include "db/utils_connection.h"
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -1443,7 +1444,7 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   assert_valid("removeRouterMetadata");
 
   return execute_with_pool(
-      [&]() { impl()->remove_router_metadata(router_def, true); }, false);
+      [&]() { impl()->remove_router_metadata(router_def); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, Cluster);

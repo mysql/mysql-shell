@@ -513,10 +513,9 @@ class MetadataStorage {
    * Deletes metadata for the named router instance.
    *
    * @param router_def router identifier, as address[::name]
-   * @param lock_metadata controls if the metadata is locked for the operation
    * @return false if router_def doesn't match any router instances
    */
-  bool remove_router(const std::string &router_def, bool lock_metadata = false);
+  bool remove_router(const std::string &router_def);
 
   /**
    * Sets a target-cluster for all Routers of a Cluster
@@ -630,39 +629,17 @@ class MetadataStorage {
 
   bool supports_read_replicas() const;
 
-  /**
-   * Try to acquire an exclusive lock on the metadata.
-   *
-   * NOTE: Required lock service UDFs which is assumed to be already available
-   *       if supported (automatically installed if needed by the instance
-   *       level lock).
-   *
-   * @throw shcore::Exception if the lock cannot be acquired or any other
-   * error occur when trying to obtain the lock.
-   */
-  void get_lock_exclusive() const;
-
-  /**
-   * Release all locks on the metadata.
-   *
-   * @param no_throw boolean indicating if exceptions are thrown in case a
-   *                 failure occur releasing locks. By default, true meaning
-   *                 that no exception is thrown.
-   *
-   */
-  void release_lock(bool no_throw = true) const;
-
   class Transaction {
    public:
-    explicit Transaction(const std::shared_ptr<MetadataStorage> &md)
-        : _md(md), m_check_for_auto_commits(false) {
-      md->execute_sql("START TRANSACTION");
+    explicit Transaction(std::shared_ptr<MetadataStorage> md)
+        : m_md{std::move(md)} {
+      m_md->execute_sql("START TRANSACTION");
 #ifndef NDEBUG
-      if (getenv("MYSQLSH_TEST_ALL")) m_check_for_auto_commits = true;
+      m_check_for_auto_commits = getenv("MYSQLSH_TEST_ALL");
 #endif
     }
 
-    ~Transaction() {
+    ~Transaction() noexcept {
       try {
         rollback();
       } catch (const std::exception &e) {
@@ -671,39 +648,31 @@ class MetadataStorage {
     }
 
     void rollback() {
-      if (_md) {
+      if (!m_md) return;
 #ifndef NDEBUG
-        if (m_check_for_auto_commits) {
-          mysqlshdk::mysql::assert_transaction_is_open(
-              _md->get_md_server()->get_session());
-        }
-#endif
-        auto tmp = _md;
-        _md.reset();
-        tmp->execute_sql("ROLLBACK");
+      if (m_check_for_auto_commits) {
+        mysqlshdk::mysql::assert_transaction_is_open(
+            m_md->get_md_server()->get_session());
       }
+#endif
+      std::exchange(m_md, nullptr)->execute_sql("ROLLBACK");
     }
 
     void commit() {
-      if (_md) {
-#ifndef NDEBUG
-        if (m_check_for_auto_commits) {
-          mysqlshdk::mysql::assert_transaction_is_open(
-              _md->get_md_server()->get_session());
-        }
-#endif
+      if (!m_md) return;
 
-        auto tmp = _md;
-        _md.reset();
-        tmp->execute_sql("COMMIT");
+#ifndef NDEBUG
+      if (m_check_for_auto_commits) {
+        mysqlshdk::mysql::assert_transaction_is_open(
+            m_md->get_md_server()->get_session());
       }
+#endif
+      std::exchange(m_md, nullptr)->execute_sql("COMMIT");
     }
 
    private:
-    std::shared_ptr<MetadataStorage> _md;
-#ifdef __clang__
-    [[maybe_unused]] bool m_check_for_auto_commits = false;
-#else
+    std::shared_ptr<MetadataStorage> m_md;
+#ifndef NDEBUG
     bool m_check_for_auto_commits = false;
 #endif
   };

@@ -33,11 +33,8 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/router.h"
-#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysql/group_replication.h"
-#include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -313,15 +310,8 @@ std::string get_topology_mode_query(const Version &md_version) {
     return k_base_topology_mode_query;
 }
 
-// Constants with the names used to lock instances.
-constexpr char k_lock[] = "AdminAPI_lock";
-constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
-
-// Timeout for the Metadata lock (60 sec).
-constexpr const int k_lock_timeout = 60;
-
 // Version where JSON_merge was deprecated
-static const Version k_json_merge_deprecated_version = Version(5, 7, 22);
+const Version k_json_merge_deprecated_version(5, 7, 22);
 
 }  // namespace
 
@@ -2060,74 +2050,6 @@ void MetadataStorage::update_cluster_topology_mode(
 
 // ----------------------------------------------------------------------------
 
-void MetadataStorage::get_lock_exclusive() const {
-  auto console = current_console();
-
-  // Use a predefined timeout value (60 sec) to try to acquire the lock.
-  int timeout = k_lock_timeout;
-  mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::EXCLUSIVE;
-
-  DBUG_EXECUTE_IF("dba_locking_timeout_one", { timeout = 1; });
-
-  // Try to acquire the specified lock.
-  // NOTE: Only one lock per namespace is used because lock release is
-  //       performed by namespace.
-  if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
-    // No need install Locking Service UDFs, already done at a higher level
-    // (instance) if needed/supported. Thus, we only try to acquire the lock if
-    // the lock UDFs are available (skipped otherwise).
-
-    try {
-      log_debug("Acquiring %s lock ('%s', '%s') on %s.",
-                mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_metadata,
-                k_lock, m_md_server->descr().c_str());
-      mysqlshdk::mysql::get_lock(*m_md_server, k_lock_name_metadata, k_lock,
-                                 mode, timeout);
-    } catch (const shcore::Error &err) {
-      // Abort the operation in case the required lock cannot be acquired.
-      log_debug("Failed to get %s lock ('%s', '%s'): %s",
-                mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_metadata,
-                k_lock, err.what());
-      console->print_error(
-          "Cannot update the metadata because the maximum wait time to "
-          "acquire a write lock has been reached.");
-      console->print_info(
-          "Other operations requiring "
-          "exclusive access to the metadata are running concurrently, please "
-          "wait for those operations to finish and try again.");
-
-      throw shcore::Exception(
-          "Failed to acquire lock to update the metadata on instance '" +
-              m_md_server->descr() + "', wait timeout exceeded",
-          SHERR_DBA_LOCK_GET_TIMEOUT);
-    }
-  }
-}
-
-void MetadataStorage::release_lock(bool no_throw) const {
-  // Release all metadata locks in the k_lock_name_metadata namespace.
-  // NOTE: Only perform the operation if the lock service UDFs are available
-  //       otherwise do nothing (ignore if concurrent execution is not
-  //       supported, e.g., lock service plugin not available).
-  try {
-    if (mysqlshdk::mysql::has_lock_service(*m_md_server)) {
-      log_debug("Releasing locks for '%s' on %s.", k_lock_name_metadata,
-                m_md_server->descr().c_str());
-      mysqlshdk::mysql::release_lock(*m_md_server, k_lock_name_metadata);
-    }
-  } catch (const shcore::Error &error) {
-    if (no_throw) {
-      // Ignore any error trying to release locks (e.g., might have not been
-      // previously acquired due to lack of permissions).
-      log_error("Unable to release '%s' locks for '%s': %s",
-                k_lock_name_metadata, m_md_server->descr().c_str(),
-                error.what());
-    } else {
-      throw;
-    }
-  }
-}
-
 constexpr const char *k_async_view_change_reason_create = "CREATE";
 constexpr const char *k_async_view_change_reason_switch_primary =
     "SWITCH_ACTIVE";
@@ -2145,14 +2067,13 @@ Cluster_id MetadataStorage::create_async_cluster_record(
   try {
     cluster_id = m_md_server->generate_uuid();
 
-    auto result = execute_sqlf(
-        "INSERT INTO mysql_innodb_cluster_metadata.clusters "
-        "(cluster_id, cluster_name, description,"
-        " cluster_type, primary_mode, attributes)"
-        " VALUES (?, ?, ?, ?, ?,"
-        " JSON_OBJECT('adopted', ?))",
+    execute_sqlf(
+        "INSERT INTO mysql_innodb_cluster_metadata.clusters (cluster_id, "
+        "cluster_name, description, cluster_type, primary_mode, attributes) "
+        "VALUES (?, ?, ?, ?, ?, JSON_OBJECT('adopted', ?))",
         cluster_id, cluster->cluster_name(), cluster->get_description(), "ar",
         cluster->get_topology_type(), adopted);
+
   } catch (const shcore::Error &e) {
     if (e.code() == ER_DUP_ENTRY) {
       log_info("Duplicate cluster entry for %s: %s",
@@ -2167,13 +2088,9 @@ Cluster_id MetadataStorage::create_async_cluster_record(
 
   execute_sqlf(
       "INSERT INTO mysql_innodb_cluster_metadata.async_cluster_views ("
-      " cluster_id, view_id, topology_type,"
-      " view_change_reason, view_change_time, view_change_info,"
-      " attributes "
-      ") VALUES (?, 1, ?, ?, NOW(6), "
-      "JSON_OBJECT('user', USER(),"
-      "   'source', @@server_uuid),"
-      "'{}')",
+      " cluster_id, view_id, topology_type, view_change_reason, "
+      "view_change_time, view_change_info, attributes ) VALUES (?, 1, ?, ?, "
+      "NOW(6), JSON_OBJECT('user', USER(),   'source', @@server_uuid), '{}')",
       cluster_id, to_string(cluster->get_async_topology_type()),
       k_async_view_change_reason_create);
 
@@ -2246,16 +2163,12 @@ void MetadataStorage::begin_acl_change_record(const Cluster_id &cluster_id,
 
   execute_sqlf(
       "INSERT INTO mysql_innodb_cluster_metadata.async_cluster_views"
-      " (cluster_id, view_id, topology_type, "
-      " view_change_reason, view_change_time, view_change_info, "
-      " attributes"
-      ") SELECT"
-      " cluster_id, ?, topology_type, ?,"
-      " NOW(6), JSON_OBJECT('user', USER(),"
-      "   'source', @@server_uuid),"
-      " attributes"
-      " FROM mysql_innodb_cluster_metadata.async_cluster_views"
-      " WHERE cluster_id = ? AND view_id = ?",
+      " (cluster_id, view_id, topology_type, view_change_reason, "
+      "view_change_time, view_change_info, attributes) SELECT cluster_id, ?, "
+      "topology_type, ?, NOW(6), JSON_OBJECT('user', USER(), 'source', "
+      "@@server_uuid), attributes FROM "
+      "mysql_innodb_cluster_metadata.async_cluster_views WHERE cluster_id = ? "
+      "AND view_id = ?",
       aclvid, operation, cluster_id, last_aclvid);
 
   *out_aclvid = aclvid;
@@ -2264,12 +2177,6 @@ void MetadataStorage::begin_acl_change_record(const Cluster_id &cluster_id,
 
 Instance_id MetadataStorage::record_async_member_added(
     const Instance_metadata &member) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   Instance_id member_id = insert_instance(member);
 
   uint32_t aclvid;
@@ -2311,15 +2218,8 @@ Instance_id MetadataStorage::record_async_member_added(
 
 void MetadataStorage::record_async_member_rejoined(
     const Instance_metadata &member) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   uint32_t aclvid;
   uint32_t last_aclvid;
-
   begin_acl_change_record(member.cluster_id,
                           k_async_view_change_reason_rejoin_instance, &aclvid,
                           &last_aclvid);
@@ -2354,15 +2254,8 @@ void MetadataStorage::record_async_member_rejoined(
 
 void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
                                                   Instance_id instance_id) {
-  // Acquire required lock on the Metadata (try at most during 60 sec).
-  get_lock_exclusive();
-
-  // Always release locks at the end, when leaving the function scope.
-  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
-
   uint32_t aclvid;
   uint32_t last_aclvid;
-
   begin_acl_change_record(cluster_id,
                           k_async_view_change_reason_remove_instance, &aclvid,
                           &last_aclvid);
@@ -2840,20 +2733,10 @@ static void parse_router_definition(const std::string &router_def,
   }
 }
 
-bool MetadataStorage::remove_router(const std::string &router_def,
-                                    bool lock_metadata) {
+bool MetadataStorage::remove_router(const std::string &router_def) {
   std::string address;
   std::string name;
   parse_router_definition(router_def, &address, &name);
-
-  shcore::on_leave_scope finally;
-  if (lock_metadata) {
-    // Acquire required lock on the Metadata (try at most during 60 sec).
-    get_lock_exclusive();
-
-    // Always release locks at the end, when leaving the function scope.
-    finally = shcore::on_leave_scope([this]() { release_lock(); });
-  }
 
   // This has to support MD versions 1.0 and 2.0, so that we can remove older
   // router versions while upgrading the MD.

@@ -16,7 +16,6 @@ var session2 = mysql.getSession(__sandbox_uri2);
 var session3 = mysql.getSession(__sandbox_uri3);
 
 var lock_instance = "AdminAPI_instance";
-var lock_metadata = "AdminAPI_metadata";
 var lock_name = "AdminAPI_lock";
 
 //@<> Installing locking UDFs should succeed even if instance is read-only (no warning).
@@ -296,60 +295,6 @@ testutil.getSharedLock(session1, lock_instance, lock_name);
 dba.upgradeMetadata();
 // Release locks on instance 1.
 testutil.releaseLocks(session1, lock_instance);
-
-// Override timeout value used for locking to always be 1 (to avoid waiting 60 sec for metadata locking error).
-testutil.dbugSet("+d,dba_locking_timeout_one");
-
-//@ Metadata lock error for remove instance (fail) {__dbug_off == 0}
-// Simulate lock hold by another operation on metadata.
-testutil.getExclusiveLock(session1, lock_metadata, lock_name);
-// WL#13540: NFR1
-rs.removeInstance(__sandbox_uri2);
-// Release locks on instance 1.
-testutil.releaseLocks(session1, lock_metadata);
-
-//@<> remove instance (succeed) {__dbug_off == 0}
-rs.removeInstance(__sandbox_uri2);
-
-//@ Metadata lock error for add instance (fail) {__dbug_off == 0}
-// Simulate lock hold by another operation on metadata.
-testutil.getExclusiveLock(session1, lock_metadata, lock_name);
-// WL#13540: NFR1
-rs.addInstance(__sandbox_uri2);
-// Release locks on instance 1.
-testutil.releaseLocks(session1, lock_metadata);
-
-//@<> add instance (succeed) {__dbug_off == 0}
-rs.addInstance(__sandbox_uri2);
-
-//@ Metadata lock error for rejoin instance (fail) {__dbug_off == 0}
-// Simulate lock hold by another operation on metadata.
-testutil.getExclusiveLock(session1, lock_metadata, lock_name);
-// WL#13540: NFR1
-session2.runSql("STOP SLAVE");
-rs.rejoinInstance(__sandbox_uri2);
-// Release locks on instance 1.
-testutil.releaseLocks(session1, lock_metadata);
-
-//@<> rejoin instance (succeed) {__dbug_off == 0}
-session2.runSql("STOP SLAVE");
-rs.rejoinInstance(__sandbox_uri2);
-
-//@ Metadata lock error for remove router metadata (fail) {__dbug_off == 0}
-// Simulate lock hold by another operation on metadata.
-testutil.getExclusiveLock(session1, lock_metadata, lock_name);
-// WL#13540: NFR1
-cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 'mysqlrouter', 'routerhost', '8.0.19', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
-rs.removeRouterMetadata("routerhost");
-// Release locks on instance 1.
-testutil.releaseLocks(session1, lock_metadata);
-
-//@<> remove router metadata (succeed) {__dbug_off == 0}
-rs.removeRouterMetadata("routerhost");
-
-// Remove previously added dbug modifier
-testutil.dbugSet("-d,dba_locking_timeout_one");
 
 //@<> Cleanup.
 testutil.destroySandbox(__mysql_sandbox_port1);

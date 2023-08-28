@@ -23,15 +23,8 @@
 
 #include "modules/adminapi/mod_dba_replica_set.h"
 
-#include "modules/adminapi/common/accounts.h"
-#include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/preconditions.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_json.h"
 
 DEBUG_OBJ_ENABLE(ReplicaSet);
 
@@ -791,7 +784,7 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
   assert_valid("removeRouterMetadata");
 
   return execute_with_pool(
-      [&]() { impl()->remove_router_metadata(router_def, true); }, false);
+      [&]() { impl()->remove_router_metadata(router_def); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, ReplicaSet);
