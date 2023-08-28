@@ -24,16 +24,13 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 
 #include <mysql_version.h>
-#include <cmath>
+
 #include <mutex>
 #include <regex>
-#include <sstream>
 #include <vector>
 
-#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
-#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/mysql_event_handler_plugin.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -48,6 +45,7 @@ typedef unsigned int uint;
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
+
 namespace {
 std::once_flag trace_register_flag;
 constexpr size_t K_MAX_QUERY_ATTRIBUTES = 32;
@@ -65,7 +63,7 @@ FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
                              args.get_string("state", {""}).c_str());
 });
 //-------------------------- Query Attribute Implementation --------------------
-Classic_query_attribute::Classic_query_attribute() {}
+Classic_query_attribute::Classic_query_attribute() noexcept = default;
 
 Classic_query_attribute::Classic_query_attribute(int64_t val) {
   value.i = val;
@@ -198,7 +196,7 @@ void Session_impl::throw_on_connection_fail() {
   throw exception;
 }
 
-Session_impl::Session_impl() {}
+Session_impl::Session_impl() = default;
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
@@ -222,15 +220,15 @@ void Session_impl::connect(
     unsigned int proto = MYSQL_PROTOCOL_TCP;
 
     switch (_connection_options.get_transport_type()) {
-      case mysqlshdk::db::Tcp:
+      case mysqlshdk::db::Transport_type::Tcp:
         proto = MYSQL_PROTOCOL_TCP;
         break;
 
-      case mysqlshdk::db::Socket:
+      case mysqlshdk::db::Transport_type::Socket:
         proto = MYSQL_PROTOCOL_SOCKET;
         break;
 
-      case mysqlshdk::db::Pipe:
+      case mysqlshdk::db::Transport_type::Pipe:
 #ifndef _WIN32
         assert(0);
 #endif

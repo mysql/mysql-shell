@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,14 +39,14 @@ using mysqlshdk::db::uri::Uri_serializable;
 
 class SHCORE_PUBLIC IConnection : public Uri_serializable {
  public:
-  IConnection(
-      const std::string &options_name,
-      utils::Comparison_mode mode = utils::Comparison_mode::CASE_INSENSITIVE,
-      const std::unordered_set<std::string> &allowed_schemes = {"mysql",
-                                                                "mysqlx"})
-      : Uri_serializable(allowed_schemes),
+  IConnection(std::string options_name,
+              utils::nullable_options::Comparison_mode mode =
+                  utils::nullable_options::Comparison_mode::CASE_INSENSITIVE,
+              std::unordered_set<std::string> allowed_schemes = {"mysql",
+                                                                 "mysqlx"})
+      : Uri_serializable(std::move(allowed_schemes)),
         m_mode(mode),
-        m_options(m_mode, options_name) {
+        m_options(m_mode, std::move(options_name)) {
     for (auto o :
          {mysqlshdk::db::kHost, mysqlshdk::db::kScheme, mysqlshdk::db::kUser,
           mysqlshdk::db::kPassword, mysqlshdk::db::kPath})
@@ -54,7 +54,7 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
                     mysqlshdk::utils::nullable_options::Set_mode::CREATE);
   }
 
-  utils::Comparison_mode get_mode() const { return m_mode; }
+  utils::nullable_options::Comparison_mode get_mode() const { return m_mode; }
 
   virtual void set_scheme(const std::string &scheme) {
     validate_allowed_scheme(scheme);
@@ -155,7 +155,8 @@ class SHCORE_PUBLIC IConnection : public Uri_serializable {
     m_options.set(key, val,
                   utils::nullable_options::Set_mode::CREATE_AND_UPDATE);
   }
-  utils::Comparison_mode m_mode;
+
+  utils::nullable_options::Comparison_mode m_mode;
   utils::Nullable_options m_options;
   std::optional<int> m_port;
 };

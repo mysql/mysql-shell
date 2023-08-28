@@ -84,7 +84,13 @@ expected_pids2 = get_open_sessions(session2);
 //@<> configureLocalInstance
 EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
-dba.configureLocalInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)}); });
+
+if (testutil.versionCheck(__version, "<", "8.0.0")) {
+    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port1}' was configured to be used in an InnoDB cluster.`);
+}
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -97,7 +103,13 @@ expected_pids1 = get_open_sessions(session1);
 //@<> configureInstance
 EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
-dba.configureInstance(get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
+WIPE_OUTPUT();
+
+EXPECT_NO_THROWS(function(){ dba.configureInstance(get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
+
+if (testutil.versionCheck(__version, ">=", "8.0.0")) {
+    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' is already ready to be used in an InnoDB cluster.`);
+}
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -106,7 +118,9 @@ check_open_sessions(session2, expected_pids2);
 shell.connect(__sandbox_uri1, pwd);
 
 expected_pids1 = get_open_sessions(session1);
-cluster = dba.createCluster("mycluster");
+
+var cluster;
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster("mycluster"); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -120,7 +134,7 @@ check_open_sessions(session2, expected_pids2);
 //@<> checkInstanceState
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, get_uri(__mysql_sandbox_port2, pwd));
 
-cluster.checkInstanceState(get_uri(__mysql_sandbox_port2, pwd));
+EXPECT_NO_THROWS(function(){ cluster.checkInstanceState(get_uri(__mysql_sandbox_port2, pwd)); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -132,19 +146,22 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> disconnect
-cluster.disconnect();
+EXPECT_NO_THROWS(function(){ cluster.disconnect(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> getCluster
-cluster = dba.getCluster();
+EXPECT_NO_THROWS(function(){ cluster = dba.getCluster(); });
 
 //@<> addInstance unsupported X-protocol error
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 //@<> addInstance using clone recovery {VER(>=8.0.17)}
-cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'clone'});
+EXPECT_NO_THROWS(function(){ cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'clone'}); });
+
+EXPECT_OUTPUT_CONTAINS(`Clone based recovery selected through the recoveryMethod option`);
+EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' was successfully added to the cluster.`);
 
 session2 = mysql.getSession(__sandbox_uri2, pwd);
 expected_pids2 = get_open_sessions(session2);
@@ -153,7 +170,9 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> addInstance using incremental recovery {VER(<8.0.17)}
-cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
+EXPECT_NO_THROWS(function(){ cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'}); });
+
+EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' was successfully added to the cluster.`);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -161,29 +180,29 @@ check_open_sessions(session2, expected_pids2);
 //@<> removeInstance
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.removeInstance(get_uri(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ cluster.removeInstance(get_uri(__mysql_sandbox_port2)); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
+EXPECT_NO_THROWS(function(){ cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'}); });
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
 CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(get_uri(__mysql_sandbox_port2))}' does not belong to the Cluster: 'mycluster'.`, cluster.setPrimaryInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port2)); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1));
+EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1)); });
 
 //@<> rejoinInstance
 session2.runSql("STOP group_replication");
 
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, get_uri(__mysql_sandbox_port2));
 
-cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(get_uri(__mysql_sandbox_port2)); });
 
 //@<> skip_replica_start is kept unchanged if the instance does not belong to a ClusterSet {VER(>=8.0.27)}
 var skip_replica_start = session2.runSql("SELECT @@skip_replica_start").fetchOne()[0];
@@ -198,7 +217,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
 
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, get_uri(__mysql_sandbox_port1, pwd));
 
-cluster.forceQuorumUsingPartitionOf(get_uri(__mysql_sandbox_port1, pwd));
+EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(get_uri(__mysql_sandbox_port1, pwd)); });
 
 check_open_sessions(session1, expected_pids1);
 
@@ -207,22 +226,22 @@ session2 = mysql.getSession(__sandbox_uri2, pwd);
 
 expected_pids2 = get_open_sessions(session2);
 
-cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(get_uri(__mysql_sandbox_port2)); });
 
 //@<> rebootClusterFromCompleteOutage
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2], pwd);
 
-cluster = dba.rebootClusterFromCompleteOutage();
+EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 // TODO(alfredo) - the reboot should auto-rejoin all members
-cluster.rejoinInstance(get_uri(__mysql_sandbox_port2));
+EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(get_uri(__mysql_sandbox_port2)); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> setOption
-cluster.setOption("clusterName", "clooster");
+EXPECT_NO_THROWS(function(){ cluster.setOption("clusterName", "clooster"); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -234,7 +253,7 @@ custom_weigth=20;
 
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
 
-cluster.setInstanceOption(get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
+EXPECT_NO_THROWS(function(){ cluster.setInstanceOption(get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -246,27 +265,29 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
-cluster.switchToMultiPrimaryMode();
+EXPECT_NO_THROWS(function(){ cluster.switchToMultiPrimaryMode(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
-cluster.switchToSinglePrimaryMode();
+EXPECT_NO_THROWS(function(){ cluster.switchToSinglePrimaryMode(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1));
+EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1)); });
 
 shell.connect(__sandbox_uri1, pwd);
 cluster = dba.getCluster(); // shouldn't be necessary
 
 //@<> rescan
+
 // delete sb2 from the metadata so that rescan picks it up
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port2]);
 
-cluster.rescan();
+EXPECT_NO_THROWS(function(){ cluster.rescan(); });
+EXPECT_OUTPUT_CONTAINS(`A new instance '127.0.0.1:${__mysql_sandbox_port2}' was discovered in the cluster.`);
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -308,7 +329,9 @@ check_open_sessions(session2, expected_pids2);
 
 //@<> createCluster(adopt)
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
-cluster = dba.createCluster("adopted", {adoptFromGR:true});
+
+var cluster;
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster("adopted", {adoptFromGR:true}); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
@@ -316,7 +339,7 @@ check_open_sessions(session2, expected_pids2);
 cluster.status();
 
 //@<> dissolve
-cluster.dissolve();
+EXPECT_NO_THROWS(function(){ cluster.dissolve(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);

@@ -44,22 +44,26 @@ enum class SessionType { Auto, X, Classic };
 
 namespace mysqlshdk {
 namespace db {
-using utils::Nullable_options;
-using utils::nullable_options::Comparison_mode;
-enum Transport_type { Tcp, Socket, Pipe };
+
+enum class Transport_type { Tcp, Socket, Pipe };
 std::string to_string(Transport_type type);
 
-using Mfa_passwords = std::array<std::optional<std::string>, 3>;
-
-constexpr int k_default_mysql_port = 3306;
-constexpr int k_default_mysql_x_port = 33060;
+inline constexpr int k_default_mysql_port = 3306;
+inline constexpr int k_default_mysql_x_port = 33060;
 
 class SHCORE_PUBLIC Connection_options : public IConnection {
  public:
+  using Mfa_passwords = std::array<std::optional<std::string>, 3>;
+
+ public:
   explicit Connection_options(
-      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
-  Connection_options(const std::string &uri,
-                     Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+      utils::nullable_options::Comparison_mode mode =
+          utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);
+  Connection_options(
+      const std::string &uri,
+      utils::nullable_options::Comparison_mode mode =
+          utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);
+
   Connection_options(const Connection_options &other) = default;
   Connection_options(Connection_options &&other) = default;
 
@@ -172,11 +176,13 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
     return as_uri(uri::formats::only_transport());
   }
 
-  const Nullable_options &get_extra_options() const { return m_extra_options; }
+  const utils::Nullable_options &get_extra_options() const {
+    return m_extra_options;
+  }
   bool is_connection_attributes_enabled() const {
     return m_enable_connection_attributes;
   }
-  const Nullable_options &get_connection_attributes() const {
+  const utils::Nullable_options &get_connection_attributes() const {
     return m_connection_attributes;
   }
 
@@ -248,9 +254,9 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   Ssl_options m_ssl_options;
   ssh::Ssh_connection_options m_ssh_options;
-  Nullable_options m_extra_options;
+  utils::Nullable_options m_extra_options;
   bool m_enable_connection_attributes;
-  Nullable_options m_connection_attributes;
+  utils::Nullable_options m_connection_attributes;
   mutable Mfa_passwords m_mfa_passwords;
 
   std::vector<std::string> m_warnings;

@@ -23,20 +23,15 @@
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
 
-#include <stdlib.h>
-#include <cstdio>
-
 #include <iostream>
 #include <limits>
 
 #include <my_alloc.h>
 #include <my_default.h>
-#include <mysql.h>
 
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
-#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "shellcore/ishell_core.h"
@@ -379,7 +374,7 @@ Shell_options::Shell_options(
           try {
                 storage.connection_data.set_port(shcore::opts::convert<int>(
             value, shcore::opts::Source::Command_line));
-          } catch (const std::invalid_argument& error) {
+          } catch (const std::invalid_argument&) {
             throw std::invalid_argument(shcore::str_format("Invalid value for %s: %s", option.c_str(), value));
           }
         })
@@ -405,9 +400,9 @@ Shell_options::Shell_options(
 #endif
         } else {
 #ifdef _WIN32
-            storage.connection_data.set_transport_type(mysqlshdk::db::Pipe);
+            storage.connection_data.set_transport_type(mysqlshdk::db::Transport_type::Pipe);
 #else
-            storage.connection_data.set_transport_type(mysqlshdk::db::Socket);
+            storage.connection_data.set_transport_type(mysqlshdk::db::Transport_type::Socket);
 #endif
           }
         }

@@ -57,7 +57,7 @@ namespace mysql {
 
 struct Classic_query_attribute : public IQuery_attribute_value {
  public:
-  Classic_query_attribute();
+  Classic_query_attribute() noexcept;
   explicit Classic_query_attribute(int64_t val);
   explicit Classic_query_attribute(uint64_t val);
   explicit Classic_query_attribute(double val);

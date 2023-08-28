@@ -24,7 +24,6 @@
 #include <mysqlx_version.h>
 
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
 
@@ -397,7 +396,8 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   DBUG_LOG("sqlall", "CONNECT: " << data.uri_endpoint());
 
   if (!_connection_options.has_transport_type() ||
-      _connection_options.get_transport_type() != mysqlshdk::db::Tcp) {
+      _connection_options.get_transport_type() !=
+          mysqlshdk::db::Transport_type::Tcp) {
     err = _mysql->connect(
         data.has_socket()
             ? (data.get_socket().empty() ? MYSQLX_UNIX_ADDR

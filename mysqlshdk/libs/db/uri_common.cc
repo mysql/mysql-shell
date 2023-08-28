@@ -20,13 +20,14 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "mysqlshdk/libs/db/uri_common.h"
-#include "mysqlshdk/libs/db/uri_encoder.h"
-#include "mysqlshdk/libs/db/uri_parser.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include <set>
 #include <string_view>
+
+#include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -38,18 +39,19 @@ bool IUri_parsable::is_allowed_scheme(const std::string &name) const {
 }
 
 void IUri_parsable::validate_allowed_scheme(const std::string &scheme) const {
-  if (!is_allowed_scheme(scheme)) {
-    const auto &schemes = allowed_schemes();
-    std::set<std::string_view> ordered{schemes.begin(), schemes.end()};
-    throw std::invalid_argument(shcore::str_format(
-        "Invalid scheme [%s], supported schemes include: %s", scheme.c_str(),
-        shcore::str_join(ordered.begin(), ordered.end(), ", ").c_str()));
-  }
+  if (is_allowed_scheme(scheme)) return;
+
+  const auto &schemes = allowed_schemes();
+  std::set<std::string_view> ordered{schemes.begin(), schemes.end()};
+
+  throw std::invalid_argument(shcore::str_format(
+      "Invalid scheme [%s], supported schemes include: %s", scheme.c_str(),
+      shcore::str_join(ordered.begin(), ordered.end(), ", ").c_str()));
 }
 
 Uri_serializable::Uri_serializable(
-    const std::unordered_set<std::string> &allowed_schemes)
-    : m_allowed_schemes(allowed_schemes) {}
+    std::unordered_set<std::string> allowed_schemes) noexcept
+    : m_allowed_schemes(std::move(allowed_schemes)) {}
 
 const std::unordered_set<std::string> &Uri_serializable::allowed_schemes()
     const {

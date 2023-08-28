@@ -63,22 +63,17 @@ std::shared_ptr<mysqlshdk::db::ISession> connect_session(
     throw make_unsupported_protocol_error();
   }
 
-  try {
+  if (opts.has_connect_timeout())
     return establish_mysql_session(opts, interactive);
+
+  mysqlshdk::db::Connection_options op(opts);
+  op.set_connect_timeout(static_cast<int>(default_adminapi_connect_timeout()));
+
+  try {
+    return establish_mysql_session(op, interactive);
   } catch (const shcore::Exception &e) {
-    if (CR_VERSION_ERROR == e.code() ||
-        (CR_SERVER_LOST == e.code() &&
-         // TODO(alfredo) - when connection timeout is enabled, the error
-         // returned for a timeout seems to be this too. This error handling
-         // should probably be removed from here and the connect timeout setting
-         // should be moved from connect_raw to this function
-         0 == strcmp("Lost connection to MySQL server at 'waiting for initial "
-                     "communication packet', system error: 110",
-                     e.what()))) {
-      throw make_unsupported_protocol_error();
-    } else {
-      throw;
-    }
+    if (CR_VERSION_ERROR == e.code()) throw make_unsupported_protocol_error();
+    throw;
   }
 }
 
@@ -86,14 +81,7 @@ std::shared_ptr<mysqlshdk::db::ISession> connect_session(
 
 std::shared_ptr<Instance> Instance::connect_raw(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
-  mysqlshdk::db::Connection_options op(opts);
-
-  if (!op.has_connect_timeout()) {
-    op.set_connect_timeout(
-        static_cast<int>(default_adminapi_connect_timeout()));
-  }
-
-  return std::make_shared<Instance>(connect_session(op, interactive));
+  return std::make_shared<Instance>(connect_session(opts, interactive));
 }
 
 std::shared_ptr<Instance> Instance::connect(

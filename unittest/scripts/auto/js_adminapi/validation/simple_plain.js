@@ -1,12 +1,3 @@
-//@ configureLocalInstance {VER(<8.0.0)}
-|The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
-
-//@ configureInstance {VER(>=8.0.0)}
-|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.|
-
-//@ createCluster
-||
-
 //@ status
 |{|
 |    "clusterName": "mycluster", |
@@ -31,9 +22,6 @@
 |}|
 
 
-//@ checkInstanceState
-||
-
 //@<OUT> describe
 {
     "clusterName": "mycluster",
@@ -49,41 +37,6 @@
         "topologyMode": "Single-Primary"
     }
 }
-
-//@ disconnect
-||
-
-//@ getCluster
-||
-
-//@ addInstance using clone recovery {VER(>=8.0.17)}
-|Clone based recovery selected through the recoveryMethod option|
-|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
-
-//@ addInstance using incremental recovery {VER(<8.0.17)}
-|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
-
-//@ removeInstance
-||
-
-//@ setPrimaryInstance
-||
-
-//@ rejoinInstance
-||
-
-//@ forceQuorumUsingPartitionOf
-||
-
-//@ rebootClusterFromCompleteOutage
-||
-
-
-//@ setOption {VER(>=8.0.0)}
-||
-
-//@ setInstanceOption
-||
 
 //@# options
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": [|
@@ -103,17 +56,6 @@
 |        }|
 |    }|
 |}|
-
-
-//@ switchToMultiPrimaryMode {VER(>=8.0.0)}
-||
-
-//@ switchToSinglePrimaryMode {VER(>=8.0.0)}
-||
-
-
-//@ rescan
-|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the cluster.|
 
 //@<OUT> listRouters
 {
@@ -161,9 +103,3 @@
         }
     }
 }
-
-//@ createCluster(adopt)
-||
-
-//@# dissolve
-||

@@ -23,7 +23,6 @@
 
 #include "modules/mod_utils.h"
 
-#include <map>
 #include <string>
 #include <utility>
 
@@ -100,7 +99,8 @@ Connection_options get_connection_options(
 
   Connection_options ret_val;
   const auto case_sensitive =
-      ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE;
+      ret_val.get_mode() ==
+      mysqlshdk::utils::nullable_options::Comparison_mode::CASE_SENSITIVE;
 
   connection_map.ensure_keys(mandatory, mysqlshdk::db::connection_attributes(),
                              "connection options", case_sensitive);

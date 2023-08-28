@@ -22,7 +22,9 @@
  */
 
 #include "modules/adminapi/cluster/remove_instance.h"
+
 #include <algorithm>
+
 #include "adminapi/common/common.h"
 #include "adminapi/common/metadata_storage.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -381,12 +383,20 @@ void Remove_instance::prepare() {
       // user to pass exactly what's in the MD as the target address, so that it
       // can be removed
     } catch (const shcore::Exception &err) {
-      log_warning("Failed to connect to %s: %s",
-                  m_target_cnx_opts.uri_endpoint().c_str(), err.what());
+      log_warning("Failed to connect to '%s': %d - %s",
+                  m_target_cnx_opts.uri_endpoint().c_str(), err.code(),
+                  err.what());
 
-      // if the error is a server side error, then it means are able to connect
-      // to it, so we just bubble it up to the user (unless force:1)
-      if (!mysqlshdk::db::is_mysql_client_error(err.code()) && !force) {
+      // If the error isn't a client side error, then it means we are able to
+      // connect to it, so we just bubble it up to the user (unless force:1).
+      // NOTE: we also have to check against the CR_SERVER_LOST code because of
+      // a difference in protocol between 5.7 and 8.0. In 5.7, the server
+      // doesn't send "protocol-version=11" (while in 8.0 it does), causing
+      // libmysqlclient to interpret the wrong protocol, returning
+      // CR_SERVER_LOST.
+      if (((err.code() == CR_SERVER_LOST) ||
+           !mysqlshdk::db::is_mysql_client_error(err.code())) &&
+          !force) {
         try {
           throw;
         }
@@ -436,7 +446,7 @@ void Remove_instance::prepare() {
         m_instance_id = md.server_id;
         m_address_in_metadata = m_target_address;
       } catch (const std::exception &e) {
-        log_warning("Couldn't get metadata for %s: %s",
+        log_warning("Couldn't get metadata for '%s': %s",
                     m_target_address.c_str(), e.what());
 
         // If the instance is not in the MD and we can't connect to it either,

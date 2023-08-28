@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,7 +20,6 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "mysqlshdk/libs/utils/enumset.h"
 
 #ifndef MYSQLSHDK_LIBS_DB_URI_COMMON_H_
 #define MYSQLSHDK_LIBS_DB_URI_COMMON_H_
@@ -29,6 +28,8 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -152,7 +153,7 @@ class IUri_encodable : public virtual IUri_data_base {
 class Uri_serializable : public IUri_parsable, public IUri_encodable {
  public:
   explicit Uri_serializable(
-      const std::unordered_set<std::string> &allowed_schemes);
+      std::unordered_set<std::string> allowed_schemes) noexcept;
 
   Uri_serializable(const Uri_serializable &) = default;
   Uri_serializable(Uri_serializable &&) = default;

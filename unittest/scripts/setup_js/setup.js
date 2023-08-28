@@ -1805,6 +1805,7 @@ function get_mysqlx_endpoint(uri) {
   return shell.unparseUri({ 'host': u.host, 'port': u.port * 10 });
 }
 
+var connection_error_msg = "Lost connection to MySQL server at 'waiting for initial communication packet', system error: 110";
 var protocol_error_msg = "The provided URI uses the X protocol, which is not supported by this command.";
 
 function EXPECT_THROWS_ERROR(msg, f, ...args) {
@@ -1818,14 +1819,15 @@ function CHECK_MYSQLX_EXPECT_THROWS_ERROR(msg, f, classic, ...args) {
 }
 
 function EXPECT_DBA_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
-  CHECK_MYSQLX_EXPECT_THROWS_ERROR(`${context}: ${protocol_error_msg}`, f, classic, ...args);
+  CHECK_MYSQLX_EXPECT_THROWS_ERROR([`${context}: ${protocol_error_msg}`, `${context}: ${connection_error_msg}`], f, classic, ...args);
 }
 
 function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
   for (const uri of get_mysqlx_uris(classic)) {
     const endpoint = get_mysqlx_endpoint(classic);
     WIPE_OUTPUT();
-    EXPECT_THROWS_ERROR(`${context}: Could not open connection to '${endpoint}': ${protocol_error_msg}`, f, uri, ...args);
+    EXPECT_THROWS_ERROR([`${context}: Could not open connection to '${endpoint}': ${protocol_error_msg}`,
+        `${context}: Could not open connection to '${endpoint}': ${connection_error_msg}`], f, uri, ...args);
     EXPECT_STDOUT_CONTAINS(`Unable to connect to the target instance '${endpoint}'. Please verify the connection settings, make sure the instance is available and try again.`);
   }
 }

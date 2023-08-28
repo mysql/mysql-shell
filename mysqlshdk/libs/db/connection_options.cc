@@ -23,8 +23,6 @@
 
 #include "mysqlshdk/libs/db/connection_options.h"
 
-#include <algorithm>
-#include <cassert>
 #include <map>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -32,7 +30,6 @@
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::db::uri::Uri_encoder;
@@ -77,6 +74,7 @@ int lexical_cast_timeout(const std::string &name, const std::string &value) {
   }
   throw std::runtime_error("lexical_cast_timeout invalid operation.");
 }
+
 }  // namespace
 
 std::string to_string(Transport_type type) {
@@ -267,7 +265,7 @@ void Connection_options::set_pipe(const std::string &pipe) {
 
   m_options.set(kSocket, pipe, Set_mode::CREATE_AND_UPDATE);
   m_options.set(kPipe, pipe, Set_mode::CREATE_AND_UPDATE);
-  m_transport_type = Pipe;
+  m_transport_type = Transport_type::Pipe;
 }
 
 void Connection_options::check_compression_conflicts() {
@@ -310,7 +308,7 @@ void Connection_options::set_compression_algorithms(
 
 void Connection_options::set_socket(const std::string &socket) {
   m_options.set(kSocket, socket, Set_mode::CREATE_AND_UPDATE);
-  m_transport_type = Socket;
+  m_transport_type = Transport_type::Socket;
 }
 
 void Connection_options::set_host(const std::string &host) {
@@ -318,19 +316,19 @@ void Connection_options::set_host(const std::string &host) {
 
 #ifdef _WIN32
   if (host == ".") {
-    m_transport_type = Pipe;
+    m_transport_type = Transport_type::Pipe;
     return;
   }
 #endif  // _WIN32i
   if (host != "localhost")
-    m_transport_type = Tcp;
+    m_transport_type = Transport_type::Tcp;
   else if (!m_port.has_value())
     m_transport_type.reset();
 }
 
 void Connection_options::set_port(int port) {
   m_port = port;
-  m_transport_type = Tcp;
+  m_transport_type = Transport_type::Tcp;
 }
 
 std::string Connection_options::get_iname(const std::string &name) const {
@@ -617,21 +615,18 @@ int64_t Connection_options::get_compression_level() const {
   return *m_compress_level;
 }
 
-const Mfa_passwords &Connection_options::get_mfa_passwords() const {
+const Connection_options::Mfa_passwords &Connection_options::get_mfa_passwords()
+    const {
   if (has_password()) m_mfa_passwords[0] = get_password();
   return m_mfa_passwords;
 }
 
 const std::string &Connection_options::get(const std::string &name) const {
   std::string iname = get_iname(name);
-  if (m_ssl_options.has(iname))
-    return m_ssl_options.get_value(iname);
-  else if (m_extra_options.has(iname))
-    return m_extra_options.get_value(iname);
-  else if (m_options.compare(iname, kSocket) == 0)
-    return get_socket();
-  else if (m_options.compare(iname, kPipe) == 0)
-    return get_pipe();
+  if (m_ssl_options.has(iname)) return m_ssl_options.get_value(iname);
+  if (m_extra_options.has(iname)) return m_extra_options.get_value(iname);
+  if (m_options.compare(iname, kSocket) == 0) return get_socket();
+  if (m_options.compare(iname, kPipe) == 0) return get_pipe();
 
   return get_value(name);
 }
@@ -735,28 +730,28 @@ void Connection_options::set_default_data() {
 
   bool has_transp = has_transport_type();
   if (!has_host() &&
-      (!has_transp || get_transport_type() == mysqlshdk::db::Tcp)) {
+      (!has_transp || get_transport_type() == Transport_type::Tcp)) {
     set_host("localhost");
   }
 #ifdef _WIN32
   if (!has_transp) {
     // Windows always uses TCP by default
-    m_transport_type = mysqlshdk::db::Tcp;
+    m_transport_type = Transport_type::Tcp;
   }
 #else
   if (!has_transp) {
     // xproto connections connect via TCP by default
     if (!has_scheme() || get_scheme() == "mysqlx") {
       if (has_port() || !has_socket())
-        m_transport_type = mysqlshdk::db::Tcp;
+        m_transport_type = mysqlshdk::db::Transport_type::Tcp;
       else
-        m_transport_type = mysqlshdk::db::Socket;
+        m_transport_type = mysqlshdk::db::Transport_type::Socket;
     } else {
       // classic connections connect via socket by default
       if (has_port())
-        m_transport_type = mysqlshdk::db::Tcp;
+        m_transport_type = mysqlshdk::db::Transport_type::Tcp;
       else
-        m_transport_type = mysqlshdk::db::Socket;
+        m_transport_type = mysqlshdk::db::Transport_type::Socket;
     }
   }
 #endif
