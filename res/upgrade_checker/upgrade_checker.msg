@@ -431,3 +431,13 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * mysqlEmptyDotTableSyntaxCheck.docLink
 
+* mysqlInvalidEngineForeignKeyCheck.title
+# Check for columns that have foreign keys pointing to tables from a diffrent database engine.
+
+* mysqlInvalidEngineForeignKeyCheck.description
+# Error: The following columns have foreign keys pointing to tables from diffrent database engines
+# than originating table. This is invalid and probably a mistake done when FOREIGN_KEY_CHECKS was
+# turned OFF:\n
+
+* mysqlInvalidEngineForeignKeyCheck.docLink
+
