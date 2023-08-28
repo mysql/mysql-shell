@@ -772,7 +772,7 @@ wipe_instance(session);
 //@<> try to load using an account with missing privs
 var grants_and_errors = [];
 
-grants_and_errors.push({ schema: "sakila", grant: "grant all on sakila.* to user@localhost with grant option", error: "ERROR: Error processing schema `sakila`: Access denied; you need (at least one of) the SUPER " });
+grants_and_errors.push({ schema: "sakila", grant: "grant all on sakila.* to user@localhost with grant option", error: "ERROR: Error processing schema `sakila`: Access denied; you need (at least one of) the SUPER" });
 grants_and_errors.push({ schema: "xtest", grant: "grant select,insert,update on xtest.* to user@localhost with grant option", error: "ERROR: Error processing schema `xtest`: Access denied for user 'user'@'localhost' to database 'xtest'" });
 grants_and_errors.push({ schema: "mysqlaas_compat", grant: "grant create,insert on mysqlaas_compat.* to user@localhost with grant option", error: "Error processing schema `mysqlaas_compat`: Access denied for user 'user'@'localhost' to database 'mysqlaas_compat'" });
 
