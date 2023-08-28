@@ -446,7 +446,9 @@ class MetadataStorage {
       const std::string &uuid, const Cluster_id &cluster_id = "") const;
 
   Instance_metadata get_instance_by_address(
-      const std::string &instance_address) const;
+      std::string_view instance_address) const;
+
+  Instance_metadata get_instance_by_label(std::string_view label) const;
 
   std::vector<Instance_metadata> get_replica_set_instances(
       const Cluster_id &rs_id);

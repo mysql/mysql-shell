@@ -220,8 +220,8 @@ cluster.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
 // FR1.3.2: `label`: an identifier for the Read Replica being added, used in the output of status() and describe().
 
 //@<> addReplicaInstance() - using different combinations of 'label'
-var label_1 = "läbel";
-var label_2 = "! la?be1";
+var label_1 = "label1";
+var label_2 = "label2";
 
 EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: label_1}); });
 testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
@@ -244,6 +244,24 @@ var server_uuid = session4.runSql("select @@global.server_uuid").fetchOne()[0];
 var label = session.runSql("select label from mysql_innodb_cluster_metadata.v2_instances where mysql_server_uuid='" + server_uuid + "'").fetchOne()[0];
 
 EXPECT_EQ(label_2, label);
+
+reset_read_replica(__sandbox_uri4, cluster);
+
+//@<> addReplicaInstance() - check for invalid 'label' values
+
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: "läbel"}); }, "The label can only contain alphanumerics or the '_', '.', '-', ':' characters.");
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: "! la?be1"}); }, "The label can only start with an alphanumeric or the '_' character.");
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: "la bel"}); }, "The label can only contain alphanumerics or the '_', '.', '-', ':' characters.");
+
+//@<> addReplicaInstance() - check for duplicate 'label' values
+
+EXPECT_NO_THROWS(function() { cluster.setInstanceOption(__sandbox_uri3, "label", "foo"); });
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: "foo"}); }, `Instance '${hostname}:${__mysql_sandbox_port3}' is already using label 'foo'.`);
+
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {label: "bar"}); });
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
+
+EXPECT_THROWS(function() { cluster.setInstanceOption(__sandbox_uri4, "label", "foo"); }, `Instance '${hostname}:${__mysql_sandbox_port3}' is already using label 'foo'.`);
 
 reset_read_replica(__sandbox_uri4, cluster);
 

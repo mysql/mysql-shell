@@ -22,23 +22,20 @@
  */
 
 #include "modules/adminapi/cluster/add_replica_instance.h"
+
 #include <cassert>
 #include <exception>
 #include <memory>
+
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/async_topology.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/undo.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/mysql/clone.h"
-#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh::dba::cluster {

@@ -33,7 +33,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
 //@<> add third instance with duplicated label
 EXPECT_THROWS(function(){
     cluster.addInstance(__sandbox_uri3, {label: '1node1'});
-}, "An instance with label '1node1' is already part of this InnoDB cluster");
+}, `Instance '${hostname}:${__mysql_sandbox_port2}' is already using label '1node1'.`);
 
 //@<> check status (2)
 var status = cluster.status();

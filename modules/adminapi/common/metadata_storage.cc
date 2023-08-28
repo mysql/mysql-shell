@@ -1974,7 +1974,7 @@ Instance_metadata MetadataStorage::get_instance_by_uuid(
 }
 
 Instance_metadata MetadataStorage::get_instance_by_address(
-    const std::string &instance_address) const {
+    std::string_view instance_address) const {
   auto md_version = real_version();
   auto query(get_instance_query(md_version));
 
@@ -1990,7 +1990,26 @@ Instance_metadata MetadataStorage::get_instance_by_address(
   }
 
   throw shcore::Exception(
-      "Metadata for instance " + instance_address + " not found",
+      shcore::str_format("Metadata for instance %.*s not found",
+                         static_cast<int>(instance_address.length()),
+                         instance_address.data()),
+      SHERR_DBA_MEMBER_METADATA_MISSING);
+}
+
+Instance_metadata MetadataStorage::get_instance_by_label(
+    std::string_view label) const {
+  auto query(get_instance_query(real_version()));
+  query += " WHERE i.label = ?";
+
+  auto result = execute_sqlf(query, label);
+
+  if (auto row = result->fetch_one_named()) {
+    return unserialize_instance(row);
+  }
+
+  throw shcore::Exception(
+      shcore::str_format("Metadata for instance with label '%.*s' not found",
+                         static_cast<int>(label.length()), label.data()),
       SHERR_DBA_MEMBER_METADATA_MISSING);
 }
 

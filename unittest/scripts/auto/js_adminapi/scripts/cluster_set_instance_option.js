@@ -114,13 +114,14 @@ var cluster = scene.cluster
 // - exitStateAction
 // - memberWeight
 
-//@<ERR> WL#11465: setInstanceOption label with invalid value for label 1
-cluster.setInstanceOption(__sandbox_uri2, "label", "-0_a");
+//@<> WL#11465: setInstanceOption label with invalid value for label 1
+EXPECT_THROWS(function() { cluster.setInstanceOption(__sandbox_uri2, "label", "-0_a"); }, "The label can only start with an alphanumeric or the '_' character.");
 
-//@<ERR> WL#11465: setInstanceOption label with invalid value for label 2
+//@<> WL#11465: setInstanceOption label with invalid value for label 2
 var __invalid_label = hostname + ":" + __mysql_sandbox_port1;
 
-cluster.setInstanceOption(__sandbox_uri2, "label", __invalid_label);
+EXPECT_THROWS(function() { cluster.setInstanceOption(__sandbox_uri2, "label", __invalid_label); }, `Instance '${hostname}:${__mysql_sandbox_port1}' is already using label '${__invalid_label}'.`);
+
 
 //@<OUT> WL#11465: setInstanceOption label
 cluster.setInstanceOption(__sandbox_uri2, "label", "newLabel");

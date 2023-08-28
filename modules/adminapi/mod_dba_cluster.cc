@@ -21,29 +21,18 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <iomanip>
-#include <iostream>
+#include "modules/adminapi/mod_dba_cluster.h"
+
 #include <map>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "db/utils_connection.h"
-#include "modules/adminapi/cluster_set/cluster_set_impl.h"
-
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
-#include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 using std::placeholders::_1;
 
@@ -51,6 +40,24 @@ DEBUG_OBJ_ENABLE(Cluster);
 
 namespace mysqlsh {
 namespace dba {
+
+namespace {
+void validate_instance_label(const std::optional<std::string> &label,
+                             const Cluster_impl &impl) {
+  if (!label.has_value()) return;
+
+  mysqlsh::dba::validate_label(*label);
+
+  const auto &md = impl.get_metadata_storage();
+  if (md->is_instance_label_unique(impl.get_id(), *label)) return;
+
+  auto instance_md = md->get_instance_by_label(*label);
+
+  throw shcore::Exception::argument_error(
+      shcore::str_format("Instance '%s' is already using label '%s'.",
+                         instance_md.address.c_str(), label->c_str()));
+}
+}  // namespace
 
 using mysqlshdk::db::uri::formats::only_transport;
 using mysqlshdk::db::uri::formats::user_transport;
@@ -318,17 +325,7 @@ void Cluster::add_instance(
     instance_def.set_password(*(options->password));
   }
 
-  // Validate the label value.
-  if (options->label.has_value()) {
-    mysqlsh::dba::validate_label(*options->label);
-
-    if (!impl()->get_metadata_storage()->is_instance_label_unique(
-            impl()->get_id(), *options->label)) {
-      throw shcore::Exception::argument_error(
-          "An instance with label '" + *(options->label) +
-          "' is already part of this InnoDB cluster");
-    }
-  }
+  validate_instance_label(options->label, *impl());
 
   return execute_with_pool(
       [&]() {
@@ -1228,7 +1225,7 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 ${CLUSTER_OPT_IP_ALLOWLIST}
-@li label a string identifier of the instance.
+@li label: a string identifier of the instance.
 @li replicationSources: The list of sources for a Read Replica Instance.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
@@ -1807,6 +1804,8 @@ void Cluster::add_replica_instance(
     const shcore::Option_pack_ref<cluster::Add_replica_instance_options>
         &options) {
   assert_valid("addReplicaInstance");
+
+  validate_instance_label(options->label, *impl());
 
   return execute_with_pool(
       [&]() { return impl()->add_replica_instance(instance_def, *options); },
