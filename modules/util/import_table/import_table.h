@@ -94,7 +94,7 @@ class Import_table final {
   void interrupt(volatile bool *interrupt) { m_interrupt = interrupt; }
 
   void import();
-  bool any_exception();
+  bool any_exception() const;
   void rethrow_exceptions();
 
   std::string import_summary() const;
@@ -109,8 +109,8 @@ class Import_table final {
   void progress_shutdown();
   void scan_file();
 
-  inline bool interrupted() const noexcept {
-    return m_interrupt && *m_interrupt;
+  inline bool interrupted() const {
+    return (m_interrupt && *m_interrupt) || any_exception();
   }
 
   std::atomic<size_t> m_prog_sent_bytes{0};

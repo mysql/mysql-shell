@@ -513,6 +513,11 @@ EXPECT_STDOUT_CONTAINS("loading finished in 1 sub-chunk")
 EXPECT_STDOUT_CONTAINS(f"Total rows affected in {test_schema}.{test_table}: Records: {test_rows}  Deleted: 0  Skipped: 0  Warnings: 0")
 EXPECT_EQ(checksum, md5_table(session, test_schema, test_table))
 
+#@<> BUG#35541522 - loading large file into non-existing schema takes long to fail
+full_path = os.path.join(output_dir, "2.tsv")
+util.export_table(test_table_qualified, full_path, { "compression": "none", "showProgress": False })
+EXPECT_THROWS(lambda: util.import_table(full_path, { "threads": 1, "bytesPerChunk": "131072", "schema": "invalid-schema", "table": "invalid-table", "showProgress": False }), "Unknown database 'invalid-schema'")
+
 #@<> BUG#35279351 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 testutil.rmdir(output_dir, True)
