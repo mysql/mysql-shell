@@ -84,7 +84,7 @@ void Import_table::rethrow_exceptions() {
   }
 }
 
-bool Import_table::any_exception() {
+bool Import_table::any_exception() const {
   return std::any_of(m_thread_exception.begin(), m_thread_exception.end(),
                      [](std::exception_ptr p) -> bool { return p != nullptr; });
 }
@@ -291,7 +291,10 @@ void Import_table::scan_file() {
   // if file is big enough, we fetch it in 1MB chunks
   static constexpr std::size_t k_one_mb = 1024 * 1024;
   const std::size_t block_size =
-      m_opt.file_size() >= k_one_mb * m_opt.threads_size() ? k_one_mb : 8192;
+      m_opt.file_size() >= k_one_mb * m_opt.threads_size() &&
+              m_opt.bytes_per_chunk() >= k_one_mb
+          ? k_one_mb
+          : 8192;
   // each thread fetches block_size bytes, a page holds enough memory for all
   // threads
   m_allocator = std::make_unique<Allocator>(m_opt.threads_size() * block_size,
