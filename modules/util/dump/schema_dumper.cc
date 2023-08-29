@@ -105,11 +105,19 @@ const std::size_t k_max_innodb_columns = 1017;
 
 using mysqlshdk::utils::Version;
 
-bool is_system_schema(const std::string &s) {
-  const std::unordered_set<std::string> system_schemas = {
-      "information_schema", "mysql", "ndbinfo", "performance_schema", "sys",
-  };
-  return system_schemas.end() != system_schemas.find(s);
+const std::unordered_set<std::string> k_system_schemas = {
+    "information_schema",
+    "mysql",
+    "performance_schema",
+    "sys",
+};
+
+inline bool is_system_schema(const std::string &s) {
+  return k_system_schemas.end() != k_system_schemas.find(s);
+}
+
+inline bool is_system_schema_or_ndb(const std::string &s) {
+  return is_system_schema(s) || "ndbinfo" == s;
 }
 
 /* general_log or slow_log tables under mysql database */
@@ -2892,7 +2900,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         grant = expand_all_privileges(grant, user, &schema);
 
         // grants on specific user schemas don't need to be filtered
-        if (schema != "" && !is_system_schema(schema) && schema != "*") {
+        if (schema != "" && !is_system_schema_or_ndb(schema) && schema != "*") {
           grant = orig_grant;
         } else {
           std::set<std::string> allowed_privs;
@@ -3041,7 +3049,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
               break;
           }
 
-          if (!included_object) {
+          if (!included_object && !is_system_schema(priv.schema)) {
             problems.emplace_back("User " + user +
                                       " has a grant statement on an object "
                                       "which is not included in the dump (" +

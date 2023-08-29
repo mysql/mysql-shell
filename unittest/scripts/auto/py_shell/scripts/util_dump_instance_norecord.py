@@ -3601,6 +3601,26 @@ EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_bas
 #@<> BUG#35550282 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])
 
+#@<> BUG#35680824 - warnings on grants for system schemas should not be printed
+# setup
+test_account = "'test_35680824'@'localhost'"
+
+def account_for_grant():
+    return get_user_account_for_output(test_account)
+
+session.run_sql(f"CREATE USER {test_account} IDENTIFIED BY 'pwd'")
+# it's not possible to grant a privilege on information_schema
+session.run_sql(f"GRANT SELECT ON `mysql`.* TO {account_for_grant()}")
+session.run_sql(f"GRANT SELECT ON `performance_schema`.`global_variables` TO {account_for_grant()}")
+session.run_sql(f"GRANT EXECUTE ON FUNCTION `sys`.`version_major` TO {account_for_grant()}")
+
+#@<> BUG#35680824 - test
+EXPECT_SUCCESS(None, test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ test_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS(account_for_grant())
+
+#@<> BUG#35680824 - cleanup
+session.run_sql(f"DROP USER IF EXISTS {test_account}")
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
