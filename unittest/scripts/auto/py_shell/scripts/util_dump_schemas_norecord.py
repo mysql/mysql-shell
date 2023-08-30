@@ -2446,6 +2446,29 @@ EXPECT_EQ(count_rows(schema_name, subpartitions_table_name), count_rows(verifica
 #@<> WL15311 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])
 
+#@<> BUG#35415976 - invalid views were not detected
+# setup
+schema_name = "test_35415976"
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA !", [schema_name])
+session.run_sql("CREATE TABLE !.t1 (a int)", [schema_name])
+session.run_sql("INSERT INTO !.t1 (a) VALUES (1), (2), (3)", [schema_name])
+session.run_sql("CREATE VIEW !.v3 AS SELECT max(a) FROM !.t1", [schema_name, schema_name])
+session.run_sql("CREATE VIEW !.v1 AS SELECT * FROM !.v3", [schema_name, schema_name])
+session.run_sql("CREATE VIEW !.v2 AS SELECT * FROM !.v3", [schema_name, schema_name])
+session.run_sql("DROP VIEW !.v3", [schema_name])
+
+#@<> BUG#35415976 - test
+EXPECT_FAIL("Error: Shell Error (52039)", "While 'Gathering information': Dump contains one or more invalid views. Fix them manually, or use the 'excludeTables' option to exclude them.", [ schema_name ], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"View '{schema_name}.v1' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them")
+EXPECT_STDOUT_CONTAINS(f"View '{schema_name}.v2' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them")
+
+# if view is excluded, dump succeeds
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "excludeTables": [f"{schema_name}.v1", f"{schema_name}.v2"], "showProgress": False })
+
+#@<> BUG#35415976 - cleanup
+session.run_sql("DROP SCHEMA !", [schema_name])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

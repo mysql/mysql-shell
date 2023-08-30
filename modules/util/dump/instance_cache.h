@@ -36,6 +36,7 @@
 
 #include "modules/util/common/dump/filtering_options.h"
 #include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -259,19 +260,19 @@ class Instance_cache_builder final {
       const std::function<void(const std::string &, Instance_cache::Schema *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  void iterate_tables(
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_tables(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::Table *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  void iterate_views(
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_views(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::View *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  void iterate_tables_and_views(
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_tables_and_views(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::Table *,
