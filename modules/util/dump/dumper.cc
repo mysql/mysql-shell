@@ -1722,11 +1722,11 @@ Dumper::Dumper(const Dump_options &options)
                   m_options.compression());
     m_output_dir = m_output_file->parent();
 
-    if (!m_output_dir->exists()) {
+    if (m_output_dir->is_local() && !m_output_dir->exists()) {
       throw std::invalid_argument(
           "Cannot proceed with the dump, the directory containing '" +
-          m_options.output_url() + "' does not exist at the target location " +
-          m_output_dir->full_path().masked() + ".");
+          m_options.output_url() + "' does not exist at the target location '" +
+          m_output_dir->full_path().masked() + "'.");
     }
   } else {
     using mysqlshdk::storage::make_directory;

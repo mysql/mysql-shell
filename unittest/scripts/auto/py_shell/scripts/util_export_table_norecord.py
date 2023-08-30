@@ -429,7 +429,7 @@ EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), "file://" + test_out
 # parent directory does not exist
 shutil.rmtree(test_output_absolute_parent, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), "Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location {1}.".format(test_output_absolute, absolute_path_for_output(test_output_absolute_parent)))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), "Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location '{1}'.".format(test_output_absolute, absolute_path_for_output(test_output_absolute_parent)))
 EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
 
 # unable to create file, directory with the same name exists
@@ -1116,7 +1116,7 @@ EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolu
 shutil.rmtree(test_output_absolute_parent, True)
 os.mkdir(test_output_absolute_parent)
 tested_path = os.path.join(test_output_absolute_parent, "deeply", "nested", "none", "of", "which", "exists")
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ValueError: Util.export_table: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location {1}.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ValueError: Util.export_table: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location '{1}'.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
 
 #@<> WL13804-TSFR_4_3_x
 shutil.rmtree(test_output_absolute_parent, True)
