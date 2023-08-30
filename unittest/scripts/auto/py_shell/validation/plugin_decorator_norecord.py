@@ -186,8 +186,7 @@ anUndefined value: {"anykey": "anyValue"}
 
 #@<OUT> Test calling function with required dictionary parameters 1 (js)
 [[*]]> decorator.testRequiredDictParams('one')
-first value: one
-dict: {}
+decorator.testRequiredDictParams: Missing required options at Argument #2: param1, param2 (ArgumentError)
 [[*]]> 
 
 #@<OUT> Test calling function with required dictionary parameters 2 (js)

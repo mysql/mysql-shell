@@ -290,5 +290,71 @@ EXPECT_STDOUT_CONTAINS("2 plugin default {\"option1\": \"plugin option1 default\
 WIPE_OUTPUT()
 
 
+#@<> Plugin code to demonstrate missing mandatory arguments generate an error
+plugin_code = """
+def print_element(key, elements):
+    print(elements[key])
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "printElement", print_element, {
+  "brief": "Testing mandatory arguments in a plugin.",
+  "cli": True,
+  "parameters":[
+      {
+          "name": "key",
+          "brief": "identifies the element to be printed",
+          "type": "string",
+      },
+      {
+          "name": "elements",
+          "brief": "dictionary of printable elements",
+          "type": "dictionary",
+          "default": {"one": "default value for one", "two": "default value for two"},
+          "required": False
+      },
+  ]
+})
+
+shell.register_global('custom_plugin', obj, {"brief": "CLI Integration Testing Plugin"})
+"""
+
+testutil.rmfile(plugin_path)
+testutil.create_file(plugin_path, plugin_code)
+
+#@<> Ensures documented default elements are used (the exposed function has no defaults)
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "one"])
+EXPECT_STDOUT_CONTAINS("default value for one")
+WIPE_OUTPUT()
+
+#@<> Attempts printing unexisting default element
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "item"])
+EXPECT_STDOUT_CONTAINS("KeyError: 'item'")
+WIPE_OUTPUT()
+
+#@<> Prints custom element
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "item", "--item", "this is a custom element"])
+EXPECT_STDOUT_CONTAINS("this is a custom element")
+WIPE_OUTPUT()
+
+#@<> Testing default elements are overriden by the new defaults
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "one", "--item", "this is a custom element"])
+EXPECT_STDOUT_CONTAINS("KeyError: 'one'")
+WIPE_OUTPUT()
+
+
+#@<> Tests missing mandatory argument
+# NOTE: this is possible in CLI calls when a dictionary or list comes after other parameters
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "--item='this is a custom element'"])
+EXPECT_STDOUT_CONTAINS("ERROR: Missing value for required 'key' parameter.")
+WIPE_OUTPUT()
+
+
+#@<> Tests default values are used even in API calls
+rc = call_mysqlsh(["-e", "custom_plugin.printElement('two')"])
+EXPECT_STDOUT_CONTAINS("default value for two")
+WIPE_OUTPUT()
+
+
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

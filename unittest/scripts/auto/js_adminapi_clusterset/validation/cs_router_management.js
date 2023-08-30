@@ -17,7 +17,7 @@
     }
 }
 
-//@<OUT> clusterset.listRouters
+//@<OUT> clusterset.listRouters (CLI)
 {
     "domainName": "clusterset",
     "routers": {
@@ -67,6 +67,8 @@
         }
     }
 }
+
+//@<OUT> clusterset.listRouters (CLI-1)
 {
     "routerhost1::system": {
         "hostname": "routerhost1",
@@ -80,6 +82,8 @@
         "version": "8.0.27"
     }
 }
+
+//@<OUT> clusterset.listRouters (CLI-2)
 {
     "routerhost2::system": {
         "hostname": "routerhost2",
