@@ -513,6 +513,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
 //@<OUT> clusterset.listRouters
 Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
 Routing option 'target_cluster' successfully updated in router 'routerhost2::system'.
+
+//@<OUT> clusterset.listRouters (CLI)
 {
     "domainName": "clusterset",
     "routers": {
@@ -558,6 +560,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         }
     }
 }
+
+//@<OUT> clusterset.listRouters (CLI-1)
 {
     "routerhost1::system": {
         "hostname": "routerhost1",
@@ -570,6 +574,8 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "version": "8.0.27"
     }
 }
+
+//@<OUT> clusterset.listRouters (CLI-2)
 {
     "routerhost2::system": {
         "hostname": "routerhost2",

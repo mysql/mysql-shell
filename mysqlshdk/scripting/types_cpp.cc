@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -632,7 +632,6 @@ Value Cpp_object_bridge::call_advanced(const std::string &name,
             process_keyword_args(signature, kwargs);
       }
 
-      std::vector<size_t> skipped_optionals;
       for (size_t index = new_args.size(); index < signature.size(); index++) {
         if (kwargs && kwargs->has_key(signature.at(index)->name)) {
           new_args.push_back(kwargs->at(signature.at(index)->name));
@@ -782,14 +781,8 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
 
 Value Cpp_object_bridge::call(const std::string &name,
                               const Argument_list &args) {
-  std::shared_ptr<Cpp_function> func;
-  {
-    Scoped_naming_style lower(LowerCamelCase);
-    func = lookup_function_overload(name, args);
-  }
-  assert(func);
-  const auto scope = get_function_name(name, true);
-  return call_function(scope, func, args);
+  Scoped_naming_style lower(LowerCamelCase);
+  return call_advanced(name, args);
 }
 
 std::string Cpp_object_bridge::help(const std::string &item) {
