@@ -228,6 +228,9 @@ EXPECT_EQ(md5_table(session1, tested_schema, tested_table), md5_table(session2, 
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
+#@<> BUG#35462985 - util.export_table() to a remote location should not require a prefix to exist
+EXPECT_NO_THROWS(lambda: util.export_table("sakila.actor", "new-dir/actors.tsv", {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False}), "export_table() to non-existing prefix")
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)
