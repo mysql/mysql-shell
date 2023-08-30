@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -177,7 +177,12 @@
   "Dump contains an invalid grant statement. Use the 'strip_invalid_grants' " \
   "compatibility option to fix this."
 
-#define SHERR_DUMP_LAST 52038
+#define SHERR_DUMP_IC_INVALID_VIEWS 52039
+#define SHERR_DUMP_IC_INVALID_VIEWS_MSG                                     \
+  "Dump contains one or more invalid views. Fix them manually, or use the " \
+  "'excludeTables' option to exclude them."
+
+#define SHERR_DUMP_LAST 52039
 
 #define SHERR_DUMP_MAX 52999
 
