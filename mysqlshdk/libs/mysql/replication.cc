@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 
 #include <algorithm>
+#include <array>
 #include <random>
 #include <string>
 #include <vector>
@@ -574,7 +575,7 @@ void unserialize_channel_relay_log_info(
 }  // namespace
 
 bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
-                      const std::string &channel_name,
+                      std::string_view channel_name,
                       Replication_channel_master_info *out_master_info,
                       Replication_channel_relay_log_info *out_relay_log_info) {
   if (!out_master_info && !out_relay_log_info) return false;
@@ -718,7 +719,7 @@ std::string get_replication_user(const mysqlshdk::mysql::IInstance &instance,
 }
 
 Replication_channel wait_replication_done_connecting(
-    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name) {
+    const mysqlshdk::mysql::IInstance &slave, std::string_view channel_name) {
   // Check that the IO thread for the channel switches to ON/OFF.
   // NOTE: It is assumed that the IO thread will not stay forever with the
   //       state CONNECTING and will eventually switch to ON or OFF (stopped).
@@ -1054,15 +1055,66 @@ std::tuple<std::string, std::string> get_replication_source_keywords(
 }
 
 std::string get_replication_option_keyword(
-    const mysqlshdk::utils::Version &version, const std::string &option) {
-  std::string ret = option;
+    const mysqlshdk::utils::Version &version, std::string_view option) {
+  using namespace std::literals;
 
-  if (version >= mysqlshdk::utils::Version(8, 0, 26)) {
-    ret = shcore::str_replace(ret, "slave", "replica");
-    ret = shcore::str_replace(ret, "master", "source");
-  } else {
-    ret = shcore::str_replace(ret, "replica", "slave");
-    ret = shcore::str_replace(ret, "source", "master");
+  // assume current keywords (>= 8.0.26)
+  std::array<std::tuple<std::string_view, std::string_view>, 2> replacements{
+      std::make_tuple("slave"sv, "replica"sv),
+      std::make_tuple("master"sv, "source"sv)};
+
+  // switch old<>new keywords if target is an older version
+  if (version < mysqlshdk::utils::Version(8, 0, 26)) {
+    for (auto &rep : replacements)
+      std::swap(std::get<0>(rep), std::get<1>(rep));
+  }
+
+  // Cannot blindly replace keywords, otherwise "aaa_replication_bbb" is
+  // incorrectly replaced with "aaa_slavetion_bbb". Replacements are only made
+  // if:
+  //  - keyword is at the beginning and is followed with '_', '-' or ' '
+  //  - keyword is at the end and is preceded with '_', '-' or ' '
+  //  - keyword is followed and preceded with '_', '-' or ' '
+  //
+  // It's also assumed that the replacement only needs to be made once per
+  // keyword.
+
+  std::array<const char, 3> separators{'_', '-', ' '};
+
+  std::string ret{option};
+
+  for (const auto &[old_name, new_name] : replacements) {
+    if (ret == old_name) return std::string{new_name};
+
+    auto it = ret.find(old_name);
+    if (it == std::string::npos) continue;
+
+    if (it == 0) {  // replace at beginning
+      assert(ret.size() > old_name.size());
+      if (std::find(separators.begin(), separators.end(),
+                    ret[old_name.size()]) != separators.end())
+        ret.replace(it, old_name.size(), new_name);
+      continue;
+    }
+
+    if (it == (ret.size() - old_name.size())) {  // replace at end
+      assert(ret.size() > old_name.size());
+      if (std::find(separators.begin(), separators.end(), ret[it - 1]) !=
+          separators.end())
+        ret.replace(it, old_name.size(), new_name);
+      continue;
+    }
+
+    // replace in the middle
+    assert((it + old_name.size()) < ret.size());
+    if (std::find(separators.begin(), separators.end(), ret[it - 1]) ==
+        separators.end())
+      continue;
+    if (std::find(separators.begin(), separators.end(),
+                  ret[it + old_name.size()]) == separators.end())
+      continue;
+
+    ret.replace(it, old_name.size(), new_name);
   }
 
   return ret;

@@ -1,4 +1,4 @@
-//@<> Deploy 2 sandboxes, used for the following tests {VER(>= 5.7)}
+//@<> Deploy 2 sandboxes, used for the following tests
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root");
 
@@ -74,7 +74,27 @@ EXPECT_TRUE(clone_installed(session3));
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<> Destroy sandboxes {VER(>= 5.7)}
+//@<> Check if var name is correct  {VER(>=8.0.26)}
+shell.options["dba.logSql"] = 2;
+
+shell.connect(__sandbox_uri1);
+
+c = dba.getCluster();
+c.removeInstance(__sandbox_uri2);
+
+var session2 = mysql.getSession(__sandbox_uri2);
+reset_instance(session2);
+session2.close();
+
+WIPE_STDOUT();
+WIPE_SHELL_LOG();
+
+c.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
+
+EXPECT_SHELL_LOG_CONTAINS("group_replication_tls_source");
+EXPECT_SHELL_LOG_NOT_CONTAINS("_slavetion_");
+
+//@<> Destroy sandboxes
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,8 +30,7 @@
 #include <tuple>
 #include <vector>
 
-#include "modules/adminapi/common/instance_pool.h"
-#include "mysqlshdk/libs/mysql/repl_config.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -54,13 +53,6 @@ struct Parallel_applier_options {
       const mysqlshdk::mysql::IInstance &instance) {
     read_option_values(instance);
   }
-
-  /**
-   * Read the Parallel Applier option values from the given Instance.
-   *
-   * @param instance target Instance object to read the GR options.
-   */
-  void read_option_values(const mysqlshdk::mysql::IInstance &instance);
 
   /**
    * Get the list of required values for the parallel appliers options
@@ -103,6 +95,14 @@ struct Parallel_applier_options {
   std::optional<std::string> replica_parallel_type;
   std::optional<std::string> transaction_write_set_extraction;
   std::optional<int64_t> replica_parallel_workers;
+
+ private:
+  /**
+   * Read the Parallel Applier option values from the given Instance.
+   *
+   * @param instance target Instance object to read the GR options.
+   */
+  void read_option_values(const mysqlshdk::mysql::IInstance &instance);
 };
 
 }  // namespace dba

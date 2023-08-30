@@ -24,24 +24,20 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_REPL_CONFIG_H_
 #define MYSQLSHDK_LIBS_MYSQL_REPL_CONFIG_H_
 
-#include <map>
-#include <memory>
+#include <optional>
 #include <string>
-#include <tuple>
-#include <utility>
 #include <vector>
 
 #include "mysql/instance.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace mysql {
 
-static inline constexpr char k_value_not_set[] = "<not set>";
-static inline constexpr char k_no_value[] = "<no value>";
-static inline constexpr char k_must_be_initialized[] = "<must be initialized>";
+inline constexpr char k_value_not_set[] = "<not set>";
+inline constexpr char k_no_value[] = "<no value>";
+inline constexpr char k_must_be_initialized[] = "<must be initialized>";
 
 enum class Config_type { SERVER, CONFIG, RESTART_ONLY };
 
@@ -52,24 +48,27 @@ struct Invalid_config {
   std::string var_name;
   std::string current_val;
   std::string required_val;
-  mysqlshdk::utils::nullable<std::string> persisted_val;
+  std::optional<std::string> persisted_val;
   Config_types types;
   bool restart;
   shcore::Value_type val_type;
 
   // constructors
-  Invalid_config(std::string name, std::string req_val)
+  Invalid_config(std::string name, std::string req_val) noexcept
       : Invalid_config(std::move(name), k_must_be_initialized,
                        std::move(req_val), Config_types(), false,
                        shcore::Value_type::String) {}
+
   Invalid_config(std::string name, std::string curr_val, std::string req_val,
-                 Config_types types_, bool rest, shcore::Value_type val_t)
+                 Config_types types_, bool rest,
+                 shcore::Value_type val_t) noexcept
       : var_name(std::move(name)),
         current_val(std::move(curr_val)),
         required_val(std::move(req_val)),
         types(std::move(types_)),
         restart(rest),
         val_type(val_t) {}
+
   // comparison operator to be used for sorting Invalid_config objects
   bool operator<(const Invalid_config &rhs) const {
     return var_name < rhs.var_name ||

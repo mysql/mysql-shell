@@ -464,7 +464,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
       (*error)["option"] = shcore::Value(cfg.var_name);
       process_row_values(cfg, error);
       process_row_action(cfg, error, action);
-      if (!cfg.persisted_val.is_null()) {
+      if (cfg.persisted_val.has_value()) {
         (*error)["persisted"] = shcore::Value(*cfg.persisted_val);
       }
       config_errors->push_back(shcore::Value(std::move(error)));

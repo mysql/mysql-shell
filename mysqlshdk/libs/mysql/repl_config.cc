@@ -29,7 +29,6 @@
 #include <memory>
 #include <set>
 #include <tuple>
-#include "utils/version.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -51,6 +50,7 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/uuid_gen.h"
+#include "utils/version.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -179,11 +179,9 @@ void log_invalid_config(const Invalid_config &change) {
     log_debug("OK: '%s' value '%s' is compatible.", change.var_name.c_str(),
               change.current_val.c_str());
   } else {
-    log_debug(
-        "FAIL: '%s' value '%s' is not compatible. "
-        "Required value: '%s'.",
-        change.var_name.c_str(), change.current_val.c_str(),
-        change.required_val.c_str());
+    log_debug("FAIL: '%s' value '%s' is not compatible. Required value: '%s'.",
+              change.var_name.c_str(), change.current_val.c_str(),
+              change.required_val.c_str());
   }
 }
 
@@ -191,8 +189,20 @@ void check_server_variables_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config, bool group_replication,
     std::vector<Invalid_config> *out_invalid_vec) {
-  mysqlsh::dba::Parallel_applier_options parallel_applier_options;
   auto instance_version = instance.get_version();
+
+  struct Requirement {
+    Requirement(std::string req_name, std::vector<std::string> req_values,
+                bool req_restart) noexcept
+        : name{std::move(req_name)},
+          values{std::move(req_values)},
+          restart{req_restart} {}
+
+    std::string name;
+    std::vector<std::string> values;
+    bool restart{false};
+  };
+
   // create a vector for all the variables required values. Each entry is
   // a string with the name of the variable, then a vector of strings with the
   // accepted values and finally a boolean value that says if the variable
@@ -202,123 +212,118 @@ void check_server_variables_compatibility(
   // as such it serves as a workaround for BUG#27629719, which requires
   // some GR required variables to be set in a certain order, namely
   // enforce_gtid_consistency before gtid_mode.
-  std::vector<std::tuple<std::string, std::vector<std::string>, bool>>
-      requirements{std::make_tuple("binlog_format",
-                                   std::vector<std::string>{"ROW"}, false),
-                   std::make_tuple("enforce_gtid_consistency",
-                                   std::vector<std::string>{"ON", "1"}, true),
-                   std::make_tuple("gtid_mode",
-                                   std::vector<std::string>{"ON", "1"}, true)};
+  std::vector<Requirement> requirements{
+      Requirement("binlog_format", {"ROW"}, false),
+      Requirement("enforce_gtid_consistency", {"ON", "1"}, true),
+      Requirement("gtid_mode", {"ON", "1"}, true)};
 
   // master_info_repository and relay_log_info_repository were deprecated in
   // 8.0.23 and the setting TABLE is the default since then. So for versions
   // >= 8.0.23 we can allow that the setting is not set.
   if (instance_version >= utils::Version(8, 0, 23)) {
-    requirements.push_back(std::make_tuple(
-        "master_info_repository",
-        std::vector<std::string>{"TABLE", k_value_not_set}, true));
-    requirements.push_back(std::make_tuple(
-        "relay_log_info_repository",
-        std::vector<std::string>{"TABLE", k_value_not_set}, true));
+    requirements.push_back(Requirement("master_info_repository",
+                                       {"TABLE", k_value_not_set}, true));
+    requirements.push_back(Requirement("relay_log_info_repository",
+                                       {"TABLE", k_value_not_set}, true));
   } else {
-    requirements.push_back(std::make_tuple(
-        "master_info_repository", std::vector<std::string>{"TABLE"}, true));
-    requirements.push_back(std::make_tuple(
-        "relay_log_info_repository", std::vector<std::string>{"TABLE"}, true));
+    requirements.push_back(
+        Requirement("master_info_repository", {"TABLE"}, true));
+    requirements.push_back(
+        Requirement("relay_log_info_repository", {"TABLE"}, true));
   }
 
   // log_slave_updates is ON by default since 8.0.3
   if (instance_version >= utils::Version(8, 0, 3)) {
-    requirements.push_back(std::make_tuple(
-        mysqlshdk::mysql::get_replication_option_keyword(instance.get_version(),
-                                                         "log_slave_updates"),
-        std::vector<std::string>{"ON", "1", k_value_not_set}, true));
+    requirements.push_back(
+        Requirement(mysqlshdk::mysql::get_replication_option_keyword(
+                        instance.get_version(), "log_slave_updates"),
+                    {"ON", "1", k_value_not_set}, true));
 
     // Also include the old nomenclature of the sysvar so we check its value
     // when set in the config file
-    requirements.push_back(std::make_tuple(
-        "log_slave_updates",
-        std::vector<std::string>{"ON", "1", k_value_not_set}, true));
+    requirements.push_back(
+        Requirement("log_slave_updates", {"ON", "1", k_value_not_set}, true));
   } else {
-    requirements.push_back(std::make_tuple(
-        "log_slave_updates", std::vector<std::string>{"ON", "1"}, true));
+    requirements.push_back(Requirement("log_slave_updates", {"ON", "1"}, true));
   }
 
   // Option checks specific to GR
   if (group_replication) {
     // Starting with 8.0.21 GR no longer requires binlog_checksum to be NONE
     if (instance_version < utils::Version(8, 0, 21)) {
-      requirements.push_back(std::make_tuple(
-          "binlog_checksum", std::vector<std::string>{"NONE"}, false));
+      requirements.push_back(Requirement("binlog_checksum", {"NONE"}, false));
 
     } else {
       // group_replication_tls_source, introduced in 8.0.21, must not be set
       // to the value of 'mysql_admin'
-      requirements.push_back(std::make_tuple(
-          "group_replication_tls_source",
-          std::vector<std::string>{"MYSQL_MAIN", k_value_not_set}, false));
+      requirements.push_back(Requirement("group_replication_tls_source",
+                                         {"MYSQL_MAIN", k_value_not_set},
+                                         false));
     }
   }
 
-  requirements.push_back(std::make_tuple(
-      "transaction_write_set_extraction",
-      std::vector<std::string>{"XXHASH64", "2", "MURMUR32", "1"}, true));
+  requirements.push_back(Requirement("transaction_write_set_extraction",
+                                     {"XXHASH64", "2", "MURMUR32", "1"}, true));
 
   // Check parallel-applier settings
   // NOTE: Only for instances with version >= 8.0.23
   if (instance_version >= utils::Version(8, 0, 23)) {
+    mysqlsh::dba::Parallel_applier_options parallel_applier_options;
+
     // If group_replication (configureInstance() or configureLocalInstance())
     // we can skip kTransactionWriteSetExtraction as it is already part of the
     // GR required settings
     for (const auto &setting :
          parallel_applier_options.get_required_values(instance_version, true)) {
-      requirements.push_back(std::make_tuple(
-          std::get<0>(setting), std::vector<std::string>{std::get<1>(setting)},
-          false));
+      requirements.push_back(
+          Requirement(std::get<0>(setting), {std::get<1>(setting)}, false));
     }
   }
 
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
     // Add an extra requirement for the report_port
-    std::string report_port = *(
-        config.get_string("port", mysqlshdk::config::k_dft_cfg_server_handler));
-    std::vector<std::string> report_port_vec = {report_port};
-    requirements.emplace_back("report_port", report_port_vec, false);
+    {
+      std::string report_port = *(config.get_string(
+          "port", mysqlshdk::config::k_dft_cfg_server_handler));
+
+      std::vector<std::string> report_port_vec;
+      report_port_vec.push_back(std::move(report_port));
+
+      requirements.emplace_back("report_port", std::move(report_port_vec),
+                                false);
+    }
 
     // Check if MTS is enabled (slave_parallel_workers > 0) and if so, add
     // extra requirements.
-    auto slave_p_workers = config.get_int(
-        mysqlshdk::mysql::get_replication_option_keyword(
-            instance_version, mysqlsh::dba::kReplicaParallelWorkers),
-        mysqlshdk::config::k_dft_cfg_server_handler);
-    if (group_replication && (slave_p_workers.value_or(0) > 0) &&
-        instance_version < utils::Version(8, 0, 23)) {
-      std::vector<std::string> slave_parallel_vec = {"LOGICAL_CLOCK"};
-      std::vector<std::string> slave_commit_vec = {"ON", "1"};
-      requirements.emplace_back(
+    if (group_replication && (instance_version < utils::Version(8, 0, 23))) {
+      auto slave_p_workers = config.get_int(
           mysqlshdk::mysql::get_replication_option_keyword(
-              instance_version, mysqlsh::dba::kReplicaParallelType),
-          slave_parallel_vec, false);
-      requirements.emplace_back(
-          mysqlshdk::mysql::get_replication_option_keyword(
-              instance_version, mysqlsh::dba::kReplicaPreserveCommitOrder),
-          slave_commit_vec, false);
+              instance_version, mysqlsh::dba::kReplicaParallelWorkers),
+          mysqlshdk::config::k_dft_cfg_server_handler);
+
+      if (slave_p_workers.value_or(0) > 0) {
+        requirements.push_back(Requirement(
+            mysqlshdk::mysql::get_replication_option_keyword(
+                instance_version, mysqlsh::dba::kReplicaParallelType),
+            {"LOGICAL_CLOCK"}, false));
+        requirements.push_back(Requirement(
+            mysqlshdk::mysql::get_replication_option_keyword(
+                instance_version, mysqlsh::dba::kReplicaPreserveCommitOrder),
+            {"ON", "1"}, false));
+      }
     }
   }
 
   for (auto &req : requirements) {
-    std::string var_name;
-    std::vector<std::string> valid_values;
-    bool restart;
-    std::tie(var_name, valid_values, restart) = req;
     log_debug("Checking if '%s' is compatible with InnoDB Cluster.",
-              var_name.c_str());
+              req.name.c_str());
     // assuming the expected value is the first of the valid values list
-    Invalid_config change = Invalid_config(var_name, valid_values.at(0));
+    Invalid_config change(req.name, req.values.at(0));
+
     // If config object has has a config handler
     if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
       check_variable_compliance(
-          valid_values, true,
+          req.values, true,
           *config.get_handler(mysqlshdk::config::k_dft_cfg_file_handler),
           &change, Config_type::CONFIG, false, true);
     }
@@ -335,18 +340,19 @@ void check_server_variables_compatibility(
                           mysqlshdk::mysql::Var_qualifier::PERSIST);
 
       // Check the variables compliance.
-      check_variable_compliance(valid_values, true, *srv_cfg_handler, &change,
-                                Config_type::SERVER, restart, true);
+      check_variable_compliance(req.values, true, *srv_cfg_handler, &change,
+                                Config_type::SERVER, req.restart, true);
 
       // Check persisted value if supported, because it can be different from
       // the current sysvar value (when PERSIST_ONLY was used).
       if (use_persist) {
-        check_persisted_value_compliance(valid_values, true, *srv_cfg_handler,
+        check_persisted_value_compliance(req.values, true, *srv_cfg_handler,
                                          &change);
       }
     }
 
     log_invalid_config(change);
+
     // if there are any changes to be made, add them to the vector of changes
     if (!change.types.empty()) out_invalid_vec->push_back(std::move(change));
   }

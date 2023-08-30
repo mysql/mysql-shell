@@ -880,6 +880,95 @@ TEST_F(Group_replication_test, check_server_id_compatibility) {
   m_instance->set_sysvar("server_id", *cur_server_id, Var_qualifier::GLOBAL);
 }
 
+TEST_F(Group_replication_test, check_replication_option_keyword) {
+  using namespace mysqlshdk::mysql;
+
+  {
+    mysqlshdk::utils::Version version(8, 0, 25);
+
+    EXPECT_EQ(get_replication_option_keyword(version, "replica"), "slave");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "replica foo"),
+              "slave foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "replica_foo"),
+              "slave_foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "replica-foo"),
+              "slave-foo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "foo source"),
+              "foo master");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo_source"),
+              "foo_master");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo-source"),
+              "foo-master");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "foo source foo"),
+              "foo master foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo_source_foo"),
+              "foo_master_foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo-source-foo"),
+              "foo-master-foo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "replication"),
+              "replication");
+    EXPECT_EQ(get_replication_option_keyword(version, " replication "),
+              " replication ");
+    EXPECT_EQ(get_replication_option_keyword(version, "_replication_"),
+              "_replication_");
+    EXPECT_EQ(get_replication_option_keyword(version, "_replicafoo"),
+              "_replicafoo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "sources"), "sources");
+    EXPECT_EQ(get_replication_option_keyword(version, " sources "),
+              " sources ");
+    EXPECT_EQ(get_replication_option_keyword(version, "_sources_"),
+              "_sources_");
+    EXPECT_EQ(get_replication_option_keyword(version, "_sourcefoo"),
+              "_sourcefoo");
+  }
+
+  {
+    mysqlshdk::utils::Version version(8, 0, 26);
+
+    EXPECT_EQ(get_replication_option_keyword(version, "slave"), "replica");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "slave foo"),
+              "replica foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "slave_foo"),
+              "replica_foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "slave-foo"),
+              "replica-foo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "foo master"),
+              "foo source");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo_master"),
+              "foo_source");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo-master"),
+              "foo-source");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "foo master foo"),
+              "foo source foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo_master_foo"),
+              "foo_source_foo");
+    EXPECT_EQ(get_replication_option_keyword(version, "foo-master-foo"),
+              "foo-source-foo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "slaver"), "slaver");
+    EXPECT_EQ(get_replication_option_keyword(version, " slaver "), " slaver ");
+    EXPECT_EQ(get_replication_option_keyword(version, "_slaver_"), "_slaver_");
+    EXPECT_EQ(get_replication_option_keyword(version, "_slavefoo"),
+              "_slavefoo");
+
+    EXPECT_EQ(get_replication_option_keyword(version, "masters"), "masters");
+    EXPECT_EQ(get_replication_option_keyword(version, " masters "),
+              " masters ");
+    EXPECT_EQ(get_replication_option_keyword(version, "_masters_"),
+              "_masters_");
+    EXPECT_EQ(get_replication_option_keyword(version, "_masterfoo"),
+              "_masterfoo");
+  }
+}
+
 TEST_F(Group_replication_test, check_server_variables_compatibility) {
   using mysqlshdk::mysql::Config_type;
   using mysqlshdk::mysql::Config_types;

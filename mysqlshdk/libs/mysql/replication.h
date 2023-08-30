@@ -228,7 +228,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
  * @return false if the channel does not exist.
  */
 bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
-                      const std::string &channel_name,
+                      std::string_view channel_name,
                       Replication_channel_master_info *out_master_info,
                       Replication_channel_relay_log_info *out_relay_log_info);
 
@@ -255,7 +255,7 @@ std::vector<Slave_host> get_slaves(const mysqlshdk::mysql::IInstance &instance);
  * @param channel_name - the name of the replication channel to monitor
  */
 Replication_channel wait_replication_done_connecting(
-    const mysqlshdk::mysql::IInstance &slave, const std::string &channel_name);
+    const mysqlshdk::mysql::IInstance &slave, std::string_view channel_name);
 
 /**
  * Get the replication user used for the given channel.
@@ -508,7 +508,7 @@ std::tuple<std::string, std::string> get_replication_source_keywords(
  * Replication option
  */
 std::string get_replication_option_keyword(
-    const mysqlshdk::utils::Version &version, const std::string &option);
+    const mysqlshdk::utils::Version &version, std::string_view option);
 
 }  // namespace mysql
 }  // namespace mysqlshdk
