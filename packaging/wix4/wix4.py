@@ -352,7 +352,7 @@ class Wix4():
         self.__write_wxs("files", self.__files)
 
     def create_msi(self):
-        args = [ "wix", "build" ]
+        args = [ "wix", "build", "-arch", "x64" ]
 
         for extension in self.extensions:
             args.append("-ext")
