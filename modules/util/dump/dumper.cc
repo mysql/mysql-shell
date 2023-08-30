@@ -2728,7 +2728,7 @@ void Dumper::initialize_counters() {
   m_rows_written = 0;
   m_bytes_written = 0;
   m_data_bytes = 0;
-  m_table_data_bytes.clear();
+  m_table_data_stats.clear();
 
   m_data_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
   m_bytes_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
@@ -3245,10 +3245,10 @@ Dumper::table_dump_multi_file_controller(const std::string &basename) const {
 
 void Dumper::finish_writing(const std::string &schema, const std::string &table,
                             const Dump_writer_controller *controller) {
-  std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
+  std::lock_guard<std::mutex> lock(m_table_data_stats_mutex);
 
   controller->update_uncompressed_file_size(&m_chunk_file_bytes);
-  m_table_data_bytes[schema][table] += controller->total_stats().data_bytes();
+  m_table_data_stats[schema][table] += controller->total_stats();
 }
 
 void Dumper::write_metadata() const {
@@ -3410,19 +3410,24 @@ void Dumper::write_dump_finished_metadata() const {
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);
 
   {
-    Value schemas{Type::kObjectType};
+    Value bytes{Type::kObjectType};
+    Value rows{Type::kObjectType};
 
-    for (const auto &schema : m_table_data_bytes) {
-      Value tables{Type::kObjectType};
+    for (const auto &schema : m_table_data_stats) {
+      Value table_bytes{Type::kObjectType};
+      Value table_rows{Type::kObjectType};
 
       for (const auto &table : schema.second) {
-        tables.AddMember(refs(table.first), table.second, a);
+        table_bytes.AddMember(refs(table.first), table.second.data_bytes(), a);
+        table_rows.AddMember(refs(table.first), table.second.rows_written(), a);
       }
 
-      schemas.AddMember(refs(schema.first), std::move(tables), a);
+      bytes.AddMember(refs(schema.first), std::move(table_bytes), a);
+      rows.AddMember(refs(schema.first), std::move(table_rows), a);
     }
 
-    doc.AddMember(StringRef("tableDataBytes"), std::move(schemas), a);
+    doc.AddMember(StringRef("tableDataBytes"), std::move(bytes), a);
+    doc.AddMember(StringRef("tableRows"), std::move(rows), a);
   }
 
   {

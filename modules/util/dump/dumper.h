@@ -429,10 +429,11 @@ class Dumper {
   std::unique_ptr<mysqlshdk::textui::Throughput> m_data_throughput;
   std::unique_ptr<mysqlshdk::textui::Throughput> m_bytes_throughput;
 
-  std::mutex m_table_data_bytes_mutex;
-  // schema -> table -> data bytes
-  std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>>
-      m_table_data_bytes;
+  std::mutex m_table_data_stats_mutex;
+  // schema -> table -> data stats
+  std::unordered_map<std::string,
+                     std::unordered_map<std::string, Dump_write_result>>
+      m_table_data_stats;
 
   // path -> uncompressed bytes
   std::unordered_map<std::string, uint64_t> m_chunk_file_bytes;
