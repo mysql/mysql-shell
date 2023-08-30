@@ -150,17 +150,15 @@ class Shell_cli_operation_test : public Shell_core_test_wrapper,
     prepare();
 
     // If the second list is empty, it means there were no arguments passed
-    // for it and so the CLI mapper provide an empty list as the second
-    // parameter
-    EXPECT_EQ(2, m_argument_list.size());
+    // for it and so the CLI mapper will NOT provide this argument to the API
+    // call
+    EXPECT_EQ(second ? 2 : 1, m_argument_list.size());
     EXPECT_EQ(shcore::Value(first), m_argument_list.at(0));
 
     // If there were arguments for the second list, they should be mapped
     // properly
     if (second) {
       EXPECT_EQ(shcore::Value(second), m_argument_list.at(1));
-    } else {
-      EXPECT_EQ(shcore::Value::new_array(), m_argument_list.at(1));
     }
   }
 
@@ -683,9 +681,8 @@ TEST_F(Shell_cli_operation_test, local_dict) {
     parse(&it);
     // This no longer crashes as { and } are simply ignored
     prepare();
-    EXPECT_EQ(2, m_argument_list.size());
+    EXPECT_EQ(1, m_argument_list.size());
     ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
-    ASSERT_EQ(shcore::Value::new_map(), m_argument_list[1]);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
   }
   {
@@ -718,8 +715,7 @@ TEST_F(Shell_cli_operation_test, connection_options) {
     EXPECT_NO_THROW(prepare());
     EXPECT_EQ("util", m_object_name);
     EXPECT_EQ("checkForServerUpgrade", m_method_name);
-    EXPECT_EQ(2, m_argument_list.size());
-    EXPECT_EQ(shcore::Value::new_map(), m_argument_list.at(1));
+    EXPECT_EQ(1, m_argument_list.size());
     ASSERT_TRUE(m_argument_list[0].type == Value_type::Map);
     EXPECT_EQ("localhost", m_argument_list.map_at(0)->get_string("host"));
     EXPECT_EQ("required", m_argument_list.map_at(0)->get_string("ssl-mode"));

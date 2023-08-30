@@ -9,6 +9,11 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
+function callMysqlsh(command_line_args) {
+  testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+}
+
+
 shell.options.useWizards = false;
 
 shell.connect(__sandbox_uri1);
@@ -230,12 +235,16 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("target_cluster", 'any_not
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("invalidated_cluster_policy", 'any_not_supported_value'); },
   "Invalid value for routing option 'invalidated_cluster_policy', accepted values: 'accept_ro', 'drop_all'");
 
-//@ clusterset.listRouters
+//@ clusterset.listRouters (CLI)
 clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
 clusterset.setRoutingOption(cr_router, "target_cluster", replicacluster.getName());
-clusterset.listRouters();
-clusterset.listRouters(cm_router);
-clusterset.listRouters(cr_router);
+callMysqlsh([`${__sandbox_uri1}`, "--", "clusterset", "list-routers"])
+
+//@ clusterset.listRouters (CLI-1)
+callMysqlsh([`${__sandbox_uri1}`, "--", "clusterset", "list-routers", `${cm_router}`])
+
+//@ clusterset.listRouters (CLI-2)
+callMysqlsh([`${__sandbox_uri1}`, "--", "clusterset", "list-routers", `${cr_router}`])
 
 //@<> clusterset.listRouters on invalid router
 EXPECT_THROWS(function(){ clusterset.listRouters("invalid_router"); }, "Router 'invalid_router' is not registered in the ClusterSet");

@@ -782,22 +782,18 @@ void Shell_cli_mapper::process_positional_args() {
 
         // If any other parameter is undefined CLI determines the value to use
         // as follows:
-        // - If required: Uses Null
-        // - If optional, Caches it's default value if any, or Null
-        // list
+        // - If required: throws error indicating it must be provided
+        // - If optional, Caches it's default value
 
         if (value.type == shcore::Undefined) {
           if (m_metadata->signature[index]->flag ==
               shcore::Param_flag::Optional) {
-            if (m_metadata->signature[index]->def_value.type !=
-                shcore::Value_type::Undefined) {
-              m_missing_optionals.push_back(
-                  m_metadata->signature[index]->def_value);
-            } else {
-              m_missing_optionals.push_back(shcore::Value::Null());
-            }
+            m_missing_optionals.push_back(
+                m_metadata->signature[index]->def_value);
           } else {
-            add_argument(shcore::Value::Null());
+            throw std::runtime_error(
+                shcore::str_format("Missing value for required '%s' parameter.",
+                                   m_metadata->signature[index]->name.c_str()));
           }
         } else {
           add_argument(value);
@@ -1052,8 +1048,6 @@ void Shell_cli_mapper::process_arguments(shcore::Argument_list *argument_list) {
 
   process_named_args();
   process_positional_args();
-  // Adds any remaining argument with a default value
-  add_default_arguments();
 }
 
 }  // namespace cli
