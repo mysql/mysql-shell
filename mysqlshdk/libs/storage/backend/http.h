@@ -42,7 +42,7 @@ struct Http_request : public rest::Request {
   Http_request(Masked_string path, bool use_retry, rest::Headers headers = {});
 
  private:
-  std::unique_ptr<rest::Retry_strategy> m_retry_strategy;
+  std::unique_ptr<rest::IRetry_strategy> m_retry_strategy;
 };
 
 class Http_object : public IFile {

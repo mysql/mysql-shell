@@ -139,10 +139,13 @@ enum class Error_code {
  */
 class Connection_error : public std::runtime_error {
  public:
+  Connection_error(std::string_view msg, Error_code curl_code)
+      : std::runtime_error(std::string(msg) + " (CURLcode = " +
+                           std::to_string(static_cast<int>(curl_code)) + ")"),
+        m_curl_code(curl_code) {}
+
   Connection_error(std::string_view msg, int curl_code)
-      : std::runtime_error(std::string{msg} +
-                           " (CURLcode = " + std::to_string(curl_code) + ")"),
-        m_curl_code(static_cast<Error_code>(curl_code)) {}
+      : Connection_error(msg, static_cast<Error_code>(curl_code)) {}
 
   Error_code code() const noexcept { return m_curl_code; }
 

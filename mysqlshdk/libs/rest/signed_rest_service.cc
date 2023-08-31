@@ -229,8 +229,7 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
   std::unique_ptr<rest::Retry_strategy> retry_strategy;
 
   if (!request->retry_strategy) {
-    retry_strategy = m_default_retry_strategy->clone();
-    request->retry_strategy = retry_strategy.get();
+    request->retry_strategy = m_default_retry_strategy.get();
   }
 
   request->m_service = this;

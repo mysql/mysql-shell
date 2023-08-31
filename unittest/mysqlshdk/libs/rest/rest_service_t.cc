@@ -34,15 +34,16 @@ extern char **environ;
 
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-#include "unittest/test_utils/shell_test_env.h"
 
 extern "C" const char *g_test_home;
 
@@ -709,247 +710,125 @@ TEST_F(Rest_service_test, timeout) {
   EXPECT_EQ(Response::Status_code::OK, m_service.head(&request).status);
 }
 
-TEST_F(Rest_service_test, retry_strategy_generic_errors) {
-  FAIL_IF_NO_SERVER
-
-  // Once the rest service is initialized, we close the server
-  Rest_service local_service(s_test_server->get_address(), false);
-
-  s_test_server->stop_server();
-
-  auto request = Request("/get");
-  request.type = Type::GET;
-
-  // With no retries a generic error would throw an exception
-  EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
-                            "Connection refused|couldn't connect to host|"
-                            "Couldn't connect to server");
-
-  // One second retry strategy
-  Retry_strategy retry_strategy(1);
-  request.retry_strategy = &retry_strategy;
-
-  // Some stop criteria must be defined otherwise we have infinite retries
-  EXPECT_THROW_MSG(
-      local_service.execute(&request), std::logic_error,
-      "A stop criteria must be defined to avoid infinite retries.");
-
-  retry_strategy.set_max_attempts(2);
-
-  // Even with retry logic the same error is generated at the end
-  EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
-                            "Connection refused|couldn't connect to host|"
-                            "Couldn't connect to server");
-  // retry strategy is not used in case of non-recoverable error
-  EXPECT_EQ(0, retry_strategy.get_retry_count());
-}
-
 TEST_F(Rest_service_test, retry_strategy_server_errors) {
   FAIL_IF_NO_SERVER
 
-  auto request_500 = Request("/server_error/500");
-  request_500.type = Type::GET;
-
-  // No retry test
-  auto code = m_service.execute(&request_500);
-  EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
-
-  // One second retry strategy
-  Retry_strategy retry_strategy(1);
-  retry_strategy.set_max_attempts(2);
-
-  request_500.retry_strategy = &retry_strategy;
-
-  // Server error codes are not configured to be retriable, so no retry is done
-  code = m_service.execute(&request_500);
-  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
-  EXPECT_EQ(0, retry_strategy.get_retry_count());
-
-  // Configure specific error to be retriable
-  retry_strategy.add_retriable_status(
-      Response::Status_code::INTERNAL_SERVER_ERROR);
-  code = m_service.execute(&request_500);
-  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
-  EXPECT_EQ(2, retry_strategy.get_retry_count());
-
-  auto request_503 = Request("/server_error/503");
-  request_503.type = Type::GET;
-  request_503.retry_strategy = &retry_strategy;
-
-  // Other server error would not be retriable
-  code = m_service.execute(&request_503);
-  EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
-  EXPECT_EQ(0, retry_strategy.get_retry_count());
-
-  // add handling of a status code with specific error message
-  retry_strategy.add_retriable_status(
-      Response::Status_code::INTERNAL_SERVER_ERROR, "Unexpected-error");
-
-  // response is not used (so there is no place to store body), but this error
-  // is retriable regardless of error message, because it is also registered
-  // using just the status code
-  code = m_service.execute(&request_500);
-  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
-  EXPECT_EQ(2, retry_strategy.get_retry_count());
+  mysqlshdk::utils::Duration d;
 
   {
-    // response is used, this error is retriable regardless of error message,
-    // even if it does not match
-    auto request = Request("/server_error/500/Some-error/Important-Code");
+    // no retry strategy
+    auto request = Request("/server_error/500/Unexpected-error");
     request.type = Type::GET;
-    request.retry_strategy = &retry_strategy;
+
+    d.start();
+    const auto code = m_service.execute(&request);
+    d.finish();
+
+    EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
+    EXPECT_LT(d.seconds_elapsed(), 1.0);
+  }
+
+  // One second retry strategy
+  const auto retry_strategy =
+      Retry_strategy_builder{1}.set_max_attempts(2).build();
+
+  // add handling of a status code with specific error message
+  retry_strategy->retry_on(Response::Status_code::INTERNAL_SERVER_ERROR,
+                           "Unexpected-error");
+
+  {
+    // response is not used, not possible to get the error message -> no retries
+    auto request = Request("/server_error/500/Unexpected-error");
+    request.type = Type::GET;
+    request.retry_strategy = retry_strategy.get();
+
+    d.start();
+    const auto code = m_service.execute(&request);
+    d.finish();
+
+    EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
+    EXPECT_LT(d.seconds_elapsed(), 1.0);
+  }
+
+  {
+    // response is used, error message does not match -> no retries
+    auto request =
+        Request("/server_error/500/Something-went-wrong/Important-Code");
+    request.type = Type::GET;
+    request.retry_strategy = retry_strategy.get();
+
     String_response response;
 
-    code = m_service.execute(&request, &response);
-    EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
-    EXPECT_EQ(2, retry_strategy.get_retry_count());
+    d.start();
+    const auto code = m_service.execute(&request, &response);
+    d.finish();
+
+    EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
+    EXPECT_LT(d.seconds_elapsed(), 1.0);
 
     const auto error = response.get_error();
     ASSERT_TRUE(error.has_value());
-    EXPECT_STREQ("Some-error", error->what());
+    EXPECT_STREQ("Something-went-wrong", error->what());
     EXPECT_EQ("Important-Code", error->code());
   }
 
   {
-    // response is used, error message matches
-    auto request = Request("/server_error/500/Unexpected-error");
+    // response is used, error code does not match -> no retries
+    auto request = Request("/server_error/502/Unexpected-error");
     request.type = Type::GET;
-    request.retry_strategy = &retry_strategy;
+    request.retry_strategy = retry_strategy.get();
+
     String_response response;
 
-    code = m_service.execute(&request, &response);
-    EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
-    EXPECT_EQ(2, retry_strategy.get_retry_count());
-  }
+    d.start();
+    const auto code = m_service.execute(&request, &response);
+    d.finish();
 
-  // add handling of a status code with specific another error message
-  retry_strategy.add_retriable_status(Response::Status_code::GATEWAY_TIMEOUT,
-                                      "Serious-error");
+    EXPECT_EQ(Response::Status_code::BAD_GATEWAY, code);
+    EXPECT_LT(d.seconds_elapsed(), 1.0);
 
-  {
-    // response is not used, not possible to get the error message -> no retires
-    auto request = Request("/server_error/504");
-    request.type = Type::GET;
-    request.retry_strategy = &retry_strategy;
-
-    code = m_service.execute(&request);
-    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
-    EXPECT_EQ(0, retry_strategy.get_retry_count());
+    const auto error = response.get_error();
+    ASSERT_TRUE(error.has_value());
+    EXPECT_STREQ("Unexpected-error", error->what());
   }
 
   {
-    // response is used, error message does not match -> no retires
-    auto request = Request("/server_error/504/Something-went-wrong");
+    // response is used, error message matches -> retries
+    auto request = Request("/server_error/500/Unexpected-error/Important-Code");
     request.type = Type::GET;
-    request.retry_strategy = &retry_strategy;
+    request.retry_strategy = retry_strategy.get();
+
     String_response response;
 
-    code = m_service.execute(&request, &response);
-    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
-    EXPECT_EQ(0, retry_strategy.get_retry_count());
-  }
+    d.start();
+    const auto code = m_service.execute(&request, &response);
+    d.finish();
 
-  {
-    // response is used, error message matches -> retires
-    auto request = Request("/server_error/504/Serious-error");
-    request.type = Type::GET;
-    request.retry_strategy = &retry_strategy;
-    String_response response;
+    EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
+    EXPECT_GE(d.seconds_elapsed(), 2.0);  // two retries, one second each
 
-    code = m_service.execute(&request, &response);
-    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
-    EXPECT_EQ(2, retry_strategy.get_retry_count());
+    const auto error = response.get_error();
+    ASSERT_TRUE(error.has_value());
+    EXPECT_STREQ("Unexpected-error", error->what());
+    EXPECT_EQ("Important-Code", error->code());
   }
 
   // All the server error are now retriable
-  retry_strategy.set_retry_on_server_errors(true);
-  code = m_service.execute(&request_503);
-  EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
-  EXPECT_EQ(2, retry_strategy.get_retry_count());
-}
-
-TEST_F(Rest_service_test, retry_strategy_max_ellapsed_time) {
-  FAIL_IF_NO_SERVER
-
-  // One second retry strategy
-  Retry_strategy retry_strategy(1);
-  retry_strategy.set_max_ellapsed_time(5);
-
-  // All the server error are now retriable
-  retry_strategy.set_retry_on_server_errors(true);
-
-  auto request = Request("/server_error/500");
-  request.type = Type::GET;
-  request.retry_strategy = &retry_strategy;
-
-  auto code = m_service.execute(&request);
-  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+  retry_strategy->retry_on_server_errors();
 
   {
-    auto ellapsed_time = static_cast<unsigned long long int>(
-        retry_strategy.get_ellapsed_time().count());
-    auto next_sleep_time = static_cast<unsigned long long int>(
-        retry_strategy.get_next_sleep_time().count());
-    auto max_ellapsed_time = static_cast<unsigned long long int>(
-        retry_strategy.get_max_ellapsed_time().count());
-    SCOPED_TRACE(shcore::str_format("Ellapsed Time: %llu", ellapsed_time));
-    SCOPED_TRACE(shcore::str_format("Next Sleep Time: %llu", next_sleep_time));
-    SCOPED_TRACE(
-        shcore::str_format("Max Ellapsed Time: %llu", max_ellapsed_time));
+    // error is not registered explicitly, but still retried
+    auto request = Request("/server_error/503");
+    request.type = Type::GET;
+    request.retry_strategy = retry_strategy.get();
 
-    EXPECT_TRUE(retry_strategy.get_ellapsed_time() +
-                    retry_strategy.get_next_sleep_time() >=
-                retry_strategy.get_max_ellapsed_time());
+    d.start();
+    const auto code = m_service.execute(&request);
+    d.finish();
+
+    EXPECT_EQ(Response::Status_code::SERVICE_UNAVAILABLE, code);
+    EXPECT_GE(d.seconds_elapsed(), 2.0);  // two retries, one second each
   }
-
-  // Considering each attempt consumes at least 1 (sleep time) the 5th
-  // attempt would not take place
-  EXPECT_EQ(4, retry_strategy.get_retry_count());
-}
-
-TEST_F(Rest_service_test, retry_strategy_throttling) {
-  FAIL_IF_NO_SERVER
-
-  // 1 second as base wait time
-  // 2 as exponential grow factor
-  // 4 seconds as max wait time between calls
-  Exponential_backoff_retry retry_strategy(1, 2, 4);
-
-  // Time Table
-  // MET: Max exponential time topped with the maximum allowed between retries
-  // GW: Guaranteed Wait
-  // GA: Guaranteed Accumulated
-  // JW: Wait caused by Jitter
-  // MAA: Max time in attempt
-  // MTA: Max Total Accumulated (GA + Max JW)
-  // -------------------------------------------|
-  // Attempt | MET  | GW | GA | JW  | MAA | MTA |
-  // --------|------|----|----|-----|-----|-----|
-  // 1       | 2/2  | 1  | 1  | 0-1 | 2   | 2   |
-  // 2       | 4/4  | 2  | 3  | 0-2 | 4   | 6   |
-  // 3       | 8/4  | 2  | 5  | 0-2 | 4   | 10  |<-- Worse Case Scenario in 12s
-  // 4       | 16/4 | 2  | 7  | 0-2 | 4   | 14  |    Picked max jitter/attempt
-  // 5       | 32/4 | 2  | 9  | 0-2 | 4   | 18  |
-  // 6       | 64/4 | 2  | 11 | 0-2 | 4   | 20  |<-- Best Case Scenario in 12s
-  // 6       | 64/4 | 2  | 13 | 0-2 | 4   | 24  |    Picked 0 jitter/attemp
-  // --------------------------------------------
-
-  retry_strategy.set_equal_jitter_for_throttling(true);
-  retry_strategy.set_max_ellapsed_time(12);
-
-  auto request = Request("/server_error/429");
-  request.type = Type::GET;
-  request.retry_strategy = &retry_strategy;
-
-  auto code = m_service.execute(&request);
-
-  EXPECT_EQ(code, Response::Status_code::TOO_MANY_REQUESTS);
-
-  // Worse case scenario determines minimum attempts in 12 secs
-  EXPECT_TRUE(retry_strategy.get_retry_count() >= 3);
-
-  // Best case scenario determines maximum attempts in 12 secs
-  EXPECT_TRUE(retry_strategy.get_retry_count() <= 6);
 }
 
 TEST_F(Rest_service_test, bug34765385) {
@@ -957,20 +836,24 @@ TEST_F(Rest_service_test, bug34765385) {
   FAIL_IF_NO_SERVER
 
   // retry twice, waiting one second each time
-  Retry_strategy retry_strategy(1);
-  retry_strategy.set_max_attempts(2);
+  const auto retry_strategy =
+      Retry_strategy_builder{1}.set_max_attempts(2).build();
   // CURLE_PARTIAL_FILE
-  retry_strategy.add_retriable_error_code(Error_code::PARTIAL_FILE);
+  retry_strategy->retry_on(Error_code::PARTIAL_FILE);
   // if curl is using OpenSSL3, CURLE_RECV_ERROR error is reported instead
-  retry_strategy.add_retriable_error_code(Error_code::RECV_ERROR);
+  retry_strategy->retry_on(Error_code::RECV_ERROR);
 
   auto request = Request("/partial_file/1000");
   request.type = Type::GET;
-  request.retry_strategy = &retry_strategy;
+  request.retry_strategy = retry_strategy.get();
 
+  mysqlshdk::utils::Duration d;
+  d.start();
   // this throws, but first retries two times
   EXPECT_THROW(m_service.execute(&request), Connection_error);
-  EXPECT_EQ(2, retry_strategy.get_retry_count());
+  d.finish();
+
+  EXPECT_GE(d.seconds_elapsed(), 2.0);  // two retries, one second each
 }
 
 }  // namespace test

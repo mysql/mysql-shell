@@ -39,7 +39,7 @@
 namespace mysqlshdk {
 namespace rest {
 
-class Retry_strategy;
+class IRetry_strategy;
 
 enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
 
@@ -98,7 +98,7 @@ struct Request {
   /**
    * Retry strategy to use.
    */
-  Retry_strategy *retry_strategy = nullptr;
+  IRetry_strategy *retry_strategy = nullptr;
 
   /**
    * Causes a PUT request to load the data from this file

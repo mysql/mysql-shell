@@ -588,7 +588,7 @@ Response::Status_code Rest_service::execute(Request *request,
   const auto retry_strategy = request->retry_strategy;
 
   if (retry_strategy) {
-    retry_strategy->init();
+    retry_strategy->reset();
   }
 
   const auto retry = [&response, &retry_strategy, this](const char *msg) {
@@ -610,7 +610,11 @@ Response::Status_code Rest_service::execute(Request *request,
         error = response->get_error();
       }
 
-      if (retry_strategy && retry_strategy->should_retry(code, error)) {
+      if (!error.has_value()) {
+        error = Response_error{code};
+      }
+
+      if (retry_strategy && retry_strategy->should_retry(*error)) {
         // A retriable error occurred
         retry(shcore::str_format("%d-%s", static_cast<int>(code),
                                  Response::status_code(code).c_str())
@@ -636,7 +640,7 @@ Response::Status_code Rest_service::execute(Request *request,
         throw;
       }
     } catch (const std::exception &error) {
-      if (retry_strategy && retry_strategy->should_retry()) {
+      if (retry_strategy && retry_strategy->should_retry(Unknown_error{})) {
         // A unexpected error occurred but the retry strategy indicates we
         // should retry
         retry(error.what());
