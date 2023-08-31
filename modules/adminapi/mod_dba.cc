@@ -1775,7 +1775,7 @@ shcore::Value Dba::check_instance_configuration(
   auto instance_def = instance_def_;
   const auto has_co = instance_def && instance_def->has_data();
 
-  if (has_co && !options->password.is_null()) {
+  if (has_co && options->password.has_value()) {
     auto connection_options = instance_def.operator->();
     connection_options->set_password(*options->password);
   }
@@ -2555,7 +2555,7 @@ void Dba::do_configure_instance(
   shcore::Value ret_val;
   auto instance_def = instance_def_;
 
-  if (instance_def.has_data() && !options.password.is_null()) {
+  if (instance_def.has_data() && options.password.has_value()) {
     instance_def.set_password(*options.password);
   }
 

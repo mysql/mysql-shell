@@ -173,7 +173,7 @@ void Add_instance::store_local_replication_account() const {
   log_debug("Adding joining member recovery account to metadata");
   m_cluster_impl->execute_in_members(
       [this](const std::shared_ptr<Instance> &instance,
-             const Instance_md_and_gr_member &info) {
+             const Cluster_impl::Instance_md_and_gr_member &info) {
         if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
           try {
             m_cluster_impl->get_metadata_storage()
@@ -190,9 +190,8 @@ void Add_instance::store_local_replication_account() const {
         }
         return true;
       },
-      [](const shcore::Error &, const Instance_md_and_gr_member &) {
-        return true;
-      });
+      [](const shcore::Error &,
+         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 
   m_cluster_impl->get_metadata_storage()->update_instance_repl_account(
       m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,

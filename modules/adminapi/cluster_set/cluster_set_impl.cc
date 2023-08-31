@@ -1103,14 +1103,16 @@ void Cluster_set_impl::remove_cluster(
 
     // Get the list of the reachable and unreachable members of the cluster
     target_cluster->execute_in_members(
-        [&cluster_reachable_members](const std::shared_ptr<Instance> &instance,
-                                     const Instance_md_and_gr_member &) {
+        [&cluster_reachable_members](
+            const std::shared_ptr<Instance> &instance,
+            const Cluster_impl::Instance_md_and_gr_member &) {
           Scoped_instance reachable_member(instance);
           cluster_reachable_members.emplace_back(reachable_member);
           return true;
         },
-        [&cluster_unreachable_members](const shcore::Error &connection_error,
-                                       const Instance_md_and_gr_member &info) {
+        [&cluster_unreachable_members](
+            const shcore::Error &connection_error,
+            const Cluster_impl::Instance_md_and_gr_member &info) {
           cluster_unreachable_members.emplace_back(info.first.endpoint,
                                                    connection_error.format());
           return true;
@@ -1120,7 +1122,8 @@ void Cluster_set_impl::remove_cluster(
     // cluster
     target_cluster->execute_in_read_replicas(
         [&cluster_reachable_read_replicas](
-            const std::shared_ptr<Instance> &instance) {
+            const std::shared_ptr<Instance> &instance,
+            const Instance_metadata &) {
           cluster_reachable_read_replicas.emplace_back(
               Scoped_instance(instance));
           return true;
@@ -3029,7 +3032,7 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
 
   primary_cluster->execute_in_members(
       [&purged_gtids](const std::shared_ptr<Instance> &instance,
-                      const Instance_md_and_gr_member &) {
+                      const Cluster_impl::Instance_md_and_gr_member &) {
         auto purged = mysqlshdk::mysql::Gtid_set::from_gtid_purged(*instance);
 
         log_debug("gtid_purged@%s=%s", instance->descr().c_str(),
@@ -3037,7 +3040,8 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
         purged_gtids.emplace_back(purged);
         return true;
       },
-      [](const shcore::Error &err, const Instance_md_and_gr_member &i) {
+      [](const shcore::Error &err,
+         const Cluster_impl::Instance_md_and_gr_member &i) {
         log_debug("could not connect to %s:%i to query gtid_purged: %s",
                   i.second.host.c_str(), i.second.port, err.format().c_str());
         return true;

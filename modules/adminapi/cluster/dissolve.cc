@@ -21,10 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/cluster/dissolve.h"
+
 #include <mysql/group_replication.h>
+
 #include <utility>
 
-#include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -45,14 +47,13 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-Dissolve::Dissolve(const bool interactive,
-                   mysqlshdk::utils::nullable<bool> force,
+Dissolve::Dissolve(const bool interactive, std::optional<bool> force,
                    Cluster_impl *cluster)
     : m_interactive(interactive), m_force(force), m_cluster(cluster) {
   assert(cluster);
 }
 
-Dissolve::~Dissolve() {}
+Dissolve::~Dissolve() = default;
 
 void Dissolve::prompt_to_confirm_dissolve() const {
   // Show cluster description if not empty, to help user verify if he is
@@ -107,7 +108,7 @@ std::shared_ptr<Instance> Dissolve::ensure_instance_reachable(
     // instance not reachable
     auto console = mysqlsh::current_console();
     // Handle use of 'force' option.
-    if (m_force.is_null() || *m_force == false) {
+    if (!m_force.has_value() || *m_force == false) {
       console->print_error(
           "Unable to connect to instance '" + instance_address +
           "'. Please verify connection credentials and make sure the "
@@ -116,7 +117,7 @@ std::shared_ptr<Instance> Dissolve::ensure_instance_reachable(
       // In interactive mode and 'force' option not used, ask user to
       // continue with the operation.
       bool continue_dissolve = false;
-      if (m_interactive && m_force.is_null()) {
+      if (m_interactive && !m_force.has_value()) {
         continue_dissolve = prompt_to_force_dissolve();
       }
 
@@ -160,7 +161,7 @@ void Dissolve::ensure_transactions_sync() {
               .as_uri(mysqlshdk::db::uri::formats::only_transport());
 
       // Handle use of 'force' option.
-      if (m_force.is_null() || *m_force == false) {
+      if (!m_force.has_value() || *m_force == false) {
         mysqlsh::current_console()->print_error(
             "The instance '" + instance_address +
             "' was unable to catch up with cluster transactions. There might "
@@ -175,7 +176,7 @@ void Dissolve::ensure_transactions_sync() {
         // In interactive mode and 'force' option not used, ask user to
         // continue with the operation.
         bool continue_dissolve = false;
-        if (m_interactive && m_force.is_null()) {
+        if (m_interactive && !m_force.has_value()) {
           continue_dissolve = prompt_to_force_dissolve();
         }
 
@@ -203,7 +204,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
                                             const std::string &instance_state) {
   auto console = mysqlsh::current_console();
 
-  if (m_force.is_null() || *m_force == false) {
+  if (!m_force.has_value() || *m_force == false) {
     // Issue an error if 'force' option is not used or false.
     std::string message =
         "The instance '" + instance_address +
@@ -211,7 +212,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
         "' state. Please bring the instance back ONLINE and try to "
         "dissolve the cluster again. If the instance is permanently not "
         "reachable, ";
-    if (m_interactive && m_force.is_null()) {
+    if (m_interactive && !m_force.has_value()) {
       message +=
           "then you can choose to proceed with the operation and only "
           "remove the instance from the Cluster Metadata.";
@@ -227,7 +228,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
     // In interactive mode and 'force' option not used, ask user to
     // continue with the operation.
     bool continue_dissolve = false;
-    if (m_interactive && m_force.is_null()) {
+    if (m_interactive && !m_force.has_value()) {
       continue_dissolve = prompt_to_force_dissolve();
     }
 
@@ -334,7 +335,7 @@ void Dissolve::prepare() {
                                          to_string(status));
           }
         }
-      } catch (const mysqlshdk::db::Error &e) {
+      } catch (const mysqlshdk::db::Error &) {
         log_info("Unable to connect to '%s'", instance_def.endpoint.c_str());
 
         // Handle unreachable read-replica to determine if can be skipped
@@ -353,7 +354,7 @@ void Dissolve::prepare() {
   ensure_transactions_sync();
 
   // If user decided to skip all instance with errors then assume force=true.
-  if (m_force.is_null() &&
+  if (!m_force.has_value() &&
       (!m_skipped_instances.empty() || !m_sync_error_instances.empty())) {
     m_force = true;
   }
@@ -420,7 +421,7 @@ shcore::Value Dissolve::execute() {
           m_sync_error_instances.end());
     } catch (const std::exception &err) {
       // Skip error if force=true otherwise issue an error.
-      if (m_force.is_null() || *m_force == false) {
+      if (!m_force.has_value() || *m_force == false) {
         console->print_error(
             "The instance '" + instance_address +
             "' was unable to catch up with cluster transactions. There might "
@@ -457,7 +458,7 @@ shcore::Value Dissolve::execute() {
           mysqlsh::dba::leave_cluster(*instance_ptr, m_supports_member_actions);
         } catch (const std::exception &err) {
           // Skip error if force=true otherwise issue an error.
-          if (m_force.is_null() || *m_force == false) {
+          if (!m_force.has_value() || *m_force == false) {
             console->print_error("Unable to remove instance '" +
                                  instance_address + "' from the cluster.");
             throw shcore::Exception::runtime_error(err.what());

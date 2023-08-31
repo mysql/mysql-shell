@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,19 +83,6 @@ class Setup_account : public Command_interface {
    */
   shcore::Value execute() override;
 
-  /**
-   * Rollback the command.
-   *
-   * NOTE: Not currently used (does nothing).
-   */
-  void rollback() override;
-
-  /**
-   * Finalize the command execution.
-   *
-   */
-  void finish() override;
-
  private:
   const std::string m_name;
   const std::string m_host;
@@ -103,7 +90,7 @@ class Setup_account : public Command_interface {
   const Cluster_type m_purpose;
   const std::vector<std::string> m_privilege_list;
   const mysqlshdk::mysql::IInstance &m_primary_server;
-  bool m_user_exists;
+  bool m_user_exists{false};
 
   /**
    * Helper method to ask the user for the account password if it was not
@@ -117,6 +104,7 @@ class Setup_account : public Command_interface {
    */
   void create_account();
 };
+
 }  // namespace dba
 }  // namespace mysqlsh
 

@@ -76,17 +76,15 @@ inline constexpr std::string_view k_instance_attribute_server_id{"server_id"};
 inline constexpr std::string_view k_instance_attribute_cert_subject{
     "opt_certSubject"};
 
-constexpr const char *k_cluster_read_replica_user_name =
+inline constexpr const char *k_cluster_read_replica_user_name =
     "mysql_innodb_replica_";
 
-constexpr const char *k_instance_attribute_read_replica_replication_sources =
-    "replicationSources";
+inline constexpr const char
+    *k_instance_attribute_read_replica_replication_sources =
+        "replicationSources";
 
 class MetadataStorage;
 struct Cluster_metadata;
-
-using Instance_md_and_gr_member =
-    std::pair<Instance_metadata, mysqlshdk::gr::Member>;
 
 class Cluster_set_impl;
 class ClusterSet;
@@ -102,6 +100,9 @@ class Cluster_impl final : public Base_cluster_impl,
                            public shcore::NotificationObserver {
  public:
   friend class Cluster;
+
+  using Instance_md_and_gr_member =
+      std::pair<Instance_metadata, mysqlshdk::gr::Member>;
 
   Cluster_impl(const std::shared_ptr<Cluster_set_impl> &cluster_set,
                const Cluster_metadata &metadata,
@@ -140,7 +141,7 @@ class Cluster_impl final : public Base_cluster_impl,
                           const shcore::Value &value) override;
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
-  void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
+  void dissolve(std::optional<bool> force, const bool interactive);
   void rescan(const cluster::Rescan_options &options);
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void switch_to_multi_primary_mode();
@@ -148,7 +149,7 @@ class Cluster_impl final : public Base_cluster_impl,
       const Connection_options &instance_def,
       const cluster::Set_primary_instance_options &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
-  void reset_recovery_password(const mysqlshdk::null_bool &force,
+  void reset_recovery_password(std::optional<bool> force,
                                const bool interactive);
   void fence_all_traffic();
   void fence_writes();
@@ -337,7 +338,8 @@ class Cluster_impl final : public Base_cluster_impl,
       std::vector<std::string> *out_instances_addresses = nullptr) const;
 
   /**
-   * Determine the replication(recovery) user being used by the target instance.
+   * Determine the replication (recovery) user being used by the target
+   * instance.
    *
    * A user can have several accounts (for different hostnames).
    * This method will try to obtain the recovery user from the metadata and if
@@ -354,7 +356,8 @@ class Cluster_impl final : public Base_cluster_impl,
    * @throws shcore::Exception::runtime_error if user not created by AdminAPI
    */
   std::tuple<std::string, std::vector<std::string>, bool> get_replication_user(
-      const mysqlshdk::mysql::IInstance &target_instance) const;
+      const mysqlshdk::mysql::IInstance &target_instance,
+      bool is_read_replica = false) const;
 
   /**
    * Get mismatched recovery accounts.
@@ -444,8 +447,8 @@ class Cluster_impl final : public Base_cluster_impl,
           &on_connect_error = {}) const;
 
   void execute_in_read_replicas(
-      const std::function<bool(const std::shared_ptr<Instance> &instance)>
-          &on_connect,
+      const std::function<bool(const std::shared_ptr<Instance> &instance,
+                               const Instance_metadata &md)> &on_connect,
       const std::function<bool(const shcore::Error &error,
                                const Instance_metadata &info)>
           &on_connect_error = {}) const;
@@ -546,6 +549,14 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   std::vector<Instance_md_and_gr_member> get_instances_with_state(
       bool allow_offline = false) const;
+
+  /**
+   * Iterate over all the read replicas in the cluster
+   */
+  void iterate_read_replicas(
+      const std::function<bool(const Instance_metadata &,
+                               const mysqlshdk::mysql::Replication_channel &)>
+          &cb) const;
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       const std::vector<std::string> &ignored_instances = {},

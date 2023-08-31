@@ -95,7 +95,7 @@ void Setup_account::prepare() {
   }
 
   // Prompt for the password in case it is necessary
-  if (!m_user_exists && m_options.password.is_null()) {
+  if (!m_user_exists && !m_options.password.has_value()) {
     if (m_options.interactive()) {
       prompt_for_password();
     } else {
@@ -149,13 +149,6 @@ shcore::Value Setup_account::execute() {
   return shcore::Value();
 }
 
-void Setup_account::rollback() {
-  // Do nothing.
-}
-
-void Setup_account::finish() {
-  // Do nothing
-}
 void Setup_account::create_account() {
   // NOTE: Use 'CREATE IF NOT EXISTS' because DDL is replicated as SBR. This
   // makes it work even if the account doesn't exists on some cluster
@@ -172,7 +165,7 @@ void Setup_account::create_account() {
   // account
   if (m_user_exists) {
     std::string what;
-    if (!m_options.password.is_null()) {
+    if (m_options.password.has_value()) {
       what = "user password";
     }
     if (m_options.require_cert_issuer.has_value() ||
@@ -187,9 +180,9 @@ void Setup_account::create_account() {
   }
   if (!m_options.dry_run) {
     sql += shcore::sqlformat(" ?@?", m_name, m_host);
-    if (!m_options.password.is_null()) {
+    if (m_options.password.has_value()) {
       sql += shcore::sqlformat(" IDENTIFIED BY /*((*/ ? /*))*/",
-                               m_options.password.get_safe());
+                               m_options.password.value());
     }
     if (m_options.require_cert_issuer.has_value() ||
         m_options.require_cert_subject.has_value()) {

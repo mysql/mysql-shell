@@ -176,7 +176,7 @@ void Create_cluster::validate_create_cluster_options() {
   // Set multi-primary to false by default.
   if (!m_options.multi_primary) m_options.multi_primary = false;
 
-  if (*m_options.multi_primary && !m_options.force.get_safe()) {
+  if (*m_options.multi_primary && !m_options.force.value_or(false)) {
     if (m_options.interactive()) {
       console->print_para(
           "The MySQL InnoDB Cluster is going to be setup in advanced "
@@ -286,7 +286,7 @@ void Create_cluster::prepare() {
 
   // Verify if the instance is running asynchronous
   // replication. Skip if 'force' is enabled.
-  if (!m_options.force.get_safe()) {
+  if (!m_options.force.value_or(false)) {
     validate_async_channels(*m_target_instance, {}, checks::Check_type::CREATE);
   } else {
     log_debug(
@@ -917,6 +917,7 @@ shcore::Value Create_cluster::execute() {
         case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
         case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
           requires_certificates = true;
+          break;
         default:
           break;
       }

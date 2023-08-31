@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,7 @@
 #ifndef MODULES_COMMAND_INTERFACE_H_
 #define MODULES_COMMAND_INTERFACE_H_
 
-#include <string>
-#include "scripting/lang_base.h"
+#include "scripting/types.h"
 
 namespace mysqlsh {
 
@@ -33,7 +32,7 @@ namespace mysqlsh {
 // Each API Class must implement this interface
 class Command_interface {
  public:
-  virtual ~Command_interface() {}
+  virtual ~Command_interface() = default;
 
   // Prepare should validate the parameters and other validations.
   // Later, we'd make it acquire locks and save state for the undo (rollback).

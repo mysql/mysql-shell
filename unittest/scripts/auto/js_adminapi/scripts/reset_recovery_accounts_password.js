@@ -9,9 +9,23 @@ function get_rpl_user_auth_string(server_id) {
     return row[0];
 }
 
+function get_read_replica_user_auth_string(server_id) {
+    var result = session.runSql(
+        "SELECT authentication_string FROM mysql.user " +
+        "WHERE USER=\"mysql_innodb_replica_" + server_id.toString()+"\"");
+    var row = result.fetchOne();
+    if (row == null) {
+        testutil.fail("Query to get authentication_string returned no results");
+    }
+    return row[0];
+}
+
 var server_id1 = 11111;
 var server_id2 = 22222;
 var server_id3 = 33333;
+
+//@<> INCLUDE read_replicas_utils.inc
+
 //@<> WL#12776 Deploy instances.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id: server_id1});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id: server_id2});
@@ -168,6 +182,95 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 restart_gr_plugin(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
+//@<> The recovery credentials must also work with read-replicas {VER(>=8.0.23)}
+
+// check if password for the replica is changed
+WIPE_SHELL_LOG();
+
+c.removeInstance(__sandbox_uri3);
+c.addReplicaInstance(__sandbox_uri3);
+
+var old_auth_string_3 = get_read_replica_user_auth_string(server_id3);
+
+EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword(); });
+EXPECT_SHELL_LOG_CONTAINS(`Changing '${hostname}:${__mysql_sandbox_port3}''s recovery credentials`);
+
+testutil.waitReadReplicaState(__mysql_sandbox_port3, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+CHECK_READ_REPLICA(__sandbox_uri3, c, "primary", __endpoint1);
+EXPECT_NE(old_auth_string_3, get_read_replica_user_auth_string(server_id3));
+
+// password should change even of the replica is OFFLINE
+
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP REPLICA FOR CHANNEL 'read_replica_replication'");
+testutil.waitReadReplicaState(__mysql_sandbox_port3, "OFFLINE");
+
+old_auth_string_3 = get_read_replica_user_auth_string(server_id3);
+EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword(); });
+
+session3.runSql("START REPLICA FOR CHANNEL 'read_replica_replication'");
+testutil.waitReadReplicaState(__mysql_sandbox_port3, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+CHECK_READ_REPLICA(__sandbox_uri3, c, "primary", __endpoint1);
+EXPECT_NE(old_auth_string_3, get_read_replica_user_auth_string(server_id3));
+
+session3.close();
+
+// an error is thrown if instance not online and the force option is not used and we are not in interactive mode
+testutil.killSandbox(__mysql_sandbox_port3);
+
+WIPE_OUTPUT();
+EXPECT_THROWS(function() {
+    c.resetRecoveryAccountsPassword({interactive:false});
+}, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
+
+EXPECT_OUTPUT_CONTAINS(`Unable to connect to instance '${hostname}:${__mysql_sandbox_port3}'. Please, verify connection credentials and make sure the instance is available.`);
+
+// an error must be thrown if the force option is not used and we we reply no to the interactive prompt
+testutil.expectPrompt("Do you want to continue anyway (the recovery password for the instance will not be reset)? [y/N]: ", "n");
+EXPECT_THROWS(function() {
+    c.resetRecoveryAccountsPassword({interactive:true});
+}, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
+
+// an error must be thrown if the force option is false (no prompts are shown in interactive mode because force option was already set).
+EXPECT_THROWS(function() {
+    c.resetRecoveryAccountsPassword({interactive:true, force:false});
+}, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
+
+// won't throw, but password won't be changed because instance isn't reachable
+WIPE_STDOUT();
+WIPE_SHELL_LOG();
+
+EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword({interactive:true, force:true}); });
+
+EXPECT_SHELL_LOG_NOT_CONTAINS(`Changing '${hostname}:${__mysql_sandbox_port3}''s recovery credentials`);
+
+EXPECT_OUTPUT_CONTAINS(`The recovery password of instance '${hostname}:${__mysql_sandbox_port3}' will not be reset because the instance is not reachable.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Not all recovery or replication account passwords were successfully reset, the following instance was skipped: '${hostname}:${__mysql_sandbox_port3}'. Bring this instance back online and run the <Cluster>.resetRecoveryAccountsPassword() operation again if you want to reset its recovery account password.`);
+
+// bring instance ONLINE and try again (must work)
+testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitReadReplicaState(__mysql_sandbox_port3, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+shell.connect(__sandbox_uri1);
+
+old_auth_string_3 = get_read_replica_user_auth_string(server_id3);
+
+WIPE_STDOUT();
+EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword(); });
+EXPECT_OUTPUT_CONTAINS("The recovery and replication account passwords of all the cluster instances' were successfully reset.");
+
+EXPECT_NE(old_auth_string_3, get_read_replica_user_auth_string(server_id3));
+CHECK_READ_REPLICA(__sandbox_uri3, c, "primary", __endpoint1);
+
+// cleanup
+c.removeInstance(__sandbox_uri3);
+c.addInstance(__sandbox_uri3);
+
 //@<> Make the recovery user of the MD schema invalid one, exception should be thrown BUG#32157182
 shell.connect(__sandbox_uri2);
 var uuid_2 = get_sysvar(session, "SERVER_UUID", "GLOBAL");
@@ -203,7 +306,6 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 WIPE_STDOUT()
 EXPECT_THROWS_TYPE(function() { c.resetRecoveryAccountsPassword(); }, "Cluster.resetRecoveryAccountsPassword: Recovery user 'nonstandart' not created by InnoDB Cluster", "RuntimeError");
 EXPECT_STDOUT_CONTAINS("ERROR: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used. Aborting password reset operation.")
-
 
 //@<> WL#12776: Cleanup
 c.disconnect();

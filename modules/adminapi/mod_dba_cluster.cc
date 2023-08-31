@@ -322,7 +322,7 @@ void Cluster::add_instance(
 
   auto instance_def = instance_def_;
 
-  if (!options->password.is_null()) {
+  if (options->password.has_value()) {
     instance_def.set_password(*(options->password));
   }
 
@@ -438,7 +438,7 @@ void Cluster::rejoin_instance(
 
   auto instance_def = instance_def_;
 
-  if (!options->password.is_null()) {
+  if (options->password.has_value()) {
     instance_def.set_password(*(options->password));
   }
 
@@ -512,7 +512,7 @@ void Cluster::remove_instance(
 
   auto instance_def = instance_def_;
 
-  if (!options->password.is_null()) {
+  if (options->password.has_value()) {
     instance_def.set_password(*(options->password));
   }
 
@@ -722,15 +722,16 @@ void Cluster::dissolve(
 
 REGISTER_HELP_FUNCTION(resetRecoveryAccountsPassword, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_RESETRECOVERYACCOUNTSPASSWORD, R"*(
-Reset the password of the recovery accounts of the cluster.
+Resets the password of the recovery and replication accounts of the Cluster.
 
 @param options Dictionary with options for the operation.
 
 @returns Nothing.
 
 This function resets the passwords for all internal recovery user accounts
-used by the Cluster.
-It can be used to reset the passwords of the recovery user
+used by the Cluster as well as for all replication accounts used by any
+Read Replica instance.
+It can be used to reset the passwords of the recovery or replication user
 accounts when needed for any security reasons. For example:
 periodically to follow some custom password lifetime policy, or after
 some security breach event.

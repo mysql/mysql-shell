@@ -235,7 +235,7 @@ void Rescan::check_mismatched_hostnames_addresses(
     shcore::Array_t instances) const {
   m_cluster->execute_in_members(
       [&instances](const std::shared_ptr<Instance> &instance,
-                   const Instance_md_and_gr_member &info) {
+                   const Cluster_impl::Instance_md_and_gr_member &info) {
         // skip members that are already in the update list
         for (const auto &i : *instances) {
           if (i.as_map()->get_string("member_id") == instance->get_uuid())
@@ -323,9 +323,8 @@ void Rescan::check_mismatched_hostnames_addresses(
 
         return true;
       },
-      [](const shcore::Error &, const Instance_md_and_gr_member &) {
-        return true;
-      });
+      [](const shcore::Error &,
+         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 }
 
 shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
@@ -882,7 +881,7 @@ void Rescan::ensure_transaction_size_limit_consistency() {
   m_cluster->execute_in_members(
       [cluster_transaction_size_limit](
           const std::shared_ptr<Instance> &instance,
-          const Instance_md_and_gr_member &info) {
+          const Cluster_impl::Instance_md_and_gr_member &info) {
         if (info.second.state != mysqlshdk::gr::Member_state::RECOVERING &&
             info.second.state != mysqlshdk::gr::Member_state::UNREACHABLE) {
           // Get the instance's value for transaction_size_limit
@@ -916,15 +915,14 @@ void Rescan::ensure_transaction_size_limit_consistency() {
         }
         return true;
       },
-      [](const shcore::Error &, const Instance_md_and_gr_member &) {
-        return true;
-      });
+      [](const shcore::Error &,
+         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 }
 
 void Rescan::ensure_recovery_accounts_match() {
   m_cluster->execute_in_members(
       [this](const std::shared_ptr<Instance> &instance,
-             const Instance_md_and_gr_member &info) {
+             const Cluster_impl::Instance_md_and_gr_member &info) {
         if (info.second.state != mysqlshdk::gr::Member_state::RECOVERING &&
             info.second.state != mysqlshdk::gr::Member_state::UNREACHABLE) {
           // Get the instance's recovery account
@@ -982,9 +980,8 @@ void Rescan::ensure_recovery_accounts_match() {
         }
         return true;
       },
-      [](const shcore::Error &, const Instance_md_and_gr_member &) {
-        return true;
-      });
+      [](const shcore::Error &,
+         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 }
 
 shcore::Value Rescan::execute() {

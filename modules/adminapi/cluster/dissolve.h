@@ -31,7 +31,6 @@
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -39,7 +38,7 @@ namespace cluster {
 
 class Dissolve : public Command_interface {
  public:
-  Dissolve(const bool interactive, mysqlshdk::utils::nullable<bool> force,
+  Dissolve(const bool interactive, std::optional<bool> force,
            Cluster_impl *cluster);
 
   ~Dissolve() override;
@@ -96,7 +95,7 @@ class Dissolve : public Command_interface {
 
  private:
   const bool m_interactive;
-  mysqlshdk::utils::nullable<bool> m_force;
+  std::optional<bool> m_force;
   Cluster_impl *m_cluster = nullptr;
   std::vector<std::pair<std::shared_ptr<mysqlsh::dba::Instance>, Instance_type>>
       m_available_instances;

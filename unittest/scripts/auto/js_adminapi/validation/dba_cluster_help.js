@@ -80,7 +80,8 @@ FUNCTIONS
             Rescans the cluster.
 
       resetRecoveryAccountsPassword(options)
-            Reset the password of the recovery accounts of the cluster.
+            Resets the password of the recovery and replication accounts of the
+            Cluster.
 
       routingOptions([router])
             Lists the Cluster Routers configuration options.
@@ -1366,8 +1367,8 @@ DESCRIPTION
 
 //@<OUT> resetRecoveryAccountsPassword
 NAME
-      resetRecoveryAccountsPassword - Reset the password of the recovery
-                                      accounts of the cluster.
+      resetRecoveryAccountsPassword - Resets the password of the recovery and
+                                      replication accounts of the Cluster.
 
 SYNTAX
       <Cluster>.resetRecoveryAccountsPassword(options)
@@ -1380,10 +1381,11 @@ RETURNS
 
 DESCRIPTION
       This function resets the passwords for all internal recovery user
-      accounts used by the Cluster. It can be used to reset the passwords of
-      the recovery user accounts when needed for any security reasons. For
-      example: periodically to follow some custom password lifetime policy, or
-      after some security breach event.
+      accounts used by the Cluster as well as for all replication accounts used
+      by any Read Replica instance. It can be used to reset the passwords of
+      the recovery or replication user accounts when needed for any security
+      reasons. For example: periodically to follow some custom password
+      lifetime policy, or after some security breach event.
 
       The options dictionary may contain the following attributes:
 

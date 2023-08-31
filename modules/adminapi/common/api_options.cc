@@ -230,7 +230,7 @@ void Password_interactive_options::set_password(const std::string &option,
                                                 const std::string &value) {
   if (option == mysqlshdk::db::kDbPassword) {
     handle_deprecated_option(mysqlshdk::db::kDbPassword,
-                             mysqlshdk::db::kPassword, !password.is_null(),
+                             mysqlshdk::db::kPassword, password.has_value(),
                              true);
   }
 

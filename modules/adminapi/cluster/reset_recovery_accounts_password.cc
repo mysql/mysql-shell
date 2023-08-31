@@ -34,7 +34,7 @@ namespace dba {
 namespace cluster {
 
 Reset_recovery_accounts_password::Reset_recovery_accounts_password(
-    const bool interactive, mysqlshdk::utils::nullable<bool> force,
+    const bool interactive, std::optional<bool> force,
     const Cluster_impl &cluster)
     : m_interactive(interactive), m_force(force), m_cluster(cluster) {}
 
@@ -65,47 +65,61 @@ void Reset_recovery_accounts_password::prepare() {
   }
 
   // Get all cluster instances from the Metadata and their respective GR state.
-  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-      instance_defs = m_cluster.get_instances_with_state();
+  {
+    std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
+        instance_defs = m_cluster.get_instances_with_state();
 
-  for (const auto &instance_def : instance_defs) {
-    mysqlshdk::gr::Member_state state = instance_def.second.state;
-    if (state == mysqlshdk::gr::Member_state::ONLINE) {
-      // Verify if ONLINE instances are reachable.
-      ensure_instance_reachable(instance_def.first.endpoint);
-    } else {
-      // Handle not ONLINE instances,
-      handle_not_online_instances(instance_def.first.endpoint,
-                                  mysqlshdk::gr::to_string(state));
-    }
+    for (const auto &instance_def : instance_defs) {
+      mysqlshdk::gr::Member_state state = instance_def.second.state;
+      if (state == mysqlshdk::gr::Member_state::ONLINE) {
+        // Verify if ONLINE instances are reachable.
+        ensure_instance_reachable(instance_def.first.endpoint, false);
+      } else {
+        // Handle not ONLINE instances,
+        handle_not_online_instances(instance_def.first.endpoint,
+                                    mysqlshdk::gr::to_string(state));
+      }
 
-    // If user decided to skip all instance with errors then assume force=true.
-    if (m_force.is_null() && (!m_skipped_instances.empty())) {
-      m_force = true;
+      // If user decided to skip all instance with errors then assume
+      // force=true.
+      if (!m_force.has_value() && (!m_skipped_instances.empty())) {
+        m_force = true;
+      }
     }
   }
+
+  // retrieve all read replicas
+  m_cluster.iterate_read_replicas(
+      [this](const Instance_metadata &md,
+             const mysqlshdk::mysql::Replication_channel &) {
+        // in case of read replicas the state of the channel doesn't really
+        // matter, we just need the instances to be reachable
+        ensure_instance_reachable(md.endpoint, true);
+        return true;
+      });
 }
 
 void Reset_recovery_accounts_password::ensure_instance_reachable(
-    const std::string &instance_address) {
+    const std::string &instance_address, bool is_read_replica) {
   try {
-    m_online_instances.emplace_back(
-        m_cluster.get_session_to_cluster_instance(instance_address));
+    m_online_instances.push_back(Instance_online{
+        m_cluster.get_session_to_cluster_instance(instance_address),
+        is_read_replica});
   } catch (const std::exception &err) {
     // instance not reachable
     auto console = mysqlsh::current_console();
 
     // Handle use of 'force' option.
-    if (m_force.is_null() || *m_force == false) {
-      console->print_error(
-          "Unable to connect to instance '" + instance_address +
-          "'. Please, verify connection credentials and make sure the "
-          "instance is available.");
+    if (!m_force.has_value() || !m_force.value()) {
+      console->print_error(shcore::str_format(
+          "Unable to connect to instance '%s'. Please, verify connection "
+          "credentials and make sure the instance is available.",
+          instance_address.c_str()));
 
       // In interactive mode and 'force' option not used, ask user to
       // continue with the operation.
       bool continueReset = false;
-      if (m_interactive && m_force.is_null()) {
+      if (m_interactive && !m_force.has_value()) {
         continueReset = prompt_to_force_reset();
       }
 
@@ -119,8 +133,9 @@ void Reset_recovery_accounts_password::ensure_instance_reachable(
     } else {
       m_skipped_instances.push_back(instance_address);
       console->print_note(
-          "The recovery password of instance '" + instance_address +
-          "' will not be reset because the instance is not reachable.");
+          shcore::str_format("The recovery password of instance '%s' will not "
+                             "be reset because the instance is not reachable.",
+                             instance_address.c_str()));
       console->print_info();
     }
   }
@@ -130,14 +145,14 @@ void Reset_recovery_accounts_password::handle_not_online_instances(
     const std::string &instance_address, const std::string &instance_state) {
   auto console = mysqlsh::current_console();
 
-  if (m_force.is_null() || *m_force == false) {
+  if (!m_force.has_value() || !m_force.value()) {
     // Issue an error if 'force' option is not used or false.
-    std::string message =
-        "The recovery password of instance '" + instance_address +
-        "' cannot be reset because it is on a '" + instance_state +
-        "' state. Please bring the instance back ONLINE and try the "
-        "<Cluster>.<<<resetRecoveryAccountsPassword>>>() operation again.";
-    if (m_interactive && m_force.is_null()) {
+    auto message = shcore::str_format(
+        "The recovery password of instance '%s' cannot be reset because it is "
+        "on a '%s' state. Please bring the instance back ONLINE and try the "
+        "<Cluster>.<<<resetRecoveryAccountsPassword>>>() operation again.",
+        instance_address.c_str(), instance_state.c_str());
+    if (m_interactive && !m_force.has_value()) {
       message +=
           " You can choose to proceed with the operation and skip resetting "
           "the instances' recovery account password.";
@@ -154,7 +169,7 @@ void Reset_recovery_accounts_password::handle_not_online_instances(
     // In interactive mode and 'force' option not used, ask user to
     // continue with the operation.
     bool continue_reset = false;
-    if (m_interactive && m_force.is_null()) {
+    if (m_interactive && !m_force.has_value()) {
       continue_reset = prompt_to_force_reset();
     }
 
@@ -163,17 +178,19 @@ void Reset_recovery_accounts_password::handle_not_online_instances(
     if (continue_reset) {
       m_skipped_instances.push_back(instance_address);
     } else {
-      std::string err_msg = "The instance '" + instance_address + "' is '" +
-                            instance_state + "' (it must be ONLINE).";
+      auto err_msg =
+          shcore::str_format("The instance '%s' is '%s' (it must be ONLINE).",
+                             instance_address.c_str(), instance_state.c_str());
       throw shcore::Exception::runtime_error(err_msg);
     }
   } else {
     m_skipped_instances.push_back(instance_address);
-    console->print_note(
-        "Skipping reset of the recovery account password for instance '" +
-        instance_address + "' because it is '" + instance_state +
-        "'. To reset the recovery password, bring the instance back ONLINE and "
-        "run the <Cluster>.<<<resetRecoveryAccountsPassword>>>() again.");
+    console->print_note(shcore::str_format(
+        "Skipping reset of the recovery account password for instance '%s' "
+        "because it is '%s'. To reset the recovery password, bring the "
+        "instance back ONLINE and run the "
+        "<Cluster>.<<<resetRecoveryAccountsPassword>>>() again.",
+        instance_address.c_str(), instance_state.c_str()));
     console->print_info();
   }
 }
@@ -187,25 +204,25 @@ shcore::Value Reset_recovery_accounts_password::execute() {
   auto console = mysqlsh::current_console();
   std::string primary_rpr = m_cluster.get_cluster_server()->descr();
 
-  for (const auto &instance : m_online_instances) {
+  for (const auto &instance_online : m_online_instances) {
     std::string user;
     std::vector<std::string> hosts;
 
-    std::string instance_repr = instance->descr();
+    std::string instance_repr = instance_online.instance->descr();
     // get recovery user for the instance
     log_debug("Getting recovery user for instance '%s'", instance_repr.c_str());
     try {
-      std::tie(user, hosts, std::ignore) =
-          m_cluster.get_replication_user(*instance);
+      std::tie(user, hosts, std::ignore) = m_cluster.get_replication_user(
+          *instance_online.instance, instance_online.is_read_replica);
     } catch (const shcore::Exception &err) {
       if (!err.is_metadata()) {
-        console->print_error(
-            "The recovery user name for instance '" + instance->descr() +
-            "' does not match the expected format for users "
-            "created automatically by InnoDB Cluster. Please "
-            "remove and add the instance back to the Cluster to ensure a "
-            "supported recovery account is used. Aborting password reset "
-            "operation.");
+        console->print_error(shcore::str_format(
+            "The recovery user name for instance '%s' does not match the "
+            "expected format for users created automatically by InnoDB "
+            "Cluster. Please remove and add the instance back to the Cluster "
+            "to ensure a supported recovery account is used. Aborting password "
+            "reset operation.",
+            instance_online.instance->descr().c_str()));
       }
       throw err;
     }
@@ -214,20 +231,39 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     // Change the password on the primary for the user to the newly generated
     // password
     for (const auto &host : hosts) {
-      log_debug("Changing the password for recovery user '%s'@'%s' on '%s'",
-                user.c_str(), host.c_str(), primary_rpr.c_str());
+      log_info("Changing the password for recovery user '%s'@'%s' on '%s'",
+               user.c_str(), host.c_str(), primary_rpr.c_str());
       m_cluster.get_metadata_storage()->get_md_server()->set_user_password(
           user, host, password);
     }
 
     // do a change master on the instance to user the new replication account
-    log_debug("Changing '%s'\'s recovery credentials", instance_repr.c_str());
+    log_info("Changing '%s'\'s recovery credentials", instance_repr.c_str());
 
     mysqlshdk::mysql::Replication_credentials_options options;
     options.password = std::move(password);
 
-    mysqlshdk::mysql::change_replication_credentials(
-        *instance, mysqlshdk::gr::k_gr_recovery_channel, user, options);
+    if (!instance_online.is_read_replica) {
+      mysqlshdk::mysql::change_replication_credentials(
+          *instance_online.instance, mysqlshdk::gr::k_gr_recovery_channel, user,
+          options);
+    } else {
+      mysqlshdk::mysql::stop_replication_receiver(
+          *instance_online.instance,
+          mysqlsh::dba::k_read_replica_async_channel_name);
+
+      // we need to re-start the channel regardless of what happens (i.e.: an
+      // exception)
+      shcore::Scoped_callback start_channel([&instance_online]() {
+        mysqlshdk::mysql::start_replication_receiver(
+            *instance_online.instance,
+            mysqlsh::dba::k_read_replica_async_channel_name);
+      });
+
+      mysqlshdk::mysql::change_replication_credentials(
+          *instance_online.instance,
+          mysqlsh::dba::k_read_replica_async_channel_name, user, options);
+    }
   }
 
   // Print appropriate output message depending if some operation was skipped.
@@ -235,17 +271,18 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     // Some instance were skipped and their recovery account passwords were not
     // reset.
     std::string warning_msg =
-        "Not all recovery account passwords were successfully reset, the "
-        "following instance";
+        "Not all recovery or replication account passwords were successfully "
+        "reset, the following instance";
 
     if (m_skipped_instances.size() > 1)
       warning_msg.append("s were ");
     else
       warning_msg.append(" was ");
 
-    warning_msg.append("skipped: '" +
-                       shcore::str_join(m_skipped_instances, "', '") +
-                       "'. Bring ");
+    warning_msg.append("skipped: '");
+    warning_msg.append(shcore::str_join(m_skipped_instances, "', '"));
+    warning_msg.append("'. Bring ");
+
     if (m_skipped_instances.size() > 1)
       warning_msg.append("these instances ");
     else
@@ -263,8 +300,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
   } else {
     // All of cluster's recovery accounts were reset
     console->print_info(
-        "The recovery account passwords of all the cluster instances' were "
-        "successfully reset.");
+        "The recovery and replication account passwords of all the cluster "
+        "instances' were successfully reset.");
     console->print_info();
   }
   return shcore::Value();
@@ -272,8 +309,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
 
 void Reset_recovery_accounts_password::finish() {
   // Close all sessions to online instances.
-  for (const auto &instance : m_online_instances) {
-    instance->close_session();
+  for (const auto &instance_online : m_online_instances) {
+    instance_online.instance->close_session();
   }
 
   // Reset all auxiliary (temporary) data used for the operation execution.

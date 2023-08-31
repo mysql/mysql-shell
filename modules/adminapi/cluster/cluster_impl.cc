@@ -456,11 +456,10 @@ void Cluster_impl::execute_in_members(
 }
 
 void Cluster_impl::execute_in_read_replicas(
-    const std::function<bool(const std::shared_ptr<Instance> &instance)>
-        &on_connect,
-    const std::function<bool(const shcore::Error &error,
-                             const Instance_metadata &info)> &on_connect_error)
-    const {
+    const std::function<bool(const std::shared_ptr<Instance> &,
+                             const Instance_metadata &)> &on_connect,
+    const std::function<bool(const shcore::Error &, const Instance_metadata &)>
+        &on_connect_error) const {
   assert(on_connect || on_connect_error);
 
   auto instance_definitions = get_replica_instances();
@@ -481,7 +480,7 @@ void Cluster_impl::execute_in_read_replicas(
       }
     }
 
-    if (on_connect && !on_connect(instance_session)) break;
+    if (on_connect && !on_connect(instance_session, instance_def)) break;
   }
 }
 
@@ -800,8 +799,8 @@ void Cluster_impl::validate_server_ids(
   }
 }
 
-std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state(
-    bool allow_offline) const {
+std::vector<Cluster_impl::Instance_md_and_gr_member>
+Cluster_impl::get_instances_with_state(bool allow_offline) const {
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>> ret;
 
   std::vector<mysqlshdk::gr::Member> members;
@@ -834,6 +833,25 @@ std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state(
   }
 
   return ret;
+}
+
+void Cluster_impl::iterate_read_replicas(
+    const std::function<bool(const Instance_metadata &,
+                             const mysqlshdk::mysql::Replication_channel &)>
+        &cb) const {
+  execute_in_read_replicas(
+      [&cb](const std::shared_ptr<Instance> &instance,
+            const Instance_metadata &i_md) {
+        mysqlshdk::mysql::Replication_channel channel;
+        mysqlshdk::mysql::get_channel_status(
+            *instance, mysqlsh::dba::k_read_replica_async_channel_name,
+            &channel);
+
+        return cb(i_md, channel);
+      },
+      [&cb](const shcore::Error &, const Instance_metadata &i_md) {
+        return cb(i_md, {});
+      });
 }
 
 std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
@@ -1953,7 +1971,7 @@ shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
   return shcore::Value(dict);
 }
 
-void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
+void Cluster_impl::reset_recovery_password(std::optional<bool> force,
                                            const bool interactive) {
   check_preconditions("resetRecoveryAccountsPassword");
 
@@ -2200,7 +2218,9 @@ bool Cluster_impl::is_fenced_from_writes() const {
 
   if (!mysqlshdk::gr::is_active_member(*primary)) {
     return false;
-  } else if (!mysqlshdk::gr::is_primary(*primary)) {
+  }
+
+  if (!mysqlshdk::gr::is_primary(*primary)) {
     // Try to get the primary member, if we cannot return false right away since
     // we cannot determine whether the cluster is fenced or not
     try {
@@ -2499,8 +2519,7 @@ shcore::Value Cluster_impl::options(const bool all) {
   return op_option.execute();
 }
 
-void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
-                            const bool interactive) {
+void Cluster_impl::dissolve(std::optional<bool> force, const bool interactive) {
   // We need to check if the group has quorum and if not we must abort the
   // operation otherwise GR blocks the writes to preserve the consistency
   // of the group and we end up with a hang.
@@ -3836,7 +3855,8 @@ void Cluster_impl::drop_replication_users(
 
   // Drop read-replicas accounts too
   execute_in_read_replicas(
-      [this, undo](const std::shared_ptr<Instance> &instance) {
+      [this, undo](const std::shared_ptr<Instance> &instance,
+                   const Instance_metadata &) {
         try {
           drop_read_replica_replication_user(instance.get(), false, undo);
         } catch (...) {
@@ -4112,7 +4132,8 @@ void Cluster_impl::release_primary() { m_primary_master.reset(); }
 
 std::tuple<std::string, std::vector<std::string>, bool>
 Cluster_impl::get_replication_user(
-    const mysqlshdk::mysql::IInstance &target_instance) const {
+    const mysqlshdk::mysql::IInstance &target_instance,
+    bool is_read_replica) const {
   // First check the metadata for the recovery user
   std::string recovery_user, recovery_user_host;
   bool from_metadata = false;
@@ -4120,7 +4141,8 @@ Cluster_impl::get_replication_user(
   std::tie(recovery_user, recovery_user_host) =
       get_metadata_storage()->get_instance_repl_account(
           target_instance.get_uuid(), Cluster_type::GROUP_REPLICATION,
-          Replica_type::GROUP_MEMBER);
+          is_read_replica ? Replica_type::READ_REPLICA
+                          : Replica_type::GROUP_MEMBER);
   if (recovery_user.empty()) {
     // Assuming the account was created by an older version of the shell,
     // which did not store account name in metadata

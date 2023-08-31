@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_RESET_RECOVERY_ACCOUNTS_PASSWORD_H_
 #define MODULES_ADMINAPI_CLUSTER_RESET_RECOVERY_ACCOUNTS_PASSWORD_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,7 +39,7 @@ namespace cluster {
 class Reset_recovery_accounts_password : public Command_interface {
  public:
   Reset_recovery_accounts_password(const bool interactive,
-                                   mysqlshdk::utils::nullable<bool> force,
+                                   std::optional<bool> force,
                                    const Cluster_impl &cluster);
 
   ~Reset_recovery_accounts_password() override = default;
@@ -82,10 +83,15 @@ class Reset_recovery_accounts_password : public Command_interface {
   void finish() override;
 
  private:
+  struct Instance_online {
+    std::shared_ptr<mysqlsh::dba::Instance> instance;
+    bool is_read_replica{false};
+  };
+
   bool m_is_no_op{false};
   const bool m_interactive;
-  mysqlshdk::utils::nullable<bool> m_force;
-  std::vector<std::shared_ptr<mysqlsh::dba::Instance>> m_online_instances;
+  std::optional<bool> m_force;
+  std::vector<Instance_online> m_online_instances;
   std::vector<std::string> m_skipped_instances;
   const Cluster_impl &m_cluster;
 
@@ -119,8 +125,10 @@ class Reset_recovery_accounts_password : public Command_interface {
    *
    * @param instance_address String with the address <host>:<port> of the
    *                         instance to check.
+   * @param is_read_replica True if instance is a read-replica.
    */
-  void ensure_instance_reachable(const std::string &instance_address);
+  void ensure_instance_reachable(const std::string &instance_address,
+                                 bool is_read_replica);
 
   /**
    * Auxiliary function to handle instance that are not online.

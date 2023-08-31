@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_API_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_API_OPTIONS_H_
 
+#include <optional>
 #include <string>
 
 #include "modules/adminapi/common/async_replication_options.h"
@@ -76,13 +77,13 @@ struct Password_interactive_options : public Interactive_option {
   static const shcore::Option_pack_def<Password_interactive_options> &options();
   void set_password(const std::string &option, const std::string &value);
 
-  mysqlshdk::null_string password;
+  std::optional<std::string> password;
 };
 
 struct Force_interactive_options : public Interactive_option {
   static const shcore::Option_pack_def<Force_interactive_options> &options();
 
-  mysqlshdk::null_bool force;
+  std::optional<bool> force;
 };
 
 struct List_routers_options {

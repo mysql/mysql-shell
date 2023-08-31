@@ -51,7 +51,8 @@ The following operations are available at 'cluster':
       Rescans the cluster.
 
    reset-recovery-accounts-password
-      Reset the password of the recovery accounts of the cluster.
+      Resets the password of the recovery and replication accounts of the
+      Cluster.
 
    routing-options
       Lists the Cluster Routers configuration options.
@@ -344,8 +345,9 @@ OPTIONS
 
 //@<OUT> CLI cluster reset-recovery-accounts-password --help
 NAME
-      reset-recovery-accounts-password - Reset the password of the recovery
-                                         accounts of the cluster.
+      reset-recovery-accounts-password - Resets the password of the recovery
+                                         and replication accounts of the
+                                         Cluster.
 
 SYNTAX
       cluster reset-recovery-accounts-password [<options>]

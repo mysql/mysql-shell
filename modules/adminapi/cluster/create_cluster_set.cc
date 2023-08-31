@@ -76,7 +76,7 @@ void Create_cluster_set::check_illegal_channels() {
   // Get all cluster instances from the Metadata and their respective GR state.
   m_cluster->execute_in_members(
       [console](const std::shared_ptr<Instance> &instance,
-                const Instance_md_and_gr_member &info) {
+                const Cluster_impl::Instance_md_and_gr_member &info) {
         if (info.second.state == mysqlshdk::gr::Member_state::ONLINE ||
             info.second.state == mysqlshdk::gr::Member_state::RECOVERING) {
           // Verify if the instance has a replication channel set and running
@@ -99,9 +99,8 @@ void Create_cluster_set::check_illegal_channels() {
         }
         return true;
       },
-      [](const shcore::Error &, const Instance_md_and_gr_member &) {
-        return true;
-      });
+      [](const shcore::Error &,
+         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 }
 
 void Create_cluster_set::check_gr_configuration() {
