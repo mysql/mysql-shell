@@ -45,12 +45,12 @@
 https://dev.mysql.com/blog-archive/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
 * routinesSyntaxCheck.title
-# MySQL 8.0 syntax check for routine-like objects
+# MySQL syntax check for routine-like objects
 
 * routinesSyntaxCheck.description
-# The following objects did not pass a syntax check with the latest MySQL 8.0 grammar. A common
-# reason is that they reference names that conflict with new reserved keywords. You must update
-# these routine definitions and `quote` any such references before upgrading.
+# The following objects did not pass a syntax check with the latest MySQL grammar. A common reason
+# is that they reference names that conflict with new reserved keywords. You must update these
+# routine definitions and `quote` any such references before upgrading.
 
 * routinesSyntaxCheck.docLink
 https://dev.mysql.com/doc/refman/en/keywords.html
@@ -77,12 +77,12 @@ https://dev.mysql.com/doc/refman/en/keywords.html
 https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
 
 * mysqlSchemaCheck.title
-# Table names in the mysql schema conflicting with new tables in 8.0
+# Table names in the mysql schema conflicting with new tables in latest MySQL.
 
 * mysqlSchemaCheck.description
 # Error: The following tables in mysql schema have names that will conflict with the ones
-# introduced in 8.0 version. They must be renamed or removed before upgrading (use RENAME TABLE
-# command). This may also entail changes to applications that use the affected tables.
+# introduced in the latest version. They must be renamed or removed before upgrading (use RENAME
+# TABLE command). This may also entail changes to applications that use the affected tables.
 
 * mysqlSchemaCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prerequisites
@@ -91,9 +91,9 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prereq
 # Partitioned tables using engines with non native partitioning
 
 * nonNativePartitioningCheck.description
-# Error: In MySQL 8.0 storage engine is responsible for providing its own partitioning handler, and
-# the MySQL server no longer provides generic partitioning support. InnoDB and NDB are the only
-# storage engines that provide a native partitioning handler that is supported in MySQL 8.0. A
+# Error: In latest MySQL storage engine is responsible for providing its own partitioning handler,
+# and the MySQL server no longer provides generic partitioning support. InnoDB and NDB are the only
+# storage engines that provide a native partitioning handler that is supported in latest MySQL. A
 # partitioned table using any other storage engine must be altered—either to convert it to InnoDB
 # or NDB, or to remove its partitioning—before upgrading the server, else it cannot be used
 # afterwards.
@@ -116,10 +116,10 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prereq
 
 * maxdbFlagCheck.description
 # Warning: The following DB objects have the obsolete MAXDB option persisted for sql_mode, which
-# will be cleared during upgrade to 8.0. It can potentially change the datatype DATETIME into
+# will be cleared during the upgrade. It can potentially change the datatype DATETIME into
 # TIMESTAMP if it is used inside object's definition, and this in turn can change the behavior in
 # case of dates earlier than 1970 or later than 2037. If this is a concern, please redefine these
-# objects so that they do not rely on the MAXDB flag before running the upgrade to 8.0.
+# objects so that they do not rely on the MAXDB flag before running the upgrade.
 
 * maxdbFlagCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
@@ -129,7 +129,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * sqlModeFlagCheck.description
 # Notice: The following DB objects have obsolete options persisted for sql_mode, which will be
-# cleared during upgrade to 8.0.
+# cleared during upgrade to 8.1.
 
 * sqlModeFlagCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
@@ -149,8 +149,8 @@ https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
 # Usage of partitioned tables in shared tablespaces
 
 * partitionedTablesInSharedTablespaceCheck.description
-# Error: The following tables have partitions in shared tablespaces. Before upgrading to 8.0 they
-# need to be moved to file-per-table tablespace. You can do this by running query like 'ALTER TABLE
+# Error: The following tables have partitions in shared tablespaces. They need to be moved to
+# file-per-table tablespace before upgrading. You can do this by running query like 'ALTER TABLE
 # table_name REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30)
 # TABLESPACE=innodb_file_per_table);'
 
@@ -174,8 +174,8 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgr
 # Usage of removed functions
 
 * removedFunctionsCheck.description
-# Error: Following DB objects make use of functions that have been removed in version 8.0. Please
-# make sure to update them to use supported alternatives before upgrade.
+# Error: Following DB objects make use of functions that have been removed int the latest MySQL
+# version. Please make sure to update them to use supported alternatives before upgrade.
 
 * removedFunctionsCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
@@ -252,9 +252,10 @@ https://lefred.be/content/mysql-8-0-and-wrong-dates/
 # Table names containing 'FTS'
 
 * ftsTablenameCheck.description
-# Error: Upgrading from 5.7 to 8.0 does not support tables with name containing 'FTS' character
-# string. The workaround is to rename the table for the upgrade - e.g. it is enough to change any
-# letter of the 'FTS' part to a lower case. It can be renamed back again after the upgrade.
+# Error: Upgrading from 5.7 to latest MySQL version does not support tables with name containing
+# 'FTS' character string. The workaround is to rename the table for the upgrade - e.g. it is enough
+# to change any letter of the 'FTS' part to a lower case. It can be renamed back again after the
+# upgrade.
 
 * ftsTablenameCheck.docLink
 
@@ -445,7 +446,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 # Check for deprecated or invalid user authentication methods.
 
 * mysqlDeprecatedAuthMethodCheck.description
-# The following user have problems with their assigned authentication method:\n
+# The following users are using a deprecated authentication method:\n
 
 * mysqlDeprecatedAuthMethodCheck.docLink
 
