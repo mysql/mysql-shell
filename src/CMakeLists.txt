@@ -299,7 +299,9 @@ IF(HAVE_PYTHON)
     ENDIF()
     file(GLOB PYTHON_ADDITIONAL_DLLS
       "${PY_ROOT}/libffi.dll"
-      "${PY_ROOT}/sqlite3.dll")
+      "${PY_ROOT}/sqlite3.dll"
+      "${PY_ROOT}/psqlite3.dll"
+    )
 
     foreach(PY_ADDITIONAL_DLL IN LISTS PYTHON_ADDITIONAL_DLLS)
       install(PROGRAMS "${PY_ADDITIONAL_DLL}" DESTINATION lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs COMPONENT main)
