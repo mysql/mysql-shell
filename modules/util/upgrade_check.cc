@@ -463,12 +463,12 @@ class Routine_syntax_check : public Upgrade_check {
 
  protected:
   const char *get_title_internal() const override {
-    return "MySQL 8.0 syntax check for routine-like objects";
+    return "MySQL syntax check for routine-like objects";
   }
 
   const char *get_description_internal() const override {
     return "The following objects did not pass a syntax check with the latest "
-           "MySQL 8.0 grammar. A common reason is that they reference names "
+           "MySQL grammar. A common reason is that they reference names "
            "that conflict with new reserved keywords. You must update these "
            "routine definitions and `quote` any such references before "
            "upgrading.";
@@ -564,10 +564,11 @@ bool UNUSED_VARIABLE(register_utf8mb3) = Upgrade_check::register_check(
 std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
   return std::make_unique<Sql_upgrade_check>(
       "mysqlSchemaCheck",
-      "Table names in the mysql schema conflicting with new tables in 8.0",
+      "Table names in the mysql schema conflicting with new tables in the "
+      "latest MySQL.",
       std::vector<std::string>{
-          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema "
-          "in 8.0' as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
+          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema.' "
+          "as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
           "LOWER(TABLE_SCHEMA) = 'mysql' and LOWER(TABLE_NAME) IN "
           "('catalogs', 'character_sets', 'collations', 'column_type_elements',"
           " 'columns', 'dd_properties', 'events', 'foreign_key_column_usage', "
@@ -581,9 +582,9 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_mysql_schema_check() {
           "'innodb_dynamic_metadata', 'password_history', 'role_edges');"},
       Upgrade_issue::ERROR,
       "The following tables in mysql schema have names that will conflict with "
-      "the ones introduced in 8.0 version. They must be renamed or removed "
-      "before upgrading (use RENAME TABLE command). This may also entail "
-      "changes to applications that use the affected tables.");
+      "the ones introduced in the latest version. They must be renamed or "
+      "removed before upgrading (use RENAME TABLE command). This may also "
+      "entail changes to applications that use the affected tables.");
 }
 
 namespace {
@@ -624,7 +625,7 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_zerofill_check() {
       Upgrade_issue::NOTICE,
       "The following table columns specify a ZEROFILL/display length "
       "attributes. "
-      "Please be aware that they will be ignored in MySQL 8.0");
+      "Please be aware that they will be ignored in the latest MySQL version.");
 }
 
 // Zerofill is still available in 8.0.11
@@ -644,13 +645,14 @@ Sql_upgrade_check::get_nonnative_partitioning_check() {
           "create_options like '%partitioned%' and upper(engine) not in "
           "('INNODB', 'NDB', 'NDBCLUSTER');"},
       Upgrade_issue::ERROR,
-      "In MySQL 8.0 storage engine is responsible for providing its own "
+      "In the latest MySQL storage engine is responsible for providing its own "
       "partitioning handler, and the MySQL server no longer provides generic "
       "partitioning support. InnoDB and NDB are the only storage engines that "
-      "provide a native partitioning handler that is supported in MySQL 8.0. A "
-      "partitioned table using any other storage engine must be altered—either "
-      "to convert it to InnoDB or NDB, or to remove its partitioning—before "
-      "upgrading the server, else it cannot be used afterwards.");
+      "provide a native partitioning handler that is supported in the latest "
+      "MySQL. A partitioned table using any other storage engine must be "
+      "altered—either to convert it to InnoDB or NDB, or to remove its "
+      "partitioning—before upgrading the server, else it cannot be used "
+      "afterwards.");
 }
 
 namespace {
@@ -704,12 +706,12 @@ Sql_upgrade_check::get_maxdb_sql_mode_flags_check() {
           "'sql_mode' and find_in_set('MAXDB', variable_value);"},
       Upgrade_issue::WARNING,
       "The following DB objects have the obsolete MAXDB option persisted for "
-      "sql_mode, which will be cleared during upgrade to 8.0. It "
+      "sql_mode, which will be cleared during the upgrade. It "
       "can potentially change the datatype DATETIME into TIMESTAMP if it is "
       "used inside object's definition, and this in turn can change the "
       "behavior in case of dates earlier than 1970 or later than 2037. If this "
       "is a concern, please redefine these objects so that they do not rely on "
-      "the MAXDB flag before running the upgrade to 8.0.");
+      "the MAXDB flag before running the upgrade.");
 }
 
 namespace {
@@ -752,7 +754,7 @@ Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
       "sqlModeFlagCheck", "Usage of obsolete sql_mode flags",
       std::move(queries), Upgrade_issue::NOTICE,
       "The following DB objects have obsolete options persisted for sql_mode, "
-      "which will be cleared during upgrade to 8.0.");
+      "which will be cleared during the upgrade.");
 }
 
 namespace {
@@ -844,8 +846,8 @@ Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
                 "itb.space and it.name like '%#P#%' and it.space_type != "
                 "'Single';"},
       Upgrade_issue::ERROR,
-      "The following tables have partitions in shared tablespaces. Before "
-      "upgrading to 8.0 they need to be moved to file-per-table tablespace. "
+      "The following tables have partitions in shared tablespaces. They need "
+      "to be moved to file-per-table tablespace before upgrading. "
       "You can do this by running query like 'ALTER TABLE table_name "
       "REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30) "
       "TABLESPACE=innodb_file_per_table);'");
@@ -988,8 +990,8 @@ class Removed_functions_check : public Sql_upgrade_check {
              "('performance_schema','information_schema','sys','mysql')"},
             Upgrade_issue::ERROR,
             "Following DB objects make use of functions that have "
-            "been removed in version 8.0. Please make sure to update them to "
-            "use supported alternatives before upgrade.") {}
+            "been removed int the latest MySQL version. Please make sure to "
+            "update them to use supported alternatives before upgrade.") {}
 
  protected:
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
@@ -1479,10 +1481,11 @@ Sql_upgrade_check::get_fts_in_tablename_check(const Upgrade_info &info) {
           "from information_schema.tables where table_name like binary "
           "'%FTS%';"},
       Upgrade_issue::ERROR,
-      "Upgrading from 5.7 to 8.0 does not support tables with name containing "
-      "'FTS' character string. The workaround is to rename the table for the "
-      "upgrade - e.g. it is enough to change any letter of the 'FTS' part to a "
-      "lower case. It can be renamed back again after the upgrade.");
+      "Upgrading from 5.7 to the latest MySQL version does not support tables "
+      "with name containing 'FTS' character string. The workaround is to "
+      "rename the table for the upgrade - e.g. it is enough to change any "
+      "letter of the 'FTS' part to a lower case. It can be renamed back again "
+      "after the upgrade.");
 }
 
 namespace {
