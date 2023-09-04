@@ -964,10 +964,18 @@ IF(MYSQL_BUILD_DIR)
 
   IF(AUTH_CLIENT_PLUGINS)
     SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
-    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_fido_client" "authentication_ldap_sasl_client" "authentication_oci_client")
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client")
 
     IF(NOT APPLE)
       LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")
+    ENDIF()
+
+    IF(${OPENSSL_MAJOR_MINOR_FIX_VERSION} VERSION_GREATER_EQUAL "1.1.1")
+      LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_fido_client")
+
+      IF(${MYSQL_VERSION} VERSION_GREATER_EQUAL "8.2.0")
+        LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_webauthn_client")
+      ENDIF()
     ENDIF()
 
     FOREACH(_plugin ${AUTH_CLIENT_PLUGINS})

@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -39,15 +39,12 @@
 #
 # ----------------------------------------------------------------------
 
-if(NOT MYSQL_CONFIG_EXECUTABLE)
-  if(WIN32)
-    set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config.pl)
-  else()
-    set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config)
-  endif()
+if(NOT MYSQL_CONFIG_EXECUTABLE AND NOT WIN32)
+  set(MYSQL_CONFIG_EXECUTABLE ${MYSQL_BUILD_DIR}/scripts/mysql_config)
+
+  MESSAGE("----> EXECUTABLE: ${MYSQL_CONFIG_EXECUTABLE}")
 endif()
 
-MESSAGE("----> EXECUTABLE: ${MYSQL_CONFIG_EXECUTABLE}")
 
 macro(_mysql_conf _var _opt)
   if(WIN32)
@@ -160,16 +157,5 @@ else()
   message(STATUS "MYSQL_CLIENT_LIB: ${MYSQL_CLIENT_LIB}")
   message(FATAL_ERROR "Could not find MySQL client (libmysqlclient) and X protocol client (libmysqlxclient) libraries. Please set MYSQL_SOURCE_DIR and MYSQL_BUILD_DIR")
 endif()
-
-_mysql_conf(_mysql_version "--version")
-
-# Clean up so only numeric, in case of "-alpha" or similar
-string(REGEX MATCHALL "([0-9]+.[0-9]+.[0-9]+)" MYSQL_VERSION "${_mysql_version}")
-# To create a fully numeric version, first normalize so N.NN.NN
-string(REGEX REPLACE "[.]([0-9])[.]" ".0\\1." MYSQL_NUM_VERSION "${MYSQL_VERSION}")
-string(REGEX REPLACE "[.]([0-9])$"   ".0\\1"  MYSQL_NUM_VERSION "${MYSQL_NUM_VERSION}")
-# Finally remove the dot
-string(REGEX REPLACE "[.]" "" MYSQL_NUM_VERSION "${MYSQL_NUM_VERSION}")
-
 
 mark_as_advanced(MYSQLX_LIBRARY MYSQLX_INCLUDE_DIRS)

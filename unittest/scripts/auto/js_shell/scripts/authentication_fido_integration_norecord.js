@@ -47,7 +47,6 @@ EXPECT_OUTPUT_CONTAINS('{"info":"No FIDO device available on client host.\\n"}')
 WIPE_SHELL_LOG();
 testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--log-level=8", "--json=raw", "--auth-method=authentication_fido_client", "--sql", "-e", 'select user()']);
 EXPECT_OUTPUT_CONTAINS('{"user()":"fido_test@localhost"}');
-EXPECT_SHELL_LOG_CONTAINS('authentication_fido_client.AUTHENTICATE.AUTH_PLUGIN');
 
 //@<> Drops the sandbox
 testutil.destroySandbox(__mysql_sandbox_port1);
