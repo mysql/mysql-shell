@@ -60,7 +60,7 @@ class Api_connections : public Shell_js_script_tester {
 
     mysqlshdk::utils::Version tls1_2(1, 2);
     if (_highest_tls_version > tls1_2) {
-      if (_target_server_version >= mysqlshdk::utils::Version(8, 3, 0))
+      if (_target_server_version >= mysqlshdk::utils::Version(8, 2, 0))
         execute("var __default_cipher = 'TLS_AES_128_GCM_SHA256';");
       else
         execute("var __default_cipher = 'TLS_AES_256_GCM_SHA384';");
