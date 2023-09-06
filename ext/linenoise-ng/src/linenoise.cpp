@@ -1055,7 +1055,10 @@ class Custom_commands {
     return next(c);
   }
 
-  bool begin(int c) { return begin(static_cast<char>(c)); }
+  bool begin(int c) {
+    if (c > 255) return false;
+    return begin(static_cast<char>(c));
+  }
 
   bool next(char c) {
     if ((nullptr != m_iterator) && (Entry::Type::BRANCH == m_iterator->type)) {
