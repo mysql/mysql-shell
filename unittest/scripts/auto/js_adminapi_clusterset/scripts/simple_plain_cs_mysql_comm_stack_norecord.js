@@ -31,6 +31,11 @@ __sandbox_uri2="mysql://admin:bla@localhost:"+__mysql_sandbox_port2;
 __sandbox_uri3="mysql://admin:bla@localhost:"+__mysql_sandbox_port3;
 __sandbox_uri4="mysql://admin:bla@localhost:"+__mysql_sandbox_port4;
 
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+disable_auto_rejoin(__mysql_sandbox_port4);
+
 testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
@@ -73,7 +78,6 @@ function END_CHECK_NO_ZOMBIES(cs) {
       plist = get_clients(session, ignore_ids);
       if (filter(plist) == expected)
         break;
-      os.sleep(0.5);
     }
     return plist;
   }
