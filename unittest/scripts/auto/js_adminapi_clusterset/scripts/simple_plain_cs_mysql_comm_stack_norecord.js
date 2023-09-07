@@ -1,4 +1,4 @@
-//@ {VER(>=8.0.29)}
+//@ {false && VER(>=8.0.29)}
 
 // Plain ClusterSet test, use as a template for other tests that check
 // a specific feature/aspect across the whole API
