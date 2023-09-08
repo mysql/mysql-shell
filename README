@@ -20,23 +20,23 @@ also be used to connect to and send SQL commands to MySQL server using the
 classic MySQL protocol.
 
 For more information about how to use MySQL Shell see
-https://dev.mysql.com/doc/mysql-shell/8.0/en/
+https://dev.mysql.com/doc/mysql-shell/8.2/en/
 
 For more information about how to configure and work with InnoDB Cluster
-see https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-innodb-cluster.html
+see https://dev.mysql.com/doc/mysql-shell/8.2/en/mysql-innodb-cluster.html
 
-For more information about how to configure and work with InnoDB ReplicaSet see https://dev.mysql.com/doc/mysql-shell/8.0/en/mysql-innodb-replicaset.html
+For more information about how to configure and work with InnoDB ReplicaSet see https://dev.mysql.com/doc/mysql-shell/8.2/en/mysql-innodb-replicaset.html
 
-For more information about how to configure and work with InnoDB ClusterSet see https://dev.mysql.com/doc/mysql-shell/8.0/en/innodb-clusterset.html
+For more information about how to configure and work with InnoDB ClusterSet see https://dev.mysql.com/doc/mysql-shell/8.2/en/innodb-clusterset.html
 
 For more information about how to use X DevAPI and the MySQL Document
 Store see https://dev.mysql.com/doc/refman/en/document-store.html
 
 For JavaScript API documentation, see:
-https://dev.mysql.com/doc/dev/mysqlsh-api-javascript/8.0/
+https://dev.mysql.com/doc/dev/mysqlsh-api-javascript/8.2/
 
 For Python API documentation, see:
-https://dev.mysql.com/doc/dev/mysqlsh-api-python/8.0/
+https://dev.mysql.com/doc/dev/mysqlsh-api-python/8.2/
 
 For full documentation on MySQL Server, MySQL Shell and related
 topics, see: https://dev.mysql.com/doc/refman/en/
@@ -52,7 +52,7 @@ For license and attribution notices for these materials, please refer to
 the LICENSE file.
 
 For more information on MySQL Shell (part of MySQL Server), visit
-  https://dev.mysql.com/doc/mysql-shell/8.0/en/
+  https://dev.mysql.com/doc/mysql-shell/8.2/en/
 
 For additional downloads and the source of MySQL Shell (part of MySQL Server),
 visit
