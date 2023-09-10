@@ -26,7 +26,6 @@
 
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/common/undo.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -59,12 +58,10 @@ class Rejoin_instance : private Add_instance {
  protected:
   void do_run();
 
+  static constexpr bool supports_undo() noexcept { return false; }
+
  private:
   bool check_rejoinable();
-
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
 
  private:
   Rejoin_instance_options m_options;

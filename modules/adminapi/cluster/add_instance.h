@@ -28,7 +28,6 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
-#include "modules/adminapi/common/undo.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -67,6 +66,8 @@ class Add_instance {
 
  protected:
   void do_run();
+  static constexpr bool supports_undo() noexcept { return false; }
+
   void prepare(checks::Check_type check_type,
                bool *is_switching_comm_stack = nullptr);
 
@@ -83,8 +84,6 @@ class Add_instance {
   void refresh_target_connections() const;
 
  protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
   Cluster_impl *m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::shared_ptr<mysqlsh::dba::Instance> m_primary_instance;

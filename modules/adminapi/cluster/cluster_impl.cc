@@ -61,7 +61,6 @@
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -75,6 +74,7 @@
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
@@ -1180,7 +1180,7 @@ void Cluster_impl::add_instance(
   // put an exclusive lock on the target instance
   auto i_lock = target->get_lock_exclusive();
 
-  Cluster_topology_executor<cluster::Add_instance>{this, target, options}.run();
+  Topology_executor<cluster::Add_instance>{this, target, options}.run();
 
   // Verification step to ensure the server_id is an attribute on all the
   // instances of the cluster
@@ -1204,11 +1204,9 @@ void Cluster_impl::rejoin_instance(
   auto i_lock = target->get_lock_exclusive();
 
   if (!is_read_replica(target)) {
-    Cluster_topology_executor<cluster::Rejoin_instance>{this, target, options}
-        .run();
+    Topology_executor<cluster::Rejoin_instance>{this, target, options}.run();
   } else {
-    Cluster_topology_executor<cluster::Rejoin_replica_instance>{this, target,
-                                                                options}
+    Topology_executor<cluster::Rejoin_replica_instance>{this, target, options}
         .run();
   }
 }
@@ -1238,18 +1236,16 @@ void Cluster_impl::remove_instance(
   }
 
   if (read_replica) {
-    return Cluster_topology_executor<cluster::Remove_replica_instance>{
+    return Topology_executor<cluster::Remove_replica_instance>{
         this, target_instance, options}
         .run();
   }
 
   if (target_instance) {
-    Cluster_topology_executor<cluster::Remove_instance>{this, target_instance,
-                                                        options}
+    Topology_executor<cluster::Remove_instance>{this, target_instance, options}
         .run();
   } else {
-    Cluster_topology_executor<cluster::Remove_instance>{this, instance_def,
-                                                        options}
+    Topology_executor<cluster::Remove_instance>{this, instance_def, options}
         .run();
   }
 }
@@ -2142,15 +2138,15 @@ void Cluster_impl::unfence_writes() {
   // Check if the Cluster belongs to a ClusterSet and is a REPLICA Cluster, it
   // must be forbidden to unfence from write traffic REPLICA Clusters.
   if (is_cluster_set_member() && !is_primary_cluster()) {
-    auto cluster_name = get_name();
     console->print_error(
         "Unable to unfence Cluster from write traffic: operation not permitted "
         "on REPLICA Clusters");
 
-    throw shcore::Exception("The Cluster '" + cluster_name +
-                                "' is a REPLICA Cluster of the ClusterSet '" +
-                                get_cluster_set_object()->get_name() + "'",
-                            SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
+    throw shcore::Exception(
+        shcore::str_format(
+            "The Cluster '%s' is a REPLICA Cluster of the ClusterSet '%s'",
+            get_name().c_str(), get_cluster_set_object()->get_name().c_str()),
+        SHERR_DBA_UNSUPPORTED_CLUSTER_TYPE);
   }
 
   // Check if the Cluster is fenced from Write traffic
@@ -2362,7 +2358,6 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
   // as long as the target instance is a reachable member of an InnoDB Cluster
   // that is part of a ClusterSet.
   Cluster_metadata cluster_md = get_metadata();
-  auto cluster_id = cluster_md.cluster_id;
 
   Cluster_set_metadata cset_md;
   auto metadata = get_metadata_storage();
@@ -3582,6 +3577,7 @@ void Cluster_impl::reset_recovery_password(
     case Replication_auth_type::CERT_ISSUER_PASSWORD:
     case Replication_auth_type::CERT_SUBJECT_PASSWORD:
       needs_password = true;
+      break;
     default:
       break;
   }
@@ -4895,9 +4891,7 @@ void Cluster_impl::add_replica_instance(
   // put an exclusive lock on the target instance
   auto i_lock = target->get_lock_exclusive();
 
-  Cluster_topology_executor<cluster::Add_replica_instance>{this, target,
-                                                           options}
-      .run();
+  Topology_executor<cluster::Add_replica_instance>{this, target, options}.run();
 }
 
 }  // namespace dba

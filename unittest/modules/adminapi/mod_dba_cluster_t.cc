@@ -20,12 +20,13 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/adminapi/cluster/add_instance.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/mod_shell.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -35,6 +36,7 @@
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
+
 namespace tests {
 
 class Dba_cluster_test : public Admin_api_test {
@@ -201,8 +203,7 @@ TEST_F(Dba_cluster_test, bug28219398) {
       options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 0);
       options.label = "";
 
-      mysqlsh::dba::Cluster_topology_executor<
-          mysqlsh::dba::cluster::Add_instance>{
+      mysqlsh::dba::Topology_executor<mysqlsh::dba::cluster::Add_instance>{
           m_cluster->impl().get(),
           std::make_shared<mysqlsh::dba::Instance>(
               create_session(_mysql_sandbox_ports[2])),

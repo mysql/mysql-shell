@@ -22,7 +22,9 @@
  */
 
 #include "modules/adminapi/cluster/add_instance.h"
+
 #include <functional>
+
 #include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -183,7 +185,7 @@ void Add_instance::store_local_replication_account() const {
                     instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
                     Replica_type::GROUP_MEMBER,
                     m_gr_opts.recovery_credentials->user, m_account_host);
-          } catch (const std::exception &e) {
+          } catch (const std::exception &) {
             log_info(
                 "Failed updating Metadata of '%s' to include the recovery "
                 "account of the joining member",
@@ -631,7 +633,7 @@ void Add_instance::do_run() {
     // we need a point in time as close as possible, but still earlier than
     // when recovery starts to monitor the recovery phase. The timestamp
     // resolution is timestamp(3) irrespective of platform
-    std::string join_begin_time =
+    auto join_begin_time =
         m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
 
     bool recovery_certificates{false};
@@ -644,6 +646,7 @@ void Add_instance::do_run() {
       case mysqlsh::dba::Replication_auth_type::CERT_ISSUER_PASSWORD:
       case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
         recovery_certificates = true;
+        break;
       default:
         break;
     }

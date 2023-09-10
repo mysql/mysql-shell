@@ -24,7 +24,6 @@
 #ifndef MODULES_ADMINAPI_DBA_REBOOT_CLUSTER_FROM_COMPLETE_OUTAGE_H_
 #define MODULES_ADMINAPI_DBA_REBOOT_CLUSTER_FROM_COMPLETE_OUTAGE_H_
 
-#include "modules/adminapi/common/undo.h"
 #include "modules/adminapi/mod_dba.h"
 
 namespace mysqlsh::dba {
@@ -58,6 +57,8 @@ class Reboot_cluster_from_complete_outage {
 
  protected:
   std::shared_ptr<Cluster> do_run();
+
+  static constexpr bool supports_undo() noexcept { return false; }
 
  private:
   /*
@@ -97,10 +98,6 @@ class Reboot_cluster_from_complete_outage {
    * Reboots the seed instance
    */
   void reboot_seed(const MetadataStorage &metadata);
-
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
 
  private:
   Dba *m_dba;

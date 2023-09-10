@@ -532,7 +532,7 @@ void Add_replica_instance::do_run() {
         }
 
         m_options.replication_sources_option.replication_sources =
-            replication_sources_updated;
+            std::move(replication_sources_updated);
 
         source_list_md = shcore::Value(std::move(source_list_array));
       }
@@ -609,5 +609,7 @@ void Add_replica_instance::do_run() {
     console->print_info();
   }
 }
+
+void Add_replica_instance::do_undo() { m_undo_tracker.execute(); }
 
 }  // namespace mysqlsh::dba::cluster

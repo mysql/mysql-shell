@@ -369,4 +369,6 @@ void Rejoin_replica_instance::do_run() {
   }
 }
 
+void Rejoin_replica_instance::do_undo() { m_undo_tracker.execute(); }
+
 }  // namespace mysqlsh::dba::cluster

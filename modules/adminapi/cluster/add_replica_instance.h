@@ -53,6 +53,9 @@ class Add_replica_instance {
  protected:
   void do_run();
 
+  static constexpr bool supports_undo() noexcept { return true; }
+  void do_undo();
+
  private:
   std::shared_ptr<Instance> get_source_instance(const std::string &source);
   void validate_instance_is_standalone();
@@ -61,15 +64,12 @@ class Add_replica_instance {
   std::shared_ptr<Instance> get_default_source_instance();
   void check_ssl_mode();
 
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
-
  private:
   Cluster_impl *m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::shared_ptr<mysqlsh::dba::Instance> m_donor_instance;
   cluster::Add_replica_instance_options m_options;
+  Undo_tracker m_undo_tracker;
 };
 
 }  // namespace mysqlsh::dba::cluster

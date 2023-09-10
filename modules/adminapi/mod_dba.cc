@@ -39,7 +39,6 @@
 #include <vector>
 
 #include "modules/adminapi/common/clone_options.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
@@ -47,6 +46,7 @@
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "modules/adminapi/dba/configure_instance.h"
@@ -795,7 +795,7 @@ void Dba::set_member(const std::string &prop, shcore::Value value) {
     try {
       int verbosity = value.as_int();
       _provisioning_interface.set_verbose(verbosity);
-    } catch (const shcore::Exception &e) {
+    } catch (const shcore::Exception &) {
       throw shcore::Exception::value_error(
           "Invalid value for property 'verbose', use either boolean or integer "
           "value.");
@@ -3052,7 +3052,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         "The Cluster '%s' is not configured.", cluster_name->c_str()));
   }
 
-  return Cluster_topology_executor<Reboot_cluster_from_complete_outage>{
+  return Topology_executor<Reboot_cluster_from_complete_outage>{
       this, cluster, target_instance,
       static_cast<Reboot_cluster_options>(*options)}
       .run();

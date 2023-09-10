@@ -21,9 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_
-#define MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_
+#ifndef MODULES_ADMINAPI_COMMON_TOPOLOGY_EXECUTOR_H_
+#define MODULES_ADMINAPI_COMMON_TOPOLOGY_EXECUTOR_H_
 
+#include <type_traits>
 #include <utility>
 
 #include "modules/adminapi/common/undo.h"
@@ -34,64 +35,59 @@ namespace mysqlsh::dba {
 // Policy-based design pattern:
 //
 //  - Compile-time strategy pattern variant using template metaprogramming
-//  - The "host" class (Cluster_topology_executor) takes a type parameter input
+//  - The "host" class (Topology_executor) takes a type parameter input
 //    when instantiated which then implements the desired interface
 //  - Defines a common method to execute the command's interface: run()
 
-template <typename TCluster_topology_op>
-class Cluster_topology_executor : private TCluster_topology_op {
-  using TCluster_topology_op::do_run;
-  using TCluster_topology_op::m_undo_list;
-  using TCluster_topology_op::m_undo_tracker;
+template <typename TTopology_op>
+class Topology_executor final : private TTopology_op {
+  // Helper class to check if type has a static 'bool supports_undo()' method
+  template <class T, class = void>
+  struct has_supports_undo : std::false_type {};
+  template <class T>
+  struct has_supports_undo<T, std::enable_if_t<std::is_invocable_r<
+                                  bool, decltype(T::supports_undo)>::value>>
+      : std::true_type {};
+
+  static_assert(has_supports_undo<TTopology_op>::value,
+                "Type to use with the executor must have a static 'bool "
+                "supports_undo()' method.");
 
  public:
   template <typename... Args>
-  explicit Cluster_topology_executor(Args &&... args)
-      : TCluster_topology_op(std::forward<Args>(args)...) {}
+  explicit Topology_executor(Args &&... args)
+      : TTopology_op(std::forward<Args>(args)...) {}
 
   template <typename... TArgs>
   auto run(TArgs &&... args) {
-    shcore::Scoped_callback undo([&]() {
-      if (!m_undo_list.empty()) {
-        m_undo_list.cancel();
-      }
-    });
-
     try {
-      return do_run(std::forward<TArgs>(args)...);
+      return TTopology_op::do_run(std::forward<TArgs>(args)...);
     } catch (...) {
-      if (!m_undo_list.empty() || !m_undo_tracker.empty()) {
-        // Handle exceptions
+      if constexpr (!TTopology_op::supports_undo()) {
+        throw;
+      } else {
         auto console = mysqlsh::current_console();
 
-        auto exception_str = format_active_exception();
-
         // Ignore custom exceptions with default c-tor (e.g. cancel_sync)
-        if (exception_str != "std::exception") {
+        if (auto exception_str = format_active_exception();
+            exception_str != "std::exception") {
           console->print_error(exception_str);
         }
 
         console->print_info();
-
         console->print_note("Reverting changes...");
 
-        if (!m_undo_list.empty()) {
-          m_undo_list.call();
-        }
-
-        if (!m_undo_tracker.empty()) {
-          m_undo_tracker.execute();
-        }
+        TTopology_op::do_undo();
 
         console->print_info();
         console->print_info("Changes successfully reverted.");
-      }
 
-      throw;
+        throw;
+      }
     }
   }
 };
 
 }  // namespace mysqlsh::dba
 
-#endif  // MODULES_ADMINAPI_COMMON_CLUSTER_TOPOLOGY_EXECUTOR_H_
+#endif  // MODULES_ADMINAPI_COMMON_TOPOLOGY_EXECUTOR_H_

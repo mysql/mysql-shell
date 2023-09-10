@@ -28,12 +28,12 @@
 
 #include "modules/adminapi/cluster/rejoin_instance.h"
 #include "modules/adminapi/common/async_topology.h"
-#include "modules/adminapi/common/cluster_topology_executor.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -231,7 +231,7 @@ void rejoin_instances(Cluster_impl *cluster_impl,
       bool ignore_cluster_set =
           removed_from_set || !cluster_impl->is_cluster_set_member();
 
-      Cluster_topology_executor<cluster::Rejoin_instance>{
+      Topology_executor<cluster::Rejoin_instance>{
           cluster_impl,       instance,
           rejoin_options,     options.switch_communication_stack.has_value(),
           ignore_cluster_set, true}

@@ -53,15 +53,15 @@ class Remove_replica_instance {
  protected:
   void do_run();
 
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
+  static constexpr bool supports_undo() noexcept { return true; }
+  void do_undo();
 
  private:
   Cluster_impl *m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   cluster::Remove_instance_options m_options;
   std::string m_target_read_replica_address;
+  Undo_tracker m_undo_tracker;
 };
 
 }  // namespace mysqlsh::dba::cluster

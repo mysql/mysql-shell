@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/cluster/remove_replica_instance.h"
+
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -234,4 +235,7 @@ void Remove_replica_instance::do_run() {
     console->print_info();
   }
 }
+
+void Remove_replica_instance::do_undo() { m_undo_tracker.execute(); }
+
 }  // namespace mysqlsh::dba::cluster

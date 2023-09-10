@@ -53,16 +53,15 @@ class Rejoin_replica_instance {
  protected:
   void do_run();
 
+  static constexpr bool supports_undo() noexcept { return true; }
+  void do_undo();
+
  private:
   bool check_rejoinable();
   void prepare();
   Member_recovery_method validate_instance_recovery();
   void validate_replication_channels();
   std::shared_ptr<Instance> get_default_donor_instance();
-
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
 
  private:
   Cluster_impl *m_cluster_impl = nullptr;
@@ -72,6 +71,7 @@ class Rejoin_replica_instance {
   std::string m_account_host;
   std::string m_target_read_replica_address;
   Replication_sources m_replication_sources;
+  Undo_tracker m_undo_tracker;
 };
 
 }  // namespace mysqlsh::dba::cluster

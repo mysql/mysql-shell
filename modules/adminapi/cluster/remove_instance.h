@@ -25,7 +25,6 @@
 #define MODULES_ADMINAPI_CLUSTER_REMOVE_INSTANCE_H_
 
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/common/undo.h"
 #include "mysql/instance.h"
 
 namespace mysqlsh::dba::cluster {
@@ -67,6 +66,8 @@ class Remove_instance {
 
  protected:
   void do_run();
+
+  static constexpr bool supports_undo() noexcept { return false; }
 
  private:
   void prepare();
@@ -124,10 +125,6 @@ class Remove_instance {
 
   void update_read_replicas_source_for_removed_target(
       const std::string &address) const;
-
- protected:
-  shcore::Scoped_callback_list m_undo_list;
-  Undo_tracker m_undo_tracker;
 
  private:
   Cluster_impl *m_cluster_impl = nullptr;

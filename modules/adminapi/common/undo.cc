@@ -110,6 +110,8 @@ void Undo_tracker::execute() {
     if (!(*i).second->call())
       log_info("Revert: %s (was cancelled)", (*i).first.c_str());
   }
+
+  m_entries.clear();
 }
 
 }  // namespace dba
