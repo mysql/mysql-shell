@@ -107,8 +107,9 @@ ENDIF()
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5.1)
 INCLUDE(CMakePushCheckState)
 
-# On Linux el6/el7 the default gcc is too old, see if devtoolset is installed.
-# Same with SLES 12, look for gcc 7 there.
+# On Linux el6/el7/el8/el9 the default gcc is too old,
+# see if devtoolset/gcc-toolset is installed.
+# Same with SUSE linux, look for gcc 10/12 there.
 # We need to look for gcc before calling PROJECT below.
 OPTION(FORCE_UNSUPPORTED_COMPILER "Disable compiler version checks" OFF)
 MARK_AS_ADVANCED(FORCE_UNSUPPORTED_COMPILER)
@@ -122,10 +123,15 @@ IF(UNIX)
       OUTPUT_VARIABLE MY_HOST_SYSTEM_NAME
       OUTPUT_STRIP_TRAILING_WHITESPACE
       RESULT_VARIABLE MY_UNAME_RESULT
-    )
+      )
+    EXECUTE_PROCESS(COMMAND ${MY_UNAME} -m
+      OUTPUT_VARIABLE MY_HOST_MACHINE_NAME
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE MY_UNAME_MACHINE_RESULT
+      )
     EXEC_PROGRAM(${MY_UNAME} ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
   ENDIF()
-
+  FIND_PROGRAM(MY_DPKG_BUILDFLAGS dpkg-buildflags /bin /usr/bin)
   FIND_PROGRAM(MY_RPM rpm /bin /usr/bin)
   IF(MY_RPM)
     EXECUTE_PROCESS(COMMAND ${MY_RPM} -qf /
@@ -136,15 +142,24 @@ IF(UNIX)
   ENDIF()
 ENDIF()
 
+# STRING(APPEND ...) from cmake VERSION 3.4
+MACRO(STRING_APPEND STRING_VAR INPUT)
+  SET(${STRING_VAR} "${${STRING_VAR}}${INPUT}")
+ENDMACRO()
+
+MACRO(STRING_PREPEND STRING_VAR INPUT)
+  SET(${STRING_VAR} "${INPUT}${${STRING_VAR}}")
+ENDMACRO()
+
 IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
   SET(SOLARIS 1)
 ENDIF()
 
 IF(MY_HOST_SYSTEM_NAME MATCHES "Linux")
   # Trust 'rpm -qf /' rather than 'uname -s'
-  STRING(REGEX MATCH "\\.el([678])\\." MATCH_FSYS "${MY_HOST_FILESYSTEM_NAME}")
+  STRING(REGEX MATCH "\\.el([6789])\\." MATCH_FSYS "${MY_HOST_FILESYSTEM_NAME}")
 
-  # Set LINUX_RHEL6 or LINUX_RHEL7 or LINUX_RHEL8
+  # Set LINUX_RHEL6, LINUX_RHEL7, LINUX_RHEL8 or LINUX_RHEL9
   IF(CMAKE_MATCH_1)
     SET(LINUX_RHEL 1)
     SET(LINUX_RHEL${CMAKE_MATCH_1} 1)
@@ -162,6 +177,14 @@ IF(NOT LINUX_RHEL AND MY_HOST_SYSTEM_NAME MATCHES "Linux")
         SET(LINUX_UBUNTU_16_04 1)
       ELSEIF(MY_OS_RELEASE MATCHES "18.04")
         SET(LINUX_UBUNTU_18_04 1)
+      ENDIF()
+      # /etc/os-release contains a line like
+      # VERSION_ID="20.04"
+      # Match the numeric value, including the dot, ignore the rest:
+      STRING(REGEX MATCH
+        "VERSION_ID=\"([0-9\\.]+).*" UNUSED ${MY_OS_RELEASE})
+      IF(CMAKE_MATCH_1)
+        SET(LINUX_UBUNTU_VERSION_ID ${CMAKE_MATCH_1})
       ENDIF()
     ENDIF()
   ENDIF()
@@ -191,6 +214,8 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
   IF (ENV_CC STREQUAL "" AND ENV_CXX STREQUAL "")
     IF(LINUX_RHEL)
       MESSAGE(STATUS "This is ${MATCH_FSYS} as found from 'rpm -qf /'")
+    ENDIF()
+    IF(LINUX_RHEL)
       MESSAGE(STATUS "Looking for a devtoolset compiler")
       IF(LINUX_RHEL6)
         SET(ALTERNATIVE_PATHS "/opt/rh/devtoolset-8")
@@ -201,8 +226,8 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
         ELSE()
           SET(ALTERNATIVE_PATHS "/opt/rh/devtoolset-11")
         ENDIF()
-      ELSEIF(LINUX_RHEL8)
-        SET(ALTERNATIVE_PATHS "/opt/rh/gcc-toolset-11")
+      ELSEIF(LINUX_RHEL8 OR LINUX_RHEL9)
+        SET(ALTERNATIVE_PATHS "/opt/rh/gcc-toolset-12")
       ENDIF()
 
       FOREACH(OPT_PATH ${ALTERNATIVE_PATHS})
@@ -227,6 +252,12 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
       ENDFOREACH()
       # A missing ALTERNATIVE_LD may generate bad executables.
       IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP AND ALTERNATIVE_LD)
+        # Set correct search path for executables, libraries, and data files.
+        GET_FILENAME_COMPONENT(GCC_B_PREFIX ${ALTERNATIVE_GCC} DIRECTORY)
+        STRING_PREPEND(CMAKE_C_FLAGS "-B${GCC_B_PREFIX} ")
+        GET_FILENAME_COMPONENT(GPP_B_PREFIX ${ALTERNATIVE_GPP} DIRECTORY)
+        STRING_PREPEND(CMAKE_CXX_FLAGS "-B${GPP_B_PREFIX} ")
+
         SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
         SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
         SET(CMAKE_LINKER ${ALTERNATIVE_LD})
@@ -253,9 +284,11 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
             SET(DEV_PACKAGES
               "devtoolset-11-gcc devtoolset-11-gcc-c++ devtoolset-11-binutils")
           ENDIF()
-        ELSEIF(LINUX_RHEL8)
+        ELSEIF(LINUX_RHEL8 OR LINUX_RHEL9)
           SET(DEV_PACKAGES
-            "gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils")
+            "gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils")
+          STRING_APPEND(DEV_PACKAGES " gcc-toolset-12-annobin-annocheck")
+          STRING_APPEND(DEV_PACKAGES " gcc-toolset-12-annobin-plugin-gcc")
         ENDIF()
         MESSAGE(WARNING
           "Could not find devtoolset compiler/linker in ${ALTERNATIVE_PATHS}")
@@ -315,16 +348,16 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
           NO_DEFAULT_PATH
           PATHS "/usr/bin")
       ELSEIF(LINUX_SUSE_15)
-        FIND_PROGRAM(ALTERNATIVE_GCC gcc-9
+        FIND_PROGRAM(ALTERNATIVE_GCC gcc-12
           NO_DEFAULT_PATH
           PATHS "/usr/bin")
-        FIND_PROGRAM(ALTERNATIVE_GPP g++-9
+        FIND_PROGRAM(ALTERNATIVE_GPP g++-12
           NO_DEFAULT_PATH
           PATHS "/usr/bin")
-        FIND_PROGRAM(GCC_AR_EXECUTABLE gcc-ar-9
+        FIND_PROGRAM(GCC_AR_EXECUTABLE gcc-ar-12
           NO_DEFAULT_PATH
           PATHS "/usr/bin")
-        FIND_PROGRAM(GCC_RANLIB_EXECUTABLE gcc-ranlib-9
+        FIND_PROGRAM(GCC_RANLIB_EXECUTABLE gcc-ranlib-12
           NO_DEFAULT_PATH
           PATHS "/usr/bin")
       ENDIF()
@@ -352,7 +385,7 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
           MESSAGE(FATAL_ERROR "Please do zypper install gcc10 gcc10-c++\n"
             "or set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
         ELSE()
-          MESSAGE(FATAL_ERROR "Please do zypper install gcc9 gcc9-c++\n"
+          MESSAGE(FATAL_ERROR "Please do zypper install gcc12 gcc12-c++\n"
             "or set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
         ENDIF()
       ENDIF()
@@ -414,15 +447,6 @@ ENDFOREACH()
 IF(CMAKE_VERSION VERSION_GREATER "3.12.0")
   CMAKE_POLICY(SET CMP0075 NEW)
 ENDIF()
-
-# STRING(APPEND ...) from cmake VERSION 3.4
-MACRO(STRING_APPEND STRING_VAR INPUT)
-  SET(${STRING_VAR} "${${STRING_VAR}}${INPUT}")
-ENDMACRO()
-
-MACRO(STRING_PREPEND STRING_VAR INPUT)
-  SET(${STRING_VAR} "${INPUT}${${STRING_VAR}}")
-ENDMACRO()
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
