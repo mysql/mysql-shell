@@ -3584,22 +3584,29 @@ session.run_sql(f"DROP USER IF EXISTS {wild_account}")
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 
 #@<> BUG#35550282 - exclude `mysql_audit` schema if the `ocimds` option is set
+# BUG#35805866 - exclude `mysql_firewall` schema if the `ocimds` option is set
 # setup
-schema_name = "mysql_audit"
+schema_names = [ "mysql_audit", "mysql_firewall" ]
 
-session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
-session.run_sql("CREATE SCHEMA !", [schema_name])
+for schema_name in schema_names:
+    session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    session.run_sql("CREATE SCHEMA !", [schema_name])
 
 #@<> BUG#35550282 - option is not set, schema is dumped
 EXPECT_SUCCESS(None, test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
+
+for schema_name in schema_names:
+    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
 
 #@<> BUG#35550282 - option is set, schema is not dumped
 EXPECT_SUCCESS(None, test_output_absolute, { "ocimds": True, "compatibility": ["ignore_missing_pks"], "users": False, "ddlOnly": True, "showProgress": False })
-EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
+
+for schema_name in schema_names:
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
 
 #@<> BUG#35550282 - cleanup
-session.run_sql("DROP SCHEMA !;", [schema_name])
+for schema_name in schema_names:
+    session.run_sql("DROP SCHEMA !;", [schema_name])
 
 #@<> Cleanup
 drop_all_schemas()
