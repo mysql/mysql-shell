@@ -1,4 +1,4 @@
-//@ {false && VER(>=8.0.27)}
+//@ {VER(>=8.0.27)}
 
 function clusterset_lock_check(func, test_shared = true) {
 
