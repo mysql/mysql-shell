@@ -155,12 +155,15 @@ bool query_server_errors(const mysql::IInstance &instance,
  * @param user the target user associated with the thread.
  * @param var_name_filter the LIKE filter for the variables names.
  * @param cb callback to call for each variable found together with its value.
+ *
+ * NOTE: first argument of callback is const& in order to avoid false positive
+ *       -Werror=maybe-uninitialized with GCC12, release build + gcov
  */
 size_t iterate_thread_variables(
     const mysqlshdk::mysql::IInstance &instance,
     std::string_view thread_command, std::string_view user,
     std::string_view var_name_filter,
-    const std::function<bool(std::string, std::string)> &cb);
+    const std::function<bool(const std::string &, std::string)> &cb);
 
 inline void assert_transaction_is_open(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {

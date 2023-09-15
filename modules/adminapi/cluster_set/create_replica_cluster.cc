@@ -415,7 +415,7 @@ shcore::Value Create_replica_cluster::execute() {
       }
 
       if (!m_options.dry_run) {
-        undo_list.push_front([=, &sync_transactions_revert]() {
+        undo_list.push_front([=, this, &sync_transactions_revert]() {
           log_info("Revert: Dropping replication account '%s'",
                    ar_options.repl_credentials->user.c_str());
           m_cluster_set->get_primary_master()->drop_user(
@@ -475,7 +475,7 @@ shcore::Value Create_replica_cluster::execute() {
     auto repl_user = *ar_options.repl_credentials;
     auto cluster = create_cluster_object(repl_user, repl_account_host);
 
-    undo_list.push_front([=]() {
+    undo_list.push_front([=, this]() {
       log_info("Revert: Dropping Cluster '%s' from Metadata",
                cluster->get_name().c_str());
       MetadataStorage::Transaction trx(m_cluster_set->get_metadata_storage());
@@ -512,7 +512,7 @@ shcore::Value Create_replica_cluster::execute() {
 
     // NOTE: This should be the very last thing to be reverted to ensure changes
     // are replicated
-    undo_list.push_back([=]() {
+    undo_list.push_back([this]() {
       log_info("Revert: Stopping Group Replication on '%s'",
                m_target_instance->descr().c_str());
 
@@ -570,7 +570,7 @@ shcore::Value Create_replica_cluster::execute() {
     sync_transactions_revert = true;
 
     // NOTE: This should be done last to allow changes to be replicated
-    undo_list.push_back([=]() {
+    undo_list.push_back([this]() {
       log_info("Revert: Removing and resetting ClusterSet settings");
       m_cluster_set->remove_replica(m_target_instance.get(), m_options.dry_run);
     });
@@ -596,7 +596,7 @@ shcore::Value Create_replica_cluster::execute() {
       recreate_recovery_account(cluster, m_options.cert_subject,
                                 &repl_account_user, &repl_account_host);
 
-      undo_list.push_front([=]() {
+      undo_list.push_front([=, this]() {
         log_info("Revert: Dropping replication user '%s'",
                  repl_account_user.c_str());
         m_cluster_set->get_primary_master()->drop_user(repl_account_user,
@@ -646,7 +646,7 @@ shcore::Value Create_replica_cluster::execute() {
           "skip_replica_start", true,
           mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
 
-      undo_list.push_front([=]() {
+      undo_list.push_front([=, this]() {
         if (skip_replica_start) {
           log_info("revert: Clearing skip_replica_start");
           m_target_instance->set_sysvar(

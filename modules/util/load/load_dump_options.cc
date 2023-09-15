@@ -314,7 +314,7 @@ void Load_dump_options::validate() {
       mysqlsh::current_console()->print_error(
           "The 'local_infile' global system variable must be set to ON in "
           "the target server, after the server is verified to be trusted.");
-      THROW_ERROR0(SHERR_LOAD_LOCAL_INFILE_DISABLED);
+      THROW_ERROR(SHERR_LOAD_LOCAL_INFILE_DISABLED);
     }
   }
 

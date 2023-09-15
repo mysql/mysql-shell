@@ -2186,7 +2186,7 @@ shcore::Dictionary_t Status::feed_read_replica_info(const Read_replica_info &rr,
           *(m_cluster->get_metadata_storage()->get_md_server()),
           "Binlog Dump GTID", instance_repl_account_user, "Ssl%",
           [&ssl_cipher, &ssl_version](const std::string &var_name,
-                                      const std::string &var_value) {
+                                      std::string var_value) {
             if (var_name == "Ssl_cipher") {
               ssl_cipher = std::move(var_value);
             } else if (var_name == "Ssl_version") {

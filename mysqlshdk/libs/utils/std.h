@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,22 +24,12 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_STD_H_
 #define MYSQLSHDK_LIBS_UTILS_STD_H_
 
-#include <type_traits>
+namespace std23 {
 
-namespace std20 {
-
-#if __cplusplus > 201703L
-#error "Already using C++20, please remove this namespace."
+#if __cplusplus > 202002L
+#error "Already using C++23, please remove this namespace."
 #endif
 
-template <typename T>
-struct remove_cvref {
-  typedef std::remove_cv_t<std::remove_reference_t<T>> type;
-};
-
-template <typename T>
-using remove_cvref_t = typename remove_cvref<T>::type;
-
-}  // namespace std20
+}  // namespace std23
 
 #endif  // MYSQLSHDK_LIBS_UTILS_STD_H_

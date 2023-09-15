@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -21,8 +21,8 @@
 
 include(CheckCXXCompilerFlag)
 
-# Check for C++ 17 support
-set(CXX_STD "17")
+# Check for C++ 20 support
+set(CXX_STD "20")
 
 macro(APPEND_FLAG _string_var _addition)
   set(${_string_var} "${${_string_var}} ${_addition}")
@@ -76,8 +76,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
 elseif(MSVC)
   # Overview of MSVC versions: http://www.cmake.org/cmake/help/v3.3/variable/MSVC_VERSION.html
-  if(MSVC_VERSION LESS 1900)
-    message(FATAL_ERROR "Need at least Visual Studio 2015")
+  if(MSVC_VERSION LESS 1925)
+    message(FATAL_ERROR "Need at least Visual Studio 2019 Version 16.5")
   endif()
 
   message(STATUS "Using Visual Studio version: ${MSVC_VERSION} (${MSVC_TOOLSET_VERSION})")
@@ -86,6 +86,9 @@ elseif(MSVC)
 
   # /TP is needed so .cc files are recognized as C++ source files by MSVC
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /TP")
+
+  # enable preprocessor conforming to C++11 and later standards
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:preprocessor")
 
   if(ENABLE_GCOV)
     message(FATAL_ERROR "Code coverage not supported with MSVC")

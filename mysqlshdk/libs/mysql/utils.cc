@@ -926,7 +926,7 @@ size_t iterate_thread_variables(
     const mysqlshdk::mysql::IInstance &instance,
     std::string_view thread_command, std::string_view user,
     std::string_view var_name_filter,
-    const std::function<bool(std::string, std::string)> &cb) {
+    const std::function<bool(const std::string &, std::string)> &cb) {
   auto query =
       "SELECT s.variable_name, s.variable_value FROM "
       "performance_schema.threads t JOIN performance_schema.status_by_thread s "

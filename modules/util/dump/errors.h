@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,20 +27,8 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-#if __cplusplus > 201703L
-// C++20 has __VA_OPT__, THROW_ERROR0() is not needed, should be replaced with
-// THROW_ERROR()
 #define THROW_ERROR(code, ...) \
   throw shcore::Exception(     \
       shcore::str_format(code##_MSG __VA_OPT__(, ) __VA_ARGS__), code)
-#else
-// this uses shcore::str_format() even though it's not needed in order to detect
-// errors when message with formatting is used mistakenly with THROW_ERROR0()
-// macro
-#define THROW_ERROR0(code) \
-  throw shcore::Exception(shcore::str_format(code##_MSG), code)
-#define THROW_ERROR(code, ...) \
-  throw shcore::Exception(shcore::str_format(code##_MSG, __VA_ARGS__), code)
-#endif
 
 #endif  // MODULES_UTIL_DUMP_ERRORS_H_

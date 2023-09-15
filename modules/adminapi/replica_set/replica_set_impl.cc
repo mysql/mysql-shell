@@ -2267,7 +2267,7 @@ shcore::Value Replica_set_impl::status(int extended) {
         mysqlshdk::mysql::iterate_thread_variables(
             *(get_metadata_storage()->get_md_server()), "Binlog Dump GTID",
             repl_account, "Ssl%",
-            [&ssl_cipher, &ssl_version](std::string var_name,
+            [&ssl_cipher, &ssl_version](const std::string &var_name,
                                         std::string var_value) {
               if (var_name == "Ssl_cipher")
                 ssl_cipher = std::move(var_value);

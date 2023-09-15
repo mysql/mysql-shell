@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,9 +127,12 @@ inline std::string to_utf8(const std::wstring &s) {
 
 namespace mysqlsh {
 
-const char *Prompt_renderer::k_symbol_sep_right_pl = u8"\ue0b0";
-const char *Prompt_renderer::k_symbol_sep_right_hollow_pl = u8"\ue0b1";
-const char *Prompt_renderer::k_symbol_ellipsis_pl = u8"\u2026";
+// U+E0B0
+const char *Prompt_renderer::k_symbol_sep_right_pl = "\xEE\x82\xB0";
+// U+E0B1
+const char *Prompt_renderer::k_symbol_sep_right_hollow_pl = "\xEE\x82\xB1";
+// U+2026
+const char *Prompt_renderer::k_symbol_ellipsis_pl = "\xE2\x80\xA6";
 
 class Prompt_segment {
  public:

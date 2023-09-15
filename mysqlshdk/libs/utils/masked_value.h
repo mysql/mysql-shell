@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,6 @@
 #include <type_traits>
 
 #include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/libs/utils/std.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -59,10 +58,10 @@ class Masked_value final {
    * constructor is selected).
    */
   template <typename U,
-            std::enable_if_t<!std::is_same<Masked_value<T>,
-                                           std20::remove_cvref_t<U>>::value &&
-                                 !std::is_same<T &, std::remove_cv_t<U>>::value,
-                             int> = 0>
+            std::enable_if_t<
+                !std::is_same<Masked_value<T>, std::remove_cvref_t<U>>::value &&
+                    !std::is_same<T &, std::remove_cv_t<U>>::value,
+                int> = 0>
   Masked_value(U &&real) : m_real(std::forward<U>(real)), m_real_ref(m_real) {}
 
   /**

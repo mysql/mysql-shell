@@ -1862,7 +1862,7 @@ void Dump_loader::run() {
 
   for (const auto &e : m_thread_exceptions) {
     if (e) {
-      THROW_ERROR0(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
+      THROW_ERROR(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
     }
   }
 }
@@ -1952,7 +1952,7 @@ void Dump_loader::open_dump(
         "Dump format has version " + m_dump->dump_version().get_full() +
         " which is not supported by this version of MySQL Shell. "
         "Please upgrade MySQL Shell to load it.");
-    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_DUMP_VERSION);
+    THROW_ERROR(SHERR_LOAD_UNSUPPORTED_DUMP_VERSION);
   }
 
   if (m_dump->dump_version() < Version(dump::Schema_dumper::version())) {
@@ -1986,7 +1986,7 @@ void Dump_loader::open_dump(
         missing_capabilities +
         "The minimum required version of MySQL Shell to load this dump is: " +
         minimum_version.get_base() + ".");
-    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_DUMP_CAPABILITIES);
+    THROW_ERROR(SHERR_LOAD_UNSUPPORTED_DUMP_CAPABILITIES);
   }
 
   if (status != Dump_reader::Status::COMPLETE) {
@@ -1999,7 +1999,7 @@ void Dump_loader::open_dump(
           "Dump is not yet finished. Use the 'waitDumpTimeout' option to "
           "enable concurrent load and set a timeout for when we need to wait "
           "for new data to become available.");
-      THROW_ERROR0(SHERR_LOAD_INCOMPLETE_DUMP);
+      THROW_ERROR(SHERR_LOAD_INCOMPLETE_DUMP);
     }
   }
 
@@ -2027,7 +2027,7 @@ void Dump_loader::check_server_version() {
   console->print_info(msg);
 
   if (target_server < Version(5, 7, 0)) {
-    THROW_ERROR0(SHERR_LOAD_UNSUPPORTED_SERVER_VERSION);
+    THROW_ERROR(SHERR_LOAD_UNSUPPORTED_SERVER_VERSION);
   }
 
   if (m_options.ignore_version() ||
@@ -2057,7 +2057,7 @@ void Dump_loader::check_server_version() {
 
         console->print_error(msg);
 
-        THROW_ERROR0(SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE);
+        THROW_ERROR(SHERR_LOAD_DUMP_NOT_MDS_COMPATIBLE);
       }
     }
 
@@ -2097,7 +2097,7 @@ void Dump_loader::check_server_version() {
             "fully supported and may not work. Enable the 'ignoreVersion' "
             "option to load anyway.";
         console->print_error(msg);
-        THROW_ERROR0(SHERR_LOAD_SERVER_VERSION_MISMATCH);
+        THROW_ERROR(SHERR_LOAD_SERVER_VERSION_MISMATCH);
       }
     } else {
       console->print_note(msg);
@@ -2122,23 +2122,23 @@ void Dump_loader::check_server_version() {
     }
 
     if (group_replication_running) {
-      THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_GR_IS_RUNNING);
+      THROW_ERROR(SHERR_LOAD_UPDATE_GTID_GR_IS_RUNNING);
     }
 
     if (target_server < Version(8, 0, 0)) {
       if (m_options.update_gtid_set() ==
           Load_dump_options::Update_gtid_set::APPEND) {
-        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_APPEND_NOT_SUPPORTED);
+        THROW_ERROR(SHERR_LOAD_UPDATE_GTID_APPEND_NOT_SUPPORTED);
       }
 
       if (!m_options.skip_binlog()) {
-        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REQUIRES_SKIP_BINLOG);
+        THROW_ERROR(SHERR_LOAD_UPDATE_GTID_REQUIRES_SKIP_BINLOG);
       }
 
       if (!session.queryf_one_int(0, 0,
                                   "select @@global.gtid_executed = '' and "
                                   "@@global.gtid_purged = ''")) {
-        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_EMPTY_VARIABLES);
+        THROW_ERROR(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_EMPTY_VARIABLES);
       }
     } else {
       const char *g = m_dump->gtid_executed().c_str();
@@ -2150,25 +2150,25 @@ void Dump_loader::check_server_version() {
                 "GTID_SUBTRACT(@@global.gtid_executed, "
                 "@@global.gtid_purged)) = gtid_subtract(?, '')",
                 g, g)) {
-          THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_SETS_INTERSECT);
+          THROW_ERROR(SHERR_LOAD_UPDATE_GTID_REPLACE_SETS_INTERSECT);
         }
 
         if (!session.queryf_one_int(
                 0, 0, "select GTID_SUBSET(@@global.gtid_purged, ?);", g)) {
-          THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_SUPERSET);
+          THROW_ERROR(SHERR_LOAD_UPDATE_GTID_REPLACE_REQUIRES_SUPERSET);
         }
       } else if (!session.queryf_one_int(
                      0, 0,
                      "select GTID_SUBTRACT(@@global.gtid_executed, ?) = "
                      "@@global.gtid_executed",
                      g)) {
-        THROW_ERROR0(SHERR_LOAD_UPDATE_GTID_APPEND_SETS_INTERSECT);
+        THROW_ERROR(SHERR_LOAD_UPDATE_GTID_APPEND_SETS_INTERSECT);
       }
     }
   }
 
   if (should_create_pks() && target_server < Version(8, 0, 24)) {
-    THROW_ERROR0(SHERR_LOAD_INVISIBLE_PKS_UNSUPPORTED_SERVER_VERSION);
+    THROW_ERROR(SHERR_LOAD_INVISIBLE_PKS_UNSUPPORTED_SERVER_VERSION);
   }
 
   if (m_options.load_users() &&
@@ -2252,7 +2252,7 @@ void Dump_loader::check_tables_without_primary_key() {
         "prevent your database from functioning properly)",
         tbs.c_str());
     current_console()->print_error(error_msg);
-    THROW_ERROR0(SHERR_LOAD_REQUIRE_PRIMARY_KEY_ENABLED);
+    THROW_ERROR(SHERR_LOAD_REQUIRE_PRIMARY_KEY_ENABLED);
   }
 }
 
@@ -2458,7 +2458,7 @@ void Dump_loader::check_existing_objects() {
           "One or more objects in the dump already exist in the destination "
           "database. You must either DROP these objects or exclude them from "
           "the load.");
-      THROW_ERROR0(SHERR_LOAD_DUPLICATE_OBJECTS_FOUND);
+      THROW_ERROR(SHERR_LOAD_DUPLICATE_OBJECTS_FOUND);
     }
   }
 }
@@ -3041,7 +3041,7 @@ void Dump_loader::wait_for_dump(
           "Timeout while waiting for dump to finish. Imported data may be "
           "incomplete.");
 
-      THROW_ERROR0(SHERR_LOAD_DUMP_WAIT_TIMEOUT);
+      THROW_ERROR(SHERR_LOAD_DUMP_WAIT_TIMEOUT);
     }
   } else {
     // Dump isn't complete yet, but we're not waiting for it

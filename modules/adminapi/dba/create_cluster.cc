@@ -876,7 +876,7 @@ shcore::Value Create_cluster::execute() {
         }
 
         // Drop the recovery account if GR fails to start
-        undo_list.push_front([=]() {
+        undo_list.push_front([=, this]() {
           std::string repl_account_host =
               m_options.replication_allowed_host.empty()
                   ? "%"
@@ -1093,7 +1093,7 @@ shcore::Value Create_cluster::execute() {
                                 &repl_account);
 
         // Drop the recovery account if GR fails to start
-        undo_list.push_front([=]() {
+        undo_list.push_front([=, this]() {
           std::string repl_account_host =
               m_options.replication_allowed_host.empty()
                   ? "%"

@@ -542,7 +542,7 @@ void Schema_dumper::fetch_db_collation(const std::string &db,
     } while (false);
 
     if (err_status) {
-      THROW_ERROR0(SHERR_DUMP_SD_COLLATION_DATABASE_ERROR);
+      THROW_ERROR(SHERR_DUMP_SD_COLLATION_DATABASE_ERROR);
     }
   }
 }
@@ -3490,7 +3490,7 @@ Instance_cache::Server_version Schema_dumper::server_version() const {
       ret_val.is_8_0 = true;
     }
   } else {
-    THROW_ERROR0(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
+    THROW_ERROR(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
   }
 
   return ret_val;

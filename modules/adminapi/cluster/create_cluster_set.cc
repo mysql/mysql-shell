@@ -316,7 +316,7 @@ shcore::Value Create_cluster_set::execute() {
       cs->record_cluster_replication_user(m_cluster, repl_user.first,
                                           repl_user.second);
 
-      undo_list.push_front([=]() {
+      undo_list.push_front([=, this]() {
         log_info("Revert: Dropping replication account '%s'",
                  repl_user.first.user.c_str());
         cs->drop_cluster_replication_user(m_cluster);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,9 +26,9 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/libs/utils/std.h"
 
 namespace shcore {
 
@@ -63,11 +63,11 @@ struct Result_wrapper_<void> {
 };
 
 template <typename R>
-struct Result_wrapper : public Result_wrapper_<std20::remove_cvref_t<R>> {};
+struct Result_wrapper : public Result_wrapper_<std::remove_cvref_t<R>> {};
 
 }  // namespace detail
 
-template <typename T, typename Type = std20::remove_cvref_t<T>>
+template <typename T, typename Type = std::remove_cvref_t<T>>
 struct Type_info : detail::Type_info<Type> {
   using type = Type;
 

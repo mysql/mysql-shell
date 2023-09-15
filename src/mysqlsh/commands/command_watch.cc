@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,8 +41,10 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
     const auto new_args = parse_arguments(args);
 
     volatile bool iterrupted = false;
-    shcore::Interrupt_handler inth(
-        [&iterrupted]() { return (iterrupted = true); });
+    shcore::Interrupt_handler inth([&iterrupted]() {
+      iterrupted = true;
+      return true;
+    });
 
     // convert seconds to milliseconds
     const auto interval = static_cast<uint32_t>(1000.0f * m_refresh_interval);

@@ -763,7 +763,7 @@ void Instance_cache_builder::fetch_columns() {
     }
 
     if (has_invalid_view) {
-      THROW_ERROR0(SHERR_DUMP_IC_INVALID_VIEWS);
+      THROW_ERROR(SHERR_DUMP_IC_INVALID_VIEWS);
     }
   }
 }

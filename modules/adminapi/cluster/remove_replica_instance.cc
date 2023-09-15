@@ -173,7 +173,7 @@ void Remove_replica_instance::do_run() {
                  m_options.dry_run);
 
   m_undo_tracker.add_back(
-      "Adding back Read-Replica replication channel", [=]() {
+      "Adding back Read-Replica replication channel", [this]() {
         std::string repl_user;
         std::string repl_user_host;
 

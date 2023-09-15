@@ -236,7 +236,7 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
           std::string ssl_cipher, ssl_version;
           mysqlshdk::mysql::iterate_thread_variables(
               *primary, "Binlog Dump GTID", repl_user, "Ssl%",
-              [&ssl_cipher, &ssl_version](std::string var_name,
+              [&ssl_cipher, &ssl_version](const std::string &var_name,
                                           std::string var_value) {
                 if (var_name == "Ssl_cipher")
                   ssl_cipher = std::move(var_value);

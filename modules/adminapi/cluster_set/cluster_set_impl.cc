@@ -1248,17 +1248,18 @@ void Cluster_set_impl::remove_cluster(
                                                     target_cluster->get_id());
 
         // Push the whole transaction and changes to the Undo list
-        undo_tracker.add("Recording back ClusterSet member removed", [=]() {
-          Cluster_set_member_metadata cluster_md;
-          cluster_md.cluster.cluster_id = target_cluster->get_id();
-          cluster_md.cluster_set_id = get_id();
-          cluster_md.master_cluster_id = get_primary_cluster()->get_id();
-          cluster_md.primary_cluster = false;
+        undo_tracker.add(
+            "Recording back ClusterSet member removed", [=, this]() {
+              Cluster_set_member_metadata cluster_md;
+              cluster_md.cluster.cluster_id = target_cluster->get_id();
+              cluster_md.cluster_set_id = get_id();
+              cluster_md.master_cluster_id = get_primary_cluster()->get_id();
+              cluster_md.primary_cluster = false;
 
-          MetadataStorage::Transaction trx2(metadata);
-          metadata->record_cluster_set_member_added(cluster_md);
-          trx2.commit();
-        });
+              MetadataStorage::Transaction trx2(metadata);
+              metadata->record_cluster_set_member_added(cluster_md);
+              trx2.commit();
+            });
 
         // Only commit transactions once everything is done
         trx.commit();
@@ -1386,7 +1387,7 @@ void Cluster_set_impl::remove_cluster(
       }
 
       // Revert in case of failure
-      undo_tracker.add("Re-adding Cluster as Replica", [=]() {
+      undo_tracker.add("Re-adding Cluster as Replica", [=, this]() {
         drop_cluster_undo->call();
 
         replication_user_undo->call();
@@ -1409,8 +1410,8 @@ void Cluster_set_impl::remove_cluster(
             {mysqlshdk::gr::Member_state::ONLINE,
              mysqlshdk::gr::Member_state::RECOVERING},
             get_primary_master()->get_connection_options(), {},
-            [=](const std::shared_ptr<Instance> &instance,
-                const mysqlshdk::gr::Member &) {
+            [=, this](const std::shared_ptr<Instance> &instance,
+                      const mysqlshdk::gr::Member &) {
               if (target_cluster->get_cluster_server()->get_uuid() !=
                   instance->get_uuid()) {
                 async_create_channel(instance.get(), repl_source.get(),
@@ -1461,7 +1462,7 @@ void Cluster_set_impl::remove_cluster(
             mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
 
         // Revert in case of failure
-        undo_tracker.add("", [=]() {
+        undo_tracker.add("", [=, this]() {
           log_info("Revert: Re-adding Cluster as Replica");
           update_replica(reachable_member.get(), get_primary_master().get(),
                          ar_options, false, false, options.dry_run);
@@ -1870,8 +1871,8 @@ void Cluster_set_impl::demote_from_primary(
       {mysqlshdk::gr::Member_state::ONLINE,
        mysqlshdk::gr::Member_state::RECOVERING},
       new_primary->get_connection_options(), {},
-      [=](const std::shared_ptr<Instance> &instance,
-          const mysqlshdk::gr::Member &) {
+      [=, this](const std::shared_ptr<Instance> &instance,
+                const mysqlshdk::gr::Member &) {
         if (cluster_primary->get_uuid() == instance->get_uuid()) return true;
 
         async_create_channel(instance.get(), new_primary,
@@ -1900,8 +1901,8 @@ void Cluster_set_impl::update_replica(
   replica->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE}, master->get_connection_options(),
       {replica->get_cluster_server()->descr()},
-      [=](const std::shared_ptr<Instance> &instance,
-          const mysqlshdk::gr::Member &gr_member) {
+      [=, this](const std::shared_ptr<Instance> &instance,
+                const mysqlshdk::gr::Member &gr_member) {
         if (gr_member.role != mysqlshdk::gr::Member_role::PRIMARY)
           update_replica(instance.get(), master, ar_options, false,
                          reset_channel, dry_run);
@@ -2414,7 +2415,7 @@ void Cluster_set_impl::set_primary_cluster(
         trx.commit();
       }
 
-      undo_tracker.add("", [=]() {
+      undo_tracker.add("", [=, this]() {
         MetadataStorage::Transaction trx(m_metadata_storage);
         m_metadata_storage->record_cluster_set_primary_switch(
             get_id(), primary_cluster->get_id(), {});

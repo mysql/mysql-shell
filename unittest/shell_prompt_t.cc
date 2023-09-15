@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -494,7 +494,7 @@ TEST_F(Shell_prompt, color_i256_unicode) {
   prompt.clear();
   prompt.set_prompt(shcore::Value::parse("'\\uF37A'").get_string(), "",
                     mysqlshdk::textui::Style());
-  EXPECT_EQ(u8"\uF37A", prompt.render());
+  EXPECT_EQ("\xEF\x8D\xBA", prompt.render());
 }
 
 TEST(Shell_prompt_manager, load) {

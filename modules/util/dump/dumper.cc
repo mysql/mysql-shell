@@ -54,7 +54,6 @@
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
-#include "mysqlshdk/libs/utils/std.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1261,7 +1260,7 @@ class Dumper::Table_worker final {
             ? std::max(info.row_count / info.rows_per_chunk, UINT64_C(1))
             : info.row_count;
 
-    using step_t = std20::remove_cvref_t<decltype(min)>;
+    using step_t = std::remove_cvref_t<decltype(min)>;
     const auto index_range = distance(min, max);
     const auto row_count_accuracy = std::max(info.row_count / 10, UINT64_C(1));
     const auto estimated_step =
@@ -1679,7 +1678,7 @@ class Dumper::Memory_dumper final {
 
   template <typename... Args>
   void dump(std::vector<Schema_dumper::Issue> (Schema_dumper::*func)(
-                IFile *, const std20::remove_cvref_t<Args> &...),
+                IFile *, const std::remove_cvref_t<Args> &...),
             Args &&... args) {
     auto issues = (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
 
@@ -1689,7 +1688,7 @@ class Dumper::Memory_dumper final {
 
   template <typename... Args>
   void dump(void (Schema_dumper::*func)(IFile *,
-                                        const std20::remove_cvref_t<Args> &...),
+                                        const std::remove_cvref_t<Args> &...),
             Args &&... args) {
     (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
   }
@@ -2320,7 +2319,7 @@ void Dumper::acquire_read_locks() {
       } else {
         current_console()->print_error("Failed to acquire global read lock: " +
                                        e.format());
-        THROW_ERROR0(SHERR_DUMP_GLOBAL_READ_LOCK_FAILED);
+        THROW_ERROR(SHERR_DUMP_GLOBAL_READ_LOCK_FAILED);
       }
     }
 
@@ -2466,7 +2465,7 @@ void Dumper::lock_instance() {
 
     if (shcore::str_caseeq(name(), "dumpInstance")) {
       console->print_error(msg);
-      THROW_ERROR0(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
+      THROW_ERROR(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
     } else {
       console->print_warning(msg);
     }
@@ -2706,7 +2705,7 @@ void Dumper::validate_mds() const {
         "Compatibility issues with MySQL HeatWave Service " + version +
         " were found. Please use the 'compatibility' option to apply "
         "compatibility adaptations to the dumped DDL.");
-    THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
+    THROW_ERROR(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
   }
 
   if (status.matches_any(Issue_status_set{Issue_status::FIXED_CREATE_PKS,
@@ -2933,9 +2932,9 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
     const auto status = show_issues(in_memory.issues());
 
     if (status.is_set(Issue_status::ERROR_HAS_INVALID_GRANTS)) {
-      THROW_ERROR0(SHERR_DUMP_INVALID_GRANT_STATEMENT);
+      THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
     } else if (status.is_set(Issue_status::ERROR)) {
-      THROW_ERROR0(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
+      THROW_ERROR(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
     }
   }
 
@@ -3782,7 +3781,7 @@ void Dumper::summarize() const {
 void Dumper::rethrow() const {
   for (const auto &exc : m_worker_exceptions) {
     if (exc) {
-      THROW_ERROR0(SHERR_DUMP_WORKER_THREAD_FATAL_ERROR);
+      THROW_ERROR(SHERR_DUMP_WORKER_THREAD_FATAL_ERROR);
     }
   }
 }
@@ -4100,7 +4099,7 @@ bool Dumper::is_gtid_executed_inconsistent() const {
 
 void Dumper::validate_schemas_list() const {
   if (!dump_users() && m_cache.schemas.empty()) {
-    THROW_ERROR0(SHERR_DUMP_NO_SCHEMAS_SELECTED);
+    THROW_ERROR(SHERR_DUMP_NO_SCHEMAS_SELECTED);
   }
 }
 
@@ -4274,7 +4273,7 @@ void Dumper::validate_dump_consistency(
           "replication stopped, or, if dumping from a primary, then enable "
           "super_read_only system variable and ensure that any inbound "
           "replication channels are stopped.");
-      THROW_ERROR0(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
+      THROW_ERROR(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
     } else {
       console->print_warning(msg);
     }
@@ -4332,7 +4331,7 @@ bool Dumper::check_for_upgrade_errors() const {
 
 void Dumper::throw_if_cannot_dump_users() const {
   if (m_server_version.is_maria_db && dump_users()) {
-    THROW_ERROR0(SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED);
+    THROW_ERROR(SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED);
   }
 }
 

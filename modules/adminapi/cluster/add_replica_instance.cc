@@ -130,7 +130,7 @@ void Add_replica_instance::validate_instance_is_standalone() {
 
 Member_recovery_method Add_replica_instance::validate_instance_recovery() {
   auto check_recoverable =
-      [=](const mysqlshdk::mysql::IInstance &tgt_instance) {
+      [this](const mysqlshdk::mysql::IInstance &tgt_instance) {
         // Get the gtid state in regards to the donor
         mysqlshdk::mysql::Replica_gtid_state state =
             check_replica_group_gtid_state(*m_donor_instance, tgt_instance,
@@ -401,7 +401,7 @@ void Add_replica_instance::do_run() {
         m_cluster_impl->create_read_replica_replication_user(
             m_target_instance.get(), "", m_options.timeout, m_options.dry_run);
 
-    m_undo_tracker.add("Dropping replication account", [=]() {
+    m_undo_tracker.add("Dropping replication account", [=, this]() {
       log_info("Dropping replication account '%s'",
                ar_options.repl_credentials->user.c_str());
       m_cluster_impl->drop_read_replica_replication_user(
@@ -418,7 +418,7 @@ void Add_replica_instance::do_run() {
       // To avoid that, we drop the Metadata schema from the target instance
       // when clone is aborted.
       auto &clone_cleanup = m_undo_tracker.add_back(
-          "Dropping Metadata schema from Read-Replica", [=]() {
+          "Dropping Metadata schema from Read-Replica", [this]() {
             try {
               bool restore_super_read_only = false;
               if (m_target_instance->get_sysvar_bool("super_read_only",
@@ -566,11 +566,13 @@ void Add_replica_instance::do_run() {
 
     // Remove the channel last, to ensure the revert updates are
     // propagated
-    m_undo_tracker.add_back("Removing Read-Replica replication channel", [=]() {
-      remove_channel(*m_target_instance, k_read_replica_async_channel_name,
-                     m_options.dry_run);
-      reset_managed_connection_failover(*m_target_instance, m_options.dry_run);
-    });
+    m_undo_tracker.add_back(
+        "Removing Read-Replica replication channel", [this]() {
+          remove_channel(*m_target_instance, k_read_replica_async_channel_name,
+                         m_options.dry_run);
+          reset_managed_connection_failover(*m_target_instance,
+                                            m_options.dry_run);
+        });
 
     // Synchronize with source
     try {

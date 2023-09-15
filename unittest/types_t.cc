@@ -271,16 +271,16 @@ TEST(ValueTests, SimpleString) {
   EXPECT_STREQ("\"Hello / world\"", myjson.c_str());
 
   // Test unicode literal
-  EXPECT_STREQ(u8"\u0061",
+  EXPECT_STREQ("\x61",
                shcore::Value::parse("\"\\u0061\"").get_string().c_str());
 
-  EXPECT_STREQ(u8"\u0161",
+  EXPECT_STREQ("\xC5\xA1",
                shcore::Value::parse("\"\\u0161\"").get_string().c_str());
 
-  EXPECT_STREQ(u8"\u0ab0",
+  EXPECT_STREQ("\xE0\xAA\xB0",
                shcore::Value::parse("\"\\u0ab0\"").get_string().c_str());
 
-  EXPECT_STREQ(u8"\u100b0",
+  EXPECT_STREQ("\xE1\x80\x8B\x30",
                shcore::Value::parse("\"\\u100b0\"").get_string().c_str());
 }
 
