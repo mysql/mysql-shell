@@ -87,6 +87,12 @@ function(add_shell_executable)
                 "${ANTLR4_LIB_FILENAME}" "@loader_path/../${INSTALL_LIBDIR}/${ANTLR4_LIB_FILENAME}"
                 $<TARGET_FILE:${ARGV0}>)
     endif()
+    if(BUNDLED_PROTOBUF_LIBRARY)
+      add_custom_command(TARGET "${ARGV0}" POST_BUILD
+        COMMAND install_name_tool -change
+                "${BUNDLED_PROTOBUF_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${BUNDLED_PROTOBUF_LIBRARY_NAME}"
+                $<TARGET_FILE:${ARGV0}>)
+    endif()
   elseif(NOT WIN32)
   if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR OR BUNDLED_ANTLR_DIR OR BUNDLED_SASL_DIR)
     # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH
@@ -159,6 +165,17 @@ function(install_bundled_binaries)
           write_rpath(BINARY "${SOURCE_BINARY}" DESTINATION "${INSTALL_BUNDLED_DESTINATION}" TARGET ${INSTALL_BUNDLED_TARGET})
         endif()
       elseif(APPLE)
+        # reset the ID to something predictible (file name)
+        get_filename_component(SOURCE_BINARY_NAME "${SOURCE_BINARY}" NAME)
+
+        EXECUTE_PROCESS(
+            COMMAND install_name_tool -id "${SOURCE_BINARY_NAME}" "${SOURCE_BINARY}"
+            RESULT_VARIABLE COMMAND_RESULT)
+
+        IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+          MESSAGE(FATAL_ERROR "Failed to change ID of ${SOURCE_BINARY} to ${SOURCE_BINARY_NAME}.")
+        ENDIF()
+
         # if we bundle OpenSSL, then we want the bundled binary to use it instead of the system one
         if(BUNDLED_OPENSSL)
           SET_BUNDLED_OPEN_SSL(BINARIES "${SOURCE_BINARY}")

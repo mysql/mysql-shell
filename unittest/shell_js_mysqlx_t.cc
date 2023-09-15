@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,6 +166,8 @@ TEST_F(Shell_js_mysqlx_tests, bug26906527_error_during_fetch) {
     validate_interactive("bug26906527_error_during_fetch.js");
 }
 
+#ifdef USE_MYSQLX_FULL_PROTO
+
 /**
  * Prepared statement tests are verified using protocol tracing
  */
@@ -264,5 +266,7 @@ TEST_F(Shell_js_mysqlx_prepared_tests, unsupported_from_sql) {
 
   validate_interactive("mysqlx_unsupported_prepared_sql.js");
 }
+
+#endif
 
 }  // namespace shcore

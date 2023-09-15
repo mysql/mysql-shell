@@ -932,7 +932,10 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_equal_value("json", "raw", false, "wrap_json", "json/raw");
   test_option_equal_value("json", "off", false, "wrap_json", "off");
 
+#ifndef NDEBUG
   test_option_with_no_value("--trace-proto", "trace_protocol", "1");
+#endif
+
   test_option_with_no_value("--force", "force", "1");
   test_option_with_no_value("--interactive", "interactive", "1");
   test_option_with_no_value("-i", "interactive", "1");

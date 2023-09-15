@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2015, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -27,99 +27,66 @@
 #
 
 SET(PROTOBUF_VERSION "3.19.4")
-SET(WITH_PROTOBUF $ENV{WITH_PROTOBUF} CACHE PATH "Protobuf location")
 
 IF(WITH_PROTOBUF)
-
-  IF(MSVC AND EXISTS ${WITH_PROTOBUF}/vsprojects)
-
-    IF(NOT PROTOBUF_SRC_ROOT_FOLDER)
-      SET(PROTOBUF_SRC_ROOT_FOLDER "${WITH_PROTOBUF}")
-    ENDIF()
-
-    FIND_PROGRAM(PROTOBUF_PROTOC_EXECUTABLE
-      NAMES protoc
-      DOC "The Google Protocol Buffers Compiler"
-      PATHS ${WITH_PROTOBUF}/bin
-      NO_DEFAULT_PATH
-    )
-
-  ELSE()
-
-    FIND_PATH(PROTOBUF_INCLUDE_DIR
-      google/protobuf/service.h
-      PATH ${WITH_PROTOBUF}/include
-      NO_DEFAULT_PATH
-    )
-
-    # Set prefix
-    IF(MSVC)
-      SET(PROTOBUF_ORIG_FIND_LIBRARY_PREFIXES "${CMAKE_FIND_LIBRARY_PREFIXES}")
-      SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
-    ENDIF()
-
-    IF(WITH_STATIC_LINKING)
-      SET(ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
-      IF(NOT WIN32)
-        SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-      ELSE()
-        SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib)
-      ENDIF()
-    ENDIF()
-
-    FIND_LIBRARY(PROTOBUF_LIBRARY
-      NAMES protobuf
-      PATHS ${WITH_PROTOBUF}/lib ${WITH_PROTOBUF}/lib/sparcv9 ${WITH_PROTOBUF}/lib/amd64
-      NO_DEFAULT_PATH
-    )
-
-    IF(WITH_STATIC_LINKING)
-      SET(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
-    ENDIF()
-
-    # Restore original find library prefixes
-    IF(MSVC)
-      SET(CMAKE_FIND_LIBRARY_PREFIXES "${PROTOBUF_ORIG_FIND_LIBRARY_PREFIXES}")
-    ENDIF()
-
+  IF(NOT WITH_PROTOBUF STREQUAL "system")
+    MESSAGE(FATAL_ERROR "The only supported value for WITH_PROTOBUF is 'system'")
   ENDIF()
+
+  # Lowest checked system version is 3.5.0 on Oracle Linux 8.
+  # Older versions may generate code which breaks the -Werror build.
+  SET(PROTOBUF_VERSION "3.5.0")
 ELSE()
-  IF (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
+  IF(NOT DEFINED WITH_PROTOBUF_LITE AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # if not set explicitly, non-Debug builds use protobuf-lite
+    SET(WITH_PROTOBUF_LITE ON)
+  ENDIF()
 
-    FIND_PROGRAM(PROTOBUF_PROTOC_EXECUTABLE
-      NAMES protoc
-      DOC "The Google Protocol Buffers Compiler"
-      PATHS ${MYSQL_BUILD_DIR}/bin
-      NO_DEFAULT_PATH
-    )
+  FIND_PROGRAM(PROTOBUF_PROTOC_EXECUTABLE
+    NAMES protoc
+    DOC "The Google Protocol Buffers Compiler"
+    PATHS ${MYSQL_BUILD_DIR}/bin
+    NO_DEFAULT_PATH
+  )
 
-    SET(PROTOBUF_INCLUDE_DIR "${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
-    IF (WIN32)
-      IF(CMAKE_BUILD_TYPE STREQUAL Debug)
-        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobufd.lib")
-        SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobufd.lib")
-      ELSE()
-        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf.lib")
-      ENDIF()
-    ELSE()
-      IF(CMAKE_BUILD_TYPE STREQUAL Debug)
-        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobufd.a")
-        SET(PROTOBUF_LIBRARY_DEBUG "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobufd.a")
-      ELSE()
-        SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
-      ENDIF()
-    ENDIF()
+  SET(PROTOBUF_INCLUDE_DIR "${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
+
+  SET(_protobuf_lib_dir "${MYSQL_BUILD_DIR}/library_output_directory")
+
+  IF(WIN32)
+    STRING(APPEND _protobuf_lib_dir "/${CMAKE_BUILD_TYPE}")
+  ENDIF()
+
+  IF(WIN32)
+    SET(_protobuf_lib_ext "dll")
+  ELSEIF(APPLE)
+    SET(_protobuf_lib_ext "${PROTOBUF_VERSION}.dylib")
+  ELSE()
+    SET(_protobuf_lib_ext "so.${PROTOBUF_VERSION}")
+  ENDIF()
+
+  IF(WITH_PROTOBUF_LITE)
+    SET(_protobuf_lib_suffix "-lite")
+  ENDIF()
+
+  SET(PROTOBUF_LIBRARY "${_protobuf_lib_dir}/libprotobuf${_protobuf_lib_suffix}.${_protobuf_lib_ext}")
+  SET(BUNDLED_PROTOBUF_LIBRARY "${PROTOBUF_LIBRARY}")
+  get_filename_component(BUNDLED_PROTOBUF_LIBRARY_NAME "${BUNDLED_PROTOBUF_LIBRARY}" NAME)
+
+  IF(WIN32)
+    # on Windows we need to link with the .lib file
+    SET(PROTOBUF_LIBRARY "${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/${CMAKE_BUILD_TYPE}/libprotobuf${_protobuf_lib_suffix}.lib")
+  ENDIF()
+
+  IF(NOT EXISTS "${PROTOBUF_LIBRARY}")
+    MESSAGE(FATAL_ERROR "Could not find Protobuf library: ${PROTOBUF_LIBRARY}")
+  ENDIF()
+  IF(NOT EXISTS "${BUNDLED_PROTOBUF_LIBRARY}")
+    MESSAGE(FATAL_ERROR "Could not find bundled Protobuf library: ${BUNDLED_PROTOBUF_LIBRARY}")
   ENDIF()
 ENDIF()
 
-# Protobuf will only be required if ONLY_PROTOBUF_VERSION is not defined
-if (NOT ONLY_PROTOBUF_VERSION)
-  FIND_PACKAGE(Protobuf "${PROTOBUF_VERSION}" REQUIRED)
+FIND_PACKAGE(Protobuf "${PROTOBUF_VERSION}" REQUIRED)
 
-  IF(NOT PROTOBUF_FOUND)
-    MESSAGE(FATAL_ERROR "Protobuf could not be found")
-  ENDIF()
-
-  MESSAGE("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
-  MESSAGE("PROTOBUF_LIBRARIES: ${PROTOBUF_LIBRARIES}")
-ENDIF()
+MESSAGE("PROTOBUF_INCLUDE_DIRS: ${PROTOBUF_INCLUDE_DIRS}")
+MESSAGE("PROTOBUF_LIBRARIES: ${PROTOBUF_LIBRARIES}")

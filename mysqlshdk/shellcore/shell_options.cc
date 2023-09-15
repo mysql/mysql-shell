@@ -336,14 +336,14 @@ Shell_options::Shell_options(
 
 #ifdef _WIN32
   add_startup_options()
-    (cmdline("--plugin-authentication-kerberos-client-mode=<mode>"), 
+    (cmdline("--plugin-authentication-kerberos-client-mode=<mode>"),
       "Allows defining the kerberos client mode (SSPI, GSSAPI) when using "
       "kerberos authentication.",
       [this](const std::string&, const char* value){
         storage.connection_data.set_kerberos_auth_mode(value);
       });
 #endif
-  
+
   add_startup_options()
     (cmdline("--oci-config-file=<file>"),
       "Allows defining the OCI configuration file for OCI authentication.",
@@ -879,8 +879,10 @@ Shell_options::Shell_options(
     (&storage.execute_dba_statement, "",
         cmdline("--dba=enableXProtocol"), "Enable the X protocol in the target "
         "server. Requires a connection using classic session.")
-    (cmdline("--trace-proto"),
-        assign_value(&storage.trace_protocol, true));
+#ifndef NDEBUG
+    (cmdline("--trace-proto"), assign_value(&storage.trace_protocol, true))
+#endif
+        ;
 
   add_startup_options()
     (cmdline("--ssl[=<opt>]"), deprecated(m_on_warning, "--ssl-mode",

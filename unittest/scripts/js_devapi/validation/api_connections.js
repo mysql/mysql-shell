@@ -263,11 +263,11 @@
 +-----------------+------------+
 
 //@<OUT> WL12446-TS3_1 mysqlx.getSession {connection_attributes_supported}
-+-----------------+-----------------+
-| ATTR_NAME       | ATTR_VALUE      |
-+-----------------+-----------------+
++-----------------+-----------------[[*]]
+| ATTR_NAME       | ATTR_VALUE      [[*]]
++-----------------+-----------------[[*]]
 | _client_license | [[*]]
-| _client_name    | libmysqlxclient |
+| _client_name    | libmysqlxclient[[*]]
 | _client_version | [[*]]
 | _os             | [[*]]
 | _pid            | [[*]]
@@ -275,13 +275,13 @@
 ?{__os_type=='windows'}
 | _thread         | [[*]]
 ?{}
-| att1            | value           |
-| att2            | NULL            |
-| att3            | 45              |
-| att4            | <val>           |
-| att5            | NULL            |
-| program_name    | mysqlsh         |
-+-----------------+-----------------+
+| att1            | value [[*]]
+| att2            | NULL [[*]]
+| att3            | 45 [[*]]
+| att4            | <val> [[*]]
+| att5            | NULL [[*]]
+| program_name    | mysqlsh [[*]]
++-----------------+-----------------[[*]]
 
 //@ WL12446-TS3_1 mysqlx.getSession {!connection_attributes_supported}
 ||<<<connection_attributes_error>>>
@@ -307,11 +307,11 @@
 No attributes found!
 
 //@<OUT> WL12446-TS11_1 Default Connection Attributes Behavior X
-+-----------------+-----------------+
-| ATTR_NAME       | ATTR_VALUE      |
-+-----------------+-----------------+
++-----------------+-----------------[[*]]
+| ATTR_NAME       | ATTR_VALUE      [[*]]
++-----------------+-----------------[[*]]
 | _client_license | [[*]]
-| _client_name    | libmysqlxclient |
+| _client_name    | libmysqlxclient[[*]]
 | _client_version | [[*]]
 | _os             | [[*]]
 | _pid            | [[*]]
@@ -319,8 +319,8 @@ No attributes found!
 ?{__os_type=='windows'}
 | _thread         | [[*]]
 ?{}
-| program_name    | mysqlsh         |
-+-----------------+-----------------+
+| program_name    | mysqlsh [[*]]
++-----------------+-----------------[[*]]
 
 //@<OUT> WL12446-TS11_1 Default Connection Attributes Behavior Classic
 +-----------------+------------+

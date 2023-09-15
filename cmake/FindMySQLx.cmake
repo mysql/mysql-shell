@@ -68,13 +68,6 @@ endmacro()
 ####
 ####
 
-IF(NOT MYSQL_SOURCE_DIR)
-  SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL source directory")
-ENDIF()
-IF(NOT MYSQL_BUILD_DIR)
-  SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL build directory")
-ENDIF()
-
 SET(MYSQL_XPLUGIN_FOLDER "")
 IF(EXISTS "${MYSQL_SOURCE_DIR}/rapid/plugin/x/client/mysqlxclient.h")
   SET(MYSQL_XPLUGIN_FOLDER "/rapid")
@@ -100,11 +93,17 @@ set(MYSQL_LIBRARY_PATHS
   "${MYSQL_BUILD_DIR}/archive_output_directory"
 )
 
+if(WITH_PROTOBUF_LITE)
+  set(_protobuf_lib_suffix "_lite")
+else()
+  ADD_DEFINITIONS(-DUSE_MYSQLX_FULL_PROTO)
+endif()
+
 if(NOT WIN32)
-  find_library(MYSQLX_CLIENT_LIB NAMES libmysqlxclient.a
+  find_library(MYSQLX_CLIENT_LIB NAMES libmysqlxclient${_protobuf_lib_suffix}.a
                  PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES mysql
                  NO_DEFAULT_PATH)
-  find_library(MYSQLX_PROTO_LIB NAMES libmysqlxmessages.a
+  find_library(MYSQLX_PROTO_LIB NAMES libmysqlxmessages${_protobuf_lib_suffix}.a
                  PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES mysql
                  NO_DEFAULT_PATH)
   find_library(MYSQL_CLIENT_LIB NAMES libmysqlclient.a
@@ -124,11 +123,11 @@ else()
   if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
   endif()
-  find_library(MYSQLX_CLIENT_LIB NAMES mysqlxclient.lib
+  find_library(MYSQLX_CLIENT_LIB NAMES mysqlxclient${_protobuf_lib_suffix}.lib
                   PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
                   NO_DEFAULT_PATH)
 
-  find_library(MYSQLX_PROTO_LIB NAMES mysqlxmessages.lib
+  find_library(MYSQLX_PROTO_LIB NAMES mysqlxmessages${_protobuf_lib_suffix}.lib
                   PATHS ${MYSQLX_LIBRARY_PATHS} PATH_SUFFIXES ${CMAKE_BUILD_TYPE}
                   NO_DEFAULT_PATH)
 
@@ -144,8 +143,6 @@ if(MYSQLX_INCLUDES AND MYSQLX_CLIENT_LIB AND MYSQL_CLIENT_LIB)
 else()
   set(MYSQLX_FOUND FALSE)
 endif()
-
-ADD_DEFINITIONS(-DUSE_MYSQLX_FULL_PROTO)
 
 if(MYSQLX_FOUND)
   message(STATUS "Found MySQL client Libraries")

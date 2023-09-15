@@ -34,6 +34,8 @@
 
 class Mysqlsh_misc : public tests::Command_line_test {};
 
+#ifdef USE_MYSQLX_FULL_PROTO
+
 TEST_F(Mysqlsh_misc, trace_proto) {
   execute({_mysqlsh, _uri.c_str(), "--trace-proto", "--sql", "-e", "select 1",
            nullptr});
@@ -74,6 +76,8 @@ TEST_F(Mysqlsh_misc, trace_proto) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(expected3);
   }
 }
+
+#endif
 
 TEST_F(Mysqlsh_misc, load_builtin_modules) {
 // Regression test for Bug #26174373

@@ -58,10 +58,6 @@ IF (NOT DEFINED DEB_COPYRIGHT_YEAR)
   SET (DEB_COPYRIGHT_YEAR "2023" CACHE STRING "")
 ENDIF()
 
-# We make sure it loads only the protobuf version
-set(ONLY_PROTOBUF_VERSION 1)
-include(../../cmake/protobuf.cmake)
-
 set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)
@@ -166,11 +162,7 @@ endif()
 if(WITH_PROTOBUF)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_PROTOBUF=${WITH_PROTOBUF}")
 else()
-  if (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_INCLUDE_DIR=${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY_DEBUG=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
-  else()
+  if (NOT MYSQL_SOURCE_DIR)
     list(APPEND DEB_BUILD_DEPS "libprotobuf-dev")
     list(APPEND DEB_BUILD_DEPS "protobuf-compiler")
   endif()
@@ -293,6 +285,8 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For client authentication plugins
 usr/lib/mysql/plugins/authentication*client.so
 usr/lib/mysqlsh/libfido2.so*
+# For protobuf library
+usr/lib/mysqlsh/libprotobuf*.so*
 ")
 endif()
 

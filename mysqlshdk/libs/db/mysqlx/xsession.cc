@@ -53,6 +53,9 @@ FI_DEFINE(mysqlx, [](const mysqlshdk::utils::FI::Args &args) {
 });
 
 namespace {
+
+#ifdef USE_MYSQLX_FULL_PROTO
+
 template <typename Message_type>
 std::string message_to_text(const std::string &binary_message) {
   std::string result;
@@ -111,6 +114,16 @@ std::ostream &operator<<(std::ostream &os,
   return os << message.GetDescriptor()->full_name() << " {\n"
             << output << "}\n";
 }
+
+#else  // !USE_MYSQLX_FULL_PROTO
+
+std::ostream &operator<<(std::ostream &os,
+                         const xcl::XProtocol::Message &message) {
+  return os << message.GetTypeName() << " {\n  " << message.DebugString()
+            << "\n}\n";
+}
+
+#endif  // !USE_MYSQLX_FULL_PROTO
 
 std::pair<xcl::XProtocol::Handler_id, xcl::XProtocol::Handler_id>
 do_enable_trace(xcl::XSession *session) {

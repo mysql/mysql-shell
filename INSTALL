@@ -76,7 +76,6 @@ Windows
      cmake .. -G "Visual Studio 16" \
           -DMYSQL_SOURCE_DIR=../../mysql-server\
           -DMYSQL_BUILD_DIR=../../mysql-server/bld\
-          -DWITH_STATIC_LINKING=1 \
           -DHAVE_PYTHON=1\
           -DPYTHON_LIBRARY=<path_to_python_library> \
           -DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,10 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
+namespace {
+
+#ifdef USE_MYSQLX_FULL_PROTO
+
 template <typename Message_type>
 std::string message_to_text(const Message_type &msg) {
   std::string result;
@@ -35,6 +39,14 @@ std::string message_to_text(const Message_type &msg) {
 
   return msg.GetDescriptor()->full_name() + " { " + result + " }";
 }
+
+#else  //! USE_MYSQLX_FULL_PROTO
+
+std::string message_to_text(const xcl::XProtocol::Message &msg) {
+  return msg.GetTypeName() + " { " + msg.DebugString() + " }";
+}
+
+#endif  // !USE_MYSQLX_FULL_PROTO
 
 void print_message(const std::string &direction,
                    const xcl::XProtocol::Message &msg) {
@@ -52,8 +64,6 @@ xcl::Handler_result trace_send_messages(
   return xcl::Handler_result::Continue;
 }
 
-extern mysqlshdk::utils::Version g_target_server_version;
-
 xcl::Handler_result trace_received_messages(
     xcl::XProtocol * /* protocol */,
     const xcl::XProtocol::Server_message_type_id /* msg_id */,
@@ -64,7 +74,7 @@ xcl::Handler_result trace_received_messages(
   return xcl::Handler_result::Continue;
 }
 
-void enable_trace(xcl::XSession *sess) {
+[[maybe_unused]] void enable_trace(xcl::XSession *sess) {
   auto &protocol = sess->get_protocol();
 
   protocol.add_received_message_handler(
@@ -81,6 +91,10 @@ void enable_trace(xcl::XSession *sess) {
         return trace_send_messages(proto, msg_id, msg);
       });
 }
+
+}  // namespace
+
+extern mysqlshdk::utils::Version g_target_server_version;
 
 namespace mysqlsh {
 namespace mysqlx {

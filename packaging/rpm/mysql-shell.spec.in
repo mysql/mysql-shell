@@ -148,11 +148,13 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %else
 %global _pluginlibs libfido2.*
 %endif
+%global _protobuflibs libprotobuf.*
 %else
 %global _pluginlibs %{nil}
+%global _protobuflibs %{nil}
 %endif
 
-%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs})$
+%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs}|%{_protobuflibs})$
 
 %if 0%{?rhel} && 0%{?rhel} < 7
 %filter_setup
@@ -211,11 +213,6 @@ cmake .. \
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
-    %if 0%{!?with_protobuf:1}
-      -DPROTOBUF_INCLUDE_DIR="%{?with_mysql_source}/extra/protobuf/protobuf-@PROTOBUF_VERSION@/src" \
-      -DPROTOBUF_LIBRARY="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a" \
-      -DPROTOBUF_LIBRARY_DEBUG="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a"\
-    %endif
 %endif
 %if 0%{?bundled_openssl:1}
     -DBUNDLED_OPENSSL_DIR="%{bundled_openssl}" \
@@ -271,6 +268,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %else
 %{_prefix}/lib/mysqlsh/libfido2.so*
 %endif
+%{_prefix}/lib/mysqlsh/libprotobuf*
 %endif
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*
