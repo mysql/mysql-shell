@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -121,7 +122,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 
  protected:
-  std::string get_quoted_name(const std::string &name);
+  std::string get_quoted_name(std::string_view name);
   // TODO(rennox): Note that these are now stored on the low level session
   // object too, they should be removed from here
   mysqlshdk::db::Connection_options _connection_options;

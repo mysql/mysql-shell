@@ -264,7 +264,7 @@ std::vector<db::Type> k_repl_channel_column_types = {
     Type::String     // queued_gtid_set_to_apply
 };
 
-static std::string k_null = "___NULL___";
+const std::string k_null = "___NULL___";
 
 TEST_F(Replication_test, get_channel_status) {
   const char *k_repl_channel_query =
