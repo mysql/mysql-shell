@@ -92,7 +92,7 @@ if (everything) {
   start = 1;
 } else {
   skip = 11;
-  start = 20;
+  start = 21;
 }
 verbose = 0;
 
@@ -133,7 +133,7 @@ if (__version_num >= 80027) {
     start = 1;
   } else {
     skip = 11;
-    start = 20;
+    start = 21;
   }
 
   var comm_stack = "mysql";

@@ -381,33 +381,36 @@ Reboot_cluster_from_complete_outage::retrieve_instances(
  */
 std::shared_ptr<Instance>
 Reboot_cluster_from_complete_outage::pick_best_instance_gtid(
-    const std::vector<std::shared_ptr<Instance>> &instances, bool force,
+    const std::vector<std::shared_ptr<Instance>> &instances,
+    bool is_cluster_set_member, bool force,
     std::string_view intended_instance) {
   std::vector<Instance_gtid_info> instance_gtids;
   {
     // list of replication channel names that must be considered when comparing
     // GTID sets. With ClusterSets, the async channel for secondaries must be
     // added here.
-    const std::vector<std::string> k_known_channel_names = {
-        "group_replication_applier"};
-
     auto current_session_options = m_target_instance->get_connection_options();
+
+    std::vector<std::string> channels;
+    channels.push_back(mysqlshdk::gr::k_gr_applier_channel);
+    if (is_cluster_set_member)
+      channels.push_back(k_clusterset_async_channel_name);
 
     {
       Instance_gtid_info info;
       info.server = m_target_instance->get_canonical_address();
-      info.gtid_executed = mysqlshdk::mysql::get_total_gtid_set(
-          *m_target_instance, k_known_channel_names);
+      info.gtid_executed =
+          mysqlshdk::mysql::get_total_gtid_set(*m_target_instance, channels);
       instance_gtids.push_back(std::move(info));
     }
 
     for (const auto &i : instances) {
       Instance_gtid_info info;
       info.server = i->get_canonical_address();
-      info.gtid_executed =
-          mysqlshdk::mysql::get_total_gtid_set(*i, k_known_channel_names);
+      info.gtid_executed = mysqlshdk::mysql::get_total_gtid_set(*i, channels);
       instance_gtids.push_back(std::move(info));
     }
+
     assert(instance_gtids.size() == (instances.size() + 1));
   }
 
@@ -1153,8 +1156,9 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   // pick the seed instance
   std::shared_ptr<Instance> best_instance_gtid;
   {
-    best_instance_gtid = pick_best_instance_gtid(
-        instances, m_options.get_force(), m_options.get_primary());
+    best_instance_gtid =
+        pick_best_instance_gtid(instances, cs_info.is_member,
+                                m_options.get_force(), m_options.get_primary());
 
     // check if the other instances are compatible in regards to GTID with the
     // (new) seed

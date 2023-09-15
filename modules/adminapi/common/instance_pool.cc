@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -151,6 +151,12 @@ void Instance::prepare_session() {
   else
     set_sysvar("collation_connection", std::string("utf8mb4_general_ci"),
                mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  // Make sure that the limit for 'group_concat_max_len' is increased from the
+  // default 1024 to 1GB. There's no "correct" value here, hence no constant for
+  // the variable.
+  set_sysvar("group_concat_max_len", static_cast<int64_t>(1024 * 1024 * 1024),
+             mysqlshdk::mysql::Var_qualifier::SESSION);
 
   // Cache the hostname, port, and UUID to avoid errors accessing this data if
   // the instance fails during an operation.

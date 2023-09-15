@@ -392,7 +392,7 @@ std::vector<std::string> get_incoming_channel_names(
 }
 
 bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
-                        const std::string &channel_name,
+                        std::string_view channel_name,
                         Replication_channel *out_channel) {
   auto result = instance.queryf(
       std::string(k_base_channel_query) + "WHERE c.channel_name = ?",
@@ -414,7 +414,7 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
 }
 
 bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string &channel_name,
+                       std::string_view channel_name,
                        Replication_channel::Receiver::State *out_io_state,
                        Replication_channel::Applier::State *out_sql_state) {
   auto result =
@@ -450,7 +450,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
 }
 
 bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string &channel_name,
+                       std::string_view channel_name,
                        Replication_channel::Receiver::State *out_io_state,
                        Replication_channel::Error *out_io_error,
                        Replication_channel::Applier::State *out_sql_state,
@@ -803,42 +803,63 @@ std::string get_purged_gtid_set(const mysqlshdk::mysql::IInstance &server) {
 }
 
 std::string get_received_gtid_set(const mysqlshdk::mysql::IInstance &server,
-                                  const std::string &channel_name) {
+                                  std::string_view channel_name) {
+  // In the query, GTID_SUBTRACT is used, not to subtract GTIDs from the set,
+  // but to actually clean the set, by removing duplicates, etc.
   return server.queryf_one_string(
       0, "",
-      "SELECT GTID_SUBTRACT(GROUP_CONCAT(received_transaction_set), '')"
-      "   FROM performance_schema.replication_connection_status"
-      "   WHERE channel_name = ?",
+      "SELECT received_transaction_set FROM "
+      "performance_schema.replication_connection_status WHERE channel_name = ?",
       channel_name);
 }
 
-std::string get_total_gtid_set(
-    const mysqlshdk::mysql::IInstance &server,
-    const std::vector<std::string> &known_channel_names) {
+std::string get_total_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                               std::string_view channel_name) {
+  // In the query, GTID_SUBTRACT is used, not to subtract GTIDs from the set,
+  // but to actually clean the set, by removing duplicates, etc.
   return server.queryf_one_string(
       0, "",
-      "SELECT GTID_SUBTRACT(CONCAT(@@GLOBAL.GTID_EXECUTED, ',', ("
-      "   SELECT GROUP_CONCAT(received_transaction_set)"
-      "       FROM performance_schema.replication_connection_status"
-      "       WHERE channel_name IN (" +
-          shcore::str_join(known_channel_names, ",", shcore::quote_sql_string) +
-          "))), '')");
+      "SELECT GTID_SUBTRACT(CONCAT(@@GLOBAL.GTID_EXECUTED, ',', (SELECT "
+      "received_transaction_set FROM "
+      "performance_schema.replication_connection_status WHERE channel_name = "
+      "?)), '')",
+      channel_name);
+}
+
+std::string get_total_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                               const std::vector<std::string> &channel_names) {
+  if (channel_names.empty()) return {};
+  if (channel_names.size() == 1)
+    return get_total_gtid_set(server, channel_names.front());
+
+  // In the query, GTID_SUBTRACT is used, not to subtract GTIDs from the set,
+  // but to actually clean the set, by removing duplicates, etc.
+  return server.queryf_one_string(
+      0, "",
+      shcore::str_format(
+          "SELECT GTID_SUBTRACT(CONCAT(@@GLOBAL.GTID_EXECUTED, ',', (SELECT "
+          "GROUP_CONCAT(received_transaction_set) FROM "
+          "performance_schema.replication_connection_status WHERE channel_name "
+          "IN (%s))), '')",
+          shcore::str_join(channel_names, ",", shcore::quote_sql_string)
+              .c_str()));
 }
 
 Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,
-                                    const std::string &gtidset_a,
-                                    const std::string &gtidset_b,
+                                    std::string_view gtidset_a,
+                                    std::string_view gtidset_b,
                                     std::string *out_missing_from_a,
                                     std::string *out_missing_from_b) {
-  if (out_missing_from_a) *out_missing_from_a = gtidset_b;
-  if (out_missing_from_b) *out_missing_from_b = gtidset_a;
+  if (gtidset_a.empty() || gtidset_b.empty()) {
+    if (out_missing_from_a) *out_missing_from_a = std::string{gtidset_b};
+    if (out_missing_from_b) *out_missing_from_b = std::string{gtidset_a};
 
-  if (gtidset_a.empty()) {
-    if (gtidset_b.empty())
-      return Gtid_set_relation::EQUAL;
-    else
-      return Gtid_set_relation::CONTAINED;
-  } else if (gtidset_b.empty()) {
+    if (gtidset_a.empty()) {
+      return gtidset_b.empty() ? Gtid_set_relation::EQUAL
+                               : Gtid_set_relation::CONTAINED;
+    }
+
+    assert(gtidset_b.empty());
     return Gtid_set_relation::CONTAINS;
   }
 

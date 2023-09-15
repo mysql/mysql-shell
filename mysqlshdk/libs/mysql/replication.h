@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
@@ -187,7 +188,7 @@ std::string format_status(const Replication_channel &channel,
  * @return false if the channel does not exist.
  */
 bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
-                        const std::string &channel_name,
+                        std::string_view channel_name,
                         Replication_channel *out_channel);
 
 /**
@@ -200,12 +201,12 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
  * @return               [TODO]
  */
 bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string &channel_name,
+                       std::string_view channel_name,
                        Replication_channel::Receiver::State *out_io_state,
                        Replication_channel::Applier::State *out_sql_state);
 
 bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
-                       const std::string &channel_name,
+                       std::string_view channel_name,
                        Replication_channel::Receiver::State *out_io_state,
                        Replication_channel::Error *out_io_error,
                        Replication_channel::Applier::State *out_sql_state,
@@ -280,19 +281,28 @@ std::string get_purged_gtid_set(const mysqlshdk::mysql::IInstance &server);
  * Returns GTID set received by a specific channel.
  */
 std::string get_received_gtid_set(const mysqlshdk::mysql::IInstance &server,
-                                  const std::string &channel_name);
+                                  std::string_view channel_name);
 
 /**
  * Returns total GTID set from the server, including received but not yet
  * applied.
  *
- * known_channel_names must contain the list of all channels to consider when
+ * channel_name the channel to consider when checking for
+ * received_transaction_set (usually group_replication_applier)
+ */
+std::string get_total_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                               std::string_view channel_name);
+
+/**
+ * Returns total GTID set from the server, including received but not yet
+ * applied.
+ *
+ * channel_names must contain the list of all channels to consider when
  * checking for received_transaction_set (usually just
  * group_replication_applier)
  */
-std::string get_total_gtid_set(
-    const mysqlshdk::mysql::IInstance &server,
-    const std::vector<std::string> &known_channel_names);
+std::string get_total_gtid_set(const mysqlshdk::mysql::IInstance &server,
+                               const std::vector<std::string> &channel_names);
 
 /**
  * Returns an upper bound of the number of transactions in the given GTID set.
@@ -324,8 +334,8 @@ enum class Gtid_set_relation {
 };
 
 Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,
-                                    const std::string &gtidset_a,
-                                    const std::string &gtidset_b,
+                                    std::string_view gtidset_a,
+                                    std::string_view gtidset_b,
                                     std::string *out_missing_from_a = nullptr,
                                     std::string *out_missing_from_b = nullptr);
 
