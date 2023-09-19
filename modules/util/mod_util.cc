@@ -1334,9 +1334,9 @@ to the table:
 @code
 `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
 @endcode
-At the time of the release of MySQL Shell 8.0.24, dumps created with this value
-cannot be used with Inbound Replication into an MySQL HeatWave Service DB System
-instance with High Availability. Mutually exclusive with the
+Dumps created with this value can be used with Inbound Replication into an MySQL
+HeatWave Service DB System instance with High Availability, as long as target
+instance has version 8.0.32 or newer. Mutually exclusive with the
 <b>ignore_missing_pks</b> value.
 
 <b>force_innodb</b> - The MySQL HeatWave Service requires use of the InnoDB
@@ -1391,13 +1391,17 @@ when the <b>ocimds</b> option is enabled:
 @li <b>DATA DIRECTORY</b>, <b>INDEX DIRECTORY</b> and <b>ENCRYPTION</b> options
 in <b>CREATE TABLE</b> statements will be commented out.
 
-At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
-Replication into an MySQL HeatWave Service DB System instance with High
-Availability, all tables at the source server need to have Primary Keys. This
-needs to be fixed manually before running the dump. Starting with MySQL 8.0.23
-invisible columns may be used to add Primary Keys without changing the schema
+In order to use Inbound Replication into an MySQL HeatWave Service DB System
+instance with High Availability where instance has version older than 8.0.32,
+all tables at the source server need to have Primary Keys. This needs to be
+fixed manually before running the dump. Starting with MySQL 8.0.23 invisible
+columns may be used to add Primary Keys without changing the schema
 compatibility, for more information see:
 https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+In order to use Inbound Replication into an MySQL HeatWave Service DB System
+instance with High Availability, please see
+https://docs.oracle.com/en-us/iaas/mysql-database/doc/creating-replication-channel.html.
 
 In order to use MySQL HeatWave Service DB Service instance with High
 Availability, all tables must have a Primary Key. This can be fixed
