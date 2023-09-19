@@ -2126,6 +2126,7 @@ void Dump_loader::check_tables_without_primary_key() {
   }
 
   if (m_options.is_mds() && m_dump->has_tables_without_pk()) {
+    bool warning = true;
     std::string msg =
         "The dump contains tables without Primary Keys and it is loaded with "
         "the 'createInvisiblePKs' option set to ";
@@ -2133,15 +2134,26 @@ void Dump_loader::check_tables_without_primary_key() {
     if (should_create_pks()) {
       msg +=
           "true, Inbound Replication into an MySQL HeatWave Service DB System "
-          "instance with High Availability (at the time of the release of "
-          "MySQL Shell 8.0.24) cannot be used with this dump.";
+          "instance with High Availability can";
+
+      if (m_options.target_server_version() < Version(8, 0, 32)) {
+        msg += "not";
+      } else {
+        warning = false;
+      }
+
+      msg += " be used with this dump.";
     } else {
       msg +=
           "false, this dump cannot be loaded into an MySQL HeatWave Service "
           "DB System instance with High Availability.";
     }
 
-    current_console()->print_warning(msg);
+    if (warning) {
+      current_console()->print_warning(msg);
+    } else {
+      current_console()->print_note(msg);
+    }
   }
 
   if (m_options.target_server_version() < Version(8, 0, 13) ||
