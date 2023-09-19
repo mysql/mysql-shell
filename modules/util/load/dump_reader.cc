@@ -592,6 +592,22 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
 
 bool Dump_reader::data_available() const { return !m_tables_with_data.empty(); }
 
+bool Dump_reader::data_pending() const {
+  if (!m_options.load_data()) {
+    return false;
+  }
+
+  for (const auto &schema : m_contents.schemas) {
+    for (const auto &table : schema.second->tables) {
+      if (!table.second->all_data_scheduled()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool Dump_reader::work_available() const {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {

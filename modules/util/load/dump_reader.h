@@ -172,6 +172,8 @@ class Dump_reader {
 
   bool data_available() const;
 
+  bool data_pending() const;
+
   bool work_available() const;
 
   size_t dump_size() const { return m_contents.dump_size; }

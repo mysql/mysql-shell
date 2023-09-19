@@ -2938,23 +2938,31 @@ void Dump_loader::execute_tasks() {
       }
     }
 
-    if (m_dump->status() != Dump_reader::Status::COMPLETE) {
+    if (!m_worker_interrupt &&
+        m_dump->status() != Dump_reader::Status::COMPLETE) {
       scan_for_more_data();
     }
 
-    m_total_tables_with_data = m_dump->tables_with_data();
+    if (!m_worker_interrupt) {
+      m_total_tables_with_data = m_dump->tables_with_data();
 
-    // handle events from workers and schedule more chunks when a worker
-    // becomes available
-    num_idle_workers =
-        handle_worker_events([this]() { return schedule_next_task(); });
+      // handle events from workers and schedule more chunks when a worker
+      // becomes available
+      num_idle_workers =
+          handle_worker_events([this]() { return schedule_next_task(); });
+    }
 
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
-    if (m_dump->status() == Dump_reader::Status::COMPLETE &&
-        !m_dump->data_available() && !m_dump->work_available() &&
-        num_idle_workers == m_workers.size()) {
-      break;
+    if (!m_worker_interrupt &&
+        m_dump->status() == Dump_reader::Status::COMPLETE &&
+        !m_dump->data_available() && num_idle_workers == m_workers.size()) {
+      if (!m_dump->work_available()) {
+        break;
+      } else if (m_dump->data_pending()) {
+        // dump is complete, there is no more data, but work is still pending
+        THROW_ERROR(SHERR_LOAD_CORRUPTED_DUMP_MISSING_DATA);
+      }
     }
   } while (!m_worker_interrupt);
 
@@ -2981,6 +2989,12 @@ void Dump_loader::wait_for_metadata() {
     if (m_dump->ready()) {
       log_debug("Dump metadata available");
       return;
+    }
+
+    if (Dump_reader::Status::COMPLETE == m_dump->status()) {
+      // dump is complete (the last file was written), but it's not ready,
+      // meaning some of the metadata files are missing
+      THROW_ERROR(SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA);
     }
 
     if (!waited) {

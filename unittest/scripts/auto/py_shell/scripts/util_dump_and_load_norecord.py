@@ -11,6 +11,7 @@ import random
 import shutil
 import threading
 import time
+from typing import NamedTuple
 import urllib.parse
 
 outdir = os.path.join(__tmp_dir, "ldtest")
@@ -2790,6 +2791,69 @@ else:
 
 # cleanup
 testutil.dbug_set("")
+
+#@<> BUG#35822020 - loader is stuck if metadata files are missing
+# constants
+dump_dir = os.path.join(outdir, "bug_35822020")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+class Expected_result(NamedTuple):
+    pattern: re.Pattern
+    success: bool
+    msg: str = ""
+
+# order is important
+expected = [
+    Expected_result(re.compile(r"@(\.(post|users))?\.sql"), True),  # loader ignores these files if they are missing
+    Expected_result(re.compile(r".+\.idx"), True),  # these files are not used if dump is complete
+    Expected_result(re.compile(r"@\.json"), False, "Cannot open file"),
+    Expected_result(re.compile(r"@\.done\.json"), False, "Incomplete dump"),
+    Expected_result(re.compile(r".+\.triggers\.sql"), False, "Cannot open file"),
+    Expected_result(re.compile(r".+\.(json|sql)"), False, "Dump directory is corrupted, some of the metadata files are missing"),
+    Expected_result(re.compile(r".+\.zst"), False, "Dump directory is corrupted, some of the data files are missing")
+]
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (a int)", [ tested_schema, tested_table ])
+session.run_sql("CREATE TABLE !.! (a int) PARTITION BY RANGE (a) (PARTITION p0 VALUES LESS THAN (6))", [ tested_schema, tested_table + "_partitioned" ])
+session.run_sql("CREATE VIEW !.tested_view AS SELECT * FROM !.!", [ tested_schema, tested_schema, tested_table ])
+session.run_sql("CREATE EVENT !.tested_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END", [ tested_schema ])
+session.run_sql("CREATE FUNCTION !.tested_function() RETURNS INT DETERMINISTIC RETURN 1", [ tested_schema ])
+session.run_sql("CREATE PROCEDURE !.tested_procedure() DETERMINISTIC BEGIN END", [ tested_schema ])
+session.run_sql("CREATE TRIGGER !.tested_trigger AFTER DELETE ON !.! FOR EACH ROW BEGIN END", [ tested_schema, tested_schema, tested_table ])
+
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [ tested_schema ], "users": True, "showProgress": False }), "Dump should not fail")
+
+#@<> BUG#35822020 - test
+shell.connect(__sandbox_uri2)
+l = lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "'root'@'%'" ], "resetProgress": True, "showProgress": False })
+
+for f in os.listdir(dump_dir):
+    print("------->", f)
+    wipeout_server(session)
+    e = None
+    for ex in expected:
+        if ex.pattern.fullmatch(f):
+            e = ex
+            break
+    if e is None:
+        testutil.fail(f"File is not handled by the test: {f}")
+        continue
+    p = os.path.join(dump_dir, f)
+    os.rename(p, p + ".bak")
+    if e.success:
+        EXPECT_NO_THROWS(l, f"Load should not fail when file {f} is missing")
+    else:
+        EXPECT_THROWS(l, e.msg)
+    os.rename(p + ".bak", p)
+
+#@<> BUG#35822020 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

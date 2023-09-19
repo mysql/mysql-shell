@@ -148,7 +148,15 @@
 #define SHERR_LOAD_MANIFEST_UNKNOWN_OBJECT 53028
 #define SHERR_LOAD_MANIFEST_UNKNOWN_OBJECT_MSG "Unknown object in manifest: %s"
 
-#define SHERR_LOAD_LAST 53028
+#define SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA 53029
+#define SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA_MSG \
+  "Dump directory is corrupted, some of the metadata files are missing"
+
+#define SHERR_LOAD_CORRUPTED_DUMP_MISSING_DATA 53030
+#define SHERR_LOAD_CORRUPTED_DUMP_MISSING_DATA_MSG \
+  "Dump directory is corrupted, some of the data files are missing"
+
+#define SHERR_LOAD_LAST 53030
 
 #define SHERR_LOAD_MAX 53999
 
