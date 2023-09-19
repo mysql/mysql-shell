@@ -830,7 +830,10 @@ testutil.dbug_set("")
 testutil.dbug_set("+d,dump_loader_force_mds")
 
 EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, True)
-EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL HeatWave Service DB System instance with High Availability (at the time of the release of MySQL Shell 8.0.24) cannot be used with this dump.")
+if __version_num < 80032:
+    EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL HeatWave Service DB System instance with High Availability cannot be used with this dump.")
+else:
+    EXPECT_STDOUT_CONTAINS("NOTE: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL HeatWave Service DB System instance with High Availability can be used with this dump.")
 
 # all tables have primary keys, no warning
 EXPECT_PK(dump_just_pk_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, False)

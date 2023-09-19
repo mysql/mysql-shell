@@ -2667,14 +2667,14 @@ void Dumper::validate_mds() const {
        MySQL HeatWave Service High Availability (MySQL HeatWave Service HA) requires Primary Keys to be present in all tables.
        To continue with the dump you must do one of the following:
 
-       * Create PRIMARY keys in all tables before dumping them.
+       * Create PRIMARY keys (regular or invisible) in all tables before dumping them.
          MySQL 8.0.23 supports the creation of invisible columns to allow creating Primary Key columns with no impact to applications. For more details, see https://dev.mysql.com/doc/refman/en/invisible-columns.html.
          This is considered a best practice for both performance and usability and will work seamlessly with MySQL HeatWave Service.
 
        * Add the "create_invisible_pks" to the "compatibility" option.
          The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MySQL HeatWave Service.
-         This will make it possible to enable HA in MySQL HeatWave Service without application impact.
-         However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+         This will make it possible to enable HA in MySQL HeatWave Service without application impact and without changes to the source database.
+         Inbound Replication into a DB System HA instance will also be possible, as long as the instance has version 8.0.32 or newer. For more information, see https://docs.oracle.com/en-us/iaas/mysql-database/doc/creating-replication-channel.html.
 
        * Add the "ignore_missing_pks" to the "compatibility" option.
          This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
@@ -2718,8 +2718,8 @@ void Dumper::validate_mds() const {
   if (status.is_set(Issue_status::FIXED_CREATE_PKS)) {
     console->print_info(R"(
       Missing Primary Keys will be created automatically when this dump is loaded.
-      This will make it possible to enable High Availability in MySQL HeatWave Service DB System instance without application impact.
-      However, Inbound Replication into a DB System HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+      This will make it possible to enable High Availability in MySQL HeatWave Service DB System instance without application impact and without changes to the source database.
+      Inbound Replication into a DB System HA instance will also be possible, as long as the instance has version 8.0.32 or newer. For more information, see https://docs.oracle.com/en-us/iaas/mysql-database/doc/creating-replication-channel.html.
 )");
   }
 
