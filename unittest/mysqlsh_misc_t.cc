@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "unittest/gtest_clean.h"
 
+#include "ext/linenoise-ng/include/linenoise.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -353,4 +354,20 @@ print(sys.argv)
     shcore::delete_file("sysargv.py");
   } catch (...) {
   }
+}
+
+TEST_F(Mysqlsh_misc, invalid_unicode_linoise_custom_command) {
+  linenoiseRegisterCustomCommand(
+      "\x18\x18",  // CTRL-X, CTRL-X
+      [](const char *, void *, char **) { return -1; }, nullptr);
+
+  int specialValue = 1048;    // 0000 0100 0001 1000, russian unicode shift+B,
+  int sepcialValue2 = 65304;  // 1111 1111 0001 1000, japanese unicode '8'
+  int correctValue = 0x18;    // 0000 0000 0001 1000, CTRL-X
+
+  EXPECT_FALSE(linonoiseTestExtendedCharacter(specialValue));
+  EXPECT_FALSE(linonoiseTestExtendedCharacter(correctValue, specialValue));
+
+  EXPECT_FALSE(linonoiseTestExtendedCharacter(sepcialValue2));
+  EXPECT_FALSE(linonoiseTestExtendedCharacter(correctValue, sepcialValue2));
 }

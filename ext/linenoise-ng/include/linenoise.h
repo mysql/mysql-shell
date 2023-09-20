@@ -87,6 +87,9 @@ void linenoiseRegisterCustomCommand(const char *sequence,
                                     linenoiseCustomCommand *cmd, void *data);
 void linenoiseRemoveCustomCommand(const char *sequence);
 
+bool linonoiseTestExtendedCharacter(const int firstValue,
+                                    const int secondValue = 0);
+
 #ifdef __cplusplus
 }
 #endif

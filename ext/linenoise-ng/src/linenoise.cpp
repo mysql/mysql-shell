@@ -130,6 +130,7 @@
 #include "ConvertUTF.h"
 #include "linenoise.h"
 
+#include <limits>
 #include <map>
 #include <memory>
 #include <new>
@@ -1056,7 +1057,9 @@ class Custom_commands {
   }
 
   bool begin(int c) {
-    if (c > 255) return false;
+    if (c < std::numeric_limits<char>::min() ||
+        c > std::numeric_limits<char>::max())
+      return false;
     return begin(static_cast<char>(c));
   }
 
@@ -1075,7 +1078,12 @@ class Custom_commands {
     return false;
   }
 
-  bool next(int c) { return next(static_cast<char>(c)); }
+  bool next(int c) {
+    if (c < std::numeric_limits<char>::min() ||
+        c > std::numeric_limits<char>::max())
+      return false;
+    return next(static_cast<char>(c));
+  }
 
   bool is_finished() const {
     return (nullptr != m_iterator) && (Entry::Type::LEAF == m_iterator->type);
@@ -3799,4 +3807,15 @@ void linenoiseRegisterCustomCommand(const char *sequence,
 
 void linenoiseRemoveCustomCommand(const char *sequence) {
   g_custom_commands.remove(sequence);
+}
+
+bool linonoiseTestExtendedCharacter(const int firstValue,
+                                    const int secondValue) {
+  if (g_custom_commands.begin(firstValue)) {
+    if (secondValue != 0)
+      return g_custom_commands.next(secondValue);
+    else
+      return true;
+  }
+  return false;
 }
