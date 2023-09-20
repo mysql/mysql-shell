@@ -22,6 +22,14 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 MESSAGE(STATUS "Running cmake version ${CMAKE_VERSION}")
 
+IF(MYSQL_SOURCE_DIR)
+  FILE(TO_CMAKE_PATH "${MYSQL_SOURCE_DIR}" MYSQL_SOURCE_DIR)
+ENDIF()
+
+IF(MYSQL_BUILD_DIR)
+  FILE(TO_CMAKE_PATH "${MYSQL_BUILD_DIR}" MYSQL_BUILD_DIR)
+ENDIF()
+
 IF(WIN32)
   # CMake 3.8.0 is needed for Visual Studio 2017 and x64 toolset.
   CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
@@ -501,6 +509,36 @@ ENDIF()
 
 include(CheckCSourceCompiles)
 include(CheckCXXSourceCompiles)
+
+FUNCTION(MY_CHECK_CXX_COMPILER_WARNING WARNING_OPTION RETURN_VALUE)
+  # Strip off possible leading -Wno- or -W
+  STRING(REGEX REPLACE "^-Wno-" "" WARNING_OPTION ${WARNING_OPTION})
+  STRING(REGEX REPLACE "^-W" "" WARNING_OPTION ${WARNING_OPTION})
+  STRING(REGEX MATCH "^error=" ERROR_PREFIX ${WARNING_OPTION})
+  # Use HAVE_CXX_W_warning_option as cache variable.
+  STRING(REPLACE "-" "_" VAR_NAME ${WARNING_OPTION})
+  STRING(REPLACE "=" "_" VAR_NAME ${VAR_NAME})
+  STRING(REPLACE "c++" "cpp" VAR_NAME ${VAR_NAME})
+  SET(VAR_NAME "HAVE_CXX_W_${VAR_NAME}")
+  IF(MY_COMPILER_IS_GNU_OR_CLANG)
+    IF(SHOW_SUPPRESSED_COMPILER_WARNINGS AND NOT ERROR_PREFIX)
+      MY_CHECK_CXX_COMPILER_FLAG("-Werror=${WARNING_OPTION}" ${VAR_NAME})
+      IF(${VAR_NAME})
+        SET(WARNING_OPTION "error=${WARNING_OPTION}")
+      ENDIF()
+    ENDIF()
+    IF(NOT ${VAR_NAME})
+      MY_CHECK_CXX_COMPILER_FLAG("-W${WARNING_OPTION}" ${VAR_NAME})
+    ENDIF()
+  ELSE()
+    SET(${VAR_NAME} 0 CACHE INTERNAL "-W${WARNING_OPTION} not supported")
+  ENDIF()
+  IF(${VAR_NAME})
+    SET(${RETURN_VALUE} "-Wno-${WARNING_OPTION}" PARENT_SCOPE)
+  ELSE()
+    SET(${RETURN_VALUE} 0 PARENT_SCOPE)
+  ENDIF()
+ENDFUNCTION()
 
 # Use lld for Clang if available and not explicitly disabled.
 # Also works for gcc on Debian/Ubuntu. Do 'apt install lld'.
@@ -1090,18 +1128,21 @@ IF (HAVE_MEMSET_S)
 ENDIF()
 CONFIGURE_FILE(mysh_config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
 
-MACRO(MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
-  SET(SAVE_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
-  SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${FLAG}")
+MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
+  CMAKE_PUSH_CHECK_STATE()
+  STRING_APPEND(CMAKE_REQUIRED_FLAGS " ${FLAG}")
   CHECK_CXX_SOURCE_COMPILES("int main(void) { return 0; }" ${RESULT}
+    FAIL_REGEX "unknown argument ignored"
     FAIL_REGEX "argument unused during compilation"
     FAIL_REGEX "unsupported .*option"
     FAIL_REGEX "unknown .*option"
     FAIL_REGEX "unrecognized .*option"
     FAIL_REGEX "ignoring unknown option"
     FAIL_REGEX "[Ww]arning: [Oo]ption"
-   )
-  SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
+    FAIL_REGEX "error: visibility"
+    FAIL_REGEX "warning: visibility"
+    )
+  CMAKE_POP_CHECK_STATE()
 ENDMACRO()
 
 FUNCTION(SET_BUNDLED_OPEN_SSL)

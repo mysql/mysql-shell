@@ -198,12 +198,7 @@ cmake .. \
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
 %endif
-%if 0%{?with_gmock:1}
-    -DWITH_TESTS=ON \
-    -DWITH_GMOCK=%{with_gmock} \
-%endif
-%if 0%{!?with_gmock:1} && 0%{?with_tests:1}
-    -DENABLE_DOWNLOADS=1 \
+%if 0%{?with_gmock:1} || 0%{?with_tests:1}
     -DWITH_TESTS=ON \
 %endif
 %if 0%{?python_deps:1}
