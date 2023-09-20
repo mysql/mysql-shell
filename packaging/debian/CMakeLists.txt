@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -196,9 +196,8 @@ if(MYSQL_SOURCE_DIR)
   list(APPEND EXTRA_CMAKE_OPTS "-DMYSQL_SOURCE_DIR=${MYSQL_SOURCE_DIR} -DMYSQL_BUILD_DIR=${MYSQL_SOURCE_DIR}/bld")
 endif()
 
-if(WITH_GMOCK)
+if(WITH_GMOCK OR WITH_TESTS)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_TESTS=ON")
-  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_GMOCK=${WITH_GMOCK}")
 endif()
 
 if(PYTHON_DEPS)

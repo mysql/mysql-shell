@@ -42,7 +42,7 @@ The MySQL server sources are required to compile with the X protocol client libr
   If boost is not available use the next options to let cmake download the
   required version:
 
-  -DDOWNLOAD_BOOST=1 -DENABLE_DOWNLOADS=1
+  -DDOWNLOAD_BOOST=1
 
 
 3) Compile the client libraries:
@@ -116,4 +116,3 @@ Adding Unit Test Support
 GTest is required to enable Unit Testing. Make them available by adding the
 following parameters to the cmake call.
 -DWITH_TESTS=1
--DENABLE_DOWNLOADS=1

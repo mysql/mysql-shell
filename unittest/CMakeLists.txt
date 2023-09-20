@@ -196,5 +196,5 @@ if(WITH_TESTS)
     source_group(TREE "${PROJECT_SOURCE_DIR}" FILES ${run_unit_tests_SOURCES})
 
 else()
-  message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GMOCK=path or -DENABLE_DOWNLOADS=1 -DWITH_TESTS=1")
+  message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1")
 endif()

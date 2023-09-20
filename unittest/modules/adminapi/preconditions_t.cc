@@ -632,7 +632,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       cset_sometimes_allowed.insert(precondition.first);
       for (const auto &global_state : global_cluster_states) {
         EXPECT_CALL(checker, get_cluster_global_state())
-            .WillOnce(Return(global_state));
+            .WillRepeatedly(Return(global_state));
         if (precondition.second.cluster_set_state.is_set(global_state.first)) {
           EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
               precondition.second.cluster_set_state));

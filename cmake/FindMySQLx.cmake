@@ -69,10 +69,10 @@ endmacro()
 ####
 
 IF(NOT MYSQL_SOURCE_DIR)
-  SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL 8.0 source directory")
+  SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL source directory")
 ENDIF()
 IF(NOT MYSQL_BUILD_DIR)
-  SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL 8.0 build directory")
+  SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL build directory")
 ENDIF()
 
 SET(MYSQL_XPLUGIN_FOLDER "")
