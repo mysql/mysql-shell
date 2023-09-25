@@ -160,7 +160,9 @@ session6.runSql("START group_replication");
 
 // Rejoin the Cluster
 cs.rejoinCluster("cluster2");
-EXPECT_OUTPUT_CONTAINS("* Reconciling 1 internally generated GTIDs");
+if (__version_num < 80300) {
+    EXPECT_OUTPUT_CONTAINS("* Reconciling 1 internally generated GTIDs");
+}
 
 // Purge the binary logs from all members
 // BUG#34013718: reconciliation doesn't happen when binlogs purged from all members

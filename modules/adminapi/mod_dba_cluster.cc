@@ -799,7 +799,8 @@ metadata is not updated (false). Deprecated.
 communication protocol to the highest version possible.
 @li updateViewChangeUuid: boolean value used to indicate if the command should
 generate and set a value for Group Replication View Change UUID in the whole
-Cluster. Required for InnoDB ClusterSet usage.
+Cluster. Required for InnoDB ClusterSet usage (if running MySQL version lower
+than 8.3.0).
 
 The value for addInstances and removeInstances is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept

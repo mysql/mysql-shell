@@ -160,6 +160,8 @@ session.close();
 shell.connect(__sandbox_uri2);
 session.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("STOP GROUP_REPLICATION");
+session1 = mysql.getSession(__sandbox_uri1);
+session1.runSql("create schema foo");
 session.runSql("START GROUP_REPLICATION");
 testutil.waitMemberState(__mysql_sandbox_port2, "RECOVERING");
 

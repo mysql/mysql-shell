@@ -809,21 +809,14 @@ void Configure_instance::prepare() {
     }
 
     if (m_can_restart && m_needs_restart && !m_options.restart.has_value()) {
-      if (m_needs_configuration_update) {
-        if (console->confirm(
-                "Do you want to restart the instance after configuring it?",
-                Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = true;
-        } else {
-          m_options.restart = false;
-        }
+      std::string prompt = "Do you want to restart the instance ";
+
+      prompt += m_needs_configuration_update ? "after configuring it?" : "now?";
+
+      if (console->confirm(prompt, Prompt_answer::NONE) == Prompt_answer::YES) {
+        m_options.restart = true;
       } else {
-        if (console->confirm("Do you want to restart the instance now?",
-                             Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = true;
-        } else {
-          m_options.restart = true;
-        }
+        m_options.restart = false;
       }
     }
   }

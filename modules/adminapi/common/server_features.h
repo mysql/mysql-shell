@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_COMMON_SERVER_FEATURES_H_
 
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh::dba {
 
@@ -38,6 +39,8 @@ inline const mysqlshdk::utils::Version
 
 inline const mysqlshdk::utils::Version k_paxos_single_leader_initial_version(
     8, 0, 31);
+
+inline const mysqlshdk::utils::Version k_view_change_uuid_deprecated(8, 3, 0);
 
 // Feature getters
 

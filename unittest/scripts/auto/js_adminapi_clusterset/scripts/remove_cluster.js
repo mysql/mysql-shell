@@ -94,7 +94,9 @@ EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster has unreachable Read-Replicas so the 
 testutil.startSandbox(__mysql_sandbox_port2);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {timeout: 0}); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+if (__version_num < 80300) {
+  EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+}
 
 CHECK_ROUTER_OPTIONS_REMOVED_CLUSTER(session1);
 
@@ -149,7 +151,9 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replica_vcle_primary);
 CHECK_CLUSTER_SET(session);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_primary", {timeout: 0}); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+if (__version_num < 80300) {
+  EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+}
 
 //@<> Re-create the Replica Cluster on a secondary instance (GTID-SET should have been reconciled regarding VCLEs)
 var replica_vcle_secondary;
@@ -160,7 +164,9 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri6], cluster, replica_vcle_secondary);
 CHECK_CLUSTER_SET(session);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_secondary", {timeout: 0}); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+if (__version_num < 80300) {
+  EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+}
 
 //@<> Re-create the Replica Cluster on a single-member Cluster (GTID-SET should have been reconciled regarding VCLEs).
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replica_vcle_primary");
@@ -173,7 +179,9 @@ CHECK_CLUSTER_SET(session);
 
 // Remove the cluster to clean-up for the proceeding tests
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replica_vcle_primary", {timeout: 0}); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+if (__version_num < 80300) {
+  EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
+}
 
 //@<> Remove Cluster but with limited sync timeout
 var replicacluster2 = clusterset.createReplicaCluster(__sandbox_uri5, "replicacluster2", {recoveryMethod: "clone"});

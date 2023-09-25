@@ -1333,18 +1333,15 @@ DESCRIPTION
 
       The options dictionary accepts the following attributes:
 
-      - dryRun: boolean value used to enable a dry run of the upgrade process.
+      - dryRun: boolean, if true all validations and steps to run the upgrade
+        process are executed but no changes are actually made.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode. Deprecated.
 
-      If dryRun is used, the function will determine whether a metadata upgrade
-      or restore is required and inform the user without actually executing the
-      operation.
-
       The interactive option can be used to explicitly enable or disable the
-      interactive prompts that help the user through te upgrade process. The
+      interactive prompts that help the user through the upgrade process. The
       default value is equal to MySQL Shell wizard mode.
 
       The Upgrade Process

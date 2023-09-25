@@ -139,7 +139,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.27)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                           |
 +----------------------------------------+---------------+----------------+------------------------------------------------+
@@ -161,7 +161,29 @@ Account repl_admin@% was successfully created.
 
 Configuring instance...
 ?{}
-?{((VER(>=8.0.35) && VER(<8.1.0)) || VER(>=8.2.0)) && !__replaying}
+?{VER(>=8.3.0)}
++----------------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                          |
++----------------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file                        |
+| binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file                        |
+| enforce_gtid_consistency               | OFF           | ON             | Update the config file and restart the server |
+| gtid_mode                              | OFF           | ON             | Update the config file and restart the server |
+| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file                        |
+| replica_preserve_commit_order          | <not set>     | ON             | Update the config file                        |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                              | 1             | <unique ID>    | Update the config file and restart the server |
+| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file                        |
++----------------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
+Configuring instance...
+?{}
+?{((VER(>=8.0.35) && VER(<8.1.0)) || (VER(>=8.2.0) && VER(<8.3.0))) && !__replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}

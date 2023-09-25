@@ -40,8 +40,8 @@
 namespace mysqlsh::dba::cluster {
 
 struct Add_instance_options : public Password_interactive_options,
-                              Wait_recovery_option,
-                              Recovery_progress_option {
+                              public Wait_recovery_option,
+                              public Recovery_progress_option {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
   void set_cert_subject(const std::string &value);
@@ -53,8 +53,8 @@ struct Add_instance_options : public Password_interactive_options,
 };
 
 struct Rejoin_instance_options : public Password_interactive_options,
-                                 Timeout_option,
-                                 Recovery_progress_option {
+                                 public Timeout_option,
+                                 public Recovery_progress_option {
   static const shcore::Option_pack_def<Rejoin_instance_options> &options();
   Rejoin_group_replication_options gr_options;
   Join_read_replica_clone_options clone_options;
@@ -62,7 +62,7 @@ struct Rejoin_instance_options : public Password_interactive_options,
 };
 
 struct Remove_instance_options : public Password_interactive_options,
-                                 Timeout_option {
+                                 public Timeout_option {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
   bool get_force(bool default_value = false) const noexcept {
@@ -119,7 +119,7 @@ struct Replication_sources {
 };
 
 struct Add_replica_instance_options : public Timeout_option,
-                                      Recovery_progress_option {
+                                      public Recovery_progress_option {
   static const shcore::Option_pack_def<Add_replica_instance_options> &options();
   void set_replication_sources(const shcore::Value &value);
 

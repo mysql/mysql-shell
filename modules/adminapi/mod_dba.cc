@@ -24,9 +24,7 @@
 #include "modules/adminapi/mod_dba.h"
 
 #include <mysqld_error.h>
-#include <algorithm>
 #include <memory>
-#include <random>
 #include <string>
 #include "utils/error.h"
 
@@ -34,20 +32,15 @@
 #include <sys/un.h>
 #endif
 
-#include <iterator>
-#include <utility>
 #include <vector>
 
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
-#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/topology_executor.h"
-#include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "modules/adminapi/dba/configure_instance.h"
 #include "modules/adminapi/dba/configure_local_instance.h"
@@ -55,28 +48,18 @@
 #include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
 #include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
-#include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
-#include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/scripting/object_factory.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 /*
   Sessions used by AdminAPI
@@ -3070,15 +3053,12 @@ installed metadata version is lower, an upgrade process will be started.
 
 The options dictionary accepts the following attributes:
 
-@li dryRun: boolean value used to enable a dry run of the upgrade process.
+@li dryRun: boolean, if true all validations and steps to run the upgrade
+process are executed but no changes are actually made.
 ${OPT_INTERACTIVE}
 
-If dryRun is used, the function will determine whether a metadata upgrade
-or restore is required and inform the user without actually executing the
-operation.
-
 The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through te upgrade process. The default
+interactive prompts that help the user through the upgrade process. The default
 value is equal to MySQL Shell wizard mode.
 
 <b>The Upgrade Process</b>

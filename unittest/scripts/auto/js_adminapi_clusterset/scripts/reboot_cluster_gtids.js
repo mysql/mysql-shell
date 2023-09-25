@@ -33,8 +33,10 @@ testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbo
 
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
-EXPECT_OUTPUT_CONTAINS("* Reconciling ");
-EXPECT_OUTPUT_CONTAINS(" internally generated GTIDs")
+if (__version_num < 80300) {
+    EXPECT_OUTPUT_CONTAINS("* Reconciling ");
+    EXPECT_OUTPUT_CONTAINS(" internally generated GTIDs")
+}
 EXPECT_OUTPUT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
 //create errant transactions

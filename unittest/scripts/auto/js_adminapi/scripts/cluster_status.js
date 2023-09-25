@@ -433,7 +433,7 @@ session3.runSql("UNLOCK TABLES");
 session2.runSql("STOP group_replication");
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 // Disable parallel-appliers
-testutil.removeFromSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_type");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");
@@ -603,6 +603,8 @@ session.close();
 shell.connect(__sandbox_uri1);
 session.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("STOP GROUP_REPLICATION");
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("create schema foo");
 session.runSql("START GROUP_REPLICATION");
 testutil.waitMemberState(__mysql_sandbox_port1, "RECOVERING");
 session.close();

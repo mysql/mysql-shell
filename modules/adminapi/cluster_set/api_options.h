@@ -45,7 +45,7 @@ struct Create_cluster_set_options {
 
 struct Create_replica_cluster_options : public Interactive_option,
                                         public Timeout_option,
-                                        Recovery_progress_option {
+                                        public Recovery_progress_option {
   static const shcore::Option_pack_def<Create_replica_cluster_options>
       &options();
 

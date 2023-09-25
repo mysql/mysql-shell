@@ -245,13 +245,13 @@ testutil.waitMemberState(__mysql_sandbox_port4, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri5, __sandbox_uri4], cluster, c3);
 CHECK_REJOINED_INSTANCE(__sandbox_uri4, c3, false);
 
-//@<> createCluster() must generate and set a value for group_replication_view_change_uuid
 var session4 = mysql.getSession(__sandbox_uri4);
 reset_instance(session4);
 testutil.stopSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri4);
 dba.createCluster("newcluster");
 
+//@<> createCluster() must generate and set a value for group_replication_view_change_uuid (if version < 8.3.0) {VER(<8.3.0)}
 var view_change_uuid = session.runSql("select @@global.group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(null, view_change_uuid);
 

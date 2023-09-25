@@ -121,7 +121,7 @@ session2.runSql("START SLAVE");
 //@<> BUG#32015164: preparation {VER(>=8.0.23)}
 
 // Disable parallel-appliers
-testutil.removeFromSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "replica_parallel_type");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "replica_preserve_commit_order");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");

@@ -11,7 +11,7 @@
     "defaultReplicaSet": {
         "GRProtocolVersion": "[[*]]",
         "clusterErrors": [
-?{VER(>=8.0.27)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
             "WARNING: The Cluster's group_replication_view_change_uuid is not stored in the Metadata. Please use <Cluster>.rescan() to update the metadata.",
 ?{}
             "WARNING: Cluster's transaction size limit is not registered in the metadata. Use cluster.rescan() to update the metadata."
@@ -114,8 +114,11 @@ ${*}
 ?{VER(>=8.0.17) && VER(<8.0.25)}
                                 "transaction": "<<<gr_uuid>>>:[[*]]"
 ?{}
-?{VER(>=8.0.25)}
+?{VER(>=8.0.25) && VER(<8.3.0)}
                                 "transaction": "<<<gr_view_change_uuid>>>:[[*]]"
+?{}
+?{VER(>=8.3.0)}
+                                "transaction": ""
 ?{}
 ?{VER(>=8.0.17)}
                             },
@@ -342,16 +345,18 @@ ${*}
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(<8.3.0) && VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<allowlist>>>",
-?{}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>1",
@@ -443,16 +448,18 @@ ${*}
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(<8.3.0) && VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<allowlist>>>",
-?{}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>1",

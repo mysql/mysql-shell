@@ -51,8 +51,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/shellcore/shell_console.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -414,9 +413,12 @@ void Create_cluster::prepare() {
         m_options.gr_options.group_name = m_target_instance->generate_uuid();
       }
 
-      // Generate the GR view-change UUID
-      if (m_target_instance->get_version() >=
-          Precondition_checker::k_min_cs_version) {
+      // Generate the GR view-change UUID if the target instance version is
+      // >= 8.0.27 and < 8.3.0
+      auto target_instance_version = m_target_instance->get_version();
+
+      if (target_instance_version >= Precondition_checker::k_min_cs_version &&
+          target_instance_version < k_view_change_uuid_deprecated) {
         m_options.gr_options.view_change_uuid =
             m_target_instance->generate_uuid();
       }

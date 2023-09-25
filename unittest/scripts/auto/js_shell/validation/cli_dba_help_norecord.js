@@ -524,4 +524,5 @@ SYNTAX
 
 OPTIONS
 --dryRun=<bool>
-            Boolean value used to enable a dry run of the upgrade process.
+            Boolean, if true all validations and steps to run the upgrade
+            process are executed but no changes are actually made.

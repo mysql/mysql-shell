@@ -1,4 +1,4 @@
-#@ {VER(>=8.0.27) and VER(<8.3.0)}
+#@ {DEF(MYSQLD_SECONDARY_SERVER_A) and VER(>=8.0.27) and testutil.version_check(MYSQLD_SECONDARY_SERVER_A["version"], ">=", "8.0.27")}
 
 # Various tests regarding transaction consistency between the primary cluster
 # and replica cluster. Ensures reconciliation happens correctly.
@@ -6,11 +6,16 @@
 
 #@<> Setup
 
-testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {"report_host":hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"report_host":hostname})
+testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
+testutil.deploy_raw_sandbox(__mysql_sandbox_port2, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
 testutil.deploy_sandbox(__mysql_sandbox_port3, "root", {"report_host":hostname})
 testutil.deploy_sandbox(__mysql_sandbox_port4, "root", {"report_host":hostname})
 
+EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri1), "")
+EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri2), "")
+
+testutil.restart_sandbox(__mysql_sandbox_port1)
+testutil.restart_sandbox(__mysql_sandbox_port2)
 session1 = mysql.get_session(__sandbox_uri1)
 session2 = mysql.get_session(__sandbox_uri2)
 session3 = mysql.get_session(__sandbox_uri3)
@@ -23,7 +28,7 @@ rc.add_instance(__sandbox_uri3)
 pc.add_instance(__sandbox_uri4)
 
 #@<> Regression test to ensure only VCLEs are injected by ensure_transaction_set_consistent()
-# Bug #34462141	clusterset.rejoinCluster() hangs
+# Bug #34462141 clusterset.rejoinCluster() hangs
 
 # pause replication
 session2.run_sql("stop replica for channel 'clusterset_replication'")

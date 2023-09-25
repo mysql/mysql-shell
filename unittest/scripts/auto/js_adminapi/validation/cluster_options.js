@@ -103,11 +103,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -199,11 +201,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address2>>>",
@@ -295,11 +299,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address3>>>",
@@ -434,11 +440,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -525,11 +533,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address2>>>",
@@ -616,11 +626,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address3>>>",
@@ -780,11 +792,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -1123,11 +1137,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address2>>>",
@@ -1466,11 +1482,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address3>>>",
@@ -1852,11 +1870,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -2091,11 +2111,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address2>>>",
@@ -2330,11 +2352,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address3>>>",
@@ -2639,11 +2663,13 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -2710,11 +2736,13 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address2>>>",
@@ -2781,11 +2809,13 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address3>>>",
@@ -2904,11 +2934,13 @@
                     "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",
@@ -3067,11 +3099,13 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<__cfg_local_address1>>>",

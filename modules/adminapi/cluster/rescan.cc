@@ -30,15 +30,14 @@
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -1048,13 +1047,16 @@ shcore::Value Rescan::execute() {
   // Check if group_replication_view_change_uuid is set on the Cluster and all
   // of its members when running MySQL >= 8.0.27. Also verify the Metadata
   // consistency regarding group_replication_view_change_uuid when already in
-  // use
+  // use.
+  // Skip if running MySQL >= 8.3.0, since the option is no longer needed.
   if (m_is_view_change_uuid_supported) {
     auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
         "group_replication_view_change_uuid", "");
 
     if (view_change_uuid == "AUTOMATIC") {
-      if (m_options.update_view_change_uuid.is_null()) {
+      if (m_options.update_view_change_uuid.is_null() &&
+          m_cluster->get_lowest_instance_version() <
+              k_view_change_uuid_deprecated) {
         console->print_note(
             "The Cluster is not configured to use "
             "'group_replication_view_change_uuid', which is required "

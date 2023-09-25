@@ -23,21 +23,20 @@
 
 #include "modules/adminapi/cluster/create_cluster_set.h"
 
-#include <exception>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/preconditions.h"
-#include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
 #include "mysql/group_replication.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "shellcore/console.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -56,13 +55,14 @@ void Create_cluster_set::check_version_requirement() {
   auto console = mysqlsh::current_console();
   std::vector<std::string> instances_addresses;
 
-  auto lowest_instance_version =
+  m_lowest_instance_version =
       m_cluster->get_lowest_instance_version(&instances_addresses);
 
-  if (lowest_instance_version < Precondition_checker::k_min_cs_version) {
+  if (m_lowest_instance_version < Precondition_checker::k_min_cs_version) {
     std::string instances_list = shcore::str_join(instances_addresses, ",");
 
-    console->print_info("MySQL version " + lowest_instance_version.get_full() +
+    console->print_info("MySQL version " +
+                        m_lowest_instance_version.get_full() +
                         " detected at [" + instances_list +
                         "], but 8.0.27 is required for InnoDB ClusterSet.");
     throw shcore::Exception("Unsupported MySQL version",
@@ -107,30 +107,33 @@ void Create_cluster_set::check_illegal_channels() {
 void Create_cluster_set::check_gr_configuration() {
   auto console = mysqlsh::current_console();
 
-  // Check if group_replication_view_change_uuid is set on the cluster
-  auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
-      "group_replication_view_change_uuid", "");
+  // Check if group_replication_view_change_uuid is set on the cluster (if
+  // version < 8.3.0)
+  if (m_lowest_instance_version < k_view_change_uuid_deprecated) {
+    auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
+        "group_replication_view_change_uuid", "");
 
-  if (view_change_uuid == "AUTOMATIC") {
-    console->print_error(
-        "The cluster is not configured to use "
-        "group_replication_view_change_uuid. Please use <Cluster>.rescan() to "
-        "repair the issue.");
-
-    throw shcore::Exception(
-        "group_replication_view_change_uuid not configured.",
-        SHERR_DBA_CLUSTER_NOT_CONFIGURED_VIEW_UUID);
-  } else {
-    // Check if the value is stored in the Metadata
-    if (m_cluster->get_view_change_uuid().empty()) {
+    if (view_change_uuid == "AUTOMATIC") {
       console->print_error(
-          "The cluster's group_replication_view_change_uuid is not stored in "
-          "the Metadata. Please use <Cluster>.rescan() to update the "
-          "metadata.");
+          "The cluster is not configured to use "
+          "group_replication_view_change_uuid. Please use <Cluster>.rescan() "
+          "to repair the issue.");
 
       throw shcore::Exception(
           "group_replication_view_change_uuid not configured.",
           SHERR_DBA_CLUSTER_NOT_CONFIGURED_VIEW_UUID);
+    } else {
+      // Check if the value is stored in the Metadata
+      if (m_cluster->get_view_change_uuid().empty()) {
+        console->print_error(
+            "The cluster's group_replication_view_change_uuid is not stored in "
+            "the Metadata. Please use <Cluster>.rescan() to update the "
+            "metadata.");
+
+        throw shcore::Exception(
+            "group_replication_view_change_uuid not configured.",
+            SHERR_DBA_CLUSTER_NOT_CONFIGURED_VIEW_UUID);
+      }
     }
   }
 }

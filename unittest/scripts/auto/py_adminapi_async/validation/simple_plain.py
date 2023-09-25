@@ -42,7 +42,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.0.27)}
+?{VER(>=8.0.27) and VER(<8.3.0)}
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                             |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
@@ -52,6 +52,15 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
+?{VER(>=8.3.0)}
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 
@@ -59,7 +68,7 @@ Creating user admin@%.
 Account admin@% was successfully created.
 
 Configuring instance...
-?{((VER(>=8.0.35) and VER(<8.1.0)) or VER(>=8.2.0)) and not __replaying}
+?{((VER(>=8.0.35) and VER(<8.1.0)) or (VER(>=8.2.0) and VER(<8.3.0))) and not __replaying}
 
 WARNING: '@@binlog_transaction_dependency_tracking' is deprecated and will be removed in a future release. (Code 1287).
 ?{}

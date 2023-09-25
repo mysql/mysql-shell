@@ -70,10 +70,11 @@ testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//FR2.6: The Cluster must have group_replication_view_change_uuid set and stored in the Metadata, otherwise fail with an error
-//indicating to run <Cluster>.rescan() to fix it.
+//FR2.6: The Cluster must have group_replication_view_change_uuid set and
+//stored in the Metadata, otherwise fail with an error indicating to run
+//<Cluster>.rescan() to fix it. Only if the version is < 8.3.0
 
-//@<> The Cluster must have group_replication_view_change_uuid stored in the Metadata schema
+//@<> The Cluster must have group_replication_view_change_uuid stored in the Metadata schema {VER(<8.3.0)}
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(view_change_uuid, "AUTOMATIC");
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.group_replication_view_change_uuid')");
@@ -83,7 +84,7 @@ EXPECT_OUTPUT_CONTAINS("The cluster's group_replication_view_change_uuid is not 
 // Revert the removal of group_replication_view_change_uuid from the Metadata
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.group_replication_view_change_uuid', '" +view_change_uuid + "')");
 
-//@<> The Cluster must have group_replication_view_change_uuid set
+//@<> The Cluster must have group_replication_view_change_uuid set {VER(<8.3.0)}
 
 // Remove the value group_replication_view_change from the metadata and change it to AUTOMATIC in the whole cluster
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.group_replication_view_change_uuid')");

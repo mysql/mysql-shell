@@ -654,7 +654,7 @@ get_metadata_topology_mode();
 //  - For both cases, if a new value is generated, confirm the metadata is
 //    updated
 
-//@<> Cluster.rescan() - view_change_uuid handling {VER(>=8.0.27)}
+//@<> Cluster.rescan() - view_change_uuid handling {VER(>=8.0.27) && VER(<8.3.0)}
 
 // Reduce the cluster to 2 members to speed-up and switch to single-primary mode
 cluster.removeInstance(__sandbox_uri3);
@@ -961,7 +961,7 @@ if (__version_num >= 80027) {
 // Metadata.
 // Shell must detect it in .status() and allow users to fix it using .rescan().
 
-//@<> BUG#35000998 ensure group_replication_view_change_uuid stored in the metadata matches the current cluster's value {VER(>=8.0.27)}
+//@<> BUG#35000998 ensure group_replication_view_change_uuid stored in the metadata matches the current cluster's value {VER(>=8.0.27) && VER(<8.3.0)}
 
 // Change the runtime value of view_change_uuid
 session3 = mysql.getSession(__sandbox_uri3);

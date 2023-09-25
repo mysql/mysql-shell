@@ -15,7 +15,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -55,7 +55,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 {
@@ -139,7 +139,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -202,7 +202,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -243,7 +243,7 @@ group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 {
@@ -294,7 +294,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -465,7 +465,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -496,7 +496,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -526,7 +526,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -557,7 +557,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 WARNING: The interactive option is deprecated and will be removed in a future release.
@@ -595,7 +595,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -640,7 +640,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -665,7 +665,7 @@ group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 (MISSING)
@@ -761,7 +761,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -790,7 +790,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -815,7 +815,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -837,7 +837,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 (MISSING)
@@ -956,7 +956,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -978,7 +978,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -1010,7 +1010,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 The instance will be removed from the InnoDB Cluster.
@@ -1044,7 +1044,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -1070,7 +1070,7 @@ group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -1092,7 +1092,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
@@ -1177,7 +1177,7 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
-?{VER(>=8.0.25)}
+?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 

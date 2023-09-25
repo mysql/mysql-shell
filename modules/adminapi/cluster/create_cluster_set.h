@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -56,6 +57,7 @@ class Create_cluster_set : public Command_interface {
   Cluster_impl *m_cluster = nullptr;
   const std::string m_domain_name;
   Create_cluster_set_options m_options;
+  mysqlshdk::utils::Version m_lowest_instance_version;
 
   /**
    * Check if all cluster members are running the minimum required version

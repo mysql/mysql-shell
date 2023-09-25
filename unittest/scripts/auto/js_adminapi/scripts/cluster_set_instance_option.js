@@ -182,6 +182,8 @@ print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "P
 session3 = shell.connect(__sandbox_uri3);
 session3.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session3.runSql("STOP GROUP_REPLICATION");
+session1 = mysql.getSession(__sandbox_uri1);
+session1.runSql("create schema foo");
 session3.runSql("START GROUP_REPLICATION");
 testutil.waitMemberState(__mysql_sandbox_port3, "RECOVERING");
 cluster.setInstanceOption(__sandbox_uri3, "memberWeight", 28);

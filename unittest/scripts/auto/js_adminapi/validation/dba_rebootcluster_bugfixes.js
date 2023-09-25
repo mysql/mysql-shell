@@ -108,16 +108,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
+?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address1>>>",
@@ -209,16 +213,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
+?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address2>>>",
@@ -608,16 +616,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
+?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address1>>>",
@@ -709,16 +721,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
+?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address2>>>",
