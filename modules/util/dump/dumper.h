@@ -26,6 +26,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -34,6 +35,8 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/db/column.h"
@@ -45,6 +48,7 @@
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/common/dump/checksums.h"
 #include "modules/util/dump/capability.h"
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
@@ -126,6 +130,11 @@ class Dumper {
     std::string basename;
   };
 
+  struct Index_info {
+    const Instance_cache::Index *info = nullptr;
+    bool is_pke = false;
+  };
+
   struct Partition_info {
     std::string basename;
     const Instance_cache::Partition *info = nullptr;
@@ -148,12 +157,21 @@ class Dumper {
   struct Table_task : Table_info {
     std::string task_name;
     std::string schema;
-    std::string where;
+    std::string extra_filter;
+    Index_info index;
   };
 
   struct Table_data_task : Table_task {
     std::unique_ptr<Dump_writer_controller> controller;
     std::string id;
+    int64_t chunk;
+    std::string boundary;
+  };
+
+  struct Checksum_task {
+    std::string name;
+    std::string id;
+    common::Checksums::Checksum_data *checksum = nullptr;
   };
 
   class Table_worker;
@@ -236,6 +254,10 @@ class Dumper {
 
   void chunking_task_finished();
 
+  void data_task_finished();
+
+  void checksum_task_finished();
+
   void wait_for_all_tasks();
 
   void dump_ddl() const;
@@ -287,6 +309,14 @@ class Dumper {
 
   void push_table_chunking_task(Table_task &&task);
 
+  void push_table_data_task(Table_data_task &&task);
+
+  Checksum_task create_checksum_task(const Table_data_task &table);
+
+  Checksum_task create_checksum_task(const Table_task &table);
+
+  void push_checksum_task(Checksum_task &&task);
+
   bool should_dump_data(const Table_task &table) const;
 
   std::unique_ptr<Dump_writer_controller> table_dump_controller(
@@ -303,6 +333,8 @@ class Dumper {
   void write_dump_started_metadata() const;
 
   void write_dump_finished_metadata() const;
+
+  void write_checksum_metadata() const;
 
   void write_schema_metadata(const Schema_info &schema) const;
 
@@ -325,6 +357,8 @@ class Dumper {
                                       const bool last_chunk) const;
 
   void initialize_throughput_progress();
+
+  void initialize_checksum_progress();
 
   void update_progress(const Dump_write_result &progress);
 
@@ -375,6 +409,8 @@ class Dumper {
     return m_session_pool;
   }
 
+  bool all_tasks_produced() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
@@ -416,6 +452,7 @@ class Dumper {
   std::atomic<uint64_t> m_bytes_written;
   std::atomic<uint64_t> m_rows_written;
   std::atomic<uint64_t> m_num_threads_chunking;
+  std::atomic<uint64_t> m_num_threads_checksumming;
   std::atomic<uint64_t> m_num_threads_dumping;
   std::atomic<uint64_t> m_ddl_written;
 
@@ -443,7 +480,12 @@ class Dumper {
   std::vector<std::exception_ptr> m_worker_exceptions;
   std::atomic<bool> m_worker_exception_thrown = false;
   shcore::Synchronized_queue<Task_info> m_worker_tasks;
-  std::atomic<uint64_t> m_chunking_tasks;
+  std::atomic<uint64_t> m_chunking_tasks_total;
+  std::atomic<uint64_t> m_chunking_tasks_completed;
+  std::atomic<uint64_t> m_data_tasks_total;
+  std::atomic<uint64_t> m_data_tasks_completed;
+  std::atomic<uint64_t> m_checksum_tasks_total;
+  std::atomic<uint64_t> m_checksum_tasks_completed;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
   std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   volatile bool m_worker_interrupt = false;
@@ -457,6 +499,9 @@ class Dumper {
 
   shcore::Synchronized_queue<std::shared_ptr<mysqlshdk::db::ISession>>
       m_session_pool;
+
+  std::mutex m_checksums_mutex;
+  std::unique_ptr<common::Checksums> m_checksum;
 };
 
 }  // namespace dump

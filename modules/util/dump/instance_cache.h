@@ -71,26 +71,18 @@ struct Instance_cache {
 
     ~Index() = default;
 
-    inline bool valid() const noexcept { return !m_columns.empty(); }
-
-    inline const std::vector<Column *> &columns() const { return m_columns; }
+    inline const std::vector<const Column *> &columns() const {
+      return m_columns;
+    }
 
     inline const std::string &columns_sql() const { return m_columns_sql; }
 
-    inline bool primary() const { return m_primary; }
-
-    void reset();
-
-    void add_column(Column *column);
-
-    void set_primary(bool primary);
+    void add_column(const Column *column);
 
    private:
-    std::vector<Column *> m_columns;
+    std::vector<const Column *> m_columns;
 
     std::string m_columns_sql;
-
-    bool m_primary = false;
   };
 
   struct Histogram {
@@ -111,8 +103,12 @@ struct Instance_cache {
     std::string engine;
     std::string create_options;
     std::string comment;
-    Index index;
-    std::vector<Column *> columns;
+    std::unordered_map<std::string, Index> indexes;
+    const Index *primary_key = nullptr;
+    // indexes are ordered to ensure repeatability of the selection algorithm
+    std::vector<const Index *> primary_key_equivalents;
+    std::vector<const Index *> unique_keys;
+    std::vector<const Column *> columns;
     std::vector<Column> all_columns;
     std::vector<Histogram> histograms;
     std::vector<std::string> triggers;  // order of triggers is important

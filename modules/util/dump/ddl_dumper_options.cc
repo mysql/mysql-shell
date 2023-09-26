@@ -86,6 +86,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
                    &common::Filtering_options::triggers)
           .optional("where", &Ddl_dumper_options::set_where_clause)
           .optional("partitions", &Ddl_dumper_options::set_partitions)
+          .optional("checksum", &Ddl_dumper_options::m_checksum)
           .include(&Ddl_dumper_options::m_dump_manifest_options)
           .include(&Ddl_dumper_options::m_s3_bucket_options)
           .include(&Ddl_dumper_options::m_blob_storage_options)

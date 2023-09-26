@@ -26,6 +26,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <limits>
 #include <list>
 #include <memory>
 #include <queue>
@@ -83,7 +84,7 @@ class Dump_loader {
    public:
     class Task {
      public:
-      Task(const std::string &schema, const std::string &table)
+      Task(std::string_view schema, std::string_view table)
           : m_schema(schema),
             m_table(table),
             m_key(schema_object_key(schema, table)) {}
@@ -123,7 +124,7 @@ class Dump_loader {
 
     class Schema_ddl_task : public Task {
      public:
-      Schema_ddl_task(const std::string &schema, std::string &&script,
+      Schema_ddl_task(std::string_view schema, std::string &&script,
                       bool resuming)
           : Task(schema, ""),
             m_script(std::move(script)),
@@ -139,7 +140,7 @@ class Dump_loader {
 
     class Table_ddl_task : public Task {
      public:
-      Table_ddl_task(const std::string &schema, const std::string &table,
+      Table_ddl_task(std::string_view schema, std::string_view table,
                      std::string &&script, bool placeholder,
                      Load_progress_log::Status status, bool exists)
           : Task(schema, table),
@@ -185,22 +186,40 @@ class Dump_loader {
       bool m_exists = false;
     };
 
-    class Load_chunk_task : public Task {
+    class Table_data_task : public Task {
      public:
-      Load_chunk_task(const std::string &schema, const std::string &table,
-                      const std::string &partition, ssize_t chunk_index,
-                      std::unique_ptr<mysqlshdk::storage::IFile> file,
-                      shcore::Dictionary_t options, bool resume,
-                      uint64_t bytes_to_skip)
+      Table_data_task(std::string_view schema, std::string_view table,
+                      std::string_view partition, ssize_t chunk_index)
           : Task(schema, table),
             m_chunk_index(chunk_index),
-            m_file(std::move(file)),
-            m_options(options),
-            m_resume(resume),
-            m_bytes_to_skip(bytes_to_skip),
             m_partition(partition) {
         m_key = schema_table_object_key(schema, table, partition);
       }
+
+      ssize_t chunk_index() const noexcept { return m_chunk_index; }
+
+      const std::string &partition() const noexcept { return m_partition; }
+
+     protected:
+      std::string query_comment() const;
+
+     private:
+      ssize_t m_chunk_index;
+      std::string m_partition;
+    };
+
+    class Load_chunk_task : public Table_data_task {
+     public:
+      Load_chunk_task(std::string_view schema, std::string_view table,
+                      std::string_view partition, ssize_t chunk_index,
+                      std::unique_ptr<mysqlshdk::storage::IFile> file,
+                      shcore::Dictionary_t options, bool resume,
+                      uint64_t bytes_to_skip)
+          : Table_data_task(schema, table, partition, chunk_index),
+            m_file(std::move(file)),
+            m_options(options),
+            m_resume(resume),
+            m_bytes_to_skip(bytes_to_skip) {}
 
       size_t bytes_loaded = 0;
       size_t raw_bytes_loaded = 0;
@@ -212,24 +231,16 @@ class Dump_loader {
       void load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                 Dump_loader *, Worker *);
 
-      ssize_t chunk_index() const { return m_chunk_index; }
-
-      const std::string &partition() const { return m_partition; }
-
      private:
-      std::string query_comment() const;
-
-      ssize_t m_chunk_index;
       std::unique_ptr<mysqlshdk::storage::IFile> m_file;
       shcore::Dictionary_t m_options;
       bool m_resume = false;
       uint64_t m_bytes_to_skip = 0;
-      std::string m_partition;
     };
 
     class Analyze_table_task : public Task {
      public:
-      Analyze_table_task(const std::string &schema, const std::string &table,
+      Analyze_table_task(std::string_view schema, std::string_view table,
                          const std::vector<Dump_reader::Histogram> &histograms)
           : Task(schema, table), m_histograms(histograms) {}
 
@@ -243,7 +254,7 @@ class Dump_loader {
     class Index_recreation_task : public Task {
      public:
       Index_recreation_task(
-          const std::string &schema, const std::string &table,
+          std::string_view schema, std::string_view table,
           compatibility::Deferred_statements::Index_info *indexes,
           uint64_t weight)
           : Task(schema, table), m_indexes(indexes) {
@@ -255,6 +266,31 @@ class Dump_loader {
 
      private:
       compatibility::Deferred_statements::Index_info *m_indexes;
+    };
+
+    class Checksum_task : public Table_data_task {
+     public:
+      using Checksum_result =
+          std::pair<bool, dump::common::Checksums::Checksum_result>;
+      explicit Checksum_task(
+          const dump::common::Checksums::Checksum_data *checksum)
+          : Table_data_task(checksum->schema(), checksum->table(),
+                            checksum->partition(), checksum->chunk()),
+            m_checksum(checksum) {}
+
+      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
+                   Worker *, Dump_loader *) override;
+
+      const dump::common::Checksums::Checksum_data *checksum_info()
+          const noexcept {
+        return m_checksum;
+      }
+
+      const Checksum_result &result() const noexcept { return m_result; }
+
+     private:
+      const dump::common::Checksums::Checksum_data *m_checksum;
+      Checksum_result m_result = {true, {}};
     };
 
     Worker(size_t id, Dump_loader *owner);
@@ -324,6 +360,8 @@ class Dump_loader {
       EXIT,
       LOAD_SUBCHUNK_START,
       LOAD_SUBCHUNK_END,
+      CHECKSUM_START,
+      CHECKSUM_END,
     };
     Event event;
     Worker *worker = nullptr;
@@ -414,11 +452,16 @@ class Dump_loader {
   void on_analyze_start(const std::string &schema, const std::string &table);
   void on_analyze_end(const std::string &schema, const std::string &table);
 
+  void on_checksum_start(
+      const dump::common::Checksums::Checksum_data *checksum);
+  void on_checksum_end(const dump::common::Checksums::Checksum_data *checksum,
+                       const Worker::Checksum_task::Checksum_result &result);
+  void report_checksum_error(const std::string &msg);
+  bool maybe_push_checksum_task(
+      const dump::common::Checksums::Checksum_data *checksum);
+
   friend class Worker;
   friend class Worker::Load_chunk_task;
-
-  const std::string &pre_data_script() const;
-  const std::string &post_data_script() const;
 
   void check_server_version();
   void check_tables_without_primary_key();
@@ -435,6 +478,8 @@ class Dump_loader {
   void setup_create_indexes_progress();
 
   void setup_analyze_tables_progress();
+
+  void setup_checksum_tables_progress();
 
   void add_skipped_schema(const std::string &schema);
 
@@ -493,6 +538,8 @@ class Dump_loader {
   Task_ptr analyze_table(
       const std::string &schema, const std::string &table,
       const std::vector<Dump_reader::Histogram> &histograms) const;
+
+  Task_ptr checksum(const dump::common::Checksums::Checksum_data *data) const;
 
   void load_users();
 
@@ -565,6 +612,7 @@ class Dump_loader {
   std::unordered_multimap<std::string, size_t> m_tables_being_loaded;
   std::atomic<size_t> m_num_threads_loading;
   std::atomic<size_t> m_num_threads_recreating_indexes;
+  std::atomic<size_t> m_num_threads_checksumming{0};
   std::atomic<size_t> m_num_index_retries{0};
 
   Sql_transform m_default_sql_transforms;
@@ -606,6 +654,10 @@ class Dump_loader {
   uint64_t m_tables_to_analyze = 0;
   bool m_all_analyze_tasks_scheduled = false;
 
+  uint64_t m_checksum_tasks_completed = 0;
+  uint64_t m_checksum_tasks_to_complete = 0;
+  bool m_all_checksum_tasks_scheduled = false;
+
   std::unordered_map<std::string, bool> m_schema_ddl_ready;
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
 
@@ -616,10 +668,13 @@ class Dump_loader {
   dump::Progress_thread::Stage *m_load_data_stage = nullptr;
   dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
   dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
+  dump::Progress_thread::Stage *m_checksum_tables_stage = nullptr;
 
   std::size_t m_loaded_accounts = 0;
   std::size_t m_dropped_accounts = 0;
   std::size_t m_ignored_grant_errors = 0;
+
+  std::size_t m_checksum_errors = 0;
 };
 
 }  // namespace mysqlsh

@@ -618,5 +618,160 @@ EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_vers
 src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 testutil.dbug_set("")
 
+#@<> WL15947 - setup
+schema_name = "wl15947"
+test_table_primary = "pk"
+test_table_unique = "uni"
+test_table_unique_null = "uni-null"
+test_table_no_index = "no-index"
+test_table_partitioned = "part"
+test_table_empty = "empty"
+test_table_gipk = "gipk"
+test_table_timestamp = "ts"
+gipk_supported = __version_num >= 80030
+
+def setup_db():
+    src_session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    src_session.run_sql("CREATE SCHEMA !", [schema_name])
+    src_session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, datecol DATE NOT NULL)", [ schema_name, test_table_primary ])
+    src_session.run_sql("CREATE TABLE !.! (id INT NOT NULL UNIQUE KEY, datecol DATE NOT NULL)", [ schema_name, test_table_unique ])
+    src_session.run_sql("CREATE TABLE !.! (id INT UNIQUE KEY, datecol DATE NOT NULL)", [ schema_name, test_table_unique_null ])
+    src_session.run_sql("CREATE TABLE !.! (id INT, datecol DATE NOT NULL)", [ schema_name, test_table_no_index ])
+    src_session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY, datecol DATE NOT NULL) PARTITION BY RANGE (`id`) (PARTITION p0 VALUES LESS THAN (500), PARTITION p1 VALUES LESS THAN (1000), PARTITION p2 VALUES LESS THAN MAXVALUE);", [ schema_name, test_table_partitioned ])
+    src_session.run_sql("CREATE TABLE !.! (id INT, datecol DATE NOT NULL)", [ schema_name, test_table_empty ])
+    src_session.run_sql("CREATE TABLE !.! (id INT NOT NULL PRIMARY KEY, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)", [ schema_name, test_table_timestamp ])
+    # WL15947-ET_1 - columns with invalid values
+    src_session.run_sql("SET @saved_sql_mode = @@sql_mode")
+    src_session.run_sql("SET @@sql_mode = 'ALLOW_INVALID_DATES,NO_AUTO_VALUE_ON_ZERO'")
+    src_session.run_sql("INSERT INTO !.! (id, datecol) VALUES (0, '2004-04-28')", [ schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! (datecol) VALUES ('2004-04-29'), ('2004-04-30'), ('2004-04-31')", [ schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique, schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique_null, schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_no_index, schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_partitioned, schema_name, test_table_primary ])
+    src_session.run_sql("INSERT INTO !.! (id) VALUES (1), (2), (3)", [ schema_name, test_table_timestamp ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_primary ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique_null ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_no_index ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_partitioned ])
+    src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_timestamp ])
+    if gipk_supported:
+        src_session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key=ON")
+        src_session.run_sql("CREATE TABLE !.! (id INT, datecol DATE NOT NULL) ENGINE=InnoDB;", [ schema_name, test_table_gipk ])
+        src_session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_gipk, schema_name, test_table_primary ])
+        src_session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_gipk ])
+        src_session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key=OFF")
+    src_session.run_sql("SET @@sql_mode = @saved_sql_mode")
+
+setup_db()
+
+#@<> WL15947-TSFR_3_1 - help text
+help_text = """
+      - checksum: bool (default: false) - Compute checksums of the data and
+        verify tables in the target instance against these checksums.
+"""
+EXPECT_TRUE(help_text in util.help("copy_schemas"))
+
+#@<> WL15947-TSFR_3_1_1 - copy without checksum option
+EXPECT_SUCCESS(__sandbox_uri2, {}, schemas = [ schema_name ])
+EXPECT_STDOUT_NOT_CONTAINS("checksum")
+
+#@<> WL15947-TSFR_3_1_1 - copy with checksum option set to False
+EXPECT_SUCCESS(__sandbox_uri2, { "checksum": False }, schemas = [ schema_name ])
+EXPECT_STDOUT_NOT_CONTAINS("checksum")
+
+#@<> WL15947-TSFR_3_1_2 - option type
+TEST_BOOL_OPTION("checksum")
+
+#@<> WL15947-TSFR_3_2_2 - "checksum": True, "ddlOnly": False, "chunking": True, not partitioned table
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": False, "chunking": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}` (chunk 0) (boundary:")
+
+#@<> WL15947-TSFR_3_2_3 - "checksum": True, "ddlOnly": False, "chunking": True, partitioned table
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": False, "chunking": True, "includeTables": [ quote_identifier(schema_name, test_table_partitioned) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p0` (chunk 0) (boundary:")
+
+#@<> WL15947-TSFR_3_2_4 - "checksum": True, "ddlOnly": False, "chunking": False, not partitioned table
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": False, "chunking": False, "includeTables": [ quote_identifier(schema_name, test_table_primary) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`.")
+
+#@<> WL15947-TSFR_3_2_5 - "checksum": True, "ddlOnly": False, "chunking": False, partitioned table
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": False, "chunking": False, "includeTables": [ quote_identifier(schema_name, test_table_partitioned) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p0`.")
+
+#@<> WL15947-TSFR_3_2_6 - "checksum": True, "ddlOnly": True, not partitioned table
+for chunking in [ True, False ]:
+    wipeout_server(tgt_session)
+    EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": True, "chunking": chunking, "includeTables": [ quote_identifier(schema_name, test_table_primary) ] }, schemas = [ schema_name ])
+    EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`. Mismatched number of rows, ")
+
+#@<> WL15947-TSFR_3_2_6 - "checksum": True, "ddlOnly": True, partitioned table
+for chunking in [ True, False ]:
+    wipeout_server(tgt_session)
+    EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "ddlOnly": True, "chunking": chunking, "includeTables": [ quote_identifier(schema_name, test_table_partitioned) ] }, schemas = [ schema_name ])
+    EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p0`. Mismatched number of rows, ")
+
+#@<> WL15947-TSFR_3_2_7 - "checksum": True, table without an index
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_no_index) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_no_index}`.")
+
+#@<> WL15947-TSFR_3_2_8 - "checksum": True, table with a non-NULL unique index
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_unique) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_unique}` (chunk 0) (boundary:")
+
+#@<> WL15947-TSFR_3_2_9 - "checksum": True, GIPK {gipk_supported}
+src_session.run_sql("SET @@GLOBAL.show_gipk_in_create_table_and_information_schema = OFF")
+wipeout_server(tgt_session)
+EXPECT_FAIL("Error: Shell Error (53031)", "Checksum verification failed", __sandbox_uri2, { "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_gipk) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_gipk}`.")
+
+#@<> WL15947 - restore show_gipk_in_create_table_and_information_schema variable {gipk_supported}
+src_session.run_sql("SET @@GLOBAL.show_gipk_in_create_table_and_information_schema = ON")
+
+#@<> WL15947-TSFR_3_2_10 - where option
+EXPECT_SUCCESS(__sandbox_uri2, { "checksum": True, "where": { quote_identifier(schema_name, test_table_primary): "id = 1" }, "includeTables": [ quote_identifier(schema_name, test_table_primary) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS("checksum")
+
+#@<> WL15947-TSFR_3_2_11 - dryRun
+EXPECT_SUCCESS(__sandbox_uri2, { "checksum": True, "dryRun": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ] }, schemas = [ schema_name ])
+EXPECT_STDOUT_CONTAINS("Checksum information is not going to be verified, dryRun enabled.")
+
+#@<> WL15947 - copying when target already has data
+# prepare target server
+wipeout_server(tgt_session)
+EXPECT_NO_THROWS(lambda: util.copy_tables(schema_name, [test_table_primary], __sandbox_uri2, { "showProgress": False }))
+
+# WL15947-TSFR_3_2_13 - target has the same data
+# WL15947-TSFR_3_2_14 - target already has other data
+WIPE_OUTPUT()
+EXPECT_THROWS(lambda: util.copy_schemas([ schema_name ], __sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False  }), "Error: Shell Error (53031): Util.copy_schemas: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`.")
+
+# WL15947-TSFR_3_2_12 - tables are empty - checksum errors
+WIPE_OUTPUT()
+tgt_session.run_sql("TRUNCATE TABLE !.!", [ schema_name, test_table_primary ])
+EXPECT_THROWS(lambda: util.copy_schemas([ schema_name ], __sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False  }), "Error: Shell Error (53031): Util.copy_schemas: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`. Mismatched number of rows, expected: 4, actual: 0.")
+
+#@<> WL15947-TSFR_3_2_16 - create primary key in target instance {gipk_supported}
+EXPECT_SUCCESS(__sandbox_uri2, { "checksum": True, "compatibility": ["create_invisible_pks"], "where": { quote_identifier(schema_name, test_table_no_index): "id = 1" }, "includeTables": [ quote_identifier(schema_name, test_table_no_index) ] }, schemas = [ schema_name ])
+
+#@<> WL15947-TSFR_3_2_17 - timestamp and servers in different timezones
+src_session.run_sql("SET @@GLOBAL.time_zone = '+9:00'")
+EXPECT_SUCCESS(__sandbox_uri2, { "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_timestamp) ] }, schemas = [ schema_name ])
+
+#@<> WL15947 - restore time_zone variable
+src_session.run_sql("SET @@GLOBAL.time_zone = SYSTEM")
+
+#@<> WL15947 - cleanup
+src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+
 #@<> Cleanup
 cleanup_copy_tests()

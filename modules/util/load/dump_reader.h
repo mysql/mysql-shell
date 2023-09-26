@@ -32,8 +32,10 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "modules/util/common/dump/checksums.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
 
@@ -44,6 +46,7 @@
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/thread_pool.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -170,11 +173,16 @@ class Dump_reader {
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);
 
+  bool next_table_checksum(
+      const dump::common::Checksums::Checksum_data **out_checksum);
+
   bool data_available() const;
 
   bool data_pending() const;
 
   bool work_available() const;
+
+  bool all_data_verification_scheduled() const;
 
   size_t dump_size() const { return m_contents.dump_size; }
   size_t total_data_size() const { return m_contents.data_size; }
@@ -257,9 +265,16 @@ class Dump_reader {
 
   void on_analyze_end(const std::string &schema, const std::string &table);
 
-  bool table_exists(const std::string &schema, const std::string &table) const;
+  void on_checksum_end(std::string_view schema, std::string_view table,
+                       std::string_view partition);
 
-  bool view_exists(const std::string &schema, const std::string &view) const;
+  bool table_exists(std::string_view schema, std::string_view table);
+
+  bool view_exists(std::string_view schema, std::string_view view);
+
+  void set_table_exists(std::string_view schema, std::string_view table);
+
+  void set_view_exists(std::string_view schema, std::string_view view);
 
   struct Capability_info {
     std::string id;
@@ -273,7 +288,7 @@ class Dump_reader {
 
   struct Object_info {
     std::string name;
-    bool exists = false;
+    std::optional<bool> exists{};
   };
 
   struct View_info : public Object_info {
@@ -310,6 +325,12 @@ class Dump_reader {
     // number of chunks which were loaded
     size_t chunks_loaded = 0;
 
+    std::list<const dump::common::Checksums::Checksum_data *> checksums;
+    size_t checksums_verified = 0;
+    size_t checksums_total = 0;
+
+    void initialize_checksums(const dump::common::Checksums *info);
+
     void consume_chunk() { ++chunks_consumed; }
 
     bool has_data_available() const {
@@ -332,6 +353,14 @@ class Dump_reader {
     bool data_scheduled() const { return all_chunks_are(chunks_consumed); }
 
     bool data_loaded() const { return all_chunks_are(chunks_loaded); }
+
+    bool data_verification_scheduled() const noexcept {
+      return checksums.empty();
+    }
+
+    bool data_verified() const noexcept {
+      return checksums_verified == checksums_total;
+    }
 
     void rescan_data(const Files &files, Dump_reader *reader);
 
@@ -386,17 +415,19 @@ class Dump_reader {
 
     void rescan(const Files &files);
 
-    void rescan_data(const Files &files, Dump_reader *reader);
-
     bool all_data_scheduled() const;
 
     bool all_data_loaded() const;
+
+    bool all_data_verified() const;
+
+    bool all_data_verification_scheduled() const;
   };
 
   struct Schema_info : public Object_info {
     std::string basename;
 
-    std::unordered_map<std::string, std::shared_ptr<Table_info>> tables;
+    shcore::heterogeneous_map<std::string, std::shared_ptr<Table_info>> tables;
     std::vector<View_info> views;
     std::vector<Object_info> functions;
     std::vector<Object_info> procedures;
@@ -434,7 +465,8 @@ class Dump_reader {
   };
 
   struct Dump_info {
-    std::unordered_map<std::string, std::shared_ptr<Schema_info>> schemas;
+    shcore::heterogeneous_map<std::string, std::shared_ptr<Schema_info>>
+        schemas;
 
     std::unique_ptr<std::string> sql;
     std::unique_ptr<std::string> post_sql;
@@ -471,6 +503,9 @@ class Dump_reader {
 
     std::vector<Capability_info> capabilities;
 
+    bool has_checksum = false;
+    std::unique_ptr<dump::common::Checksums> checksum;
+
     bool ready() const;
 
     void rescan(mysqlshdk::storage::IDirectory *dir, const Files &files,
@@ -479,7 +514,13 @@ class Dump_reader {
 
     void check_if_ready();
 
-    void parse_done_metadata(mysqlshdk::storage::IDirectory *dir);
+    void parse_done_metadata(
+        mysqlshdk::storage::IDirectory *dir, bool get_checksum,
+        const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+    void initialize_checksums(
+        mysqlshdk::storage::IDirectory *dir,
+        const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
    private:
     void rescan_metadata(mysqlshdk::storage::IDirectory *dir,
@@ -492,17 +533,26 @@ class Dump_reader {
  private:
   const std::string &override_schema(const std::string &s) const;
 
-  const Table_info *find_table(const std::string &schema,
-                               const std::string &table,
+  const Table_info *find_table(std::string_view schema, std::string_view table,
                                const char *context) const;
 
-  Table_info *find_table(const std::string &schema, const std::string &table,
+  Table_info *find_table(std::string_view schema, std::string_view table,
                          const char *context);
 
-  const View_info *find_view(const std::string &schema, const std::string &view,
+  const Table_data_info *find_partition(std::string_view schema,
+                                        std::string_view table,
+                                        std::string_view partition,
+                                        const char *context) const;
+
+  Table_data_info *find_partition(std::string_view schema,
+                                  std::string_view table,
+                                  std::string_view partition,
+                                  const char *context);
+
+  const View_info *find_view(std::string_view schema, std::string_view view,
                              const char *context) const;
 
-  View_info *find_view(const std::string &schema, const std::string &view,
+  View_info *find_view(std::string_view schema, std::string_view view,
                        const char *context);
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;

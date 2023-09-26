@@ -50,10 +50,14 @@ def prepare(sbport, options={}):
 
 prepare(__mysql_sandbox_port1)
 session1 = mysql.get_session(__sandbox_uri1)
+session1.run_sql("SET @@GLOBAL.time_zone = '+9:00'")
+session1.run_sql("SET @@GLOBAL.character_set_server = 'euckr'")
+session1.run_sql("SET @@GLOBAL.collation_server = 'euckr_korean_ci'")
 session1.run_sql("set names utf8mb4")
 session1.run_sql("create schema world")
 testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "world.sql"), "world")
 testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "misc_features.sql"))
+testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "fieldtypes_all.sql"), "", "utf8mb4")
 session1.run_sql("create schema tests")
 # BUG#33079172 "SQL SECURITY INVOKER" INSERTED AT WRONG LOCATION
 session1.run_sql("create procedure tests.tmp() IF @v > 0 THEN SELECT 1; ELSE SELECT 2; END IF;;")
@@ -197,7 +201,7 @@ shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
-                                     {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2"]}), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
+                                     {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2","xtest"]}), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: While executing DDL script for `.+`\.`.+`: Unknown database 'world'"))
 
 testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
@@ -2854,6 +2858,190 @@ for f in os.listdir(dump_dir):
 #@<> BUG#35822020 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+#@<> WL15947 - setup
+schema_name = "wl15947"
+test_table_primary = "pk"
+test_table_unique = "uni"
+test_table_unique_null = "uni-null"
+test_table_no_index = "no-index"
+test_table_partitioned = "part"
+test_table_empty = "empty"
+
+def setup_db():
+    session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    session.run_sql("CREATE SCHEMA !", [schema_name])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL PRIMARY KEY)", [ schema_name, test_table_primary ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL UNIQUE KEY)", [ schema_name, test_table_unique ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT UNIQUE KEY)", [ schema_name, test_table_unique_null ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT)", [ schema_name, test_table_no_index ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL PRIMARY KEY) PARTITION BY RANGE (`id`) (PARTITION p0 VALUES LESS THAN (500), PARTITION p1 VALUES LESS THAN (1000), PARTITION p2 VALUES LESS THAN MAXVALUE);", [ schema_name, test_table_partitioned ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT)", [ schema_name, test_table_empty ])
+    session.run_sql(f"INSERT INTO !.! (`id`) VALUES {','.join(f'({i})' for i in range(1500))}", [ schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique_null, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_no_index, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_partitioned, schema_name, test_table_primary ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_primary ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique_null ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_no_index ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_partitioned ])
+
+def TEST_BOOL_OPTION(option):
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: None }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type Bool, but is Null")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: "dummy" }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' Bool expected, but value is String")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [] }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type Bool, but is Array")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: {} }), f"TypeError: Util.load_dump: Argument #2: Option '{option}' is expected to be of type Bool, but is Map")
+
+dump_dir = os.path.join(outdir, "wl15947")
+no_data_dump_dir = dump_dir + "-nodata"
+
+shell.connect(__sandbox_uri1)
+setup_db()
+util.dump_schemas([ "xtest", schema_name ], dump_dir, { "checksum": True, "where": { quote_identifier(schema_name, test_table_no_index): "id > 100" }, "showProgress": False })
+util.dump_schemas([ "xtest", schema_name ], no_data_dump_dir, { "ddlOnly": True, "checksum": True, "showProgress": False })
+shell.connect(__sandbox_uri2)
+
+#@<> WL15947-TSFR_2_1 - help text
+help_text = """
+      - checksum: bool (default: false) - Verify tables against checksums that
+        were computed during dump.
+"""
+EXPECT_TRUE(help_text in util.help("load_dump"))
+
+#@<> WL15947-TSFR_2_1_1 - load without checksum option
+wipeout_server(session2)
+util.load_dump(dump_dir, { "resetProgress": True, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS("checksum")
+
+#@<> WL15947-TSFR_2_1_1 - load with checksum option set to False
+wipeout_server(session2)
+util.load_dump(dump_dir, { "checksum": False, "resetProgress": True, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS("checksum")
+
+#@<> WL15947-TSFR_2_1_2 - option type
+TEST_BOOL_OPTION("checksum")
+
+#@<> WL15947-TSFR_2_2_2 - manipulate checksum to contain data errors, load with dryRun
+wipeout_server(session2)
+
+checksum_file = checksum_file_path(dump_dir)
+checksums = read_json(checksum_file)
+checksums["data"][schema_name][test_table_primary]["partitions"][""]["0"]["checksum"] = "error"
+
+with backup_file(checksum_file) as backup:
+    write_json(checksum_file, checksums)
+    backup.callback(lambda: os.remove(checksum_file))
+    EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dryRun": True, "checksum": True, "resetProgress": True, "showProgress": False }))
+    # WL15947-TSFR_2_4_2_1
+    EXPECT_STDOUT_CONTAINS("WARNING: Checksum information is not going to be verified, dryRun enabled.")
+    # regular run - throws
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }), "Error: Shell Error (53031): Util.load_dump: Checksum verification failed")
+
+#@<> WL15947-TSFR_2_3_1 - file-related errors
+wipeout_server(session2)
+
+checksum_file = checksum_file_path(dump_dir)
+checksums = read_json(checksum_file)
+
+with backup_file(checksum_file) as backup:
+    # no progress file
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Cannot open file")
+    # no read access
+    if __os_type != "windows":
+        with ExitStack() as stack:
+            write_json(checksum_file, checksums)
+            stack.callback(lambda: os.remove(checksum_file))
+            os.chmod(checksum_file, 0o060)
+            EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Cannot open file")
+    # corrupted file
+    write_json(checksum_file, checksums)
+    backup.callback(lambda: os.remove(checksum_file))
+    with open(checksum_file, "a", encoding="utf-8") as f:
+        f.write("error!")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }), "RuntimeError: Util.load_dump: Failed to parse")
+
+#@<> WL15947 - load dump with no data
+test = lambda: util.load_dump(no_data_dump_dir, { "checksum": True, "loadDdl": False, "resetProgress": True, "showProgress": False })
+
+# load the full dump first
+# WL15947-TSFR_2_2_1 - load data dumped with 'where'
+# WL15947-TSFR_2_4_3 - load an empty table
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }))
+
+# WL15947-TSFR_2_4_2 - checksum existing tables without loading the data
+# this throws because both dumps were created with different contents (one had `where` option)
+EXPECT_THROWS(test, "Shell Error (53031): Util.load_dump: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_no_index}`. Mismatched number of rows, expected: 1500, actual: 1399.")
+
+# WL15947-TSFR_2_4_1 - tables are empty - checksum errors
+for table in [ test_table_primary, test_table_unique, test_table_unique_null, test_table_no_index, test_table_partitioned ]:
+    session2.run_sql("TRUNCATE TABLE !.!", [ schema_name, table ])
+
+WIPE_OUTPUT()
+EXPECT_THROWS(test, "Error: Shell Error (53031): Util.load_dump: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_primary}`. Mismatched number of rows, expected: 1500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_unique}`. Mismatched number of rows, expected: 1500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_unique_null}`. Mismatched number of rows, expected: 1500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_no_index}`. Mismatched number of rows, expected: 1500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p0`. Mismatched number of rows, expected: 500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p1`. Mismatched number of rows, expected: 500, actual: 0.")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p2`. Mismatched number of rows, expected: 500, actual: 0.")
+EXPECT_STDOUT_CONTAINS("ERROR: 7 checksum verification errors were reported during the load.")
+
+# WL15947-TSFR_2_4_1_1 - tables are missing
+for table in [ test_table_unique, test_table_no_index ]:
+    session2.run_sql("DROP TABLE !.!", [ schema_name, table ])
+
+WIPE_OUTPUT()
+EXPECT_THROWS(test, "Error: Shell Error (53031): Util.load_dump: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{test_table_unique}`: table does not exist")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{test_table_no_index}`: table does not exist")
+EXPECT_STDOUT_CONTAINS("ERROR: 7 checksum verification errors were reported during the load.")
+
+#@<> WL15947 - checking checksum without loading the data
+test = lambda: util.load_dump(dump_dir, { "checksum": True, "loadData": False, "loadDdl": False, "resetProgress": True, "showProgress": False })
+
+# load the full dump first
+# WL15947-TSFR_2_2_1 - load data dumped with 'where'
+# WL15947-TSFR_2_4_3 - load an empty table
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }))
+
+# WL15947-TSFR_2_4_2 - checksum existing tables without loading the data
+# WL15947-TSFR_2_4_1_2 - load with data present works
+EXPECT_NO_THROWS(test)
+
+# WL15947-TSFR_2_4_1 - tables are empty - checksum errors
+for table in [ test_table_primary, test_table_unique, test_table_unique_null, test_table_no_index, test_table_partitioned ]:
+    session2.run_sql("TRUNCATE TABLE !.!", [ schema_name, table ])
+WIPE_OUTPUT()
+
+EXPECT_THROWS(test, "Error: Shell Error (53031): Util.load_dump: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_primary}` (chunk 0)")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_unique}` (chunk 0)")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_unique_null}` (chunk 0)")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_no_index}`")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p0` (chunk 0)")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p1` (chunk 0)")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Checksum verification failed for: `{schema_name}`.`{test_table_partitioned}` partition `p2` (chunk 0)")
+EXPECT_STDOUT_CONTAINS("ERROR: 7 checksum verification errors were reported during the load.")
+
+# WL15947-TSFR_2_4_1_1 - tables are missing
+for table in [ test_table_unique, test_table_no_index ]:
+    session2.run_sql("DROP TABLE !.!", [ schema_name, table ])
+
+WIPE_OUTPUT()
+EXPECT_THROWS(test, "Error: Shell Error (53031): Util.load_dump: Checksum verification failed")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{test_table_unique}` (chunk 0): table does not exist")
+EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{test_table_no_index}`: table does not exist")
+EXPECT_STDOUT_CONTAINS("ERROR: 7 checksum verification errors were reported during the load.")
+
+#@<> WL15947 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

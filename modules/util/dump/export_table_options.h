@@ -89,6 +89,8 @@ class Export_table_options : public Dump_options {
 
   bool par_manifest() const override { return false; }
 
+  bool checksum() const override { return false; }
+
  private:
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;

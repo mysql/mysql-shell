@@ -33,6 +33,8 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -534,7 +536,7 @@ std::pair<uint64_t, int> SHCORE_PUBLIC string_to_bits(std::string_view s);
 std::string SHCORE_PUBLIC bits_to_string_hex(uint64_t bits, int nbits);
 size_t SHCORE_PUBLIC bits_to_string_hex_size(int nbits);
 
-std::string SHCORE_PUBLIC string_to_hex(std::string_view s);
+std::string SHCORE_PUBLIC string_to_hex(std::string_view s, bool prefix = true);
 
 /**
  * Escape `quote` and `\` chars.
@@ -706,6 +708,33 @@ std::string pctdecode(std::string_view s);
  * provided source.
  */
 std::string get_random_string(size_t size, const char *source);
+
+/**
+ * Transparent hashing function, enables heterogeneous lookup in unordered
+ * containers.
+ */
+struct string_hash {
+  using is_transparent = void;
+
+  [[nodiscard]] size_t operator()(const char *txt) const {
+    return std::hash<std::string_view>{}(txt);
+  }
+
+  [[nodiscard]] size_t operator()(std::string_view txt) const {
+    return std::hash<std::string_view>{}(txt);
+  }
+
+  [[nodiscard]] size_t operator()(const std::string &txt) const {
+    return std::hash<std::string>{}(txt);
+  }
+};
+
+template <typename Key, typename T>
+using heterogeneous_map =
+    std::unordered_map<Key, T, string_hash, std::equal_to<>>;
+
+template <typename Key>
+using heterogeneous_set = std::unordered_set<Key, string_hash, std::equal_to<>>;
 
 }  // namespace shcore
 

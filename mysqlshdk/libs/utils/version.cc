@@ -22,7 +22,10 @@
  */
 
 #include "mysqlshdk/libs/utils/version.h"
+
 #include <cctype>
+#include <charconv>
+
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -30,7 +33,7 @@ namespace utils {
 
 // Minimal implementation of version parsing, no need for something more complex
 // for now
-Version::Version(const std::string &version) {
+Version::Version(std::string_view version) {
   auto tokens = shcore::str_split(version, "-", 1);
   if (tokens.size() == 1 && version.size() == 5) {
     // check if format is digits only:
@@ -70,18 +73,34 @@ Version::Version(const std::string &version) {
   }
 }
 
-int Version::parse_token(const std::string &data) {
-  size_t idx = 0;
+int Version::parse_token(std::string_view data) {
   int value = 0;
-  std::string error;
-  try {
-    value = std::stoi(data, &idx);
 
-    if (idx < data.length()) error = "Only digits allowed for version numbers";
-  } catch (const std::invalid_argument &) {
-    error = "Not an integer";
-  } catch (const std::out_of_range &) {
-    error = "Out of integer range";
+  const auto end = data.data() + data.length();
+  const auto result = std::from_chars(data.data(), end, value);
+
+  std::string error;
+
+  if (std::errc() == result.ec) {
+    // success
+    if (end != result.ptr) {
+      error = "Only digits allowed for version numbers";
+    }
+  } else {
+    switch (result.ec) {
+      case std::errc::invalid_argument:
+        error = "Not an integer";
+        break;
+
+      case std::errc::result_out_of_range:
+        error = "Out of integer range";
+        break;
+
+      default:
+        // should not happen, std::from_chars() returns two errors handled above
+        error = "Unknown error";
+        break;
+    }
   }
 
   if (!error.empty())

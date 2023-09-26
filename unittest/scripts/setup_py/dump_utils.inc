@@ -1,4 +1,7 @@
+from contextlib import ExitStack
 import json
+import os
+import os.path
 import re
 import urllib.parse
 
@@ -490,6 +493,27 @@ def quote_identifier(schema, object = None):
 
 def count_rows(schema, table):
     return session.run_sql("SELECT COUNT(*) FROM !.!", [ schema, table ]).fetch_one()[0]
+
+def checksum_file_path(dir):
+    return os.path.join(dir, "@.checksums.json")
+
+def backup_file(path):
+    stack = ExitStack()
+    directory = os.path.dirname(path)
+    if not os.path.isdir(directory):
+        os.mkdir(directory)
+        stack.callback(lambda: os.rmdir(directory))
+    if os.path.isfile(path):
+        backup = path + ".backup"
+        suffix = ""
+        i = 0
+        while os.path.isfile(f"{backup}{suffix}"):
+            suffix = f".{i}"
+            i += 1
+        backup += suffix
+        os.rename(path, backup)
+        stack.callback(lambda: os.rename(backup, path))
+    return stack
 
 # constants
 test_user = "sample_user"

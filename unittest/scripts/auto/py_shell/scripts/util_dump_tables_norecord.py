@@ -577,12 +577,24 @@ TEST_STRING_OPTION("compression")
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "compression": "none", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv")))
 
+EXPECT_STDOUT_CONTAINS("Data size: ")
+EXPECT_STDOUT_CONTAINS("Rows written: ")
+EXPECT_STDOUT_CONTAINS("Bytes written: ")
+EXPECT_STDOUT_CONTAINS("Average throughput: ")
+
 #@<> WL13804-FR5.3.1 - The allowed values for the `compression` option are:
 # * `"none"` - no compression is used,
 # * `"gzip"` - gzip compression is used.
 # * `"zstd"` - zstd compression is used.
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "compression": "gzip", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.gz")))
+
+EXPECT_STDOUT_CONTAINS("Uncompressed data size: ")
+EXPECT_STDOUT_CONTAINS("Compressed data size: ")
+EXPECT_STDOUT_CONTAINS("Rows written: ")
+EXPECT_STDOUT_CONTAINS("Bytes written: ")
+EXPECT_STDOUT_CONTAINS("Average uncompressed throughput: ")
+EXPECT_STDOUT_CONTAINS("Average compressed throughput: ")
 
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
@@ -762,7 +774,7 @@ EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files w
 
 for table in test_schema_tables:
     EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `{0}`.`{1}`".format(test_schema, table))
-    EXPECT_SHELL_LOG_CONTAINS("Preparing data dump for table `{0}`.`{1}`".format(test_schema, table))
+    EXPECT_SHELL_LOG_CONTAINS("Preparing data dump of table `{0}`.`{1}`".format(test_schema, table))
 
 #@<> WL13804: WL13807-FR4.9.2 - If the `dryRun` option is not given, a default value of `false` must be used instead.
 EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -1414,12 +1426,6 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "compres
 
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(test_schema_tables)))
-EXPECT_STDOUT_CONTAINS("Uncompressed data size: 0 bytes")
-EXPECT_STDOUT_CONTAINS("Compressed data size: 0 bytes")
-EXPECT_STDOUT_CONTAINS("Rows written: 0")
-EXPECT_STDOUT_CONTAINS("Bytes written: 0 bytes")
-EXPECT_STDOUT_CONTAINS("Average uncompressed throughput: 0.00 B/s")
-EXPECT_STDOUT_CONTAINS("Average compressed throughput: 0.00 B/s")
 
 #@<> test without compression
 # WL13804-TSFR_15_1
@@ -1427,10 +1433,6 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "compres
 
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(test_schema_tables)))
-EXPECT_STDOUT_CONTAINS("Data size:")
-EXPECT_STDOUT_CONTAINS("Rows written: 0")
-EXPECT_STDOUT_CONTAINS("Bytes written: 0 bytes")
-EXPECT_STDOUT_CONTAINS("Average throughput: 0.00 B/s")
 
 #@<> WL13804-FR16 - All files should be created with permissions `rw-r-----`. {__os_type != "windows"}
 # WL13804-TSFR_16_1
@@ -2543,7 +2545,7 @@ session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 #@<> composite non-integer key - test
 WIPE_SHELL_LOG()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
-EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
+EXPECT_SHELL_LOG_CONTAINS(f"The data dump of table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`,`md5_2`,`md5_3`,`md5_4`")
 CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
 TEST_LOAD(tested_schema, tested_table)
 
@@ -3203,7 +3205,7 @@ help_text = """
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
 """
-EXPECT_TRUE(help_text in util.help("dump_schemas"))
+EXPECT_TRUE(help_text in util.help("dump_tables"))
 
 #@<> WL15887-TSFR_1_1_2 - option type
 TEST_STRING_OPTION("targetVersion")
@@ -3275,6 +3277,168 @@ EXPECT_SUCCESS(schema_name, test_tables, test_output_relative, { "compatibility"
 EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+
+#@<> WL15947 - setup
+schema_name = "wl15947"
+test_table_unique_null = test_table_non_unique
+test_table_partitioned = "part"
+test_table_gipk = "gipk"
+gipk_supported = __version_num >= 80030
+
+def setup_db():
+    session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+    session.run_sql("CREATE SCHEMA !", [schema_name])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL PRIMARY KEY) ENGINE=InnoDB;", [ schema_name, test_table_primary ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL UNIQUE KEY) ENGINE=InnoDB;", [ schema_name, test_table_unique ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT UNIQUE KEY) ENGINE=InnoDB;", [ schema_name, test_table_unique_null ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT) ENGINE=InnoDB;", [ schema_name, test_table_no_index ])
+    session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT NOT NULL PRIMARY KEY) ENGINE=InnoDB PARTITION BY RANGE (`id`) (PARTITION p0 VALUES LESS THAN (500), PARTITION p1 VALUES LESS THAN (1000), PARTITION p2 VALUES LESS THAN MAXVALUE);", [ schema_name, test_table_partitioned ])
+    session.run_sql(f"INSERT INTO !.! (`id`) VALUES {','.join(f'({i})' for i in range(1500))}", [ schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_unique_null, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_no_index, schema_name, test_table_primary ])
+    session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_partitioned, schema_name, test_table_primary ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_primary ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_unique_null ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_no_index ])
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_partitioned ])
+    if gipk_supported:
+        session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key=ON")
+        session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT) ENGINE=InnoDB;", [ schema_name, test_table_gipk ])
+        session.run_sql("INSERT INTO !.! SELECT * FROM !.!;", [ schema_name, test_table_gipk, schema_name, test_table_primary ])
+        session.run_sql("ANALYZE TABLE !.!;", [ schema_name, test_table_gipk ])
+        session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key=OFF")
+
+create_all_schemas()
+setup_db()
+
+checksum_file = checksum_file_path(test_output_absolute)
+
+#@<> WL15947-TSFR_1_1 - help text
+help_text = """
+      - checksum: bool (default: false) - Compute and include checksum of the
+        dumped data.
+"""
+EXPECT_TRUE(help_text in util.help("dump_tables"))
+
+#@<> WL15947-TSFR_1_1_1 - no checksum option
+EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS("Checksum")
+EXPECT_FALSE(os.path.isfile(checksum_file))
+
+#@<> WL15947-TSFR_1_1_1 - checksum option set to false
+EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "checksum": False, "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS("Checksum")
+EXPECT_FALSE(os.path.isfile(checksum_file))
+
+#@<> WL15947-TSFR_1_1_2 - option type
+TEST_BOOL_OPTION("checksum")
+
+#@<> WL15947-TSFR_1_2_1_1 - checksum option set to true
+EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "checksum": True, "showProgress": False })
+# checksums are generated
+EXPECT_STDOUT_CONTAINS("Checksum")
+# file is written
+EXPECT_TRUE(os.path.isfile(checksum_file))
+
+if __os_type != "windows":
+    # permissions are the same as in case of other files
+    actual_file = os.path.join(test_output_absolute, "@.done.json")
+    EXPECT_EQ(stat.S_IMODE(os.stat(actual_file).st_mode), stat.S_IMODE(os.stat(checksum_file).st_mode))
+    EXPECT_EQ(os.stat(actual_file).st_uid, os.stat(checksum_file).st_uid)
+
+# checksum file is a valid json
+EXPECT_NO_THROWS(lambda: read_json(checksum_file), "checksum file should be a valid json")
+
+#@<> WL15947-TSFR_1_3_1 - "checksum": True, "ddlOnly": False, "chunking": True, not partitioned table
+EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "checksum": True, "ddlOnly": False, "chunking": True, "showProgress": False })
+checksums = read_json(checksum_file)
+# table is not partitioned - partition name is empty, chunking is enabled - valid chunk ID is used
+EXPECT_TRUE("0" in checksums["data"][schema_name][test_table_primary]["partitions"][""])
+
+#@<> WL15947-TSFR_1_3_2 - "checksum": True, "ddlOnly": False, "chunking": True, partitioned table
+EXPECT_SUCCESS(schema_name, [ test_table_partitioned ], test_output_absolute, { "checksum": True, "ddlOnly": False, "chunking": True, "showProgress": False })
+checksums = read_json(checksum_file)
+# table is partitioned - partition name is used, chunking is enabled - valid chunk ID is used
+EXPECT_TRUE("0" in checksums["data"][schema_name][test_table_partitioned]["partitions"]["p0"])
+
+#@<> WL15947-TSFR_1_4_1 - "checksum": True, "ddlOnly": False, "chunking": False, not partitioned table
+EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "checksum": True, "ddlOnly": False, "chunking": False, "showProgress": False })
+checksums = read_json(checksum_file)
+# table is not partitioned - partition name is empty, chunking is disabled - chunk ID is not used
+EXPECT_TRUE("-1" in checksums["data"][schema_name][test_table_primary]["partitions"][""])
+
+#@<> WL15947-TSFR_1_4_2 - "checksum": True, "ddlOnly": False, "chunking": False, partitioned table
+EXPECT_SUCCESS(schema_name, [ test_table_partitioned ], test_output_absolute, { "checksum": True, "ddlOnly": False, "chunking": False, "showProgress": False })
+checksums = read_json(checksum_file)
+# table is partitioned - partition name is used, chunking is disabled - chunk ID is no used
+EXPECT_TRUE("-1" in checksums["data"][schema_name][test_table_partitioned]["partitions"]["p0"])
+
+#@<> WL15947-TSFR_1_5_1 - "checksum": True, "ddlOnly": True, not partitioned table
+for chunking in [ True, False ]:
+    EXPECT_SUCCESS(schema_name, [ test_table_primary ], test_output_absolute, { "checksum": True, "ddlOnly": True, "chunking": chunking, "showProgress": False })
+    checksums = read_json(checksum_file)
+    # table is not partitioned - partition name is empty, data is not dumped - chunk ID is not used
+    EXPECT_TRUE("-1" in checksums["data"][schema_name][test_table_primary]["partitions"][""])
+
+#@<> WL15947-TSFR_1_5_2 - "checksum": True, "ddlOnly": True, partitioned table
+for chunking in [ True, False ]:
+    EXPECT_SUCCESS(schema_name, [ test_table_partitioned ], test_output_absolute, { "checksum": True, "ddlOnly": True, "chunking": chunking, "showProgress": False })
+    checksums = read_json(checksum_file)
+    # table is partitioned - partition name is used, data is not dumped - chunk ID is no used
+    EXPECT_TRUE("-1" in checksums["data"][schema_name][test_table_partitioned]["partitions"]["p0"])
+
+#@<> WL15947-TSFR_1_6_1 - "checksum": True, table without an index
+EXPECT_SUCCESS(schema_name, [ test_table_no_index ], test_output_absolute, { "checksum": True, "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_no_index in checksums["data"][schema_name])
+
+#@<> WL15947-TSFR_1_6_2 - "checksum": True, table with a non-NULL unique index
+EXPECT_SUCCESS(schema_name, [ test_table_unique ], test_output_absolute, { "checksum": True, "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_unique in checksums["data"][schema_name])
+
+#@<> WL15947-TSFR_1_6_3 - "checksum": True, GIPK {gipk_supported}
+session.run_sql("SET @@GLOBAL.show_gipk_in_create_table_and_information_schema = OFF")
+EXPECT_SUCCESS(schema_name, [ test_table_gipk ], test_output_absolute, { "checksum": True, "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_gipk in checksums["data"][schema_name])
+
+#@<> WL15947-TSFR_1_6_4 - "checksum": True, GIPK {gipk_supported}
+session.run_sql("SET @@GLOBAL.show_gipk_in_create_table_and_information_schema = ON")
+EXPECT_SUCCESS(schema_name, [ test_table_gipk ], test_output_absolute, { "checksum": True, "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_gipk in checksums["data"][schema_name])
+
+#@<> WL15947-TSFR_1_6_5 - "checksum": True, table without an index, with ignore_missing_pks
+EXPECT_SUCCESS(schema_name, [ test_table_no_index ], test_output_absolute, { "checksum": True, "compatibility": [ "ignore_missing_pks" ], "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_no_index in checksums["data"][schema_name])
+
+#@<> WL15947-TSFR_1_6_6 - "checksum": True, table with a NULL unique index
+EXPECT_SUCCESS(schema_name, [ test_table_unique_null ], test_output_absolute, { "checksum": True, "showProgress": False })
+
+checksums = read_json(checksum_file)
+# checksum information present
+EXPECT_TRUE(test_table_unique_null in checksums["data"][schema_name])
+
+#@<> WL15947 - dry run
+EXPECT_SUCCESS(schema_name, [ test_table_unique_null ], test_output_absolute, { "dryRun": True, "checksum": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("Computing checksum...")
+
+#@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
 #@<> Cleanup

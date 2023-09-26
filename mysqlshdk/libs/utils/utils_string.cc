@@ -197,15 +197,15 @@ size_t bits_to_string_hex_size(int nbits) {
   return num_chars;
 }
 
-std::string SHCORE_PUBLIC string_to_hex(std::string_view s) {
+std::string SHCORE_PUBLIC string_to_hex(std::string_view s, bool prefix) {
   constexpr std::array<char, 16> hexmap = {'0', '1', '2', '3', '4', '5',
                                            '6', '7', '8', '9', 'A', 'B',
                                            'C', 'D', 'E', 'F'};
 
   std::string encoded;
 
-  encoded.reserve(2 + s.size() * 2);
-  encoded.append("0x");
+  encoded.reserve((prefix ? 2 : 0) + s.size() * 2);
+  if (prefix) encoded.append("0x");
 
   for (const auto cur_char : s) {
     encoded.push_back(hexmap[(cur_char & 0xF0) >> 4]);

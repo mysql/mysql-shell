@@ -253,6 +253,8 @@ class Load_dump_options {
 
   void enable_fast_sub_chunking() { m_use_fast_sub_chunking = true; }
 
+  inline bool checksum() const noexcept { return m_checksum; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
 
@@ -323,6 +325,8 @@ class Load_dump_options {
 
   // how many threads are used by the server per one ALTER TABLE ... ADD INDEX
   uint64_t m_threads_per_add_index = 1;
+
+  bool m_checksum = false;
 
   // whether partial revokes are enabled
   bool m_partial_revokes = false;

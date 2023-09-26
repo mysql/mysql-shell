@@ -309,6 +309,10 @@ OPTIONS
             a list of valid partition names used to limit the data copy to just
             the specified partitions. Default: not set.
 
+--checksum=<bool>
+            Compute checksums of the data and verify tables in the target
+            instance against these checksums. Default: false.
+
 --excludeTables=<str list>
             List of tables or views to be excluded from the copy in the format
             of schema.table. Default: empty.
@@ -509,6 +513,10 @@ OPTIONS
             a list of valid partition names used to limit the data copy to just
             the specified partitions. Default: not set.
 
+--checksum=<bool>
+            Compute checksums of the data and verify tables in the target
+            instance against these checksums. Default: false.
+
 --excludeTables=<str list>
             List of tables or views to be excluded from the copy in the format
             of schema.table. Default: empty.
@@ -690,6 +698,10 @@ OPTIONS
             A key-value pair of a table name in the format of schema.table and
             a list of valid partition names used to limit the data copy to just
             the specified partitions. Default: not set.
+
+--checksum=<bool>
+            Compute checksums of the data and verify tables in the target
+            instance against these checksums. Default: false.
 
 --all=<bool>
             Copy all views and tables from the specified schema, requires the
@@ -881,6 +893,9 @@ OPTIONS
             A key-value pair of a table name in the format of schema.table and
             a list of valid partition names used to limit the data export to
             just the specified partitions. Default: not set.
+
+--checksum=<bool>
+            Compute and include checksum of the dumped data. Default: false.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
@@ -1120,6 +1135,9 @@ OPTIONS
             a list of valid partition names used to limit the data export to
             just the specified partitions. Default: not set.
 
+--checksum=<bool>
+            Compute and include checksum of the dumped data. Default: false.
+
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
             set.
@@ -1338,6 +1356,9 @@ OPTIONS
             A key-value pair of a table name in the format of schema.table and
             a list of valid partition names used to limit the data export to
             just the specified partitions. Default: not set.
+
+--checksum=<bool>
+            Compute and include checksum of the dumped data. Default: false.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not
@@ -1944,6 +1965,10 @@ OPTIONS
             load, "drop_account": deletes the problematic account and
             continues, "ignore": ignores the error and continues loading the
             account.
+
+--checksum=<bool>
+            Verify tables against checksums that were computed during dump.
+            Default: false.
 
 --osBucketName=<str>
             Use specified OCI bucket for the location of the dump. Default: not

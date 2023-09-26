@@ -289,11 +289,33 @@ class Index_file {
   bool m_metadata_loaded = false;
 };
 
-std::string format_table(const std::string &schema, const std::string &table,
-                         const std::string &partition, ssize_t chunk) {
-  return "`" + schema + "`.`" + table + "`" +
-         (partition.empty() ? "" : " partition `" + partition + "`") +
-         " (chunk " + std::to_string(chunk) + ")";
+std::string format_table(std::string_view schema, std::string_view table,
+                         std::string_view partition, ssize_t chunk) {
+  std::string result = "`";
+  result += schema;
+  result += "`.`";
+  result += table;
+  result += '`';
+
+  if (!partition.empty()) {
+    result += " partition `";
+    result += partition;
+    result += '`';
+  }
+
+  if (chunk >= 0) {
+    result += " (chunk ";
+    result += std::to_string(chunk);
+    result += ')';
+  }
+
+  return result;
+}
+
+std::string format_table(
+    const dump::common::Checksums::Checksum_data *checksum) {
+  return format_table(checksum->schema(), checksum->table(),
+                      checksum->partition(), checksum->chunk());
 }
 
 std::string worker_id(size_t id) {
@@ -554,6 +576,17 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
   }
 }
 
+std::string Dump_loader::Worker::Table_data_task::query_comment() const {
+  std::string query_comment = "/* mysqlsh loadDump(), thread " +
+                              std::to_string(id()) + ", table " +
+                              shcore::str_replace(key(), "*/", "*\\/");
+  if (chunk_index() >= 0) {
+    query_comment += ", chunk ID: " + std::to_string(chunk_index());
+  }
+  query_comment += " */ ";
+  return query_comment;
+}
+
 bool Dump_loader::Worker::Load_chunk_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
@@ -604,20 +637,6 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
   loader->post_worker_event(worker, Worker_event::LOAD_END);
 
   return true;
-}
-
-std::string Dump_loader::Worker::Load_chunk_task::query_comment() const {
-  std::string query_comment =
-      "/* mysqlsh loadDump(), thread " + std::to_string(id()) + ", table " +
-      shcore::str_replace(
-          "`" + schema() + "`.`" + table() + "`" +
-              (partition().empty() ? "" : ".`" + partition() + "`"),
-          "*/", "*\\/");
-  if (chunk_index() >= 0) {
-    query_comment += ", chunk ID: " + std::to_string(chunk_index());
-  }
-  query_comment += " */ ";
-  return query_comment;
 }
 
 void Dump_loader::Worker::Load_chunk_task::load(
@@ -1002,6 +1021,39 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   return true;
 }
 
+bool Dump_loader::Worker::Checksum_task::execute(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    Worker *worker, Dump_loader *loader) {
+  log_debug("%swill verify checksum for: %s, chunk: %zi", log_id(),
+            key().c_str(), chunk_index());
+
+  loader->post_worker_event(worker, Worker_event::CHECKSUM_START);
+
+  if (!loader->m_options.dry_run()) {
+    ++loader->m_num_threads_checksumming;
+
+    shcore::on_leave_scope cleanup(
+        [loader]() { --loader->m_num_threads_checksumming; });
+
+    try {
+      m_result = m_checksum->validate(session, query_comment());
+    } catch (const std::exception &e) {
+      handle_current_exception(
+          worker, loader,
+          shcore::str_format("While verifing checksum for: %s, chunk: %zi: %s",
+                             key().c_str(), chunk_index(), e.what()));
+      return false;
+    }
+  }
+
+  log_debug("%sdone", log_id());
+
+  // signal for more work
+  loader->post_worker_event(worker, Worker_event::CHECKSUM_END);
+
+  return true;
+}
+
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
     : m_id(id), m_owner(owner), m_connection_id(0) {}
 
@@ -1251,7 +1303,8 @@ void Dump_loader::on_dump_end() {
     on_schema_end(schema);
   }
 
-  current_console()->print_status("Executing common postamble SQL");
+  const auto console = current_console();
+  console->print_status("Executing common postamble SQL");
 
   if (!m_options.dry_run())
     execute_script(m_session, post_script, "While executing postamble SQL",
@@ -1261,11 +1314,11 @@ void Dump_loader::on_dump_end() {
   if (m_options.update_gtid_set() != Load_dump_options::Update_gtid_set::OFF) {
     auto status = m_load_log->gtid_update_status();
     if (status == Load_progress_log::Status::DONE) {
-      current_console()->print_status("GTID_PURGED already updated");
+      console->print_status("GTID_PURGED already updated");
       log_info("GTID_PURGED already updated");
     } else if (!m_dump->gtid_executed().empty()) {
       if (m_dump->gtid_executed_inconsistent()) {
-        current_console()->print_warning(
+        console->print_warning(
             "The gtid update requested, but gtid_executed was not guaranteed "
             "to be consistent during the dump");
       }
@@ -1278,8 +1331,7 @@ void Dump_loader::on_dump_end() {
 
         if (m_options.update_gtid_set() ==
             Load_dump_options::Update_gtid_set::REPLACE) {
-          current_console()->print_status(
-              "Resetting GTID_PURGED to dumped gtid set");
+          console->print_status("Resetting GTID_PURGED to dumped gtid set");
           log_info("Setting GTID_PURGED to %s",
                    m_dump->gtid_executed().c_str());
 
@@ -1287,8 +1339,7 @@ void Dump_loader::on_dump_end() {
             executef(query, m_dump->gtid_executed());
           }
         } else {
-          current_console()->print_status(
-              "Appending dumped gtid set to GTID_PURGED");
+          console->print_status("Appending dumped gtid set to GTID_PURGED");
           log_info("Appending %s to GTID_PURGED",
                    m_dump->gtid_executed().c_str());
 
@@ -1298,12 +1349,12 @@ void Dump_loader::on_dump_end() {
         }
         m_load_log->end_gtid_update();
       } catch (const std::exception &e) {
-        current_console()->print_error(
-            std::string("Error while updating GTID_PURGED: ") + e.what());
+        console->print_error(std::string("Error while updating GTID_PURGED: ") +
+                             e.what());
         throw;
       }
     } else {
-      current_console()->print_warning(
+      console->print_warning(
           "gtid update requested but, gtid_executed not set in dump");
     }
   }
@@ -1315,7 +1366,7 @@ void Dump_loader::on_dump_end() {
       "WHERE variable_name = 'Innodb_redo_log_enabled'");
   if (auto row = res->fetch_one()) {
     if (row->get_int(0, 0)) {
-      current_console()->print_note(
+      console->print_note(
           "The redo log is currently disabled, which causes MySQL to not be "
           "crash safe! Do not forget to enable it again before putting this "
           "instance in production.");
@@ -1584,6 +1635,10 @@ size_t Dump_loader::handle_worker_events(
         return "LOAD_SUBCHUNK_START";
       case Worker_event::Event::LOAD_SUBCHUNK_END:
         return "LOAD_SUBCHUNK_END";
+      case Worker_event::Event::CHECKSUM_START:
+        return "CHECKSUM_START";
+      case Worker_event::Event::CHECKSUM_END:
+        return "CHECKSUM_END";
     }
     return "";
   };
@@ -1705,6 +1760,20 @@ size_t Dump_loader::handle_worker_events(
         break;
       }
 
+      case Worker_event::CHECKSUM_START: {
+        const auto task =
+            static_cast<Worker::Checksum_task *>(event.worker->current_task());
+        on_checksum_start(task->checksum_info());
+        break;
+      }
+
+      case Worker_event::CHECKSUM_END: {
+        const auto task =
+            static_cast<Worker::Checksum_task *>(event.worker->current_task());
+        on_checksum_end(task->checksum_info(), task->result());
+        break;
+      }
+
       case Worker_event::READY:
         if (const auto task = event.worker->current_task()) {
           m_current_weight -= task->weight();
@@ -1799,6 +1868,31 @@ bool Dump_loader::schedule_next_task() {
       }
     }
 
+    if (m_options.checksum()) {
+      setup_checksum_tables_progress();
+
+      const dump::common::Checksums::Checksum_data *checksum;
+
+      do {
+        if (m_dump->next_table_checksum(&checksum)) {
+          if (maybe_push_checksum_task(checksum)) {
+            ++m_checksum_tasks_to_complete;
+            return true;
+          } else {
+            // task was not scheduled, mark it as complete
+            m_dump->on_checksum_end(checksum->schema(), checksum->table(),
+                                    checksum->partition());
+          }
+        } else {
+          if (m_dump->all_data_verification_scheduled()) {
+            m_all_checksum_tasks_scheduled = true;
+          }
+
+          break;
+        }
+      } while (true);
+    }
+
     return false;
   } else {
     return true;
@@ -1868,7 +1962,10 @@ void Dump_loader::run() {
 }
 
 void Dump_loader::show_summary() {
-  using namespace mysqlshdk::utils;
+  using mysqlshdk::utils::format_bytes;
+  using mysqlshdk::utils::format_items;
+  using mysqlshdk::utils::format_seconds;
+  using mysqlshdk::utils::format_throughput_bytes;
 
   const auto console = current_console();
 
@@ -1878,6 +1975,8 @@ void Dump_loader::show_summary() {
     else
       console->print_info("No data loaded.");
   } else {
+    assert(m_load_data_stage);
+
     const auto seconds = m_progress_thread.duration().seconds();
     const auto load_seconds = m_load_data_stage->duration().seconds();
 
@@ -1932,6 +2031,27 @@ void Dump_loader::show_summary() {
     console->print_info(
         shcore::str_format("There were %zi retries to create indexes.",
                            m_num_index_retries.load()));
+  }
+
+  if (!m_options.dry_run()) {
+    if (m_checksum_tasks_completed) {
+      console->print_info(shcore::str_format(
+          "%" PRIu64 " checksums were verified.", m_checksum_tasks_completed));
+    }
+
+    if (m_checksum_errors) {
+      console->print_error(shcore::str_format(
+          "%zu checksum verification errors were reported during the load.",
+          m_checksum_errors));
+
+      if (m_num_warnings) {
+        console->print_note(
+            "Warnings reported during the load may provide some information on "
+            "source of these errors.");
+      }
+
+      THROW_ERROR(SHERR_LOAD_CHECKSUM_VERIFICATION_FAILED);
+    }
   }
 }
 
@@ -2333,6 +2453,12 @@ bool Dump_loader::report_duplicates(
             what.c_str(), name.c_str(), schema.c_str());
       }
     }
+  }
+
+  // all existing objects were removed, mark remaining ones as non-existing
+  for (auto object : *objects) {
+    assert(!object->exists.has_value());
+    object->exists = false;
   }
 
   return has_duplicates;
@@ -2855,6 +2981,8 @@ void Dump_loader::execute_view_ddl_tasks() {
                       m_default_sql_transforms);
                 }
 
+                m_dump->set_view_exists(schema, view);
+
                 ++m_ddl_executed;
 
                 if (0 == --views_per_schema[schema]) {
@@ -2933,7 +3061,7 @@ void Dump_loader::execute_tasks() {
 
       m_init_done = true;
 
-      if (!m_worker_interrupt) {
+      if (!m_worker_interrupt && m_options.load_data()) {
         setup_load_data_progress();
       }
     }
@@ -3133,6 +3261,10 @@ void Dump_loader::on_table_ddl_end(
       m_indexes_to_recreate += m_dump->add_deferred_statements(
           schema, table, std::move(*deferred_indexes));
     }
+
+    if (m_options.load_ddl()) {
+      m_dump->set_table_exists(schema, table);
+    }
   }
 
   on_ddl_done_for_schema(schema);
@@ -3201,6 +3333,62 @@ void Dump_loader::on_analyze_end(const std::string &schema,
                                  const std::string &table) {
   m_dump->on_analyze_end(schema, table);
   m_load_log->end_analyze_table(schema, table);
+}
+
+void Dump_loader::on_checksum_start(
+    const dump::common::Checksums::Checksum_data *) {}
+
+void Dump_loader::on_checksum_end(
+    const dump::common::Checksums::Checksum_data *checksum,
+    const Worker::Checksum_task::Checksum_result &result) {
+  assert(checksum);
+
+  ++m_checksum_tasks_completed;
+  m_dump->on_checksum_end(checksum->schema(), checksum->table(),
+                          checksum->partition());
+
+  if (!result.first) {
+    std::string msg =
+        "Checksum verification failed for: " + format_table(checksum);
+
+    if (!checksum->boundary().empty()) {
+      msg += " (boundary: " + checksum->boundary() + ")";
+    }
+
+    if (checksum->result().count != result.second.count) {
+      msg += ". Mismatched number of rows, expected: " +
+             std::to_string(checksum->result().count) +
+             ", actual: " + std::to_string(result.second.count);
+    }
+
+    msg += '.';
+
+    report_checksum_error(msg);
+  }
+}
+
+void Dump_loader::report_checksum_error(const std::string &msg) {
+  ++m_checksum_errors;
+  current_console()->print_error(msg);
+}
+
+bool Dump_loader::maybe_push_checksum_task(
+    const dump::common::Checksums::Checksum_data *data) {
+  assert(data);
+
+  if (!m_options.checksum()) {
+    return false;
+  }
+
+  if (!m_dump->table_exists(data->schema(), data->table())) {
+    report_checksum_error("Could not verify checksum of " + format_table(data) +
+                          ": table does not exist.");
+    return false;
+  }
+
+  push_pending_task(checksum(data));
+
+  return true;
 }
 
 void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
@@ -3399,6 +3587,10 @@ void Dump_loader::setup_load_data_progress() {
       label += std::to_string(threads_indexing) + " thds indexing - ";
     }
 
+    if (const auto checksumming = m_num_threads_checksumming.load()) {
+      label += std::to_string(checksumming) + " thds chksum - ";
+    }
+
     static const char k_progress_spin[] = "-\\|/";
     static size_t progress_idx = 0;
 
@@ -3460,6 +3652,24 @@ void Dump_loader::setup_analyze_tables_progress() {
 
   m_analyze_tables_stage =
       m_progress_thread.start_stage("Analyzing tables", std::move(config));
+}
+
+void Dump_loader::setup_checksum_tables_progress() {
+  if (m_checksum_tables_stage) {
+    return;
+  }
+
+  m_checksum_tasks_completed = 0;
+  m_checksum_tasks_to_complete = 0;
+  m_all_checksum_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() { return m_checksum_tasks_completed; };
+  config.total = [this]() { return m_checksum_tasks_to_complete; };
+  config.is_total_known = [this]() { return m_all_checksum_tasks_scheduled; };
+
+  m_checksum_tables_stage = m_progress_thread.start_stage(
+      "Verifying checksum information", std::move(config));
 }
 
 void Dump_loader::add_skipped_schema(const std::string &schema) {
@@ -3564,6 +3774,14 @@ Dump_loader::Task_ptr Dump_loader::analyze_table(
 
   return std::make_unique<Worker::Analyze_table_task>(schema, table,
                                                       histograms);
+}
+
+Dump_loader::Task_ptr Dump_loader::checksum(
+    const dump::common::Checksums::Checksum_data *data) const {
+  log_debug("Verifying checksum for %s", format_table(data).c_str());
+  assert(data);
+
+  return std::make_unique<Worker::Checksum_task>(data);
 }
 
 void Dump_loader::load_users() {

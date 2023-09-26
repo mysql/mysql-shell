@@ -26,6 +26,7 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
+#include <iterator>
 #include <regex>
 #include <utility>
 
@@ -119,6 +120,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("sessionInitSql", &Load_dump_options::m_session_init_sql)
           .optional("handleGrantErrors",
                     &Load_dump_options::set_handle_grant_errors)
+          .optional("checksum", &Load_dump_options::m_checksum)
           .include(&Load_dump_options::m_oci_bucket_options)
           .include(&Load_dump_options::m_s3_bucket_options)
           .include(&Load_dump_options::m_blob_storage_options)
@@ -343,30 +345,41 @@ std::string Load_dump_options::target_import_info(
 
   // this is validated earlier on
   assert(!what_to_load.empty() || m_analyze_tables != Analyze_table_mode::OFF ||
-         m_update_gtid_set != Update_gtid_set::OFF);
+         m_update_gtid_set != Update_gtid_set::OFF || m_checksum);
 
-  if (what_to_load.size() == 3) {
-    action = shcore::str_format(
-        "%s %s, %s and %s from %s", operation, what_to_load[0].c_str(),
-        what_to_load[1].c_str(), what_to_load[2].c_str(), where.c_str());
-  } else if (what_to_load.size() == 2) {
-    action = shcore::str_format("%s %s and %s from %s", operation,
-                                what_to_load[0].c_str(),
-                                what_to_load[1].c_str(), where.c_str());
-  } else if (!what_to_load.empty()) {
-    action = shcore::str_format("%s %s only from %s", operation,
-                                what_to_load[0].c_str(), where.c_str());
-  } else {
-    if (m_analyze_tables == Analyze_table_mode::HISTOGRAM)
-      action = "Updating table histograms";
-    else if (m_analyze_tables == Analyze_table_mode::ON)
-      action = "Updating table histograms and key distribution statistics";
-    if (m_update_gtid_set != Update_gtid_set::OFF) {
-      if (!action.empty())
-        action += ", and updating GTID_PURGED";
-      else
-        action = "Updating GTID_PURGED";
+  const auto concat = [&what_to_load]() {
+    if (1 == what_to_load.size()) {
+      return what_to_load[0] + " only";
     }
+
+    auto msg = shcore::str_join(what_to_load.begin(),
+                                std::prev(what_to_load.end()), ", ");
+    msg += " and ";
+    msg += what_to_load.back();
+
+    return msg;
+  };
+
+  if (!what_to_load.empty()) {
+    action = shcore::str_format("%s %s from %s", operation, concat().c_str(),
+                                where.c_str());
+  } else {
+    if (m_analyze_tables == Analyze_table_mode::HISTOGRAM) {
+      what_to_load.emplace_back("Updating table histograms");
+    } else if (m_analyze_tables == Analyze_table_mode::ON) {
+      what_to_load.emplace_back(
+          "Updating table histograms and key distribution statistics");
+    }
+
+    if (m_update_gtid_set != Update_gtid_set::OFF) {
+      what_to_load.emplace_back("Updating GTID_PURGED");
+    }
+
+    if (m_checksum) {
+      what_to_load.emplace_back("Verifying checksum information");
+    }
+
+    action = concat();
   }
 
   std::string detail = extra;
@@ -401,7 +414,7 @@ void Load_dump_options::on_unpacked_options() {
 
   if (!m_load_data && !m_load_ddl && !m_load_users &&
       m_analyze_tables == Analyze_table_mode::OFF &&
-      m_update_gtid_set == Update_gtid_set::OFF) {
+      m_update_gtid_set == Update_gtid_set::OFF && !m_checksum) {
     throw shcore::Exception::argument_error(
         "At least one of loadData, loadDdl or loadUsers options must be "
         "enabled");

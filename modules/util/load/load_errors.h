@@ -156,7 +156,11 @@
 #define SHERR_LOAD_CORRUPTED_DUMP_MISSING_DATA_MSG \
   "Dump directory is corrupted, some of the data files are missing"
 
-#define SHERR_LOAD_LAST 53030
+#define SHERR_LOAD_CHECKSUM_VERIFICATION_FAILED 53031
+#define SHERR_LOAD_CHECKSUM_VERIFICATION_FAILED_MSG \
+  "Checksum verification failed"
+
+#define SHERR_LOAD_LAST 53031
 
 #define SHERR_LOAD_MAX 53999
 

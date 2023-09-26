@@ -262,6 +262,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only copy Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
+      - checksum: bool (default: false) - Compute checksums of the data and
+        verify tables in the target instance against these checksums.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
         that would be performed, without actually doing so. If target is MySQL
         HeatWave Service, also checks for compatibility issues.
@@ -385,6 +387,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only copy Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
+      - checksum: bool (default: false) - Compute checksums of the data and
+        verify tables in the target instance against these checksums.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
         that would be performed, without actually doing so. If target is MySQL
         HeatWave Service, also checks for compatibility issues.
@@ -497,6 +501,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only copy Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only copy data from the database.
+      - checksum: bool (default: false) - Compute checksums of the data and
+        verify tables in the target instance against these checksums.
       - dryRun: bool (default: false) - Simulates a copy and prints everything
         that would be performed, without actually doing so. If target is MySQL
         HeatWave Service, also checks for compatibility issues.
@@ -649,6 +655,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
+      - checksum: bool (default: false) - Compute and include checksum of the
+        dumped data.
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything. If ocimds is enabled, also checks for
         compatibility issues with MySQL HeatWave Service.
@@ -1286,6 +1294,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
+      - checksum: bool (default: false) - Compute and include checksum of the
+        dumped data.
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything. If ocimds is enabled, also checks for
         compatibility issues with MySQL HeatWave Service.
@@ -1900,6 +1910,8 @@ DESCRIPTION
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
         (DDL) from the database.
       - dataOnly: bool (default: false) - Only dump data from the database.
+      - checksum: bool (default: false) - Compute and include checksum of the
+        dumped data.
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything. If ocimds is enabled, also checks for
         compatibility issues with MySQL HeatWave Service.
@@ -3335,6 +3347,8 @@ DESCRIPTION
         character set to be used for loading dump data. By default, the same
         character set used for dumping will be used (utf8mb4 if not set on
         dump).
+      - checksum: bool (default: false) - Verify tables against checksums that
+        were computed during dump.
       - createInvisiblePKs: bool (default taken from dump) - Automatically
         create an invisible Primary Key for each table which does not have one.
         By default, set to true if dump was created with create_invisible_pks

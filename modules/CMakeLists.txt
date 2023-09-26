@@ -33,6 +33,7 @@ INCLUDE_DIRECTORIES(BEFORE
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/common/dump/checksums.cc"
       "util/common/dump/filtering_options.cc"
       "util/common/dump/utils.cc"
       "util/copy/copy_instance_options.cc"
@@ -59,6 +60,7 @@ file(GLOB api_module_SOURCES
       "util/dump/dumper.cc"
       "util/dump/export_table.cc"
       "util/dump/export_table_options.cc"
+      "util/dump/indexes.cc"
       "util/dump/instance_cache.cc"
       "util/dump/progress_thread.cc"
       "util/dump/schema_dumper.cc"

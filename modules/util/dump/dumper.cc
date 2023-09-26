@@ -28,6 +28,8 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <limits>
+#include <set>
 #include <type_traits>
 #include <utility>
 
@@ -70,6 +72,7 @@
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_errors.h"
 #include "modules/util/dump/dump_manifest.h"
+#include "modules/util/dump/indexes.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
 #include "modules/util/upgrade_check.h"
@@ -790,10 +793,10 @@ class Dumper::Table_worker final {
                ")";
     }
 
-    query += where(table.where);
+    query += where(table);
 
-    if (table.info->index.valid()) {
-      query += " ORDER BY " + table.info->index.columns_sql();
+    if (table.index.info) {
+      query += " ORDER BY " + table.index.info->columns_sql();
     }
 
     query += " " + m_dumper->get_query_comment(table, "dumping");
@@ -802,8 +805,11 @@ class Dumper::Table_worker final {
   }
 
   void dump_table_data(const Table_data_task &table) {
-    log_debug("%sDumping %s (%s) using condition: %s", m_log_id.c_str(),
-              table.task_name.c_str(), table.id.c_str(), table.where.c_str());
+    log_debug(
+        "%sDumping %s (%s) using boundary: %s, filter: %s", m_log_id.c_str(),
+        table.task_name.c_str(), table.id.c_str(),
+        table.boundary.length() ? table.boundary.c_str() : "NONE",
+        table.extra_filter.length() ? table.extra_filter.c_str() : "NONE");
 
     mysqlshdk::utils::Duration duration;
     duration.start();
@@ -863,30 +869,12 @@ class Dumper::Table_worker final {
 
     m_dumper->update_progress(controller->progress_stats());
     m_dumper->finish_writing(table.schema, table.name, controller);
-  }
-
-  void push_table_data_task(Table_data_task &&task) {
-    std::string info = "dumping " + task.task_name;
-
-    // Table_data_task contains an unique_ptr, it's moved into shared_ptr and
-    // then move-captured by lambda, so that this lambda can be stored,
-    // otherwise compiler will complain about a call to implicitly-deleted
-    // copy constructor
-    auto t = std::make_shared<Table_data_task>(std::move(task));
-
-    m_dumper->m_worker_tasks.push({std::move(info),
-                                   [task = std::move(t)](Table_worker *worker) {
-                                     ++worker->m_dumper->m_num_threads_dumping;
-
-                                     worker->dump_table_data(*task);
-
-                                     --worker->m_dumper->m_num_threads_dumping;
-                                   }},
-                                  shcore::Queue_priority::LOW);
+    m_dumper->data_task_finished();
   }
 
   Table_data_task create_table_data_task(const Table_task &table,
-                                         const std::string &filename) {
+                                         const std::string &filename,
+                                         int64_t chunk = -1) {
     Table_data_task data_task;
 
     data_task.task_name = table.task_name;
@@ -894,8 +882,10 @@ class Dumper::Table_worker final {
     data_task.quoted_name = table.quoted_name;
     data_task.schema = table.schema;
     data_task.info = table.info;
+    data_task.index = table.index;
     data_task.partitions = table.partitions;
-    data_task.where = table.where;
+    data_task.extra_filter = table.extra_filter;
+    data_task.chunk = chunk;
 
     if (!filename.empty()) {
       data_task.controller = m_dumper->table_dump_controller(filename);
@@ -910,7 +900,7 @@ class Dumper::Table_worker final {
 
     data_task.id = "whole table";
 
-    push_table_data_task(std::move(data_task));
+    m_dumper->push_table_data_task(std::move(data_task));
   }
 
   void create_and_push_whole_table_data_in_chunks_task(
@@ -921,36 +911,52 @@ class Dumper::Table_worker final {
     data_task.controller =
         m_dumper->table_dump_multi_file_controller(table.basename);
 
-    push_table_data_task(std::move(data_task));
+    m_dumper->push_table_data_task(std::move(data_task));
   }
 
   void create_and_push_table_data_chunk_task(const Table_task &table,
-                                             const std::string &where,
+                                             const std::string &boundary,
                                              const std::string &id,
                                              std::size_t idx, bool last_chunk) {
     Table_data_task data_task = create_table_data_task(
         table,
-        m_dumper->get_table_data_filename(table.basename, idx, last_chunk));
+        m_dumper->get_table_data_filename(table.basename, idx, last_chunk),
+        idx);
 
     data_task.id = "chunk " + id;
 
-    if (!where.empty()) {
-      data_task.where = "(" + where + ")";
+    if (!boundary.empty()) {
+      data_task.boundary = "(" + boundary + ")";
     }
 
-    if (0 == idx) {
-      for (const auto &c : table.info->index.columns()) {
+    if (0 == idx && table.index.info && !table.index.is_pke) {
+      for (const auto &c : table.index.info->columns()) {
         if (c->nullable) {
-          if (!data_task.where.empty()) {
-            data_task.where += "OR";
+          if (!data_task.boundary.empty()) {
+            data_task.boundary += "OR";
           }
 
-          data_task.where += "(" + c->quoted_name + " IS NULL)";
+          data_task.boundary += "(" + c->quoted_name + " IS NULL)";
         }
       }
+
+      data_task.boundary = "(" + data_task.boundary + ")";
     }
 
-    push_table_data_task(std::move(data_task));
+    m_dumper->push_table_data_task(std::move(data_task));
+  }
+
+  void checksum_table_data(const Checksum_task &task) {
+    log_debug("%sComputing checksum of %s (%s)", m_log_id.c_str(),
+              task.name.c_str(), task.id.c_str());
+
+    if (Dry_run::DISABLED == m_dumper->m_options.dry_run_mode()) {
+      task.checksum->compute(
+          m_session,
+          m_dumper->get_query_comment(task.name, task.id, "checksumming"));
+    }
+
+    m_dumper->checksum_task_finished();
   }
 
   void write_schema_metadata(const Schema_info &schema) const {
@@ -1017,7 +1023,7 @@ class Dumper::Table_worker final {
     uint64_t accuracy;
     int explain_rows_idx;
     std::string partition;
-    std::string where;
+    std::string boundary;
     std::string order_by;
     std::string order_by_desc;
     std::size_t index_column;
@@ -1025,7 +1031,8 @@ class Dumper::Table_worker final {
 
   static std::string compare(const Chunking_info &info, const Row &value,
                              const std::string &op, bool eq) {
-    const auto &columns = info.table->info->index.columns();
+    assert(info.table->index.info);
+    const auto &columns = info.table->index.info->columns();
     const auto size = columns.size() - info.index_column;
 
     assert(size == value.size());
@@ -1064,7 +1071,7 @@ class Dumper::Table_worker final {
   }
 
   static std::string ge(const Chunking_info &info, const Row &value) {
-    std::string result = info.where;
+    std::string result = info.boundary;
 
     if (!result.empty()) {
       result += " AND";
@@ -1082,26 +1089,48 @@ class Dumper::Table_worker final {
 
   template <typename T>
   static std::string between(const Chunking_info &info, T begin, T end) {
-    std::string result = info.where;
+    std::string result = info.boundary;
 
     if (!result.empty()) {
       result += " AND ";
     }
 
-    return result +
-           between(info.table->info->index.columns()[info.index_column]
-                       ->quoted_name,
-                   begin, end);
+    return result + between(info.table->index.info->columns()[info.index_column]
+                                ->quoted_name,
+                            begin, end);
   }
 
-  static std::string where(const std::string &condition) {
+  static std::string where(const Table_task &task,
+                           const std::string &boundary) {
     std::string result;
 
-    if (!condition.empty()) {
-      result = " WHERE " + condition;
+    if (!task.extra_filter.empty() || !boundary.empty()) {
+      // " WHERE " + extra_filter + " AND " + boundary
+      result.reserve(12 + task.extra_filter.length() + boundary.length());
+      result = " WHERE ";
+
+      if (!task.extra_filter.empty()) {
+        result += task.extra_filter;
+      }
+
+      if (!task.extra_filter.empty() && !boundary.empty()) {
+        result += " AND ";
+      }
+
+      if (!boundary.empty()) {
+        result += boundary;
+      }
     }
 
     return result;
+  }
+
+  static inline std::string where(const Table_data_task &task) {
+    return where(task, task.boundary);
+  }
+
+  static inline std::string where(const Chunking_info &info) {
+    return where(*info.table, info.boundary);
   }
 
   template <typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
@@ -1173,7 +1202,7 @@ class Dumper::Table_worker final {
                                                    const auto end) {
       return to_uint64_t(query("EXPLAIN SELECT COUNT(*) FROM " +
                                info.table->quoted_name + info.partition +
-                               where(between(info, begin, end)) +
+                               where(*info.table, between(info, begin, end)) +
                                info.order_by + comment)
                              ->fetch_one_or_throw()
                              ->get_as_string(info.explain_rows_idx));
@@ -1326,8 +1355,9 @@ class Dumper::Table_worker final {
     log_info("%sChunking %s using integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
+    assert(info.table->index.info);
     const auto type =
-        info.table->info->index.columns()[info.index_column]->type;
+        info.table->index.info->columns()[info.index_column]->type;
 
     if (mysqlshdk::db::Type::Integer == type) {
       return chunk_integer_column(info, to_int64_t(begin[info.index_column]),
@@ -1355,7 +1385,8 @@ class Dumper::Table_worker final {
     Row range_begin = begin;
     Row range_end;
 
-    const auto &columns = info.table->info->index.columns();
+    assert(info.table->index.info);
+    const auto &columns = info.table->index.info->columns();
     const auto index =
         shcore::str_join(columns.begin() + info.index_column, columns.end(),
                          ",", [](const auto &c) { return c->quoted_name; });
@@ -1375,7 +1406,7 @@ class Dumper::Table_worker final {
     std::shared_ptr<mysqlshdk::db::IResult> result;
 
     do {
-      const auto condition = where(ge(info, range_begin));
+      const auto condition = where(*info.table, ge(info, range_begin));
       const auto chunk_id = std::to_string(ranges_count);
       const auto comment = get_query_comment(*info.table, chunk_id);
 
@@ -1398,7 +1429,7 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_column(const Chunking_info &info) {
-    if (!info.table->info->index.valid()) {
+    if (!info.table->index.info) {
       log_info(
           "%sTable %s does not have a valid index, number of chunks is "
           "estimated",
@@ -1410,15 +1441,15 @@ class Dumper::Table_worker final {
       return info.row_count / info.rows_per_chunk + 1;
     }
 
-    const auto sql =
-        "SELECT SQL_NO_CACHE " + info.table->info->index.columns_sql() +
-        " FROM " + info.table->quoted_name + info.partition + where(info.where);
+    const auto sql = "SELECT SQL_NO_CACHE " +
+                     info.table->index.info->columns_sql() + " FROM " +
+                     info.table->quoted_name + info.partition + where(info);
 
     auto result = query(sql + info.order_by + " LIMIT 1");
     auto row = result->fetch_one();
 
     const auto handle_empty_table = [&info, this]() {
-      create_and_push_table_data_chunk_task(*info.table, info.where, "0", 0,
+      create_and_push_table_data_chunk_task(*info.table, info.boundary, "0", 0,
                                             true);
       return 1;
     };
@@ -1439,11 +1470,11 @@ class Dumper::Table_worker final {
     const Row end = fetch_row(row);
 
     const auto type =
-        info.table->info->index.columns()[info.index_column]->type;
+        info.table->index.info->columns()[info.index_column]->type;
 
     log_info("%sChunking %s, using columns: %s, min: [%s], max: [%s]",
              m_log_id.c_str(), info.table->task_name.c_str(),
-             shcore::str_join(info.table->info->index.columns(), ", ",
+             shcore::str_join(info.table->index.info->columns(), ", ",
                               [](const auto &c) {
                                 return c->quoted_name + " (" +
                                        mysqlshdk::db::to_string(c->type) + ")";
@@ -1516,23 +1547,24 @@ class Dumper::Table_worker final {
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
     info.explain_rows_idx = m_dumper->m_cache.explain_rows_idx;
     info.partition = std::move(partition_clause);
-    info.where = table.where;
 
-    if (table.info->index.valid()) {
-      for (const auto &c : table.info->index.columns()) {
-        if (c->nullable) {
-          if (!info.where.empty()) {
-            info.where += "AND";
+    if (table.index.info) {
+      if (!table.index.is_pke) {
+        for (const auto &c : table.index.info->columns()) {
+          if (c->nullable) {
+            if (!info.boundary.empty()) {
+              info.boundary += "AND";
+            }
+
+            info.boundary += "(" + c->quoted_name + " IS NOT NULL)";
           }
-
-          info.where += "(" + c->quoted_name + " IS NOT NULL)";
         }
       }
 
-      info.order_by = " ORDER BY " + table.info->index.columns_sql();
+      info.order_by = " ORDER BY " + table.index.info->columns_sql();
       info.order_by_desc =
           " ORDER BY " +
-          shcore::str_join(table.info->index.columns(), ",", [](const auto &c) {
+          shcore::str_join(table.index.info->columns(), ",", [](const auto &c) {
             return c->quoted_name + " DESC";
           });
       info.index_column = 0;
@@ -1813,6 +1845,10 @@ Dumper::Dumper(const Dump_options &options)
         ". This version supports the SET_ANY_DEFINER privilege, using the "
         "'strip_definers' compatibility option is unnecessary.");
   }
+
+  if (m_options.checksum()) {
+    m_checksum = std::make_unique<common::Checksums>();
+  }
 }
 
 void Dumper::run() {
@@ -1968,11 +2004,22 @@ void Dumper::do_run() {
     create_table_tasks();
 
     if (!m_options.is_dry_run() && !m_worker_interrupt) {
-      current_console()->print_status(
-          "Running data dump using " + std::to_string(m_options.threads()) +
-          " thread" + (m_options.threads() > 1 ? "s" : "") + ".");
+      auto msg = "Running data dump using " +
+                 std::to_string(m_options.threads()) + " thread";
 
-      if (m_options.show_progress()) {
+      if (m_options.threads() > 1) {
+        msg += 's';
+      }
+
+      msg += '.';
+
+      if (m_checksum) {
+        msg += " Checksumming enabled.";
+      }
+
+      current_console()->print_status(msg);
+
+      if (m_options.show_progress() && m_options.dump_data()) {
         current_console()->print_note(
             "Progress information uses estimated values and may not be "
             "accurate.");
@@ -1980,6 +2027,7 @@ void Dumper::do_run() {
     }
 
     initialize_throughput_progress();
+    initialize_checksum_progress();
 
     maybe_push_shutdown_tasks();
     wait_for_all_tasks();
@@ -2076,6 +2124,10 @@ void Dumper::open_session() {
   fetch_server_information();
 
   log_server_version();
+
+  if (m_checksum) {
+    m_checksum->configure(m_session);
+  }
 }
 
 void Dumper::close_session() {
@@ -2767,6 +2819,7 @@ void Dumper::initialize_counters() {
   m_bytes_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
 
   m_num_threads_chunking = 0;
+  m_num_threads_checksumming = 0;
   m_num_threads_dumping = 0;
 
   m_ddl_written = 0;
@@ -2789,6 +2842,7 @@ void Dumper::finalize_dump() {
     return;
   }
 
+  write_checksum_metadata();
   write_dump_finished_metadata();
   close_output_directory();
 }
@@ -2845,16 +2899,26 @@ void Dumper::create_worker_threads() {
 }
 
 void Dumper::maybe_push_shutdown_tasks() {
-  if (0 == m_chunking_tasks &&
-      m_main_thread_finished_producing_chunking_tasks) {
+  if (all_tasks_produced()) {
     m_worker_tasks.shutdown(m_workers.size());
   }
 }
 
 void Dumper::chunking_task_finished() {
-  --m_chunking_tasks;
+  ++m_chunking_tasks_completed;
   maybe_push_shutdown_tasks();
 }
+
+void Dumper::data_task_finished() {
+  ++m_data_tasks_completed;
+
+  if (m_data_dump_stage && all_tasks_produced() &&
+      m_data_tasks_completed == m_data_tasks_total) {
+    m_data_dump_stage->finish();
+  }
+}
+
+void Dumper::checksum_task_finished() { ++m_checksum_tasks_completed; }
 
 void Dumper::wait_for_all_tasks() {
   for (auto &worker : m_workers) {
@@ -2868,10 +2932,6 @@ void Dumper::wait_for_all_tasks() {
   }
 
   m_workers.clear();
-
-  if (m_data_dump_stage && !m_worker_interrupt) {
-    m_data_dump_stage->finish();
-  }
 }
 
 void Dumper::dump_ddl() const {
@@ -3081,7 +3141,12 @@ void Dumper::create_schema_ddl_tasks() {
 }
 
 void Dumper::create_table_tasks() {
-  m_chunking_tasks = 0;
+  m_chunking_tasks_total = 0;
+  m_chunking_tasks_completed = 0;
+  m_data_tasks_total = 0;
+  m_data_tasks_completed = 0;
+  m_checksum_tasks_total = 0;
+  m_checksum_tasks_completed = 0;
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
@@ -3104,6 +3169,8 @@ void Dumper::create_table_tasks() {
                                                     std::move(config));
   }
 
+  const auto console = current_console();
+
   for (const auto &schema : m_schema_infos) {
     for (const auto &table : schema.tables) {
       auto task = create_table_task(schema, table);
@@ -3118,19 +3185,18 @@ void Dumper::create_table_tasks() {
                             shcore::Queue_priority::HIGH);
       }
 
-      if (m_options.dump_data()) {
-        push_table_task(std::move(task));
+      if (m_checksum) {
+        m_checksum->initialize_table(task.schema, task.name, task.info,
+                                     task.index.info, task.extra_filter);
       }
+
+      push_table_task(std::move(task));
     }
 
     // BUG#34663934 - allow exporting data from views
     if (m_options.is_export_only()) {
       for (const auto &view : schema.views) {
-        auto task = create_table_task(schema, view);
-
-        if (m_options.dump_data()) {
-          push_table_task(std::move(task));
-        }
+        push_table_task(create_table_task(schema, view));
       }
     }
   }
@@ -3149,8 +3215,9 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.schema = schema.name;
   task.basename = table.basename;
   task.info = table.info;
+  std::tie(task.index.info, task.index.is_pke) = select_index(*table.info);
   task.partitions = table.partitions;
-  task.where = m_options.where(schema.name, table.name);
+  task.extra_filter = m_options.where(schema.name, table.name);
 
   on_create_table_task(task.schema, task.name, task.info);
 
@@ -3166,7 +3233,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.schema = schema.name;
   task.basename = view.basename;
   task.info = view.info;
-  task.where = m_options.where(schema.name, view.name);
+  task.extra_filter = m_options.where(schema.name, view.name);
 
   on_create_table_task(task.schema, task.name, task.info);
 
@@ -3174,47 +3241,62 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
 }
 
 void Dumper::push_table_task(Table_task &&task) {
-  const auto &task_name = task.task_name;
+  bool dump = true;
+
+  if (!m_options.dump_data()) {
+    if (!m_checksum) {
+      return;
+    } else {
+      // we're going to create checksum tasks
+      dump = false;
+    }
+  }
+
+  const auto context =
+      shcore::str_format("%s of table %s", dump ? "data dump" : "checksum",
+                         task.quoted_name.c_str());
 
   if (!should_dump_data(task)) {
-    current_console()->print_warning("Skipping data dump for table " +
-                                     task_name);
+    current_console()->print_warning("Skipping " + context);
     return;
   }
 
-  log_info("Preparing data dump for table %s", task_name.c_str());
+  log_info("Preparing %s", context.c_str());
 
-  const auto &index = task.info->index;
+  const auto index = task.index.info;
 
   const auto get_index = [&index]() {
-    return std::string{"column"} + (index.columns().size() > 1 ? "s" : "") +
-           " " + index.columns_sql();
+    assert(index);
+    return std::string("column") + (index->columns().size() > 1 ? "s" : "") +
+           " " + index->columns_sql();
   };
 
   if (m_options.split()) {
-    if (!index.valid()) {
+    if (!index) {
       log_info(
           "Could not select columns to be used as an index for table %s. Data "
           "will be dumped to multiple files by a single thread.",
-          task_name.c_str());
+          task.quoted_name.c_str());
     } else {
-      log_info("Data dump for table %s will be chunked using %s",
-               task_name.c_str(), get_index().c_str());
+      log_info("The %s will be %s using %s", context.c_str(),
+               dump ? "chunked" : "ordered", get_index().c_str());
     }
   } else {
     const auto index_info =
-        (!index.valid() ? "will not use an index"
-                        : "will use " + get_index() + " as an index");
-    log_info("Data dump for table %s %s", task_name.c_str(),
-             index_info.c_str());
+        (!index ? "will not use an index"
+                : "will use " + get_index() + " as an index");
+    log_info("The %s %s", context.c_str(), index_info.c_str());
   }
 
   if (Dry_run::DONT_WRITE_ANY_FILES == m_options.dry_run_mode()) {
     return;
   }
 
+  std::vector<Table_task> tasks;
+  tasks.reserve(task.partitions.size());
+
   if (m_options.is_export_only() || task.partitions.empty()) {
-    push_table_chunking_task(std::move(task));
+    tasks.emplace_back(std::move(task));
   } else {
     for (const auto &partition : task.partitions) {
       auto copy = task;
@@ -3225,13 +3307,47 @@ void Dumper::push_table_task(Table_task &&task) {
       copy.partitions.clear();
       copy.partitions.emplace_back(partition);
 
-      push_table_chunking_task(std::move(copy));
+      tasks.emplace_back(std::move(copy));
+    }
+  }
+
+  for (auto &t : tasks) {
+    if (dump) {
+      push_table_chunking_task(std::move(t));
+    } else {
+      push_checksum_task(create_checksum_task(t));
     }
   }
 }
 
+void Dumper::push_table_data_task(Table_data_task &&task) {
+  ++m_data_tasks_total;
+
+  if (m_checksum) {
+    push_checksum_task(create_checksum_task(task));
+  }
+
+  std::string info = "dumping " + task.task_name;
+
+  // Table_data_task contains an unique_ptr, it's moved into shared_ptr and
+  // then move-captured by lambda, so that this lambda can be stored,
+  // otherwise compiler will complain about a call to implicitly-deleted
+  // copy constructor
+  auto t = std::make_shared<Table_data_task>(std::move(task));
+
+  m_worker_tasks.push({std::move(info),
+                       [task = std::move(t)](Table_worker *worker) {
+                         ++worker->m_dumper->m_num_threads_dumping;
+
+                         worker->dump_table_data(*task);
+
+                         --worker->m_dumper->m_num_threads_dumping;
+                       }},
+                      shcore::Queue_priority::LOW);
+}
+
 void Dumper::push_table_chunking_task(Table_task &&task) {
-  ++m_chunking_tasks;
+  ++m_chunking_tasks_total;
 
   std::string info = "chunking " + task.task_name;
   m_worker_tasks.push({std::move(info),
@@ -3243,6 +3359,59 @@ void Dumper::push_table_chunking_task(Table_task &&task) {
                          --worker->m_dumper->m_num_threads_chunking;
                        }},
                       shcore::Queue_priority::MEDIUM);
+}
+
+Dumper::Checksum_task Dumper::create_checksum_task(
+    const Table_data_task &table) {
+  assert(table.partitions.size() <= 1);
+
+  Checksum_task task;
+
+  task.name = table.task_name;
+  task.id = table.id;
+
+  {
+    std::lock_guard lock{m_checksums_mutex};
+    task.checksum = m_checksum->prepare_checksum(
+        table.schema, table.name,
+        table.partitions.empty() ? "" : table.partitions.front().info->name,
+        table.chunk, table.boundary);
+  }
+
+  return task;
+}
+
+Dumper::Checksum_task Dumper::create_checksum_task(const Table_task &table) {
+  assert(table.partitions.size() <= 1);
+  // NOTE: this function is expected to be called from the main thread
+
+  Checksum_task task;
+
+  task.name = table.task_name;
+  task.id = table.partitions.empty() ? "whole table" : "whole partition";
+
+  task.checksum = m_checksum->prepare_checksum(
+      table.schema, table.name,
+      table.partitions.empty() ? "" : table.partitions.front().info->name, -1,
+      "");
+
+  return task;
+}
+
+void Dumper::push_checksum_task(Checksum_task &&task) {
+  ++m_checksum_tasks_total;
+
+  std::string info = "checksumming " + task.name;
+
+  m_worker_tasks.push({std::move(info),
+                       [task = std::move(task)](Table_worker *worker) {
+                         ++worker->m_dumper->m_num_threads_checksumming;
+
+                         worker->checksum_table_data(task);
+
+                         --worker->m_dumper->m_num_threads_checksumming;
+                       }},
+                      shcore::Queue_priority::LOWEST);
 }
 
 std::unique_ptr<Dumper::Dump_writer_controller> Dumper::table_dump_controller(
@@ -3413,6 +3582,8 @@ void Dumper::write_dump_started_metadata() const {
     doc.AddMember(StringRef("capabilities"), std::move(capabilities), a);
   }
 
+  doc.AddMember(StringRef("checksum"), m_options.checksum(), a);
+
   doc.AddMember(StringRef("begin"),
                 refs(m_progress_thread.duration().started_at()), a);
 
@@ -3476,6 +3647,14 @@ void Dumper::write_dump_finished_metadata() const {
   }
 
   write_json(make_file("@.done.json"), &doc);
+}
+
+void Dumper::write_checksum_metadata() const {
+  if (!m_checksum) {
+    return;
+  }
+
+  m_checksum->serialize(make_file("@.checksums.json"));
 }
 
 void Dumper::write_schema_metadata(const Schema_info &schema) const {
@@ -3679,8 +3858,8 @@ void Dumper::write_table_metadata(
   {
     Value primary{Type::kArrayType};
 
-    if (table.info->index.primary()) {
-      for (const auto &column : table.info->index.columns()) {
+    if (table.info->primary_key) {
+      for (const auto &column : table.info->primary_key->columns()) {
         primary.PushBack(refs(column->name), a);
       }
     }
@@ -3737,8 +3916,11 @@ void Dumper::summarize() const {
     }
   }
 
-  console->print_status("Dump duration: " +
-                        m_data_dump_stage->duration().to_string());
+  if (m_options.dump_data()) {
+    console->print_status("Dump duration: " +
+                          m_data_dump_stage->duration().to_string());
+  }
+
   console->print_status("Total duration: " +
                         m_progress_thread.duration().to_string());
 
@@ -3747,32 +3929,34 @@ void Dumper::summarize() const {
     console->print_status("Tables dumped: " + std::to_string(m_total_tables));
   }
 
-  console->print_status(
-      std::string{compressed() ? "Uncompressed d" : "D"} +
-      "ata size: " + mysqlshdk::utils::format_bytes(m_data_bytes));
-
-  if (compressed()) {
-    console->print_status("Compressed data size: " +
-                          mysqlshdk::utils::format_bytes(m_bytes_written));
-    console->print_status(shcore::str_format(
-        "Compression ratio: %.1f",
-        m_data_bytes / std::max(static_cast<double>(m_bytes_written), 1.0)));
-  }
-
-  console->print_status("Rows written: " + std::to_string(m_rows_written));
-  console->print_status("Bytes written: " +
-                        mysqlshdk::utils::format_bytes(m_bytes_written));
-  console->print_status(
-      std::string{"Average "} + (compressed() ? "uncompressed " : "") +
-      "throughput: " +
-      mysqlshdk::utils::format_throughput_bytes(
-          m_data_bytes, m_data_dump_stage->duration().seconds()));
-
-  if (compressed()) {
+  if (m_options.dump_data()) {
     console->print_status(
-        "Average compressed throughput: " +
+        std::string(compressed() ? "Uncompressed d" : "D") +
+        "ata size: " + mysqlshdk::utils::format_bytes(m_data_bytes));
+
+    if (compressed()) {
+      console->print_status("Compressed data size: " +
+                            mysqlshdk::utils::format_bytes(m_bytes_written));
+      console->print_status(shcore::str_format(
+          "Compression ratio: %.1f",
+          m_data_bytes / std::max(static_cast<double>(m_bytes_written), 1.0)));
+    }
+
+    console->print_status("Rows written: " + std::to_string(m_rows_written));
+    console->print_status("Bytes written: " +
+                          mysqlshdk::utils::format_bytes(m_bytes_written));
+    console->print_status(
+        std::string("Average ") + (compressed() ? "uncompressed " : "") +
+        "throughput: " +
         mysqlshdk::utils::format_throughput_bytes(
-            m_bytes_written, m_data_dump_stage->duration().seconds()));
+            m_data_bytes, m_data_dump_stage->duration().seconds()));
+
+    if (compressed()) {
+      console->print_status(
+          "Average compressed throughput: " +
+          mysqlshdk::utils::format_throughput_bytes(
+              m_bytes_written, m_data_dump_stage->duration().seconds()));
+    }
   }
 
   summary();
@@ -3813,6 +3997,10 @@ std::string Dumper::get_table_data_filename(const std::string &basename,
 }
 
 void Dumper::initialize_throughput_progress() {
+  if (!m_options.dump_data()) {
+    return;
+  }
+
   Progress_thread::Throughput_config config;
 
   config.items_full = "rows";
@@ -3826,19 +4014,29 @@ void Dumper::initialize_throughput_progress() {
 
   if (!m_options.is_export_only()) {
     config.left_label = [this]() {
-      const uint64_t chunking = m_num_threads_chunking;
-      const uint64_t dumping = m_num_threads_dumping;
       std::string label;
 
-      if (0 != chunking || 0 != dumping) {
-        if (0 == chunking) {
-          label = std::to_string(dumping) + " thds";
-        } else {
-          label = std::to_string(chunking) + " thds chunking, " +
-                  std::to_string(dumping);
-        }
+      if (const auto chunking = m_num_threads_chunking.load()) {
+        label += std::to_string(chunking) + " thds chunking - ";
+      }
 
-        label += " dumping - ";
+      if (const auto dumping = m_num_threads_dumping.load()) {
+        label += std::to_string(dumping) + " thds dumping - ";
+      }
+
+      if (const auto checksumming = m_num_threads_checksumming.load()) {
+        label += std::to_string(checksumming) + " thds chksum - ";
+      }
+
+      constexpr std::array k_progress_spin = {'-', '\\', '|', '/'};
+      static thread_local size_t progress_idx = 0;
+
+      if (label.length() > 2) {
+        label[label.length() - 2] = k_progress_spin[progress_idx++];
+
+        if (progress_idx >= k_progress_spin.size()) {
+          progress_idx = 0;
+        }
       }
 
       return label;
@@ -3852,6 +4050,20 @@ void Dumper::initialize_throughput_progress() {
 
   m_data_dump_stage = m_current_stage =
       m_progress_thread.start_stage("Dumping data", std::move(config));
+}
+
+void Dumper::initialize_checksum_progress() {
+  if (!m_options.checksum()) {
+    return;
+  }
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() { return m_checksum_tasks_completed.load(); };
+  config.total = [this]() { return m_checksum_tasks_total.load(); };
+  config.is_total_known = [this]() { return all_tasks_produced(); };
+
+  m_current_stage =
+      m_progress_thread.start_stage("Computing checksum", std::move(config));
 }
 
 void Dumper::update_progress(const Dump_write_result &progress) {
@@ -4333,6 +4545,13 @@ void Dumper::throw_if_cannot_dump_users() const {
   if (m_server_version.is_maria_db && dump_users()) {
     THROW_ERROR(SHERR_DUMP_USERS_MARIA_DB_NOT_SUPPORTED);
   }
+}
+
+bool Dumper::all_tasks_produced() const {
+  // chunking tasks produce data and checksum tasks, if these are finished, then
+  // all other tasks were produced
+  return m_main_thread_finished_producing_chunking_tasks &&
+         m_chunking_tasks_completed == m_chunking_tasks_total;
 }
 
 }  // namespace dump

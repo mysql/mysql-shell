@@ -1079,6 +1079,8 @@ times that value in case on a non-local dump.
 @li <b>characterSet</b>: string (default taken from dump) - Overrides
 the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).
+@li <b>checksum</b>: bool (default: false) - Verify tables against checksums
+that were computed during dump.
 @li <b>createInvisiblePKs</b>: bool (default taken from dump) - Automatically
 create an invisible Primary Key for each table which does not have one. By
 default, set to true if dump was created with <b>create_invisible_pks</b>
@@ -1522,6 +1524,8 @@ backup lock cannot not be acquired.
 @li <b>ddlOnly</b>: bool (default: false) - Only dump Data Definition Language
 (DDL) from the database.
 @li <b>dataOnly</b>: bool (default: false) - Only dump data from the database.
+@li <b>checksum</b>: bool (default: false) - Compute and include checksum of the
+dumped data.
 @li <b>dryRun</b>: bool (default: false) - Print information about what would be
 dumped, but do not dump anything. If <b>ocimds</b> is enabled, also checks for
 compatibility issues with MySQL HeatWave Service.
@@ -2277,6 +2281,8 @@ backup lock cannot not be acquired.
 @li <b>ddlOnly</b>: bool (default: false) - Only copy Data Definition Language
 (DDL) from the database.
 @li <b>dataOnly</b>: bool (default: false) - Only copy data from the database.
+@li <b>checksum</b>: bool (default: false) - Compute checksums of the data and
+verify tables in the target instance against these checksums.
 @li <b>dryRun</b>: bool (default: false) - Simulates a copy and prints
 everything that would be performed, without actually doing so. If target is
 MySQL HeatWave Service, also checks for compatibility issues.

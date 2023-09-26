@@ -60,6 +60,8 @@ def prepare(sbport, version, load_data, mysqlaas=False):
         shell.connect(uri)
         session.run_sql("CREATE USER loader@'%'")
         session.run_sql("GRANT ALL ON *.* TO loader@'%' WITH GRANT OPTION")
+        session.run_sql("CREATE SCHEMA `empty`")
+        session.run_sql("CREATE TABLE `empty`.`on_purpose` (a INT PRIMARY KEY)")
 
 reference5=prepare(__mysql_sandbox_port1, 5, True)
 prepare(__mysql_sandbox_port3, 5, False)
@@ -84,7 +86,7 @@ def EXPECT_NO_CHANGES(session, before):
 
 #@<> Plain dump in 5.7, load in 8.0
 shell.connect(__sandbox_uri1)
-util.dump_instance(__tmp_dir+"/ldtest/dump1")
+util.dump_instance(__tmp_dir+"/ldtest/dump1", { "checksum": True })
 
 # BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri4)
@@ -93,6 +95,10 @@ util.load_dump(__tmp_dir+"/ldtest/dump1")
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_80+". Dump was produced from MySQL "+version_57)
 EXPECT_STDOUT_CONTAINS("NOTE: Destination MySQL version is newer than the one where the dump was created.")
 EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
+
+#@<> WL15947 - verify checksums 5.7 -> 8.*
+shell.connect(__sandbox_uri4)
+EXPECT_NO_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump1", { "loadData": False, "loadDdl": False, "checksum": True }), "checksums should match")
 
 #@<> Test dumping in MySQL 8.0 and loading in 5.7
 shell.connect(__sandbox_uri2)

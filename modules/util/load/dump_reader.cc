@@ -180,11 +180,15 @@ Dump_reader::Status Dump_reader::open() {
     }
   }
 
-  try {
-    m_contents.parse_done_metadata(m_dir.get());
+  if (md->has_key("checksum"))
+    m_contents.has_checksum = md->get_bool("checksum");
+
+  if (m_dir->file("@.done.json")->exists()) {
+    m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
+                                   m_options.base_session());
     m_dump_status = Status::COMPLETE;
-  } catch (const std::exception &e) {
-    log_info("@.done.json: %s", e.what());
+  } else {
+    log_info("@.done.json: not found");
     m_dump_status = Status::DUMPING;
   }
 
@@ -590,6 +594,28 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
   return false;
 }
 
+bool Dump_reader::next_table_checksum(
+    const dump::common::Checksums::Checksum_data **out_checksum) {
+  assert(out_checksum);
+
+  for (auto &schema : m_contents.schemas) {
+    for (auto &table : schema.second->tables) {
+      if (table.second->indexes_created && table.second->analyze_finished) {
+        for (auto &partition : table.second->data_info) {
+          if (!partition.checksums.empty() &&
+              (!m_options.load_data() || partition.data_loaded())) {
+            *out_checksum = partition.checksums.front();
+            partition.checksums.pop_front();
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 bool Dump_reader::data_available() const { return !m_tables_with_data.empty(); }
 
 bool Dump_reader::data_pending() const {
@@ -609,16 +635,37 @@ bool Dump_reader::data_pending() const {
 }
 
 bool Dump_reader::work_available() const {
-  for (auto &schema : m_contents.schemas) {
-    for (auto &table : schema.second->tables) {
+  for (const auto &schema : m_contents.schemas) {
+    for (const auto &table : schema.second->tables) {
       if ((m_options.load_data() && !table.second->all_data_scheduled()) ||
           !table.second->indexes_scheduled ||
-          !table.second->analyze_scheduled) {
+          !table.second->analyze_scheduled ||
+          !table.second->all_data_verified()) {
         return true;
       }
     }
   }
   return false;
+}
+
+bool Dump_reader::all_data_verification_scheduled() const {
+  if (!m_options.checksum()) {
+    return true;
+  }
+
+  if (Status::COMPLETE != m_dump_status) {
+    return false;
+  }
+
+  for (const auto &schema : m_contents.schemas) {
+    for (const auto &table : schema.second->tables) {
+      if (!table.second->all_data_verification_scheduled()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 size_t Dump_reader::filtered_data_size() const {
@@ -689,9 +736,10 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
 
   log_debug("Rescan done");
 
-  if (files.find({"@.done.json"}) != files.end() &&
-      m_dump_status != Status::COMPLETE) {
-    m_contents.parse_done_metadata(m_dir.get());
+  if (m_dump_status != Status::COMPLETE &&
+      files.find({"@.done.json"}) != files.end()) {
+    m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
+                                   m_options.base_session());
     m_dump_status = Status::COMPLETE;
   }
 
@@ -798,6 +846,19 @@ void Dump_reader::validate_options() {
     current_console()->print_warning(
         "The 'createInvisiblePKs' option is set to true, but the 'loadDdl' "
         "option is false, Primary Keys are not going to be created.");
+  }
+
+  if (m_options.checksum()) {
+    if (!m_contents.has_checksum) {
+      throw std::invalid_argument(
+          "The 'checksum' option cannot be used when the dump does not contain "
+          "checksum information.");
+    }
+
+    if (m_options.dry_run()) {
+      current_console()->print_warning(
+          "Checksum information is not going to be verified, dryRun enabled.");
+    }
   }
 }
 
@@ -923,11 +984,14 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
 
         copy.partition = p.first;
         copy.basename = p.second.as_string();
+        copy.initialize_checksums(reader->m_contents.checksum.get());
 
         data_info.emplace_back(std::move(copy));
       }
     } else {
       di.basename = basename;
+      di.initialize_checksums(reader->m_contents.checksum.get());
+
       data_info.emplace_back(std::move(di));
     }
   }
@@ -964,6 +1028,22 @@ bool Dump_reader::Table_info::all_data_scheduled() const {
 bool Dump_reader::Table_info::all_data_loaded() const {
   for (const auto &di : data_info) {
     if (!di.data_loaded()) return false;
+  }
+
+  return true;
+}
+
+bool Dump_reader::Table_info::all_data_verified() const {
+  for (const auto &di : data_info) {
+    if (!di.data_verified()) return false;
+  }
+
+  return true;
+}
+
+bool Dump_reader::Table_info::all_data_verification_scheduled() const {
+  for (const auto &di : data_info) {
+    if (!di.data_verification_scheduled()) return false;
   }
 
   return true;
@@ -1039,6 +1119,24 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
   }
 
   if (found_data) reader->m_tables_with_data.insert(this);
+}
+
+void Dump_reader::Table_data_info::initialize_checksums(
+    const dump::common::Checksums *info) {
+  if (!info) {
+    return;
+  }
+
+  const auto list = info->find_checksums(owner->schema, owner->name, partition);
+
+  if (list.empty()) {
+    log_warning(
+        "Could not find checksum information of: %s",
+        schema_table_object_key(owner->schema, owner->name, partition).c_str());
+  } else {
+    checksums = std::list(list.begin(), list.end());
+    checksums_total = checksums.size();
+  }
 }
 
 std::string Dump_reader::View_info::script_name() const {
@@ -1404,11 +1502,11 @@ void Dump_reader::Dump_info::rescan_data(const Files &files,
 }
 
 void Dump_reader::Dump_info::parse_done_metadata(
-    mysqlshdk::storage::IDirectory *dir) {
-  shcore::Dictionary_t metadata = fetch_metadata(dir, "@.done.json");
+    mysqlshdk::storage::IDirectory *dir, bool get_checksum,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   log_info("Dump %s is complete", dir->full_path().masked().c_str());
 
-  if (metadata) {
+  if (const auto metadata = fetch_metadata(dir, "@.done.json")) {
     if (metadata->has_key("dataBytes")) {
       data_size = metadata->get_uint("dataBytes");
     } else {
@@ -1437,6 +1535,29 @@ void Dump_reader::Dump_info::parse_done_metadata(
     }
   } else {
     log_warning("Dump metadata file @.done.json is invalid");
+  }
+
+  if (get_checksum && has_checksum) {
+    initialize_checksums(dir, session);
+  }
+}
+
+void Dump_reader::Dump_info::initialize_checksums(
+    mysqlshdk::storage::IDirectory *dir,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  checksum = std::make_unique<dump::common::Checksums>();
+  checksum->deserialize(dir->file("@.checksums.json"));
+  checksum->configure(session);
+
+  // initialize tables which were parsed before dump was complete
+  for (auto &schema : schemas) {
+    for (auto &table : schema.second->tables) {
+      for (auto &di : table.second->data_info) {
+        if (di.checksums.empty()) {
+          di.initialize_checksums(checksum.get());
+        }
+      }
+    }
   }
 }
 
@@ -1529,19 +1650,7 @@ const std::string &Dump_reader::override_schema(const std::string &s) const {
 void Dump_reader::on_chunk_loaded(const std::string &schema,
                                   const std::string &table,
                                   const std::string &partition) {
-  const auto t = find_table(schema, table, "chunk was loaded");
-
-  for (auto &tdi : t->data_info) {
-    if (tdi.partition == partition) {
-      ++tdi.chunks_loaded;
-      return;
-    }
-  }
-
-  throw std::logic_error(
-      shcore::str_format("Unable to find partition %s of table %s in "
-                         "schema %s whose chunk was loaded",
-                         partition.c_str(), table.c_str(), schema.c_str()));
+  ++find_partition(schema, table, partition, "chunk was loaded")->chunks_loaded;
 }
 
 void Dump_reader::on_index_end(const std::string &schema,
@@ -1554,43 +1663,95 @@ void Dump_reader::on_analyze_end(const std::string &schema,
   find_table(schema, table, "analysis was finished")->analyze_finished = true;
 }
 
+void Dump_reader::on_checksum_end(std::string_view schema,
+                                  std::string_view table,
+                                  std::string_view partition) {
+  ++find_partition(schema, table, partition, "checksum was verified")
+        ->checksums_verified;
+}
+
 const Dump_reader::Table_info *Dump_reader::find_table(
-    const std::string &schema, const std::string &table,
+    std::string_view schema, std::string_view table,
     const char *context) const {
-  const auto s = m_contents.schemas.find(schema);
+  const auto s = m_contents.schemas.find(
+#if __cpp_lib_generic_unordered_lookup
+      schema
+#else
+      std::string(schema)
+#endif
+  );
 
   if (s == m_contents.schemas.end()) {
-    throw std::logic_error(shcore::str_format(
-        "Unable to find schema %s whose %s", schema.c_str(), context));
+    throw std::logic_error(
+        shcore::str_format("Unable to find schema %s whose %s",
+                           std::string{schema}.c_str(), context));
   }
 
-  const auto t = s->second->tables.find(table);
+  const auto t = s->second->tables.find(
+#if __cpp_lib_generic_unordered_lookup
+      table
+#else
+      std::string(table)
+#endif
+  );
 
   if (t == s->second->tables.end()) {
-    throw std::logic_error(
-        shcore::str_format("Unable to find table %s in schema %s whose %s",
-                           table.c_str(), schema.c_str(), context));
+    throw std::logic_error(shcore::str_format(
+        "Unable to find table %s in schema %s whose %s",
+        std::string{table}.c_str(), std::string{schema}.c_str(), context));
   }
 
   return t->second.get();
 }
 
-Dump_reader::Table_info *Dump_reader::find_table(const std::string &schema,
-                                                 const std::string &table,
+Dump_reader::Table_info *Dump_reader::find_table(std::string_view schema,
+                                                 std::string_view table,
                                                  const char *context) {
   return const_cast<Table_info *>(
       const_cast<const Dump_reader *>(this)->find_table(schema, table,
                                                         context));
 }
 
-const Dump_reader::View_info *Dump_reader::find_view(
-    const std::string &schema, const std::string &view,
+const Dump_reader::Table_data_info *Dump_reader::find_partition(
+    std::string_view schema, std::string_view table, std::string_view partition,
     const char *context) const {
-  const auto s = m_contents.schemas.find(schema);
+  const auto t = find_table(schema, table, context);
+
+  for (auto &tdi : t->data_info) {
+    if (tdi.partition == partition) {
+      return &tdi;
+    }
+  }
+
+  throw std::logic_error(shcore::str_format(
+      "Unable to find partition %s of table %s in "
+      "schema %s whose %s",
+      std::string{partition}.c_str(), std::string{table}.c_str(),
+      std::string{schema}.c_str(), context));
+}
+
+Dump_reader::Table_data_info *Dump_reader::find_partition(
+    std::string_view schema, std::string_view table, std::string_view partition,
+    const char *context) {
+  return const_cast<Table_data_info *>(
+      const_cast<const Dump_reader *>(this)->find_partition(
+          schema, table, partition, context));
+}
+
+const Dump_reader::View_info *Dump_reader::find_view(
+    std::string_view schema, std::string_view view, const char *context) const {
+  const auto s = m_contents.schemas.find(
+#if __cpp_lib_generic_unordered_lookup
+      schema
+#else
+      std::string(schema)
+#endif
+  );
 
   if (s == m_contents.schemas.end()) {
-    throw std::logic_error(shcore::str_format(
-        "Unable to find schema %s whose %s", schema.c_str(), context));
+    throw std::logic_error(
+        shcore::str_format("Unable to find schema %s whose %s",
+                           std::string{schema}.c_str(), context));
   }
 
   for (const auto &v : s->second->views) {
@@ -1599,26 +1760,57 @@ const Dump_reader::View_info *Dump_reader::find_view(
     }
   }
 
-  throw std::logic_error(
-      shcore::str_format("Unable to find view %s in schema %s whose %s",
-                         view.c_str(), schema.c_str(), context));
+  throw std::logic_error(shcore::str_format(
+      "Unable to find view %s in schema %s whose %s", std::string{view}.c_str(),
+      std::string{schema}.c_str(), context));
 }
 
-Dump_reader::View_info *Dump_reader::find_view(const std::string &schema,
-                                               const std::string &view,
+Dump_reader::View_info *Dump_reader::find_view(std::string_view schema,
+                                               std::string_view view,
                                                const char *context) {
   return const_cast<View_info *>(
       const_cast<const Dump_reader *>(this)->find_view(schema, view, context));
 }
 
-bool Dump_reader::table_exists(const std::string &schema,
-                               const std::string &table) const {
-  return find_table(schema, table, "existence is being checked")->exists;
+bool Dump_reader::table_exists(std::string_view schema,
+                               std::string_view table) {
+  auto t = find_table(schema, table, "existence is being checked");
+
+  if (!t->exists.has_value()) {
+    const auto result = m_options.base_session()->queryf(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = "
+        "? AND table_name = ?",
+        schema, table);
+
+    t->exists = result->fetch_one();
+  }
+
+  return *t->exists;
 }
 
-bool Dump_reader::view_exists(const std::string &schema,
-                              const std::string &view) const {
-  return find_view(schema, view, "existence is being checked")->exists;
+bool Dump_reader::view_exists(std::string_view schema, std::string_view view) {
+  auto v = find_view(schema, view, "existence is being checked");
+
+  if (!v->exists.has_value()) {
+    const auto result = m_options.base_session()->queryf(
+        "SELECT table_name FROM information_schema.views WHERE table_schema = "
+        "? AND table_name = ?",
+        schema, view);
+
+    v->exists = result->fetch_one();
+  }
+
+  return *v->exists;
+}
+
+void Dump_reader::set_table_exists(std::string_view schema,
+                                   std::string_view table) {
+  find_table(schema, table, "existence is being set")->exists = true;
+}
+
+void Dump_reader::set_view_exists(std::string_view schema,
+                                  std::string_view view) {
+  find_view(schema, view, "existence is being set")->exists = true;
 }
 
 }  // namespace mysqlsh

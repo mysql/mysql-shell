@@ -241,6 +241,7 @@ class SHCORE_PUBLIC JSON_dumper final {
   void append_string(const char *data, size_t length) const;
   void append_string(const std::string &key, const std::string &data) const;
   void append(const std::string &data) const;
+  inline void append(const char *data) const { append_string(data); }
   void append(const std::string &key, const std::string &data) const;
   void append(const char *key, const std::string &data) const;
 

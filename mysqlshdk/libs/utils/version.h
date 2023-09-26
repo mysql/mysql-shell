@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace mysqlshdk {
 namespace utils {
@@ -37,7 +38,7 @@ namespace utils {
 class Version {
  public:
   constexpr Version() = default;
-  explicit Version(const std::string &version);
+  explicit Version(std::string_view version);
   explicit constexpr Version(int major, int minor) noexcept
       : _major(major), _minor(minor) {}
   explicit constexpr Version(int major, int minor, int patch) noexcept
@@ -108,7 +109,7 @@ class Version {
   std::optional<int> _patch;
   std::optional<std::string> _extra;
 
-  int parse_token(const std::string &data);
+  int parse_token(std::string_view data);
 };
 
 inline const Version k_shell_version = Version(MYSH_VERSION);

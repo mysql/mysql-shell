@@ -84,6 +84,8 @@ class Ddl_dumper_options : public Dump_options {
     return m_dump_manifest_options.par_manifest();
   }
 
+  bool checksum() const override { return m_checksum; }
+
   void enable_mds_compatibility_checks();
   using Dump_options::set_target_version;
   void set_output_url(const std::string &url) override;
@@ -128,6 +130,7 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_consistent_dump = true;
   bool m_skip_consistency_checks = false;
+  bool m_checksum = false;
 };
 
 }  // namespace dump

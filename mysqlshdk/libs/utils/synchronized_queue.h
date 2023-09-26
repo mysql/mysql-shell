@@ -38,7 +38,7 @@
 
 namespace shcore {
 
-enum class Queue_priority { LOW = 1, MEDIUM, HIGH };
+enum class Queue_priority { LOWEST = 1, LOW, MEDIUM, HIGH };
 
 /**
  * Multiple producer, multiple consumer synchronized FIFO queue.
@@ -130,7 +130,7 @@ class Synchronized_queue final {
 
   mutable std::mutex m_queue_mutex;
   std::condition_variable m_task_ready;
-  std::array<std::deque<T>, 4> m_queues;
+  std::array<std::deque<T>, 1 + k_max_priority> m_queues;
   std::atomic<std::size_t> m_size{0};
 };
 

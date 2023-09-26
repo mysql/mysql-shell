@@ -186,6 +186,8 @@ class Dump_options {
 
   virtual bool par_manifest() const = 0;
 
+  virtual bool checksum() const = 0;
+
  protected:
   void enable_mds_compatibility() { m_is_mds = true; }
 
