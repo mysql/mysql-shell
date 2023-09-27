@@ -145,14 +145,13 @@ Value Python_function::invoke(const Argument_list &args) {
     // the Python exception is something else, then just returns
     _py->throw_if_mysqlsh_error();
 
-    constexpr auto error = "User-defined function threw an exception";
-    std::string details = _py->fetch_and_clear_exception();
+    std::string error = _py->fetch_and_clear_exception();
 
-    if (!details.empty()) {
-      details = ": " + details;
+    if (error.empty()) {
+      error = "User-defined function threw an exception";
     }
 
-    throw Exception::scripting_error(error + details);
+    throw Exception::scripting_error(error);
   } else {
     return _py->convert(ret_val.get());
   }

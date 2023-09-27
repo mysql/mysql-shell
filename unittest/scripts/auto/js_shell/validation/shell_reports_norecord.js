@@ -467,8 +467,7 @@ DESCRIPTION
 ||
 
 //@<ERR> Call JS report which throws in JS mode
-reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:90
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
@@ -479,13 +478,12 @@ in shell.registerReport('javascript_report_which_throws_an_exception', 'print', 
 ||
 
 //@<ERR> Call JS report which throws in PY mode
-reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:90
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
 //@<ERR> Call PY report which throws in PY mode
-reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+reports.python_report_which_throws_an_exception: 
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception
@@ -494,13 +492,12 @@ Exception: This is a Python exception
 |Switching to SQL mode... Commands end with ;|
 
 //@<ERR> Call JS report which throws in SQL mode
-reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:90
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
 //@<ERR> Call PY report which throws in SQL mode
-reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+reports.python_report_which_throws_an_exception: 
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception
@@ -509,7 +506,7 @@ Exception: This is a Python exception
 |Switching to JavaScript mode...|
 
 //@<ERR> Call PY report which throws in JS mode
-reports.python_report_which_throws_an_exception: User-defined function threw an exception:
+reports.python_report_which_throws_an_exception: 
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,13 +172,17 @@ Value JScript_function::invoke(const Argument_list &args) {
         lcontext, isolate->GetCurrentContext()->Global(), argc, &argv[0]);
 
     if (ret_val.IsEmpty()) {
-      std::string error = "User-defined function threw an exception";
+      std::string error;
 
       if (try_catch.HasCaught()) {
         // set interactive to false, so location is always included
         // we're invoking a callback, location will help the user to pin-point
         // the problem
-        error += ":\n" + _js->translate_exception(try_catch, false);
+        error += _js->translate_exception(try_catch, false);
+      }
+
+      if (error.empty()) {
+        error = "User-defined function threw an exception";
       }
 
       throw Exception::scripting_error(error);
