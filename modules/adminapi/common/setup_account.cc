@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -162,6 +162,7 @@ void Setup_account::create_account() {
   // instances but exists on others.
   const auto console = mysqlsh::current_console();
   const char *action = m_user_exists ? "Updating" : "Creating";
+  console->print_info();
   console->print_info(shcore::str_format("%s user %s@%s.", action,
                                          m_name.c_str(), m_host.c_str()));
 

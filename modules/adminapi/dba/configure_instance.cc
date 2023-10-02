@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -810,33 +810,14 @@ void Configure_instance::prepare() {
     }
 
     if (m_can_restart && m_needs_restart && !m_options.restart.has_value()) {
-      if (m_needs_configuration_update) {
-        if (console->confirm(
-                "Do you want to restart the instance after configuring it?",
-                Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = std::optional<bool>(true);
-        } else {
-          m_options.restart = std::optional<bool>(false);
-        }
+      std::string prompt = "Do you want to restart the instance ";
+
+      prompt += m_needs_configuration_update ? "after configuring it?" : "now?";
+
+      if (console->confirm(prompt, Prompt_answer::NONE) == Prompt_answer::YES) {
+        m_options.restart = true;
       } else {
-        if (console->confirm("Do you want to restart the instance now?",
-                             Prompt_answer::NONE) == Prompt_answer::YES) {
-          m_options.restart = std::optional<bool>(true);
-        } else {
-          m_options.restart = std::optional<bool>(true);
-        }
-      }
-    }
-    // Verify the need to disable super-read-only
-    // due to the need to create the clusterAdmin account (and others)
-    // Handle clear_read_only interaction
-    // TODO(alfredo) - this should be replace with validate_super_read_only(),
-    // the separation between prepare() and execute() isn't so important anymore
-    if (m_options.clear_read_only.is_null() && m_options.interactive() &&
-        m_create_cluster_admin) {
-      console->print_info();
-      if (prompt_super_read_only(*m_target_instance, true)) {
-        m_options.clear_read_only = true;
+        m_options.restart = false;
       }
     }
   }
@@ -977,8 +958,8 @@ bool Configure_instance::clear_super_read_only(bool silent_fail) {
 
   // Handle clear_read_only interaction
   try {
-    bool super_read_only = validate_super_read_only(
-        *m_target_instance, m_options.clear_read_only, false);
+    bool super_read_only =
+        validate_super_read_only(*m_target_instance, m_options.clear_read_only);
 
     // If super_read_only was disabled, print the information
     if (super_read_only) {
@@ -998,13 +979,11 @@ bool Configure_instance::clear_super_read_only(bool silent_fail) {
 void Configure_instance::restore_super_read_only() {
   // If we disabled super_read_only we must enable it back
   // also confirm that the initial status was 1/ON
-  if (m_options.clear_read_only == true) {
-    mysqlsh::current_console()->print_info(
-        "Enabling super_read_only on the instance '" +
-        m_target_instance->descr() + "'");
-    m_target_instance->set_sysvar("super_read_only", "ON",
-                                  mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  }
+  mysqlsh::current_console()->print_info(
+      "Enabling super_read_only on the instance '" +
+      m_target_instance->descr() + "'");
+  m_target_instance->set_sysvar("super_read_only", "ON",
+                                mysqlshdk::mysql::Var_qualifier::GLOBAL);
 }
 
 }  // namespace dba

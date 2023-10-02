@@ -323,7 +323,7 @@ REGISTER_HELP(
     "@li interactive: boolean value used to disable/enable the wizards in the "
     "command execution, i.e. prompts and confirmations will be provided or not "
     "according to the value set. The default value is equal to MySQL Shell "
-    "wizard mode.");
+    "wizard mode. Deprecated.");
 
 REGISTER_HELP(OPT_APPLIERWORKERTHREADS,
               "@li applierWorkerThreads: Number of threads used for applying "
@@ -1437,6 +1437,8 @@ Please use the consistency option instead.
 Please use the ipAllowlist option instead.
 
 @attention The groupSeeds option will be removed in a future release.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -1562,7 +1564,10 @@ The options dictionary may contain the following options:
 
 @li force: boolean, confirms that the drop operation must be executed.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled
+disabled. Deprecated and default value is true.
+
+@attention The clearReadOnly option will be removed in a future release and
+it's no longer needed, super_read_only is automatically cleared.
 )*");
 
 /**
@@ -1610,21 +1615,21 @@ void Dba::drop_metadata_schema(
   // Can't dissolve if in a cluster_set
   ensure_not_in_cluster_set(*metadata, *instance);
 
-  mysqlshdk::null_bool force = options->force;
+  std::optional<bool> force = options->force;
 
-  if (force.is_null() && interactive &&
+  if (!force.has_value() && interactive &&
       console->confirm("Are you sure you want to remove the Metadata?",
                        mysqlsh::Prompt_answer::NO) ==
           mysqlsh::Prompt_answer::YES) {
     force = true;
   }
 
-  if (force.get_safe(false)) {
+  if (force.value_or(false)) {
     // Check if super_read_only is turned off and disable it if required
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(*instance, options->clear_read_only, interactive);
+    validate_super_read_only(*instance, options->clear_read_only);
 
     metadata::uninstall(instance);
     if (interactive) {
@@ -1687,6 +1692,10 @@ The note can be one of the following:
 @li Update the config file.
 @li Update the server variable.
 @li Restart the server.
+
+@attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -1931,6 +1940,7 @@ ${OPT_MEMBER_AUTH_TYPE_EXTRA}
 When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used as its client certificate when authenticating replication channels
 with peer servers. replicationSslMode must be at least REQUIRED, although VERIFY_CA or VERIFY_IDENTITY are recommended for additional security.
 
+@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(DBA_CREATEREPLICASET_BRIEF)
@@ -2570,6 +2580,9 @@ Validates and configures a local instance for MySQL InnoDB Cluster usage.
 
 @returns Nothing
 
+@attention This function is deprecated and will be removed in a future release
+of MySQL Shell, use dba.configureInstance() instead.
+
 This function reviews the instance configuration to identify if it is valid for
 usage in an InnoDB cluster, making configuration changes if necessary.
 
@@ -2586,6 +2599,13 @@ instance was successfully configured for InnoDB Cluster usage or if it was
 already valid for InnoDB Cluster usage.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
+
+@attention The clearReadOnly option will be removed in a future release and
+it's no longer needed, super_read_only is automatically cleared.
+
+@attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2603,6 +2623,10 @@ void Dba::configure_local_instance(
     const mysqlshdk::utils::nullable<Connection_options> &instance_def,
     const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
         &options) {
+  mysqlsh::current_console()->print_warning(
+      "This function is deprecated and will be removed in a future release of "
+      "MySQL Shell, use dba.<<<configureInstance()>>> instead.");
+
   return do_configure_instance(
       instance_def ? *instance_def : Connection_options{}, *options,
       Cluster_type::GROUP_REPLICATION);
@@ -2633,6 +2657,13 @@ This function reviews the instance configuration to identify if it is valid for
 usage in group replication and cluster. An exception is thrown if not.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
+
+@attention The clearReadOnly option will be removed in a future release and
+it's no longer needed, super_read_only is automatically cleared.
+
+@attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
@@ -2641,7 +2672,7 @@ The options dictionary may contain the following options:
 @li mycnfPath: The path to the MySQL configuration file of the instance.
 @li outputMycnfPath: Alternative output path to write the MySQL configuration
 file of the instance.
-@li password: The password to be used on the connection.
+@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of the "cluster administrator" account.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
 @li clusterAdminPasswordExpiration: Password expiration setting for the account.
@@ -2650,7 +2681,7 @@ and 'DEFAULT' to use the system default.
 @li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
 @li clusterAdminCertSubject: Optional SSL certificate subject for the account.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
+disabled. Deprecated and default value is true.
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
 ${OPT_INTERACTIVE}
@@ -2678,6 +2709,8 @@ and a table with the following information:
 @li Variable: the invalid configuration variable.
 @li Current Value: the current value for the invalid configuration variable.
 @li Required Value: the required value for the configuration variable.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -2725,7 +2758,7 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following options:
 
-@li password: The password to be used on the connection.
+@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
@@ -2752,6 +2785,10 @@ and a table with the following information:
 @li Variable: the invalid configuration variable.
 @li Current Value: the current value for the invalid configuration variable.
 @li Required Value: the required value for the configuration variable.
+
+@attention The interactive option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2854,7 +2891,8 @@ If name is not specified, the default cluster will be returned.
 @note The user and password options are no longer used, the connection data is
 taken from the active shell session.
 
-@note The clearReadOnly option is no longer used, super_read_only is automatically cleared.
+@note The clearReadOnly option is no longer used, super_read_only is
+automatically cleared.
 )*");
 
 /**
@@ -2997,6 +3035,8 @@ which point you can stop the upgrade to resume later.
 If the installed metadata is not available because a previous call to this
 function ended unexpectedly, this function will restore the metadata to the
 state it was before the failed upgrade operation.
+
+@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(DBA_UPGRADEMETADATA_BRIEF)

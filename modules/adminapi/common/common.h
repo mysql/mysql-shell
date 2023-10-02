@@ -257,7 +257,7 @@ inline constexpr const char kAddInstances[] = "addInstances";
 inline constexpr const char kRemoveInstances[] = "removeInstances";
 inline constexpr const char kRejoinInstances[] = "rejoinInstances";
 inline constexpr const char kWaitRecovery[] = "waitRecovery";
-inline constexpr const char kRecoveryVerbosity[] = "recoveryProgress";
+inline constexpr const char kRecoveryProgress[] = "recoveryProgress";
 inline constexpr const char kLabel[] = "label";
 inline constexpr const char kExtended[] = "extended";
 inline constexpr const char kQueryMembers[] = "queryMembers";
@@ -497,8 +497,7 @@ bool SHCORE_PUBLIC validate_cluster_group_name(
     const mysqlshdk::mysql::IInstance &instance, const std::string &group_name);
 
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::null_bool clear_read_only,
-                              bool interactive);
+                              std::optional<bool> clear_read_only);
 
 enum class Instance_rejoinability {
   REJOINABLE,
@@ -518,8 +517,6 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
 // AdminAPI interactive handling specific methods
 std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance);
 int prompt_menu(const std::vector<std::string> &options, int defopt);
-bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                            bool throw_on_error = false);
 void dump_table(const std::vector<std::string> &column_names,
                 const std::vector<std::string> &column_labels,
                 shcore::Value::Array_type_ref documents);

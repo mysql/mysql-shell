@@ -66,7 +66,7 @@ OPTIONS
             If true, performs checks and logs changes that would be made, but
             does not execute them
 
---waitRecovery=<int>
+--recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
 
 --timeout=<int>
@@ -74,15 +74,13 @@ OPTIONS
             timeout and force the Shell to wait until the transaction sync
             finishes. Defaults to 0.
 
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --label=<str>
             An identifier for the instance being added, used in the output of
             status()
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT".
 
 //@<OUT> CLI replicaset force-primary-instance --help
 NAME
@@ -166,19 +164,13 @@ OPTIONS
             If true, performs checks and logs changes that would be made, but
             does not execute them
 
---waitRecovery=<int>
+--recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
 
 --timeout=<int>
             Timeout in seconds for transaction sync operations; 0 disables
             timeout and force the Shell to wait until the transaction sync
             finishes. Defaults to 0.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI replicaset remove-instance --help
 NAME
@@ -306,15 +298,6 @@ OPTIONS
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
 
---password=<str>
-            The password for the InnoDB ReplicaSet administrator account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI replicaset setup-router-account --help
 NAME
       setup-router-account - Create or upgrade a MySQL account to use with
@@ -348,15 +331,6 @@ OPTIONS
             Password expiration setting for the account. May be set to the
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
-
---password=<str>
-            The password for the MySQL Router account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI replicaset status --help
 NAME

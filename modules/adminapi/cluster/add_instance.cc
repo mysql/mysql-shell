@@ -810,7 +810,7 @@ void Add_instance::do_run() {
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
-      wait_recovery(join_begin_time, m_progress_style);
+      wait_recovery(join_begin_time, m_options.get_wait_recovery());
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -849,7 +849,7 @@ void Add_instance::do_run() {
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
         if (m_comm_stack == kCommunicationStackMySQL &&
-            m_progress_style == Recovery_progress_style::NOWAIT) {
+            m_options.get_wait_recovery() == Recovery_progress_style::NOWAIT) {
           store_local_replication_account();
         } else {
           store_cloned_replication_account();
@@ -867,7 +867,8 @@ void Add_instance::do_run() {
     // NOTE: if waitRecover is zero we cannot do it since distributed recovery
     // may be running and the change master command will fail as the slave io
     // thread is running
-    if (owns_repl_user && m_progress_style != Recovery_progress_style::NOWAIT) {
+    if (owns_repl_user &&
+        m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT) {
       restore_group_replication_account();
     }
 
@@ -918,7 +919,7 @@ void Add_instance::do_run() {
       auto restore_accounts =
           (m_comm_stack == kCommunicationStackMySQL) &&
           !recovery_certificates &&
-          (m_progress_style != Recovery_progress_style::NOWAIT);
+          (m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT);
       restore_accounts |= (m_comm_stack != kCommunicationStackMySQL) &&
                           recovery_certificates &&
                           (restore_clone_threshold > 0);

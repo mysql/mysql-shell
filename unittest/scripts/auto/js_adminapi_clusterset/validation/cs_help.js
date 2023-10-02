@@ -146,7 +146,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - dryRun: boolean if true, all validations and steps for creating a
         Replica Cluster are executed, but no changes are actually made. An
         exception will be thrown when finished.
@@ -413,6 +413,8 @@ DESCRIPTION
 
       The option is available on MySQL 8.0.31 or newer and the default value is
       'OFF'.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> RemoveCluster
 NAME
@@ -919,7 +921,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -940,6 +942,8 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> setupRouterAccount
 NAME
@@ -982,7 +986,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -1003,3 +1007,5 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+      ATTENTION: The interactive option will be removed in a future release.

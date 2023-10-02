@@ -43,7 +43,6 @@ session.runSql("RESET PERSIST server_id");
 set_sysvar(session, "super_read_only", 1);
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root2', clusterAdminPassword:'root'});
 
 set_sysvar(session, "super_read_only", 1);
@@ -51,7 +50,6 @@ EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 5.7 {VER(<8.0.11)}
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to disable super_read_only and continue?", "y");
 dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root2', clusterAdminPassword:'root'});
 
 set_sysvar(session, "super_read_only", 1);
@@ -64,15 +62,12 @@ EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive
 EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, { interactive: true, mycnfPath: mycnf, clusterAdmin: 'root2', clusterAdminPassword: 'whatever' });}, "The 'root2'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.");
 
 //@<> Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "n");
 EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});}, "Cancelled");
 testutil.assertNoPrompts();
 
 //@<> Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
-testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
-testutil.expectPrompt("Do you want to disable super_read_only and continue?", "n");
+testutil.expectPrompt("Do you want to perform the required configuration changes?", "n");
 EXPECT_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath:mycnf, clusterAdmin:'root3', clusterAdminPassword:'root'});},"Cancelled");
 testutil.assertNoPrompts();
 

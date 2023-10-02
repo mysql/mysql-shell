@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,10 +46,30 @@ struct Timeout_option {
 
 struct Interactive_option {
   static const shcore::Option_pack_def<Interactive_option> &options();
+  void set_interactive(bool interactive);
   bool interactive() const;
 
  private:
   std::optional<bool> m_interactive;
+};
+
+struct Wait_recovery_option {
+  static const shcore::Option_pack_def<Wait_recovery_option> &options();
+  void set_wait_recovery(const std::string &option, int value);
+  Recovery_progress_style get_wait_recovery();
+
+ private:
+  std::optional<Recovery_progress_style> m_wait_recovery;
+  std::optional<Recovery_progress_style> m_recovery_progress;
+};
+
+struct Recovery_progress_option {
+  static const shcore::Option_pack_def<Recovery_progress_option> &options();
+  void set_recovery_progress(int value);
+  Recovery_progress_style get_recovery_progress();
+
+ private:
+  std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
 struct Password_interactive_options : public Interactive_option {

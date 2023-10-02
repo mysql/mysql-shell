@@ -23,14 +23,14 @@ EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "No operation executed, 
 //@<> InnoDB Cluster: drop metadata on master, force false
 EXPECT_THROWS(function () { dba.dropMetadataSchema({force:false}) }, "No operation executed, use the 'force' option")
 
-//@<> InnoDB Cluster: drop metadata on read only master, force true
+//@<> InnoDB Cluster: drop metadata on read only master, force true, clearReadOnly: false
 session.runSql("SET GLOBAL super_read_only=1");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true}) }, "Server in SUPER_READ_ONLY mode")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true, clearReadOnly: false}) }, "Server in SUPER_READ_ONLY mode")
 
-//@<> InnoDB Cluster: drop metadata on slave with read only master, force true
+//@<> InnoDB Cluster: drop metadata on slave with read only master, force true, clearReadOnly: false
 shell.connect(__sandbox_uri2);
 session.runSql("SET GLOBAL super_read_only=1");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true}) }, "Server in SUPER_READ_ONLY mode")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true, clearReadOnly: false}) }, "Server in SUPER_READ_ONLY mode")
 
 //@<> InnoDB Cluster: drop metadata on slave with read only master: force true, clearReadOnly true
 dba.dropMetadataSchema({force:true, clearReadOnly:true});
@@ -66,13 +66,13 @@ EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "No operation executed, 
 //@<> Replica Set: drop metadata on master, force false {VER(>8.0.0)}
 EXPECT_THROWS(function () { dba.dropMetadataSchema({force:false}) }, "No operation executed, use the 'force' option")
 
-//@<> Replica Set: drop metadata on read only master, force true {VER(>8.0.0)}
+//@<> Replica Set: drop metadata on read only master, force true, clearReadOnly: false {VER(>8.0.0)}
 session.runSql("SET GLOBAL super_read_only=1");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true}) }, "Server in SUPER_READ_ONLY mode")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true, clearReadOnly: false}) }, "Server in SUPER_READ_ONLY mode")
 
 //@<> Replica Set: drop metadata on slave with read only master, force true {VER(>8.0.0)}
 shell.connect(__sandbox_uri2);
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true}) }, "Server in SUPER_READ_ONLY mode")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:true, clearReadOnly: false}) }, "Server in SUPER_READ_ONLY mode")
 
 //@<> Replica Set: drop metadata on slave with read only master: force true, clearReadOnly true {VER(>8.0.0)}
 dba.dropMetadataSchema({force:true, clearReadOnly:true});

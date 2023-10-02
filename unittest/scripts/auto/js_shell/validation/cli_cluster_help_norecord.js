@@ -7,6 +7,9 @@ The following operations are available at 'cluster':
    check-instance-state
       Verifies the instance gtid state in relation to the cluster.
 
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell.
+
    create-cluster-set
       Creates a MySQL InnoDB ClusterSet from an existing standalone InnoDB
       Cluster.
@@ -119,22 +122,15 @@ OPTIONS
 --label=<str>
             An identifier for the instance being added
 
---waitRecovery=<int>
-            Integer value to indicate if the command shall wait for the
-            recovery process to finish and its verbosity level.
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
             contains "CERT_SUBJECT".
-
---password=<str>
-            The instance connection password
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI cluster check-instance-state --help
 NAME
@@ -176,12 +172,6 @@ OPTIONS
             executed, even if some members of the cluster cannot be reached or
             the timeout was reached when waiting for members to catch up with
             replication changes. By default, set to false.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI cluster force-quorum-using-partition-of --help
 NAME
@@ -253,15 +243,6 @@ OPTIONS
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
 
---password=<str>
-            The instance connection password
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI cluster remove-instance --help
 NAME
       remove-instance - Removes an Instance from the cluster.
@@ -280,15 +261,6 @@ OPTIONS
             Boolean, indicating if the instance must be removed (even if only
             from metadata) in case it cannot be reached. By default, set to
             false.
-
---password=<str>
-            The instance connection password
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI cluster remove-router-metadata --help
 NAME
@@ -315,12 +287,6 @@ RETURNS
       Nothing.
 
 OPTIONS
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --updateTopologyMode=<bool>
             Boolean value used to indicate if the topology mode (single-primary
             or multi-primary) in the metadata should be updated (true) or not
@@ -357,12 +323,6 @@ OPTIONS
             Boolean, indicating if the operation will continue in case an error
             occurs when trying to reset the passwords on any of the instances,
             for example if any of them is not online. By default, set to false.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI cluster set-instance-option --help
 NAME
@@ -440,15 +400,6 @@ OPTIONS
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
 
---password=<str>
-            The password for the InnoDB cluster administrator account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 //@<OUT> CLI cluster setup-router-account --help
 NAME
       setup-router-account - Create or upgrade a MySQL account to use with
@@ -482,15 +433,6 @@ OPTIONS
             Password expiration setting for the account. May be set to the
             number of days for expiration, 'NEVER' to disable expiration and
             'DEFAULT' to use the system default.
-
---password=<str>
-            The password for the MySQL Router account.
-
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
 
 //@<OUT> CLI cluster status --help
 NAME

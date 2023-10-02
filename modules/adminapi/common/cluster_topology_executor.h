@@ -96,17 +96,6 @@ class Add_instance {
         m_target_instance(target_instance),
         m_options(options) {
     assert(m_cluster_impl);
-
-    // Init progress_style
-    if (m_options.wait_recovery == 0) {
-      m_progress_style = Recovery_progress_style::NOWAIT;
-    } else if (m_options.wait_recovery == 1) {
-      m_progress_style = Recovery_progress_style::NOINFO;
-    } else if (m_options.wait_recovery == 2) {
-      m_progress_style = Recovery_progress_style::TEXTUAL;
-    } else {
-      m_progress_style = Recovery_progress_style::PROGRESSBAR;
-    }
   }
 
   Add_instance(const Add_instance &) = delete;
@@ -151,7 +140,6 @@ class Add_instance {
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::shared_ptr<mysqlsh::dba::Instance> m_primary_instance;
   Add_instance_options m_options;
-  Recovery_progress_style m_progress_style = Recovery_progress_style::TEXTUAL;
   bool m_already_member = false;
   std::string m_comm_stack;
   std::string m_account_host;

@@ -921,14 +921,11 @@ bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
  *
  * @param instance
  * @param clear_read_only if true, will clear SRO if false, throws error
- * @param interactive if true and if clear_read_only is null, will prompt
- * whether to clear SRO
  *
  * @returns true if super_read_only was disabled
  */
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::null_bool clear_read_only,
-                              bool interactive) {
+                              std::optional<bool> clear_read_only) {
   if (auto super_read_only = instance.get_sysvar_bool("super_read_only", false);
       !super_read_only)
     return false;
@@ -944,22 +941,8 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
       "For more information see: https://dev.mysql.com/doc/refman/en/"
       "server-system-variables.html#sysvar_super_read_only.";
 
-  if (clear_read_only.is_null() && interactive) {
-    console->print_error(error_message);
-
-    if (console->confirm("Do you want to disable super_read_only and continue?",
-                         mysqlsh::Prompt_answer::NO) ==
-        mysqlsh::Prompt_answer::NO) {
-      console->print_info();
-      throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
-    } else {
-      console->print_info();
-      clear_read_only = true;
-    }
-  }
-
   bool super_read_only_changed = false;
-  if (clear_read_only.get_safe()) {
+  if (clear_read_only.value_or(true)) {
     log_info("Disabling super_read_only on the instance '%s'",
              instance.descr().c_str());
     instance.set_sysvar("super_read_only", false);
@@ -1223,71 +1206,6 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
     break;
   }
   return i;
-}
-
-/*
- * Check if super_read_only is enable and prompts the user to act on it:
- * disable it or not.
- *
- * @param instance Instance object which represents the target instance
- * @param throw_on_error boolean value to indicate if an exception shall be
- * thrown or nor in case of an error
- *
- * @return a boolean value indicating the result of the operation: canceled or
- * not
- */
-bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                            bool throw_on_error) {
-  // Get the status of super_read_only in order to verify if we need to
-  // prompt the user to disable it
-  if (auto super_read_only = instance.get_sysvar_bool("super_read_only", false);
-      !super_read_only) {
-    return true;
-  }
-
-  auto options_session = instance.get_connection_options();
-  auto active_session_address =
-      options_session.as_uri(mysqlshdk::db::uri::formats::only_transport());
-
-  auto console = mysqlsh::current_console();
-  console->print_para(
-      "The MySQL instance at '" + active_session_address +
-      "' currently has the super_read_only system variable set to "
-      "protect it from inadvertent updates from applications.\n"
-      "You must first unset it to be able to perform any changes "
-      "to this instance.\n"
-      "For more information see: https://dev.mysql.com/doc/refman/"
-      "en/server-system-variables.html#sysvar_super_read_only.");
-
-  // Get the list of open session to the instance
-  std::vector<std::pair<std::string, int>> open_sessions;
-  open_sessions = mysqlsh::dba::get_open_sessions(instance);
-
-  if (!open_sessions.empty()) {
-    console->print_note("There are open sessions to '" +
-                        active_session_address + "'.");
-    console->print_info(
-        "You may want to kill these sessions to prevent them from "
-        "performing unexpected updates: \n");
-
-    for (const auto &[account, num_open_sessions] : open_sessions) {
-      console->print_info(shcore::str_format("%d open session(s) of '%s'. \n",
-                                             num_open_sessions,
-                                             account.c_str()));
-    }
-  }
-
-  if (console->confirm("Do you want to disable super_read_only and continue?",
-                       Prompt_answer::NO) != Prompt_answer::NO) {
-    return true;
-  }
-
-  console->print_info();
-
-  if (throw_on_error) throw shcore::cancelled("Cancelled");
-  console->print_info("Cancelled");
-
-  return false;
 }
 
 /*

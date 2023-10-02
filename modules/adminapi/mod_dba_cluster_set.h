@@ -105,8 +105,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
 
   shcore::Value create_replica_cluster(
       const std::string &instance_def, const std::string &cluster_name,
-      const shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
-          &options = {});
+      shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
+          options = {});
 
   void remove_cluster(const std::string &cluster_name,
                       const shcore::Option_pack_ref<

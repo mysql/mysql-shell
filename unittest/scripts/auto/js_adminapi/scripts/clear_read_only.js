@@ -33,11 +33,14 @@ EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 dba.configureLocalInstance(__sandbox_uri1, {clearReadOnly:"NotABool"});
 
-//@ Dba_configure_local_instance.clear_read_only_unset
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "admin", clusterAdminPassword: "pwd"});
-
 //@ Dba_configure_local_instance.clear_read_only_false
 dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "admin", clusterAdminPassword: "pwd", clearReadOnly: false});
+
+//@ Dba_configure_local_instance.clear_read_only_unset: automatically cleared
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf_path, clusterAdmin: "admin", clusterAdminPassword: "pwd"});
+
+//@<> Check super read only was re-enabled after configureLocalInstance()
+EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
 // --- Drop Metadata Schema Tests ---
 session.runSql("set global super_read_only=0");
@@ -49,9 +52,6 @@ session.runSql("set global super_read_only=1");
 //@ Dba_drop_metadata.clear_read_only_invalid
 dba.dropMetadataSchema({clearReadOnly: "NotABool"});
 
-//@ Dba_drop_metadata.clear_read_only_unset
-dba.dropMetadataSchema({force:true});
-
 //@ Dba_drop_metadata.clear_read_only_false
 dba.dropMetadataSchema({force:true, clearReadOnly: false});
 
@@ -61,10 +61,16 @@ session.runSql("stop group_replication");
 //@ Dba_reboot_cluster.clear_read_only automatically disabled and clearReadOnly deprecated
 c = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: false});
 
-
 //@ Check super read only was disabled after rebootClusterFromCompleteOutage
 EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
-c.dissolve({force:true});
+
+//@<> Dba_drop_metadata.clear_read_only_unset
+shell.connect(__sandbox_uri1);
+session.runSql("set global super_read_only=1");
+dba.dropMetadataSchema({force:true});
+
+//@<> Check super read only was disabled after dropMetadataSchema
+EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 
 session.close();
 s.close();

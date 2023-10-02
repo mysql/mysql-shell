@@ -24,6 +24,9 @@ FUNCTIONS
       checkInstanceState(instance)
             Verifies the instance gtid state in relation to the cluster.
 
+            ATTENTION: This function is deprecated and will be removed in a
+                       future release of MySQL Shell.
+
       createClusterSet(domainName[, options])
             Creates a MySQL InnoDB ClusterSet from an existing standalone
             InnoDB Cluster.
@@ -139,7 +142,9 @@ DESCRIPTION
       - recoveryMethod: Preferred method of state recovery. May be auto, clone
         or incremental. Default is auto.
       - waitRecovery: Integer value to indicate if the command shall wait for
-        the recovery process to finish and its verbosity level.
+        the recovery process to finish and its verbosity level. Deprecated.
+      - recoveryProgress: Integer value to indicate the recovery process
+        verbosity level.
       - password: the instance connection password
       - memberSslMode: SSL mode used on the instance
       - ipWhitelist: The list of hosts allowed to connect to the instance for
@@ -154,7 +159,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
@@ -192,6 +197,12 @@ DESCRIPTION
         information.
       - 3: block until the recovery process finishes and show progress using
         progress bars.
+
+      The recoveryProgress option supports the following values:
+
+      - 0: do not show any progress information.
+      - 1: show detailed static progress information.
+      - 2: show detailed dynamic progress information using progress bars.
 
       By default, if the standard output on which the Shell is running refers
       to a terminal, the waitRecovery option has the value of 3. Otherwise, it
@@ -274,6 +285,13 @@ DESCRIPTION
 
       ATTENTION: The groupSeeds option will be removed in a future release.
 
+      ATTENTION: The waitRecovery option will be removed in a future release.
+                 Please use the recoveryProgress option instead.
+
+      ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Check Instance State
 NAME
       checkInstanceState - Verifies the instance gtid state in relation to the
@@ -289,6 +307,9 @@ RETURNS
       resultset A JSON object with the status.
 
 DESCRIPTION
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell.
+
       Analyzes the instance executed GTIDs with the executed/purged GTIDs on
       the cluster to determine if the instance is valid for the cluster.
 
@@ -392,7 +413,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       The force option (set to true) must only be used to dissolve a cluster
       with instances that are permanently not available (no longer reachable)
@@ -401,6 +422,8 @@ DESCRIPTION
       longer be recovered. Otherwise, the instances must be brought back ONLINE
       and the cluster dissolved without the force option to avoid errors trying
       to reuse the instances and add them back to a cluster.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Force Quorum Using Partition Of
 NAME
@@ -433,6 +456,8 @@ DESCRIPTION
       When this function is used, all the members that are ONLINE from the
       point of view of the given instance definition will be added to the
       group.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Get Name
 NAME
@@ -553,7 +578,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
@@ -593,6 +618,10 @@ DESCRIPTION
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
 
+      ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
+
 //@<OUT> Remove Instance
 NAME
       removeInstance - Removes an Instance from the cluster.
@@ -623,7 +652,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       The password may be contained in the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -634,6 +663,10 @@ DESCRIPTION
       than can no longer be recovered. Otherwise, the instance must be brought
       back ONLINE and removed without the force option to avoid errors trying
       to add it back to a cluster.
+
+      ATTENTION: The interactive option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> SetInstanceOption
 NAME
@@ -963,7 +996,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -984,6 +1017,8 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> setupRouterAccount
 NAME
@@ -1026,7 +1061,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -1047,6 +1082,8 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Rescan
 NAME
@@ -1074,7 +1111,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - removeInstances: List with the connection data of the obsolete
         instances to remove from the metadata, or "auto" to automatically
         remove obsolete instances from the metadata.
@@ -1096,6 +1133,8 @@ DESCRIPTION
 
       ATTENTION: The updateTopologyMode option will be removed in a future
                  release.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Status
 NAME
@@ -1239,13 +1278,15 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
 
       The use of the force option (set to true) is not recommended. Use it only
       if really needed when instances are permanently not available (no longer
       reachable) or never going to be reused again in a cluster. Prefer to
       bring the non available instances back ONLINE or remove them from the
       cluster if they will no longer be used.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> createClusterSet
 NAME

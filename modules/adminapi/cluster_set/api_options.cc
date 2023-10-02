@@ -24,6 +24,7 @@
 #include <array>
 #include <string_view>
 
+#include "adminapi/common/api_options.h"
 #include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
@@ -70,8 +71,7 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
           .include<Interactive_option>()
           .include<Timeout_option>()
           .optional(kDryRun, &Create_replica_cluster_options::dry_run)
-          .optional(kRecoveryVerbosity,
-                    &Create_replica_cluster_options::set_recovery_verbosity)
+          .include<Recovery_progress_option>()
           .optional(kReplicationAllowedHost,
                     &Create_replica_cluster_options::replication_allowed_host)
           .include(&Create_replica_cluster_options::gr_options)
@@ -80,18 +80,6 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
                     &Create_replica_cluster_options::set_cert_subject);
 
   return opts;
-}
-
-void Create_replica_cluster_options::set_recovery_verbosity(int value) {
-  // Validate waitRecovery option UInteger [0, 2]
-  if (value < 0 || value > 2) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
-                           "integer in the range [0, 2].",
-                           value, kRecoveryVerbosity));
-  }
-
-  recovery_verbosity = value;
 }
 
 void Create_replica_cluster_options::set_cert_subject(

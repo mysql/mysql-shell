@@ -40,17 +40,17 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-struct Add_instance_options : public Password_interactive_options {
+struct Add_instance_options : public Password_interactive_options,
+                              public Wait_recovery_option,
+                              public Recovery_progress_option {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
-  void set_wait_recovery(int value);
   void set_cert_subject(const std::string &value);
 
   Join_group_replication_options gr_options;
   Join_cluster_clone_options clone_options;
   std::optional<std::string> label;
   std::string cert_subject;
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
 };
 
 struct Rejoin_instance_options : public Password_interactive_options {

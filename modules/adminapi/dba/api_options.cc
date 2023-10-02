@@ -22,6 +22,7 @@
  */
 
 #include <array>
+#include <optional>
 #include <string_view>
 
 #include "modules/adminapi/common/common.h"
@@ -31,6 +32,7 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
 
@@ -171,7 +173,12 @@ void Configure_cluster_local_instance_options::set_output_mycnf_path(
   output_mycnf_path = value;
 }
 void Configure_cluster_local_instance_options::set_clear_read_only(bool value) {
+  handle_deprecated_option(kClearReadOnly, "");
+
   clear_read_only = value;
+
+  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                  { throw std::logic_error("debug"); });
 }
 
 Configure_cluster_local_instance_options::
@@ -192,7 +199,9 @@ const shcore::Option_pack_def<Configure_cluster_local_instance_options>
               &Configure_cluster_local_instance_options::set_output_mycnf_path)
           .optional(
               kClearReadOnly,
-              &Configure_cluster_local_instance_options::set_clear_read_only);
+              &Configure_cluster_local_instance_options::set_clear_read_only,
+              "", shcore::Option_extract_mode::CASE_INSENSITIVE,
+              shcore::Option_scope::DEPRECATED);
 
   return opts;
 }
@@ -368,13 +377,24 @@ void Create_replicaset_options::set_ssl_mode(const std::string &value) {
   ssl_mode = to_cluster_ssl_mode(value);
 }
 
+void Drop_metadata_schema_options::set_clear_read_only(bool value) {
+  handle_deprecated_option(kClearReadOnly, "");
+
+  clear_read_only = value;
+
+  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                  { throw std::logic_error("debug"); });
+}
+
 const shcore::Option_pack_def<Drop_metadata_schema_options>
     &Drop_metadata_schema_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Drop_metadata_schema_options>()
           .optional(kForce, &Drop_metadata_schema_options::force)
           .optional(kClearReadOnly,
-                    &Drop_metadata_schema_options::clear_read_only);
+                    &Drop_metadata_schema_options::set_clear_read_only, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED);
 
   return opts;
 }
@@ -453,6 +473,9 @@ void Reboot_cluster_options::set_user_passwd(const std::string &option,
       "data is taken from the active shell session.",
       option.c_str()));
   console->print_info();
+
+  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                  { throw std::logic_error("debug"); });
 }
 
 void Reboot_cluster_options::set_clear_read_only(bool) {
@@ -462,6 +485,9 @@ void Reboot_cluster_options::set_clear_read_only(bool) {
       "automatically cleared.",
       kClearReadOnly));
   console->print_info();
+
+  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
+                  { throw std::logic_error("debug"); });
 }
 
 void Reboot_cluster_options::set_primary(std::string value) {

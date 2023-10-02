@@ -136,12 +136,14 @@ DESCRIPTION
         or incremental. Default is auto.
       - waitRecovery: Integer value to indicate the recovery process verbosity
         level.
+      - recoveryProgress: Integer value to indicate the recovery process
+        verbosity level.
       - cloneDonor: host:port of an existing replicaSet member to clone from.
         IPv6 addresses are not supported for this option.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
@@ -170,6 +172,12 @@ DESCRIPTION
       - 2: show detailed static progress information.
       - 3: show detailed dynamic progress information using progress bars.
 
+      The recoveryProgress option supports the following values:
+
+      - 0: do not show any progress information.
+      - 1: show detailed static progress information.
+      - 2: show detailed dynamic progress information using progress bars.
+
       By default, if the standard output on which the Shell is running refers
       to a terminal, the waitRecovery option has the value of 3. Otherwise, it
       has the value of 2.
@@ -179,6 +187,11 @@ DESCRIPTION
       default, a SECONDARY member will be chosen as donor. If no SECONDARY
       members are available the PRIMARY will be selected. The option accepts
       values in the format: 'host:port'. IPv6 addresses are not supported.
+
+      ATTENTION: The waitRecovery option will be removed in a future release.
+                 Please use the recoveryProgress option instead.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Disconnect
 NAME
@@ -328,12 +341,14 @@ DESCRIPTION
         or incremental. Default is auto.
       - waitRecovery: Integer value to indicate the recovery process verbosity
         level.
+      - recoveryProgress: Integer value to indicate the recovery process
+        verbosity level.
       - cloneDonor: host:port of an existing replicaSet member to clone from.
         IPv6 addresses are not supported for this option.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
@@ -360,6 +375,12 @@ DESCRIPTION
       - 2: show detailed static progress information.
       - 3: show detailed dynamic progress information using progress bars.
 
+      The recoveryProgress option supports the following values:
+
+      - 0: do not show any progress information.
+      - 1: show detailed static progress information.
+      - 2: show detailed dynamic progress information using progress bars.
+
       By default, if the standard output on which the Shell is running refers
       to a terminal, the waitRecovery option has the value of 3. Otherwise, it
       has the value of 2.
@@ -369,6 +390,11 @@ DESCRIPTION
       default, a SECONDARY member will be chosen as donor. If no SECONDARY
       members are available the PRIMARY will be selected. The option accepts
       values in the format: 'host:port'. IPv6 addresses are not supported.
+
+      ATTENTION: The waitRecovery option will be removed in a future release.
+                 Please use the recoveryProgress option instead.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Remove Instance
 NAME
@@ -495,7 +521,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -516,6 +542,8 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> setupRouterAccount
 NAME
@@ -558,7 +586,7 @@ DESCRIPTION
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
+        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.

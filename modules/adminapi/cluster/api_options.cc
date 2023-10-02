@@ -45,22 +45,11 @@ const shcore::Option_pack_def<Add_instance_options>
           .include(&Add_instance_options::gr_options)
           .include(&Add_instance_options::clone_options)
           .optional(kLabel, &Add_instance_options::label)
-          .optional(kWaitRecovery, &Add_instance_options::set_wait_recovery)
+          .include<Wait_recovery_option>()
+          .include<Recovery_progress_option>()
           .optional(kCertSubject, &Add_instance_options::set_cert_subject)
           .include<Password_interactive_options>();
   return opts;
-}
-
-void Add_instance_options::set_wait_recovery(int value) {
-  // Validate waitRecovery option UInteger [0, 3]
-  if (value < 0 || value > 3) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
-                           "integer in the range [0, 3].",
-                           value, kWaitRecovery));
-  }
-
-  wait_recovery = value;
 }
 
 void Add_instance_options::set_cert_subject(const std::string &value) {

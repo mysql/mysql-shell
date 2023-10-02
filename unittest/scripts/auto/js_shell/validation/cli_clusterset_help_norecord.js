@@ -59,12 +59,6 @@ RETURNS
       The created Replica Cluster object.
 
 OPTIONS
---interactive=<bool>
-            Boolean value used to disable/enable the wizards in the command
-            execution, i.e. prompts and confirmations will be provided or not
-            according to the value set. The default value is equal to MySQL
-            Shell wizard mode.
-
 --timeout=<int>
             Maximum number of seconds to wait for the instance to sync up with
             the PRIMARY Cluster. Default is 0 and it means no timeout.

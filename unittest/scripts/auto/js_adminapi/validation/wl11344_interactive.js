@@ -143,6 +143,9 @@ group_replication_start_on_boot = ON
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+WARNING: The interactive option is deprecated and will be removed in a future release.
+
+WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
@@ -554,6 +557,11 @@ group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.25)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
+WARNING: The interactive option is deprecated and will be removed in a future release.
+
+WARNING: The clearReadOnly option is deprecated and will be removed in a future release.
+
+WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 

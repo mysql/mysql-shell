@@ -253,10 +253,7 @@ For the detailed list of requirements to create an InnoDB Cluster, please use
 
 The options dictionary can contain the following values:
 
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or
-not according to the value set. The default value is equal to MySQL
-Shell wizard mode.
+${OPT_INTERACTIVE}
 @li dryRun: boolean if true, all validations and steps for creating a
 Replica Cluster are executed, but no changes are actually made. An
 exception will be thrown when finished.
@@ -350,6 +347,8 @@ ${CLUSTER_OPT_COMM_STACK_EXTRA}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
+
+@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(CLUSTERSET_CREATEREPLICACLUSTER_BRIEF)
@@ -366,25 +365,15 @@ Cluster ClusterSet::create_replica_cluster(InstanceDef instance,
 #endif
 shcore::Value ClusterSet::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
-        &options) {
+    shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
+        options) {
   assert_valid("createReplicaCluster");
-
-  // Init progress_style
-  Recovery_progress_style progress_style = Recovery_progress_style::TEXTUAL;
-
-  if (options->recovery_verbosity == 0) {
-    progress_style = Recovery_progress_style::NOINFO;
-  } else if (options->recovery_verbosity == 1) {
-    progress_style = Recovery_progress_style::TEXTUAL;
-  } else if (options->recovery_verbosity == 2) {
-    progress_style = Recovery_progress_style::PROGRESSBAR;
-  }
 
   return execute_with_pool(
       [&]() {
         return impl()->create_replica_cluster(instance_def, cluster_name,
-                                              progress_style, *options);
+                                              options->get_recovery_progress(),
+                                              *options);
       },
       false);
 }
@@ -1043,6 +1032,8 @@ ${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 ${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
 
 ${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -1123,6 +1114,8 @@ interactive prompts that help the user through the account setup process.
 To change authentication options for an existing account, set `update` to
 `true`. It is possible to change password without affecting certificate options
 or vice-versa but certificate options can only be changed together.
+
+@attention The interactive option will be removed in a future release.
 )*");
 
 /**

@@ -44,7 +44,8 @@ struct Create_cluster_set_options {
 };
 
 struct Create_replica_cluster_options : public Interactive_option,
-                                        public Timeout_option {
+                                        public Timeout_option,
+                                        public Recovery_progress_option {
   static const shcore::Option_pack_def<Create_replica_cluster_options>
       &options();
 
@@ -54,7 +55,6 @@ struct Create_replica_cluster_options : public Interactive_option,
   Cluster_set_group_replication_options gr_options;
   Create_replica_cluster_clone_options clone_options;
   bool dry_run = false;
-  int recovery_verbosity = isatty(STDOUT_FILENO) ? 2 : 1;
   std::string replication_allowed_host;
   std::string cert_subject;
 };
