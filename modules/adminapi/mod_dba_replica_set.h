@@ -53,7 +53,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 #if DOXYGEN_JS
   String name;  //!< $(REPLICASET_GETNAME_BRIEF)
   Undefined addInstance(String instance, Dictionary options);
-  String describe();
+  Dictionary describe();
   Undefined disconnect();
   Undefined dissolve(Dictionary options);
   String getName();
@@ -63,7 +63,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Dictionary routingOptions(String router);
   Undefined rejoinInstance(String instance, Dictionary options);
   Undefined removeInstance(String instance, Dictionary options);
-  String status(Dictionary options);
+  Dictionary status(Dictionary options);
   Undefined setPrimaryInstance(String instance, Dictionary options);
   Undefined forcePrimaryInstance(String instance, Dictionary options);
   Boolean removeRouterMetadata(RouterDef routerDef);
@@ -71,11 +71,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined setupRouterAccount(String user, Dictionary options);
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(String instance, String option, String value);
-  String options(Dictionary options);
+  Dictionary options(Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(REPLICASET_GETNAME_BRIEF)
   None add_instance(str instance, dict options);
-  str describe();
+  dict describe();
   None disconnect();
   None dissolve(dict options);
   str get_name();
@@ -85,13 +85,13 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   dict routing_options(str router);
   None rejoin_instance(str instance, dict options);
   None remove_instance(str instance, dict options);
-  str status(dict options);
+  dict status(dict options);
   None set_primary_instance(str instance, dict options);
   None force_primary_instance(str instance, dict options);
   bool remove_router_metadata(RouterDef routerDef);
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
-  str options();
+  dict options();
   None set_option(str option, str value);
   None set_instance_option(str instance, str option, str value);
 #endif
