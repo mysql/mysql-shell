@@ -57,7 +57,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Dictionary checkInstanceState(InstanceDef instance);
   ClusterSet createClusterSet(String domainName, Dictionary options);
   ClusterSet getClusterSet();
-  String describe();
+  Dictionary describe();
   Undefined disconnect();
   Undefined dissolve(Dictionary options);
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
@@ -67,11 +67,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
   Undefined resetRecoveryAccountsPassword(Dictionary options);
-  String status(Dictionary options);
+  Dictionary status(Dictionary options);
   Undefined switchToSinglePrimaryMode(InstanceDef instance);
   Undefined switchToMultiPrimaryMode();
   Undefined setPrimaryInstance(InstanceDef instance, Dictionary options);
-  String options(Dictionary options);
+  Dictionary options(Dictionary options);
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(InstanceDef instance, String option,
                               String value);
@@ -87,7 +87,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   dict check_instance_state(InstanceDef instance);
   ClusterSet create_cluster_set(str domainName, dict options);
   ClusterSet get_cluster_set();
-  str describe();
+  dict describe();
   None disconnect();
   None dissolve(dict options);
   None force_quorum_using_partition_of(InstanceDef instance, str password);
@@ -97,11 +97,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);
   None reset_recovery_accounts_password(dict options);
-  str status(dict options);
+  dict status(dict options);
   None switch_to_single_primary_mode(InstanceDef instance);
   None switch_to_multi_primary_mode();
   None set_primary_instance(InstanceDef instance, dict options);
-  str options(dict options);
+  dict options(dict options);
   None set_option(str option, str value);
   None set_instance_option(InstanceDef instance, str option, str value);
   bool remove_router_metadata(RouterDef routerDef);

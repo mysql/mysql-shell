@@ -56,8 +56,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined rejoinCluster(String clusterName, Dictionary options);
   Undefined setPrimaryCluster(String clusterName, Dictionary options);
   Undefined forcePrimaryCluster(String clusterName, Dictionary options);
-  String status(Dictionary options);
-  String describe();
+  Dictionary status(Dictionary options);
+  Dictionary describe();
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
   Undefined setupAdminAccount(String user, Dictionary options);
@@ -65,7 +65,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Dictionary routingOptions(String router);
   Dictionary listRouters(String router);
   Undefined setOption(String option, String value);
-  String options();
+  Dictionary options();
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
   str get_name();
@@ -76,8 +76,8 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None rejoin_cluster(str clusterName, dict options);
   None set_primary_cluster(str clusterName, dict options);
   None force_primary_cluster(str clusterName, dict options);
-  str status(dict options);
-  str describe();
+  dict status(dict options);
+  dict describe();
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
   None setup_admin_account(str user, dict options);
@@ -85,7 +85,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   dict routing_options(str router);
   dict list_routers(str router);
   None set_option(str option, str value);
-  str options();
+  dict options();
 #endif
 
   explicit ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset);
