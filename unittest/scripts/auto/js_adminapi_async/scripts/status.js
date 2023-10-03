@@ -42,7 +42,10 @@ rs.status({extended:2});
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "character-set-server", "utf8mb4");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "collation-server", "utf8mb4_unicode_ci");
-testutil.changeSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake", "OFF");
+if (__version_num < 80300) {
+    testutil.changeSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake", "OFF");
+}
+
 testutil.startSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri1);
@@ -54,7 +57,9 @@ EXPECT_SHELL_LOG_NOT_CONTAINS("Illegal mix of collations");
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.removeFromSandboxConf(__mysql_sandbox_port1, "character-set-server");
 testutil.removeFromSandboxConf(__mysql_sandbox_port1, "collation-server");
-testutil.removeFromSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake");
+if (__version_num < 80300) {
+    testutil.removeFromSandboxConf(__mysql_sandbox_port1, "character-set-client-handshake");
+}
 testutil.startSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri1);
