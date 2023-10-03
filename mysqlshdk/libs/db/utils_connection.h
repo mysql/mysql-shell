@@ -100,7 +100,8 @@ inline constexpr const char kLocalInfile[] = "local-infile";
 inline constexpr const char kNetBufferLength[] = "net-buffer-length";
 inline constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
 inline constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
-inline constexpr const char kFidoRegisterFactor[] = "fido-register-factor";
+inline constexpr const char kWebauthnClientPreservePrivacy[] =
+    "plugin-authentication-webauthn-client-preserve-privacy";
 inline constexpr const char kConnectionAttributes[] = "connection-attributes";
 inline constexpr const char kUri[] = "uri";
 inline constexpr const char kSsh[] = "ssh";

@@ -216,6 +216,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   void setup_default_character_set();
 
+  MYSQL *get_handle() { return _mysql; }
+
   std::string _uri;
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
@@ -337,6 +339,8 @@ class SHCORE_PUBLIC Session : public ISession,
 
     return _impl->_mysql->net.fd;
   }
+
+  MYSQL *get_handle() { return _impl->get_handle(); }
 
   ~Session() override { close(); }
 

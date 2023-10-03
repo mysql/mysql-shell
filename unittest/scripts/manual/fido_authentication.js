@@ -23,7 +23,7 @@ testutil.callMysqlsh([`fidotest:mypwd@localhost:${port}`, "--sql", "-e", 'select
 // PRODUCES:
 // user()
 // fidotest@localhost
-testutil.callMysqlsh([`fidotest:mypwd@localhost:${port}`, "--fido-register-factor=2", "--sql", "-e", 'select user()'])
+testutil.callMysqlsh([`fidotest:mypwd@localhost:${port}`, "--register-factor=2", "--sql", "-e", 'select user()'])
 
 // Repeats the above operation, should fail as the FIDO device is already registered
 // EXPECTS: Please insert FIDO device and perform gesture action for registration to complete.

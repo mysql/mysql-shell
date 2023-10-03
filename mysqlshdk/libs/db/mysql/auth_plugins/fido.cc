@@ -90,7 +90,7 @@ int plugin_messages_callback_get_uint(unsigned int *val) {
 }
 
 /**
- * Method to parse the parameter for --fido-register-factor, taken verbatim from
+ * Method to parse the parameter for --register-factor, taken verbatim from
  * the CLI code (unavailable in the client lib).
  */
 bool parse_register_factor(const char *what_factor,
@@ -159,7 +159,7 @@ void register_device(MYSQL *conn, const char *factor) {
   std::vector<unsigned int> list;
   if (!parse_register_factor(factor, &list)) {
     throw std::invalid_argument(
-        "Incorrect value specified for --fido-register-factor option. "
+        "Incorrect value specified for --register-factor option. "
         "Correct values can be '2', '3', '2,3' or '3,2'.");
   }
 

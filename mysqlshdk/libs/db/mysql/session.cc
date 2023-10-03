@@ -424,11 +424,6 @@ void Session_impl::connect(
     throw_on_connection_fail();
   }
 
-  if (connection_options.has(mysqlshdk::db::kFidoRegisterFactor)) {
-    auto factor = connection_options.get(mysqlshdk::db::kFidoRegisterFactor);
-    fido::register_device(_mysql, factor.c_str());
-  }
-
   DBUG_LOG("sql", get_thread_id()
                       << ": CONNECTED: " << _connection_options.uri_endpoint());
   {

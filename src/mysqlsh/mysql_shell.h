@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,9 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &args,
-      bool recreate_schema = false, bool shell_global_session = true);
+      bool recreate_schema = false, bool shell_global_session = true,
+      std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init =
+          nullptr);
 
   bool redirect_session_if_needed(
       bool secondary, const Connection_options &opts = Connection_options());

@@ -108,7 +108,8 @@ class Shell_options final : public shcore::Options {
     std::string run_module;
 
     // Individual connection parameters
-    std::string fido_register_factor;
+    std::string register_factor;
+    std::optional<bool> webauthn_client_preserve_privacy;
     std::string oci_profile;
     std::string oci_config_file;
 

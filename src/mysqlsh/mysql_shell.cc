@@ -992,7 +992,8 @@ void Mysql_shell::print_connection_message(
 
 std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
-    bool recreate_schema, bool shell_global_session) {
+    bool recreate_schema, bool shell_global_session,
+    std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -1033,6 +1034,10 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
 
     toggle_print();
     isession = establish_session(connection_options, options().wizards);
+
+    if (extra_init) {
+      extra_init(isession);
+    }
   }
 
   auto new_session = ShellBaseSession::wrap_session(isession);

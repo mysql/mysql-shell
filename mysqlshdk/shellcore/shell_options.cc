@@ -106,9 +106,10 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     target_server.set_scheme("mysql");
   }
 
-  if (!fido_register_factor.empty()) {
-    target_server.set_unchecked(mysqlshdk::db::kFidoRegisterFactor,
-                                fido_register_factor.c_str());
+  if (webauthn_client_preserve_privacy.has_value()) {
+    target_server.set_unchecked(
+        mysqlshdk::db::kWebauthnClientPreservePrivacy,
+        (*webauthn_client_preserve_privacy) ? "1" : "0");
   }
 
   return target_server;
@@ -472,10 +473,25 @@ Shell_options::Shell_options(
       [this](const std::string&, const char* value) {
           storage.connection_data.set_schema(value);
         })
-    (&storage.fido_register_factor, "",
-        cmdline("--fido-register-factor=<name>"),
+    (cmdline("--fido-register-factor=<name>"),deprecated(m_on_warning, "--register-factor",
+      [this](const std::string& , const char* value){
+          storage.register_factor.assign(value);
+        }))
+    (&storage.register_factor, "",
+        cmdline("--register-factor=<name>"),
         "Specifies authentication factor, for which registration needs to be "
         "done.")
+    (cmdline("--plugin-authentication-webauthn-client-preserve-privacy[=<value>]"),
+        "Allows selection of discoverable credential to be used for signing "
+        "challenge. If not enabled, challenge is signed by all credentials for "
+        "given relying party.", [this](const std::string &, const char *value){
+          if (value == nullptr) {
+            storage.webauthn_client_preserve_privacy=true;
+          } else {
+            storage.webauthn_client_preserve_privacy = shcore::opts::convert<bool>(value,
+              shcore::opts::Source::Command_line);
+          }
+        })
     (cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
         "Schema will be deleted if it exists!", deprecated(m_on_warning, nullptr, [this](const std::string&, const char* ) {
           storage.recreate_database = true;
@@ -1445,16 +1461,43 @@ void Shell_options::check_import_options() {
 }
 
 void Shell_options::check_connection_options() {
-  if (!storage.fido_register_factor.empty()) {
-    if (!storage.connection_data.has_data()) {
+  std::vector<std::string> connection_dependent_options;
+  if (!storage.register_factor.empty()) {
+    connection_dependent_options.push_back("--register-factor");
+  }
+  if (storage.webauthn_client_preserve_privacy.has_value()) {
+    connection_dependent_options.push_back(
+        "--plugin-authentication-webauthn-client-preserve-privacy");
+  }
+
+  if (!connection_dependent_options.empty() &&
+      !storage.connection_data.has_data()) {
+    if (connection_dependent_options.size() == 1) {
       m_on_warning(
-          "WARNING: --fido-register-factor was specified without "
-          "connection data, the option will be ignored.");
-    } else if (storage.connection_data.has_scheme() &&
-               storage.connection_data.get_scheme() == "mysqlx") {
+          shcore::str_format("WARNING: %s was specified without "
+                             "connection data, the option will be ignored.",
+                             connection_dependent_options.at(0).c_str()));
+    } else {
+      shcore::str_format(
+          "WARNING: The following options were specified without "
+          "connection data, they will be ignored: %s.",
+          shcore::str_join(connection_dependent_options, ", ").c_str());
+    }
+  }
+
+  if (!connection_dependent_options.empty() &&
+      storage.connection_data.has_scheme() &&
+      storage.connection_data.get_scheme() == "mysqlx") {
+    if (connection_dependent_options.size() == 1) {
       throw std::runtime_error(
-          "Option --fido-register-factor is only available for MySQL protocol "
-          "connections.");
+          shcore::str_format("Option %s is only available for MySQL protocol "
+                             "connections.",
+                             connection_dependent_options.at(0).c_str()));
+    } else {
+      throw std::runtime_error(shcore::str_format(
+          "The following options are only available for MySQL protocol "
+          "connections: %s",
+          shcore::str_join(connection_dependent_options, ", ").c_str()));
     }
   }
 

@@ -48,6 +48,7 @@ set(db_SOURCE
     mysql/auth_plugins/fido.cc
     mysql/auth_plugins/oci.cc
     mysql/auth_plugins/kerberos.cc
+    mysql/auth_plugins/webauthn.cc
     mysqlx/xsession.cc
     mysqlx/xresult.cc
     mysqlx/xrow.cc

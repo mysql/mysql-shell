@@ -28,6 +28,7 @@
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/interrupt_helper.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
@@ -848,8 +849,27 @@ int main(int argc, char **argv) {
                 "insecure.");
           }
 
+          std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
+              extra_init;
+
+          if (!options.register_factor.empty()) {
+            extra_init =
+                [&options](std::shared_ptr<mysqlshdk::db::ISession> session) {
+                  auto mysql_session =
+                      std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+                          session);
+
+                  if (mysql_session) {
+                    mysqlshdk::db::mysql::fido::register_device(
+                        mysql_session->get_handle(),
+                        options.register_factor.c_str());
+                  }
+                };
+          }
+
           // Connect to the requested instance
-          shell->connect(target, options.recreate_database);
+          shell->connect(target, options.recreate_database, true,
+                         std::move(extra_init));
 
           // If redirect is requested, then reconnect to the right instance
           handle_redirect(shell, options.redirect_session);

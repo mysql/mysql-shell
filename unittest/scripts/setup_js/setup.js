@@ -1,4 +1,5 @@
 var sandbox_uris = {}
+const PLUGIN_ALREADY_EXISTS = 1125;
 sandbox_uris[__mysql_sandbox_port1] = __sandbox_uri1;
 sandbox_uris[__mysql_sandbox_port2] = __sandbox_uri2;
 sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
@@ -222,7 +223,7 @@ function hasAwsEnvironment() {
 
 
 function hasAuthEnvironment(context) {
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'OCI_AUTH'].indexOf(context) == -1) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH'].indexOf(context) == -1) {
     return false
   }
 
@@ -344,6 +345,11 @@ function getAuthServerConfig(context) {
     return {
       "plugin-load-add": `authentication_fido.${ext}`
     };
+  } else if (context == 'WEBAUTHN') {
+    return {
+      "authentication-webauthn-rp-id": "mysql.com",
+      "plugin-load-add": `authentication_webauthn.${ext}`
+    };
   }
 
   return {};
@@ -380,7 +386,10 @@ function isAuthMethodSupported(context) {
   try {
     ensure_plugin_enabled(plugin, s);
   } catch (error) {
-    plugin_supported = false;
+    plugin_supported = error.code == PLUGIN_ALREADY_EXISTS;
+    if (!plugin_supported) {
+      print(`Unable to get ${plugin} installed: Error ${error.code}: ${error.message}`)
+    }
   }
 
   if (plugin_supported) {

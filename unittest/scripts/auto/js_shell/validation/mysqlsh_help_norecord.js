@@ -93,8 +93,13 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    connection options.
   -D, --schema=<name>              Schema to use.
   --database=<name>                Same as --schema.
-  --fido-register-factor=<name>    Specifies authentication factor, for which
+  --register-factor=<name>         Specifies authentication factor, for which
                                    registration needs to be done.
+  --plugin-authentication-webauthn-client-preserve-privacy[=<value>]
+                                   Allows selection of discoverable credential
+                                   to be used for signing challenge. If not
+                                   enabled, challenge is signed by all
+                                   credentials for given relying party.
   --recreate-schema                Drop and recreate the specified schema.
                                    Schema will be deleted if it exists!
   --mx, --mysqlx                   Uses connection data to create an X protocol
