@@ -455,6 +455,8 @@ std::string quote_identifier(std::string_view identifier, char q) {
  * allowed in unquoted identifiers. Leading numbers are not strictly forbidden
  * but discouraged as they may lead to ambiguous behavior.
  */
+// TODO(alfredo) - this should be removed (along with is_reserved_word)...
+// identifiers should just be always quoted
 std::string quote_identifier_if_needed(std::string_view ident, char q) {
   bool needs_quotation =
       is_reserved_word(ident);  // check whether it's a reserved keyword

@@ -214,6 +214,23 @@ class SHCORE_PUBLIC ISession {
     return m_no_backslash_escapes_enabled;
   }
 
+  bool dollar_quoted_strings() {
+    if (!m_dollar_quoted_strings.has_value() && is_open()) {
+      // - $foo became deprecated in 8.0.32, but is still allowed as of now
+      // - create function xxx() returns int
+      //    deterministic language javascript as
+      //    $tag$
+      //      code;
+      //    $tag$;
+      // became valid in 8.1.0, although it's only actually usable in 8.2.0
+      // - $tag$ as a generic string quote is planned for the future
+
+      m_dollar_quoted_strings =
+          get_server_version() >= mysqlshdk::utils::Version(8, 1, 0);
+    }
+    return m_dollar_quoted_strings.value_or(false);
+  }
+
   void refresh_sql_mode();
 
  protected:
@@ -224,6 +241,7 @@ class SHCORE_PUBLIC ISession {
   std::optional<std::string> m_sql_mode;
   bool m_ansi_quotes_enabled = false;
   bool m_no_backslash_escapes_enabled = false;
+  std::optional<bool> m_dollar_quoted_strings;
 };
 
 }  // namespace db

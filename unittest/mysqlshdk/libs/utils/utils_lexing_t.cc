@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -220,6 +220,20 @@ TEST(Utils_lexing, span_cstyle_comment_conditional) {
   EXPECT_EQ(15, span_cstyle_sql_comment("/*! '\n-- */' */", 0));
   EXPECT_EQ(15, span_cstyle_sql_comment("/*! \"\n-- */\" */", 0));
   EXPECT_EQ(15, span_cstyle_sql_comment("/*! `\n-- */` */", 0));
+
+  // $$ string inside
+  EXPECT_EQ(61,
+            span_cstyle_sql_comment("/*! create function b$$a() returns int as "
+                                    "$bla$ */$$'$bla$ */",
+                                    0));
+
+  // $identifier inside
+  EXPECT_EQ(18, span_cstyle_sql_comment("/*! select $foo */", 0));
+  EXPECT_EQ(18, span_cstyle_sql_comment("/*! select $foo */ foo$;", 0));
+
+  // invalid
+  EXPECT_THROW_MSG(span_cstyle_sql_comment("/*! select $foo$ */;", 0),
+                   std::invalid_argument, "Unterminated $foo$ quoted string");
 }
 
 TEST(Utils_lexing, span_sql_identifier) {
@@ -231,6 +245,39 @@ TEST(Utils_lexing, span_sql_identifier) {
   EXPECT_EQ(4, span_quoted_sql_identifier_bt("```` bar", 0));
 
   EXPECT_EQ(std::string::npos, span_quoted_sql_identifier_bt("`foo", 0));
+}
+
+TEST(Utils_lexing, span_unquoted_identifier) {
+  EXPECT_EQ(5, span_unquoted_identifier("hello", 0));
+  EXPECT_EQ(6, span_unquoted_identifier("$hello", 1));
+  EXPECT_EQ(5, span_unquoted_identifier("hello+world", 0));
+  EXPECT_EQ(5, span_unquoted_identifier("hello-world", 0));
+  EXPECT_EQ(11, span_unquoted_identifier("hello_world", 0));
+  EXPECT_EQ(11, span_unquoted_identifier("hello$world", 0));
+  EXPECT_EQ(4, span_unquoted_identifier("1234", 0));
+  EXPECT_EQ(4, span_unquoted_identifier("__$$", 0));
+  EXPECT_EQ(7, span_unquoted_identifier("há_há x", 0));
+}
+
+TEST(Utils_lexing, span_dollar_quoted_string_or_dollar_identifier) {
+  EXPECT_EQ(4, span_dollar_quoted_string_or_dollar_identifier("$$$$", 0));
+  EXPECT_EQ(9, span_dollar_quoted_string_or_dollar_identifier("$$hello$$", 0));
+  EXPECT_EQ(10,
+            span_dollar_quoted_string_or_dollar_identifier("$$$hello$$", 1));
+
+  EXPECT_EQ(10,
+            span_dollar_quoted_string_or_dollar_identifier("$x_y$$x_y$", 0));
+  EXPECT_EQ(
+      10, span_dollar_quoted_string_or_dollar_identifier("$x_y$$x_y$$x_y$", 0));
+  EXPECT_EQ(
+      15, span_dollar_quoted_string_or_dollar_identifier("$x_y$hello$x_y$", 0));
+  EXPECT_EQ(
+      15, span_dollar_quoted_string_or_dollar_identifier("$123$hello$123$", 0));
+  EXPECT_EQ(16, span_dollar_quoted_string_or_dollar_identifier(
+                    "$$x_y$hello$x_y$", 1));
+
+  EXPECT_EQ(14, span_dollar_quoted_string_or_dollar_identifier(
+                    "$x_y$;\n'\"$x_y$", 0));
 }
 
 TEST(Utils_lexing, SQL_iterator) {
@@ -574,6 +621,85 @@ END//)";
   // EXPECT_EQ("&", it2.next_token());
   // EXPECT_EQ("x", it2.next_token());
   // EXPECT_FALSE(it2.valid());
+
+  std::string jsfunc = R"*(create $func
+  $code$
+    select 1; // '
+    "
+    /*
+    ;
+  $code$;)*";
+  {
+    SQL_iterator dqit(jsfunc, 0, true);
+    EXPECT_EQ("create", dqit.next_token());
+    EXPECT_EQ("$func", dqit.next_token());
+    EXPECT_EQ(";", dqit.next_token());
+    EXPECT_TRUE(dqit.next_token().empty());
+    EXPECT_FALSE(dqit.valid());
+  }
+  {
+    SQL_iterator dqit(jsfunc, 0, false);
+    EXPECT_EQ("create", dqit.next_token());
+    EXPECT_EQ("$func", dqit.next_token());
+    EXPECT_EQ(R"*($code$
+    select 1; // '
+    "
+    /*
+    ;
+  $code$)*",
+              dqit.next_token());
+    EXPECT_EQ(";", dqit.next_token());
+    EXPECT_TRUE(dqit.next_token().empty());
+    EXPECT_FALSE(dqit.valid());
+  }
+
+  std::string dqidtext = "select $foo$-$foo$;";
+  {
+    SQL_iterator dqit(dqidtext, 0, false, true);
+    EXPECT_EQ("select", dqit.next_token());
+    EXPECT_EQ("$foo$-$foo$", dqit.next_token());
+    EXPECT_EQ(";", dqit.next_token());
+    EXPECT_TRUE(dqit.next_token().empty());
+    EXPECT_FALSE(dqit.valid());
+  }
+  {
+    SQL_iterator dqit(dqidtext, 0, true, true);
+    EXPECT_EQ("select", dqit.next_token());
+    EXPECT_EQ(";", dqit.next_token());
+    EXPECT_TRUE(dqit.next_token().empty());
+    EXPECT_FALSE(dqit.valid());
+  }
+
+  std::string csdqtext = "create schema $foo$;";
+  {
+    SQL_iterator dqit(csdqtext, 0, false, true);
+    EXPECT_EQ("create", dqit.next_token());
+    EXPECT_EQ("schema", dqit.next_token());
+    // used to be valid, but not anymore since dollar quotes started
+    EXPECT_THROW_MSG(dqit.next_token(), std::invalid_argument,
+                     "Unterminated $foo$ quoted string");
+  }
+  {
+    SQL_iterator dqit(csdqtext, 0, false, false);
+    EXPECT_EQ("create", dqit.next_token());
+    EXPECT_EQ("schema", dqit.next_token());
+    EXPECT_EQ("$foo$", dqit.next_token());
+    EXPECT_EQ(";", dqit.next_token());
+    EXPECT_TRUE(dqit.next_token().empty());
+    EXPECT_FALSE(dqit.valid());
+  }
+
+  // note: tokenizing identifier sequences is not supported
+  // {
+  //   SQL_iterator dqit(dqidtext, 0, false, false);
+  //   EXPECT_EQ("select", dqit.next_token());
+  //   EXPECT_EQ("$foo$", dqit.next_token());
+  //   EXPECT_EQ("-", dqit.next_token());
+  //   EXPECT_EQ("$foo$", dqit.next_token());
+  //   EXPECT_EQ(";", dqit.next_token());
+  //   EXPECT_TRUE(dqit.next_token().empty());
+  //   EXPECT_FALSE(dqit.valid());
+  // }
 }
 
 TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {

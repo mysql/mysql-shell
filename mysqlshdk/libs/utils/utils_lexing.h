@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,34 +41,78 @@ namespace internal {
 // lookup table of number of bytes to skip when spanning a quoted string
 // (single quote and double quote versions)
 // skip 2 for escape, 0 for '\0', 0 for end quote and 1 for the rest
-inline constexpr char k_quoted_string_span_skips_sq[256] = {
-    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+inline constexpr char k_quoted_string_span_skips_sq[2][256] = {
+    // backslash escapes
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    // no backslash escapes
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}};
 
-inline constexpr char k_quoted_string_span_skips_dq[256] = {
-    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+inline constexpr char k_quoted_string_span_skips_dq[2][256] = {
+    // backslash escapes
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    // no backslash escapes
+    {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}};
 
 inline constexpr char k_keyword_chars[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+
+inline constexpr char k_identifier_chars[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$";
+
+// same as k_keyword_chars (identifier chars except $)
+inline constexpr char k_dollar_quoted_string_span_chars[256] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
 }  // namespace internal
 
 /*
@@ -97,8 +141,8 @@ inline size_t span_quoted_string_dq(std::string_view s, size_t offset) {
     // Tight-loop to span until terminating 0 or closing quote
     while (offset < s.length() &&
            internal::k_quoted_string_span_skips_dq
-                   [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
-      offset += internal::k_quoted_string_span_skips_dq[last_ch];
+                   [0][last_ch = static_cast<unsigned char>(s[offset])] > 0) {
+      offset += internal::k_quoted_string_span_skips_dq[0][last_ch];
     }
 
     if (offset >= s.length()) {
@@ -131,8 +175,8 @@ inline size_t span_quoted_string_sq(std::string_view s, size_t offset) {
     // Tight-loop to span until terminating 0 or closing quote
     while (offset < s.length() &&
            internal::k_quoted_string_span_skips_sq
-                   [last_ch = static_cast<unsigned char>(s[offset])] > 0) {
-      offset += internal::k_quoted_string_span_skips_sq[last_ch];
+                   [0][last_ch = static_cast<unsigned char>(s[offset])] > 0) {
+      offset += internal::k_quoted_string_span_skips_sq[0][last_ch];
     }
 
     if (offset >= s.length()) {
@@ -229,6 +273,84 @@ inline size_t span_keyword(
   }
 }
 
+inline bool is_start_of_unquoted_identifier(char c) {
+  return internal::k_dollar_quoted_string_span_chars[static_cast<int>(c)] ||
+         c == '$';
+}
+
+/** Spans an unquoted identifier or number or a keyword
+ *
+ * Identifiers can contain any of:
+ * - ascii letters
+ * - digits
+ * - _
+ * - $ if not the 1st char (depending on server version)
+ * - UTF-8 sequences (chars with high-bit set)
+ *
+ * This function assumes the input string points to the start of a valid
+ * identifier, including those starting with $. Checking for $ at the start
+ * of an identifier when it's not allowed must be handled by the caller.
+ *
+ * @param s
+ * @param offset
+ * @return size_t
+ */
+inline size_t span_unquoted_identifier(std::string_view s, size_t offset) {
+  assert(!s.empty());
+  assert(offset < s.size());
+  assert(is_start_of_unquoted_identifier(s[offset]));
+
+  for (;;) {
+    size_t p = s.find_first_not_of(internal::k_identifier_chars, offset + 1);
+    if (p == std::string_view::npos || p == s.length()) return s.length();
+    if (static_cast<unsigned char>(s[p]) <= 0x7f) return p;
+    offset = p;
+  }
+}
+
+inline bool is_dollar_quote_tag(std::string_view s) {
+  for (const unsigned char i : s) {
+    if (!internal::k_dollar_quoted_string_span_chars[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline size_t span_dollar_quoted_string_or_dollar_identifier(std::string_view s,
+                                                             size_t offset) {
+  // given a string starting with $:
+  // - 1st determine the full quoting sequence in the form $tag$, where tag must
+  // be a valid identifier-like string or empty
+  // - span the string until a matching $tag$ is found
+  // OR
+  // - if the string starts with a $identifier, then spans until the end of the
+  // identifier
+  assert(!s.empty());
+  assert(offset < s.length());
+  assert(s[offset] == '$');
+
+  auto endtag = s.find('$', offset + 1);
+  // unclosed $tag$
+  if (endtag == std::string_view::npos) {
+    // check if this is $identifier<EOL>
+    return span_unquoted_identifier(s, offset);
+  }
+  // validate the tag for allowed chars only
+  const auto tag = s.substr(offset, endtag + 1 - offset);
+  if (!is_dollar_quote_tag(tag.substr(1, tag.size() - 2))) {
+    // this is not a $tag$, so it must be a $identifier<...>$
+    return span_unquoted_identifier(s, offset);
+  }
+  // find the closing tag
+  auto end = s.find(tag, offset + tag.size());
+  if (end == std::string_view::npos)
+    throw std::invalid_argument(
+        std::string("Unterminated ").append(tag).append(+" quoted string"));
+
+  return end + tag.size();
+}
+
 inline size_t span_to_eol(std::string_view s, size_t offset) {
   offset = s.find('\n', offset);
   if (offset == std::string_view::npos) return s.length();
@@ -258,8 +380,12 @@ inline size_t span_cstyle_comment(std::string_view s, size_t offset) {
  *
  * This function handles special comments that start with a + (optimizer hints)
  * or ! (conditional statements).
+ *
+ * If dollar_quote_strings is true, it will also handle $tag$...$tag$ style
+ * strings.
  */
-size_t span_cstyle_sql_comment(std::string_view s, size_t offset);
+size_t span_cstyle_sql_comment(std::string_view s, size_t offset,
+                               bool dollar_quote_strings = true);
 
 /** Class enabling iteration over characters in SQL string skipping comments and
  * quoted strings.
@@ -276,9 +402,10 @@ class SQL_iterator {
    *
    * @arg str string containing SQL query.
    * @arg offset offset in str, need to point to valid part of SQL.
+   * @arg dollar_quotes if true, treats $tag$ as string quotes
    */
   explicit SQL_iterator(std::string_view str, size_type offset = 0,
-                        bool skip_quoted = true);
+                        bool skip_quoted = true, bool dollar_quotes = true);
 
   SQL_iterator &operator++();
 
@@ -331,6 +458,7 @@ class SQL_iterator {
   std::string_view m_s;
   size_type m_offset;
   bool m_skip_quoted;
+  bool m_dollar_quotes;
   bool m_comment_hint = false;
 };
 

@@ -83,6 +83,15 @@ bool no_backslash_escapes_enabled(
   return session->no_backslash_escapes_enabled();
 }
 
+bool dollar_quoted_strings(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (!session) return false;
+
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+  return session->dollar_quoted_strings();
+}
+
 }  // namespace
 
 // How many bytes at a time to process when executing large SQL scripts
@@ -288,7 +297,7 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
             mysqlsh::current_console()->print_error(std::string{err});
           },
           ansi_quotes_enabled(session), no_backslash_escapes_enabled(session),
-          nullptr, &splitter)) {
+          dollar_quoted_strings(session), nullptr, &splitter)) {
     // signal error during input processing
     _result_processor(nullptr, {});
     return false;

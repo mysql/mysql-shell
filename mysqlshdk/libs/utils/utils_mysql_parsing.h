@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #define _UTILS_MYSQL_PARSING_H_
 
 #include <array>
+#include <cassert>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -58,11 +59,17 @@ class Sql_splitter {
   void feed(char *buffer, size_t size);
 
   void set_ansi_quotes(bool enabled) { m_ansi_quotes = enabled; }
+
+  void set_dollar_quoted_strings(bool enabled) {
+    m_dollar_quoted_strings = enabled;
+  }
+
   void set_no_backslash_escapes(bool enabled) {
     m_no_backslash_escapes = enabled;
   }
 
   bool set_delimiter(std::string delim);
+
   const std::string &delimiter() const { return m_delimiter; }
 
   struct Range {
@@ -83,12 +90,14 @@ class Sql_splitter {
 
   enum class Context {
     kNone,
-    kStatement,           // any non-comments before delimiter
+    kStatement,           // any non-(comments/identifiers) before delimiter
+    kIdentifier,          // unquoted identifier or a SQL keyword
     kComment,             // /* ... */
     kCommentHint,         // /*+ ... */ ...;
     kCommentConditional,  // /*! ... */ ...;
     kSQuoteString,        // '...'
     kDQuoteString,        // "..." (only if not ansi_quotes)
+    kDollarQuotedString,  // $tag$...$tag$ (only if dollar_quotes)
     kBQuoteIdentifier,    // `...`
     kDQuoteIdentifier     // "..." (ansi_quotes)
   };
@@ -110,6 +119,7 @@ class Sql_splitter {
 
   std::string m_delimiter = ";";
   std::vector<Context> m_context;
+  std::string m_dollar_quote;
 
   Command_callback m_cmd_callback;
   Error_callback m_err_callback;
@@ -120,6 +130,7 @@ class Sql_splitter {
   size_t m_current_line{1};
   size_t m_total_offset{0};
   bool m_ansi_quotes{false};
+  bool m_dollar_quoted_strings{true};
   bool m_no_backslash_escapes{false};
   bool m_last_chunk{false};
   bool m_eof{false};
@@ -130,19 +141,21 @@ std::string to_string(Sql_splitter::Context context);
 std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     std::istream *stream, size_t chunk_size,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
-    bool no_backslash_escapes = false, std::string *delimiter = nullptr);
+    bool no_backslash_escapes = false, bool dollar_quotes = true,
+    std::string *delimiter = nullptr);
 
 std::vector<std::string> split_sql(const std::string &str,
                                    bool ansi_quotes = false,
-                                   bool no_backslash_escapes = false);
+                                   bool no_backslash_escapes = false,
+                                   bool dollar_quotes = true);
 
 bool iterate_sql_stream(
     std::istream *stream, size_t chunk_size,
     const std::function<bool(std::string_view, std::string_view, size_t,
                              size_t)> &stmt_callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
-    bool no_backslash_escapes = false, std::string *delimiter = nullptr,
-    Sql_splitter **splitter_ptr = nullptr);
+    bool no_backslash_escapes = false, bool dollar_quotes = true,
+    std::string *delimiter = nullptr, Sql_splitter **splitter_ptr = nullptr);
 
 }  // namespace utils
 }  // namespace mysqlshdk

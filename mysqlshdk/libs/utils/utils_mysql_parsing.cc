@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,15 +36,9 @@ namespace utils {
 
 namespace {
 
-template <const char skip_table[256], const char quote>
+template <const char skip_tables[2][256], const char quote>
 inline char *span_string(char *p, const char *end, bool no_backslash_escapes) {
-  char skip_table_backslash[256];
-  if (no_backslash_escapes) {
-    std::memcpy(skip_table_backslash, skip_table, 256);
-    skip_table_backslash[static_cast<unsigned char>('\\')] = 1;
-  }
-
-  auto target_table = no_backslash_escapes ? skip_table_backslash : skip_table;
+  const char *target_table = skip_tables[no_backslash_escapes ? 1 : 0];
 
   // p must be inside the single quote string (after the ')
   int last_ch = 0;
@@ -87,6 +81,26 @@ inline char *span_quoted_identifier(char *p, char *end) {
     } else {
       return q + 1;
     }
+  }
+  return nullptr;
+}
+
+inline char *span_dollar_quote(char *p, char *end) {
+  // skips identifier chars, except for $
+  while (p < end) {
+    if (!internal::k_dollar_quoted_string_span_chars[static_cast<unsigned char>(
+            *p)]) {
+      return p;
+    }
+    ++p;
+  }
+  return nullptr;
+}
+
+inline char *span_dollar_quoted_string(char *p, char *end, const char *tag) {
+  size_t q = std::string_view(p, end - p).find(tag);
+  if (q != std::string_view::npos) {
+    return p + q + strlen(tag);
   }
   return nullptr;
 }
@@ -246,6 +260,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
   while (next_bol < m_end) {
     char *bol = next_bol;
     bool has_complete_line;
+    bool has_newline;
     bool command = false;
     bool last_line_was_delimiter = false;
     // process input per line so we can count line numbers
@@ -253,9 +268,11 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
     if (!eol) {
       eol = m_end;
       has_complete_line = m_last_chunk;
+      has_newline = false;
     } else {
       ++eol;  // skip the newline
       has_complete_line = true;
+      has_newline = true;
     }
     next_bol = eol;
 
@@ -283,7 +300,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
     while (p && p < eol) {
       auto ctx = context();
       if (ctx == Context::kNone || ctx == Context::kStatement ||
-          ctx == Context::kCommentConditional) {
+          ctx == Context::kIdentifier || ctx == Context::kCommentConditional) {
         if (ctx == Context::kCommentConditional) {
           if ((eol - p) > 2 && *p == '*' && *(p + 1) == '/') {
             pop();
@@ -368,6 +385,33 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             push(Context::kBQuoteIdentifier);
             break;
 
+          case '$':  // $tag$str$tag$ or $identifier
+            if (m_dollar_quoted_strings) {
+              // there are 3 possibilities here:
+              // - $<identifier>$<not-identifier-or-eof> - $ string
+              // - $<identifier><not-identifier-or-eof> - $identifier
+              // - $<identifier>... - incomplete/inconclusive
+
+              char *pp = span_dollar_quote(p + 1, eol);
+              if (pp) {
+                if (*pp == '$') {
+                  m_dollar_quote.assign(p, pp - p + 1);
+                  p = pp + 1;
+                  push(Context::kDollarQuotedString);
+                } else {
+                  // was an identifier, which we already skipped
+                  p = pp;
+                }
+              } else {
+                return unfinished_stmt(bos, out_range);
+              }
+            } else {
+              // definitely not a dollar quoted str
+              ++p;
+              push(Context::kIdentifier);
+            }
+            break;
+
           case '/':  // /* ... */
             if ((m_end - p) >= 3) {
               if (*(p + 1) == '*') {
@@ -423,7 +467,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             if (has_complete_line) {
               // if the whole line is a comment return it
               if (context() == Context::kNone) {
-                int nl = 1;
+                int nl = has_newline ? 1 : 0;
                 if (*(eol - 1) == '\r') nl++;
                 Range range{static_cast<size_t>(bos - m_begin),
                             static_cast<size_t>(eol - bos - nl),
@@ -446,7 +490,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
               if (has_complete_line) {
                 // if the whole line is a comment return it
                 if (context() == Context::kNone) {
-                  int nl = 1;
+                  int nl = has_newline;
                   if (*(eol - 1) == '\r') nl++;
                   Range range{static_cast<size_t>(bos - m_begin),
                               static_cast<size_t>(eol - bos - nl),
@@ -484,12 +528,23 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                   }
                 if (command) continue;
               }
+            } else {
+              if (context() == Context::kDollarQuotedString) {
+                m_dollar_quote.push_back(*p);
+                ++p;
+                break;
+              }
             }
 
             if (!is_any_blank(*p)) {
               if (context() == Context::kNone) push(Context::kStatement);
-            } else if (p == bos) {
-              bos++;
+            } else {
+              // end of identifier
+              if (context() == Context::kIdentifier) pop();
+
+              if (p == bos) {
+                bos++;
+              }
             }
             ++p;
             break;
@@ -499,6 +554,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
       switch (context()) {
         case Context::kNone:
         case Context::kStatement:
+        case Context::kIdentifier:
         case Context::kCommentConditional:
           break;
 
@@ -541,6 +597,19 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
           } else {
             p += 2;
+            pop();
+          }
+          break;
+
+        case Context::kDollarQuotedString:
+          p = span_dollar_quoted_string(p, eol, m_dollar_quote.c_str());
+          if (!p) {  // comment end missing
+            if (has_complete_line) {
+              p = eol;
+            } else {
+              return unfinished_stmt(bos, out_range);
+            }
+          } else {
             pop();
           }
           break;
@@ -602,6 +671,8 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
  * @param err_callback function to be called when a parse error occurs
  * @param ansi_quotes if true, " quotes are handled as identifiers instead of
  *        strings
+ * @param dollar_quoted_strings if true, $$tag$$ style string quotes are
+ *        recognized
  * @param delimiter statement delimiter. If the script changes the delimiter,
  *        it will be assigned to this argument.
  * @returns list of (statement, delimiter, line_number) tuples
@@ -609,7 +680,8 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     std::istream *stream, size_t chunk_size,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
-    bool no_backslash_escapes, std::string *delimiter) {
+    bool no_backslash_escapes, bool dollar_quoted_strings,
+    std::string *delimiter) {
   std::vector<std::tuple<std::string, std::string, size_t>> results;
   iterate_sql_stream(
       stream, chunk_size,
@@ -618,12 +690,14 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
         results.emplace_back(std::string(s), std::string(delim), lnum);
         return true;
       },
-      err_callback, ansi_quotes, no_backslash_escapes, delimiter);
+      err_callback, ansi_quotes, no_backslash_escapes, dollar_quoted_strings,
+      delimiter);
   return results;
 }
 
 std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes,
-                                   bool no_backslash_escapes) {
+                                   bool no_backslash_escapes,
+                                   bool dollar_quoted_strings) {
   std::istringstream s(str);
   auto parts = split_sql_stream(
       &s, str.size(),
@@ -632,7 +706,7 @@ std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes,
             shcore::str_format("Error splitting SQL script: %.*s",
                                static_cast<int>(err.size()), err.data()));
       },
-      ansi_quotes, no_backslash_escapes);
+      ansi_quotes, no_backslash_escapes, dollar_quoted_strings);
 
   std::vector<std::string> stmts;
   stmts.reserve(parts.size());
@@ -650,6 +724,7 @@ std::vector<std::string> split_sql(const std::string &str, bool ansi_quotes,
  * @param err_callback function to be called when a parse error occurs
  * @param ansi_quotes if true, " quotes are handled as identifiers instead of
  *        strings
+ * @param dollar_quoted_strings if true, $$tag$$ strings are recognized
  * @param delimiter statement delimiter. If the script changes the delimiter,
  *        it will be assigned to this argument.
  * @param splitter_ptr if provided function will assign here Sql_splitter used
@@ -662,8 +737,8 @@ bool iterate_sql_stream(
         bool(std::string_view /* string */, std::string_view /* delimiter */,
              size_t /* line_num */, size_t /* offset */)> &callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
-    bool no_backslash_escapes, std::string *delimiter,
-    Sql_splitter **splitter_ptr) {
+    bool no_backslash_escapes, bool dollar_quoted_strings,
+    std::string *delimiter, Sql_splitter **splitter_ptr) {
   assert(chunk_size > 0);
 
   bool stop = false;
@@ -688,6 +763,7 @@ bool iterate_sql_stream(
       err_callback, {"source"});
   splitter.set_ansi_quotes(ansi_quotes);
   splitter.set_no_backslash_escapes(no_backslash_escapes);
+  splitter.set_dollar_quoted_strings(dollar_quoted_strings);
 
   if (delimiter) splitter.set_delimiter(*delimiter);
   if (splitter_ptr) *splitter_ptr = &splitter;
@@ -751,6 +827,7 @@ std::string to_string(Sql_splitter::Context context) {
     case Sql_splitter::Context::kNone:
       return "";
     case Sql_splitter::Context::kStatement:
+    case Sql_splitter::Context::kIdentifier:
     case Sql_splitter::Context::kCommentHint:
     case Sql_splitter::Context::kCommentConditional:
       return "-";
@@ -760,6 +837,8 @@ std::string to_string(Sql_splitter::Context context) {
       return "'";
     case Sql_splitter::Context::kDQuoteString:
       return "\"";
+    case Sql_splitter::Context::kDollarQuotedString:
+      return "$";
     case Sql_splitter::Context::kBQuoteIdentifier:
       return "`";
     case Sql_splitter::Context::kDQuoteIdentifier:

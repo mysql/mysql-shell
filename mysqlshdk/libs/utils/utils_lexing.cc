@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,8 @@
 namespace mysqlshdk {
 namespace utils {
 
-size_t span_cstyle_sql_comment(std::string_view s, size_t offset) {
+size_t span_cstyle_sql_comment(std::string_view s, size_t offset,
+                               bool dollar_quote_strings) {
   const size_t size = s.size();
   assert(!s.empty());
   assert(offset < size);
@@ -77,8 +78,20 @@ size_t span_cstyle_sql_comment(std::string_view s, size_t offset) {
             offset = span_to_eol(s, offset + 3);
           }
           break;
+        case '$':
+          if (dollar_quote_strings) {
+            auto p = span_dollar_quoted_string_or_dollar_identifier(s, offset);
+            if (p != std::string_view::npos) offset = p;
+          } else {
+            // $identifier
+            offset = span_unquoted_identifier(s, offset);
+          }
+          break;
         default:
-          ++offset;
+          if (is_start_of_unquoted_identifier(s[offset]))
+            offset = span_unquoted_identifier(s, offset);
+          else
+            ++offset;
           break;
       }
     }
@@ -92,8 +105,11 @@ size_t span_cstyle_sql_comment(std::string_view s, size_t offset) {
 }
 
 SQL_iterator::SQL_iterator(std::string_view str, size_type offset,
-                           bool skip_quoted_sql_ids)
-    : m_s(str), m_offset(offset - 1), m_skip_quoted(skip_quoted_sql_ids) {
+                           bool skip_quoted_sql_ids, bool dollar_quotes)
+    : m_s(str),
+      m_offset(offset - 1),
+      m_skip_quoted(skip_quoted_sql_ids),
+      m_dollar_quotes(dollar_quotes) {
   assert(offset <= str.size());
   // Let's make sure we start from valid SQL
   ++(*this);
@@ -160,6 +176,25 @@ SQL_iterator &SQL_iterator::operator++() {
         else
           incremented = true;
         break;
+      case '$':
+        // this can be an identifier starting with a $ or a $ quote
+        if (m_dollar_quotes) {
+          auto p =
+              span_dollar_quoted_string_or_dollar_identifier(m_s, m_offset);
+          if (p == std::string::npos) {
+            // not a dollar quote, probably, treat as an identifier
+            incremented = true;
+          } else {
+            // this was $quoted$
+            if (m_s[p - 1] == '$' && p > m_offset && m_skip_quoted)
+              m_offset = p;
+            else  // $identifier
+              incremented = true;
+          }
+        } else {
+          incremented = true;
+        }
+        break;
       default:
         incremented = true;
     }
@@ -186,6 +221,18 @@ std::pair<std::string_view, size_t> SQL_iterator::next_token_and_offset() {
       case '"':
         m_offset = span_quoted_string_dq(m_s, m_offset);
         return {m_s.substr(start, m_offset - start), start};
+      case '$':
+        if (m_dollar_quotes) {
+          if (auto tmp =
+                  span_dollar_quoted_string_or_dollar_identifier(m_s, m_offset);
+              tmp != std::string_view::npos) {
+            m_offset = tmp;
+            return {m_s.substr(start, m_offset - start), start};
+          }
+        }
+        [[fallthrough]];
+      default:
+        break;
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -963,7 +963,8 @@ class Statement_splitter : public ::testing::TestWithParam<int> {
  protected:
   std::vector<std::string> split_batch(std::string_view sql,
                                        bool ansi_quotes = false,
-                                       bool no_backslash_escapes = false) {
+                                       bool no_backslash_escapes = false,
+                                       bool dollar_quoted_strings = true) {
     std::stringstream ss(std::string{sql});
     std::vector<std::tuple<std::string, std::string, size_t>> r;
     if (GetParam() == 0)
@@ -972,14 +973,14 @@ class Statement_splitter : public ::testing::TestWithParam<int> {
           [](std::string_view err) {
             throw std::runtime_error(std::string{err});
           },
-          ansi_quotes, no_backslash_escapes, &delimiter);
+          ansi_quotes, no_backslash_escapes, dollar_quoted_strings, &delimiter);
     else
       r = split_sql_stream(
           &ss, GetParam(),
           [](std::string_view err) {
             throw std::runtime_error(std::string{err});
           },
-          ansi_quotes, no_backslash_escapes, &delimiter);
+          ansi_quotes, no_backslash_escapes, dollar_quoted_strings, &delimiter);
 
     std::vector<std::string> stmts;
     stmts.reserve(r.size());
@@ -1002,14 +1003,14 @@ class Statement_splitter : public ::testing::TestWithParam<int> {
           [](std::string_view err) {
             throw std::runtime_error(std::string{err});
           },
-          false, false, &delimiter);
+          false, false, true, &delimiter);
     else
       r = split_sql_stream(
           &ss, GetParam(),
           [](std::string_view err) {
             throw std::runtime_error(std::string{err});
           },
-          false, false, &delimiter);
+          false, false, true, &delimiter);
 
     size_t lnum = 1;
     auto s = stmts.begin();
@@ -1461,6 +1462,276 @@ TEST_P(Statement_splitter, line_numbering) {
                 "line 11.2;"});
   }
   // clang-format on
+}
+
+void dump(const std::vector<std::string> &v) {
+  for (const auto &s : v) std::cout << "[[" << s << "]\n";
+}
+
+TEST_P(Statement_splitter, regression_last_line_truncated) {
+  auto stmts = split_batch("select 1;\n-- hello world!");
+  ASSERT_EQ(2, stmts.size());
+  EXPECT_EQ("select 1;", stmts[0]);
+  EXPECT_EQ("-- hello world!", stmts[1]);
+}
+
+TEST_P(Statement_splitter, dollar_quoted_strings_not) {
+  // this should recognize:
+  // - $identifiers, which are deprecated but still allowed
+  // - $tag$arbitrary string$tag$
+
+  // $$ that are not dollar quotes
+  {
+    auto stmts = split_batch(R"*(select '$$';select '$$';)*");
+    ASSERT_EQ(2, stmts.size());
+    EXPECT_EQ("select '$$';", stmts[0]);
+    EXPECT_EQ("select '$$';", stmts[1]);
+  }
+  {
+    auto stmts = split_batch(R"*(-- $$
+select 0;
+-- $a$
+select 1;
+select 2;
+-- $a$)*");
+    ASSERT_EQ(6, stmts.size());
+    EXPECT_EQ("-- $$", stmts[0]);
+    EXPECT_EQ("select 0;", stmts[1]);
+    EXPECT_EQ("-- $a$", stmts[2]);
+    EXPECT_EQ("select 1;", stmts[3]);
+    EXPECT_EQ("select 2;", stmts[4]);
+    EXPECT_EQ("-- $a$", stmts[5]);
+  }
+  {
+    auto stmts = split_batch(R"*(# $$
+select 0;
+# $a$
+select 1;
+select 2;
+# $a$)*");
+    ASSERT_EQ(6, stmts.size());
+    EXPECT_EQ("# $$", stmts[0]);
+    EXPECT_EQ("select 0;", stmts[1]);
+    EXPECT_EQ("# $a$", stmts[2]);
+    EXPECT_EQ("select 1;", stmts[3]);
+    EXPECT_EQ("select 2;", stmts[4]);
+    EXPECT_EQ("# $a$", stmts[5]);
+  }
+  {
+    auto stmts = split_batch(R"*(/* $$ */
+select 0;
+/* $a$ */
+select 1;
+select 2;
+/* $a$ */)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("/* $$ */\nselect 0;", stmts[0]);
+    EXPECT_EQ("/* $a$ */\nselect 1;", stmts[1]);
+    EXPECT_EQ("select 2;", stmts[2]);
+    EXPECT_EQ("/* $a$ */", stmts[3]);
+  }
+  {
+    // mysql cli breaks this to a single statement
+    auto stmts = split_batch(R"*(/*! $code$ */; /*! $code$ */;)*");
+    EXPECT_EQ(1, stmts.size());
+    EXPECT_EQ("/*! $code$ */; /*! $code$ */;", stmts[0]);
+  }
+  {
+    auto stmts = split_batch(R"*(/*+ $code$ */; /*+ $code$ */;)*");
+    EXPECT_EQ(2, stmts.size());
+    EXPECT_EQ("/*+ $code$ */;", stmts[0]);
+    EXPECT_EQ("/*+ $code$ */;", stmts[1]);
+  }
+  {
+    auto stmts = split_batch(R"*("$$"
+select 0;
+"$a$"
+select 1;
+select 2;
+"$a$")*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("\"$$\"\nselect 0;", stmts[0]);
+    EXPECT_EQ("\"$a$\"\nselect 1;", stmts[1]);
+    EXPECT_EQ("select 2;", stmts[2]);
+    EXPECT_EQ("\"$a$\"", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(R"*(`$$`
+select 0;
+`$a$`
+select 1;
+select 2;
+`$a$`)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("`$$`\nselect 0;", stmts[0]);
+    EXPECT_EQ("`$a$`\nselect 1;", stmts[1]);
+    EXPECT_EQ("select 2;", stmts[2]);
+    EXPECT_EQ("`$a$`", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(R"*('$$'
+select 0;
+'$a$'
+select 1;
+select 2;
+'$a$')*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("'$$'\nselect 0;", stmts[0]);
+    EXPECT_EQ("'$a$'\nselect 1;", stmts[1]);
+    EXPECT_EQ("select 2;", stmts[2]);
+    EXPECT_EQ("'$a$'", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(R"*($ $
+select 0;
+$-$
+select 1;
+select 2;
+$-$)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("$ $\nselect 0;", stmts[0]);
+    EXPECT_EQ("$-$\nselect 1;", stmts[1]);
+    EXPECT_EQ("select 2;", stmts[2]);
+    EXPECT_EQ("$-$", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(R"*(select '$
+$$''$$
+$';$
+$;
+select $
+;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("select '$\n$$''$$\n$';", stmts[0]);
+    EXPECT_EQ("$\n$;", stmts[1]);
+    EXPECT_EQ("select $\n;", stmts[2]);
+  }
+}
+
+TEST_P(Statement_splitter, dollar_quoted_string_deprecated_identifier) {
+  // deprecated but allowed identifier syntax
+  {
+    auto stmts = split_batch("create schema $foo; create schema $bar;");
+    ASSERT_EQ(2, stmts.size());
+  }
+  // invalid identifier syntax
+  {
+    auto stmts = split_batch("create schema $$fo;o$$;");
+    ASSERT_EQ(1, stmts.size());
+    EXPECT_EQ("create schema $$fo;o$$;", stmts[0]);
+  }
+  // invalid identifier syntax - backwards compat
+  {
+    auto stmts = split_batch("create schema $$fo;o$$;", false, false, false);
+    ASSERT_EQ(2, stmts.size());
+    EXPECT_EQ("create schema $$fo;", stmts[0]);
+    EXPECT_EQ("o$$;", stmts[1]);
+  }
+}
+
+TEST_P(Statement_splitter, dollar_quoted_strings) {
+  // $$ that are quotes
+  {
+    auto stmts = split_batch(R"*(a;$$;$$;c;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a;", stmts[0]);
+    EXPECT_EQ("$$;$$;", stmts[1]);
+    EXPECT_EQ("c;", stmts[2]);
+  }
+  {
+    auto stmts = split_batch(R"*(a;$b $$;$$;c;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a;", stmts[0]);
+    EXPECT_EQ("$b $$;$$;", stmts[1]);
+    EXPECT_EQ("c;", stmts[2]);
+  }
+  {
+    auto stmts = split_batch(R"*(a;$b $xxxxxxxxx$;$xxxxxxxxx$;c;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a;", stmts[0]);
+    EXPECT_EQ("$b $xxxxxxxxx$;$xxxxxxxxx$;", stmts[1]);
+    EXPECT_EQ("c;", stmts[2]);
+  }
+  {
+    auto stmts = split_batch(R"*(a;$123$;$123$;c;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a;", stmts[0]);
+    EXPECT_EQ("$123$;$123$;", stmts[1]);
+    EXPECT_EQ("c;", stmts[2]);
+  }
+
+  // others
+  {
+    auto stmts = split_batch(R"*(a 1;$b $$;$$;a;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a 1;", stmts[0]);
+    EXPECT_EQ("$b $$;$$;", stmts[1]);
+    EXPECT_EQ("a;", stmts[2]);
+  }
+  {
+    auto stmts = split_batch(R"*(a 1;$$;$$-$b;a$$a;)*");
+    ASSERT_EQ(3, stmts.size());
+    EXPECT_EQ("a 1;", stmts[0]);
+    EXPECT_EQ("$$;$$-$b;", stmts[1]);
+    EXPECT_EQ("a$$a;", stmts[2]);
+  }
+  {
+    auto stmts = split_batch(R"*(select 1;select $$foobar$$;)*");
+    ASSERT_EQ(2, stmts.size());
+    EXPECT_EQ("select 1;", stmts[0]);
+    EXPECT_EQ("select $$foobar$$;", stmts[1]);
+  }
+  {
+    auto stmts = split_batch(
+        R"*(select 1;select $$foobar;$$;select '$$';select '$$';)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("select 1;", stmts[0]);
+    EXPECT_EQ("select $$foobar;$$;", stmts[1]);
+    EXPECT_EQ("select '$$';", stmts[2]);
+    EXPECT_EQ("select '$$';", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(
+        R"*(select 1;select $tag$foobar;`"'$tag$;select '$$';select '$$';)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("select 1;", stmts[0]);
+    EXPECT_EQ("select $tag$foobar;`\"'$tag$;", stmts[1]);
+    EXPECT_EQ("select '$$';", stmts[2]);
+    EXPECT_EQ("select '$$';", stmts[3]);
+  }
+  {
+    auto stmts = split_batch(
+        R"*(select 1;create function testfun(a int)
+returns int
+deterministic language javascript
+$code$
+  /* select 1;
+  /*! select 2;
+  select $$bla$$; // '
+  /*+ return 0;
+-- $code$;)*");
+    ASSERT_EQ(2, stmts.size());
+    EXPECT_EQ("select 1;", stmts[0]);
+    EXPECT_EQ(R"*(create function testfun(a int)
+returns int
+deterministic language javascript
+$code$
+  /* select 1;
+  /*! select 2;
+  select $$bla$$; // '
+  /*+ return 0;
+-- $code$;)*",
+              stmts[1]);
+  }
+  {
+    auto stmts = split_batch(
+        R"*(select 1;select $tág$foobar;'"'$tág$;select '$$';select '$$';)*");
+    ASSERT_EQ(4, stmts.size());
+    EXPECT_EQ("select 1;", stmts[0]);
+    EXPECT_EQ("select $tág$foobar;'\"'$tág$;", stmts[1]);
+    EXPECT_EQ("select '$$';", stmts[2]);
+    EXPECT_EQ("select '$$';", stmts[3]);
+  }
 }
 
 namespace {
