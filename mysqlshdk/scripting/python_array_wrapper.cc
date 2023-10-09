@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -287,6 +287,10 @@ static PyTypeObject Array_object_type = {
     0  // tp_print
 #endif
 #endif
+#if PY_VERSION_HEX >= 0x030C0000
+    ,
+    0  // tp_watched
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -452,6 +456,10 @@ static PyTypeObject Array_object_iterator_type = {
     0  // tp_print
 #endif
 #endif
+#if PY_VERSION_HEX >= 0x030C0000
+    ,
+    0  // tp_watched
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -599,6 +607,10 @@ static PyTypeObject Array_object_reverse_iterator_type = {
     ,
     0  // tp_print
 #endif
+#endif
+#if PY_VERSION_HEX >= 0x030C0000
+    ,
+    0  // tp_watched
 #endif
 };
 
