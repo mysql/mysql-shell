@@ -91,7 +91,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   List getWarnings();
   Bool nextDataSet();
   Bool nextResult();
-  Srting getStatementId();
+  String getStatementId();
 #elif DOXYGEN_PY
   int affected_items_count;  //!< Same as get_affected_items_count()
   /**
