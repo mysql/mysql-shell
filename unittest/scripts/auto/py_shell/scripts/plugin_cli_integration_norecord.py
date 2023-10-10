@@ -177,7 +177,7 @@ call_mysqlsh(["--", "cli_tester", "test", "1,2,3,4,5", "\"1,2\"", "3", "\"4,5\""
 
 #@ Escaped comma in list parsing
 # - In list parameters, the comma is NOT used as item delimiter
-call_mysqlsh(["--", "cli_tester", "test", "1,2,3,4,5", "1\,2", "3", "4\,5", "--namedstr=1,2,3,4,5", "--str=1,2,3,4,5", "--strlist=1\,2", "--strlist=3", "--strlist=4\,5"])
+call_mysqlsh(["--", "cli_tester", "test", "1,2,3,4,5", "1\\,2", "3", "4\\,5", "--namedstr=1,2,3,4,5", "--str=1,2,3,4,5", "--strlist=1\\,2", "--strlist=3", "--strlist=4\\,5"])
 
 #@ Escaped quoting: \", \'
 # - In simple strings the escaped char (\") will be turned into the quote (").
@@ -187,7 +187,7 @@ call_mysqlsh(["--", "cli_tester", "test", "\'1\',2,3,4,5", "\'1\',2", "3", "\'4\
 
 #@ Escaped equal: \=
 # - It is turned into the target character (=)
-call_mysqlsh(["--", "cli_tester", "test", "\=1,2,3,4,5", "1\=2", "3", "4\=5", "--namedstr=\=1,2,3,4\=5", "--str=\=1,2,3,4\=5", "--strlist=1\=2", "--strlist=3", "--strlist=4\=5"])
+call_mysqlsh(["--", "cli_tester", "test", "\\=1,2,3,4,5", "1\\=2", "3", "4\\=5", "--namedstr=\\=1,2,3,4\\=5", "--str=\\=1,2,3,4\\=5", "--strlist=1\\=2", "--strlist=3", "--strlist=4\\=5"])
 
 #@ CLI calling plugin nested grand child function
 call_mysqlsh(["--", "cli_tester", "emptyChild", "grandChild", "grand-child-function", "Success!!"])
@@ -256,7 +256,7 @@ shell.add_extension_object_member(obj, "printDefaults", print_defaults, {
           "name": "four",
           "brief": "optional dictionary parameter",
           "type": "dictionary",
-          "required": False, 
+          "required": False,
           "options": [
             {
                 "name": "option2",

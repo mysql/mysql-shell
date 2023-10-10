@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -821,6 +821,7 @@ Value Python_context::execute_interactive(const std::string &code,
     // that would indicate that the command is not complete and needs more
     // input til it's completed
     PyErr_Fetch(&exc, &value, &tb);
+    PyErr_NormalizeException(&exc, &value, &tb);
     if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError) ||
         PyErr_GivenExceptionMatches(exc, PyExc_IndentationError)) {
       // If there's no more input then the interpreter should not continue in
@@ -828,15 +829,20 @@ Value Python_context::execute_interactive(const std::string &code,
       if (!flush) {
         const char *msg;
         PyObject *obj;
-        if (PyArg_ParseTuple(value, "sO", &msg, &obj)) {
+        const py::Release args{PyObject_GetAttrString(value, "args")};
+
+        if (args && PyTuple_Check(args.get()) &&
+            PyArg_ParseTuple(args.get(), "sO", &msg, &obj)) {
           using namespace std::literals;
 
           constexpr auto unexpected_character =
               "unexpected character after line continuation character"sv;
           constexpr auto eof_while_scanning =
               "EOF while scanning triple-quoted string literal"sv;
+          // unterminated triple-quoted string literal, or
+          // unterminated triple-quoted f-string literal
           constexpr auto unterminated_triple_quoted =
-              "unterminated triple-quoted string literal"sv;
+              "unterminated triple-quoted "sv;
           // "'%c' was never closed"
           constexpr auto was_never_closed = "was never closed"sv;
           constexpr auto unexpected_eof = "unexpected EOF while parsing"sv;
