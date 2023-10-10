@@ -33,7 +33,8 @@
         Version="$(var.CPACK_PACKAGE_VERSION)"
         Manufacturer="$(var.CPACK_PACKAGE_VENDOR)"
         UpgradeCode="$(var.CPACK_WIX_UPGRADE_GUID)"
-        InstallerVersion="301">
+        InstallerVersion="301"
+        Scope="perMachine">
 
         <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
 
@@ -130,11 +131,32 @@
             Impersonate="no" />
         <?endif?>
 
+        <?if "1" = "@CPACK_WIX_MYSQLSH_USE_CUSTOM_ACTION@" ?>
+        <!-- Part of fix for BUG#35869936 -->
+        <Binary Id="MySQLCA" SourceFile="@CPACK_WIX_MYSQLSH_CUSTOM_ACTION_DLL@" />
+        <CustomAction Id="SetAllUsers" DllEntry="SetAllUsers" Execute="immediate" Impersonate="yes" Return="check" BinaryRef="MySQLCA" />
+        <CustomAction Id="RevertAllUsers" DllEntry="RevertAllUsers" Execute="immediate" Impersonate="yes" Return="check" BinaryRef="MySQLCA" />
+        <?endif?>
+
         <InstallExecuteSequence>
             <?if "1" = "@CPACK_WIX_WITH_PYTHON@" ?>
             <Custom Action="CleanupPycPython" Before="CleanupCachePython" Condition="REMOVE=&quot;ALL&quot;" />
             <Custom Action="CleanupCachePython" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
             <?endif?>
+
+            <?if "1" = "@CPACK_WIX_MYSQLSH_USE_CUSTOM_ACTION@" ?>
+            <!-- Part of fix for BUG#35869936 -->
+            <Custom Action="SetAllUsers" Before="FindRelatedProducts" Condition="NOT UPGRADINGPRODUCTCODE" />
+            <Custom Action="RevertAllUsers" After="FindRelatedProducts" Condition="NOT UPGRADINGPRODUCTCODE" />
+            <?endif?>
         </InstallExecuteSequence>
+
+        <InstallUISequence>
+            <?if "1" = "@CPACK_WIX_MYSQLSH_USE_CUSTOM_ACTION@" ?>
+            <!-- Part of fix for BUG#35869936 -->
+            <Custom Action="SetAllUsers" Before="FindRelatedProducts" Condition="NOT UPGRADINGPRODUCTCODE" />
+            <Custom Action="RevertAllUsers" After="FindRelatedProducts" Condition="NOT UPGRADINGPRODUCTCODE" />
+            <?endif?>
+        </InstallUISequence>
     </Package>
 </Wix>
