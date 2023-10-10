@@ -780,8 +780,15 @@ void replace_list_concat() {
     Array_object_type.tp_base->tp_as_sequence->sq_concat = new_list_concat;
 
     // replace list.__add__ as well
-    const auto add = (PyWrapperDescrObject *)PyDict_GetItemString(
-        Array_object_type.tp_base->tp_dict, "__add__");
+    const auto dict =
+#if PY_VERSION_HEX >= 0x030C0000
+        PyType_GetDict(Array_object_type.tp_base)
+#else
+        Array_object_type.tp_base->tp_dict
+#endif
+        ;
+    const auto add =
+        (PyWrapperDescrObject *)PyDict_GetItemString(dict, "__add__");
 
     assert(add);
     assert((binaryfunc)add->d_wrapped == old_list_concat);

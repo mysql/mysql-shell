@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -512,7 +512,7 @@ class PluginRegistrar:
             brief = []
 
             match = re.match(
-                "^(\*\*)?([a-z|A-Z|_][a-z|A-Z|0-9|_]*)(\\s(\\(([a-z|,|\s]+)\\)))?:\\s(.*)$", param_doc)
+                "^(\\*\\*)?([a-z|A-Z|_][a-z|A-Z|0-9|_]*)(\\s(\\(([a-z|,|\\s]+)\\)))?:\\s(.*)$", param_doc)
 
             if match:
                 options_section = None

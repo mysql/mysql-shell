@@ -125,7 +125,7 @@ def EXPECT_MYSQLSH_SYSLOG(argv, uri=uri, stdin=""):
     if not statements:
         raise Exception("No statements to execute")
     # split statements into array, trim white-space, remove empty strings, strip "\sql " prefix
-    statements = [s[len("\sql "):] if s.startswith("\sql ") else s for s in [s for s in [s.strip() for s in statements.split("\n")] if s]]
+    statements = [s[len("\\sql "):] if s.startswith("\\sql ") else s for s in [s for s in [s.strip() for s in statements.split("\n")] if s]]
     # handle --histignore
     if "--histignore" in argv:
         filters = [glob_to_regexp(s) for s in argv[argv.index("--histignore") + 1].split(":")]
@@ -187,56 +187,56 @@ EXPECT_STDOUT_CONTAINS("""
 EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="SELECT 'TSFR_2_2 - 1';")
 
 #@<> WL14358-TSFR_2_2 - 2
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\\. {0}".format(sql_script))
 
 #@<> WL14358-TSFR_2_2 - 3
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--py" ], stdin="\sql SELECT 'TSFR_2_2 - 3';")
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--py" ], stdin="\\sql SELECT 'TSFR_2_2 - 3';")
 
 #@<> WL14358-TSFR_2_3 - 1
 EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="SELECT 'TSFR_2_3 - 1';")
 
 #@<> WL14358-TSFR_2_3 - 2
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\\. {0}".format(sql_script))
 
 #@<> other commands executed in SQL mode should not be logged
 EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="""
-\connect
-\c
-\disconnect
-\help
-\?
-\h
-\history
-\js
-\sql
+\\connect
+\\c
+\\disconnect
+\\help
+\\?
+\\h
+\\history
+\\js
+\\sql
 \\nopager
 \\nowarnings
-\w
-\option
-\pager
-\P
-\py
-\sql
+\\w
+\\option
+\\pager
+\\P
+\\py
+\\sql
 \\reconnect
 \\rehash
-\show
-\sql
-\status
-\s
-\system
-\!
+\\show
+\\sql
+\\status
+\\s
+\\system
+\\!
 \\use
 \\u
-\warnings
-\W
-\watch
-\q
+\\warnings
+\\W
+\\watch
+\\q
 """)
 
 #@<> WL14358-TSFR_2_3 - 3
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py" ], stdin="\sql SELECT 'TSFR_2_3 - 3';")
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py" ], stdin="\\sql SELECT 'TSFR_2_3 - 3';")
 
 #@<> WL14358-TSFR_2_4 - 1
 persist_syslog_option(True)
@@ -245,13 +245,13 @@ unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_4 - 2
 persist_syslog_option(True)
-EXPECT_MYSQLSH_SYSLOG([ "-i", "--sql" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_SYSLOG([ "-i", "--sql" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-i", "--sql" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-i", "--sql" ], stdin="\\. {0}".format(sql_script))
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_4 - 3
 persist_syslog_option(True)
-EXPECT_MYSQLSH_SYSLOG([ "-i", "--py" ], stdin="\sql SELECT 'TSFR_2_4 - 3';")
+EXPECT_MYSQLSH_SYSLOG([ "-i", "--py" ], stdin="\\sql SELECT 'TSFR_2_4 - 3';")
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_5 - 1
@@ -261,13 +261,13 @@ unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_5 - 2
 persist_syslog_option(False)
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--sql" ], stdin="\\. {0}".format(sql_script))
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_5 - 3
 persist_syslog_option(False)
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--py" ], stdin="\sql SELECT 'TSFR_2_5 - 3';")
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--py" ], stdin="\\sql SELECT 'TSFR_2_5 - 3';")
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_6 - 1
@@ -277,13 +277,13 @@ unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_6 - 2
 persist_syslog_option(False)
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="\\. {0}".format(sql_script))
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_6 - 3
 persist_syslog_option(False)
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py" ], stdin="\sql SELECT 'TSFR_2_6 - 3';")
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py" ], stdin="\\sql SELECT 'TSFR_2_6 - 3';")
 unpersist_syslog_option()
 
 #@<> WL14358-TSFR_2_7
@@ -334,16 +334,16 @@ EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNO
 EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNORE*" ], stdin="SELECT 'TSFR_2_16 - 1';")
 
 #@<> WL14358-TSFR_2_16 - 2
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*" + sql_script_filename + "*" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*" + sql_script_filename + "*" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*" + sql_script_filename + "*" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*" + sql_script_filename + "*" ], stdin="\\. {0}".format(sql_script))
 
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNORE*" ], stdin="\source {0}".format(sql_script))
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNORE*" ], stdin="\. {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNORE*" ], stdin="\\source {0}".format(sql_script))
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--sql", "--histignore", "*IGNORE*" ], stdin="\\. {0}".format(sql_script))
 
 #@<> WL14358-TSFR_2_16 - 3
-EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--py", "--histignore", "*IGNORE*" ], stdin="\sql SELECT 'IGNORE';")
+EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--py", "--histignore", "*IGNORE*" ], stdin="\\sql SELECT 'IGNORE';")
 
-EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py", "--histignore", "*IGNORE*" ], stdin="\sql SELECT 'TSFR_2_16 - 3';")
+EXPECT_MYSQLSH_SYSLOG([ "-ifull", "--syslog", "--py", "--histignore", "*IGNORE*" ], stdin="\\sql SELECT 'TSFR_2_16 - 3';")
 
 #@<> WL14358-TSFR_2_17
 EXPECT_MYSQLSH_NO_SYSLOG([ "-i", "--syslog", "--sql", "--histignore", "*IGNORE*", "-e", "SELECT 'IGNORE';" ])
