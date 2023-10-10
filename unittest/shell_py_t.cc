@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,16 +85,15 @@ TEST_F(Shell_python, help) {
   output_handler.feed_to_prompt("");
   execute("help()");
 
-#if PY_VERSION_HEX >= 0x030b0000
-  // starting with Python 3.11, querying for a non-existing entry results in an
-  // exception
+#if PY_VERSION_HEX == 0x030b0000
+  // Python 3.11, querying for a non-existing entry results in an exception
   MY_EXPECT_STDERR_CONTAINS(
       "ImportError: No Python documentation found for 'spam'");
-#else   // PY_VERSION_HEX < 0x030b0000
+#else   // PY_VERSION_HEX != 0x030b0000
   MY_EXPECT_STDOUT_CONTAINS("No Python documentation found for 'spam'");
   MY_EXPECT_STDOUT_CONTAINS(
       "You are now leaving help and returning to the Python interpreter");
-#endif  // PY_VERSION_HEX < 0x030b0000
+#endif  // PY_VERSION_HEX != 0x030b0000
 }
 #endif
 

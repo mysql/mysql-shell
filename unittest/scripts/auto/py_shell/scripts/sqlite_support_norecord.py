@@ -37,8 +37,11 @@ def test_full_text_search(module_name):
 
 
 #@<> SQLite module and library information
-print("sqlite3.version:", sqlite3.version)
-print("sqlite3.version_info:", sqlite3.version_info)
+print("Python version:", sys.version)
+if sys.hexversion < 0x030C0000:
+    # deprecated in 3.12, removed in 3.14
+    print("sqlite3.version:", sqlite3.version)
+    print("sqlite3.version_info:", sqlite3.version_info)
 print("sqlite3.sqlite_version:", sqlite3.sqlite_version)
 print("sqlite3.sqlite_version_info:", sqlite3.sqlite_version_info)
 print("sqlite3.__file__:", sqlite3.__file__)
