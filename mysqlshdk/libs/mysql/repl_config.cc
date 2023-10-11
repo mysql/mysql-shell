@@ -262,8 +262,12 @@ void check_server_variables_compatibility(
     }
   }
 
-  requirements.push_back(Requirement("transaction_write_set_extraction",
-                                     {"XXHASH64", "2", "MURMUR32", "1"}, true));
+  // transaction_write_set_extraction is removed in 8.3.0
+  if (instance_version < utils::Version(8, 3, 0)) {
+    requirements.push_back(Requirement("transaction_write_set_extraction",
+                                       {"XXHASH64", "2", "MURMUR32", "1"},
+                                       true));
+  }
 
   // Check parallel-applier settings
   // NOTE: Only for instances with version >= 8.0.23

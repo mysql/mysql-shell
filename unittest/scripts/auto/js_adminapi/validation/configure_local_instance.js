@@ -164,7 +164,6 @@ Configuring instance...
 | replica_preserve_commit_order          | <not set>     | ON             | Update the config file                        |
 | report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                              | 1             | <unique ID>    | Update the config file and restart the server |
-| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file                        |
 +----------------------------------------+---------------+----------------+-----------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.

@@ -464,7 +464,6 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 | replica_preserve_commit_order          | <not set>     | ON             | Update the config file                        |
 | report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                              | 1             | <unique ID>    | Update the config file and restart the server |
-| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file                        |
 +----------------------------------------+---------------+----------------+-----------------------------------------------+
 ?{}
 

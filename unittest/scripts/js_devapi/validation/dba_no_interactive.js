@@ -87,7 +87,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.26)}
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.26) && VER(<8.3.0)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
@@ -100,6 +100,20 @@ NOTE: Some configuration options need to be fixed:
 | report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
 | server_id                              | <not set>     | <unique ID>    | Update the config file |
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
++----------------------------------------+---------------+----------------+------------------------+
+
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.3.0)}
++----------------------------------------+---------------+----------------+------------------------+
+| Variable                               | Current Value | Required Value | Note                   |
++----------------------------------------+---------------+----------------+------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file |
+| binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
+| enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
+| gtid_mode                              | OFF           | ON             | Update the config file |
+| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file |
+| replica_preserve_commit_order          | <not set>     | ON             | Update the config file |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                              | <not set>     | <unique ID>    | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
@@ -192,7 +206,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.26)}
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.26) && VER(<8.3.0)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
@@ -205,6 +219,20 @@ NOTE: Some configuration options need to be fixed:
 | report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
 | server_id                              | <not set>     | <unique ID>    | Update the config file |
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
++----------------------------------------+---------------+----------------+------------------------+
+
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.3.0)}
++----------------------------------------+---------------+----------------+------------------------+
+| Variable                               | Current Value | Required Value | Note                   |
++----------------------------------------+---------------+----------------+------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file |
+| binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
+| enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
+| gtid_mode                              | OFF           | ON             | Update the config file |
+| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file |
+| replica_preserve_commit_order          | <not set>     | ON             | Update the config file |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                              | <not set>     | <unique ID>    | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
 Configuring instance...

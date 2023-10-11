@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -618,6 +618,11 @@ def create_sandbox(**kwargs):
     if mysqld_ver < (8, 0, 11):
         opt_dict["mysqld"]["plugin_load"] = \
             "mysqlx.so" if os.name == "posix" else "mysqlx.dll"
+
+    # transaction_write_set_extraction was removed in 8.3.0
+    if mysqld_ver >= (8, 3, 0):
+        del opt_dict["mysqld"]["transaction_write_set_extraction"]
+
     if opt_override_dict:
         # If port is one of the options to override raise exception
         _LOGGER.debug("Adding/Overriding option file values.")

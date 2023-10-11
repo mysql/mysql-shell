@@ -27,7 +27,9 @@ EXPECT_THROWS(function() { dba.createCluster('dev', {memberSslMode:'REQUIRED', g
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "DATABASE");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "OFF");
-testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "OFF");
+if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "OFF");
+}
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 
@@ -38,7 +40,9 @@ EXPECT_THROWS(function() { dba.createCluster('dev', {memberSslMode:'REQUIRED', g
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "WRITESET");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "LOGICAL_CLOCK");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "ON");
-testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "XXHASH64");
+if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "XXHASH64");
+}
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "ROW");
 
 testutil.restartSandbox(__mysql_sandbox_port1);
@@ -59,7 +63,9 @@ EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "DATABASE");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "OFF");
-testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "OFF");
+if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "OFF");
+}
 testutil.restartSandbox(__mysql_sandbox_port2);
 
 EXPECT_THROWS(function() { cluster.addInstance(__sandbox_uri2); }, "Instance check failed")
@@ -68,7 +74,9 @@ EXPECT_THROWS(function() { cluster.addInstance(__sandbox_uri2); }, "Instance che
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "WRITESET");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "LOGICAL_CLOCK");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "ON");
-testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "XXHASH64");
+if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "XXHASH64");
+}
 testutil.restartSandbox(__mysql_sandbox_port2);
 
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); })

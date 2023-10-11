@@ -87,6 +87,12 @@ session2.close();
 testutil.changeSandboxConf(__mysql_sandbox_port1, 'loose_group_replication_start_on_boot', 'OFF');
 testutil.changeSandboxConf(__mysql_sandbox_port2, 'loose_group_replication_start_on_boot', 'OFF');
 
+// transaction_write_set_extraction was removed in 8.3.0
+if (__version_num >= 80300) {
+    testutil.removeFromSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction");
+    testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");
+}
+
 testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
 testutil.upgradeSandbox(__mysql_sandbox_port1);

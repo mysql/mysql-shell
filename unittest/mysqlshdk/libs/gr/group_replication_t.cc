@@ -1082,7 +1082,8 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
   } else {
-    if (!parallel_appliers_required) {
+    if (!parallel_appliers_required ||
+        (m_instance->get_version() >= mysqlshdk::utils::Version(8, 3, 0))) {
       ASSERT_EQ(6, res.size());
     } else {
       ASSERT_EQ(7, res.size());
@@ -1140,13 +1141,16 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).restart, false);
   }
 
-  i = find("transaction_write_set_extraction");
-  EXPECT_STREQ(res.at(i).var_name.c_str(), "transaction_write_set_extraction");
-  EXPECT_STREQ(res.at(i).current_val.c_str(),
-               mysqlshdk::mysql::k_value_not_set);
-  EXPECT_STREQ(res.at(i).required_val.c_str(), "XXHASH64");
-  EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-  EXPECT_EQ(res.at(i).restart, false);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
+    i = find("transaction_write_set_extraction");
+    EXPECT_STREQ(res.at(i).var_name.c_str(),
+                 "transaction_write_set_extraction");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "XXHASH64");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+  }
 
   if (parallel_appliers_required) {
     i = find("binlog_transaction_dependency_tracking");
@@ -1218,7 +1222,8 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_TRUE(res.at(i).types.is_set(Config_type::SERVER));
     EXPECT_EQ(res.at(i).restart, false);
   } else {
-    if (parallel_appliers_required) {
+    if (parallel_appliers_required &&
+        (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0))) {
       ASSERT_EQ(8, res.size());
     } else {
       ASSERT_EQ(7, res.size());

@@ -102,10 +102,12 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
+?{VER(<8.3.0)}
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
                 },
+?{}
                 {
                     "option": "certSubject",
                     "value": ""
@@ -183,10 +185,12 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
+?{VER(<8.3.0)}
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
                 },
+?{}
                 {
                     "option": "certSubject",
                     "value": ""
@@ -324,10 +328,12 @@
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
+?{VER(<8.3.0)}
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
                 },
+?{}
                 {
                     "option": "certSubject",
                     "value": ""
@@ -385,10 +391,12 @@
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
+?{VER(<8.3.0)}
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-                },
+                }
+?{}
                 {
                     "option": "certSubject",
                     "value": ""

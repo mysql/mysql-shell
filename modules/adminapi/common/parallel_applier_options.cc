@@ -23,7 +23,8 @@
 
 #include "modules/adminapi/common/parallel_applier_options.h"
 
-#include "mysqlshdk/libs/mysql/repl_config.h"
+#include "adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
@@ -80,6 +81,16 @@ Parallel_applier_options::get_required_values(
     req_cfgs.pop_back();
   }
 
+  // transaction_writeset_extraction is removed in 8.3.0
+  if (version >= k_transaction_writeset_extraction_removed) {
+    req_cfgs.erase(std::remove_if(req_cfgs.begin(), req_cfgs.end(),
+                                  [](const auto &cfg) {
+                                    return std::get<0>(cfg) ==
+                                           kTransactionWriteSetExtraction;
+                                  }),
+                   req_cfgs.end());
+  }
+
   return req_cfgs;
 }
 
@@ -94,7 +105,11 @@ Parallel_applier_options::get_current_settings(
       version, kReplicaPreserveCommitOrder)] = replica_preserve_commit_order;
   ret_val[kBinlogTransactionDependencyTracking] =
       binlog_transaction_dependency_tracking;
-  ret_val[kTransactionWriteSetExtraction] = transaction_write_set_extraction;
+
+  if (version < k_transaction_writeset_extraction_removed) {
+    ret_val[kTransactionWriteSetExtraction] = transaction_write_set_extraction;
+  }
+
   ret_val[mysqlshdk::mysql::get_replication_option_keyword(
       version, kReplicaParallelWorkers)] =
       std::to_string(replica_parallel_workers.value_or(0));

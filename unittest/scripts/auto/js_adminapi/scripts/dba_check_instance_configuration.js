@@ -163,7 +163,11 @@ EXPECT_STDOUT_CONTAINS("Instance configuration is compatible with InnoDB cluster
 session.runSql("SET GLOBAL binlog_transaction_dependency_tracking=COMMIT_ORDER");
 session.runSql("SET GLOBAL slave_preserve_commit_order=OFF");
 session.runSql("SET GLOBAL slave_parallel_type='DATABASE'");
-session.runSql("SET GLOBAL transaction_write_set_extraction=OFF");
+
+if (__version_num < 80300) {
+  session.runSql("SET GLOBAL transaction_write_set_extraction=OFF");
+}
+
 dba.checkInstanceConfiguration();
 
 //@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.0.21)}

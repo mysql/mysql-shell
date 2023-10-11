@@ -42,6 +42,9 @@ inline const mysqlshdk::utils::Version k_paxos_single_leader_initial_version(
 
 inline const mysqlshdk::utils::Version k_view_change_uuid_deprecated(8, 3, 0);
 
+inline const mysqlshdk::utils::Version
+    k_transaction_writeset_extraction_removed(8, 3, 0);
+
 // Feature getters
 
 std::string get_communication_stack(

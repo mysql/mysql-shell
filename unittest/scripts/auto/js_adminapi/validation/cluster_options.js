@@ -158,11 +158,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -256,11 +258,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -354,11 +358,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ]
         }
@@ -1094,11 +1100,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -1439,11 +1447,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -1784,11 +1794,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ]
         }
@@ -2699,10 +2711,12 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -2772,10 +2786,12 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -2845,10 +2861,12 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ]
         }
@@ -3154,11 +3172,13 @@
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {

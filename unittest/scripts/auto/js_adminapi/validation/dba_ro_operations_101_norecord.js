@@ -370,8 +370,8 @@ ${*}
                 {
                     "option": "certSubject",
                     "value": ""
-                },
 ?{VER(<8.0.23)}
+                },
                 {
                     "value": "COMMIT_ORDER",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -387,9 +387,9 @@ ${*}
                 {
                     "value": "OFF",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
 ?{VER(>=8.0.23)}
+                },
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -405,11 +405,13 @@ ${*}
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -473,8 +475,8 @@ ${*}
                 {
                     "option": "certSubject",
                     "value": ""
-                },
 ?{VER(<8.0.23)}
+                },
                 {
                     "value": "COMMIT_ORDER",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -490,9 +492,9 @@ ${*}
                 {
                     "value": "OFF",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
 ?{VER(>=8.0.23)}
+                },
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -508,11 +510,13 @@ ${*}
                 {
                     "value": "ON",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-                },
 ?{}
+?{VER(<8.3.0)}
+                },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
+?{}
                 }
             ]
         }
