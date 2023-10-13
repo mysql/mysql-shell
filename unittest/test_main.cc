@@ -70,6 +70,8 @@ int g_test_trace_scripts = 0;
 int g_test_default_verbosity = 0;
 bool g_test_fail_early = false;
 int g_test_color_output = 0;
+// timeout for execution of a single statement of a test script (seconds)
+int g_test_script_timeout = 10 * 60;
 bool g_bp = false;
 std::set<int> g_break;
 
@@ -1036,6 +1038,9 @@ int main(int argc, char **argv) {
       g_profile_test_scripts = 1;
     } else if (strcmp(argv[index], "-P") == 0) {
       g_profile_test_scripts = 2;
+    } else if (shcore::str_beginswith(argv[index], "--timeout=")) {
+      // timeout for script tests in seconds
+      g_test_script_timeout = std::stod(strchr(argv[index], '=') + 1);
     } else if (strcmp(argv[index], "--show-skipped") == 0) {
       show_all_skipped = true;
     } else if (strcmp(argv[index], "--only-failures") == 0) {

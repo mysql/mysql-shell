@@ -167,6 +167,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   bool has_openssl_binary();
 
  private:
+  friend class Timeout;
   // Chunks of code will be stored here
   std::string _filename;
   std::map<std::string, Chunk_t> _chunks;
