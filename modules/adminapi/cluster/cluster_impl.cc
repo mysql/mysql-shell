@@ -215,22 +215,22 @@ void Cluster_impl::verify_topology_type_change() const {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
 
-  std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(*get_cluster_server(), nullptr);
+  bool single_primary_mode;
+  mysqlshdk::gr::get_group_primary_uuid(*get_cluster_server(),
+                                        &single_primary_mode);
 
   // Check if the topology type matches the real settings used by the
   // cluster instance, otherwise an error is issued.
   // NOTE: The GR primary mode is guaranteed (by GR) to be the same for all
   // instance of the same group.
-  if (!gr_primary_uuid.empty() &&
-      get_cluster_topology_type() ==
-          mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
+  if (single_primary_mode && get_cluster_topology_type() ==
+                                 mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
     throw shcore::Exception::runtime_error(
         "The InnoDB Cluster topology type (Multi-Primary) does not match the "
         "current Group Replication configuration (Single-Primary). Please "
         "use <cluster>.rescan() or change the Group Replication "
         "configuration accordingly.");
-  } else if (gr_primary_uuid.empty() &&
+  } else if (!single_primary_mode &&
              get_cluster_topology_type() ==
                  mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY) {
     throw shcore::Exception::runtime_error(
@@ -487,27 +487,28 @@ void Cluster_impl::execute_in_read_replicas(
 
 mysqlshdk::db::Connection_options Cluster_impl::pick_seed_instance() const {
   bool single_primary;
-  std::string primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
+  auto primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
       *get_cluster_server(), &single_primary);
-  if (single_primary) {
-    if (!primary_uuid.empty()) {
-      Instance_metadata info =
-          get_metadata_storage()->get_instance_by_uuid(primary_uuid);
 
-      mysqlshdk::db::Connection_options coptions(info.endpoint);
-      mysqlshdk::db::Connection_options group_session_target(
-          get_cluster_server()->get_connection_options());
-
-      coptions.set_login_options_from(group_session_target);
-
-      return coptions;
-    }
-    throw shcore::Exception::runtime_error(
-        "Unable to determine a suitable peer instance to join the group");
-  } else {
+  if (!single_primary) {
     // instance we're connected to should be OK if we're multi-master
     return get_cluster_server()->get_connection_options();
   }
+
+  if (primary_uuid.empty())
+    throw shcore::Exception::runtime_error(
+        "Unable to determine a suitable peer instance to join the group");
+
+  Instance_metadata info =
+      get_metadata_storage()->get_instance_by_uuid(primary_uuid);
+
+  mysqlshdk::db::Connection_options coptions(info.endpoint);
+  mysqlshdk::db::Connection_options group_session_target(
+      get_cluster_server()->get_connection_options());
+
+  coptions.set_login_options_from(group_session_target);
+
+  return coptions;
 }
 
 void Cluster_impl::validate_variable_compatibility(

@@ -52,8 +52,9 @@ void Set_primary_instance::ensure_single_primary_mode() {
   // metadata and if not, throw immediately
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *m_cluster->get_cluster_server(), nullptr);
+  bool single_primary;
+  mysqlshdk::gr::get_group_primary_uuid(*m_cluster->get_cluster_server(),
+                                        &single_primary);
 
   // Get the topology mode from the metadata.
   mysqlshdk::gr::Topology_mode metadata_topology_mode =
@@ -62,22 +63,21 @@ void Set_primary_instance::ensure_single_primary_mode() {
 
   // Check if the topology mode match and report needed change in the
   // metadata.
-  if ((gr_primary_uuid.empty() &&
-       metadata_topology_mode ==
-           mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY) ||
-      (!gr_primary_uuid.empty() &&
+  if ((!single_primary && metadata_topology_mode ==
+                              mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY) ||
+      (single_primary &&
        metadata_topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY)) {
     throw shcore::Exception::runtime_error(
         "Operation not allowed: The cluster topology-mode does not match the "
         "one registered in the Metadata. Please use the <Cluster>.rescan() "
         "to repair the issue.");
-  } else {
-    // If the cluster is in multi-primary mode, throw an error
-    if (gr_primary_uuid.empty() &&
-        metadata_topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
-      throw shcore::Exception::runtime_error(
-          "Operation not allowed: The cluster is in Multi-Primary mode.");
-    }
+  }
+
+  // If the cluster is in multi-primary mode, throw an error
+  if (!single_primary &&
+      metadata_topology_mode == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
+    throw shcore::Exception::runtime_error(
+        "Operation not allowed: The cluster is in Multi-Primary mode.");
   }
 }
 

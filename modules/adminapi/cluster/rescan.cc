@@ -428,16 +428,17 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *m_cluster->get_cluster_server(), nullptr);
+  bool single_primary;
+  mysqlshdk::gr::get_group_primary_uuid(*m_cluster->get_cluster_server(),
+                                        &single_primary);
 
   // Check if the topology mode match and report needed change in the metadata.
-  if (gr_primary_uuid.empty() &&
+  if (!single_primary &&
       metadata_topology_mode == mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY) {
     // Topology mode need to be changed to multi-primary on the metadata.
     (*cluster_map)["newTopologyMode"] = shcore::Value(
         mysqlshdk::gr::to_string(mysqlshdk::gr::Topology_mode::MULTI_PRIMARY));
-  } else if (!gr_primary_uuid.empty() &&
+  } else if (single_primary &&
              metadata_topology_mode ==
                  mysqlshdk::gr::Topology_mode::MULTI_PRIMARY) {
     // Topology mode need to be changed to single-primary on the metadata.

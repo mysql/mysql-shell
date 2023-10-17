@@ -156,24 +156,32 @@ Topology_mode to_topology_mode(const std::string &mode) {
  */
 bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
   try {
-    std::shared_ptr<db::IResult> resultset = instance.query(
-        "SELECT NOT @@group_replication_single_primary_mode OR "
-        "    (select variable_value"
-        "       from performance_schema.global_status"
-        "       where variable_name = 'group_replication_primary_member')"
-        "    = @@server_uuid");
-    auto row = resultset->fetch_one();
+    std::string query;
+    if (instance.get_version() >= utils::Version(8, 0, 2)) {
+      query =
+          "SELECT NOT @@group_replication_single_primary_mode OR "
+          "    (select member_id from "
+          "performance_schema.replication_group_members where (member_role = "
+          "'PRIMARY')) = @@server_uuid";
+    } else {
+      query =
+          "SELECT NOT @@group_replication_single_primary_mode OR "
+          "    (select variable_value"
+          "       from performance_schema.global_status"
+          "       where variable_name = 'group_replication_primary_member')"
+          "    = @@server_uuid";
+    }
+    auto res = instance.query(query);
+    auto row = res->fetch_one();
     return (row && row->get_int(0)) != 0;
   } catch (const mysqlshdk::db::Error &e) {
     log_warning("Error checking if member is primary: %s (%i)", e.what(),
                 e.code());
-    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
-      throw std::runtime_error(
-          std::string("Group replication not started (MySQL error ") +
-          std::to_string(e.code()) + ": " + e.what() + ")");
-    } else {
-      throw;
-    }
+    if (e.code() != ER_UNKNOWN_SYSTEM_VARIABLE) throw;
+
+    throw std::runtime_error(
+        shcore::str_format("Group replication not started (MySQL error %d: %s)",
+                           e.code(), e.what()));
   }
 }
 
@@ -357,9 +365,7 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
   }
 
   if (out_single_primary_mode) {
-    // Single primary mode if group_replication_primary_member is not empty.
-    *out_single_primary_mode =
-        !mysqlshdk::gr::get_group_primary_uuid(instance, nullptr).empty();
+    mysqlshdk::gr::get_group_primary_uuid(instance, out_single_primary_mode);
   }
 
   assert(
@@ -396,7 +402,7 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            bool *out_single_primary_mode, bool *out_has_quorum,
                            bool *out_is_primary) {
   try {
-    std::shared_ptr<db::IResult> result(instance.query(
+    std::string query =
         "SELECT @@group_replication_group_name group_name, "
         "NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), "
         "'') group_view_change_uuid, "
@@ -415,49 +421,67 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
         "       where variable_name = 'group_replication_primary_member')"
         " ) is_primary"
         " FROM performance_schema.replication_group_members"
-        " WHERE member_id = @@server_uuid"));
+        " WHERE member_id = @@server_uuid";
+
+    auto result = instance.query(query);
     const db::IRow *row = result->fetch_one();
-    if (row && !row->is_null(0)) {
-      if (out_group_name) *out_group_name = row->get_string(0);
-      if (!row->is_null(1) && out_group_view_change_uuid)
-        *out_group_view_change_uuid = row->get_string(1);
-      if (!row->is_null(2) && out_single_primary_mode)
-        *out_single_primary_mode = (row->get_int(2) != 0);
-      if (out_member_id) *out_member_id = row->get_string(3);
-      if (out_member_state)
-        *out_member_state = to_member_state(row->get_string(4));
-      if (out_has_quorum)
-        *out_has_quorum = row->is_null(5) ? false : row->get_int(5) != 0;
-      if (out_is_primary) *out_is_primary = row->get_int(6, 0);
-      return true;
-    }
-    return false;
+    if (!row || row->is_null(0)) return false;
+
+    if (out_group_name) *out_group_name = row->get_string(0);
+    if (out_group_view_change_uuid && !row->is_null(1))
+      *out_group_view_change_uuid = row->get_string(1);
+    if (out_single_primary_mode && !row->is_null(2))
+      *out_single_primary_mode = (row->get_int(2) != 0);
+    if (out_member_id) *out_member_id = row->get_string(3);
+    if (out_member_state)
+      *out_member_state = to_member_state(row->get_string(4));
+    if (out_has_quorum)
+      *out_has_quorum = row->is_null(5) ? false : row->get_int(5) != 0;
+    if (out_is_primary) *out_is_primary = row->get_int(6, 0);
+
+    return true;
+
   } catch (const mysqlshdk::db::Error &e) {
     log_error("Error while querying for group_replication info: %s", e.what());
-    if (e.code() == ER_BAD_DB_ERROR || e.code() == ER_NO_SUCH_TABLE ||
-        e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
-      // if GR plugin is not installed, we get unknown sysvar
-      // if server doesn't have pfs, we get BAD_DB
-      // if server has pfs but not the GR tables, we get NO_SUCH_TABLE
-      return false;
+    switch (e.code()) {
+      case ER_BAD_DB_ERROR:
+      case ER_NO_SUCH_TABLE:
+      case ER_UNKNOWN_SYSTEM_VARIABLE:
+        // if GR plugin is not installed, we get unknown sysvar
+        // if server doesn't have pfs, we get BAD_DB
+        // if server has pfs but not the GR tables, we get NO_SUCH_TABLE
+        return false;
+      default:
+        throw;
     }
-    throw;
   }
 }
 
 std::string get_group_primary_uuid(const mysqlshdk::mysql::IInstance &instance,
                                    bool *out_single_primary_mode) {
-  auto res = instance.query(
-      "SELECT @@group_replication_single_primary_mode, "
-      "       variable_value AS primary_uuid"
-      "   FROM performance_schema.global_status"
-      "   WHERE variable_name = 'group_replication_primary_member'");
-  const db::IRow *row = res->fetch_one();
-  if (row) {
+  std::string query;
+  // the column "member_role" was only added in 8.0.2
+  if (instance.get_version() >= utils::Version(8, 0, 2)) {
+    query =
+        "SELECT @@group_replication_single_primary_mode, member_id AS "
+        "primary_uuid"
+        "   FROM performance_schema.replication_group_members"
+        "   WHERE (member_role = 'PRIMARY')";
+  } else {
+    query =
+        "SELECT @@group_replication_single_primary_mode, "
+        "       variable_value AS primary_uuid"
+        "   FROM performance_schema.global_status"
+        "   WHERE variable_name = 'group_replication_primary_member'";
+  }
+
+  auto res = instance.query(query);
+  if (auto row = res->fetch_one(); row) {
     if (out_single_primary_mode) *out_single_primary_mode = row->get_int(0);
     if (row->is_null(1)) return "";
     return row->get_string(1);
   }
+
   throw std::logic_error("GR status query returned no rows");
 }
 

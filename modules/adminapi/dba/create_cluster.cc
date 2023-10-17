@@ -428,10 +428,11 @@ void Create_cluster::prepare() {
     if (m_options.get_adopt_from_gr()) {
       // Get the primary UUID value to determine GR mode:
       // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-      std::string gr_primary_uuid =
-          mysqlshdk::gr::get_group_primary_uuid(*m_target_instance, nullptr);
+      bool single_primary;
+      mysqlshdk::gr::get_group_primary_uuid(*m_target_instance,
+                                            &single_primary);
 
-      m_options.multi_primary = gr_primary_uuid.empty();
+      m_options.multi_primary = !single_primary;
     } else {
       // Set the internal configuration object: read/write configs from the
       // server.
