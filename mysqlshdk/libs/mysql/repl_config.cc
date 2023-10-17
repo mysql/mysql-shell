@@ -217,19 +217,22 @@ void check_server_variables_compatibility(
       Requirement("enforce_gtid_consistency", {"ON", "1"}, true),
       Requirement("gtid_mode", {"ON", "1"}, true)};
 
-  // master_info_repository and relay_log_info_repository were deprecated in
-  // 8.0.23 and the setting TABLE is the default since then. So for versions
-  // >= 8.0.23 we can allow that the setting is not set.
-  if (instance_version >= utils::Version(8, 0, 23)) {
-    requirements.push_back(Requirement("master_info_repository",
-                                       {"TABLE", k_value_not_set}, true));
-    requirements.push_back(Requirement("relay_log_info_repository",
-                                       {"TABLE", k_value_not_set}, true));
-  } else {
-    requirements.push_back(
-        Requirement("master_info_repository", {"TABLE"}, true));
-    requirements.push_back(
-        Requirement("relay_log_info_repository", {"TABLE"}, true));
+  // master_info_repository and relay_log_info_repository were removed in 8.3.0
+  if (instance_version < utils::Version(8, 3, 0)) {
+    // master_info_repository and relay_log_info_repository were deprecated in
+    // 8.0.23 and the setting TABLE is the default since then. So for versions
+    // >= 8.0.23 we can allow that the setting is not set.
+    if (instance_version >= utils::Version(8, 0, 23)) {
+      requirements.push_back(Requirement("master_info_repository",
+                                         {"TABLE", k_value_not_set}, true));
+      requirements.push_back(Requirement("relay_log_info_repository",
+                                         {"TABLE", k_value_not_set}, true));
+    } else {
+      requirements.push_back(
+          Requirement("master_info_repository", {"TABLE"}, true));
+      requirements.push_back(
+          Requirement("relay_log_info_repository", {"TABLE"}, true));
+    }
   }
 
   // log_slave_updates is ON by default since 8.0.3

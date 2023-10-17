@@ -1,6 +1,10 @@
-//@<> Setup
+//@<> Setup {VER(<8.3.0)}
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {log_slave_updates:0, master_info_repository:"FILE"});
+
+//@<> Setup {VER(>=8.3.0)}
+testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {log_slave_updates:0});
 
 //@<> configure nothing (should fail)
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},

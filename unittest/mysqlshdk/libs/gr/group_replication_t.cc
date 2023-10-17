@@ -111,26 +111,28 @@ TEST_F(Group_replication_test, plugin_installation) {
   } else {
     // Requirements to install the GR plugin:
     // - server_id != 0
-    // - master_info_repository=TABLE
-    // - relay_log_info_repository=TABLE
+    // - master_info_repository=TABLE (if version is lower than 8.3.0)
+    // - relay_log_info_repository=TABLE (if version is lower than 8.3.0)
     std::optional<int64_t> server_id = m_instance->get_sysvar_int("server_id");
     if (*server_id == 0) {
       SKIP_TEST("Test server does not meet GR requirements: server_id is 0.");
     }
-    std::optional<std::string> master_info_repository =
-        m_instance->get_sysvar_string("master_info_repository");
-    if ((*master_info_repository).compare("TABLE") != 0) {
-      SKIP_TEST(
-          "Test server does not meet GR requirements: master_info_repository "
-          "must be 'TABLE'.");
-    }
-    std::optional<std::string> relay_log_info_repository =
-        m_instance->get_sysvar_string("relay_log_info_repository");
-    if ((*relay_log_info_repository).compare("TABLE") != 0) {
-      SKIP_TEST(
-          "Test server does not meet GR requirements: "
-          "relay_log_info_repository "
-          "must be 'TABLE'.");
+
+    if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
+      auto master_info_repository =
+          m_instance->get_sysvar_string("master_info_repository");
+      if (master_info_repository.value_or("") != "TABLE") {
+        SKIP_TEST(
+            "Test server does not meet GR requirements: master_info_repository "
+            "must be 'TABLE'.");
+      }
+      auto relay_log_info_repository =
+          m_instance->get_sysvar_string("relay_log_info_repository");
+      if (relay_log_info_repository.value_or("") != "TABLE") {
+        SKIP_TEST(
+            "Test server does not meet GR requirements: "
+            "relay_log_info_repository must be 'TABLE'.");
+      }
     }
 
     // GR plugin is installed and activated (if not previously disabled).
@@ -257,20 +259,24 @@ TEST_F(Group_replication_test, start_stop_gr) {
         "Test server does not meet GR requirements: enforce_gtid_consistency "
         "must be ON.");
   }
-  std::optional<std::string> master_info_repository =
-      m_instance->get_sysvar_string("master_info_repository");
-  if ((*master_info_repository).compare("TABLE") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: master_info_repository "
-        "must be 'TABLE'.");
+
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
+    auto master_info_repository =
+        m_instance->get_sysvar_string("master_info_repository");
+    if (master_info_repository.value_or("") != "TABLE") {
+      SKIP_TEST(
+          "Test server does not meet GR requirements: master_info_repository "
+          "must be 'TABLE'.");
+    }
+    auto relay_log_info_repository =
+        m_instance->get_sysvar_string("relay_log_info_repository");
+    if (relay_log_info_repository.value_or("") != "TABLE") {
+      SKIP_TEST(
+          "Test server does not meet GR requirements: "
+          "relay_log_info_repository must be 'TABLE'.");
+    }
   }
-  std::optional<std::string> relay_log_info_repository =
-      m_instance->get_sysvar_string("relay_log_info_repository");
-  if ((*relay_log_info_repository).compare("TABLE") != 0) {
-    SKIP_TEST(
-        "Test server does not meet GR requirements: relay_log_info_repository "
-        "must be 'TABLE'.");
-  }
+
   std::optional<std::string> binlog_checksum =
       m_instance->get_sysvar_string("binlog_checksum");
   if ((*binlog_checksum).compare("NONE") != 0 &&
