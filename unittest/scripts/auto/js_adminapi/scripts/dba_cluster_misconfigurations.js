@@ -25,9 +25,9 @@ EXPECT_THROWS(function() { dba.createCluster('dev', {memberSslMode:'REQUIRED', g
 
 //@<> Dba.createCluster (fail because of bad configuration of parallel-appliers) {VER(>=8.0.23)}
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
-testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "DATABASE");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "OFF");
 if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "DATABASE");
   testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "OFF");
 }
 
@@ -38,9 +38,9 @@ EXPECT_THROWS(function() { dba.createCluster('dev', {memberSslMode:'REQUIRED', g
 
 //@<> Dba.createCluster (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "WRITESET");
-testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "LOGICAL_CLOCK");
 testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "ON");
 if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "LOGICAL_CLOCK");
   testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "XXHASH64");
 }
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "ROW");
@@ -61,9 +61,9 @@ dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port2, {clus
 EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
-testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "DATABASE");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "OFF");
 if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "DATABASE");
   testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "OFF");
 }
 testutil.restartSandbox(__mysql_sandbox_port2);
@@ -72,9 +72,9 @@ EXPECT_THROWS(function() { cluster.addInstance(__sandbox_uri2); }, "Instance che
 
 //@<> Cluster.addInstance (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "WRITESET");
-testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "LOGICAL_CLOCK");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "ON");
 if (__version_num < 80300) {
+  testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "LOGICAL_CLOCK");
   testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "XXHASH64");
 }
 testutil.restartSandbox(__mysql_sandbox_port2);

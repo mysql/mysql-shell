@@ -68,20 +68,6 @@ struct Parallel_applier_options {
       bool skip_transaction_writeset_extraction = false) const;
 
   /**
-   * Get a list of all parallel applier settings
-   *
-   * @return A list with all the parallel applier settings
-   */
-  const std::vector<std::string> &list_settings() const {
-    static const std::vector<std::string> k_parallel_applier_settings{
-        kReplicaParallelType, kReplicaPreserveCommitOrder,
-        kBinlogTransactionDependencyTracking, kTransactionWriteSetExtraction,
-        kReplicaParallelWorkers};
-
-    return k_parallel_applier_settings;
-  }
-
-  /**
    * Get all parallel applier settings and current values
    *
    * @return A list of all parallel applier settings and corresponding values in

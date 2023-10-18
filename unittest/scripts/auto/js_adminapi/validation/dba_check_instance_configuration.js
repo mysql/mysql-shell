@@ -192,7 +192,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 | Variable                               | Current Value | Required Value | Note                       |
 +----------------------------------------+---------------+----------------+----------------------------+
 | binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable |
-| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 | replica_preserve_commit_order          | OFF           | ON             | Update the server variable |
 +----------------------------------------+---------------+----------------+----------------------------+
 
@@ -205,12 +204,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "current": "COMMIT_ORDER",
             "option": "binlog_transaction_dependency_tracking",
             "required": "WRITESET"
-        },
-        {
-            "action": "server_update",
-            "current": "DATABASE",
-            "option": "<<<__replica_keyword>>>_parallel_type",
-            "required": "LOGICAL_CLOCK"
         },
         {
             "action": "server_update",
@@ -278,7 +271,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 +----------------------------------------+---------------+----------------+----------------------------+
 | binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable |
 | group_replication_tls_source           | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable |
-| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 | replica_preserve_commit_order          | OFF           | ON             | Update the server variable |
 +----------------------------------------+---------------+----------------+----------------------------+
 
@@ -297,12 +289,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "current": "MYSQL_ADMIN",
             "option": "group_replication_tls_source",
             "required": "MYSQL_MAIN"
-        },
-        {
-            "action": "server_update",
-            "current": "DATABASE",
-            "option": "replica_parallel_type",
-            "required": "LOGICAL_CLOCK"
         },
         {
             "action": "server_update",
@@ -371,7 +357,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 +----------------------------------------+---------------+----------------+----------------------------+
 | binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable |
 | group_replication_tls_source           | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable |
-| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 | replica_preserve_commit_order          | OFF           | ON             | Update the server variable |
 +----------------------------------------+---------------+----------------+----------------------------+
 
@@ -391,12 +376,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "option": "group_replication_tls_source",
             "persisted": "MYSQL_ADMIN",
             "required": "MYSQL_MAIN"
-        },
-        {
-            "action": "server_update",
-            "current": "DATABASE",
-            "option": "<<<__replica_keyword>>>_parallel_type",
-            "required": "LOGICAL_CLOCK"
         },
         {
             "action": "server_update",

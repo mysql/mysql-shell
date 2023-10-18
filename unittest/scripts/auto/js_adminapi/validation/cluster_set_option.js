@@ -94,8 +94,238 @@ Setting the value of 'disableClone' to 'false' in the Cluster ...
 
 Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName'.
 
+//@<OUT> WL#13208: TS_FR2_2 verify disableClone is false with options(). {VER(>=8.3.0)}
+{
+    "clusterName": "newName",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "[[*]]",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
+                "option": "disableClone",
+                "value": false
+            },
+            {
+                "option": "replicationAllowedHost",
+                "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+            }
+        ],
+        "tags": {
+            ".global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ]
+        }
+    }
+}
 
-//@<OUT> WL#13208: TS_FR2_2 verify disableClone is false with options(). {VER(>=8.0.17)}
+//@<OUT> WL#13208: TS_FR2_2 verify disableClone is false with options(). {VER(>=8.0.17) && VER(<8.3.0)}
 {
     "clusterName": "newName",
     "defaultReplicaSet": {
@@ -190,13 +420,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -246,12 +474,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -290,13 +516,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -346,12 +570,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -390,13 +612,11 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -446,12 +666,10 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ]
         }
@@ -464,7 +682,238 @@ Setting the value of 'disableClone' to 'true' in the Cluster ...
 Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'.
 
 
-//@<OUT> WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.0.17)}
+//@<OUT> WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.3.0)}
+{
+    "clusterName": "newName",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "[[*]]",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
+                "option": "disableClone",
+                "value": true
+            },
+            {
+                "option": "replicationAllowedHost",
+                "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+            }
+        ],
+        "tags": {
+            ".global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "2016",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "3500",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "[[*]]",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "[[*]]",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ]
+        }
+    }
+}
+
+//@<OUT> WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.0.17) && VER(<8.3.0)}
 {
     "clusterName": "newName",
     "defaultReplicaSet": {
@@ -559,13 +1008,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -615,12 +1062,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -659,13 +1104,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -715,12 +1158,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -759,13 +1200,11 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -815,12 +1254,10 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ]
         }

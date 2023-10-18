@@ -203,7 +203,6 @@ NOTE: Some configuration options need to be fixed:
 | binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
 | enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
 | gtid_mode                              | OFF           | ON             | Update the config file |
-| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file |
 | replica_preserve_commit_order          | <not set>     | ON             | Update the config file |
 | report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
 | server_id                              | <not set>     | <unique ID>    | Update the config file |
@@ -393,7 +392,6 @@ NOTE: Some configuration options need to be fixed:
 | binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
 | enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
 | gtid_mode                              | OFF           | ON             | Update the config file |
-| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file |
 | replica_preserve_commit_order          | <not set>     | ON             | Update the config file |
 | report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
 | server_id                              | <not set>     | <unique ID>    | Update the config file |

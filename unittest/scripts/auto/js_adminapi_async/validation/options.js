@@ -89,10 +89,14 @@
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
+?{}
+?{VER(>=8.0.23)}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -172,10 +176,14 @@
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
+?{VER(>=8.0.23) && VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
+?{}
+?{VER(>=8.0.23)}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -316,10 +324,12 @@
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -379,10 +389,12 @@
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
+?{}
                 {
                     "value": "10",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"

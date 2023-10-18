@@ -1090,7 +1090,7 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   } else {
     if (!parallel_appliers_required ||
         (m_instance->get_version() >= mysqlshdk::utils::Version(8, 3, 0))) {
-      ASSERT_EQ(6, res.size());
+      ASSERT_EQ(5, res.size());
     } else {
       ASSERT_EQ(7, res.size());
     }
@@ -1168,17 +1168,19 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
 
-    i = find(mysqlshdk::mysql::get_replication_option_keyword(
-        m_instance->get_version(), "slave_parallel_type"));
-    EXPECT_STREQ(res.at(i).var_name.c_str(),
-                 mysqlshdk::mysql::get_replication_option_keyword(
-                     m_instance->get_version(), "slave_parallel_type")
-                     .c_str());
-    EXPECT_STREQ(res.at(i).current_val.c_str(),
-                 mysqlshdk::mysql::k_value_not_set);
-    EXPECT_STREQ(res.at(i).required_val.c_str(), "LOGICAL_CLOCK");
-    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(i).restart, false);
+    if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
+      i = find(mysqlshdk::mysql::get_replication_option_keyword(
+          m_instance->get_version(), "slave_parallel_type"));
+      EXPECT_STREQ(res.at(i).var_name.c_str(),
+                   mysqlshdk::mysql::get_replication_option_keyword(
+                       m_instance->get_version(), "slave_parallel_type")
+                       .c_str());
+      EXPECT_STREQ(res.at(i).current_val.c_str(),
+                   mysqlshdk::mysql::k_value_not_set);
+      EXPECT_STREQ(res.at(i).required_val.c_str(), "LOGICAL_CLOCK");
+      EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+      EXPECT_EQ(res.at(i).restart, false);
+    }
 
     i = find(mysqlshdk::mysql::get_replication_option_keyword(
         m_instance->get_version(), "slave_preserve_commit_order"));
@@ -1232,7 +1234,7 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
         (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0))) {
       ASSERT_EQ(8, res.size());
     } else {
-      ASSERT_EQ(7, res.size());
+      ASSERT_EQ(6, res.size());
     }
   }
 
@@ -1311,11 +1313,13 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
                                   std::optional<std::string>("WRITESET"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
 
-    cfg_file_only.set_for_handler(
-        mysqlshdk::mysql::get_replication_option_keyword(
-            m_instance->get_version(), "slave_parallel_type"),
-        std::optional<std::string>("LOGICAL_CLOCK"),
-        mysqlshdk::config::k_dft_cfg_file_handler);
+    if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
+      cfg_file_only.set_for_handler(
+          mysqlshdk::mysql::get_replication_option_keyword(
+              m_instance->get_version(), "slave_parallel_type"),
+          std::optional<std::string>("LOGICAL_CLOCK"),
+          mysqlshdk::config::k_dft_cfg_file_handler);
+    }
 
     cfg_file_only.set_for_handler(
         mysqlshdk::mysql::get_replication_option_keyword(

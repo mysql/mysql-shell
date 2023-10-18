@@ -373,6 +373,39 @@ function WARNING_SKIPPED_TEST(reason) {
   return false;
 }
 
+function EXPECT_THROWS(func, etext) {
+  if (typeof(etext) != "string" && typeof(etext) != "object") {
+      testutil.fail("EXPECT_THROWS expects string or array, " +typeof(etext) + " given");
+  }
+  try {
+    func();
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
+  } catch (err) {
+    testutil.dprint("Got exception as expected: " + JSON.stringify(err));
+    if (typeof(etext) === "string") {
+        if (err.message.indexOf(etext) < 0) {
+          testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+        }
+    } else if (typeof(etext) === "object") {
+        var found = false;
+        for (i in etext) {
+            if (err.message.indexOf(etext[i]) >= 0) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            var msg = "<b>Context:</b> " + __test_context + "\n<red>One of the exceptions expected:</red>\n";
+            for (i in etext) {
+                msg += etext[i] + "\n";
+            }
+            msg += "<yellow>Actual:</yellow> " + err.message;
+            testutil.fail(msg);
+        }
+    }
+  }
+}
+
 function EXPECT_THROWS_TYPE(func, etext, type) {
   try {
     func();
@@ -385,6 +418,24 @@ function EXPECT_THROWS_TYPE(func, etext, type) {
     if (err.type  !== type) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception type expected:</red> " + type + "\n\t<yellow>Actual:</yellow> " + err.type);
     }
+  }
+}
+
+function EXPECT_NO_THROWS(func, context) {
+  try {
+    func();
+  } catch (err) {
+    testutil.dprint("Unexpected exception: " + JSON.stringify(err));
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + err.message + "</red>");
+  }
+}
+
+function EXPECT_OUTPUT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.indexOf(text) < 0 && err.indexOf(text) < 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
   }
 }
 

@@ -16,7 +16,179 @@
 //@ BUG29265869 - Persist GR settings for 5.7. {VER(<8.0.0)}
 ||
 
-//@<OUT> BUG29265869 - Show initial cluster options.  {VER(>=8.0.17)}
+//@<OUT> BUG29265869 - Show initial cluster options. {VER(>=8.3.0)}
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "<<<grp_name>>>",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
+                "option": "disableClone",
+                "value": false
+            },
+            {
+                "option": "replicationAllowedHost",
+                "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+            }
+        ],
+        "tags": {
+            ".global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
+        "topology": {
+            "<<<uri1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "<<<exit_state>>>",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<local_address2>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "<<<ip_white_list80>>>",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<local_address1>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "<<<member_weight1>>>",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "<<<exit_state>>>",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<local_address1>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "<<<ip_white_list80>>>",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<local_address2>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "<<<member_weight2>>>",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ]
+        }
+    }
+}
+
+//@<OUT> BUG29265869 - Show initial cluster options. {VER(>=8.0.17) && VER(<8.3.0)}
 {
     "clusterName": "test",
     "defaultReplicaSet": {
@@ -108,20 +280,16 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{}
-?{VER(>=8.0.23) && VER(<8.3.0)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address1>>>",
@@ -171,12 +339,10 @@
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<uri2>>>": [
@@ -215,20 +381,16 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
                 {
                     "option": "ipWhitelist",
-?{}
-?{VER(>=8.0.23) && VER(<8.3.0)}
+?{VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
                     "value": "<<<ip_white_list80>>>",
 ?{}
-?{VER(<8.3.0)}
                     "variable": "group_replication_ip_whitelist"
                 },
-?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address2>>>",
@@ -278,19 +440,17 @@
                     "value": "OFF",
 ?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ]
         }
     }
 }
 
-//@<OUT> BUG29265869 - Show initial cluster options.  {VER(<8.0.0)}
+//@<OUT> BUG29265869 - Show initial cluster options. {VER(<8.0.0)}
 {
     "clusterName": "test",
     "defaultReplicaSet": {
@@ -384,46 +544,24 @@
                     "value": ""
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "WRITESET",
-?{}
-?{VER(<8.0.23)}
                     "value": "COMMIT_ORDER",
-?{}
                     "variable": "binlog_transaction_dependency_tracking"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "LOGICAL_CLOCK",
-?{}
-?{VER(<8.0.23)}
                     "value": "DATABASE",
-?{}
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "4",
-?{}
-?{VER(<8.0.23)}
                     "value": "0",
-?{}
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "ON",
-?{}
-?{VER(<8.0.23)}
                     "value": "OFF",
-?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ],
             "<<<uri2>>>": [
@@ -477,46 +615,24 @@
                     "value": ""
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "WRITESET",
-?{}
-?{VER(<8.0.23)}
                     "value": "COMMIT_ORDER",
-?{}
                     "variable": "binlog_transaction_dependency_tracking"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "LOGICAL_CLOCK",
-?{}
-?{VER(<8.0.23)}
                     "value": "DATABASE",
-?{}
                     "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "4",
-?{}
-?{VER(<8.0.23)}
                     "value": "0",
-?{}
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
-?{VER(>=8.0.23)}
-                    "value": "ON",
-?{}
-?{VER(<8.0.23)}
                     "value": "OFF",
-?{}
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
                 },
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-?{}
                 }
             ]
         }
@@ -532,7 +648,179 @@
 //@ BUG29265869 - connect to instance.
 ||
 
-//@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.0.17)}
+//@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.3.0)}
+{
+    "clusterName": "test",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "<<<grp_name>>>",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "transactionSizeLimit",
+                "value": "[[*]]",
+                "variable": "group_replication_transaction_size_limit"
+            },
+            {
+                "option": "disableClone",
+                "value": false
+            },
+            {
+                "option": "replicationAllowedHost",
+                "value": "%"
+            },
+            {
+                "option": "memberAuthType",
+                "value": "PASSWORD"
+            },
+            {
+                "option": "certIssuer",
+                "value": ""
+            },
+            {
+                "option": "communicationStack",
+                "value": "XCOM",
+                "variable": "group_replication_communication_stack"
+            },
+            {
+                "option": "paxosSingleLeader",
+                "value": "<<<__default_gr_paxos_single_leader>>>"
+            }
+        ],
+        "tags": {
+            ".global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
+        "topology": {
+            "<<<uri1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "<<<exit_state>>>",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<local_address2>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "<<<ip_white_list80>>>",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<local_address1>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "<<<member_weight1>>>",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ],
+            "<<<uri2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "<<<consistency>>>",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "<<<exit_state>>>",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<local_address1>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "<<<ip_white_list80>>>",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<local_address2>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "<<<member_weight2>>>",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "option": "certSubject",
+                    "value": ""
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "4",
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
+                }
+            ]
+        }
+    }
+}
+
+//@<OUT> BUG29265869 - Show cluster options after reboot. {VER(>=8.0.17) && VER(<8.3.0)}
 {
     "clusterName": "test",
     "defaultReplicaSet": {

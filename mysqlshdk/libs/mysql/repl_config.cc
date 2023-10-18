@@ -38,6 +38,7 @@
 #include <mysqld_error.h>
 
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -309,10 +310,12 @@ void check_server_variables_compatibility(
           mysqlshdk::config::k_dft_cfg_server_handler);
 
       if (replica_p_workers.value_or(0) > 0) {
-        requirements.push_back(Requirement(
-            mysqlshdk::mysql::get_replication_option_keyword(
-                instance_version, mysqlsh::dba::kReplicaParallelType),
-            {"LOGICAL_CLOCK"}, false));
+        if (instance_version < mysqlsh::dba::k_replica_parallel_type_removed)
+          requirements.push_back(Requirement(
+              mysqlshdk::mysql::get_replication_option_keyword(
+                  instance_version, mysqlsh::dba::kReplicaParallelType),
+              {"LOGICAL_CLOCK"}, false));
+
         requirements.push_back(Requirement(
             mysqlshdk::mysql::get_replication_option_keyword(
                 instance_version, mysqlsh::dba::kReplicaPreserveCommitOrder),

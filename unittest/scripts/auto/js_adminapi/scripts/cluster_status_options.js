@@ -6,7 +6,11 @@ const NUM_DATA_ROWS = 60;
 // Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", report_host: hostname});
+if (__version_num < 80300) {
+    testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", report_host: hostname});
+} else {
+    testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, report_host: hostname});
+}
 
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});

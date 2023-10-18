@@ -607,11 +607,13 @@ def create_sandbox(**kwargs):
 
         if mysqld_ver >= (8, 0, 26):
             opt_dict["mysqld"]["replica_preserve_commit_order"] = "ON"
-            opt_dict["mysqld"]["replica_parallel_type"] = "LOGICAL_CLOCK"
+            if mysqld_ver < (8, 3, 0):
+                opt_dict["mysqld"]["replica_parallel_type"] = "LOGICAL_CLOCK"
             opt_dict["mysqld"]["replica_parallel_workers"] = 4
         else:
             opt_dict["mysqld"]["slave_preserve_commit_order"] = "ON"
-            opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
+            if mysqld_ver < (8, 3, 0):
+                opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
             opt_dict["mysqld"]["slave_parallel_workers"] = 4
 
     # MySQLx plugin is automatically loaded starting from versions 8.0.11.

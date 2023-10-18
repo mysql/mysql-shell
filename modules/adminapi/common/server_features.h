@@ -45,6 +45,8 @@ inline const mysqlshdk::utils::Version k_view_change_uuid_deprecated(8, 3, 0);
 inline const mysqlshdk::utils::Version
     k_transaction_writeset_extraction_removed(8, 3, 0);
 
+inline const mysqlshdk::utils::Version k_replica_parallel_type_removed(8, 3, 0);
+
 // Feature getters
 
 std::string get_communication_stack(

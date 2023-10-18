@@ -169,7 +169,6 @@ Configuring instance...
 | binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file                        |
 | enforce_gtid_consistency               | OFF           | ON             | Update the config file and restart the server |
 | gtid_mode                              | OFF           | ON             | Update the config file and restart the server |
-| replica_parallel_type                  | <not set>     | LOGICAL_CLOCK  | Update the config file                        |
 | replica_preserve_commit_order          | <not set>     | ON             | Update the config file                        |
 | report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                              | 1             | <unique ID>    | Update the config file and restart the server |
