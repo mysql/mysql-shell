@@ -300,15 +300,15 @@ void check_server_variables_compatibility(
                                 false);
     }
 
-    // Check if MTS is enabled (slave_parallel_workers > 0) and if so, add
+    // Check if MTS is enabled (replica_parallel_workers > 0) and if so, add
     // extra requirements.
     if (group_replication && (instance_version < utils::Version(8, 0, 23))) {
-      auto slave_p_workers = config.get_int(
+      auto replica_p_workers = config.get_int(
           mysqlshdk::mysql::get_replication_option_keyword(
               instance_version, mysqlsh::dba::kReplicaParallelWorkers),
           mysqlshdk::config::k_dft_cfg_server_handler);
 
-      if (slave_p_workers.value_or(0) > 0) {
+      if (replica_p_workers.value_or(0) > 0) {
         requirements.push_back(Requirement(
             mysqlshdk::mysql::get_replication_option_keyword(
                 instance_version, mysqlsh::dba::kReplicaParallelType),

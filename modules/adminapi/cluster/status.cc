@@ -1558,10 +1558,9 @@ shcore::Dictionary_t Status::get_topology(
         if (*m_extended >= 1) {
           fence_sysvars = instance->get_fence_sysvars();
 
-          auto workers = parallel_applier_options.replica_parallel_workers;
-
-          if (parallel_applier_options.replica_parallel_workers.value_or(0) >
-              0) {
+          const auto &workers =
+              parallel_applier_options.replica_parallel_workers;
+          if (workers.value_or(0) > 0) {
             (*member)["applierWorkerThreads"] = shcore::Value(*workers);
           }
         }

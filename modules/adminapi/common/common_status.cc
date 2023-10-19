@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/common/common_status.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -139,9 +140,8 @@ shcore::Dictionary_t channel_status(
     if (relay_log_info &&
         (show_details > 1 || relay_log_info->number_of_workers > 1)) {
       rstatus->set("applierWorkerThreads",
-                   shcore::Value(relay_log_info->number_of_workers == 0
-                                     ? 1
-                                     : relay_log_info->number_of_workers));
+                   shcore::Value(std::max<uint64_t>(
+                       relay_log_info->number_of_workers, 1)));
     }
 
     if (relay_log_info && (show_details > 1 || relay_log_info->sql_delay > 0)) {

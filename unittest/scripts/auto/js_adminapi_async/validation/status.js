@@ -332,7 +332,46 @@
     }
 }
 
-//@<OUT> Primary is RO, should show as error
+//@<OUT> Primary is RO, should show as error {VER(>=8.3.0)}
+{
+    "replicaSet": {
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "UNAVAILABLE",
+        "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.",
+        "topology": {
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "fenced": true,
+                "instanceErrors": [
+                    "ERROR: Instance is a PRIMARY but is READ-ONLY: read_only=ON, super_read_only=ON"
+                ],
+                "instanceRole": "PRIMARY",
+                "mode": "R/O",
+                "status": "ERROR"
+            },
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Waiting for an event from Coordinator",
+                    "applierWorkerThreads": 4,
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
+                    "replicationLag": null,
+                    "replicationSsl": "TLS_[[*]]",
+                    "replicationSslMode": "REQUIRED"
+                },
+                "status": "ONLINE"
+            }
+        },
+        "type": "ASYNC"
+    }
+}
+
+//@<OUT> Primary is RO, should show as error {VER(<8.3.0)}
 {
     "replicaSet": {
         "name": "myrs",
@@ -370,7 +409,53 @@
     }
 }
 
-//@<OUT> Replication stopped in a secondary
+//@<OUT> Replication stopped in a secondary {VER(>=8.3.0)}
+{
+    "replicaSet": {
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "UNAVAILABLE",
+        "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.",
+        "topology": {
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "fenced": true,
+                "instanceErrors": [
+                    "ERROR: Instance is a PRIMARY but is READ-ONLY: read_only=ON"
+                ],
+                "instanceRole": "PRIMARY",
+                "mode": "R/O",
+                "status": "ERROR"
+            },
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "fenced": true,
+                "instanceErrors": [
+                    "ERROR: Replication is stopped."
+                ],
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "OFF",
+                    "applierThreadState": "",
+                    "applierWorkerThreads": 4,
+                    "expectedSource": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                    "receiverStatus": "OFF",
+                    "receiverThreadState": "",
+                    "replicationLag": null,
+                    "replicationSsl": "TLS_[[*]]",
+                    "replicationSslMode": "REQUIRED",
+                    "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
+                },
+                "status": "OFFLINE",
+                "transactionSetConsistencyStatus": "OK"
+            }
+        },
+        "type": "ASYNC"
+    }
+}
+
+//@<OUT> Replication stopped in a secondary {VER(<8.3.0)}
 {
     "replicaSet": {
         "name": "myrs",
@@ -415,7 +500,57 @@
     }
 }
 
-//@<OUT> Replication running in a primary
+//@<OUT> Replication running in a primary {VER(>=8.3.0)}
+{
+    "replicaSet": {
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "UNAVAILABLE",
+        "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.",
+        "topology": {
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "fenced": true,
+                "instanceErrors": [
+                    "ERROR: Instance is a PRIMARY but is READ-ONLY: read_only=ON",
+                    "ERROR: Instance is a PRIMARY but is replicating from another instance."
+                ],
+                "instanceRole": "PRIMARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Waiting for an event from Coordinator",
+                    "applierWorkerThreads": 4,
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "[[*]]",
+                    "replicationLag": null,
+                    "replicationSsl": null,
+                    "replicationSslMode": "DISABLED"
+                },
+                "status": "ERROR"
+            },
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Waiting for an event from Coordinator",
+                    "applierWorkerThreads": 4,
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
+                    "replicationLag": null,
+                    "replicationSsl": "TLS_[[*]]",
+                    "replicationSslMode": "REQUIRED"
+                },
+                "status": "ONLINE"
+            }
+        },
+        "type": "ASYNC"
+    }
+}
+
+//@<OUT> Replication running in a primary {VER(<8.3.0)}
 {
     "replicaSet": {
         "name": "myrs",

@@ -112,7 +112,7 @@ Parallel_applier_options::get_current_settings(
 
   ret_val[mysqlshdk::mysql::get_replication_option_keyword(
       version, kReplicaParallelWorkers)] =
-      std::to_string(replica_parallel_workers.value_or(0));
+      std::to_string(replica_parallel_workers.value_or(1));
 
   return ret_val;
 }

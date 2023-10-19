@@ -586,26 +586,33 @@ void Configure_instance::validate_config_path() {
   }
 }
 
-namespace {
-void validate_applier_worker_threads_option(
-    const mysqlshdk::utils::Version &version) {
-  if (version < mysqlshdk::utils::Version(8, 0, 23)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'applierWorkerThreads' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
-  }
-}
-}  // namespace
-
 void Configure_instance::validate_applier_worker_threads() {
   auto target_instance_version = m_target_instance->get_version();
   Parallel_applier_options parallel_applier_options(*m_target_instance);
 
   if (m_options.replica_parallel_workers.has_value()) {
     // Validate if the target instance supports applierWorkerThreads
+    if (target_instance_version < mysqlshdk::utils::Version(8, 0, 23)) {
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Option 'applierWorkerThreads' not supported on "
+                             "target server version: '%s'",
+                             target_instance_version.get_full().c_str()));
+    }
 
-    validate_applier_worker_threads_option(target_instance_version);
+    // Starting in 8.3.0, replica_parallel_workers can't be 0
+    if (*m_options.replica_parallel_workers == 0) {
+      if (target_instance_version >= mysqlshdk::utils::Version(8, 3, 0))
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Option '%s' cannot be set to the value 0. If you wish to have a "
+            "single-thread applier, use the value of 1.",
+            kApplierWorkerThreads));
+
+      if (target_instance_version >= mysqlshdk::utils::Version(8, 0, 30))
+        mysqlsh::current_console()->print_warning(shcore::str_format(
+            "The '%s' option with value 0 is deprecated. If you wish to have a "
+            "single-thread applier, use the value of 1.",
+            kApplierWorkerThreads));
+    }
 
     assert(parallel_applier_options.replica_parallel_workers.has_value());
     if (*parallel_applier_options.replica_parallel_workers !=

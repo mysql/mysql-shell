@@ -213,6 +213,11 @@ Configure_cluster_instance_options::Configure_cluster_instance_options()
 
 void Configure_cluster_instance_options::set_replica_parallel_workers(
     int64_t value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option: it only accepts positive integers.",
+        kApplierWorkerThreads));
+
   replica_parallel_workers = value;
 }
 
@@ -235,6 +240,11 @@ Configure_replicaset_instance_options::Configure_replicaset_instance_options()
 
 void Configure_replicaset_instance_options::set_replica_parallel_workers(
     int64_t value) {
+  if (value < 0)
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option: it only accepts positive integers.",
+        kApplierWorkerThreads));
+
   replica_parallel_workers = value;
 }
 

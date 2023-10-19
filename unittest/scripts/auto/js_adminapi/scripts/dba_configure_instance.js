@@ -68,19 +68,35 @@ if (__version_num >= 80011) {
 
 dba.configureInstance(__sandbox_uri1, {interactive:true, mycnfPath: mycnf});
 
+//@<> Verify that the default value for applierWorkerThreads was set (4) {VER(>=8.0.23)}
+EXPECT_EQ(4, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
+
 //@ test connection with custom cluster admin and no password
 var uri_repl_admin = "repl_admin2:@" + uri1;
 shell.connect(uri_repl_admin);
 session.close();
 
 //@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(<8.0.23)}
-EXPECT_THROWS(function(){dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 5});}, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");
+EXPECT_THROWS(function(){
+    dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 5});
+}, `Option 'applierWorkerThreads' not supported on target server version: '${__version}'`);
 
-//@<> Verify that the default value for applierWorkerThreads was set (4) {VER(>=8.0.23)}
-EXPECT_EQ(4, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
+//@<> configuring applierWorkerThreads to negative values isn't allowed {VER(>=8.0.23)}
+EXPECT_THROWS(function(){
+    dba.configureInstance(uri_repl_admin, {applierWorkerThreads: -1});
+}, "Invalid value for 'applierWorkerThreads' option: it only accepts positive integers.");
+
+//@<> configuring applierWorkerThreads to 0 in versions at or higher than 8.3.0 should fail {VER(>=8.3.0)}
+EXPECT_THROWS(function(){
+ dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 0});
+}, "Option 'applierWorkerThreads' cannot be set to the value 0. If you wish to have a single-thread applier, use the value of 1.");
+
+//@<> configuring applierWorkerThreads to 0 in versions at or higher than 8.0.30 must print a warning {VER(>=8.0.30) && VER(<8.3.0)}
+EXPECT_NO_THROWS(function(){ dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 0}); });
+EXPECT_OUTPUT_CONTAINS("The 'applierWorkerThreads' option with value 0 is deprecated. If you wish to have a single-thread applier, use the value of 1.");
 
 //@<> Change the value of applierWorkerThreads {VER(>=8.0.23)}
-dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 10, restart: true})
+dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 10, restart: true});
 testutil.waitSandboxAlive(__mysql_sandbox_port1);
 EXPECT_EQ(10, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
 
@@ -103,7 +119,9 @@ dba.createCluster("test");
 //@<> Manually disable some parallel-applier settings {VER(>=8.0.23)}
 session.runSql("RESET PERSIST slave_parallel_workers");
 session.runSql("SET global slave_preserve_commit_order=OFF");
-session.runSql("SET global slave_parallel_workers=0");
+if (__version_num < 80300) {
+    session.runSql("SET global slave_parallel_workers=0");
+}
 
 //@<OUT> Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23)}
 dba.configureInstance();

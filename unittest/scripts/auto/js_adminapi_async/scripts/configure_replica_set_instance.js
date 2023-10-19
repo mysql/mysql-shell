@@ -23,7 +23,23 @@ EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2)},
     "Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
 
 //@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(>=8.0.0) && VER(<8.0.23)}
-EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 5});}, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");
+EXPECT_THROWS(function(){
+    dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 5});
+}, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");
+
+//@<> configuring applierWorkerThreads to negative values isn't allowed {VER(>=8.0.23)}
+EXPECT_THROWS(function(){
+    dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: -1});
+}, "Invalid value for 'applierWorkerThreads' option: it only accepts positive integers.");
+
+//@<> configuring applierWorkerThreads to 0 in versions at or higher than 8.3.0 should fail {VER(>=8.3.0)}
+EXPECT_THROWS(function(){
+    dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 0});
+}, "Option 'applierWorkerThreads' cannot be set to the value 0. If you wish to have a single-thread applier, use the value of 1.");
+
+//@<> configuring applierWorkerThreads to 0 in versions at or higher than 8.0.30 must print a warning {VER(>=8.0.30) && VER(<8.3.0)}
+EXPECT_NO_THROWS(function(){ dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 0}); });
+EXPECT_OUTPUT_CONTAINS("The 'applierWorkerThreads' option with value 0 is deprecated. If you wish to have a single-thread applier, use the value of 1.");
 
 //@<> configure default session {VER(>8.0.0)}
 shell.connect(__sandbox_uri1);
@@ -65,7 +81,11 @@ dba.createReplicaSet("test");
 
 //@<> Manually disable some parallel-applier settings {VER(>=8.0.23)}
 session.runSql("SET global slave_preserve_commit_order=OFF");
-session.runSql("SET global slave_parallel_workers=0");
+if (__version_num < 80300) {
+    session.runSql("SET global slave_parallel_workers=0");
+} else {
+    session.runSql("RESET PERSIST slave_parallel_workers");
+}
 
 //@ Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23)}
 dba.configureReplicaSetInstance();

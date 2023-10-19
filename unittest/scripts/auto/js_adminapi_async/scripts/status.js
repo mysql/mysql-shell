@@ -113,13 +113,15 @@ session2.runSql("START SLAVE");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb2].replication.applierWorkerThreads, 3);
 
-session2.runSql("STOP SLAVE");
-session2.runSql("SET GLOBAL slave_parallel_workers=0");
-session2.runSql("START SLAVE");
+if (__version_num < 80300) {
+    session2.runSql("STOP SLAVE");
+    session2.runSql("SET GLOBAL slave_parallel_workers=0");
+    session2.runSql("START SLAVE");
+}
 
 // ==== Error conditions
 
-// BUG#32015164: MISSING INFORMATION ABOUT REQUIRED PARALLEL-APPLIERS SETTINGS ON UPGRADE SCNARIO
+// BUG#32015164: MISSING INFORMATION ABOUT REQUIRED PARALLEL-APPLIERS SETTINGS ON UPGRADE SCENARIO
 // If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
 // must be included in 'instanceErrors'
 
@@ -157,7 +159,9 @@ println(s);
 
 //@<> BUG#32015164: Finalize (restore value of slave_parallel_workers)
 session2.runSql("STOP SLAVE");
-session2.runSql("SET GLOBAL slave_parallel_workers=0");
+if (__version_num < 80300) {
+    session2.runSql("SET GLOBAL slave_parallel_workers=0");
+}
 session2.runSql("START SLAVE");
 
 //@ Primary is RO, should show as error
