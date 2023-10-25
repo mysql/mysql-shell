@@ -237,7 +237,7 @@ bool check_if_transactions_are_ddl_safe(
 
   gtid_set.enumerate_ranges([&gtid_ranges, &count](const Gtid_range &range) {
     gtid_ranges.emplace_back(range);
-    count += mysqlshdk::mysql::count(range);
+    count += range.count();
   });
 
   const auto console = current_console();
@@ -268,15 +268,14 @@ bool check_if_transactions_are_ddl_safe(
       return true;
     }
 
-    if (const auto pos = gtid.find(':'); std::string::npos != pos) {
-      std::string uuid = gtid.substr(0, pos);
-      uint64_t id = to_int64_t(gtid.substr(pos + 1));
+    auto gtid_range = Gtid_range::from_gtid(gtid);
+    if (!gtid_range) return false;
+    assert(gtid_range.begin == gtid_range.end);
 
-      for (const auto &range : gtid_ranges) {
-        if (std::get<0>(range) == uuid && std::get<1>(range) <= id &&
-            id <= std::get<2>(range)) {
-          return true;
-        }
+    for (const auto &range : gtid_ranges) {
+      if (range.uuid_tag == gtid_range.uuid_tag &&
+          range.begin <= gtid_range.begin && gtid_range.begin <= range.end) {
+        return true;
       }
     }
 

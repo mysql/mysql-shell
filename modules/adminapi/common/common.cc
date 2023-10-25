@@ -1724,8 +1724,6 @@ std::vector<Instance_gtid_info> filter_primary_candidates(
     const std::vector<Instance_gtid_info> &gtid_info,
     const std::function<bool(const Instance_gtid_info &,
                              const Instance_gtid_info &)> &on_conflit) {
-  using mysqlshdk::mysql::Gtid_set_relation;
-
   if (gtid_info.empty()) return {};
 
   std::vector<Instance_gtid_info> candidates;
@@ -1740,14 +1738,17 @@ std::vector<Instance_gtid_info> filter_primary_candidates(
         server, freshest_instance->gtid_executed, inst.gtid_executed);
 
     switch (rel) {
+      using mysqlshdk::mysql::Gtid_set_relation;
+
       // Conflicting GTID sets
       case Gtid_set_relation::DISJOINT:
       case Gtid_set_relation::INTERSECTS:
         if (!on_conflit)
-          throw shcore::Exception("Conflicting transaction sets between " +
-                                      freshest_instance->server + " and " +
-                                      inst.server,
-                                  SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+          throw shcore::Exception(
+              shcore::str_format(
+                  "Conflicting transaction sets between '%s' and '%s'",
+                  freshest_instance->server.c_str(), inst.server.c_str()),
+              SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
 
         if (!on_conflit(*freshest_instance, inst)) return candidates;
         break;
@@ -1919,7 +1920,7 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
         mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
 
     return mysqlshdk::mysql::estimate_gtid_set_size(
-        gtid_set_primary.subtract(gtid_set_target, target_instance));
+        gtid_set_primary.subtract(gtid_set_target, target_instance).str());
   };
 
   using Progress_reporting = Shell_options::Storage::Progress_reporting;

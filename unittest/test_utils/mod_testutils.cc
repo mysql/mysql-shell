@@ -2811,7 +2811,7 @@ int Testutils::wait_for_repl_applier_error(int port,
 /**
  * Waits until destination sandbox finishes applying transactions that
  * were executed in the source sandbox. This is checked using
- * WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS()
+ * WAIT_FOR_EXECUTED_GTID_SET()
  * @param dest_port sandbox port waiting for the txs
  * @param source_port sandbox port where the txs originate from (the primary).
  *            If 0, it will use the active shell session.
@@ -2833,6 +2833,7 @@ bool Testutils::wait_member_transactions(int dest_port, int source_port) {
     if (auto shell = _shell.lock()) {
       if (!shell->shell_context()->get_dev_session())
         throw std::runtime_error("No active shell session");
+
       source = shell->shell_context()->get_dev_session()->get_core_session();
       if (!source || !source->is_open()) {
         throw std::logic_error(
@@ -2845,24 +2846,22 @@ bool Testutils::wait_member_transactions(int dest_port, int source_port) {
   } else {
     source = connect_to_sandbox(source_port);
   }
+
   // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
   // the GTID of ALL transactions, otherwise only a set of transactions written
   // to the cache in the current session might be returned.
-  std::string gtid_set =
+  auto gtid_set =
       source->query("SELECT REPLACE(@@GLOBAL.GTID_EXECUTED,'\n','')")
           ->fetch_one()
           ->get_string(0);
 
-  std::shared_ptr<mysqlshdk::db::ISession> dest;
-  dest = connect_to_sandbox(dest_port);
+  auto dest = connect_to_sandbox(dest_port);
 
-  auto result = dest->queryf("SELECT WAIT_FOR_EXECUTED_GTID_SET(?, ?)",
-                             gtid_set, k_wait_member_timeout);
-  auto row = result->fetch_one();
-  // NOTE: WAIT_FOR_EXECUTED_GTID_SET() does not return NULL like
-  // WAIT_UNTIL_SQL_THREAD_AFTER_GTIDS(), instead an error is generated.
   // 0 is returned for success and 1 for timeout.
-  return row->get_int(0) == 0;
+  return dest->queryf("SELECT WAIT_FOR_EXECUTED_GTID_SET(?, ?)", gtid_set,
+                      k_wait_member_timeout)
+             ->fetch_one()
+             ->get_int(0) == 0;
 }
 
 void Testutils::inject_gtid_set(int port, const std::string &gtid_set) {

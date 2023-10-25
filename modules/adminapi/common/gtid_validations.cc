@@ -26,6 +26,7 @@
 
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
+#include "modules/errors.h"
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -49,59 +50,55 @@ void msg_recovery_possible_and_safe(
     Cluster_type cluster_type, Member_recovery_method recovery_method,
     const mysqlshdk::mysql::IInstance &target_instance,
     bool clone_only = false) {
+  if (recovery_method != Member_recovery_method::AUTO) return;
+
   auto console = current_console();
+  console->print_info(shcore::str_format(
+      "The safest and most convenient way to provision a new instance is "
+      "through automatic clone provisioning, which will completely overwrite "
+      "the state of '%s' with a physical snapshot from an existing %s member. "
+      "To use this method by default, set the 'recoveryMethod' option to "
+      "'clone'.",
+      target_instance.descr().c_str(), thing(cluster_type).c_str()));
 
-  if (recovery_method == Member_recovery_method::AUTO) {
-    console->print_info(
-        "The safest and most convenient way to provision a new instance is "
-        "through automatic clone provisioning, which will completely overwrite "
-        "the state of '" +
-        target_instance.descr() +
-        "' with a physical snapshot from an existing " + thing(cluster_type) +
-        " member. To use this method by default, set the 'recoveryMethod' "
-        "option to 'clone'.");
+  if (clone_only) return;
 
-    if (!clone_only) {
-      console->print_info();
+  console->print_info();
 
-      switch (cluster_type) {
-        case Cluster_type::GROUP_REPLICATION:
-          console->print_info(
-              "The incremental state recovery may be safely used if you are "
-              "sure all updates ever executed in the cluster were done with "
-              "GTIDs enabled, there are no purged transactions and the new "
-              "instance contains the same GTID set as the cluster or a subset "
-              "of it. To use this method by default, set the 'recoveryMethod' "
-              "option to 'incremental'.");
-          break;
+  switch (cluster_type) {
+    case Cluster_type::GROUP_REPLICATION:
+      console->print_info(
+          "The incremental state recovery may be safely used if you are sure "
+          "all updates ever executed in the cluster were done with GTIDs "
+          "enabled, there are no purged transactions and the new instance "
+          "contains the same GTID set as the cluster or a subset of it. To use "
+          "this method by default, set the 'recoveryMethod' option to "
+          "'incremental'.");
+      break;
 
-        case Cluster_type::ASYNC_REPLICATION:
-          console->print_warning(
-              "It should be safe to rely on replication to incrementally "
-              "recover the state of the new instance if you are sure all "
-              "updates ever executed in the replicaset were done with GTIDs "
-              "enabled, there are no purged transactions and the new instance "
-              "contains the same GTID set as the replicaset or a subset of it. "
-              "To use this method by default, set the 'recoveryMethod' option "
-              "to 'incremental'.");
-          break;
+    case Cluster_type::ASYNC_REPLICATION:
+      console->print_warning(
+          "It should be safe to rely on replication to incrementally recover "
+          "the state of the new instance if you are sure all updates ever "
+          "executed in the replicaset were done with GTIDs enabled, there are "
+          "no purged transactions and the new instance contains the same GTID "
+          "set as the replicaset or a subset of it. To use this method by "
+          "default, set the 'recoveryMethod' option to 'incremental'.");
+      break;
 
-        case Cluster_type::REPLICATED_CLUSTER:
-          console->print_warning(
-              "It should be safe to rely on replication to incrementally "
-              "recover the state of the new Replica Cluster if you are sure "
-              "all updates ever executed in the ClusterSet were done with "
-              "GTIDs enabled, there are no purged transactions and the "
-              "instance used to create the new Replica Cluster contains the "
-              "same GTID set as the ClusterSet or a subset of it. To use this "
-              "method by default, set the 'recoveryMethod' option to "
-              "'incremental'.");
-          break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      console->print_warning(
+          "It should be safe to rely on replication to incrementally recover "
+          "the state of the new Replica Cluster if you are sure all updates "
+          "ever executed in the ClusterSet were done with GTIDs enabled, there "
+          "are no purged transactions and the instance used to create the new "
+          "Replica Cluster contains the same GTID set as the ClusterSet or a "
+          "subset of it. To use this method by default, set the "
+          "'recoveryMethod' option to 'incremental'.");
+      break;
 
-        default:
-          throw std::logic_error("Internal error");
-      }
-    }
+    default:
+      throw std::logic_error("Internal error");
   }
 }
 
@@ -265,18 +262,25 @@ void check_gtid_consistency_and_recoverability(
 
   auto console = current_console();
 
-  std::string errant_gtid_set, msg;
+  std::string errant_gtid_set;
   *gtid_set_diverged = false;
 
   // Get the gtid state in regards to the cluster_session
+  bool unsupported_gtid_tags{false};
   mysqlshdk::mysql::Replica_gtid_state state;
+  try {
+    if (cluster_type == Cluster_type::REPLICATED_CLUSTER)
+      state = check_replica_group_gtid_state(donor_instance, target_instance,
+                                             nullptr, &errant_gtid_set);
+    else
+      state = mysqlshdk::mysql::check_replica_gtid_state(
+          donor_instance, target_instance, nullptr, &errant_gtid_set);
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_UNSUPPORTED_GTID_TAG) throw;
 
-  if (cluster_type == Cluster_type::REPLICATED_CLUSTER)
-    state = check_replica_group_gtid_state(donor_instance, target_instance,
-                                           nullptr, &errant_gtid_set);
-  else
-    state = mysqlshdk::mysql::check_replica_gtid_state(
-        donor_instance, target_instance, nullptr, &errant_gtid_set);
+    unsupported_gtid_tags = true;
+    state = mysqlshdk::mysql::Replica_gtid_state::DIVERGED;
+  }
 
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::NEW:
@@ -284,9 +288,10 @@ void check_gtid_consistency_and_recoverability(
       if (gtid_set_is_complete) {
         // Only print the message if recoveryMethod is AUTO
         if (recovery_method == Member_recovery_method::AUTO) {
-          msg = "The target instance '" + target_instance.descr() +
-                "' has not been pre-provisioned (GTID set is empty), but the " +
-                thing(cluster_type) + " was configured to assume that ";
+          auto msg = shcore::str_format(
+              "The target instance '%s' has not been pre-provisioned (GTID set "
+              "is empty), but the %s was configured to assume that ",
+              target_instance.descr().c_str(), thing(cluster_type).c_str());
 
           if (cluster_type == Cluster_type::GROUP_REPLICATION) {
             msg +=
@@ -304,8 +309,10 @@ void check_gtid_consistency_and_recoverability(
         *out_recovery_possible = true;
         *out_recovery_safe = true;
       } else {
-        msg = "The target instance '" + target_instance.descr() +
-              "' has not been pre-provisioned (GTID set is empty).";
+        auto msg = shcore::str_format(
+            "The target instance '%s' has not been pre-provisioned (GTID set "
+            "is empty).",
+            target_instance.descr().c_str());
 
         // Only print the message if recoveryMethod is AUTO
         if (recovery_method == Member_recovery_method::AUTO) {
@@ -331,33 +338,43 @@ void check_gtid_consistency_and_recoverability(
       break;
 
     case mysqlshdk::mysql::Replica_gtid_state::DIVERGED:
-      console->print_info();
-      console->print_warning(
-          "A GTID set check of the MySQL instance at '" +
-          target_instance.descr() +
-          "' determined that it contains transactions that do not originate "
-          "from the " +
-          thing(cluster_type) +
-          ", which must be discarded before it can join the " +
-          thing(cluster_type) + ".");
 
-      console->print_info();
-      console->print_info(target_instance.descr() +
-                          " has the following errant GTIDs that do not exist "
-                          "in the " +
-                          thing(cluster_type) + ":\n" + errant_gtid_set);
-      console->print_info();
+      if (unsupported_gtid_tags) {
+        console->print_info();
+        console->print_warning(shcore::str_format(
+            "A GTID set check found GTIDs with tags, which the donor instance "
+            "'%s' doesn't support. In order to use GTID tags, all members of "
+            "the %s must support them.",
+            donor_instance.descr().c_str(), api_class(cluster_type).c_str()));
+        console->print_info();
 
-      console->print_warning(
-          "Discarding these extra GTID events can either be done manually "
-          "or by completely overwriting the state of " +
-          target_instance.descr() +
-          " with a physical snapshot from an existing " + thing(cluster_type) +
-          " member. To use this method by default, set the 'recoveryMethod' "
-          "option to 'clone'.\n\n"
-          "Having extra GTID events is not expected, and it is recommended to "
-          "investigate this further and ensure that the data can be removed "
-          "prior to choosing the clone recovery method.");
+      } else {
+        console->print_info();
+        console->print_warning(shcore::str_format(
+            "A GTID set check of the MySQL instance at '%s' determined that it "
+            "contains transactions that do not originate from the %s, which "
+            "must be discarded before it can join the %s.",
+            target_instance.descr().c_str(), thing(cluster_type).c_str(),
+            thing(cluster_type).c_str()));
+
+        console->print_info();
+        console->print_info(shcore::str_format(
+            "Instance '%s' has the following errant GTIDs that do not exist in "
+            "the %s:\n %s",
+            target_instance.descr().c_str(), thing(cluster_type).c_str(),
+            errant_gtid_set.c_str()));
+        console->print_info();
+      }
+
+      console->print_warning(shcore::str_format(
+          "Discarding these extra GTID events can either be done manually or "
+          "by completely overwriting the state of '%s' with a physical "
+          "snapshot from an existing %s member. To use this method by default, "
+          "set the 'recoveryMethod' option to 'clone'.\n\nHaving extra GTID "
+          "events is not expected, and it is recommended to investigate this "
+          "further and ensure that the data can be removed prior to choosing "
+          "the clone recovery method.",
+          target_instance.descr().c_str(), thing(cluster_type).c_str()));
 
       *out_recovery_possible = false;
       *out_recovery_safe = false;
@@ -366,11 +383,10 @@ void check_gtid_consistency_and_recoverability(
 
     case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
       if (!check_recoverable(target_instance)) {
-        console->print_note("A GTID set check of the MySQL instance at '" +
-                            target_instance.descr() +
-                            "' determined that it is missing transactions that "
-                            "were purged from all " +
-                            thing(cluster_type) + " members.");
+        console->print_note(shcore::str_format(
+            "A GTID set check of the MySQL instance at '%s' determined that it "
+            "is missing transactions that were purged from all %s members.",
+            target_instance.descr().c_str(), thing(cluster_type).c_str()));
 
         *out_recovery_possible = false;
 
@@ -382,13 +398,12 @@ void check_gtid_consistency_and_recoverability(
         if (out_recovery_safe) {
           auto slave_gtid_set = get_executed_gtid_set(target_instance);
           if (slave_gtid_set.empty()) {
-            msg = "The target instance '" + target_instance.descr() +
-                  "' has not been pre-provisioned (GTID set is empty). The "
-                  "Shell is unable to determine whether the instance has "
-                  "pre-existing data that would be overwritten with clone "
-                  "based recovery.";
-
-            console->print_note(msg);
+            console->print_note(shcore::str_format(
+                "The target instance '%s' has not been pre-provisioned (GTID "
+                "set is empty). The Shell is unable to determine whether the "
+                "instance has pre-existing data that would be overwritten with "
+                "clone based recovery.",
+                target_instance.descr().c_str()));
 
             *out_recovery_safe = false;
 
@@ -458,8 +473,8 @@ Member_recovery_method validate_instance_recovery(
     validate_incremental_recovery(op_action, recovery_possible, recovery_safe);
 
     console->print_info(
-        "Incremental state recovery selected through the "
-        "recoveryMethod option");
+        "Incremental state recovery selected through the recoveryMethod "
+        "option");
     console->print_info();
 
     return Member_recovery_method::INCREMENTAL;

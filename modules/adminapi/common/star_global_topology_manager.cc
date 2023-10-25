@@ -518,12 +518,13 @@ void Star_global_topology_manager::validate_force_primary(
 
     // NOTE: Use the latest GTID_EXECUTED set (after catching up with received
     // trx), not the initially "cached" set by Global_topology.
-    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*valid_inst);
-    if (!gtid_set.empty()) {
-      gtid_info.emplace_back(Instance_gtid_info{inst->label, gtid_set});
-      if (inst->get_primary_member()->uuid == master->get_uuid()) {
-        promoted_node = inst;
-      }
+    auto gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*valid_inst);
+    if (gtid_set.empty()) continue;
+
+    gtid_info.emplace_back(
+        Instance_gtid_info{inst->label, std::move(gtid_set)});
+    if (inst->get_primary_member()->uuid == master->get_uuid()) {
+      promoted_node = inst;
     }
   }
   if (!promoted_node) throw std::logic_error("internal error");

@@ -34,6 +34,8 @@ namespace utils {
 // Minimal implementation of version parsing, no need for something more complex
 // for now
 Version::Version(std::string_view version) {
+  if (version.empty()) return;
+
   auto tokens = shcore::str_split(version, "-", 1);
   if (tokens.size() == 1 && version.size() == 5) {
     // check if format is digits only:

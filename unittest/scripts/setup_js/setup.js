@@ -734,8 +734,16 @@ function exist_in_metadata_schema(port) {
   return row[0] != 0;
 }
 
-function reset_instance(session) {
-  session.runSql("STOP " + get_replica_keyword());
+function reset_instance(session, read_session_version) {
+  var version = __version_num;
+  if (read_session_version !== undefined && read_session_version) {
+    var version_array = session.runSql("SELECT version()").fetchOne()[0].match(/^(\d+)\.(\d+)\.(\d+)[^\d]*/);
+    EXPECT_EQ(4, version_array.length);
+
+    version = parseInt(version_array[1]) * 10000 + parseInt(version_array[2]) * 100 + parseInt(version_array[3]);
+  }
+
+  session.runSql("STOP " + get_replica_keyword(version));
   try {
   session.runSql("STOP group_replication");
   } catch (e) {}
@@ -760,8 +768,8 @@ function reset_instance(session) {
           continue;
       session.runSql("DROP USER ?@?", [row[0], row[1]]);
   }
-  session.runSql("RESET " + get_reset_binary_logs_keyword());
-  session.runSql("RESET " + get_replica_keyword() + " ALL");
+  session.runSql("RESET " + get_reset_binary_logs_keyword(version));
+  session.runSql("RESET " + get_replica_keyword(version) + " ALL");
 }
 
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
@@ -2016,32 +2024,45 @@ function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, g
   }
 }
 
-function get_reset_binary_logs_keyword() {
-  if (__version_num < 80200) {
+function get_reset_binary_logs_keyword(version) {
+  if (version === undefined) {
+    version = __version_num;
+  }
+
+  if (version < 80200) {
     return "MASTER";
   }
 
   return "BINARY LOGS AND GTIDS";
 }
 
-function get_replica_keyword() {
-  if (__version_num < 80022) {
+function get_replica_keyword(version) {
+  if (version === undefined)
+    version = __version_num;
+
+  if (version < 80022) {
     return "SLAVE";
   }
 
   return "REPLICA";
 }
 
-function get_replication_source_keyword() {
-  if (__version_num < 80022) {
+function get_replication_source_keyword(version) {
+  if (version === undefined)
+    version = __version_num;
+
+  if (version < 80022) {
     return "MASTER";
   }
 
   return "REPLICATION SOURCE";
 }
 
-function get_replication_option_keyword() {
-  if (__version_num < 80022) {
+function get_replication_option_keyword(version) {
+  if (version === undefined)
+    version = __version_num;
+
+  if (version < 80022) {
     return "MASTER";
   }
 

@@ -486,7 +486,7 @@ EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "
 
 EXPECT_OUTPUT_CONTAINS(`* Checking transaction state of the instance...`);
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check of the MySQL instance at '${hostname}:${__mysql_sandbox_port4}' determined that it contains transactions that do not originate from the cluster, which must be discarded before it can join the cluster.`);
-EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${hostname}:${__mysql_sandbox_port4} with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${hostname}:${__mysql_sandbox_port4}' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS(`Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.`);
 EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.`);
 

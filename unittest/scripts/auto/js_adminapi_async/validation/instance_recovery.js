@@ -254,11 +254,11 @@
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
 ||
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the replicaset:|
+|Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |WARNING: Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an|
 |existing replicaset member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -278,11 +278,11 @@
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
 ||
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> has the following errant GTIDs that do not exist in the replicaset:|
+|Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |WARNING: Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> with a physical snapshot from an|
+|overwriting the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' with a physical snapshot from an|
 |existing replicaset member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -307,11 +307,11 @@
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
 ||
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the replicaset:|
+|Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |WARNING: Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an|
 |existing replicaset member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -391,11 +391,11 @@
 ||debug (LogicError)
 
 //@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the replicaset:|
+|Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |WARNING: Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an|
+|overwriting the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an|
 |existing replicaset member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -411,11 +411,11 @@
 ||Instance provisioning required (MYSQLSH 51153)
 
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> has the following errant GTIDs that do not exist in the replicaset:|
+|Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |WARNING: Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> with a physical snapshot from an|
+|overwriting the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' with a physical snapshot from an|
 |existing replicaset member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||

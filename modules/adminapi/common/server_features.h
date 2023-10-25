@@ -24,8 +24,11 @@
 #ifndef MODULES_ADMINAPI_COMMON_SERVER_FEATURES_H_
 #define MODULES_ADMINAPI_COMMON_SERVER_FEATURES_H_
 
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/version.h"
+
+namespace mysqlshdk::mysql {
+class IInstance;
+}
 
 namespace mysqlsh::dba {
 
@@ -72,6 +75,8 @@ bool supports_repl_channel_compression(
 
 bool supports_repl_channel_network_namespace(
     const mysqlshdk::utils::Version &version);
+
+bool supports_gtid_tags(const mysqlshdk::utils::Version &version);
 
 }  // namespace mysqlsh::dba
 

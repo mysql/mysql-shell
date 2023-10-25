@@ -23,11 +23,10 @@
 
 #include "modules/adminapi/common/server_features.h"
 
-#include <functional>
-
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh::dba {
 
@@ -103,6 +102,10 @@ bool supports_repl_channel_compression(
 bool supports_repl_channel_network_namespace(
     const mysqlshdk::utils::Version &version) {
   return version >= mysqlshdk::utils::Version(8, 0, 22);
+}
+
+bool supports_gtid_tags(const mysqlshdk::utils::Version &version) {
+  return version >= mysqlshdk::utils::Version(8, 3, 0);
 }
 
 }  // namespace mysqlsh::dba
