@@ -209,9 +209,9 @@ EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "
 EXPECT_OUTPUT_CONTAINS(`Setting up replica 'myReplicaCluster' of cluster 'cluster' at instance '${__endpoint4}'.`);
 EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it contains transactions that do not originate from the clusterset, which must be discarded before it can join the clusterset.`);
-EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
+EXPECT_OUTPUT_CONTAINS(`Instance '${__endpoint4}' has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${__endpoint4} with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${__endpoint4}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 
 // Non-interactive tests
@@ -251,9 +251,9 @@ session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "Instance provisioning required", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
+EXPECT_OUTPUT_CONTAINS(`Instance '${__endpoint4}' has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${__endpoint4} with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${__endpoint4}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 EXPECT_OUTPUT_CONTAINS("ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target clusterset.");
 
@@ -313,9 +313,9 @@ session4.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-1111111111
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "Cancelled", "RuntimeError");
-EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
+EXPECT_OUTPUT_CONTAINS(`Instance '${__endpoint4}' has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of ${__endpoint4} with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${__endpoint4}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, purged GTID -> error
@@ -330,7 +330,7 @@ session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
+EXPECT_OUTPUT_CONTAINS(`Instance '${__endpoint4}' has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 
 //@<> createReplicaCluster: recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}
@@ -347,7 +347,7 @@ session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"})}, "debug", "LogicError");
 
-EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do not exist in the clusterset:`);
+EXPECT_OUTPUT_CONTAINS(`Instance '${__endpoint4}' has the following errant GTIDs that do not exist in the clusterset:`);
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod option");
 

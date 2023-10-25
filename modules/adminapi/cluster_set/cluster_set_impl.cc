@@ -3021,50 +3021,54 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
     bool *out_is_recoverable) {
   mysqlshdk::mysql::Gtid_set missing_view_gtids;
   mysqlshdk::mysql::Gtid_set errant_gtids;
-  mysqlshdk::mysql::Gtid_set missing_gtids;
   mysqlshdk::mysql::Gtid_set unrecoverable_gtids;
 
-  std::vector<std::string> allowed_errant_uuids;
-  std::vector<Cluster_set_member_metadata> members;
+  {
+    // purged GTIDs from all members of the primary
+    std::vector<mysqlshdk::mysql::Gtid_set> purged_gtids;
 
-  // purged GTIDs from all members of the primary
-  std::vector<mysqlshdk::mysql::Gtid_set> purged_gtids;
+    primary_cluster->execute_in_members(
+        [&purged_gtids](const std::shared_ptr<Instance> &instance,
+                        const Cluster_impl::Instance_md_and_gr_member &) {
+          auto purged = mysqlshdk::mysql::Gtid_set::from_gtid_purged(*instance);
 
-  primary_cluster->execute_in_members(
-      [&purged_gtids](const std::shared_ptr<Instance> &instance,
-                      const Cluster_impl::Instance_md_and_gr_member &) {
-        auto purged = mysqlshdk::mysql::Gtid_set::from_gtid_purged(*instance);
+          log_debug("gtid_purged@%s=%s", instance->descr().c_str(),
+                    purged.str().c_str());
+          purged_gtids.emplace_back(purged);
+          return true;
+        },
+        [](const shcore::Error &err,
+           const Cluster_impl::Instance_md_and_gr_member &i) {
+          log_debug("could not connect to %s:%i to query gtid_purged: %s",
+                    i.second.host.c_str(), i.second.port, err.format().c_str());
+          return true;
+        });
 
-        log_debug("gtid_purged@%s=%s", instance->descr().c_str(),
-                  purged.str().c_str());
-        purged_gtids.emplace_back(purged);
-        return true;
-      },
-      [](const shcore::Error &err,
-         const Cluster_impl::Instance_md_and_gr_member &i) {
-        log_debug("could not connect to %s:%i to query gtid_purged: %s",
-                  i.second.host.c_str(), i.second.port, err.format().c_str());
-        return true;
-      });
+    std::vector<Cluster_set_member_metadata> members;
+    get_metadata_storage()->get_cluster_set(get_id(), true, nullptr, &members);
 
-  get_metadata_storage()->get_cluster_set(get_id(), true, nullptr, &members);
-  for (const auto &m : members) {
-    allowed_errant_uuids.push_back(m.cluster.view_change_uuid);
+    std::vector<std::string> allowed_errant_uuids;
+    allowed_errant_uuids.reserve(members.size());
+    for (const auto &m : members) {
+      allowed_errant_uuids.push_back(m.cluster.view_change_uuid);
+    }
+
+    mysqlshdk::mysql::Gtid_set missing_gtids;
+
+    mysqlshdk::mysql::compute_joining_replica_gtid_state(
+        *primary, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*primary),
+        purged_gtids, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*replica),
+        allowed_errant_uuids, &missing_gtids, &unrecoverable_gtids,
+        &errant_gtids, &missing_view_gtids);
+
+    log_info(
+        "GTID check between '%s' and '%s' ('%s'): missing='%s' errant='%s' "
+        "unrecoverable='%s' vcle='%s'",
+        replica->descr().c_str(), primary_cluster->get_name().c_str(),
+        primary->descr().c_str(), missing_gtids.str().c_str(),
+        errant_gtids.str().c_str(), unrecoverable_gtids.str().c_str(),
+        missing_view_gtids.str().c_str());
   }
-
-  mysqlshdk::mysql::compute_joining_replica_gtid_state(
-      *primary, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*primary),
-      purged_gtids, mysqlshdk::mysql::Gtid_set::from_gtid_executed(*replica),
-      allowed_errant_uuids, &missing_gtids, &unrecoverable_gtids, &errant_gtids,
-      &missing_view_gtids);
-
-  log_info(
-      "GTID check between %s and %s (%s) missing=%s errant=%s unrecoverable=%s "
-      "vcle=%s\n",
-      replica->descr().c_str(), primary_cluster->get_name().c_str(),
-      primary->descr().c_str(), missing_gtids.str().c_str(),
-      errant_gtids.str().c_str(), unrecoverable_gtids.str().c_str(),
-      missing_view_gtids.str().c_str());
 
   if (out_is_recoverable) *out_is_recoverable = true;
 

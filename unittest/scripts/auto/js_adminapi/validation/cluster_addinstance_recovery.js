@@ -55,11 +55,11 @@
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
+|Instance '<<<__address2>>>' has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<__address2>>> with a physical snapshot from an|
+|overwriting the state of '<<<__address2>>>' with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -75,11 +75,11 @@
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
+|Instance '<<<__address2>>>' has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<__address2>>> with a physical snapshot from an|
+|overwriting the state of '<<<__address2>>>' with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||
@@ -127,11 +127,11 @@
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 ||
-|<<<__address2>>> has the following errant GTIDs that do not exist in the cluster:|
+|Instance '<<<__address2>>>' has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-|overwriting the state of <<<__address2>>> with a physical snapshot from an|
+|overwriting the state of '<<<__address2>>>' with a physical snapshot from an|
 |existing cluster member. To use this method by default, set the|
 |'recoveryMethod' option to 'clone'.|
 ||

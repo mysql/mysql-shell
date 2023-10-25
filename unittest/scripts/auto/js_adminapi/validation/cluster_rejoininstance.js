@@ -52,10 +52,10 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 //@ Rejoin instance fails if the target instance contains errant transactions (BUG#29953812) {VER(>=8.0.17)}
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it contains transactions that do not originate from the cluster, which must be discarded before it can join the cluster.|
 ||
-|<<<hostname>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
+|Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
-|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of <<<hostname>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
+|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
 |Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.|
 ||
@@ -65,10 +65,10 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 //@ Rejoin instance fails if the target instance contains errant transactions 5.7 (BUG#29953812) {VER(<8.0.17)}
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|
 ||
-|<<<hostname>>>:<<<__mysql_sandbox_port2>>> has the following errant GTIDs that do not exist in the cluster:|
+|Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the cluster:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
-|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of <<<hostname>>>:<<<__mysql_sandbox_port2>>> with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
+|WARNING: Discarding these extra GTID events can either be done manually or by completely overwriting the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
 |Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.|
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|

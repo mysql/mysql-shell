@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,61 +26,69 @@
 
 #include <functional>
 #include <string>
-#include <tuple>
 
-#include "mysqlshdk/libs/mysql/instance.h"
+#include <stdexcept>
 
-namespace mysqlshdk {
-namespace mysql {
+namespace mysqlshdk::mysql {
+
+class IInstance;
 
 using Gtid = std::string;
-using Gtid_range = std::tuple<std::string, uint64_t, uint64_t>;
 
-std::string to_string(const Gtid_range &range);
-uint64_t count(const Gtid_range &range);
+/*
+ * This represents either a single GTID or a range.
+ */
+struct Gtid_range {
+  // either "uuid:tag" if tag is present or "uuid" otherwise. If tag is present
+  // it's stored as lowercase.
+  std::string uuid_tag;
+  uint64_t begin{0};
+  uint64_t end{0};
 
+  Gtid_range() noexcept = default;
+  explicit Gtid_range(std::string_view uuid, std::string_view tag,
+                      uint64_t begin, uint64_t end);
+
+  static Gtid_range from_gtid(std::string_view gtid);
+
+  explicit operator bool() const noexcept {
+    return !uuid_tag.empty() && (begin != 0) && (end != 0);
+  }
+
+  bool is_single() const { return (begin == end); }
+
+  std::string str() const;
+  uint64_t count() const noexcept;
+};
+
+/*
+ * This represents a GTID set in a form of a single string. It can store a
+ * single GTID or multiple GTIDs from different servers (different UUIDs) with
+ * multiple ranges.
+ */
 class Gtid_set {
  public:
-  Gtid_set() : m_normalized(true) {}
+  Gtid_set() = default;
+  explicit Gtid_set(const Gtid_range &range) { add(range); }
 
-  explicit Gtid_set(const Gtid_range &range) : m_normalized(true) {
-    add(range);
+  static Gtid_set from_string(std::string gtid_set) noexcept {
+    return Gtid_set(std::move(gtid_set), false);
   }
 
-  static Gtid_set from_string(const std::string &gtid_set) {
-    return Gtid_set(gtid_set, false);
+  static Gtid_set from_normalized_string(std::string gtid_set) noexcept {
+    return Gtid_set(std::move(gtid_set), true);
   }
 
-  static Gtid_set from_normalized_string(const std::string &gtid_set) {
-    return Gtid_set(gtid_set, true);
-  }
-
-  static Gtid_set from_gtid_executed(
-      const mysqlshdk::mysql::IInstance &server) {
-    return Gtid_set(
-        server.queryf_one_string(0, "", "select @@global.gtid_executed"), true);
-  }
-
-  static Gtid_set from_gtid_purged(const mysqlshdk::mysql::IInstance &server) {
-    return Gtid_set(
-        server.queryf_one_string(0, "", "select @@global.gtid_purged"), true);
-  }
-
+  static Gtid_set from_gtid_executed(const mysqlshdk::mysql::IInstance &server);
+  static Gtid_set from_gtid_purged(const mysqlshdk::mysql::IInstance &server);
   static Gtid_set from_received_transaction_set(
-      const mysqlshdk::mysql::IInstance &server, const std::string &channel) {
-    return Gtid_set(server.queryf_one_string(
-                        0, "",
-                        "select received_transaction_set"
-                        " from performance_schema.replication_connection_status"
-                        " where channel_name=?",
-                        channel),
-                    true);
-  }
+      const mysqlshdk::mysql::IInstance &server, std::string_view channel);
 
   Gtid_set &normalize(const mysqlshdk::mysql::IInstance &server);
 
   Gtid_set &subtract(const Gtid_set &other,
                      const mysqlshdk::mysql::IInstance &server);
+
   Gtid_set &add(const Gtid &gtid);
   Gtid_set &add(const Gtid_set &other);
   Gtid_set &add(const Gtid_range &gtids);
@@ -88,23 +96,24 @@ class Gtid_set {
   Gtid_set &intersect(const Gtid_set &other,
                       const mysqlshdk::mysql::IInstance &server);
 
-  Gtid_set get_gtids_from(const std::string &uuid) const;
+  Gtid_set get_gtids_tagged() const;
+  Gtid_set get_gtids_from(std::string_view uuid) const;
+  Gtid_set get_gtids_from(std::string_view uuid, std::string_view tag) const;
 
   bool contains(const Gtid_set &other,
                 const mysqlshdk::mysql::IInstance &server) const;
 
-  void enumerate(const std::function<void(const Gtid &)> &fn) const;
+  void enumerate(const std::function<void(Gtid)> &fn) const;
 
-  void enumerate_ranges(
-      const std::function<void(const Gtid_range &)> &fn) const;
+  void enumerate_ranges(const std::function<void(Gtid_range)> &fn) const;
+
+  bool has_tags() const;
 
   bool empty() const { return m_gtid_set.empty(); }
 
   uint64_t count() const;
 
-  operator std::string() const { return m_gtid_set; }
-
-  inline const std::string &str() const { return m_gtid_set; }
+  const std::string &str() const { return m_gtid_set; }
 
   bool operator==(const Gtid_set &other) const {
     if (!m_normalized || !other.m_normalized)
@@ -112,23 +121,16 @@ class Gtid_set {
     return m_gtid_set == other.m_gtid_set;
   }
 
-  bool operator!=(const Gtid_set &other) const {
-    if (!m_normalized || !other.m_normalized)
-      throw std::invalid_argument("Can't compare un-normalized Gtid_set");
-    return m_gtid_set != other.m_gtid_set;
-  }
+  bool operator!=(const Gtid_set &other) const { return !operator==(other); }
 
  private:
   std::string m_gtid_set;
-  bool m_normalized;
+  bool m_normalized{true};
 
-  Gtid_set(const std::string &gtid_set, bool normalized)
-      : m_gtid_set(gtid_set), m_normalized(normalized) {}
+  Gtid_set(std::string gtid_set, bool normalized) noexcept
+      : m_gtid_set(std::move(gtid_set)), m_normalized(normalized) {}
 };
 
-// TODO(alfredo) move pure gtid related functions from replication.h
-
-}  // namespace mysql
-}  // namespace mysqlshdk
+}  // namespace mysqlshdk::mysql
 
 #endif  // MYSQLSHDK_LIBS_MYSQL_GTID_UTILS_H_

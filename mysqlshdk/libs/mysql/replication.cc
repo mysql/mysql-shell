@@ -30,7 +30,11 @@
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/server_features.h"
+#include "modules/errors.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -787,18 +791,19 @@ size_t estimate_gtid_set_size(const std::string &gtid_set) {
       gtid_set,
       [&count](std::string_view s) {
         size_t p = s.find(':');
-        if (p != std::string::npos) {
-          std::string range{s};
-          size_t begin, end;
-          switch (sscanf(&range[p + 1], "%zu-%zu", &begin, &end)) {
-            case 2:
-              count += end - begin + 1;
-              break;
-            case 1:
-              count++;
-              break;
-          }
+        if (p == std::string::npos) return true;
+
+        std::string range{s};
+        size_t begin, end;
+        switch (sscanf(&range[p + 1], "%zu-%zu", &begin, &end)) {
+          case 2:
+            count += end - begin + 1;
+            break;
+          case 1:
+            count++;
+            break;
         }
+
         return true;
       },
       ",");
@@ -875,34 +880,32 @@ Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,
     return Gtid_set_relation::CONTAINS;
   }
 
-  // Set some session tempvars for caching
-  server.executef("SET @gtidset_a=?", gtidset_a);
-  server.executef("SET @gtidset_b=?", gtidset_b);
+  auto set_a = mysqlshdk::mysql::Gtid_set::from_normalized_string(
+      std::string{gtidset_a});
+  auto set_b = mysqlshdk::mysql::Gtid_set::from_normalized_string(
+      std::string{gtidset_b});
 
-  std::string a_sub_b = server.queryf_one_string(
-      0, "", "SELECT GTID_SUBTRACT(@gtidset_a, @gtidset_b)");
-  std::string b_sub_a = server.queryf_one_string(
-      0, "", "SELECT GTID_SUBTRACT(@gtidset_b, @gtidset_a)");
-
-  if (out_missing_from_a) *out_missing_from_a = b_sub_a;
-  if (out_missing_from_b) *out_missing_from_b = a_sub_b;
-
-  if (a_sub_b.empty() && b_sub_a.empty()) {
-    return Gtid_set_relation::EQUAL;
-  } else if (a_sub_b.empty() && !b_sub_a.empty()) {
-    return Gtid_set_relation::CONTAINED;
-  } else if (!a_sub_b.empty() && b_sub_a.empty()) {
-    return Gtid_set_relation::CONTAINS;
-  } else {
-    std::string ab_intersection =
-        server.queryf_one_string(0, "",
-                                 "SELECT GTID_SUBTRACT(@gtidset_a, "
-                                 "GTID_SUBTRACT(@gtidset_a, @gtidset_b))");
-    if (ab_intersection.empty())
-      return Gtid_set_relation::DISJOINT;
-    else
-      return Gtid_set_relation::INTERSECTS;
+  if (!mysqlsh::dba::supports_gtid_tags(server.get_version()) &&
+      (set_a.has_tags() || set_b.has_tags())) {
+    throw shcore::Exception(
+        shcore::str_format("Instance '%s' doesn't support GTID tags.",
+                           server.descr().c_str()),
+        SHERR_UNSUPPORTED_GTID_TAG);
   }
+
+  auto a_sub_b = mysqlshdk::mysql::Gtid_set{set_a}.subtract(set_b, server);
+  auto b_sub_a = mysqlshdk::mysql::Gtid_set{set_b}.subtract(set_a, server);
+
+  if (out_missing_from_a) *out_missing_from_a = b_sub_a.str();
+  if (out_missing_from_b) *out_missing_from_b = a_sub_b.str();
+
+  if (a_sub_b.empty() && b_sub_a.empty()) return Gtid_set_relation::EQUAL;
+  if (a_sub_b.empty() && !b_sub_a.empty()) return Gtid_set_relation::CONTAINED;
+  if (!a_sub_b.empty() && b_sub_a.empty()) return Gtid_set_relation::CONTAINS;
+
+  set_b.intersect(set_a, server);
+  return set_b.empty() ? Gtid_set_relation::DISJOINT
+                       : Gtid_set_relation::INTERSECTS;
 }
 
 std::string to_string(Replica_gtid_state state) {
@@ -933,6 +936,14 @@ void compute_joining_replica_gtid_state(
     mysqlshdk::mysql::Gtid_set *out_allowed_errant_gtids) {
   assert(out_missing_gtids && out_unrecoverable_gtids && out_errant_gtids &&
          out_allowed_errant_gtids);
+
+  if (!mysqlsh::dba::supports_gtid_tags(instance.get_version()) &&
+      joiner_gtids.has_tags()) {
+    throw shcore::Exception(
+        shcore::str_format("Instance '%s' doesn't support GTID tags.",
+                           instance.descr().c_str()),
+        SHERR_UNSUPPORTED_GTID_TAG);
+  }
 
   using mysqlshdk::mysql::Gtid_set;
 

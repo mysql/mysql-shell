@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
+#include "modules/errors.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -238,7 +239,8 @@ void rejoin_instances(Cluster_impl *cluster_impl,
           .run();
 
     } catch (const shcore::Error &e) {
-      console->print_warning(instance->descr() + ": " + e.format());
+      console->print_warning(shcore::str_format(
+          "%s: %s", instance->descr().c_str(), e.format().c_str()));
       // TODO(miguel) Once WL#13535 is implemented and rejoin supports
       // clone, simplify the following note by telling the user to use
       // rejoinInstance. E.g: “%s’ could not be automatically rejoined.
@@ -1174,7 +1176,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
   // pick the seed instance
   std::shared_ptr<Instance> best_instance_gtid;
-  {
+  try {
     best_instance_gtid =
         pick_best_instance_gtid(instances, m_cs_info.is_member,
                                 m_options.get_force(), m_options.get_primary());
@@ -1217,6 +1219,14 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
       instances.pop_back();
     }
+  } catch (const shcore::Error &e) {
+    if (e.code() != SHERR_UNSUPPORTED_GTID_TAG) throw;
+
+    console->print_error(
+        "A GTID set with tags was detected while verifying GTID compatibility "
+        "between Cluster instances. To use GTID tags, all members of the "
+        "Cluster must support them.");
+    throw;
   }
 
   // The 'force' option is a no-op in this scenario (instances aren't rejoined
