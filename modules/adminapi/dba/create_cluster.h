@@ -140,7 +140,6 @@ class Create_cluster : public Command_interface {
 
   void validate_create_cluster_options();
   void resolve_ssl_mode();
-  void log_used_gr_options();
   void prepare_metadata_schema();
   void create_recovery_account(mysqlshdk::mysql::IInstance *primary,
                                mysqlshdk::mysql::IInstance *target,

@@ -122,30 +122,66 @@ void Config_server_handler::set(const std::string &name,
   set(name, value, m_var_qualifier, std::chrono::milliseconds::zero(), context);
 }
 
-void Config_server_handler::apply() {
+void Config_server_handler::apply(bool skip_default_value_check) {
   log_info("Applying configs...");
 
   for (const auto &var : m_change_sequence) {
     auto var_type = var.value.get_type();
+
+    auto var_is_compiled = false;
+    if (!skip_default_value_check &&
+        (m_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 2)))
+      var_is_compiled = m_instance->has_variable_compiled_value(var.name);
+
     try {
-      if (var_type == shcore::Value_type::Bool) {
-        add_undo_change<bool>(var.name, var.qualifier);
+      switch (var_type) {
+        case shcore::Value_type::Bool: {
+          bool value = *value_to_nullable_bool(var.value);
+          if (var_is_compiled &&
+              (m_instance->get_sysvar_bool(var.name) == value)) {
+            log_info("Ignoring '%s': default value ('%s') is the expected.",
+                     var.name.c_str(), value ? "true" : "false");
+            continue;
+          }
 
-        bool value = *value_to_nullable_bool(var.value);
-        log_debug("Set '%s'=%s", var.name.c_str(), value ? "true" : "false");
-        m_instance->set_sysvar(var.name, value, var.qualifier);
-      } else if (var_type == shcore::Value_type::Integer) {
-        add_undo_change<int64_t>(var.name, var.qualifier);
+          add_undo_change<bool>(var.name, var.qualifier);
 
-        int64_t value = *value_to_nullable_int(var.value);
-        log_debug("Set '%s'=%" PRId64, var.name.c_str(), value);
-        m_instance->set_sysvar(var.name, value, var.qualifier);
-      } else {
-        add_undo_change<std::string>(var.name, var.qualifier);
+          log_info("Set '%s'=%s", var.name.c_str(), value ? "true" : "false");
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+          break;
+        }
 
-        std::string value = *value_to_nullable_string(var.value);
-        log_debug("Set '%s'='%s'", var.name.c_str(), value.c_str());
-        m_instance->set_sysvar(var.name, value, var.qualifier);
+        case shcore::Value_type::Integer: {
+          int64_t value = *value_to_nullable_int(var.value);
+          if (var_is_compiled &&
+              (m_instance->get_sysvar_int(var.name) == value)) {
+            log_info("Ignoring '%s': default value ('%" PRId64
+                     "') is the expected.",
+                     var.name.c_str(), value);
+            continue;
+          }
+
+          add_undo_change<int64_t>(var.name, var.qualifier);
+
+          log_info("Set '%s'=%" PRId64, var.name.c_str(), value);
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+          break;
+        }
+
+        default: {
+          std::string value = *value_to_nullable_string(var.value);
+          if (var_is_compiled &&
+              (m_instance->get_sysvar_string(var.name) == value)) {
+            log_info("Ignoring '%s': default value ('%s') is the expected.",
+                     var.name.c_str(), value.c_str());
+            continue;
+          }
+
+          add_undo_change<std::string>(var.name, var.qualifier);
+
+          log_info("Set '%s'='%s'", var.name.c_str(), value.c_str());
+          m_instance->set_sysvar(var.name, value, var.qualifier);
+        }
       }
     } catch (const std::exception &err) {
       if (var.context.empty()) throw;

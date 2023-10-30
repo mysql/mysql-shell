@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,7 +69,7 @@ class IConfig_handler {
   virtual void set(const std::string &name,
                    const std::optional<std::string> &value,
                    const std::string &context) = 0;
-  virtual void apply() = 0;
+  virtual void apply(bool skip_default_value_check = false) = 0;
 
   virtual std::string get_server_uuid() const = 0;
 };
@@ -175,7 +175,7 @@ class Config : public IConfig_handler {
    * effectively apply all recorded changes to their target resources (e.g.,
    * option file or serve instance).
    */
-  void apply() override;
+  void apply(bool skip_default_value_check = false) override;
 
   std::string get_server_uuid() const override {
     // this class should probably not inherit from IConfig_handler

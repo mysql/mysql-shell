@@ -77,13 +77,16 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
                                       const Var_qualifier));
   MOCK_CONST_METHOD2(set_sysvar_default,
                      void(const std::string &, const Var_qualifier));
-  MOCK_CONST_METHOD1(has_variable_compiled_value, bool(const std::string &));
+  MOCK_CONST_METHOD1(has_variable_compiled_value, bool(std::string_view));
   MOCK_CONST_METHOD0(is_performance_schema_enabled, bool());
   MOCK_CONST_METHOD0(is_ssl_enabled, bool());
 
   MOCK_CONST_METHOD1(is_read_only, bool(bool super));
   MOCK_CONST_METHOD0(get_version, mysqlshdk::utils::Version());
 
+  MOCK_CONST_METHOD2(get_system_variable,
+                     std::optional<std::string>(std::string_view,
+                                                const Var_qualifier));
   MOCK_CONST_METHOD2(get_system_variables_like,
                      std::map<std::string, std::optional<std::string>>(
                          const std::string &, const Var_qualifier));

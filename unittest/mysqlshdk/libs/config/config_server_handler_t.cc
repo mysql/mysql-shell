@@ -469,15 +469,15 @@ TEST_F(Config_server_handler_test, errors) {
 
   // Error if trying to apply a variable that does not exists.
   cfg_h.set("not-exist-bool", std::optional<bool>(true));
-  EXPECT_THROW_LIKE(cfg_h.apply(), mysqlshdk::db::Error,
+  EXPECT_THROW_LIKE(cfg_h.apply(true), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-bool'");
   Config_server_handler cfg_h2(&instance, Var_qualifier::GLOBAL);
   cfg_h2.set("not-exist-int", std::optional<int64_t>(1234));
-  EXPECT_THROW_LIKE(cfg_h2.apply(), mysqlshdk::db::Error,
+  EXPECT_THROW_LIKE(cfg_h2.apply(true), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-int'");
   Config_server_handler cfg_h3(&instance, Var_qualifier::GLOBAL);
   cfg_h3.set("not-exist-string", std::optional<std::string>("mystr"));
-  EXPECT_THROW_LIKE(cfg_h3.apply(), mysqlshdk::db::Error,
+  EXPECT_THROW_LIKE(cfg_h3.apply(true), mysqlshdk::db::Error,
                     "Unknown system variable 'not-exist-string'");
 }
 
@@ -547,7 +547,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying bool value setting (no context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_bool", std::optional<bool>(true));
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unknown system variable 'not_exit_bool'");
   }
 
@@ -555,7 +555,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying bool value setting (with context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_bool", std::optional<bool>(true), "notExistBool");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unable to set value 'true' for 'notExistBool': Unknown "
                       "system variable 'not_exit_bool'");
   }
@@ -564,7 +564,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying int value setting (no context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_int", std::optional<int64_t>(1234));
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unknown system variable 'not_exit_int'");
   }
 
@@ -572,7 +572,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying int value setting (with context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_int", std::optional<int64_t>(1234), "notExistInt");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unable to set value '1234' for 'notExistInt': Unknown "
                       "system variable 'not_exit_int'");
   }
@@ -581,7 +581,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     SCOPED_TRACE("Error applying string value setting (no context).");
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_string", std::optional<std::string>("mystr"));
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unknown system variable 'not_exit_string'");
   }
 
@@ -590,7 +590,7 @@ TEST_F(Config_server_handler_test, apply_errors) {
     Config_server_handler cfg_h(&instance, Var_qualifier::GLOBAL);
     cfg_h.set("not_exit_string", std::optional<std::string>("mystr"),
               "notExistString");
-    EXPECT_THROW_LIKE(cfg_h.apply(), std::runtime_error,
+    EXPECT_THROW_LIKE(cfg_h.apply(true), std::runtime_error,
                       "Unable to set value 'mystr' for 'notExistString': "
                       "Unknown system variable 'not_exit_string'");
   }

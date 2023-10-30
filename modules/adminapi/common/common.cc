@@ -2449,45 +2449,6 @@ void ensure_instance_check_installed_schema_version(
   }
 }
 
-void log_used_gr_options(const Group_replication_options &gr_options) {
-  if (gr_options.local_address.has_value() &&
-      !gr_options.local_address->empty()) {
-    log_info("Using Group Replication local address: %s",
-             gr_options.local_address->c_str());
-  }
-
-  if (gr_options.group_seeds.has_value() && !gr_options.group_seeds->empty()) {
-    log_info("Using Group Replication group seeds: %s",
-             gr_options.group_seeds->c_str());
-  }
-
-  if (gr_options.exit_state_action.has_value() &&
-      !gr_options.exit_state_action->empty()) {
-    log_info("Using Group Replication exit state action: %s",
-             gr_options.exit_state_action->c_str());
-  }
-
-  if (gr_options.member_weight.has_value()) {
-    log_info("Using Group Replication member weight: %s",
-             std::to_string(*gr_options.member_weight).c_str());
-  }
-
-  if (gr_options.consistency.has_value() && !gr_options.consistency->empty()) {
-    log_info("Using Group Replication failover consistency: %s",
-             gr_options.consistency->c_str());
-  }
-
-  if (gr_options.expel_timeout.has_value()) {
-    log_info("Using Group Replication expel timeout: %s",
-             std::to_string(*gr_options.expel_timeout).c_str());
-  }
-
-  if (gr_options.auto_rejoin_tries.has_value()) {
-    log_info("Using Group Replication auto-rejoin tries: %s",
-             std::to_string(*gr_options.auto_rejoin_tries).c_str());
-  }
-}
-
 void validate_local_address_ip_compatibility(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const std::string &local_address, const std::string &group_seeds,

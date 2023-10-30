@@ -1202,7 +1202,7 @@ void Cluster_set_impl::remove_cluster(
       auto config = target_cluster->create_config_object({}, true, true, true);
 
       config->set("skip_replica_start", std::optional<bool>(false));
-      config->apply();
+      config->apply(true);
 
       undo_tracker.add("", [=]() {
         log_info("Revert: Enabling skip_replica_start");

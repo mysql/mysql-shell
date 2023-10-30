@@ -16,7 +16,6 @@ var configure_instance_sql = [
     "select @@port, @@datadir",
     "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like",
     "show GLOBAL variables where `variable_name` in ('binlog_format')",
-    "SET * `binlog_format` = 'ROW'"
 ];
 
 var create_cluster_sql = [
@@ -48,7 +47,7 @@ var check_instance_state_sql = [
 ];
 
 var rejoin_instance_sql = [
-    "SELECT",
+    "SELECT ",
     "START GROUP_REPLICATION"
 ];
 
@@ -183,7 +182,6 @@ dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[2]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[3]);
 
 //@<> WL#13294: create cluster (dba.logSql = 0).
 WIPE_SHELL_LOG();
@@ -420,7 +418,6 @@ dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(configure_instance_sql[2]);
-EXPECT_SHELL_LOG_CONTAINS(configure_instance_sql[3]);
 
 //@<> WL#13294: create cluster (dba.logSql = 1).
 WIPE_SHELL_LOG();
@@ -440,7 +437,11 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[3]);
-EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
+if (__version_num < 80000) {
+    EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
+} else {
+    EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
+}
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
 //@<> WL#13294: check instance state (dba.logSql = 1).
@@ -658,7 +659,6 @@ dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 EXPECT_SHELL_LOG_CONTAINS(configure_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(configure_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(configure_instance_sql[2]);
-EXPECT_SHELL_LOG_CONTAINS(configure_instance_sql[3]);
 
 //@<> WL#13294: create cluster (dba.logSql = 2).
 WIPE_SHELL_LOG();
@@ -678,7 +678,11 @@ EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[3]);
-EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
+if (__version_num < 80000) {
+    EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
+} else {
+    EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
+}
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
 //@<> WL#13294: check instance state (dba.logSql = 2).

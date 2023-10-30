@@ -253,7 +253,7 @@ function disable_auto_rejoin(session, port) {
   testutil.changeSandboxConf(port, "group_replication_start_on_boot", "OFF");
 
   if (__version_num > 80011)
-    session.runSql("RESET PERSIST group_replication_start_on_boot");
+    session.runSql("RESET PERSIST IF EXISTS group_replication_start_on_boot");
 
   // Close the session if established in this function
   if (close_session)

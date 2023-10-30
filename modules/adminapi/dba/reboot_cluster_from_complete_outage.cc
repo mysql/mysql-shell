@@ -771,9 +771,6 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
   auto cfg = mysqlsh::dba::create_server_config(
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
-  // Common informative logging
-  cluster_topology_executor_ops::log_used_gr_options(m_options.gr_options);
-
   // If the Cluster is using the 'MySQL' communication stack, we cannot
   // guarantee that:
   //   - The recovery account exists and is configured at every Cluster

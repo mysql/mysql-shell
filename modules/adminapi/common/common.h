@@ -804,8 +804,6 @@ void ensure_instance_check_installed_schema_version(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     mysqlshdk::utils::Version lowest_cluster_version);
 
-void log_used_gr_options(const Group_replication_options &gr_options);
-
 /**
  * Validate the use of IPv6 addresses on the localAddress of the
  * target instance and check if the target instance supports usage of

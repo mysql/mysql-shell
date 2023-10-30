@@ -469,74 +469,6 @@ void Create_cluster::prepare() {
   }
 }
 
-void Create_cluster::log_used_gr_options() {
-  auto console = mysqlsh::current_console();
-
-  log_info("Using Group Replication single primary mode: %s",
-           *m_options.multi_primary ? "FALSE" : "TRUE");
-
-  if (m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE) {
-    log_info("Using Group Replication SSL mode: %s",
-             to_string(m_options.gr_options.ssl_mode).c_str());
-  }
-
-  if (m_options.gr_options.group_name.has_value()) {
-    log_info("Using Group Replication group name: %s",
-             m_options.gr_options.group_name->c_str());
-  }
-
-  if (m_options.gr_options.local_address.has_value()) {
-    log_info("Using Group Replication local address: %s",
-             m_options.gr_options.local_address->c_str());
-  }
-
-  if (m_options.gr_options.group_seeds.has_value()) {
-    log_info("Using Group Replication group seeds: %s",
-             m_options.gr_options.group_seeds->c_str());
-  }
-
-  if (m_options.gr_options.exit_state_action.has_value()) {
-    log_info("Using Group Replication exit state action: %s",
-             m_options.gr_options.exit_state_action->c_str());
-  }
-
-  if (m_options.gr_options.member_weight.has_value()) {
-    log_info("Using Group Replication member weight: %s",
-             std::to_string(*m_options.gr_options.member_weight).c_str());
-  }
-
-  if (m_options.gr_options.consistency.has_value()) {
-    log_info("Using Group Replication failover consistency: %s",
-             m_options.gr_options.consistency->c_str());
-  }
-
-  if (m_options.gr_options.expel_timeout.has_value()) {
-    log_info("Using Group Replication expel timeout: %s",
-             std::to_string(*m_options.gr_options.expel_timeout).c_str());
-  }
-
-  if (m_options.gr_options.auto_rejoin_tries.has_value()) {
-    log_info("Using Group Replication auto-rejoin tries: %s",
-             std::to_string(*m_options.gr_options.auto_rejoin_tries).c_str());
-  }
-
-  if (m_options.gr_options.communication_stack.has_value()) {
-    log_info("Using Group Replication Communication Stack: %s",
-             m_options.gr_options.communication_stack->c_str());
-  }
-
-  if (m_options.gr_options.transaction_size_limit.has_value()) {
-    log_info(
-        "Using Group Replication transaction size limit: %s",
-        std::to_string(*m_options.gr_options.transaction_size_limit).c_str());
-  }
-
-  if (m_options.gr_options.paxos_single_leader.has_value()) {
-    log_info("Using Group Replication Paxos Single Leader: %s",
-             m_options.gr_options.paxos_single_leader.value() ? "ON" : "OFF");
-  }
-}
-
 void Create_cluster::prepare_metadata_schema() {
   // Ensure that the metadata schema is ready for creating a new cluster in it
   // If the metadata schema does not exist, we create it
@@ -768,8 +700,6 @@ shcore::Value Create_cluster::execute() {
     log_info(
         "Adopting cluster from existing Group Replication and using its "
         "settings.");
-  } else {
-    log_used_gr_options();
   }
 
   // Make sure the GR plugin is installed (only installed if needed).

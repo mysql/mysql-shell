@@ -166,7 +166,7 @@ class IInstance {
       const std::string &name,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
 
-  virtual bool has_variable_compiled_value(const std::string &name) const = 0;
+  virtual bool has_variable_compiled_value(std::string_view name) const = 0;
   virtual bool is_performance_schema_enabled() const = 0;
 
   virtual bool is_ssl_enabled() const = 0;
@@ -174,6 +174,9 @@ class IInstance {
   virtual bool is_read_only(bool super) const = 0;
   virtual utils::Version get_version() const = 0;
 
+  virtual std::optional<std::string> get_system_variable(
+      std::string_view name,
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const = 0;
   virtual std::map<std::string, std::optional<std::string>>
   get_system_variables_like(
       const std::string &pattern,
@@ -412,7 +415,7 @@ class Instance : public IInstance {
       const std::string &name,
       const Var_qualifier qualifier = Var_qualifier::GLOBAL) const override;
 
-  bool has_variable_compiled_value(const std::string &name) const override;
+  bool has_variable_compiled_value(std::string_view name) const override;
   bool is_performance_schema_enabled() const override;
   bool is_ssl_enabled() const override;
 
@@ -424,7 +427,7 @@ class Instance : public IInstance {
 
   std::optional<std::string> get_system_variable(
       std::string_view name,
-      const Var_qualifier scope = Var_qualifier::GLOBAL) const;
+      const Var_qualifier scope = Var_qualifier::GLOBAL) const override;
   std::map<std::string, std::optional<std::string>> get_system_variables_like(
       const std::string &pattern,
       const Var_qualifier scope = Var_qualifier::GLOBAL) const override;

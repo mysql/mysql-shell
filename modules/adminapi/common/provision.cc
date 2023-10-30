@@ -361,6 +361,24 @@ void wait_super_read_only_cleared(const mysqlshdk::mysql::IInstance &instance,
         "Group Replication plugin.");
 }
 
+bool check_variable_value_default(const mysqlshdk::mysql::IInstance &instance,
+                                  std::string_view var_name,
+                                  std::string_view var_value) {
+  instance.execute("START TRANSACTION");
+  shcore::Scoped_callback end_trx(
+      [&instance]() { instance.execute("ROLLBACK"); });
+
+  instance.executef("SET @var_value_current = @@GLOBAL.!", var_name);
+  instance.executef("SET @@GLOBAL.! = DEFAULT", var_name);
+
+  auto default_value = instance.get_system_variable(var_name);
+
+  instance.executef("SET @@GLOBAL.! = @var_value_current", var_name);
+
+  if (!default_value.has_value()) return false;
+  return (*default_value == var_value);
+}
+
 }  // namespace
 
 namespace mysqlsh {
@@ -712,9 +730,6 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
   assert(config);
   assert(config->has_handler(mysqlshdk::config::k_dft_cfg_file_handler));
 
-  // Get group seeds information from global var, which is supposed to have been
-  // set before configureLocalInstance()
-
   // Get all GR configurations.
   log_debug("Get all group replication configurations.");
   std::map<std::string, std::optional<std::string>> gr_cfgs =
@@ -722,15 +737,45 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
 
   // Set all GR configurations.
   log_debug("Set all group replication configurations to be applied.");
-  // persist the GR configs using the loose_ prefix so that even if the
-  // plugin is disabled, the server can start
-  for (const auto &gr_cfg : gr_cfgs) {
-    std::string option_name = gr_cfg.first;
-    if (shcore::str_ibeginswith(option_name, "group_replication_")) {
-      option_name = "loose_" + option_name;
+
+  // Persist the GR configs using the loose_ prefix so that even if the
+  // plugin is disabled, the server can start. Also, if the variable has its
+  // default value, we can skip it.
+  auto check_default_value = [&instance, version = instance.get_version()](
+                                 std::string_view var_name,
+                                 std::string_view var_value) -> bool {
+    if (version >= mysqlshdk::utils::Version(8, 0, 2))
+      return instance.has_variable_compiled_value(var_name);
+
+    try {
+      return check_variable_value_default(instance, var_name, var_value);
+    } catch (const std::exception &e) {
+      log_error("Unable to check var '%.*s' default value: %s",
+                static_cast<int>(var_name.length()), var_name.data(), e.what());
+      return false;  // assume different default value
     }
-    config->set_for_handler(option_name, gr_cfg.second,
-                            mysqlshdk::config::k_dft_cfg_file_handler);
+  };
+
+  for (const auto &[cfg_name, cfg_value] : gr_cfgs) {
+    if (cfg_value.has_value() && check_default_value(cfg_name, *cfg_value)) {
+      log_info("Ignoring '%s': default value ('%s') is the expected.",
+               cfg_name.c_str(), cfg_value.value().c_str());
+      continue;
+    }
+
+    if (cfg_value.has_value())
+      log_info("Persisting '%s' with value '%s'.", cfg_name.c_str(),
+               cfg_value.value().c_str());
+    else
+      log_info("Persisting '%s'.", cfg_name.c_str());
+
+    if (shcore::str_ibeginswith(cfg_name, "group_replication_")) {
+      config->set_for_handler("loose_" + cfg_name, cfg_value,
+                              mysqlshdk::config::k_dft_cfg_file_handler);
+    } else {
+      config->set_for_handler(cfg_name, cfg_value,
+                              mysqlshdk::config::k_dft_cfg_file_handler);
+    }
   }
 
   // Update the group_replication_group_seeds using the live global value

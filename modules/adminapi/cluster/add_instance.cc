@@ -511,9 +511,6 @@ void Add_instance::do_run() {
   auto cfg = mysqlsh::dba::create_server_config(
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
-  // Common informative logging
-  cluster_topology_executor_ops::log_used_gr_options(m_gr_opts);
-
   console->print_info("Adding instance to the cluster...");
   console->print_info();
 

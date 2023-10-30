@@ -70,6 +70,8 @@ and limitations of advanced Multi-Primary Mode.
 `);
 
 //@<> WL#12011: FR2-03 - no interactive option (default: non-interactive).
+WIPE_SHELL_LOG();
+
 var c;
 EXPECT_NO_THROWS(function() { c = dba.createCluster('test', {multiPrimary: true, force: true}); });
 
@@ -146,9 +148,74 @@ At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.`);
 }
 
-c.dissolve();
+// check that some vars don't have it's default values set
+if (__version_num >= 80002) {
+    EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_verify_server_cert': default value ('false') is the expected.");
+    EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_start_on_boot': default value ('true') is the expected.");
+}
+
+//@<> Check if dba.configureLocalInstance() only sets vars that don't have it's default values {VER(<8.0.2)}
+WIPE_SHELL_LOG();
+
+EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(); });
+
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_disjoint_gtids_join': default value ('OFF') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_lower_version_join': default value ('OFF') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_bootstrap_group': default value ('OFF') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_components_stop_timeout': default value ('31536000') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_exit_state_action': default value ('READ_ONLY') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_flow_control_applier_threshold': default value ('25000') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_flow_control_certifier_threshold': default value ('25000') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_flow_control_mode': default value ('QUOTA') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_force_members': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_group_seeds': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_member_weight': default value ('50') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_poll_spin_loops': default value ('0') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_complete_at': default value ('TRANSACTIONS_APPLIED') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_reconnect_interval': default value ('60') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_retry_count': default value ('10') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_ca': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_capath': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_cert': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_cipher': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_crl': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_crlpath': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_key': default value ('') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_verify_server_cert': default value ('OFF') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_start_on_boot': default value ('ON') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_transaction_size_limit': default value ('150000000') is the expected.");
+EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_unreachable_majority_timeout': default value ('0') is the expected.");
+
+// some vars (group_replication_group_seeds) are persisted in other places, by different reasons, so we can't check them
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_allow_local_disjoint_gtids_join"); }, "Option 'group_replication_allow_local_disjoint_gtids_join' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_allow_local_lower_version_join"); }, "Option 'group_replication_allow_local_lower_version_join' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_bootstrap_group"); }, "Option 'group_replication_bootstrap_group' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_components_stop_timeout"); }, "Option 'group_replication_components_stop_timeout' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_exit_state_action"); }, "Option 'group_replication_exit_state_action' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_flow_control_applier_threshold"); }, "Option 'group_replication_flow_control_applier_threshold' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_flow_control_certifier_threshold"); }, "Option 'group_replication_flow_control_certifier_threshold' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_flow_control_mode"); }, "Option 'group_replication_flow_control_mode' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_force_members"); }, "Option 'group_replication_force_members' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_member_weight"); }, "Option 'group_replication_member_weight' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_poll_spin_loops"); }, "Option 'group_replication_poll_spin_loops' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_complete_at"); }, "Option 'group_replication_recovery_complete_at' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_reconnect_interval"); }, "Option 'group_replication_recovery_reconnect_interval' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_retry_count"); }, "Option 'group_replication_recovery_retry_count' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_ca"); }, "Option 'group_replication_recovery_ssl_ca' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_capath"); }, "Option 'group_replication_recovery_ssl_capath' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_cert"); }, "Option 'group_replication_recovery_ssl_cert' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_cipher"); }, "Option 'group_replication_recovery_ssl_cipher' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_crl"); }, "Option 'group_replication_recovery_ssl_crl' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_crlpath"); }, "Option 'group_replication_recovery_ssl_crlpath' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_key"); }, "Option 'group_replication_recovery_ssl_key' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_verify_server_cert"); }, "Option 'group_replication_recovery_ssl_verify_server_cert' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_start_on_boot"); }, "Option 'group_replication_start_on_boot' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_transaction_size_limit"); }, "Option 'group_replication_transaction_size_limit' does not exist in group 'mysqld'");
+EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_unreachable_majority_timeout"); }, "Option 'group_replication_unreachable_majority_timeout' does not exist in group 'mysqld'");
 
 //@<> Create cluster without group_replication_start_on_boot
+reset_instance(session);
+
 session.runSql("set global group_replication_start_on_boot=1");
 var start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
 EXPECT_EQ(1, start_on_boot);

@@ -54,11 +54,8 @@ group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{VER(<8.0.27)}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#12049: Dissolve cluster 6 {VER(>=8.0.12)}
 ||
@@ -145,9 +142,7 @@ group_replication_member_weight = 75
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
@@ -174,11 +169,8 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 
 //@ WL#11032: Finalization
 ||

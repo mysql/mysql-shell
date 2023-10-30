@@ -157,7 +157,7 @@ class Config_server_handler : public IConfig_handler {
    * @throw mysqlshdk::db::Error if any error occurs trying to set (apply) the
    *        configurations on the server.
    */
-  void apply() override;
+  void apply(bool skip_default_value_check = false) override;
 
   std::string get_server_uuid() const override;
 
