@@ -113,34 +113,31 @@ void Configure_local_instance::do_run() {
   m_local_configure = true;
   prepare();
 
-  shcore::Value ret_val;
-  auto console = mysqlsh::current_console();
-
   // Execute the configure local instance operation
-  if (m_instance_type == TargetType::InnoDBCluster) {
-    if (m_target_instance->get_version() >=
-        mysqlshdk::utils::Version(8, 0, 5)) {
-      return;
-    }
-
-    console->print_info("Persisting the cluster settings...");
-
-    // make sure super_read_only=1 is persisted to disk
-    m_cfg->set_for_handler("super_read_only", std::optional<bool>(true),
-                           mysqlshdk::config::k_dft_cfg_file_handler);
-
-    mysqlsh::dba::persist_gr_configurations(*m_target_instance, m_cfg.get());
-
-    console->print_info("The instance '" + m_target_instance->descr() +
-                        "' was configured for use in an InnoDB cluster.");
-
-    console->print_info();
-    console->print_info(
-        "The instance cluster settings were successfully persisted.");
-
-  } else {
-    return Configure_instance::do_run();
+  if (m_instance_type != TargetType::InnoDBCluster) {
+    Configure_instance::do_run();
+    return;
   }
+
+  if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
+    return;
+
+  auto console = mysqlsh::current_console();
+  console->print_info("Persisting the cluster settings...");
+
+  // make sure super_read_only=1 is persisted to disk
+  m_cfg->set_for_handler("super_read_only", std::optional<bool>(true),
+                         mysqlshdk::config::k_dft_cfg_file_handler);
+
+  mysqlsh::dba::persist_gr_configurations(*m_target_instance, m_cfg.get());
+
+  console->print_info(shcore::str_format(
+      "The instance '%s' was configured for use in an InnoDB cluster.",
+      m_target_instance->descr().c_str()));
+
+  console->print_info();
+  console->print_info(
+      "The instance cluster settings were successfully persisted.");
 }
 }  // namespace dba
 }  // namespace mysqlsh

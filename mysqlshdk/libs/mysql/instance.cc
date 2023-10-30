@@ -416,28 +416,28 @@ bool Instance::is_ssl_enabled() const {
  * performance_schema variables_info table.
  */
 
-bool Instance::has_variable_compiled_value(const std::string &name) const {
-  bool perf_schema_on = is_performance_schema_enabled();
-  if (!perf_schema_on)
-    throw std::runtime_error("Unable to check if variable '" + name +
-                             "' has the default (compiled) value since "
-                             "performance_schema is not enabled.");
-  std::string variable_default_stmt_fmt =
-      "SELECT variable_source "
-      "FROM performance_schema.variables_info "
-      "WHERE variable_name = ?";
-  shcore::sqlstring variable_default_stmt =
-      shcore::sqlstring(variable_default_stmt_fmt, 0);
-  variable_default_stmt << name;
-  variable_default_stmt.done();
-  auto resultset = query(variable_default_stmt);
-  auto row = resultset->fetch_one();
-  if (row)
-    return row->get_string(0) == "COMPILED";
-  else
-    throw std::runtime_error(
-        "Unable to find variable '" + name +
-        "' in the performance_schema.variables_info table.");
+bool Instance::has_variable_compiled_value(std::string_view name) const {
+  if (!is_performance_schema_enabled())
+    throw std::runtime_error(shcore::str_format(
+        "Unable to check if variable '%.*s' has the default (compiled) value "
+        "since performance_schema is not enabled.",
+        static_cast<int>(name.size()), name.data()));
+
+  auto stmt =
+      "SELECT (variable_source = 'COMPILED') FROM "
+      "performance_schema.variables_info WHERE variable_name = ?"_sql;
+  stmt << name;
+  stmt.done();
+
+  auto resultset = query(stmt);
+  if (auto row = resultset->fetch_one(); row) {
+    return (row->get_int(0) != 0);
+  }
+
+  throw std::runtime_error(
+      shcore::str_format("Unable to find variable '%.*s' in the "
+                         "performance_schema.variables_info table.",
+                         static_cast<int>(name.size()), name.data()));
 }
 
 /**

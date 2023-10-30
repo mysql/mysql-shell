@@ -81,7 +81,7 @@ EXPECT_STDOUT_CONTAINS("Access denied")
 
 testutil.change_sandbox_conf(__mysql_sandbox_port2, 'group_replication_start_on_boot', 'OFF')
 if __version_num > 80011:
-    session2.run_sql("RESET PERSIST group_replication_start_on_boot")
+    session2.run_sql("RESET PERSIST IF EXISTS group_replication_start_on_boot")
 
 session2.close()
 testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})

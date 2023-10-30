@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,7 +141,7 @@ class Config_file_handler : public IConfig_handler {
    *        std::runtime_error if any runtime exception happens while writing
    *        to the option file(s).
    */
-  void apply() override;
+  void apply(bool skip_default_value_check = false) override;
 
   std::string get_server_uuid() const override { return m_server_uuid; }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,10 +66,10 @@ void Config::set(const std::string &name,
   }
 }
 
-void Config::apply() {
+void Config::apply(bool skip_default_value_check) {
   for (const auto &config_handler : m_config_handlers) {
     log_debug("Apply config changes for %s.", config_handler.first.c_str());
-    config_handler.second->apply();
+    config_handler.second->apply(skip_default_value_check);
   }
 }
 

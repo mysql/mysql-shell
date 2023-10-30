@@ -10,11 +10,8 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -28,36 +25,18 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 |<Cluster:C>|
 
 //@<OUT> FR1-TS-01 check persisted variables {VER(>=8.0.12)}
-group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = 
-?{VER(>=8.0.23)}
-group_replication_ip_allowlist = AUTOMATIC
-?{}
-?{VER(<8.0.23)}
-group_replication_ip_whitelist = AUTOMATIC
-?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-group_replication_member_weight = 50
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
-?{VER(>=8.0.27) && VER(<8.3.0)}
-group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
-?{}
 {
     "clusterName": "C",
     "defaultReplicaSet": {
@@ -134,11 +113,8 @@ group_replication_local_address = localhost:<<<__local_address_1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -197,11 +173,9 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -216,33 +190,20 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 |<Cluster:ClusterName>|
 
 //@<OUT> FR1-TS-7 check persisted variables {VER(>=8.0.12)}
-group_replication_autorejoin_tries = <<<__default_gr_auto_rejoin_tries>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
-group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
-group_replication_group_seeds = 
-?{VER(>=8.0.23)}
-group_replication_ip_allowlist = AUTOMATIC
-?{}
-?{VER(<8.0.23)}
-group_replication_ip_whitelist = AUTOMATIC
-?{}
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-group_replication_member_weight = 50
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -277,23 +238,11 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -441,13 +390,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 ||
 
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
-?{VER(>=8.0.27)}
-group_replication_communication_stack = XCOM
-?{}
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
 ?{VER(>=8.0.23)}
@@ -460,23 +402,13 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xco
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
-?{VER(>=8.0.27)}
-group_replication_communication_stack = XCOM
-?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 ?{VER(>=8.0.23)}
@@ -486,16 +418,8 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_2>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -508,10 +432,6 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR2-TS-5 {VER(>=8.0.12)}
-?{VER(>=8.0.27)}
-group_replication_communication_stack = XCOM
-?{}
-group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
@@ -521,20 +441,13 @@ group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xco
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
-?{VER(>=8.0.27)}
-group_replication_communication_stack = XCOM
-?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
@@ -547,16 +460,8 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -568,11 +473,7 @@ WARNING: This function is deprecated and will be removed in a future release of 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
-?{VER(>=8.0.27)}
-group_replication_communication_stack = XCOM
-?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
@@ -585,16 +486,8 @@ group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,
 group_replication_ip_whitelist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
 ?{}
 group_replication_local_address = localhost:<<<__local_address_3>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -626,20 +519,15 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_enforce_update_everywhere_checks = ON
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -649,22 +537,12 @@ group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -744,23 +622,11 @@ ONLINE
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -773,23 +639,11 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -798,23 +652,11 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -822,21 +664,14 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -940,22 +775,12 @@ group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -963,21 +788,14 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -993,23 +811,11 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -1027,23 +833,11 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -1054,22 +848,12 @@ group_replication_communication_stack = MYSQL
 ?{}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
-group_replication_member_expel_timeout = <<<__default_gr_expel_timeout>>>
-?{VER(>=8.0.31)}
-group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
-?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
-group_replication_transaction_size_limit = 150000000
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -1077,21 +861,14 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
-group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
-group_replication_start_on_boot = ON
 ?{VER(>=8.0.27) && VER(<8.3.0)}
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
@@ -1163,18 +940,13 @@ group_replication_bootstrap_group = OFF
 group_replication_communication_stack = MYSQL
 ?{}
 group_replication_enforce_update_everywhere_checks = OFF
-?{VER(<8.0.16)}
-group_replication_exit_state_action = READ_ONLY
-?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address =
 ?{VER(>=8.0.31)}
 group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 ?{}
-group_replication_recovery_ssl_verify_server_cert = OFF
 group_replication_recovery_use_ssl = ON
-group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 ?{VER(>=8.0.27) && VER(<8.3.0)}
