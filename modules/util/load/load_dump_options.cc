@@ -30,6 +30,7 @@
 #include <utility>
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/dump/constants.h"
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/dump_manifest_config.h"
 #include "modules/util/load/load_errors.h"
@@ -49,11 +50,6 @@ namespace mysqlsh {
 namespace {
 
 using Version = mysqlshdk::utils::Version;
-
-const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
-                                  "mysql.sys"};
-const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
-                                      "ocirpl"};
 
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
@@ -273,10 +269,10 @@ void Load_dump_options::set_session(
 
   if (m_load_users) {
     // some users are always excluded
-    filters().users().exclude(k_excluded_users);
+    filters().users().exclude(dump::common::k_excluded_users);
 
     if (is_mds()) {
-      filters().users().exclude(k_oci_excluded_users);
+      filters().users().exclude(dump::common::k_mhs_excluded_users);
     }
 
     shcore::Account account;
@@ -284,6 +280,10 @@ void Load_dump_options::set_session(
     instance.get_current_user(&account.user, &account.host);
 
     filters().users().exclude(std::move(account));
+  }
+
+  if (is_mds()) {
+    filters().schemas().exclude(dump::common::k_mhs_excluded_schemas);
   }
 
   if (m_target_server_version >= Version(8, 0, 27)) {

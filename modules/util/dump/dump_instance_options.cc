@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "modules/util/common/dump/constants.h"
 #include "modules/util/common/dump/utils.h"
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
@@ -35,22 +36,12 @@
 namespace mysqlsh {
 namespace dump {
 
-namespace {
-
-const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
-                                  "mysql.sys"};
-
-const char *k_excluded_schemas[] = {"information_schema", "mysql", "ndbinfo",
-                                    "performance_schema", "sys"};
-
-}  // namespace
-
 Dump_instance_options::Dump_instance_options() {
   // some users are always excluded
-  filters().users().exclude(k_excluded_users);
+  filters().users().exclude(common::k_excluded_users);
 
   // some schemas are always excluded
-  filters().schemas().exclude(k_excluded_schemas);
+  filters().schemas().exclude(common::k_excluded_schemas);
 }
 
 const shcore::Option_pack_def<Dump_instance_options>
@@ -71,8 +62,7 @@ const shcore::Option_pack_def<Dump_instance_options>
 
 void Dump_instance_options::on_unpacked_options() {
   if (!m_dump_users) {
-    if (filters().users().excluded().size() >
-        shcore::array_size(k_excluded_users)) {
+    if (filters().users().excluded().size() > common::k_excluded_users.size()) {
       throw std::invalid_argument(
           "The 'excludeUsers' option cannot be used if the 'users' option is "
           "set to false.");
@@ -86,13 +76,9 @@ void Dump_instance_options::on_unpacked_options() {
   }
 
   if (mds_compatibility().has_value()) {
-    auto &schemas = filters().schemas();
-    // if MDS compatibility option is set, the following schemas should be
-    // excluded automatically:
-    //  - stores the audit plugin's configuration
-    schemas.exclude("mysql_audit");
-    //  - stores the firewall's configuration
-    schemas.exclude("mysql_firewall");
+    // if MHS compatibility option is set, some schemas should be excluded
+    // automatically
+    filters().schemas().exclude(common::k_mhs_excluded_schemas);
   }
 
   m_filter_conflicts |= filters().schemas().error_on_conflicts();

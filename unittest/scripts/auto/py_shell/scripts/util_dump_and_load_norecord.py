@@ -2673,7 +2673,7 @@ dump_dir = os.path.join(outdir, "bug_34566034")
 # setup
 shell.connect(__sandbox_uri2)
 wipeout_server(session)
-dba.create_cluster("C")
+c = dba.create_cluster("C")
 
 # dump
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
@@ -2683,7 +2683,43 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", 
 
 #@<> BUG#34566034 - cleanup
 shell.connect(__sandbox_uri2)
-dba.drop_metadata_schema({ 'force': True })
+c.dissolve({ 'force': True })
+session.run_sql("SET GLOBAL super_read_only = 0")
+
+#@<> BUG#35830920 mysql_audit and mysql_firewall schemas should be automatically excluded when loading a dump into MHS - setup {not __dbug_off}
+# create schemas
+schema_names = [ "mysql_audit", "mysql_firewall" ]
+
+def create_mhs_schemas(s):
+    for schema_name in schema_names:
+        s.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+        s.run_sql("CREATE SCHEMA !", [schema_name])
+        s.run_sql("CREATE TABLE !.! (a int)", [schema_name, "test_table"])
+
+create_mhs_schemas(session1)
+wipeout_server(session2)
+create_mhs_schemas(session2)
+
+# create a MHS-compatible dump but without 'ocimds' option
+shell.connect(__sandbox_uri1)
+dump_dir = os.path.join(outdir, "bug_35830920")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(schema_names, dump_dir, { "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
+
+#@<> BUG#35830920 - test {not __dbug_off}
+shell.connect(__sandbox_uri2)
+
+# loading into non-MHS should fail, because schemas already exist
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Duplicate objects found in destination database")
+testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
+
+# loading into MHS should automatically exclude the schemas and operation should succeed
+testutil.dbug_set("+d,dump_loader_force_mds")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "Loading should not fail")
+testutil.dbug_set("")
+
+#@<> BUG#35830920 - cleanup {not __dbug_off}
+for schema_name in schema_names:
+    session.run_sql("DROP SCHEMA !;", [schema_name])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
