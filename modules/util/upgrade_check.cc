@@ -263,14 +263,19 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     auto result = session->query(query);
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
-      Upgrade_issue issue = parse_row(row);
-      if (!issue.empty()) issues.emplace_back(std::move(issue));
+      add_issue(row, &issues);
     }
   }
 
   for (const auto &stm : m_clean_up) session->execute(stm);
 
   return issues;
+}
+
+void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
+                                  std::vector<Upgrade_issue> *issues) {
+  Upgrade_issue issue = parse_row(row);
+  if (!issue.empty()) issues->emplace_back(std::move(issue));
 }
 
 const char *Sql_upgrade_check::get_description_internal() const {
@@ -1954,6 +1959,205 @@ bool UNUSED_VARIABLE(register_get_invalid_engine_foreign_key_check) =
         Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.0");
 }
 
+namespace {
+namespace deprecated_auth_funcs {
+constexpr std::array<std::string_view, 3> k_auth_list = {
+    "sha256_password", "mysql_native_password", "authentication_fido"};
+
+std::string get_auth_list() {
+  return shcore::str_join(k_auth_list, ", ", [](const auto &item) {
+    return shcore::sqlformat("?", item);
+  });
+}
+
+std::string get_auth_or_like_list(const std::string &value_name) {
+  return shcore::str_join(k_auth_list, " OR ", [&](const auto &item) {
+    return value_name + " LIKE '%" + std::string(item) + "%'";
+  });
+}
+
+bool is_auth_method(const std::string &auth) {
+  return std::find(k_auth_list.begin(), k_auth_list.end(), auth) !=
+         k_auth_list.end();
+}
+
+void setup_fido(const Version &target_version, Upgrade_issue *problem) {
+  if (target_version < Version(8, 0, 27)) {
+    problem->description =
+        "authentication_fido was introduced in 8.0.27 release and is not "
+        "supported in lower versions - this must be corrected.";
+    problem->level = Upgrade_issue::ERROR;
+  } else if (target_version < Version(8, 2, 0)) {
+    problem->description =
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Consider using authentication_webauthn instead.";
+    problem->level = Upgrade_issue::NOTICE;
+  } else if (target_version < Version(8, 4, 0)) {
+    problem->description =
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Use authentication_webauthn instead.";
+    problem->level = Upgrade_issue::WARNING;
+  } else {
+    problem->description =
+        "authentication_fido was replaced by authentication_webauthn as of "
+        "8.4.0 release - this must be corrected.";
+    problem->level = Upgrade_issue::ERROR;
+  }
+}
+
+void setup_other(const std::string &plugin, const Version &target_version,
+                 Upgrade_issue *problem) {
+  if (target_version < Version(8, 4, 0)) {
+    problem->description =
+        plugin +
+        " authentication method is deprecated and it should be considered to "
+        "correct this before upgrading to 8.4.0 release.";
+    problem->level = Upgrade_issue::WARNING;
+  } else {
+    problem->description =
+        plugin +
+        " authentication method was removed and it must be corrected before "
+        "upgrading to 8.4.0 release.";
+    problem->level = Upgrade_issue::ERROR;
+  }
+}
+
+Upgrade_issue parse_fido(const std::string &item,
+                         const Version &target_version) {
+  Upgrade_issue problem;
+  problem.schema = item;
+
+  setup_fido(target_version, &problem);
+
+  return problem;
+}
+
+Upgrade_issue parse_other(const std::string &item, const std::string &plugin,
+                          const Version &target_version) {
+  Upgrade_issue problem;
+  problem.schema = item;
+
+  setup_other(plugin, target_version, &problem);
+
+  return problem;
+}
+
+Upgrade_issue parse_item(const std::string &item, const std::string &auth,
+                         const Version &target_version) {
+  if (auth == "authentication_fido") {
+    return parse_fido(item, target_version);
+  } else {
+    return parse_other(item, auth, target_version);
+  }
+}
+}  // namespace deprecated_auth_funcs
+
+class Deprecated_auth_method_check : public Sql_upgrade_check {
+ public:
+  Deprecated_auth_method_check(mysqlshdk::utils::Version target_ver)
+      : Sql_upgrade_check(
+            "mysqlDeprecatedAuthMethodCheck",
+            "Check for deprecated or invalid user authentication methods.",
+            std::vector<std::string>{
+                "SELECT CONCAT(user, '@', host), plugin FROM "
+                "mysql.user WHERE plugin IN (" +
+                deprecated_auth_funcs::get_auth_list() + ");"},
+            Upgrade_issue::WARNING),
+        m_target_version(target_ver) {
+    m_advice =
+        "The following users are using a deprecated authentication method:\n";
+  }
+
+  ~Deprecated_auth_method_check() = default;
+
+  bool is_multi_lvl_check() const override { return true; }
+
+ protected:
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+    auto item = row->get_as_string(0);
+    auto auth = row->get_as_string(1);
+
+    return deprecated_auth_funcs::parse_item(item, auth, m_target_version);
+  }
+
+ private:
+  const mysqlshdk::utils::Version m_target_version;
+};
+}  // namespace
+
+Deprecated_default_auth_check::Deprecated_default_auth_check(
+    mysqlshdk::utils::Version target_ver)
+    : Sql_upgrade_check(
+          "mysqlDeprecatedDefaultAuthCheck",
+          "Check for deprecated or invalid default authentication methods in "
+          "system variables.",
+          std::vector<std::string>{
+              "show variables where variable_name = "
+              "'default_authentication_plugin' AND value IN (" +
+                  deprecated_auth_funcs::get_auth_list() + ");",
+              "show variables where variable_name = 'authentication_policy' "
+              "AND (" +
+                  deprecated_auth_funcs::get_auth_or_like_list("value") + ");"},
+          Upgrade_issue::WARNING),
+      m_target_version(target_ver) {
+  m_advice =
+      "The following variables have problems with their set "
+      "authentication method:\n";
+}
+
+Deprecated_default_auth_check::~Deprecated_default_auth_check() = default;
+
+void Deprecated_default_auth_check::add_issue(
+    const mysqlshdk::db::IRow *row, std::vector<Upgrade_issue> *issues) {
+  auto item = row->get_as_string(0);
+  auto auth = row->get_as_string(1);
+
+  parse_var(item, auth, issues);
+}
+
+void Deprecated_default_auth_check::parse_var(
+    const std::string &item, const std::string &auth,
+    std::vector<Upgrade_issue> *issues) {
+  auto list = shcore::split_string(auth, ",", true);
+  if (list.empty()) return;
+
+  for (auto &list_item : list) {
+    auto value = shcore::str_strip(list_item);
+    if (!deprecated_auth_funcs::is_auth_method(value)) continue;
+
+    auto issue =
+        deprecated_auth_funcs::parse_item(item, value, m_target_version);
+    if (!issue.empty()) issues->emplace_back(std::move(issue));
+  }
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_deprecated_auth_method_check(
+    const Upgrade_check::Upgrade_info &info) {
+  return std::make_unique<Deprecated_auth_method_check>(info.target_version);
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_deprecated_auth_method_check) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_deprecated_auth_method_check,
+        Upgrade_check::Target::AUTHENTICATION_PLUGINS, "8.0.0", "8.1.0",
+        "8.2.0");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_deprecated_default_auth_check(
+    const Upgrade_check::Upgrade_info &info) {
+  return std::make_unique<Deprecated_default_auth_check>(info.target_version);
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_deprecated_default_auth_check) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_deprecated_default_auth_check,
+        Upgrade_check::Target::SYSTEM_VARIABLES, "8.0.0", "8.1.0", "8.2.0");
+}
+
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
   m_upgrade_info.target_version = options.target_version;
@@ -2048,8 +2252,8 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
     }
   };
 
-  // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present up
-  // to 5.7.39
+  // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present
+  // up to 5.7.39
   config.session()->execute("USE mysql;");
 
   for (const auto &check : checklist)

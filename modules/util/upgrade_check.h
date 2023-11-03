@@ -59,7 +59,10 @@ struct Upgrade_issue {
   std::string description;
   Level level = ERROR;
 
-  bool empty() const { return schema.empty(); }
+  bool empty() const {
+    return schema.empty() && table.empty() && column.empty() &&
+           description.empty();
+  }
   std::string get_db_object() const;
 };
 
@@ -155,6 +158,7 @@ class Upgrade_check {
   virtual const char *get_doc_link() const;
   virtual Upgrade_issue::Level get_level() const = 0;
   virtual bool is_runnable() const { return true; }
+  virtual bool is_multi_lvl_check() const { return false; }
 
   virtual std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -216,6 +220,10 @@ class Sql_upgrade_check : public Upgrade_check {
   static std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check();
   static std::unique_ptr<Sql_upgrade_check>
   get_invalid_engine_foreign_key_check();
+  static std::unique_ptr<Sql_upgrade_check> get_deprecated_auth_method_check(
+      const Upgrade_check::Upgrade_info &info);
+  static std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
+      const Upgrade_check::Upgrade_info &info);
 
   Sql_upgrade_check(const char *name, const char *title,
                     std::vector<std::string> &&queries,
@@ -235,6 +243,8 @@ class Sql_upgrade_check : public Upgrade_check {
 
  protected:
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
+  virtual void add_issue(const mysqlshdk::db::IRow *row,
+                         std::vector<Upgrade_issue> *issues);
   const char *get_description_internal() const override;
   const char *get_title_internal() const override;
   Upgrade_issue::Level get_level() const override { return m_level; }
@@ -322,6 +332,24 @@ class Manual_check : public Upgrade_check {
   }
 
   Upgrade_issue::Level m_level;
+};
+
+class Deprecated_default_auth_check : public Sql_upgrade_check {
+ public:
+  Deprecated_default_auth_check(mysqlshdk::utils::Version target_ver);
+  ~Deprecated_default_auth_check();
+
+  void parse_var(const std::string &item, const std::string &auth,
+                 std::vector<Upgrade_issue> *issues);
+
+  bool is_multi_lvl_check() const override { return true; }
+
+ protected:
+  void add_issue(const mysqlshdk::db::IRow *row,
+                 std::vector<Upgrade_issue> *issues) override;
+
+ private:
+  const mysqlshdk::utils::Version m_target_version;
 };
 
 class Upgrade_check_config final {

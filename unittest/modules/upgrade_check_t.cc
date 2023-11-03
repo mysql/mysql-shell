@@ -95,9 +95,57 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     ASSERT_NO_THROW(session->execute("use " + db));
   }
 
-  void EXPECT_ISSUES(Upgrade_check *check, const int no = -1) {
+  bool is_plugin_loaded(const std::string &name) {
+    auto result = session->query(
+        "select 'OK' from information_schema.plugins where PLUGIN_NAME='" +
+        name + "' and PLUGIN_STATUS='ACTIVE';");
+    auto row = result->fetch_one();
+    if (!row) return false;
+    if (row->get_as_string(0) != "OK") return false;
+    return true;
+  }
+
+  bool execute(const std::string &sql) {
+    try {
+      session->execute(sql);
+    } catch (const mysqlshdk::db::Error &e) {
+      return false;
+    }
+    return true;
+  }
+
+  bool install_plugin(const std::string &name) {
+    std::string ext = "so";
+#ifdef _WIN32
+    ext = "dll";
+#endif
+    return execute(shcore::str_format("INSTALL PLUGIN %s SONAME \"%s.%s\"",
+                                      name.c_str(), name.c_str(), ext.c_str()));
+  }
+
+  bool uninstall_plugin(const std::string &name) {
+    return execute(shcore::str_format("UNINSTALL PLUGIN %s", name.c_str()));
+  }
+
+  void remove_issue_by_schema(const std::string &value) {
+    auto it = std::find_if(issues.begin(), issues.end(), [&](const auto &item) {
+      return item.schema == value;
+    });
+    if (it != issues.end()) issues.erase(it);
+  }
+
+  void remove_issues_by_schema(const std::vector<std::string> &list) {
+    for (auto &item : list) {
+      remove_issue_by_schema(item);
+    }
+  }
+
+  void EXPECT_ISSUES(
+      Upgrade_check *check, const int no = -1,
+      std::function<void()> after_run_callback = std::function<void()>()) {
     try {
       issues = check->run(session, info);
+      if (after_run_callback) after_run_callback();
     } catch (const std::exception &e) {
       puts("Exception runing check:");
       puts(e.what());
@@ -1769,6 +1817,576 @@ TEST_F(MySQL_upgrade_check_test, no_database_selected_corrupted_check) {
   EXPECT_TRUE(check_for_upgrade(cfg));
 
   ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
+// WL#15973-TSFR_1_1
+// WL#15973-TSFR_2
+TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(MYSH_VERSION));
+
+  Util util(_interactive_shell->shell_context().get());
+
+  // clear stdout/stderr garbage
+  reset_shell();
+
+  shcore::Option_pack_ref<Upgrade_check_options> options;
+  options->output_format = "JSON";
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  try {
+    util.check_for_server_upgrade(connection_options, options);
+    rapidjson::Document d;
+    d.Parse(output_handler.std_out.c_str());
+
+    ASSERT_FALSE(d.HasParseError());
+    ASSERT_TRUE(d.IsObject());
+    ASSERT_TRUE(d.HasMember("serverAddress"));
+    ASSERT_TRUE(d["serverAddress"].IsString());
+    ASSERT_TRUE(d.HasMember("serverVersion"));
+    ASSERT_TRUE(d["serverVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("targetVersion"));
+    ASSERT_TRUE(d["targetVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("errorCount"));
+    ASSERT_TRUE(d["errorCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("warningCount"));
+    ASSERT_TRUE(d["warningCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("noticeCount"));
+    ASSERT_TRUE(d["noticeCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("summary"));
+    ASSERT_TRUE(d["summary"].IsString());
+    ASSERT_TRUE(d.HasMember("checksPerformed"));
+    ASSERT_TRUE(d["checksPerformed"].IsArray());
+    auto checks = d["checksPerformed"].GetArray();
+    ASSERT_GE(checks.Size(), 1);
+    bool found_dep_auth_check_id = false;
+    bool found_def_auth_check_id = false;
+    for (auto &check : checks) {
+      ASSERT_TRUE(check.IsObject());
+      ASSERT_TRUE(check.HasMember("id"));
+      ASSERT_TRUE(check["id"].IsString());
+      if (std::string(check["id"].GetString()) ==
+          "mysqlDeprecatedAuthMethodCheck")
+        found_dep_auth_check_id = true;
+      if (std::string(check["id"].GetString()) ==
+          "mysqlDeprecatedDefaultAuthCheck")
+        found_def_auth_check_id = true;
+    }
+    EXPECT_TRUE(found_dep_auth_check_id);
+    EXPECT_TRUE(found_def_auth_check_id);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    EXPECT_TRUE(false);
+  }
+}
+
+const std::vector<std::string> k_auth_method_false_positives = {
+    "root@localhost", "mysql.session@localhost", "mysql.sys@localhost",
+    "root@%"};
+
+// WL#15973-TSFR_1_3_1
+TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
+  PrepareTestDatabase("test");
+
+  auto remove_false_positives = [&]() {
+    remove_issues_by_schema(k_auth_method_false_positives);
+    std::sort(issues.begin(), issues.end(),
+              [](const auto &a, const auto &b) { return a.schema < b.schema; });
+  };
+
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_sha_auth'@'localhost';"));
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_native_auth'@'localhost';"));
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_fido_auth'@'localhost';"));
+
+  Upgrade_check::Upgrade_info temp_info;
+  temp_info.target_version = Version(8, 4, 0);
+  auto check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 0, remove_false_positives);
+
+  ASSERT_NO_THROW(
+      session->execute("create user 'usr_sha_auth'@'localhost' identified with "
+                       "'sha256_password';"));
+  ASSERT_NO_THROW(session->execute(
+      "create user 'usr_native_auth'@'localhost' identified with "
+      "'mysql_native_password';"));
+
+  // WL#15973-TSFR_1_2
+  EXPECT_ISSUES(check.get(), 2, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
+  EXPECT_EQ(issues[1].schema, "usr_sha_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::ERROR);
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::ERROR);
+
+  EXPECT_EQ(issues[0].description,
+            "mysql_native_password authentication method was removed and it "
+            "must be corrected before upgrading to 8.4.0 release.");
+  EXPECT_EQ(issues[1].description,
+            "sha256_password authentication method was removed and it must be "
+            "corrected before upgrading to 8.4.0 release.");
+
+  // WL#15973-TSFR_1_3_2
+  temp_info.target_version = Version(8, 3, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 2, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
+  EXPECT_EQ(issues[1].schema, "usr_sha_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
+
+  EXPECT_EQ(issues[0].description,
+            "mysql_native_password authentication method is deprecated and it "
+            "should be considered to correct this before upgrading to 8.4.0 "
+            "release.");
+  EXPECT_EQ(issues[1].description,
+            "sha256_password authentication method is deprecated and it should "
+            "be considered to correct this before upgrading to 8.4.0 release.");
+
+  // WL#15973-TSFR_1_3_3
+  temp_info.target_version = Version(8, 2, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 2, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
+  EXPECT_EQ(issues[1].schema, "usr_sha_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
+
+  EXPECT_EQ(issues[0].description,
+            "mysql_native_password authentication method is deprecated and it "
+            "should be considered to correct this before upgrading to 8.4.0 "
+            "release.");
+  EXPECT_EQ(issues[1].description,
+            "sha256_password authentication method is deprecated and it should "
+            "be considered to correct this before upgrading to 8.4.0 release.");
+
+  // WL#15973-TSFR_1_3_4
+  temp_info.target_version = Version(8, 1, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 2, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
+  EXPECT_EQ(issues[1].schema, "usr_sha_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
+
+  EXPECT_EQ(issues[0].description,
+            "mysql_native_password authentication method is deprecated and it "
+            "should be considered to correct this before upgrading to 8.4.0 "
+            "release.");
+  EXPECT_EQ(issues[1].description,
+            "sha256_password authentication method is deprecated and it should "
+            "be considered to correct this before upgrading to 8.4.0 release.");
+
+  temp_info.target_version = Version(8, 0, 27);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 2, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
+  EXPECT_EQ(issues[1].schema, "usr_sha_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
+
+  EXPECT_EQ(issues[0].description,
+            "mysql_native_password authentication method is deprecated and it "
+            "should be considered to correct this before upgrading to 8.4.0 "
+            "release.");
+  EXPECT_EQ(issues[1].description,
+            "sha256_password authentication method is deprecated and it should "
+            "be considered to correct this before upgrading to 8.4.0 release.");
+
+  ASSERT_NO_THROW(session->execute("drop user 'usr_sha_auth'@'localhost';"));
+  ASSERT_NO_THROW(session->execute("drop user 'usr_native_auth'@'localhost';"));
+  ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
+TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
+  bool authentication_fido_installed = is_plugin_loaded("authentication_fido");
+  bool uninstall_authentication_fido = false;
+  if (!authentication_fido_installed) {
+    authentication_fido_installed = install_plugin("authentication_fido");
+    if (!authentication_fido_installed) {
+      SKIP_TEST(
+          "This test requires loaded authentication_fido MySQL Server plugin.");
+    } else {
+      uninstall_authentication_fido = true;
+    }
+  }
+
+  shcore::Scoped_callback cleanup([this, uninstall_authentication_fido]() {
+    if (uninstall_authentication_fido) {
+      uninstall_plugin("authentication_fido");
+    }
+  });
+
+  auto remove_false_positives = [&]() {
+    remove_issues_by_schema(k_auth_method_false_positives);
+  };
+
+  PrepareTestDatabase("test");
+
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_sha_auth'@'localhost';"));
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_native_auth'@'localhost';"));
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists 'usr_fido_auth'@'localhost';"));
+
+  Upgrade_check::Upgrade_info temp_info;
+  temp_info.target_version = Version(8, 4, 0);
+  auto check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 0, remove_false_positives);
+
+  ASSERT_NO_THROW(session->execute(
+      "create user 'usr_fido_auth'@'localhost' identified with "
+      "'authentication_fido';"));
+
+  // WL#15973-TSFR_1_2
+  EXPECT_ISSUES(check.get(), 1, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_1_4
+
+  EXPECT_EQ(issues[0].description,
+            "authentication_fido was replaced by authentication_webauthn as of "
+            "8.4.0 release - this must be corrected.");
+
+  // WL#15973-TSFR_1_3_2
+  temp_info.target_version = Version(8, 3, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 1, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+
+  EXPECT_EQ(
+      issues[0].description,
+      "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+      "in a future release. Use authentication_webauthn instead.");
+
+  // WL#15973-TSFR_1_3_3
+  temp_info.target_version = Version(8, 2, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 1, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
+
+  EXPECT_EQ(issues[0].level,
+            Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_1_5
+
+  EXPECT_EQ(
+      issues[0].description,
+      "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+      "in a future release. Use authentication_webauthn instead.");
+
+  // WL#15973-TSFR_1_3_4
+  temp_info.target_version = Version(8, 1, 0);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 1, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
+
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::NOTICE);
+
+  EXPECT_EQ(
+      issues[0].description,
+      "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+      "in a future release. Consider using authentication_webauthn instead.");
+
+  temp_info.target_version = Version(8, 0, 27);
+  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 1, remove_false_positives);
+  EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
+
+  EXPECT_EQ(issues[0].level,
+            Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_1_5
+
+  EXPECT_EQ(
+      issues[0].description,
+      "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+      "in a future release. Consider using authentication_webauthn instead.");
+
+  ASSERT_NO_THROW(session->execute("drop user 'usr_fido_auth'@'localhost';"));
+  ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
+namespace dep_def_auth_check {
+void set_authentication_policy(std::shared_ptr<mysqlshdk::db::ISession> session,
+                               const std::string &val) {
+  ASSERT_NO_THROW(
+      session->execute("SET GLOBAL authentication_policy='" + val + "';"));
+}
+
+std::unique_ptr<Sql_upgrade_check> make_check(const Version &ver) {
+  Upgrade_check::Upgrade_info temp_info;
+  temp_info.target_version = ver;
+  return Deprecated_default_auth_check::get_deprecated_default_auth_check(
+      temp_info);
+}
+
+}  // namespace dep_def_auth_check
+
+TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_check) {
+  if (_target_server_version < Version(8, 0, 27)) {
+    SKIP_TEST(
+        "This test requires running against MySQL server version at least "
+        "8.0.27.");
+  }
+
+  bool authentication_fido_installed = is_plugin_loaded("authentication_fido");
+  bool uninstall_authentication_fido = false;
+  if (!authentication_fido_installed) {
+    authentication_fido_installed = install_plugin("authentication_fido");
+    if (!authentication_fido_installed) {
+      SKIP_TEST(
+          "This test requires loaded authentication_fido MySQL Server plugin.");
+    } else {
+      uninstall_authentication_fido = true;
+    }
+  }
+
+  shcore::on_leave_scope cleanup([this, uninstall_authentication_fido]() {
+    dep_def_auth_check::set_authentication_policy(session, "*,,");
+    if (uninstall_authentication_fido) {
+      uninstall_plugin("authentication_fido");
+    }
+  });
+
+  {
+    dep_def_auth_check::set_authentication_policy(session,
+                                                  "caching_sha2_password,*,");
+    auto check = dep_def_auth_check::make_check(Version(8, 4, 0));
+    EXPECT_NO_ISSUES(check.get());
+  }
+
+  auto run_check = [&](const std::string &auth_method) {
+    const std::string k_test_var_pol_v = auth_method + ", authentication_fido,";
+
+    dep_def_auth_check::set_authentication_policy(session, k_test_var_pol_v);
+
+    auto check = dep_def_auth_check::make_check(Version(8, 5, 0));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level, Upgrade_issue::Level::ERROR);
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_2
+
+    EXPECT_EQ(issues[0].description,
+              auth_method +
+                  " authentication method was removed and it must be corrected "
+                  "before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido was replaced by authentication_webauthn as of "
+        "8.4.0 release - this must be corrected.");
+
+    check = dep_def_auth_check::make_check(Version(8, 4, 0));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level,
+              Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_2_2
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_2
+
+    EXPECT_EQ(issues[0].description,
+              auth_method +
+                  " authentication method was removed and it must be corrected "
+                  "before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido was replaced by authentication_webauthn as of "
+        "8.4.0 release - this must be corrected.");
+
+    check = dep_def_auth_check::make_check(Version(8, 3, 0));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level,
+              Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_3
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_2
+
+    EXPECT_EQ(
+        issues[0].description,
+        auth_method +
+            " authentication method is deprecated and it should be considered "
+            "to correct this before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Use authentication_webauthn instead.");
+
+    check = dep_def_auth_check::make_check(Version(8, 2, 0));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_2
+
+    EXPECT_EQ(
+        issues[0].description,
+        auth_method +
+            " authentication method is deprecated and it should be considered "
+            "to correct this before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Use authentication_webauthn instead.");
+
+    check = dep_def_auth_check::make_check(Version(8, 1, 0));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level,
+              Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_4
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_2
+
+    EXPECT_EQ(
+        issues[0].description,
+        auth_method +
+            " authentication method is deprecated and it should be considered "
+            "to correct this before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Consider using authentication_webauthn instead.");
+
+    check = dep_def_auth_check::make_check(Version(8, 0, 27));
+    EXPECT_ISSUES(check.get(), 2);
+
+    EXPECT_EQ(issues[0].schema, "authentication_policy");
+    EXPECT_EQ(issues[1].schema, "authentication_policy");
+
+    EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+    EXPECT_EQ(issues[1].level,
+              Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_2
+
+    EXPECT_EQ(
+        issues[0].description,
+        auth_method +
+            " authentication method is deprecated and it should be considered "
+            "to correct this before upgrading to 8.4.0 release.");
+    EXPECT_EQ(
+        issues[1].description,
+        "authentication_fido is deprecated as of MySQL 8.2 and will be removed "
+        "in a future release. Consider using authentication_webauthn instead.");
+  };
+
+  run_check("mysql_native_password");
+  run_check("sha256_password");
+}
+
+TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_parsing_check) {
+  const std::string k_test_var_def = "default_authentication_plugin";
+  const std::string k_test_var_def_v = "sha256_password";
+  const std::string k_test_var_def_v_fido = "authentication_fido";
+
+  std::vector<Upgrade_issue> temp_issues;
+
+  auto check =
+      std::make_unique<Deprecated_default_auth_check>(Version(8, 4, 0));
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_2_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 3, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 1, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_2
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 5, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 4, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 3, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 2, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 1, 0));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_1
+
+  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 0, 27));
+  temp_issues.clear();
+  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+
+  EXPECT_EQ(temp_issues.size(), 1);
+  EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
+  EXPECT_EQ(temp_issues[0].level,
+            Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_1
 }
 
 }  // namespace mysqlsh

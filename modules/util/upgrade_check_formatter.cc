@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,6 +55,12 @@ std::string format_upgrade_issue(const Upgrade_issue &problem) {
                             ss.str().c_str(), problem.description.c_str());
 }
 
+std::string multi_lvl_format_issue(const Upgrade_issue &problem) {
+  return shcore::str_format("%s: %s",
+                            Upgrade_issue::level_to_string(problem.level),
+                            upgrade_issue_to_string(problem).c_str());
+}
+
 }  // namespace
 
 class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
@@ -85,6 +91,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       print_paragraph(check.get_description());
       print_doc_links(check.get_doc_link());
       m_console->println();
+
+      if (check.is_multi_lvl_check()) issue_formater = multi_lvl_format_issue;
     } else {
       issue_formater = format_upgrade_issue;
     }

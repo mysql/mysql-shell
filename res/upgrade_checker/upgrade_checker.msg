@@ -441,3 +441,19 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * mysqlInvalidEngineForeignKeyCheck.docLink
 
+* mysqlDeprecatedAuthMethodCheck.title
+# Check for deprecated or invalid user authentication methods.
+
+* mysqlDeprecatedAuthMethodCheck.description
+# The following user have problems with their assigned authentication method:\n
+
+* mysqlDeprecatedAuthMethodCheck.docLink
+
+* mysqlDeprecatedDefaultAuthCheck.title
+# Check for deprecated or invalid default authentication methods in system variables.
+
+* mysqlDeprecatedDefaultAuthCheck.description
+# The following variables have problems with their set authentication method:\n
+
+* mysqlDeprecatedDefaultAuthCheck.docLink
+
