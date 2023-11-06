@@ -521,17 +521,22 @@ std::set<std::string> User_privileges::get_mandatory_roles(
 
 void User_privileges::read_user_roles(
     const mysqlshdk::mysql::IInstance &instance) {
-  // Get value of system variable that indicates if all roles are active.
-  bool all_roles_active = false;
-
   // Roles are not supported in MySQL 5.7
   if (instance.get_version() < Version(8, 0, 0)) {
     return;
   }
 
-  const auto res =
-      instance.query("SELECT @@GLOBAL.activate_all_roles_on_login");
-  all_roles_active = res->fetch_one_or_throw()->get_int(0) == 1;
+  // Get value of system variable that indicates if all roles are active.
+  bool all_roles_active = false;
+
+  if (const auto active = instance.get_sysvar_bool(
+          "activate_all_roles_on_login", Var_qualifier::GLOBAL);
+      active.has_value()) {
+    all_roles_active = *active;
+  } else {
+    // Roles are not supported in this instance
+    return;
+  }
 
   std::string query;
 
