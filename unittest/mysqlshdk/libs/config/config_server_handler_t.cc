@@ -661,6 +661,13 @@ TEST_F(Config_server_handler_test, undo) {
     EXPECT_TRUE(var.has_value());
     EXPECT_EQ(var.value(), "greek");
   }
+
+  // reset values
+  instance.set_sysvar_default("auto_increment_increment",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("enforce_gtid_consistency",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("character_set_client", Var_qualifier::GLOBAL);
 }
 
 TEST_F(Config_server_handler_test, undo_ignore) {
@@ -703,6 +710,13 @@ TEST_F(Config_server_handler_test, undo_ignore) {
     EXPECT_TRUE(var.has_value());
     EXPECT_EQ(var.value(), "latin2");
   }
+
+  // reset values
+  instance.set_sysvar_default("auto_increment_increment",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("enforce_gtid_consistency",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("character_set_client", Var_qualifier::GLOBAL);
 }
 
 TEST_F(Config_server_handler_test, undo_ignore_all) {
@@ -743,6 +757,13 @@ TEST_F(Config_server_handler_test, undo_ignore_all) {
     EXPECT_TRUE(var.has_value());
     EXPECT_EQ(var.value(), "latin2");
   }
+
+  // reset values
+  instance.set_sysvar_default("auto_increment_increment",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("enforce_gtid_consistency",
+                              Var_qualifier::GLOBAL);
+  instance.set_sysvar_default("character_set_client", Var_qualifier::GLOBAL);
 }
 
 }  // namespace testing
