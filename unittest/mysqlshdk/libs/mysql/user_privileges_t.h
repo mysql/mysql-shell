@@ -41,7 +41,7 @@ struct Setup_options {
   std::string host = "hostname";
   bool user_exists = true;
   mysqlshdk::utils::Version version{8, 0, 20};
-  bool activate_all_roles_on_login = false;
+  std::optional<bool> activate_all_roles_on_login = false;
   std::vector<std::string> mandatory_roles;
   std::vector<shcore::Account> active_roles;
   std::vector<std::string> grants;
