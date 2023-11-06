@@ -4218,9 +4218,10 @@ std::string Dumper::get_query_comment(const Table_data_task &task,
 }
 
 bool Dumper::should_dump_data(const Table_task &table) const {
-  if (table.schema == "mysql" &&
-      (table.name == "apply_status" || table.name == "general_log" ||
-       table.name == "schema" || table.name == "slow_log")) {
+  if (table.info->columns.empty() ||
+      (table.schema == "mysql" &&
+       (table.name == "apply_status" || table.name == "general_log" ||
+        table.name == "schema" || table.name == "slow_log"))) {
     return false;
   } else {
     return true;

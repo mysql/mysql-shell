@@ -3080,6 +3080,35 @@ testutil.dbug_set("")
 for schema_name in schema_names:
     session.run_sql("DROP SCHEMA !;", [schema_name])
 
+#@<> BUG#35860654 - cannot dump a table with single generated column
+# constants
+dump_dir = os.path.join(outdir, "bug_35860654")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+session1.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session1.run_sql("CREATE TABLE !.! (a date GENERATED ALWAYS AS (50399) STORED)", [ tested_schema, tested_table ])
+
+#@<> BUG#35860654 - dumping with ocimds should fail, complaining that table doesn't have a PK
+shell.connect(__sandbox_uri1)
+EXPECT_THROWS(lambda: util.dump_schemas([ tested_schema ], dump_dir, { "ocimds": True, "showProgress": False }), "Compatibility issues were found")
+EXPECT_STDOUT_CONTAINS(create_invisible_pks(tested_schema, tested_table).error())
+wipe_dir(dump_dir)
+
+#@<> BUG#35860654 - test
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ tested_schema ], dump_dir, { "ocimds": True, "compatibility": [ "create_invisible_pks" ], "showProgress": False }), "dump should not throw")
+EXPECT_STDOUT_CONTAINS(create_invisible_pks(tested_schema, tested_table).fixed())
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": True if __version_num > 80024 else False,"showProgress": False }), "load should not throw")
+
+#@<> BUG#35860654 - cleanup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
