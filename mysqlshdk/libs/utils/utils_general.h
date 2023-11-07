@@ -28,6 +28,7 @@
 #include <chrono>
 #include <functional>
 #include <list>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -195,6 +196,18 @@ split_string_chars(std::string_view input, std::string_view separator_chars,
 bool SHCORE_PUBLIC match_glob(const std::string_view pattern,
                               const std::string_view s,
                               bool case_sensitive = false);
+
+/**
+ * Replaces all escaped wildcard characters with their unescaped counterparts.
+ * If pattern already contains an unescaped wildcard characters, does not return
+ * a value.
+ *
+ * @param pattern A pattern to process.
+ *
+ * @returns Processed pattern or no value.
+ */
+std::optional<std::string> SHCORE_PUBLIC
+unescape_glob(const std::string_view pattern);
 
 std::string SHCORE_PUBLIC to_camel_case(std::string_view name);
 std::string SHCORE_PUBLIC from_camel_case(std::string_view name);

@@ -512,6 +512,7 @@ TEST(utils_general, match_glob) {
   EXPECT_TRUE(match_glob("\\", "\\"));
   EXPECT_FALSE(match_glob("\\", "x"));
   EXPECT_TRUE(match_glob("\\opti*", "\\option"));
+  EXPECT_TRUE(match_glob("\\\\opti*", "\\option"));
   EXPECT_FALSE(match_glob("\\opti\\*", "\\option"));
   EXPECT_TRUE(match_glob("*\\*", "abcdefgh*"));
 
@@ -553,6 +554,39 @@ TEST(utils_general, match_glob) {
   EXPECT_FALSE(match_glob("a*a*a*a*b", std::string(100, 'a')));
   EXPECT_TRUE(match_glob("a*a*a*a*a", std::string(100, 'a')));
   EXPECT_TRUE(match_glob("*x", "xxx"));
+}
+
+TEST(utils_general, unescape_glob) {
+  EXPECT_EQ("", unescape_glob(""));
+
+  EXPECT_EQ(std::nullopt, unescape_glob("*"));
+  EXPECT_EQ(std::nullopt, unescape_glob("?"));
+  EXPECT_EQ("\\", unescape_glob("\\"));
+  EXPECT_EQ("a", unescape_glob("a"));
+
+  EXPECT_EQ(std::nullopt, unescape_glob("\\??"));
+  EXPECT_EQ(std::nullopt, unescape_glob("\\?*"));
+  EXPECT_EQ("?\\", unescape_glob("\\?\\"));
+  EXPECT_EQ("?\\", unescape_glob("\\?\\\\"));
+  EXPECT_EQ("?a", unescape_glob("\\?a"));
+  EXPECT_EQ("??", unescape_glob("\\?\\?"));
+  EXPECT_EQ("?*", unescape_glob("\\?\\*"));
+
+  EXPECT_EQ(std::nullopt, unescape_glob("\\*?"));
+  EXPECT_EQ(std::nullopt, unescape_glob("\\**"));
+  EXPECT_EQ("*\\", unescape_glob("\\*\\"));
+  EXPECT_EQ("*\\", unescape_glob("\\*\\\\"));
+  EXPECT_EQ("*a", unescape_glob("\\*a"));
+  EXPECT_EQ("*?", unescape_glob("\\*\\?"));
+  EXPECT_EQ("**", unescape_glob("\\*\\*"));
+
+  EXPECT_EQ("\\option", unescape_glob("\\option"));
+  EXPECT_EQ(std::nullopt, unescape_glob("\\optio*"));
+  EXPECT_EQ(std::nullopt, unescape_glob("\\optio?"));
+  EXPECT_EQ("\\optio?", unescape_glob("\\optio\\?"));
+  EXPECT_EQ("\\optio*", unescape_glob("\\optio\\*"));
+  EXPECT_EQ("\\optio\\", unescape_glob("\\optio\\"));
+  EXPECT_EQ("\\optio\\n", unescape_glob("\\optio\\n"));
 }
 
 TEST(utils_general, get_long_version) {

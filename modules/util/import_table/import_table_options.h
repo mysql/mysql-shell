@@ -146,7 +146,7 @@ class Import_table_option_pack {
   void set_bytes_per_chunk(const std::string &value);
   void set_max_rate(const std::string &value);
   void on_unpacked_options();
-  bool check_if_multifile() const;
+  bool check_if_multifile();
 
  protected:
   std::vector<std::string> m_filelist_from_user;
