@@ -3,6 +3,7 @@
 #@<> This is unit test file for WL12193 Parallel data import
 import os
 import os.path
+import shutil
 
 target_port = __mysql_port
 target_xport = __port
@@ -394,6 +395,16 @@ EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "
 
 #@<> s3EndpointOverride is using wrong scheme
 EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
+
+#@<> BUG#35895247 - importing a file with escaped wildcard characters should load it in chunks {__os_type != "windows"}
+full_path = os.path.join(__tmp_dir, "will *this work?")
+shutil.copyfile(world_x_cities_dump, full_path)
+truncate_table()
+
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__tmp_dir, "will \\*this work\\?"), { "schema": target_schema, "table": target_table, "showProgress": False }), "import should not fail")
+EXPECT_STDOUT_CONTAINS(f"Importing from file '{filename_for_output(full_path)}' to table ")
+
+os.remove(full_path)
 
 #@<> Teardown
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)

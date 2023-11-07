@@ -1118,6 +1118,10 @@ std::string to_string(OperatingSystem os_type) {
 
 namespace {
 
+constexpr char k_glob_escape = '\\';
+constexpr char k_glob_match_single = '?';
+constexpr char k_glob_match_many = '*';
+
 /**
  * https://research.swtch.com/glob
  */
@@ -1134,7 +1138,7 @@ bool _match_glob(const std::string_view pat, const std::string_view str) {
       char c = pat[px];
 
       switch (c) {
-        case '?':
+        case k_glob_match_single:
           if (sx < send) {
             ++px;
             ++sx;
@@ -1142,15 +1146,17 @@ bool _match_glob(const std::string_view pat, const std::string_view str) {
           }
           break;
 
-        case '*':
+        case k_glob_match_many:
           ppx = px;
           psx = sx + 1;
           ++px;
           continue;
 
-        case '\\':
-          // if '\' is followed by * or ?, it's an escape sequence, skip '\'
-          if ((px + 1) < pend && (pat[px + 1] == '*' || pat[px + 1] == '?')) {
+        case k_glob_escape:
+          // if '\' is followed by \, * or ?, it's an escape sequence, skip '\'
+          if ((px + 1) < pend && (pat[px + 1] == k_glob_escape ||
+                                  pat[px + 1] == k_glob_match_many ||
+                                  pat[px + 1] == k_glob_match_single)) {
             ++px;
             c = pat[px];
           }
@@ -1168,6 +1174,11 @@ bool _match_glob(const std::string_view pat, const std::string_view str) {
     }
 
     if (0 < psx && psx <= send) {
+      // original code has here:
+      //  px = ppx;
+      //  sx = psx;
+      // which jumps back to the '*' case, we skip than one iteration by setting
+      // the correct values right away
       px = ppx + 1;
       sx = psx;
       ++psx;
@@ -1198,6 +1209,42 @@ bool match_glob(const std::string_view pattern, const std::string_view s,
     return _match_glob(pat, str);
   }
   return _match_glob(pattern, s);
+}
+
+std::optional<std::string> unescape_glob(const std::string_view pattern) {
+  const auto length = pattern.length();
+  std::string result;
+  result.reserve(length);
+
+  for (auto i = decltype(length){0}; i < length; ++i) {
+    auto c = pattern[i];
+
+    switch (c) {
+      case k_glob_match_single:
+      case k_glob_match_many:
+        // unescaped wildcard
+        return std::nullopt;
+
+      case k_glob_escape:
+        if (i + 1 < length) {
+          if (const auto cc = pattern[i + 1]; k_glob_escape == cc ||
+                                              k_glob_match_single == cc ||
+                                              k_glob_match_many == cc) {
+            // escaped wildcard, skip escape character and copy wildcard
+            // verbatim
+            ++i;
+            c = cc;
+          }
+        }
+        [[fallthrough]];
+
+      default:
+        result.push_back(c);
+        break;
+    }
+  }
+
+  return result;
 }
 
 const char *get_long_version() {

@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace {
@@ -212,9 +213,24 @@ void Import_table_option_pack::set_decode_columns(
   }
 }
 
-bool Import_table_option_pack::check_if_multifile() const {
+bool Import_table_option_pack::check_if_multifile() {
   if (m_filelist_from_user.size() == 1) {
-    return has_wildcard(m_filelist_from_user[0]);
+    if (storage_config() ||
+        shcore::OperatingSystem::WINDOWS != shcore::get_os_type()) {
+      // local non-Windows and remote filesystems allow for * and ? characters
+      // in file names
+      // BUG#35895247: if all wildcard characters are escaped, load the file in
+      // chunks
+      if (auto path = shcore::unescape_glob(m_filelist_from_user[0]);
+          path.has_value()) {
+        m_filelist_from_user[0] = std::move(*path);
+        return false;
+      } else {
+        return true;
+      }
+    } else {
+      return has_wildcard(m_filelist_from_user[0]);
+    }
   }
 
   return true;

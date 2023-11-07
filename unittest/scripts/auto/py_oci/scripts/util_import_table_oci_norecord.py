@@ -152,6 +152,13 @@ EXPECT_THROWS(lambda: util.import_table(raw_files[0], {'schema': TARGET_SCHEMA, 
 
 testutil.clear_traps("os_bucket")
 
+#@<> BUG#35895247 - importing a file with escaped wildcard characters should load it in chunks {__os_type != "windows"}
+testutil.anycopy(os.path.join(__import_data_path, SOURCE_FILE), {'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'name': "will *this work?"})
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, 'cities')}")
+
+EXPECT_NO_THROWS(lambda: util.import_table("will \\*this work\\?", { "schema": TARGET_SCHEMA, "table": "cities", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE }), "import should not fail")
+EXPECT_STDOUT_CONTAINS(f"Importing from file 'will *this work?' to table ")
+
 #@<> Cleanup
 delete_bucket(OS_BUCKET_NAME)
 
