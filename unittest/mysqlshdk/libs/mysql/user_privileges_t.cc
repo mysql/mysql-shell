@@ -157,21 +157,24 @@ void setup(const Setup_options &options, Mock_session *session) {
 
     if (options.version >= Version(8, 0, 0)) {
       {
-        std::vector<std::string> activate_all;
+        auto &r = session
+                      ->expect_query(
+                          "show GLOBAL variables where `variable_name` in "
+                          "('activate_all_roles_on_login')")
+                      .then({"Variable_name", "Value"});
 
-        activate_all.emplace_back(options.activate_all_roles_on_login ? "1"
-                                                                      : "0");
-
-        session->expect_query("SELECT @@GLOBAL.activate_all_roles_on_login")
-            .then_return({{"",
-                           {"@@GLOBAL.activate_all_roles_on_login"},
-                           {Type::String},
-                           {activate_all}}});
+        if (options.activate_all_roles_on_login.has_value()) {
+          r.add_row({"activate_all_roles_on_login",
+                     *options.activate_all_roles_on_login ? "1" : "0"});
+        }
       }
+    }
 
+    if (options.version >= Version(8, 0, 0) &&
+        options.activate_all_roles_on_login.has_value()) {
       std::string query;
 
-      if (options.activate_all_roles_on_login) {
+      if (*options.activate_all_roles_on_login) {
         for (const auto &role : options.mandatory_roles) {
           std::string user;
           std::string host;
@@ -612,6 +615,40 @@ TEST_F(User_privileges_test, get_user_roles) {
                                "'role4'@'localhost'", "'role5'@'%.example.com'",
                                "'weird,role'@'%'"}),
         up.get_user_roles());
+  }
+
+  // BUG#35963431 - server has a version which should support roles, but
+  // activate_all_roles_on_login system variable is not available
+  {
+    SCOPED_TRACE("BUG#35963431");
+
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
+    // Simulate 8.0.0 version.
+    setup.version = Version(8, 0, 0);
+
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
+
+    // system variable is not available
+    setup.activate_all_roles_on_login.reset();
+    // set some roles, but we expect that no roles are detected
+    setup.active_roles = {
+        {"admin_role", "dba_host"},
+        {"read_role", "dba_host"},
+    };
+    setup.mandatory_roles = {
+        "m_role@dba_host",
+        "read_role@dba_host",
+        "write_role@dba_host",
+    };
+
+    const auto up = setup_test(setup);
+
+    EXPECT_TRUE(up.get_user_roles().empty());
   }
 }
 
