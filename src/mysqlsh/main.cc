@@ -530,6 +530,11 @@ static std::string version_string(const char *argv0, bool extra) {
       version_msg.append(" - commit_id ");
       version_msg.append(MYSH_COMMIT_ID);
     }
+
+    if (*MYSH_PRODUCT_ID) {
+      version_msg.append(" - product_id ");
+      version_msg.append(MYSH_PRODUCT_ID);
+    }
   } else {
     snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv0,
              shcore::get_long_version());

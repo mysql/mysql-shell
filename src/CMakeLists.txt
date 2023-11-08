@@ -90,6 +90,7 @@ if(WIN32)
 endif()
 
 add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
+add_definitions(-DMYSH_PRODUCT_ID="${MYSH_PRODUCT_ID}")
 
 add_shell_executable(mysqlsh "${mysqlsh_SRC}")
 ADD_STAN_TARGET(mysqlsh mysqlsh/main.cc)
