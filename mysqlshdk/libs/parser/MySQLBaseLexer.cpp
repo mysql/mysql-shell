@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,15 +72,18 @@ bool MySQLBaseLexer::isIdentifier(size_t type_) const {
 
   // Double quoted text represents identifiers only if the ANSI QUOTES sql mode
   // is active.
-  if (((sqlMode & AnsiQuotes) != 0) &&
-      (type_ == MySQLLexer::DOUBLE_QUOTED_TEXT))
-    return true;
+  if (type_ == MySQLLexer::DOUBLE_QUOTED_TEXT) return (sqlMode & AnsiQuotes);
 
-  const std::string symbol{getVocabulary().getSymbolicName(type_)};
-  if (!symbol.empty() &&
-      !MySQLSymbolInfo::isReservedKeyword(
-          symbol, MySQLSymbolInfo::numberToVersion(serverVersion)))
-    return true;
+  if (auto symbol = getVocabulary().getSymbolicName(type_); !symbol.empty()) {
+    if (symbol.ends_with("_SYMBOL")) {
+      symbol.remove_suffix(7);
+    }
+
+    if (!MySQLSymbolInfo::isReservedKeyword(
+            symbol, MySQLSymbolInfo::numberToVersion(serverVersion))) {
+      return true;
+    }
+  }
 
   return false;
 }
@@ -92,22 +95,30 @@ size_t MySQLBaseLexer::keywordFromText(std::string const &name) {
   // here for comparison.
   std::string transformed;
   std::transform(name.begin(), name.end(), std::back_inserter(transformed),
-                 ::tolower);
+                 ::toupper);
 
   if (!MySQLSymbolInfo::isKeyword(
           transformed, MySQLSymbolInfo::numberToVersion(serverVersion)))
     return INVALID_INDEX - 1;  // INVALID_INDEX alone can be interpreted as EOF.
 
-  // Generate string -> enum value map, if not yet done.
+  // Generate string_view -> enum value map, if not yet done.
   if (_symbols.empty()) {
-    auto &vocabulary = getVocabulary();
-    size_t max = vocabulary.getMaxTokenType();
-    for (size_t i = 0; i <= max; ++i)
-      _symbols[std::string{vocabulary.getSymbolicName(i)}] = i;
+    const auto &vocabulary = getVocabulary();
+    const auto max = vocabulary.getMaxTokenType();
+
+    for (size_t i = 0; i <= max; ++i) {
+      if (auto symbol = vocabulary.getSymbolicName(i); !symbol.empty()) {
+        if (symbol.ends_with("_SYMBOL")) {
+          symbol.remove_suffix(7);
+        }
+
+        _symbols[symbol] = i;
+      }
+    }
   }
 
   // Here we know for sure we got a keyword.
-  auto symbol = _symbols.find(transformed);
+  const auto symbol = _symbols.find(transformed);
   if (symbol == _symbols.end()) return INVALID_INDEX - 1;
   return symbol->second;
 }
@@ -238,6 +249,16 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
 
     case MySQLLexer::CREATE_SYMBOL: {
       tok = nextDefaultChannelToken();
+
+      // Skip OR REPLACE
+      if (tok->getType() == MySQLLexer::OR_SYMBOL) {
+        tok = nextDefaultChannelToken();
+
+        if (tok->getType() == MySQLLexer::REPLACE_SYMBOL) {
+          tok = nextDefaultChannelToken();
+        }
+      }
+
       if (tok->getType() == Token::EOF) return QtAmbiguous;
 
       switch (tok->getType()) {
@@ -299,7 +320,6 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
         }
 
         case MySQLLexer::VIEW_SYMBOL:
-        case MySQLLexer::OR_SYMBOL:         // CREATE OR REPLACE ... VIEW
         case MySQLLexer::ALGORITHM_SYMBOL:  // CREATE ALGORITHM ... VIEW
           return QtCreateView;
 
@@ -441,20 +461,15 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
     case MySQLLexer::UPDATE_SYMBOL:
       return QtUpdate;
 
-    case MySQLLexer::OPEN_PAR_SYMBOL:  // Either (((select ..))) or
-                                       // (partition...)
+    case MySQLLexer::OPEN_PAR_SYMBOL:  // (((select ..)))
     {
       while (tok->getType() == MySQLLexer::OPEN_PAR_SYMBOL) {
         tok = nextDefaultChannelToken();
         if (tok->getType() == Token::EOF) return QtAmbiguous;
       }
       if (tok->getType() == MySQLLexer::SELECT_SYMBOL) return QtSelect;
-      return QtPartition;
+      return QtUnknown;
     }
-
-    case MySQLLexer::PARTITION_SYMBOL:
-    case MySQLLexer::PARTITIONS_SYMBOL:
-      return QtPartition;
 
     case MySQLLexer::START_SYMBOL: {
       tok = nextDefaultChannelToken();
@@ -511,6 +526,7 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
 
       if (tok->getType() == MySQLLexer::TRANSACTION_SYMBOL)
         return QtSetTransaction;
+
       return QtSet;
     }
 
@@ -541,9 +557,10 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
       if (tok->getType() == Token::EOF) return QtReset;
 
       switch (tok->getType()) {
-        case MySQLLexer::SERVER_SYMBOL:
+        case MySQLLexer::MASTER_SYMBOL:
           return QtResetMaster;
         case MySQLLexer::SLAVE_SYMBOL:
+        case MySQLLexer::REPLICA_SYMBOL:
           return QtResetSlave;
         case MySQLLexer::PERSIST_SYMBOL:
           return QtResetPersist;
@@ -637,9 +654,6 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
           return QtShowVariables;
         }
 
-        case MySQLLexer::AUTHORS_SYMBOL:
-          return QtShowAuthors;
-
         case MySQLLexer::BINARY_SYMBOL:
           return QtShowBinaryLogs;
 
@@ -650,6 +664,7 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
           return QtShowRelaylogEvents;
 
         case MySQLLexer::CHAR_SYMBOL:
+        case MySQLLexer::CHARSET_SYMBOL:
           return QtShowCharset;
 
         case MySQLLexer::COLLATION_SYMBOL:
@@ -657,9 +672,6 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
 
         case MySQLLexer::COLUMNS_SYMBOL:
           return QtShowColumns;
-
-        case MySQLLexer::CONTRIBUTORS_SYMBOL:
-          return QtShowContributors;
 
         case MySQLLexer::COUNT_SYMBOL: {
           tok = nextDefaultChannelToken();
@@ -768,6 +780,7 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
         case MySQLLexer::PRIVILEGES_SYMBOL:
           return QtShowPrivileges;
 
+        case MySQLLexer::FULL_SYMBOL:
         case MySQLLexer::PROCESSLIST_SYMBOL:
           return QtShowProcessList;
 
@@ -817,8 +830,8 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
     case MySQLLexer::KILL_SYMBOL:
       return QtKill;
 
-    case MySQLLexer::DESCRIBE_SYMBOL:  // EXPLAIN is converted to DESCRIBE in
-                                       // the lexer.
+    case MySQLLexer::EXPLAIN_SYMBOL:
+    case MySQLLexer::DESCRIBE_SYMBOL:
     case MySQLLexer::DESC_SYMBOL: {
       tok = nextDefaultChannelToken();
       if (tok->getType() == Token::EOF) return QtAmbiguous;
@@ -921,6 +934,21 @@ bool MySQLBaseLexer::isNumber(size_t type) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+bool MySQLBaseLexer::isDelimiter(size_t type) {
+  switch (type) {
+    case MySQLLexer::DOT_SYMBOL:
+    case MySQLLexer::COMMA_SYMBOL:
+    case MySQLLexer::SEMICOLON_SYMBOL:
+    case MySQLLexer::COLON_SYMBOL:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 bool MySQLBaseLexer::isOperator(size_t type) {
   switch (type) {
     case MySQLLexer::EQUAL_OPERATOR:
@@ -990,7 +1018,7 @@ std::unique_ptr<antlr4::Token> MySQLBaseLexer::nextToken() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool MySQLBaseLexer::checkVersion(const std::string &text) {
+bool MySQLBaseLexer::checkMySQLVersion(const std::string &text) {
   if (text.size() < 8)  // Minimum is: /*!12345
     return false;
 
@@ -1125,6 +1153,7 @@ void MySQLBaseLexer::emitSymbol(size_t symbol) {
       {this, _input}, symbol, _text, channel, tokenStartCharIndex,
       tokenStartCharIndex, tokenStartLine, tokenStartCharPositionInLine));
   ++tokenStartCharIndex;
+  ++tokenStartCharPositionInLine;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

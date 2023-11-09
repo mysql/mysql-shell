@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <string_view>
 
 #include <Lexer.h>
 
@@ -61,6 +62,7 @@ class PARSERS_PUBLIC_TYPE MySQLBaseLexer : public antlr4::Lexer,
 
   static bool isRelation(size_t type);
   static bool isNumber(size_t type);
+  static bool isDelimiter(size_t type);
   static bool isOperator(size_t type);
 
   std::unique_ptr<antlr4::Token> nextToken() override;
@@ -68,7 +70,7 @@ class PARSERS_PUBLIC_TYPE MySQLBaseLexer : public antlr4::Lexer,
  protected:
   // Checks if the version number, given by the token, is less than or equal to
   // the current server version. Returns true if so, otherwise false.
-  bool checkVersion(const std::string &text);
+  bool checkMySQLVersion(const std::string &text);
 
   // Called when a keyword was consumed that represents an internal MySQL
   // function and checks if that keyword is followed by an open parenthesis. If
@@ -93,7 +95,7 @@ class PARSERS_PUBLIC_TYPE MySQLBaseLexer : public antlr4::Lexer,
   void emitSymbol(size_t symbol);
 
   std::list<std::unique_ptr<antlr4::Token>> _pendingTokens;
-  std::map<std::string, size_t>
+  std::map<std::string_view, size_t>
       _symbols;  // A list of all defined symbols for lookup.
 
   std::unique_ptr<antlr4::Token> nextDefaultChannelToken();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,9 @@ class PARSERS_PUBLIC_TYPE MySQLRecognizerCommon {
   uint32_t serverVersion;
   SqlMode sqlMode;  // A collection of flags indicating which of relevant SQL
                     // modes are active.
+
+  /** Enable Multi Language Extension support. */
+  bool supportMle = true;
 
   // Returns true if the given mode (one of the enums above) is set.
   bool isSqlModeActive(size_t mode) const;

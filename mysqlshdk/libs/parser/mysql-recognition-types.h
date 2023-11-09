@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -108,8 +108,6 @@ enum MySQLQueryType {
   QtValues,  // Table value constructor.
   QtUpdate,
 
-  QtPartition,  // Cannot be used standalone.
-
   QtStartTransaction,
   QtBeginWork,
   QtCommit,
@@ -167,14 +165,12 @@ enum MySQLQueryType {
   QtSetPassword,
 
   QtShow,
-  QtShowAuthors,
   QtShowBinaryLogs,
   QtShowBinlogEvents,
   QtShowRelaylogEvents,
   QtShowCharset,
   QtShowCollation,
   QtShowColumns,
-  QtShowContributors,
   QtShowCreateDatabase,
   QtShowCreateEvent,
   QtShowCreateFunction,

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,7 @@ postincludep='@postinclude \{#include "mysqlshdk/libs/parser/MySQLBaseRecognizer
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Convert lexer grammar from TS to C++
-sed -e 's/this\.type = \([^;]*\);/setType(\1);/g'\
+sed -e 's/this\._type = \([^;]*\);/setType(\1);/g'\
   -e 's/this\.text/getText()/g'\
   -e 's/this\.//g'\
   -e 's/SqlMode\.//g'\
@@ -55,4 +55,3 @@ fi
 
 # Build the parser+lexer
 ${ANTLR_CMD} -Dlanguage=Cpp -listener -visitor -o "${OUTPUT_DIR}" -package parsers "${SCRIPT_DIR}/MySQLLexer.g4" "${SCRIPT_DIR}/MySQLParser.g4"
-

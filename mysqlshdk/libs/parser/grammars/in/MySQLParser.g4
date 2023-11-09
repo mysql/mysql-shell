@@ -1,7 +1,7 @@
 parser grammar MySQLParser;
 
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2012, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,7 @@ parser grammar MySQLParser;
  */
 
 /*
- * Merged in all changes up to mysql-trunk git revision [15457ff] (21. January 2022).
+ * Merged in all changes up to mysql-trunk git revision [fc82a16] (11. June 2023).
  *
  * MySQL grammar for ANTLR 4.5+ with language features from MySQL 5.7.0 up to MySQL 8.0.
  * The server version in the generated parser can be switched at runtime, making it so possible
@@ -47,13 +47,12 @@ parser grammar MySQLParser;
 options {
     superClass = MySQLBaseRecognizer;
     tokenVocab = MySQLLexer;
-    exportMacro = PARSERS_PUBLIC_TYPE;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 @header {/*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,7 +116,8 @@ simpleStatement:
     // Database administration
     | accountManagementStatement
     | tableAdministrationStatement
-    | installUninstallStatement
+    | uninstallStatement
+    | installStatement
     | setStatement // SET PASSWORD is handled in accountManagementStatement.
     | showDatabasesStatement
     | showTablesStatement
@@ -125,12 +125,14 @@ simpleStatement:
     | showEventsStatement
     | showTableStatusStatement
     | showOpenTablesStatement
+    | showParseTreeStatement
     | showPluginsStatement
     | showEngineLogsStatement
     | showEngineMutexStatement
     | showEngineStatusStatement
     | showColumnsStatement
     | showBinaryLogsStatement
+    | showBinaryLogStatusStatement
     | showReplicasStatement
     | showBinlogEventsStatement
     | showRelaylogEventsStatement
@@ -435,7 +437,7 @@ viewTail:
 ;
 
 viewQueryBlock:
-    queryExpressionOrParens viewCheckOption?
+    queryExpressionWithOptLockingClauses viewCheckOption?
 ;
 
 viewCheckOption:
@@ -486,7 +488,7 @@ createDatabaseOption:
 
 createTable:
     TEMPORARY_SYMBOL? TABLE_SYMBOL ifNotExists? tableName (
-        (OPEN_PAR_SYMBOL tableElementList CLOSE_PAR_SYMBOL)? createTableOptions? partitionClause? duplicateAsQueryExpression?
+        (OPEN_PAR_SYMBOL tableElementList CLOSE_PAR_SYMBOL)? createTableOptionsEtc?
         | LIKE_SYMBOL tableRef
         | OPEN_PAR_SYMBOL LIKE_SYMBOL tableRef CLOSE_PAR_SYMBOL
     )
@@ -501,12 +503,21 @@ tableElement:
     | tableConstraintDef
 ;
 
-duplicateAsQueryExpression: (REPLACE_SYMBOL | IGNORE_SYMBOL)? AS_SYMBOL? queryExpressionOrParens
+duplicateAsQe:
+    (REPLACE_SYMBOL | IGNORE_SYMBOL)? asCreateQueryExpression
+;
+
+asCreateQueryExpression:
+    AS_SYMBOL? queryExpressionWithOptLockingClauses
 ;
 
 queryExpressionOrParens:
-    queryExpression
+    queryExpression lockingClauseList?
     | queryExpressionParens
+;
+
+queryExpressionWithOptLockingClauses:
+    queryExpression lockingClauseList?
 ;
 
 createRoutine: // Rule for external use only.
@@ -516,13 +527,23 @@ createRoutine: // Rule for external use only.
 createProcedure:
     definerClause? PROCEDURE_SYMBOL ({this.serverVersion >= 80029}? ifNotExists)? procedureName OPEN_PAR_SYMBOL (
         procedureParameter (COMMA_SYMBOL procedureParameter)*
-    )? CLOSE_PAR_SYMBOL routineCreateOption* compoundStatement
+    )? CLOSE_PAR_SYMBOL routineCreateOption* storedRoutineBody
+;
+
+routineString:
+    textStringLiteral
+    | DOLLAR_QUOTED_STRING_TEXT
+;
+
+storedRoutineBody:
+    compoundStatement
+    | {this.serverVersion >= 80032 && this.supportMle}? AS_SYMBOL routineString
 ;
 
 createFunction:
     definerClause? FUNCTION_SYMBOL ({this.serverVersion >= 80029}? ifNotExists)? functionName OPEN_PAR_SYMBOL (
         functionParameter (COMMA_SYMBOL functionParameter)*
-    )? CLOSE_PAR_SYMBOL RETURNS_SYMBOL typeWithOptCollate routineCreateOption* compoundStatement
+    )? CLOSE_PAR_SYMBOL RETURNS_SYMBOL typeWithOptCollate routineCreateOption* storedRoutineBody
 ;
 
 createUdf:
@@ -534,18 +555,24 @@ createUdf:
     ) SONAME_SYMBOL textLiteral
 ;
 
+// sp_c_chistic in the server grammar.
 routineCreateOption:
     routineOption
     | NOT_SYMBOL? DETERMINISTIC_SYMBOL
 ;
 
+// sp_a_chistics in the server grammar.
 routineAlterOptions:
     routineCreateOption+
 ;
 
+// sp_chistic in the server grammar.
 routineOption:
     option = COMMENT_SYMBOL textLiteral
-    | option = LANGUAGE_SYMBOL SQL_SYMBOL
+    | option = LANGUAGE_SYMBOL (
+        SQL_SYMBOL
+        | {this.serverVersion >= 80032}? identifier
+    )
     | option = NO_SYMBOL SQL_SYMBOL
     | option = CONTAINS_SYMBOL SQL_SYMBOL
     | option = READS_SYMBOL SQL_SYMBOL DATA_SYMBOL
@@ -558,32 +585,12 @@ routineOption:
 
 createIndex:
     onlineOption? (
-        UNIQUE_SYMBOL? type = INDEX_SYMBOL (
-            {this.serverVersion >= 80014}? indexName indexTypeClause?
-            | indexNameAndType?
-        ) createIndexTarget indexOption*
+        UNIQUE_SYMBOL? type = INDEX_SYMBOL indexName indexTypeClause? createIndexTarget indexOption*
         | type = FULLTEXT_SYMBOL INDEX_SYMBOL indexName createIndexTarget fulltextIndexOption*
         | type = SPATIAL_SYMBOL INDEX_SYMBOL indexName createIndexTarget spatialIndexOption*
     ) indexLockAndAlgorithm?
 ;
 
-/*
-  The syntax for defining an index is:
-
-    ... INDEX [index_name] [USING|TYPE] <index_type> ...
-
-  The problem is that whereas USING is a reserved word, TYPE is not. We can
-  still handle it if an index name is supplied, i.e.:
-
-    ... INDEX type TYPE <index_type> ...
-
-  here the index's name is unmbiguously 'type', but for this:
-
-    ... INDEX TYPE <index_type> ...
-
-  it's impossible to know what this actually mean - is 'type' the name or the
-  type? For this reason we accept the TYPE syntax only if a name is supplied.
-*/
 indexNameAndType:
     indexName
     | indexName? USING_SYMBOL indexType
@@ -591,7 +598,7 @@ indexNameAndType:
 ;
 
 createIndexTarget:
-    ON_SYMBOL tableRef keyListVariants
+    ON_SYMBOL tableRef keyListWithExpression
 ;
 
 createLogfileGroup:
@@ -641,8 +648,8 @@ createUndoTablespace:
 ;
 
 tsDataFileName:
-    {this.serverVersion >= 80014}? (ADD_SYMBOL tsDataFile)?
-    | ADD_SYMBOL tsDataFile
+    ADD_SYMBOL tsDataFile
+    | {this.serverVersion >= 80014}? (ADD_SYMBOL tsDataFile)? // now optional
 ;
 
 tsDataFile:
@@ -946,8 +953,8 @@ handlerReadOrScan:
 
 insertStatement:
     INSERT_SYMBOL insertLockOption? IGNORE_SYMBOL? INTO_SYMBOL? tableRef usePartition? (
-        insertFromConstructor ({ this.serverVersion >= 80018}? valuesReference)?
-        | SET_SYMBOL updateList ({ this.serverVersion >= 80018}? valuesReference)?
+        insertFromConstructor valuesReference?
+        | SET_SYMBOL updateList valuesReference?
         | insertQueryExpression
     ) insertUpdateList?
 ;
@@ -971,8 +978,9 @@ insertValues:
 ;
 
 insertQueryExpression:
-    queryExpressionOrParens
-    | OPEN_PAR_SYMBOL fields? CLOSE_PAR_SYMBOL queryExpressionOrParens
+    queryExpression
+    | queryExpressionParens
+    | (OPEN_PAR_SYMBOL fields? CLOSE_PAR_SYMBOL)? queryExpressionWithOptLockingClauses
 ;
 
 valueList:
@@ -986,7 +994,7 @@ values:
 ;
 
 valuesReference:
-    AS_SYMBOL identifier columnInternalRefList?
+    { this.serverVersion >= 80018}? AS_SYMBOL identifier columnInternalRefList?
 ;
 
 insertUpdateList:
@@ -996,16 +1004,41 @@ insertUpdateList:
 //----------------------------------------------------------------------------------------------------------------------
 
 loadStatement:
-    LOAD_SYMBOL dataOrXml (LOW_PRIORITY_SYMBOL | CONCURRENT_SYMBOL)? LOCAL_SYMBOL? INFILE_SYMBOL textLiteral (
+    LOAD_SYMBOL dataOrXml loadDataLock? loadFrom? LOCAL_SYMBOL? loadSourceType? textStringLiteral sourceCount? sourceOrder? (
         REPLACE_SYMBOL
         | IGNORE_SYMBOL
     )? INTO_SYMBOL TABLE_SYMBOL tableRef usePartition? charsetClause? xmlRowsIdentifiedBy? fieldsClause? linesClause?
-        loadDataFileTail
+        loadDataFileTail loadParallel? loadMemory? loadAlgorithm?
 ;
 
 dataOrXml:
     DATA_SYMBOL
     | XML_SYMBOL
+;
+
+loadDataLock:
+    LOW_PRIORITY_SYMBOL
+    | CONCURRENT_SYMBOL
+;
+
+loadFrom:
+    {this.serverVersion >= 80200}? FROM_SYMBOL
+;
+
+loadSourceType:
+    INFILE_SYMBOL
+    | {this.serverVersion >= 80200}? (URL_SYMBOL | S3_SYMBOL)
+;
+
+sourceCount:
+    {this.serverVersion >= 80200}? (
+        COUNT_SYMBOL INT_NUMBER
+        | pureIdentifier INT_NUMBER
+    )
+;
+
+sourceOrder:
+    {this.serverVersion >= 80200}? IN_SYMBOL PRIMARY_SYMBOL KEY_SYMBOL ORDER_SYMBOL
 ;
 
 xmlRowsIdentifiedBy:
@@ -1031,6 +1064,18 @@ fieldOrVariableList:
     )*
 ;
 
+loadAlgorithm:
+    {this.serverVersion >= 80200}? ALGORITHM_SYMBOL EQUAL_OPERATOR BULK_SYMBOL
+;
+
+loadParallel:
+    {this.serverVersion >= 80200}? PARALLEL_SYMBOL EQUAL_OPERATOR INT_NUMBER
+;
+
+loadMemory:
+    {this.serverVersion >= 80200}? MEMORY_SYMBOL EQUAL_OPERATOR sizeNumber
+;
+
 //----------------------------------------------------------------------------------------------------------------------
 
 replaceStatement:
@@ -1045,69 +1090,34 @@ replaceStatement:
 
 selectStatement:
     queryExpression lockingClauseList?
-    | queryExpressionParens
     | selectStatementWithInto
 ;
 
-/*
-  From the server grammar:
-
-  MySQL has a syntax extension that allows into clauses in any one of two
-  places. They may appear either before the from clause or at the end. All in
-  a top-level select statement. This extends the standard syntax in two
-  ways. First, we don't have the restriction that the result can contain only
-  one row: the into clause might be INTO OUTFILE/DUMPFILE in which case any
-  number of rows is allowed. Hence MySQL does not have any special case for
-  the standard's <select statement: single row>. Secondly, and this has more
-  severe implications for the parser, it makes the grammar ambiguous, because
-  in a from-clause-less select statement with an into clause, it is not clear
-  whether the into clause is the leading or the trailing one.
-
-  While it's possible to write an unambiguous grammar, it would force us to
-  duplicate the entire <select statement> syntax all the way down to the <into
-  clause>. So instead we solve it by writing an ambiguous grammar and use
-  precedence rules to sort out the shift/reduce conflict.
-
-  The problem is when the parser has seen SELECT <select list>, and sees an
-  INTO token. It can now either shift it or reduce what it has to a table-less
-  query expression. If it shifts the token, it will accept seeing a FROM token
-  next and hence the INTO will be interpreted as the leading INTO. If it
-  reduces what it has seen to a table-less select, however, it will interpret
-  INTO as the trailing into. But what if the next token is FROM? Obviously,
-  we want to always shift INTO. We do this by two precedence declarations: We
-  make the INTO token right-associative, and we give it higher precedence than
-  an empty from clause, using the artificial token EMPTY_FROM_CLAUSE.
-
-  The remaining problem is that now we allow the leading INTO anywhere, when
-  it should be allowed on the top level only. We solve this by manually
-  throwing parse errors whenever we reduce a nested query expression if it
-  contains an into clause.
-*/
 selectStatementWithInto:
     OPEN_PAR_SYMBOL selectStatementWithInto CLOSE_PAR_SYMBOL
     | queryExpression intoClause lockingClauseList?
-    | {this.serverVersion >= 80024}? queryExpressionParens intoClause
+    | queryExpression lockingClauseList intoClause
+    | {this.serverVersion >= 80024 && this.serverVersion < 80031}? queryExpressionParens intoClause
 ;
 
 queryExpression:
-    ({this.serverVersion >= 80000}? withClause)? (
-        queryExpressionBody orderClause? limitClause?
-        | queryExpressionParens orderClause? limitClause?
-    ) ({this.serverVersion < 80000}? procedureAnalyseClause)?
+    ({this.serverVersion >= 80000}? withClause)? queryExpressionBody orderClause? limitClause? ({this.serverVersion < 80000}? procedureAnalyseClause)?
 ;
 
 queryExpressionBody:
+    (queryPrimary | queryExpressionParens)
+
+    // Unlimited UNIONS.
     (
-        queryPrimary
-        | queryExpressionParens UNION_SYMBOL unionOption? (
-            queryPrimary
-            | queryExpressionParens
-        )
-    ) (UNION_SYMBOL unionOption? ( queryPrimary | queryExpressionParens))*
+        (
+            UNION_SYMBOL
+            | {this.serverVersion >= 80031}? (EXCEPT_SYMBOL | INTERSECT_SYMBOL)
+        ) unionOption? queryExpressionBody
+    )*
 ;
 
 queryExpressionParens:
-    OPEN_PAR_SYMBOL (queryExpressionParens | queryExpression lockingClauseList?) CLOSE_PAR_SYMBOL
+    OPEN_PAR_SYMBOL (queryExpressionParens | queryExpressionWithOptLockingClauses) CLOSE_PAR_SYMBOL
 ;
 
 queryPrimary:
@@ -1246,6 +1256,10 @@ commonTableExpression:
 
 groupByClause:
     GROUP_SYMBOL BY_SYMBOL orderList olapOption?
+    | {this.serverVersion >= 80032}? GROUP_SYMBOL BY_SYMBOL (
+        ROLLUP_SYMBOL
+        | CUBE_SYMBOL
+    ) OPEN_PAR_SYMBOL groupList CLOSE_PAR_SYMBOL
 ;
 
 olapOption:
@@ -1290,7 +1304,7 @@ selectOption:
 ;
 
 lockingClauseList:
-    lockingClause+
+    {this.serverVersion >= 80031}? lockingClause+
 ;
 
 lockingClause:
@@ -1326,9 +1340,11 @@ whereClause:
     WHERE_SYMBOL expr
 ;
 
-tableReference: ( // Note: we have also a tableRef rule for identifiers that reference a table anywhere.
+tableReference: // Note: we have also a tableRef rule for identifiers that reference a table anywhere.
+    (
         tableFactor
-        | OPEN_CURLY_SYMBOL ({this.serverVersion < 80017}? identifier | OJ_SYMBOL) escapedTableReference CLOSE_CURLY_SYMBOL // ODBC syntax
+        // ODBC syntax
+        | OPEN_CURLY_SYMBOL ({this.serverVersion < 80017}? identifier | OJ_SYMBOL) escapedTableReference CLOSE_CURLY_SYMBOL
     ) joinedTable*
 ;
 
@@ -1362,18 +1378,6 @@ outerJoinType:
     type = (LEFT_SYMBOL | RIGHT_SYMBOL) OUTER_SYMBOL? JOIN_SYMBOL
 ;
 
-/**
-  MySQL has a syntax extension where a comma-separated list of table
-  references is allowed as a table reference in itself, for instance
-
-    SELECT * FROM (t1, t2) JOIN t3 ON 1
-
-  which is not allowed in standard SQL. The syntax is equivalent to
-
-    SELECT * FROM (t1 CROSS JOIN t2) JOIN t3 ON 1
-
-  We call this rule tableReferenceListParens.
-*/
 tableFactor:
     singleTable
     | singleTableParens
@@ -1572,13 +1576,10 @@ xid:
 //----------------------------------------------------------------------------------------------------------------------
 
 replicationStatement:
-    PURGE_SYMBOL (BINARY_SYMBOL | MASTER_SYMBOL) LOGS_SYMBOL (
-        TO_SYMBOL textLiteral
-        | BEFORE_SYMBOL expr
-    )
+    PURGE_SYMBOL purgeOptions
     | changeSource
     | RESET_SYMBOL resetOption (COMMA_SYMBOL resetOption)*
-    | {this.serverVersion > 80000}? RESET_SYMBOL PERSIST_SYMBOL (ifExists? identifier)?
+    | {this.serverVersion > 80000}? RESET_SYMBOL PERSIST_SYMBOL ifExistsIdentifier?
     | startReplicaStatement
     | stopReplicaStatement
     | changeReplication
@@ -1586,17 +1587,26 @@ replicationStatement:
     | {this.serverVersion > 50706}? groupReplication
 ;
 
+purgeOptions:
+    (BINARY_SYMBOL | MASTER_SYMBOL) LOGS_SYMBOL (
+        TO_SYMBOL textLiteral
+        | BEFORE_SYMBOL expr
+    )
+;
+
 resetOption:
-    MASTER_SYMBOL sourceResetOptions?
+    masterOrBinaryLogsAndGtids sourceResetOptions?
     | {this.serverVersion < 80000}? QUERY_SYMBOL CACHE_SYMBOL
     | replica ALL_SYMBOL? channel?
 ;
 
+masterOrBinaryLogsAndGtids:
+    MASTER_SYMBOL
+    | {this.serverVersion >= 80032}? BINARY_SYMBOL LOGS_SYMBOL AND_SYMBOL GTIDS_SYMBOL
+;
+
 sourceResetOptions:
-    {this.serverVersion >= 80000}? TO_SYMBOL (
-        {this.serverVersion < 80017}? real_ulong_number
-        | {this.serverVersion >= 80017}? real_ulonglong_number
-    )
+    {this.serverVersion >= 80000}? TO_SYMBOL real_ulonglong_number
 ;
 
 replicationLoad:
@@ -1637,8 +1647,8 @@ sourceDefinition: // source_def in sql_yacc.yy
     | changeReplicationSourceSSLVerifyServerCert EQUAL_OPERATOR ulong_number
     | changeReplicationSourceSSLCLR EQUAL_OPERATOR textLiteral
     | changeReplicationSourceSSLCLRpath EQUAL_OPERATOR textStringNoLinebreak
-    | changeReplicationSourcePublicKey EQUAL_OPERATOR textStringNoLinebreak // Conditionally set in the lexer.
-    | changeReplicationSourceGetSourcePublicKey EQUAL_OPERATOR ulong_number // Conditionally set in the lexer.
+    | changeReplicationSourcePublicKey EQUAL_OPERATOR textStringNoLinebreak
+    | changeReplicationSourceGetSourcePublicKey EQUAL_OPERATOR ulong_number
     | changeReplicationSourceHeartbeatPeriod EQUAL_OPERATOR ulong_number
     | IGNORE_SERVER_IDS_SYMBOL EQUAL_OPERATOR serverIdList
     | changeReplicationSourceCompressionAlgorithm EQUAL_OPERATOR textStringLiteral
@@ -1788,6 +1798,7 @@ tablePrimaryKeyCheckDef:
     STREAM_SYMBOL
     | ON_SYMBOL
     | OFF_SYMBOL
+    | GENERATE_SYMBOL
 ;
 
 assignGtidsToAnonymousTransactionsDefinition:
@@ -2130,8 +2141,7 @@ grantTargetList:
 ;
 
 grantOptions:
-    {this.serverVersion < 80011}? WITH_SYMBOL grantOption+
-    | {this.serverVersion >= 80011}? WITH_SYMBOL GRANT_SYMBOL OPTION_SYMBOL
+    WITH_SYMBOL grantOption
 ;
 
 exceptRoleList:
@@ -2160,20 +2170,15 @@ renameUserStatement:
 ;
 
 revokeStatement:
-    REVOKE_SYMBOL (
+    REVOKE_SYMBOL ({this.serverVersion >= 80030}? ifExists)? (
         {this.serverVersion >= 80000}? roleOrPrivilegesList FROM_SYMBOL userList
-        | roleOrPrivilegesList onTypeTo FROM_SYMBOL userList
+        | roleOrPrivilegesList ON_SYMBOL aclType? grantIdentifier FROM_SYMBOL userList
         | ALL_SYMBOL PRIVILEGES_SYMBOL? (
             {this.serverVersion >= 80000}? ON_SYMBOL aclType? grantIdentifier
-            | COMMA_SYMBOL GRANT_SYMBOL OPTION_SYMBOL FROM_SYMBOL userList
-        )
+            | COMMA_SYMBOL GRANT_SYMBOL OPTION_SYMBOL
+        ) FROM_SYMBOL userList
         | PROXY_SYMBOL ON_SYMBOL user FROM_SYMBOL userList
-    )
-;
-
-onTypeTo: // Optional, starting with 8.0.1.
-    {this.serverVersion < 80000}? ON_SYMBOL aclType? grantIdentifier
-    | {this.serverVersion >= 80000}? (ON_SYMBOL aclType? grantIdentifier)?
+    ) ({this.serverVersion >= 80030}? ignoreUnknownUser)?
 ;
 
 aclType:
@@ -2239,10 +2244,12 @@ requireListElement:
 
 grantOption:
     option = GRANT_SYMBOL OPTION_SYMBOL
-    | option = MAX_QUERIES_PER_HOUR_SYMBOL ulong_number
-    | option = MAX_UPDATES_PER_HOUR_SYMBOL ulong_number
-    | option = MAX_CONNECTIONS_PER_HOUR_SYMBOL ulong_number
-    | option = MAX_USER_CONNECTIONS_SYMBOL ulong_number
+    | {this.serverVersion < 80011}? (
+        option = MAX_QUERIES_PER_HOUR_SYMBOL ulong_number
+        | option = MAX_UPDATES_PER_HOUR_SYMBOL ulong_number
+        | option = MAX_CONNECTIONS_PER_HOUR_SYMBOL ulong_number
+        | option = MAX_USER_CONNECTIONS_SYMBOL ulong_number
+    )
 ;
 
 setRoleStatement:
@@ -2278,6 +2285,7 @@ tableAdministrationStatement:
 histogram:
     UPDATE_SYMBOL HISTOGRAM_SYMBOL ON_SYMBOL identifierList (
         WITH_SYMBOL INT_NUMBER BUCKETS_SYMBOL
+        | {this.serverVersion >= 80031}? USING_SYMBOL DATA_SYMBOL textStringLiteral
     )?
     | DROP_SYMBOL HISTOGRAM_SYMBOL ON_SYMBOL identifierList
 ;
@@ -2295,13 +2303,37 @@ repairType:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-installUninstallStatement:
-    // COMPONENT_SYMBOL is conditionally set in the lexer.
-    action = INSTALL_SYMBOL type = PLUGIN_SYMBOL identifier SONAME_SYMBOL textStringLiteral
-    | action = INSTALL_SYMBOL type = COMPONENT_SYMBOL textStringLiteralList
-    | action = UNINSTALL_SYMBOL type = PLUGIN_SYMBOL pluginRef
-    | action = UNINSTALL_SYMBOL type = COMPONENT_SYMBOL componentRef (
-        COMMA_SYMBOL componentRef
+uninstallStatement:
+    UNINSTALL_SYMBOL (
+        PLUGIN_SYMBOL pluginRef
+        | COMPONENT_SYMBOL componentRef (COMMA_SYMBOL componentRef)*
+    )
+;
+
+installStatement:
+    INSTALL_SYMBOL (
+        PLUGIN_SYMBOL identifier SONAME_SYMBOL textStringLiteral
+        | COMPONENT_SYMBOL textStringLiteralList installSetValueList?
+    )
+;
+
+installOptionType:
+    GLOBAL_SYMBOL
+    | PERSIST_SYMBOL
+;
+
+installSetRvalue:
+    expr
+    | ON_SYMBOL
+;
+
+installSetValue:
+    installOptionType lvalueVariable equal installSetRvalue
+;
+
+installSetValueList:
+    {this.serverVersion >= 80032}? SET_SYMBOL installSetValue (
+        COMMA_SYMBOL installSetValue
     )*
 ;
 
@@ -2408,6 +2440,10 @@ showOpenTablesStatement:
     SHOW_SYMBOL OPEN_SYMBOL TABLES_SYMBOL inDb? likeOrWhere?
 ;
 
+showParseTreeStatement:
+    {this.serverVersion >= 80100}? SHOW_SYMBOL PARSE_TREE_SYMBOL simpleStatement
+;
+
 showPluginsStatement:
     SHOW_SYMBOL PLUGINS_SYMBOL
 ;
@@ -2430,6 +2466,10 @@ showColumnsStatement:
 
 showBinaryLogsStatement:
     SHOW_SYMBOL (BINARY_SYMBOL | MASTER_SYMBOL) value = LOGS_SYMBOL
+;
+
+showBinaryLogStatusStatement:
+    SHOW_SYMBOL BINARY_SYMBOL LOG_SYMBOL STATUS_SYMBOL
 ;
 
 showReplicasStatement:
@@ -2769,13 +2809,19 @@ describeStatement:
 ;
 
 explainStatement:
-    (EXPLAIN_SYMBOL | DESCRIBE_SYMBOL | DESC_SYMBOL) (
-        {this.serverVersion < 80000}? EXTENDED_SYMBOL
-        | {this.serverVersion < 80000}? PARTITIONS_SYMBOL
-        | FORMAT_SYMBOL EQUAL_OPERATOR textOrIdentifier
-        | {this.serverVersion >= 80018}? ANALYZE_SYMBOL
-        | {this.serverVersion >= 80019}? ANALYZE_SYMBOL FORMAT_SYMBOL EQUAL_OPERATOR textOrIdentifier
+    (EXPLAIN_SYMBOL | DESCRIBE_SYMBOL | DESC_SYMBOL) explainOptions? (
+        {this.serverVersion >= 80032}? FOR_SYMBOL DATABASE_SYMBOL textOrIdentifier
     )? explainableStatement
+;
+
+explainOptions:
+    FORMAT_SYMBOL EQUAL_OPERATOR textOrIdentifier (
+        {this.serverVersion >= 80032}? explainInto
+    )?
+    | {this.serverVersion < 80000}? EXTENDED_SYMBOL
+    | {this.serverVersion < 80000}? PARTITIONS_SYMBOL
+    | {this.serverVersion >= 80018}? ANALYZE_SYMBOL
+    | {this.serverVersion >= 80019}? ANALYZE_SYMBOL FORMAT_SYMBOL EQUAL_OPERATOR textOrIdentifier
 ;
 
 explainableStatement:
@@ -2787,12 +2833,16 @@ explainableStatement:
     | FOR_SYMBOL CONNECTION_SYMBOL real_ulong_number
 ;
 
+explainInto:
+    INTO_SYMBOL AT_SIGN_SYMBOL textOrIdentifier
+;
+
 helpCommand:
     HELP_SYMBOL textOrIdentifier
 ;
 
 useCommand:
-    USE_SYMBOL identifier
+    USE_SYMBOL schemaRef
 ;
 
 restartServer:
@@ -2938,8 +2988,8 @@ windowFunctionCall:
         | PERCENT_RANK_SYMBOL
     ) parentheses windowingClause
     | NTILE_SYMBOL (
-        {this.serverVersion < 80024}? simpleExprWithParentheses
-        | {this.serverVersion >= 80024}? OPEN_PAR_SYMBOL stableInteger CLOSE_PAR_SYMBOL
+        OPEN_PAR_SYMBOL stableInteger CLOSE_PAR_SYMBOL
+        | {this.serverVersion < 80024}? simpleExprWithParentheses
     ) windowingClause
     | (LEAD_SYMBOL | LAG_SYMBOL) OPEN_PAR_SYMBOL expr leadLagInfo? CLOSE_PAR_SYMBOL nullTreatment? windowingClause
     | (FIRST_VALUE_SYMBOL | LAST_VALUE_SYMBOL) exprWithParentheses nullTreatment? windowingClause
@@ -2954,7 +3004,8 @@ windowingClause:
 
 leadLagInfo:
     COMMA_SYMBOL (
-        {this.serverVersion < 80024}? (ulonglong_number | PARAM_MARKER)
+        ulonglong_number
+        | PARAM_MARKER
         | {this.serverVersion >= 80024}? stableInteger
     ) (COMMA_SYMBOL expr)?
 ;
@@ -3034,6 +3085,9 @@ runtimeFunctionCall:
     | (DATE_ADD_SYMBOL | DATE_SUB_SYMBOL) OPEN_PAR_SYMBOL expr COMMA_SYMBOL INTERVAL_SYMBOL expr interval CLOSE_PAR_SYMBOL
     | EXTRACT_SYMBOL OPEN_PAR_SYMBOL interval FROM_SYMBOL expr CLOSE_PAR_SYMBOL
     | GET_FORMAT_SYMBOL OPEN_PAR_SYMBOL dateTimeTtype COMMA_SYMBOL expr CLOSE_PAR_SYMBOL
+    | {this.serverVersion >= 80032}? LOG_SYMBOL OPEN_PAR_SYMBOL expr (
+        COMMA_SYMBOL expr
+    )? CLOSE_PAR_SYMBOL
     | NOW_SYMBOL timeFunctionParameters?
     | POSITION_SYMBOL OPEN_PAR_SYMBOL bitExpr IN_SYMBOL expr CLOSE_PAR_SYMBOL
     | substringFunction
@@ -3165,7 +3219,7 @@ rvalueSystemOrUserVariable:
 
 lvalueVariable: (
         // Check in semantic phase that the first id is not global/local/session/default.
-        {this.serverVersion < 80017}? identifier dotIdentifier?
+        identifier dotIdentifier?
         | {this.serverVersion >= 80017}? lValueIdentifier dotIdentifier?
     )
     | DEFAULT_SYMBOL dotIdentifier
@@ -3525,17 +3579,17 @@ checkConstraint:
 ;
 
 constraintEnforcement:
-    NOT_SYMBOL? ENFORCED_SYMBOL
+    { this.serverVersion >= 80017}? NOT_SYMBOL? ENFORCED_SYMBOL
 ;
 
 tableConstraintDef:
-    type = (KEY_SYMBOL | INDEX_SYMBOL) indexNameAndType? keyListVariants indexOption*
-    | type = FULLTEXT_SYMBOL keyOrIndex? indexName? keyListVariants fulltextIndexOption*
-    | type = SPATIAL_SYMBOL keyOrIndex? indexName? keyListVariants spatialIndexOption*
+    type = (KEY_SYMBOL | INDEX_SYMBOL) indexNameAndType? keyListWithExpression indexOption*
+    | type = FULLTEXT_SYMBOL keyOrIndex? indexName? keyListWithExpression fulltextIndexOption*
+    | type = SPATIAL_SYMBOL keyOrIndex? indexName? keyListWithExpression spatialIndexOption*
     | constraintName? (
-        (type = PRIMARY_SYMBOL KEY_SYMBOL | type = UNIQUE_SYMBOL keyOrIndex?) indexNameAndType? keyListVariants indexOption*
+        (type = PRIMARY_SYMBOL KEY_SYMBOL | type = UNIQUE_SYMBOL keyOrIndex?) indexNameAndType? keyListWithExpression indexOption*
         | type = FOREIGN_SYMBOL KEY_SYMBOL indexName? keyList references
-        | checkConstraint ({this.serverVersion >= 80017}? constraintEnforcement)?
+        | checkConstraint constraintEnforcement?
     )
 ;
 
@@ -3560,9 +3614,7 @@ columnAttribute:
     NOT_SYMBOL? nullLiteral
     | {this.serverVersion >= 80014}? NOT_SYMBOL SECONDARY_SYMBOL
     | value = DEFAULT_SYMBOL (
-        {this.serverVersion < 80024}? signedLiteral
-        | {this.serverVersion >= 80024}? nowOrSignedLiteral
-        | NOW_SYMBOL timeFunctionParameters?
+        nowOrSignedLiteral
         | {this.serverVersion >= 80013}? exprWithParentheses
     )
     | value = ON_SYMBOL UPDATE_SYMBOL NOW_SYMBOL timeFunctionParameters?
@@ -3644,12 +3696,7 @@ keyListWithExpression:
 
 keyPartOrExpression: // key_part_with_expression in sql_yacc.yy.
     keyPart
-    | exprWithParentheses direction?
-;
-
-keyListVariants:
-    {this.serverVersion >= 80013}? keyListWithExpression
-    | {this.serverVersion < 80013}? keyList
+    | {this.serverVersion >= 80013}? exprWithParentheses direction?
 ;
 
 indexType:
@@ -3810,6 +3857,16 @@ createTableOptions:
     createTableOption (COMMA_SYMBOL? createTableOption)*
 ;
 
+createTableOptionsEtc:
+    createTableOptions createPartitioningEtc?
+    | createPartitioningEtc
+;
+
+createPartitioningEtc:
+    partitionClause duplicateAsQe?
+    | duplicateAsQe
+;
+
 createTableOptionsSpaceSeparated:
     createTableOption+
 ;
@@ -3962,8 +4019,24 @@ ifExists:
     IF_SYMBOL EXISTS_SYMBOL
 ;
 
+ifExistsIdentifier:
+    ifExists? persistedVariableIdentifier
+;
+
+persistedVariableIdentifier:
+    identifier
+    | {this.serverVersion >= 80032}? (
+        qualifiedIdentifier
+        | DEFAULT_SYMBOL dotIdentifier
+    )
+;
+
 ifNotExists:
     IF_SYMBOL notRule EXISTS_SYMBOL
+;
+
+ignoreUnknownUser:
+    IGNORE_SYMBOL UNKNOWN_SYMBOL USER_SYMBOL
 ;
 
 procedureParameter:
@@ -4742,7 +4815,7 @@ identifierKeywordsUnambiguous:
         | CONSTRAINT_SCHEMA_SYMBOL
         | CONTEXT_SYMBOL
         | CPU_SYMBOL
-        | CURRENT_SYMBOL // not reserved in MySQL per WL#2111 specification
+        | CURRENT_SYMBOL
         | CURSOR_NAME_SYMBOL
         | DATAFILE_SYMBOL
         | DATA_SYMBOL
@@ -5119,6 +5192,15 @@ identifierKeywordsUnambiguous:
         | TIMESTAMP_SYMBOL
         | TIME_SYMBOL
     )
+    | {this.serverVersion >= 80200}? (
+        BULK_SYMBOL
+        | GENERATE_SYMBOL
+        | GTIDS_SYMBOL
+        | LOG_SYMBOL
+        | PARSE_TREE_SYMBOL
+        | S3_SYMBOL
+    )
+    /* INSERT OTHER KEYWORDS HERE */
 ;
 
 // Non-reserved keywords that we allow for unquoted role names:
@@ -5207,13 +5289,13 @@ roleOrIdentifierKeyword:
         | REPAIR_SYMBOL
         | RESET_SYMBOL
         | RESTORE_SYMBOL
-        | ROLE_SYMBOL                   // Conditionally set in the lexer.
+        | ROLE_SYMBOL
         | ROLLBACK_SYMBOL
         | SAVEPOINT_SYMBOL
-        | SECONDARY_SYMBOL              // Conditionally set in the lexer.
-        | SECONDARY_ENGINE_SYMBOL       // Conditionally set in the lexer.
-        | SECONDARY_LOAD_SYMBOL         // Conditionally set in the lexer.
-        | SECONDARY_UNLOAD_SYMBOL       // Conditionally set in the lexer.
+        | SECONDARY_SYMBOL
+        | SECONDARY_ENGINE_SYMBOL
+        | SECONDARY_LOAD_SYMBOL
+        | SECONDARY_UNLOAD_SYMBOL
         | SECURITY_SYMBOL
         | SERVER_SYMBOL
         | SIGNED_SYMBOL
@@ -5238,7 +5320,7 @@ roleOrIdentifierKeyword:
 roleOrLabelKeyword:
     (
         ACTION_SYMBOL
-        | ACTIVE_SYMBOL                 // Conditionally set in the lexer.
+        | ACTIVE_SYMBOL
         | ADDDATE_SYMBOL
         | AFTER_SYMBOL
         | AGAINST_SYMBOL
@@ -5286,10 +5368,6 @@ roleOrLabelKeyword:
         | CONSTRAINT_NAME_SYMBOL
         | CONTEXT_SYMBOL
         | CPU_SYMBOL
-        /*
-          Although a reserved keyword in SQL:2003 (and :2008),
-          not reserved in MySQL per WL#2111 specification.
-        */
         | CURRENT_SYMBOL
         | CURSOR_NAME_SYMBOL
         | DATA_SYMBOL
@@ -5301,7 +5379,7 @@ roleOrLabelKeyword:
         | DEFINER_SYMBOL
         | DELAY_KEY_WRITE_SYMBOL
         | DES_KEY_FILE_SYMBOL           // Conditionally set in the lexer.
-        | DESCRIPTION_SYMBOL            // Conditionally set in the lexer.
+        | DESCRIPTION_SYMBOL
         | DIAGNOSTICS_SYMBOL
         | DIRECTORY_SYMBOL
         | DISABLE_SYMBOL
@@ -5353,7 +5431,7 @@ roleOrLabelKeyword:
         | INDEXES_SYMBOL
         | INITIAL_SIZE_SYMBOL
         | INSTANCE_SYMBOL               // Conditionally deprecated in the lexer.
-        | INACTIVE_SYMBOL               // Conditionally set in the lexer.
+        | INACTIVE_SYMBOL
         | IO_SYMBOL
         | IPC_SYMBOL
         | ISOLATION_SYMBOL
@@ -5388,7 +5466,7 @@ roleOrLabelKeyword:
         | MASTER_SSL_SYMBOL
         | MASTER_SSL_CA_SYMBOL
         | MASTER_SSL_CAPATH_SYMBOL
-        | MASTER_TLS_VERSION_SYMBOL     // Conditionally deprecated in the lexer.
+        | MASTER_TLS_VERSION_SYMBOL
         | MASTER_SSL_CERT_SYMBOL
         | MASTER_SSL_CIPHER_SYMBOL
         | MASTER_SSL_CRL_SYMBOL
@@ -5433,12 +5511,12 @@ roleOrLabelKeyword:
         | NUMBER_SYMBOL
         | NVARCHAR_SYMBOL
         | OFFSET_SYMBOL
-        | OLD_SYMBOL                    // Conditionally set in the lexer.
+        | OLD_SYMBOL
         | OLD_PASSWORD_SYMBOL           // Conditionally set in the lexer.
         | ONE_SYMBOL
-        | OPTIONAL_SYMBOL               // Conditionally set in the lexer.
+        | OPTIONAL_SYMBOL
         | ORDINALITY_SYMBOL             // Conditionally set in the lexer.
-        | ORGANIZATION_SYMBOL           // Conditionally set in the lexer.
+        | ORGANIZATION_SYMBOL
         | OTHERS_SYMBOL                 // Conditionally set in the lexer.
         | PACK_KEYS_SYMBOL
         | PAGE_SYMBOL
@@ -5475,7 +5553,7 @@ roleOrLabelKeyword:
         | RELAY_LOG_FILE_SYMBOL
         | RELAY_LOG_POS_SYMBOL
         | RELAY_THREAD_SYMBOL
-        | REMOTE_SYMBOL                 // Conditionally set in the lexer.
+        | REMOTE_SYMBOL
         | REORGANIZE_SYMBOL
         | REPEATABLE_SYMBOL
         | REPLICATE_DO_DB_SYMBOL
@@ -5485,10 +5563,10 @@ roleOrLabelKeyword:
         | REPLICATE_WILD_DO_TABLE_SYMBOL
         | REPLICATE_WILD_IGNORE_TABLE_SYMBOL
         | REPLICATE_REWRITE_DB_SYMBOL
-        | USER_RESOURCES_SYMBOL         // Placed like in the server grammar where it is named just RESOURCES.
+        | USER_RESOURCES_SYMBOL
         | RESPECT_SYMBOL                // Conditionally set in the lexer.
         | RESUME_SYMBOL
-        | RETAIN_SYMBOL                 // Conditionally set in the lexer.
+        | RETAIN_SYMBOL
         | RETURNED_SQLSTATE_SYMBOL
         | RETURNS_SYMBOL
         | REUSE_SYMBOL                  // Conditionally set in the lexer.
