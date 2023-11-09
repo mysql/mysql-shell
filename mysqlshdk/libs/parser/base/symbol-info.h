@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <set>
 #include <string>
+#include <string_view>
 
 namespace base {
 
@@ -37,17 +38,24 @@ enum class MySQLVersion {
   Unknown,
   MySQL57,
   MySQL80,
+  MySQL81,
+  MySQL82,
+  MySQL83,
+  Highest,
 };
 
 class MySQLSymbolInfo {
  public:
   static std::set<std::string> const &systemFunctionsForVersion(
       MySQLVersion version);
-  static std::set<std::string> const &keywordsForVersion(MySQLVersion version);
 
-  static bool isReservedKeyword(std::string const &identifier,
+  static std::set<std::string_view> const &keywordsForVersion(
+      MySQLVersion version);
+
+  static bool isReservedKeyword(std::string_view identifier,
                                 MySQLVersion version);
-  static bool isKeyword(std::string const &identifier, MySQLVersion version);
+
+  static bool isKeyword(std::string_view identifier, MySQLVersion version);
 
   static MySQLVersion numberToVersion(uint32_t version);
 };

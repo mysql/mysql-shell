@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -462,6 +462,11 @@ std::set<std::string> systemFunctions80 = {
     "ANY_VALUE",
     "ASCII",
     "ASIN",
+    "asynchronous_connection_failover_add_managed",     //  added 8.0.23
+    "asynchronous_connection_failover_add_source",      //  added 8.0.22
+    "asynchronous_connection_failover_delete_managed",  //  added 8.0.23
+    "asynchronous_connection_failover_delete_source",   //  added 8.0.22
+    "asynchronous_connection_failover_reset",           //  added 8.0.27
     "ATAN",
     "ATAN2",
     "AVG",
@@ -546,6 +551,16 @@ std::set<std::string> systemFunctions80 = {
     "GET_LOCK",
     "GREATEST",
     "GROUP_CONCAT",
+    "group_replication_disable_member_action",          // added 8.0.26
+    "group_replication_enable_member_action",           // added 8.0.26
+    "group_replication_get_communication_protocol",     // added 8.0.16
+    "group_replication_get_write_concurrency",          // added 8.0.13
+    "group_replication_reset_member_actions",           // added 8.0.26
+    "group_replication_set_as_primary",                 // added 8.0.29
+    "group_replication_set_communication_protocol",     // added 8.0.16
+    "group_replication_set_write_concurrency",          // added 8.0.13
+    "group_replication_switch_to_multi_primary_mode",   // added 8.0.13
+    "group_replication_switch_to_single_primary_mode",  // added 8.0.13
     "GROUPING",
     "GTID_SUBSET",
     "GTID_SUBTRACT",

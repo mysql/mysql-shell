@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -129,15 +129,13 @@ static std::string dumpTree(RuleContext *context, const Vocabulary &vocabulary,
             ruleContext, vocabulary,
             indentation.size() < 100 ? indentation + " " : indentation);
       }
-    } else {
+    } else if (antlrcpp::is<TerminalNode *>(child)) {
       // A terminal node.
       stream << indentation;
 
-      TerminalNode *node = dynamic_cast<TerminalNode *>(child);
       if (antlrcpp::is<ErrorNode *>(child)) stream << "Syntax Error: ";
 
-      antlr4::Token *token = node->getSymbol();
-
+      antlr4::Token *token = dynamic_cast<TerminalNode *>(child)->getSymbol();
       std::size_t type = token->getType();
       std::string_view tokenName =
           type == Token::EOF ? "<EOF>"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1734,8 +1734,7 @@ parsers::Sql_completion_result getCodeCompletion(size_t offset,
           case QtShowOpenTables:
           case QtShowTableStatus:
           case QtShowTables:
-          case QtShowTriggers:
-          case QtUse: {
+          case QtShowTriggers: {
             std::string_view qualifier;
             const auto flags =
                 determineQualifier(scanner, lexer, &r, &qualifier);

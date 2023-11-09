@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,7 @@
 
 
 
-// Generated from /Users/kojima/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLParser.g4 by ANTLR 4.10.1
+// Generated from /home/paandrus/dev/ngshell/mysqlshdk/libs/parser/grammars/MySQLParser.g4 by ANTLR 4.10.1
 
 #pragma once
 
@@ -39,7 +39,7 @@ namespace parsers {
 /**
  * This interface defines an abstract listener for a parse tree produced by MySQLParser.
  */
-class PARSERS_PUBLIC_TYPE MySQLParserListener : public antlr4::tree::ParseTreeListener {
+class  MySQLParserListener : public antlr4::tree::ParseTreeListener {
 public:
 
   virtual void enterQuery(MySQLParser::QueryContext *ctx) = 0;
@@ -180,17 +180,29 @@ public:
   virtual void enterTableElement(MySQLParser::TableElementContext *ctx) = 0;
   virtual void exitTableElement(MySQLParser::TableElementContext *ctx) = 0;
 
-  virtual void enterDuplicateAsQueryExpression(MySQLParser::DuplicateAsQueryExpressionContext *ctx) = 0;
-  virtual void exitDuplicateAsQueryExpression(MySQLParser::DuplicateAsQueryExpressionContext *ctx) = 0;
+  virtual void enterDuplicateAsQe(MySQLParser::DuplicateAsQeContext *ctx) = 0;
+  virtual void exitDuplicateAsQe(MySQLParser::DuplicateAsQeContext *ctx) = 0;
+
+  virtual void enterAsCreateQueryExpression(MySQLParser::AsCreateQueryExpressionContext *ctx) = 0;
+  virtual void exitAsCreateQueryExpression(MySQLParser::AsCreateQueryExpressionContext *ctx) = 0;
 
   virtual void enterQueryExpressionOrParens(MySQLParser::QueryExpressionOrParensContext *ctx) = 0;
   virtual void exitQueryExpressionOrParens(MySQLParser::QueryExpressionOrParensContext *ctx) = 0;
+
+  virtual void enterQueryExpressionWithOptLockingClauses(MySQLParser::QueryExpressionWithOptLockingClausesContext *ctx) = 0;
+  virtual void exitQueryExpressionWithOptLockingClauses(MySQLParser::QueryExpressionWithOptLockingClausesContext *ctx) = 0;
 
   virtual void enterCreateRoutine(MySQLParser::CreateRoutineContext *ctx) = 0;
   virtual void exitCreateRoutine(MySQLParser::CreateRoutineContext *ctx) = 0;
 
   virtual void enterCreateProcedure(MySQLParser::CreateProcedureContext *ctx) = 0;
   virtual void exitCreateProcedure(MySQLParser::CreateProcedureContext *ctx) = 0;
+
+  virtual void enterRoutineString(MySQLParser::RoutineStringContext *ctx) = 0;
+  virtual void exitRoutineString(MySQLParser::RoutineStringContext *ctx) = 0;
+
+  virtual void enterStoredRoutineBody(MySQLParser::StoredRoutineBodyContext *ctx) = 0;
+  virtual void exitStoredRoutineBody(MySQLParser::StoredRoutineBodyContext *ctx) = 0;
 
   virtual void enterCreateFunction(MySQLParser::CreateFunctionContext *ctx) = 0;
   virtual void exitCreateFunction(MySQLParser::CreateFunctionContext *ctx) = 0;
@@ -435,6 +447,21 @@ public:
   virtual void enterDataOrXml(MySQLParser::DataOrXmlContext *ctx) = 0;
   virtual void exitDataOrXml(MySQLParser::DataOrXmlContext *ctx) = 0;
 
+  virtual void enterLoadDataLock(MySQLParser::LoadDataLockContext *ctx) = 0;
+  virtual void exitLoadDataLock(MySQLParser::LoadDataLockContext *ctx) = 0;
+
+  virtual void enterLoadFrom(MySQLParser::LoadFromContext *ctx) = 0;
+  virtual void exitLoadFrom(MySQLParser::LoadFromContext *ctx) = 0;
+
+  virtual void enterLoadSourceType(MySQLParser::LoadSourceTypeContext *ctx) = 0;
+  virtual void exitLoadSourceType(MySQLParser::LoadSourceTypeContext *ctx) = 0;
+
+  virtual void enterSourceCount(MySQLParser::SourceCountContext *ctx) = 0;
+  virtual void exitSourceCount(MySQLParser::SourceCountContext *ctx) = 0;
+
+  virtual void enterSourceOrder(MySQLParser::SourceOrderContext *ctx) = 0;
+  virtual void exitSourceOrder(MySQLParser::SourceOrderContext *ctx) = 0;
+
   virtual void enterXmlRowsIdentifiedBy(MySQLParser::XmlRowsIdentifiedByContext *ctx) = 0;
   virtual void exitXmlRowsIdentifiedBy(MySQLParser::XmlRowsIdentifiedByContext *ctx) = 0;
 
@@ -446,6 +473,15 @@ public:
 
   virtual void enterFieldOrVariableList(MySQLParser::FieldOrVariableListContext *ctx) = 0;
   virtual void exitFieldOrVariableList(MySQLParser::FieldOrVariableListContext *ctx) = 0;
+
+  virtual void enterLoadAlgorithm(MySQLParser::LoadAlgorithmContext *ctx) = 0;
+  virtual void exitLoadAlgorithm(MySQLParser::LoadAlgorithmContext *ctx) = 0;
+
+  virtual void enterLoadParallel(MySQLParser::LoadParallelContext *ctx) = 0;
+  virtual void exitLoadParallel(MySQLParser::LoadParallelContext *ctx) = 0;
+
+  virtual void enterLoadMemory(MySQLParser::LoadMemoryContext *ctx) = 0;
+  virtual void exitLoadMemory(MySQLParser::LoadMemoryContext *ctx) = 0;
 
   virtual void enterReplaceStatement(MySQLParser::ReplaceStatementContext *ctx) = 0;
   virtual void exitReplaceStatement(MySQLParser::ReplaceStatementContext *ctx) = 0;
@@ -717,8 +753,14 @@ public:
   virtual void enterReplicationStatement(MySQLParser::ReplicationStatementContext *ctx) = 0;
   virtual void exitReplicationStatement(MySQLParser::ReplicationStatementContext *ctx) = 0;
 
+  virtual void enterPurgeOptions(MySQLParser::PurgeOptionsContext *ctx) = 0;
+  virtual void exitPurgeOptions(MySQLParser::PurgeOptionsContext *ctx) = 0;
+
   virtual void enterResetOption(MySQLParser::ResetOptionContext *ctx) = 0;
   virtual void exitResetOption(MySQLParser::ResetOptionContext *ctx) = 0;
+
+  virtual void enterMasterOrBinaryLogsAndGtids(MySQLParser::MasterOrBinaryLogsAndGtidsContext *ctx) = 0;
+  virtual void exitMasterOrBinaryLogsAndGtids(MySQLParser::MasterOrBinaryLogsAndGtidsContext *ctx) = 0;
 
   virtual void enterSourceResetOptions(MySQLParser::SourceResetOptionsContext *ctx) = 0;
   virtual void exitSourceResetOptions(MySQLParser::SourceResetOptionsContext *ctx) = 0;
@@ -993,9 +1035,6 @@ public:
   virtual void enterRevokeStatement(MySQLParser::RevokeStatementContext *ctx) = 0;
   virtual void exitRevokeStatement(MySQLParser::RevokeStatementContext *ctx) = 0;
 
-  virtual void enterOnTypeTo(MySQLParser::OnTypeToContext *ctx) = 0;
-  virtual void exitOnTypeTo(MySQLParser::OnTypeToContext *ctx) = 0;
-
   virtual void enterAclType(MySQLParser::AclTypeContext *ctx) = 0;
   virtual void exitAclType(MySQLParser::AclTypeContext *ctx) = 0;
 
@@ -1038,8 +1077,23 @@ public:
   virtual void enterRepairType(MySQLParser::RepairTypeContext *ctx) = 0;
   virtual void exitRepairType(MySQLParser::RepairTypeContext *ctx) = 0;
 
-  virtual void enterInstallUninstallStatement(MySQLParser::InstallUninstallStatementContext *ctx) = 0;
-  virtual void exitInstallUninstallStatement(MySQLParser::InstallUninstallStatementContext *ctx) = 0;
+  virtual void enterUninstallStatement(MySQLParser::UninstallStatementContext *ctx) = 0;
+  virtual void exitUninstallStatement(MySQLParser::UninstallStatementContext *ctx) = 0;
+
+  virtual void enterInstallStatement(MySQLParser::InstallStatementContext *ctx) = 0;
+  virtual void exitInstallStatement(MySQLParser::InstallStatementContext *ctx) = 0;
+
+  virtual void enterInstallOptionType(MySQLParser::InstallOptionTypeContext *ctx) = 0;
+  virtual void exitInstallOptionType(MySQLParser::InstallOptionTypeContext *ctx) = 0;
+
+  virtual void enterInstallSetRvalue(MySQLParser::InstallSetRvalueContext *ctx) = 0;
+  virtual void exitInstallSetRvalue(MySQLParser::InstallSetRvalueContext *ctx) = 0;
+
+  virtual void enterInstallSetValue(MySQLParser::InstallSetValueContext *ctx) = 0;
+  virtual void exitInstallSetValue(MySQLParser::InstallSetValueContext *ctx) = 0;
+
+  virtual void enterInstallSetValueList(MySQLParser::InstallSetValueListContext *ctx) = 0;
+  virtual void exitInstallSetValueList(MySQLParser::InstallSetValueListContext *ctx) = 0;
 
   virtual void enterSetStatement(MySQLParser::SetStatementContext *ctx) = 0;
   virtual void exitSetStatement(MySQLParser::SetStatementContext *ctx) = 0;
@@ -1092,6 +1146,9 @@ public:
   virtual void enterShowOpenTablesStatement(MySQLParser::ShowOpenTablesStatementContext *ctx) = 0;
   virtual void exitShowOpenTablesStatement(MySQLParser::ShowOpenTablesStatementContext *ctx) = 0;
 
+  virtual void enterShowParseTreeStatement(MySQLParser::ShowParseTreeStatementContext *ctx) = 0;
+  virtual void exitShowParseTreeStatement(MySQLParser::ShowParseTreeStatementContext *ctx) = 0;
+
   virtual void enterShowPluginsStatement(MySQLParser::ShowPluginsStatementContext *ctx) = 0;
   virtual void exitShowPluginsStatement(MySQLParser::ShowPluginsStatementContext *ctx) = 0;
 
@@ -1109,6 +1166,9 @@ public:
 
   virtual void enterShowBinaryLogsStatement(MySQLParser::ShowBinaryLogsStatementContext *ctx) = 0;
   virtual void exitShowBinaryLogsStatement(MySQLParser::ShowBinaryLogsStatementContext *ctx) = 0;
+
+  virtual void enterShowBinaryLogStatusStatement(MySQLParser::ShowBinaryLogStatusStatementContext *ctx) = 0;
+  virtual void exitShowBinaryLogStatusStatement(MySQLParser::ShowBinaryLogStatusStatementContext *ctx) = 0;
 
   virtual void enterShowReplicasStatement(MySQLParser::ShowReplicasStatementContext *ctx) = 0;
   virtual void exitShowReplicasStatement(MySQLParser::ShowReplicasStatementContext *ctx) = 0;
@@ -1311,8 +1371,14 @@ public:
   virtual void enterExplainStatement(MySQLParser::ExplainStatementContext *ctx) = 0;
   virtual void exitExplainStatement(MySQLParser::ExplainStatementContext *ctx) = 0;
 
+  virtual void enterExplainOptions(MySQLParser::ExplainOptionsContext *ctx) = 0;
+  virtual void exitExplainOptions(MySQLParser::ExplainOptionsContext *ctx) = 0;
+
   virtual void enterExplainableStatement(MySQLParser::ExplainableStatementContext *ctx) = 0;
   virtual void exitExplainableStatement(MySQLParser::ExplainableStatementContext *ctx) = 0;
+
+  virtual void enterExplainInto(MySQLParser::ExplainIntoContext *ctx) = 0;
+  virtual void exitExplainInto(MySQLParser::ExplainIntoContext *ctx) = 0;
 
   virtual void enterHelpCommand(MySQLParser::HelpCommandContext *ctx) = 0;
   virtual void exitHelpCommand(MySQLParser::HelpCommandContext *ctx) = 0;
@@ -1785,9 +1851,6 @@ public:
   virtual void enterKeyPartOrExpression(MySQLParser::KeyPartOrExpressionContext *ctx) = 0;
   virtual void exitKeyPartOrExpression(MySQLParser::KeyPartOrExpressionContext *ctx) = 0;
 
-  virtual void enterKeyListVariants(MySQLParser::KeyListVariantsContext *ctx) = 0;
-  virtual void exitKeyListVariants(MySQLParser::KeyListVariantsContext *ctx) = 0;
-
   virtual void enterIndexType(MySQLParser::IndexTypeContext *ctx) = 0;
   virtual void exitIndexType(MySQLParser::IndexTypeContext *ctx) = 0;
 
@@ -1854,6 +1917,12 @@ public:
   virtual void enterCreateTableOptions(MySQLParser::CreateTableOptionsContext *ctx) = 0;
   virtual void exitCreateTableOptions(MySQLParser::CreateTableOptionsContext *ctx) = 0;
 
+  virtual void enterCreateTableOptionsEtc(MySQLParser::CreateTableOptionsEtcContext *ctx) = 0;
+  virtual void exitCreateTableOptionsEtc(MySQLParser::CreateTableOptionsEtcContext *ctx) = 0;
+
+  virtual void enterCreatePartitioningEtc(MySQLParser::CreatePartitioningEtcContext *ctx) = 0;
+  virtual void exitCreatePartitioningEtc(MySQLParser::CreatePartitioningEtcContext *ctx) = 0;
+
   virtual void enterCreateTableOptionsSpaceSeparated(MySQLParser::CreateTableOptionsSpaceSeparatedContext *ctx) = 0;
   virtual void exitCreateTableOptionsSpaceSeparated(MySQLParser::CreateTableOptionsSpaceSeparatedContext *ctx) = 0;
 
@@ -1917,8 +1986,17 @@ public:
   virtual void enterIfExists(MySQLParser::IfExistsContext *ctx) = 0;
   virtual void exitIfExists(MySQLParser::IfExistsContext *ctx) = 0;
 
+  virtual void enterIfExistsIdentifier(MySQLParser::IfExistsIdentifierContext *ctx) = 0;
+  virtual void exitIfExistsIdentifier(MySQLParser::IfExistsIdentifierContext *ctx) = 0;
+
+  virtual void enterPersistedVariableIdentifier(MySQLParser::PersistedVariableIdentifierContext *ctx) = 0;
+  virtual void exitPersistedVariableIdentifier(MySQLParser::PersistedVariableIdentifierContext *ctx) = 0;
+
   virtual void enterIfNotExists(MySQLParser::IfNotExistsContext *ctx) = 0;
   virtual void exitIfNotExists(MySQLParser::IfNotExistsContext *ctx) = 0;
+
+  virtual void enterIgnoreUnknownUser(MySQLParser::IgnoreUnknownUserContext *ctx) = 0;
+  virtual void exitIgnoreUnknownUser(MySQLParser::IgnoreUnknownUserContext *ctx) = 0;
 
   virtual void enterProcedureParameter(MySQLParser::ProcedureParameterContext *ctx) = 0;
   virtual void exitProcedureParameter(MySQLParser::ProcedureParameterContext *ctx) = 0;

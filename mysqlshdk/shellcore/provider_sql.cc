@@ -31,6 +31,7 @@
 #include <set>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -736,14 +737,18 @@ class Provider_sql::Cache final {
   }
 
   void set_system_functions(const Version &version) {
-    static const auto k_system_functions_57 =
-        init_system_functions(base::MySQLVersion::MySQL57);
-    static const auto k_system_functions_80 =
-        init_system_functions(base::MySQLVersion::MySQL80);
+    static std::unordered_map<base::MySQLVersion, Instance::Objects>
+        s_system_functions;
 
-    m_instance.system_functions = version < Version(8, 0, 0)
-                                      ? &k_system_functions_57
-                                      : &k_system_functions_80;
+    const auto mysql_version =
+        base::MySQLSymbolInfo::numberToVersion(version.numeric());
+    auto &functions = s_system_functions[mysql_version];
+
+    if (functions.empty()) {
+      functions = init_system_functions(mysql_version);
+    }
+
+    m_instance.system_functions = &functions;
   }
 
   void fetch_udfs(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
