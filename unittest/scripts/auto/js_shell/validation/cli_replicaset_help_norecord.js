@@ -50,7 +50,7 @@ The following operations are available at 'rs':
       Create or upgrade a MySQL account to use with MySQL Router.
 
    status
-      Describe the status of the replicaset.
+      Describe the status of the ReplicaSet.
 
 //@<OUT> CLI replicaset add-instance --help
 NAME
@@ -392,13 +392,13 @@ OPTIONS
 
 //@<OUT> CLI replicaset status --help
 NAME
-      status - Describe the status of the replicaset.
+      status - Describe the status of the ReplicaSet.
 
 SYNTAX
       rs status [<options>]
 
 RETURNS
-      A JSON object describing the status of the members of the replicaset.
+      A JSON object describing the status of the ReplicaSet.
 
 OPTIONS
 --extended=<int>

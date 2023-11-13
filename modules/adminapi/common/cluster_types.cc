@@ -200,13 +200,13 @@ std::string to_display_string(Cluster_type type, Display_form form) {
     case Cluster_type::GROUP_REPLICATION:
       switch (form) {
         case Display_form::THING_FULL:
-          return "InnoDB cluster";
+          return "InnoDB Cluster";
 
         case Display_form::A_THING_FULL:
-          return "an InnoDB cluster";
+          return "an InnoDB Cluster";
 
         case Display_form::THINGS_FULL:
-          return "InnoDB clusters";
+          return "InnoDB Clusters";
 
         case Display_form::THING:
           return "cluster";

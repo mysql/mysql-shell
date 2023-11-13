@@ -5,8 +5,7 @@
 
 //@# configureReplicaSetInstance
 |This instance reports its own address as [::1]:<<<__mysql_sandbox_port2>>>|
-|The instance '[::1]:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB ReplicaSet.|
-|The instance '[::1]:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB ReplicaSet.|
+|The instance '[::1]:<<<__mysql_sandbox_port3>>>' is valid for InnoDB ReplicaSet usage.|
 
 //@# createReplicaSet
 |This instance reports its own address as [::1]:<<<__mysql_sandbox_port1>>>|

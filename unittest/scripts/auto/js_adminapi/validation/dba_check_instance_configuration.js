@@ -1,5 +1,5 @@
 //@<OUT> Check instance configuration async replication warning
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -13,14 +13,14 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 //@<OUT> Check instance configuration async replication warning with channels stopped
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -34,14 +34,14 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 //@<OUT> canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -53,14 +53,14 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '[::1]:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '[::1]:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 //@<OUT> canonical IPv4 addresses are supported WL#12758
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -72,14 +72,14 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 //@<OUT> canonical IPv4 addresses are supported (using IPv6 connection data) WL#12758
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -91,7 +91,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"

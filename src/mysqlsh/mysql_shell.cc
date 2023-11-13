@@ -1277,7 +1277,7 @@ void Mysql_shell::init_extra_globals() {
     } catch (const shcore::Exception &) {
       print_warning(
           "Option --cluster requires a session to a member of an InnoDB "
-          "cluster.");
+          "Cluster.");
       throw;
     }
   }

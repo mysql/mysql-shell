@@ -2,9 +2,8 @@
 |Account admin@% was successfully created.|
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.|
 |Account admin@% was successfully created.|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB ReplicaSet.|
 |Account admin@% was successfully created.|
-|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' is already ready to be used in an InnoDB ReplicaSet.|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB ReplicaSet usage.|
 
 //@<OUT> createReplicaSet
 A new replicaset with instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' will be created.

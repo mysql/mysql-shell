@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,33 +24,39 @@
 #ifndef MODULES_ADMINAPI_DBA_CONFIGURE_LOCAL_INSTANCE_H_
 #define MODULES_ADMINAPI_DBA_CONFIGURE_LOCAL_INSTANCE_H_
 
-#include <map>
-#include <memory>
-#include <string>
-
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "scripting/lang_base.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
-class Configure_local_instance final : public Configure_instance {
+class Configure_local_instance : private Configure_instance {
  public:
-  Configure_local_instance(
+  Configure_local_instance() = delete;
+
+  explicit Configure_local_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const Configure_instance_options &options, Cluster_type purpose);
 
-  void prepare() override;
-  shcore::Value execute() override;
+  Configure_local_instance(const Configure_local_instance &) = delete;
+  Configure_local_instance(Configure_local_instance &&) = delete;
+  Configure_local_instance &operator=(const Configure_local_instance &) =
+      delete;
+  Configure_local_instance &operator=(Configure_local_instance &&) = delete;
+
+  ~Configure_local_instance() = default;
+
+ protected:
+  void do_run();
+  static constexpr bool supports_undo() noexcept { return false; }
+
+ private:
+  void prepare();
 
  private:
   TargetType::Type m_instance_type;
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_DBA_CONFIGURE_LOCAL_INSTANCE_H_

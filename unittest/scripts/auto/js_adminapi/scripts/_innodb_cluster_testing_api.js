@@ -15,7 +15,7 @@ exports.test_dba_configure_instance = function(port) {
         testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n")
     }
     dba.configureInstance(common.sandbox_uri(port), {mycnfPath: cnfpath});
-    EXPECT_OUTPUT_CONTAINS(`The instance '${common.end_point(port)}' was configured to be used in an InnoDB cluster.`);
+    EXPECT_OUTPUT_CONTAINS(`The instance '${common.end_point(port)}' was configured to be used in an InnoDB Cluster.`);
     testutil.restartSandbox(port);
 }
 

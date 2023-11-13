@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,20 +23,13 @@
 
 #include "modules/adminapi/dba/configure_local_instance.h"
 
-#include <algorithm>
 #include <string>
-#include <vector>
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -116,14 +109,20 @@ void Configure_local_instance::prepare() {
 /*
  * Executes the API command.
  */
-shcore::Value Configure_local_instance::execute() {
+void Configure_local_instance::do_run() {
+  m_local_configure = true;
+  prepare();
+
   shcore::Value ret_val;
   auto console = mysqlsh::current_console();
 
   // Execute the configure local instance operation
   if (m_instance_type == TargetType::InnoDBCluster) {
-    if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
-      return {};
+    if (m_target_instance->get_version() >=
+        mysqlshdk::utils::Version(8, 0, 5)) {
+      return;
+    }
+
     console->print_info("Persisting the cluster settings...");
 
     // make sure super_read_only=1 is persisted to disk
@@ -139,9 +138,8 @@ shcore::Value Configure_local_instance::execute() {
     console->print_info(
         "The instance cluster settings were successfully persisted.");
 
-    return shcore::Value();
   } else {
-    return Configure_instance::execute();
+    return Configure_instance::do_run();
   }
 }
 }  // namespace dba

@@ -2,7 +2,7 @@
 ||
 
 #@<OUT> check_instance_configuration() - instance not valid for cluster usage {VER(<8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -51,7 +51,7 @@ NOTE: Please use the dba.configure_instance() command to repair these issues.
 }
 
 #@<OUT> check_instance_configuration() - instance not valid for cluster usage {VER(>=8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -131,7 +131,7 @@ NOTE: Please use the dba.configure_instance() command to repair these issues.
 ?{}
 
 #@<OUT> check_instance_configuration() - instance valid for cluster usage 2 {VER(<8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -144,14 +144,14 @@ Checking instance configuration...
 Configuration file <<<__sandbox2_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 #@<OUT> check_instance_configuration() - instance valid for cluster usage 2 {VER(>=8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -164,14 +164,14 @@ Checking instance configuration...
 Configuration file <<<__sandbox2_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 #@<OUT> check_instance_configuration() - instance valid for cluster usage 3 {VER(<8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -184,14 +184,14 @@ Checking instance configuration...
 Configuration file <<<__sandbox3_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 #@<OUT> check_instance_configuration() - instance valid for cluster usage 3 {VER(>=8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -204,14 +204,14 @@ Checking instance configuration...
 Configuration file <<<__sandbox3_cnf_path>>> will also be checked.
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 #@<OUT> configure_instance() - instance not valid for cluster usage {VER(>=8.0.11)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -238,7 +238,7 @@ Creating user myAdmin@%.
 Account myAdmin@% was successfully created.
 
 Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 ?{VER(>=8.0.21)}
@@ -255,12 +255,12 @@ Creating user myAdmin@%.
 Account myAdmin@% was successfully created.
 
 Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
 
 #@<OUT> configure_instance() - instance not valid for cluster usage {VER(<8.0.11)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -282,11 +282,11 @@ Creating user myAdmin@%.
 Account myAdmin@% was successfully created.
 
 Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
 #@<OUT> configure_instance() - create admin account 2
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -297,13 +297,14 @@ Assuming full account name 'myAdmin'@'%' for myAdmin
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
-
 Creating user myAdmin@%.
 Account myAdmin@% was successfully created.
 
+
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
+
 #@<OUT> configure_instance() - create admin account 3
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -314,13 +315,14 @@ Assuming full account name 'myAdmin'@'%' for myAdmin
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
-
 Creating user myAdmin@%.
 Account myAdmin@% was successfully created.
 
+
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid for InnoDB Cluster usage.
+
 #@<OUT> configure_instance() - check if configure_instance() was actually successful by double-checking with check_instance_configuration() {VER(>=8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -332,14 +334,14 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 #@<OUT> configure_instance() - check if configure_instance() was actually successful by double-checking with check_instance_configuration() {VER(<8.0.11)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -351,7 +353,7 @@ No incompatible tables detected
 Checking instance configuration...
 Instance configuration is compatible with InnoDB cluster
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
@@ -359,7 +361,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in
 
 
 #@<OUT> configure_instance() - instance already valid for cluster usage
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -369,8 +371,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 #@ configure_instance() 2 - instance already valid for cluster usage
 ||

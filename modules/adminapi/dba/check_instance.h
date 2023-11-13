@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,30 +24,30 @@
 #ifndef MODULES_ADMINAPI_DBA_CHECK_INSTANCE_H_
 #define MODULES_ADMINAPI_DBA_CHECK_INSTANCE_H_
 
-#include <memory>
-#include <optional>
-#include <string>
-
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/provisioning_interface.h"
-#include "modules/adminapi/dba/configure_instance.h"
-#include "modules/command_interface.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/config/config.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
-class Check_instance : public Command_interface {
+class Check_instance {
  public:
-  Check_instance(const mysqlshdk::db::Connection_options &instance_cnx_opts,
-                 const std::string &verify_mycnf_path, bool silent = false,
-                 bool skip_check_tables_pk = false);
-  ~Check_instance();
+  Check_instance() = delete;
 
-  void prepare() override;
-  shcore::Value execute() override;
-  void rollback() override;
-  void finish() override;
+  explicit Check_instance(
+      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      const std::string &verify_mycnf_path, bool silent = false,
+      bool skip_check_tables_pk = false);
+
+  Check_instance(const Check_instance &) = delete;
+  Check_instance(Check_instance &&) = delete;
+  Check_instance &operator=(const Check_instance &) = delete;
+  Check_instance &operator=(Check_instance &&) = delete;
+
+  ~Check_instance() = default;
+
+ protected:
+  shcore::Value do_run();
+  static constexpr bool supports_undo() noexcept { return false; }
 
  private:
   void check_instance_address();
@@ -79,7 +79,6 @@ class Check_instance : public Command_interface {
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_DBA_CHECK_INSTANCE_H_

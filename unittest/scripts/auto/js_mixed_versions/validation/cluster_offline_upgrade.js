@@ -1,5 +1,5 @@
 //@ configureLocalInstance
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.|
 
 //@ status
 |{|

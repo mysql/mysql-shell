@@ -47,7 +47,7 @@ dba.checkInstanceConfiguration(__sandbox_uri1);
 //@<> BUG#29765093: configure instance. {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 
-EXPECT_OUTPUT_CONTAINS(`Configuring local MySQL instance listening at port ${__mysql_sandbox_port1} for use in an InnoDB cluster...`);
+EXPECT_OUTPUT_CONTAINS(`Configuring local MySQL instance listening at port ${__mysql_sandbox_port1} for use in an InnoDB Cluster...`);
 EXPECT_OUTPUT_CONTAINS(`This instance reports its own address as ${__endpoint1}`);
 
 if (__version_num >= 80023) {
@@ -63,7 +63,7 @@ EXPECT_OUTPUT_CONTAINS(`NOTE: Some configuration options need to be fixed:
 +---------------+---------------+----------------+----------------------------+`);
 
 EXPECT_OUTPUT_CONTAINS(`Configuring instance...`);
-EXPECT_OUTPUT_CONTAINS(`The instance '${__endpoint1}' was configured to be used in an InnoDB cluster.`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${__endpoint1}' was configured to be used in an InnoDB Cluster.`);
 
 //@<> BUG#29765093: configure instance again. {VER(>=8.0.11)}
 dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
@@ -199,7 +199,7 @@ EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <present>     | <no
 
 //@<> check if dba.configureInstance is successful BUG#31964706 {VER(< 8.0.3)}
 EXPECT_NO_THROWS(function () { dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf_path}) });
-EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port1 + "' was configured to be used in an InnoDB cluster.");
+EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port1 + "' was configured to be used in an InnoDB Cluster.");
 
 testutil.rmfile(mycnf_path_out);
 shell.options.useWizards=1;
@@ -254,7 +254,7 @@ EXPECT_NO_THROWS(function () { dba.configureInstance(__sandbox_uri1, {mycnfPath:
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
 EXPECT_OUTPUT_CONTAINS("| log_bin             | OFF           | ON             | Restart the server |");
-EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port1 + "' was configured to be used in an InnoDB cluster.");
+EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port1 + "' was configured to be used in an InnoDB Cluster.");
 
 shell.options.useWizards=1;
 

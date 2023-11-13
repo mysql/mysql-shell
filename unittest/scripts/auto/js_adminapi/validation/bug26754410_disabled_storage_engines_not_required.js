@@ -1,12 +1,12 @@
 //@<OUT> checkInstanceConfiguration with disabled_storage_engines no error.
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"
 }
 
 //@<OUT> configureInstance disabled_storage_engines no error.
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -16,7 +16,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 //@ Remove disabled_storage_engines option from configuration and restart.
 ||
@@ -25,7 +25,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in
 ||
 
 //@<OUT> configureInstance still no issues after restart.
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -35,4 +35,4 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.

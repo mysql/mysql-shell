@@ -72,7 +72,7 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 ||
 |Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.|
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 ||Instance provisioning required (MYSQLSH 51153)
 
 //@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812) {VER(>=8.0.17)}
@@ -88,5 +88,5 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 |The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.|
 ||
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 ||Cluster.rejoinInstance: Instance provisioning required (MYSQLSH 51153)

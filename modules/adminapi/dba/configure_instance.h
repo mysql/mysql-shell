@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,39 +24,37 @@
 #ifndef MODULES_ADMINAPI_DBA_CONFIGURE_INSTANCE_H_
 #define MODULES_ADMINAPI_DBA_CONFIGURE_INSTANCE_H_
 
-#include <map>
-#include <memory>
-#include <optional>
-#include <string>
-#include <vector>
-
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/api_options.h"
-#include "modules/command_interface.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
-#include "scripting/lang_base.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
-class Configure_instance : public Command_interface {
+class Configure_instance {
  public:
-  Configure_instance(
+  Configure_instance() = delete;
+
+  explicit Configure_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const Configure_instance_options &options, TargetType::Type instance_type,
       Cluster_type purpose);
 
-  virtual ~Configure_instance() = default;
+  Configure_instance(const Configure_instance &) = delete;
+  Configure_instance(Configure_instance &&) = delete;
+  Configure_instance &operator=(const Configure_instance &) = delete;
+  Configure_instance &operator=(Configure_instance &&) = delete;
 
-  void prepare() override;
-  shcore::Value execute() override;
+  ~Configure_instance() = default;
 
  protected:
+  void do_run();
+  static constexpr bool supports_undo() noexcept { return false; }
+
+ protected:
+  void prepare();
+
   void ensure_configuration_change_possible(bool needs_mycnf_change);
 
   /**
@@ -119,12 +117,13 @@ class Configure_instance : public Command_interface {
   // List of invalid (incompatible) configurations to update.
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
+  bool m_local_configure = false;
+
  private:
   const Cluster_type m_purpose;
   const TargetType::Type m_instance_type;
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_DBA_CONFIGURE_INSTANCE_H_

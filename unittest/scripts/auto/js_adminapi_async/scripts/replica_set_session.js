@@ -211,7 +211,7 @@ expect_rs_variable();
 //@<> WL13236-TSFR2_3
 function expect_error_redirect_primary_missing_metadata() {
   EXPECT_STDOUT_CONTAINS('While handling --redirect-primary:');
-  EXPECT_STDOUT_CONTAINS('Metadata schema of an InnoDB cluster or ReplicaSet not found');
+  EXPECT_STDOUT_CONTAINS('Metadata schema of an InnoDB Cluster or ReplicaSet not found');
 }
 
 mysqlsh([__hostname_ip_uri3, '--redirect-primary', '--execute', 'println(session)']);
@@ -240,7 +240,7 @@ expect_error_redirect_primary_missing_metadata();
 
 //@<> WL13236-TSFR2_4
 function expect_error_redirect_primary_no_session() {
-  EXPECT_STDOUT_CONTAINS('ERROR: The --redirect-primary option requires a session to a member of an InnoDB cluster or ReplicaSet.');
+  EXPECT_STDOUT_CONTAINS('ERROR: The --redirect-primary option requires a session to a member of an InnoDB Cluster or ReplicaSet.');
 }
 
 mysqlsh(['--redirect-primary', '--execute', 'println(session)']);
@@ -316,7 +316,7 @@ expect_rs_variable();
 //@<> WL13236-TSFR3_3
 function expect_error_redirect_secondary_missing_metadata() {
   EXPECT_STDOUT_CONTAINS('While handling --redirect-secondary:');
-  EXPECT_STDOUT_CONTAINS('Metadata schema of an InnoDB cluster or ReplicaSet not found');
+  EXPECT_STDOUT_CONTAINS('Metadata schema of an InnoDB Cluster or ReplicaSet not found');
 }
 
 mysqlsh([__hostname_ip_uri3, '--redirect-secondary', '--execute', 'println(session)']);
@@ -345,7 +345,7 @@ expect_error_redirect_secondary_missing_metadata();
 
 //@<> WL13236-TSFR3_4
 function expect_error_redirect_secondary_no_session() {
-  EXPECT_STDOUT_CONTAINS('ERROR: The --redirect-secondary option requires a session to a member of an InnoDB cluster or ReplicaSet.');
+  EXPECT_STDOUT_CONTAINS('ERROR: The --redirect-secondary option requires a session to a member of an InnoDB Cluster or ReplicaSet.');
 }
 
 mysqlsh(['--redirect-secondary', '--execute', 'println(session)']);
@@ -361,7 +361,7 @@ expect_error_redirect_secondary_no_session();
 ////////////////////////////////////////////////////////////////////////////////
 //@<> use --cluster with a replicaset member, expect error
 function expect_error_cluster_with_replicaset() {
-  EXPECT_STDOUT_CONTAINS('Option --cluster requires a session to a member of an InnoDB cluster.');
+  EXPECT_STDOUT_CONTAINS('Option --cluster requires a session to a member of an InnoDB Cluster.');
   EXPECT_STDOUT_CONTAINS('This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet');
 }
 

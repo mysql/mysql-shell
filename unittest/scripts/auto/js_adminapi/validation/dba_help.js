@@ -68,7 +68,7 @@ FUNCTIONS
             ReplicaSet.
 
       createCluster(name[, options])
-            Creates a MySQL InnoDB cluster.
+            Creates a MySQL InnoDB Cluster.
 
       createReplicaSet(name[, options])
             Creates a MySQL InnoDB ReplicaSet.
@@ -443,30 +443,30 @@ DESCRIPTION
 
 //@<OUT> Create Cluster
 NAME
-      createCluster - Creates a MySQL InnoDB cluster.
+      createCluster - Creates a MySQL InnoDB Cluster.
 
 SYNTAX
       dba.createCluster(name[, options])
 
 WHERE
-      name: An identifier for the cluster to be created.
+      name: An identifier for the Cluster to be created.
       options: Dictionary with additional parameters described below.
 
 RETURNS
-      The created cluster object.
+      The created Cluster object.
 
 DESCRIPTION
-      Creates a MySQL InnoDB cluster taking as seed instance the server the
+      Creates a MySQL InnoDB Cluster taking as seed instance the server the
       shell is currently connected to.
 
       The options dictionary can contain the following values:
 
       - disableClone: boolean value used to disable the clone usage on the
-        cluster.
+        Cluster.
       - gtidSetIsComplete: boolean value which indicates whether the GTID set
         of the seed instance corresponds to all transactions executed. Default
         is false.
-      - multiPrimary: boolean value used to define an InnoDB cluster with
+      - multiPrimary: boolean value used to define an InnoDB Cluster with
         multiple writable instances.
       - force: boolean, confirms that the multiPrimary option must be applied
         and/or the operation must proceed even if unmanaged replication
@@ -475,7 +475,7 @@ DESCRIPTION
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode. Deprecated.
-      - adoptFromGR: boolean value used to create the InnoDB cluster based on
+      - adoptFromGR: boolean value used to create the InnoDB Cluster based on
         existing replication group.
       - memberSslMode: SSL mode for communication channels opened by Group
         Replication from one server to another.
@@ -497,7 +497,7 @@ DESCRIPTION
         Replication peer addresses to be used instead of the automatically
         generated one. Deprecated and ignored.
       - manualStartOnBoot: boolean (default false). If false, Group Replication
-        in cluster instances will automatically start and rejoin when MySQL
+        in Cluster instances will automatically start and rejoin when MySQL
         starts, otherwise it must be started manually.
       - replicationAllowedHost: string value to use as the host name part of
         internal replication accounts (i.e.
@@ -519,7 +519,7 @@ DESCRIPTION
         instance will attempt to rejoin the cluster after being expelled.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled. Deprecated.
-      - multiMaster: boolean value used to define an InnoDB cluster with
+      - multiMaster: boolean value used to define an InnoDB Cluster with
         multiple writable instances. Deprecated.
       - communicationStack: The Group Replication communication stack to be
         used in the Cluster: XCom (legacy) or MySQL.
@@ -528,19 +528,24 @@ DESCRIPTION
       - paxosSingleLeader: boolean value used to enable/disable the Group
         Communication engine to operate with a single consensus leader.
 
-      An InnoDB cluster may be setup in two ways:
+      An InnoDB Cluster may be setup in two ways:
 
-      - Single Primary: One member of the cluster allows write operations while
+      - Single Primary: One member of the Cluster allows write operations while
         the rest are read-only secondaries.
-      - Multi Primary: All the members in the cluster allow both read and write
+      - Multi Primary: All the members in the Cluster allow both read and write
         operations.
 
       Note that Multi-Primary mode has limitations about what can be safely
       executed. Make sure to read the MySQL documentation for Group Replication
       and be aware of what is and is not safely executable in such setups.
 
-      By default this function creates a Single Primary cluster. Use the
-      multiPrimary option set to true if a Multi Primary cluster is required.
+      By default this function creates a Single Primary Cluster. Use the
+      multiPrimary option set to true if a Multi Primary Cluster is required.
+
+      The Cluster's name must be non-empty and no greater than 63 characters
+      long. It can only start with an alphanumeric character or with _
+      (underscore), and can only contain alphanumeric, _ ( underscore), .
+      (period), or - (hyphen) characters.
 
       Options
 
@@ -552,21 +557,21 @@ DESCRIPTION
       disableClone should be set to true if built-in clone support should be
       completely disabled, even in instances where that is supported. Built-in
       clone support is available starting with MySQL 8.0.17 and allows
-      automatically provisioning new cluster members by copying state from an
-      existing cluster member. Note that clone will completely delete all data
-      in the instance being added to the cluster.
+      automatically provisioning new Cluster members by copying state from an
+      existing Cluster member. Note that clone will completely delete all data
+      in the instance being added to the Cluster.
 
       gtidSetIsComplete is used to indicate that GTIDs have been always enabled
-      at the cluster seed instance and that GTID_EXECUTED contains all
+      at the Cluster seed instance and that GTID_EXECUTED contains all
       transactions ever executed. It must be left as false if data was inserted
       or modified while GTIDs were disabled or if RESET MASTER was executed.
-      This flag affects how cluster.addInstance() decides which recovery
+      This flag affects how Cluster.addInstance() decides which recovery
       methods are safe to use. Distributed recovery based on replaying the
       transaction history is only assumed to be safe if the transaction history
-      is known to be complete, otherwise cluster members could end up with
+      is known to be complete, otherwise Cluster members could end up with
       incomplete data sets.
 
-      adoptFromGR allows creating an InnoDB cluster from an existing unmanaged
+      adoptFromGR allows creating an InnoDB Cluster from an existing unmanaged
       Group Replication setup, enabling use of MySQL Router and the shell
       AdminAPI for managing it.
 
@@ -806,11 +811,11 @@ SYNTAX
       dba.createReplicaSet(name[, options])
 
 WHERE
-      name: An identifier for the replicaset to be created.
+      name: An identifier for the ReplicaSet to be created.
       options: Dictionary with additional parameters described below.
 
 RETURNS
-      The created replicaset object.
+      The created ReplicaSet object.
 
 DESCRIPTION
       This function will create a managed ReplicaSet using MySQL asynchronous
@@ -823,15 +828,15 @@ DESCRIPTION
       metadata schema will be initialized there.
 
       New replica instances can be added through the addInstance() function of
-      the returned replicaset object. Status of the instances and their
+      the returned ReplicaSet object. Status of the instances and their
       replication channels can be inspected with status().
 
       InnoDB ReplicaSets
 
-      A replicaset allows managing a GTID-based MySQL replication setup, in a
+      A ReplicaSet allows managing a GTID-based MySQL replication setup, in a
       single PRIMARY/multiple SECONDARY topology.
 
-      A replicaset has several limitations compared to a InnoDB cluster and
+      A ReplicaSet has several limitations compared to a InnoDB cluster and
       thus, it is recommended that InnoDB clusters be preferred unless not
       possible. Generally, a ReplicaSet on its own does not provide High
       Availability. Among its limitations are:
@@ -850,8 +855,13 @@ DESCRIPTION
         Replication
       - GTIDs required
       - Replication filters are not allowed
-      - All instances in the replicaset must be managed
+      - All instances in the ReplicaSet must be managed
       - Unmanaged replication channels are not allowed in any instance
+
+      The ReplicaSet's name must be non-empty and no greater than 63 characters
+      long. It can only start with an alphanumeric character or with _
+      (underscore), and can only contain alphanumeric, _ ( underscore), .
+      (period), or - ( hyphen) characters.
 
       Adopting an Existing Topology
 
@@ -859,9 +869,9 @@ DESCRIPTION
       the adoptFromAR option. The topology will be automatically scanned and
       validated, starting from the instance the shell is connected to, and all
       instances that are part of the topology will be automatically added to
-      the replicaset.
+      the ReplicaSet.
 
-      The only changes made by this function to an adopted replicaset are the
+      The only changes made by this function to an adopted ReplicaSet are the
       creation of the metadata schema. Existing replication channels will not
       be changed during adoption, although they will be changed during PRIMARY
       switch operations.
@@ -877,7 +887,7 @@ DESCRIPTION
 
       The options dictionary can contain the following values:
 
-      - adoptFromAR: boolean value used to create the replicaset based on an
+      - adoptFromAR: boolean value used to create the ReplicaSet based on an
         existing asynchronous replication setup.
       - instanceLabel: string a name to identify the target instance. Defaults
         to hostname:port
@@ -902,7 +912,7 @@ DESCRIPTION
       - certSubject: instance's certificate subject to use when
         'memberAuthType' contains "CERT_SUBJECT".
       - replicationSslMode: SSL mode to use to configure the asynchronous
-        replication channels of the replicaset.
+        replication channels of the ReplicaSet.
 
       The replicationSslMode option supports the following values:
 
