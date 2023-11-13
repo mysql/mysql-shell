@@ -30,12 +30,10 @@
 ||
 
 //@# Dba_preconditions_standalone, configureLocalInstance allowed
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.|
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.|
 
 //@# Dba_preconditions_standalone, configureInstance allowed
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.|
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.|
 
 //@# Dba_preconditions_unmanaged_gr, get_cluster_fails
 // getCluster is not allowed on standalone instances

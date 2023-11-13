@@ -35,7 +35,7 @@ FUNCTIONS
             InnoDB Cluster.
 
       describe()
-            Describe the structure of the cluster.
+            Describe the structure of the Cluster.
 
       disconnect()
             Disconnects all internal sessions used by the cluster object.
@@ -106,7 +106,7 @@ FUNCTIONS
             Create or upgrade a MySQL account to use with MySQL Router.
 
       status([options])
-            Describe the status of the cluster.
+            Describe the status of the Cluster.
 
       switchToMultiPrimaryMode()
             Switches the cluster to multi-primary mode.
@@ -179,6 +179,10 @@ DESCRIPTION
         instance will attempt to rejoin the cluster after being expelled.
       - certSubject: instance's certificate subject to use when
         'memberAuthType' contains "CERT_SUBJECT".
+
+      The label must be non-empty and no greater than 256 characters long. It
+      must be unique within the Cluster and can only contain alphanumeric, _
+      (underscore), . (period), - (hyphen), or : (colon) characters.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -350,28 +354,28 @@ DESCRIPTION
 
 //@<OUT> Describe
 NAME
-      describe - Describe the structure of the cluster.
+      describe - Describe the structure of the Cluster.
 
 SYNTAX
       <Cluster>.describe()
 
 RETURNS
-      A JSON object describing the structure of the cluster.
+      A JSON object describing the structure of the Cluster.
 
 DESCRIPTION
-      This function describes the structure of the cluster including all its
-      information, ReplicaSets and Instances.
+      This function describes the structure of the Cluster including all its
+      information and members.
 
       The returned JSON object contains the following attributes:
 
-      - clusterName: the cluster name
+      - clusterName: the name of the Cluster
       - defaultReplicaSet: the default ReplicaSet object
 
       The defaultReplicaSet JSON object contains the following attributes:
 
-      - name: the ReplicaSet name
+      - name: the ReplicaSet name (default)
       - topology: a list of dictionaries describing each instance belonging to
-        the ReplicaSet.
+        the Cluster.
       - topologyMode: the InnoDB Cluster topology mode.
 
       Each instance dictionary contains the following attributes:
@@ -379,7 +383,6 @@ DESCRIPTION
       - address: the instance address in the form of host:port
       - label: the instance name identifier
       - role: the instance role
-      - version: the instance version (only available for instances >= 8.0.11)
 
 //@<OUT> Disconnect
 NAME
@@ -844,6 +847,10 @@ DESCRIPTION
             useful to shut down the instance and perform maintenance on it
             without disrupting incoming application traffic.
 
+      The label must be non-empty and no greater than 256 characters long. It
+      must be unique within the Cluster and can only contain alphanumeric, _
+      (underscore), . (period), - (hyphen), or : (colon) characters.
+
       The replicationSources is a comma separated list of instances (host:port)
       to act as sources of the replication channel, i.e. to provide source
       failover of the channel. The first member of the list is configured with
@@ -924,6 +931,11 @@ DESCRIPTION
         network namespace to use for TCP/IP connections to the replication
         source server or, if the MySQL communication stack is in use, for Group
         Replication’s group communication connections.
+
+      The clusterName must be non-empty and no greater than 63 characters long.
+      It can only start with an alphanumeric character or with _ (underscore),
+      and can only contain alphanumeric, _ ( underscore), . (period), or -
+      (hyphen) characters.
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.
@@ -1265,7 +1277,7 @@ DESCRIPTION
 
 //@<OUT> Status
 NAME
-      status - Describe the status of the cluster.
+      status - Describe the status of the Cluster.
 
 SYNTAX
       <Cluster>.status([options])
@@ -1274,16 +1286,16 @@ WHERE
       options: Dictionary with options.
 
 RETURNS
-      A JSON object describing the status of the cluster.
+      A JSON object describing the status of the Cluster.
 
 DESCRIPTION
-      This function describes the status of the cluster including its
-      ReplicaSets and Instances. The following options may be given to control
-      the amount of information gathered and returned.
+      This function describes the status of the Cluster and its members. The
+      following options may be given to control the amount of information
+      gathered and returned.
 
       - extended: verbosity level of the command output.
-      - queryMembers: if true, connect to each Instance of the ReplicaSets to
-        query for more detailed stats about the replication machinery.
+      - queryMembers: if true, connect to each Instance of the Cluster to query
+        for more detailed stats about the replication machinery.
 
       ATTENTION: The queryMembers option will be removed in a future release.
                  Please use the extended option instead.
@@ -1293,7 +1305,7 @@ DESCRIPTION
       - 0: disables the command verbosity (default);
       - 1: includes information about the Metadata Version, Group Protocol
         Version, Group name, cluster member UUIDs, cluster member roles and
-        states as reported byGroup Replication and the list of fenced system
+        states as reported by Group Replication and the list of fenced system
         variables;
       - 2: includes information about transactions processed by connection and
         applier;
@@ -1474,6 +1486,11 @@ DESCRIPTION
       - The target cluster's Metadata schema version is 2.1.0 or newer.
       - Unmanaged replication channels are not allowed.
 
+      The domainName must be non-empty and no greater than 63 characters long.
+      It can only start with an alphanumeric character or with _ (underscore),
+      and can only contain alphanumeric, _ ( underscore), . (period), or -
+      (hyphen) characters.
+
       Options
 
       The options dictionary can contain the following values:
@@ -1644,6 +1661,10 @@ DESCRIPTION
         timeout).
       - cloneDonor: The Cluster member to be used as donor when performing
         clone-based recovery.
+
+      The label must be non-empty and no greater than 256 characters long. It
+      must be unique within the Cluster and can only contain alphanumeric, _
+      (underscore), . (period), - (hyphen), or : (colon) characters.
 
       The replicationSources is a comma separated list of instances (host:port)
       to act as sources of the replication channel, i.e. to provide source

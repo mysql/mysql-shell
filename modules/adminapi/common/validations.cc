@@ -29,6 +29,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -49,11 +50,11 @@ void ensure_gr_instance_configuration_valid(
         "Validating instance configuration at " +
         target_instance->get_connection_options().uri_endpoint() + "...");
 
-    Check_instance check(target_instance->get_connection_options(), "", true,
-                         skip_check_tables_pk);
-    check.prepare();
-    result = check.execute();
-    check.finish();
+    result =
+        Topology_executor<Check_instance>{
+            target_instance->get_connection_options(), "", true,
+            skip_check_tables_pk}
+            .run();
 
     if (!result || result.as_map()->at("status").get_string() == "ok") {
       console->print_info("Instance configuration is suitable.");

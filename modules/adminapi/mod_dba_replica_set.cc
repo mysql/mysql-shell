@@ -560,15 +560,15 @@ shcore::Value ReplicaSet::describe() {
 
 REGISTER_HELP_FUNCTION(status, ReplicaSet);
 REGISTER_HELP_FUNCTION_TEXT(REPLICASET_STATUS, R"*(
-Describe the status of the replicaset.
+Describe the status of the ReplicaSet.
 
 @param options Optional dictionary with options.
 
-@returns A JSON object describing the status of the members of the replicaset.
+@returns A JSON object describing the status of the ReplicaSet.
 
-This function will connect to each member of the replicaset and query their
-state, producing a status report of the replicaset as a whole, as well
-as of their individual members.
+This function will connect to each member of the ReplicaSet and query their
+state, producing a status report of the ReplicaSet as a whole, as well
+as of its individual members.
 
 <b>Options</b>
 
@@ -582,9 +582,8 @@ Option 'extended' may have the following values:
 of the instance and replication is included, in addition to non-default
 or unexpected replication settings and status.
 @li 1 - includes Metadata Version, server UUID and the raw information used
-    to derive the status of the instance, size of the applier queue,
-    value of system variables that protect against unexpected writes
-    etc.
+to derive the status of the instance, size of the applier queue, value of
+system variables that protect against unexpected writes etc.
 @li 2 - includes important replication related configuration settings, such as
 SSL, worker threads, replication delay and heartbeat delay.
 )*");

@@ -17,7 +17,7 @@ The following operations are available at 'dba':
       Validates and configures an instance for use in an InnoDB ReplicaSet.
 
    create-cluster
-      Creates a MySQL InnoDB cluster.
+      Creates a MySQL InnoDB Cluster.
 
    create-replica-set
       Creates a MySQL InnoDB ReplicaSet.
@@ -205,16 +205,16 @@ OPTIONS
 
 //@<OUT> CLI dba create-cluster --help
 NAME
-      create-cluster - Creates a MySQL InnoDB cluster.
+      create-cluster - Creates a MySQL InnoDB Cluster.
 
 SYNTAX
       dba create-cluster <name> [<options>]
 
 WHERE
-      name: An identifier for the cluster to be created.
+      name: An identifier for the Cluster to be created.
 
 RETURNS
-      The created cluster object.
+      The created Cluster object.
 
 OPTIONS
 --memberSslMode=<str>
@@ -250,7 +250,7 @@ OPTIONS
             instead of the automatically generated one.
 
 --manualStartOnBoot=<bool>
-            Boolean (default false). If false, Group Replication in cluster
+            Boolean (default false). If false, Group Replication in Cluster
             instances will automatically start and rejoin when MySQL starts,
             otherwise it must be started manually.
 
@@ -276,7 +276,7 @@ OPTIONS
             to operate with a single consensus leader.
 
 --disableClone=<bool>
-            Boolean value used to disable the clone usage on the cluster.
+            Boolean value used to disable the clone usage on the Cluster.
 
 --gtidSetIsComplete=<bool>
             Boolean value which indicates whether the GTID set of the seed
@@ -296,11 +296,11 @@ OPTIONS
             contains "CERT_SUBJECT".
 
 --multiPrimary=<bool>
-            Boolean value used to define an InnoDB cluster with multiple
+            Boolean value used to define an InnoDB Cluster with multiple
             writable instances.
 
 --adoptFromGR=<bool>
-            Boolean value used to create the InnoDB cluster based on existing
+            Boolean value used to create the InnoDB Cluster based on existing
             replication group.
 
 --clearReadOnly=<bool>
@@ -326,14 +326,14 @@ SYNTAX
       dba create-replica-set <name> [<options>]
 
 WHERE
-      name: An identifier for the replicaset to be created.
+      name: An identifier for the ReplicaSet to be created.
 
 RETURNS
-      The created replicaset object.
+      The created ReplicaSet object.
 
 OPTIONS
 --adoptFromAR=<bool>
-            Boolean value used to create the replicaset based on an existing
+            Boolean value used to create the ReplicaSet based on an existing
             asynchronous replication setup.
 
 --dryRun=<bool>
@@ -347,7 +347,7 @@ OPTIONS
 
 --replicationSslMode=<str>
             SSL mode to use to configure the asynchronous replication channels
-            of the replicaset.
+            of the ReplicaSet.
 
 --gtidSetIsComplete=<bool>
             Boolean value which indicates whether the GTID set of the seed
@@ -359,6 +359,18 @@ OPTIONS
             accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default is %. It
             must be possible for any member of the ReplicaSet to connect to any
             other member using accounts with this hostname value.
+
+--memberAuthType=<str>
+            Controls the authentication type to use for the internal
+            replication accounts.
+
+--certIssuer=<str>
+            Common certificate issuer to use when 'memberAuthType' contains
+            either "CERT_ISSUER" or "CERT_SUBJECT".
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT".
 
 //@<OUT> CLI dba delete-sandbox-instance --help
 NAME

@@ -39,13 +39,13 @@
 ||Access denied for user 'sample'@'localhost' (using password: NO) (MySQL Error 1045)
 
 //@ Dba: checkInstanceConfiguration ok1
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.|
 
 //@ Dba: checkInstanceConfiguration ok2
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.|
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -119,7 +119,7 @@ NOTE: Some configuration options need to be fixed:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
-Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -165,7 +165,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 |Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.|
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -234,10 +234,10 @@ NOTE: Some configuration options need to be fixed:
 +----------------------------------------+---------------+----------------+------------------------+
 
 Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB Cluster.
 
 //@<OUT> Dba: configureLocalInstance updating config file {VER(<8.0.3)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -262,14 +262,14 @@ NOTE: Some configuration options need to be fixed:
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB Cluster.
 
 
 //@ Dba: configureLocalInstance report fixed 1
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.|
 
 //@ Dba: configureLocalInstance report fixed 2
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.|
 
 //@ Dba: Create user without all necessary privileges
 |Number of accounts: 1|
@@ -279,14 +279,14 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be u
 ||Unable to get roles information. (RuntimeError)
 
 //@# Dba: configureLocalInstance not enough privileges {VER(<8.0.0)}
-|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |For more information, see the online documentation.|
-||The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 |Number of accounts: 0|
@@ -298,7 +298,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be u
 |Number of 'mydba'@'localhost' accounts: 1|
 
 //@<OUT> Dba: configureLocalInstance create different admin user
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -309,19 +309,18 @@ Assuming full account name 'dba_test'@'%' for dba_test
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
-
 Creating user dba_test@%.
 Account dba_test@% was successfully created.
 
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
+
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 ?{VER(>=8.0.23)}
 Successfully enabled parallel appliers.
 ?{}
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
 
@@ -333,63 +332,63 @@ User 'dba_test'@'%' already exists and will not be created.
 applierWorkerThreads will be set to the default value of 4.
 
 ?{}
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
 ||
 
 //@# Dba: configureLocalInstance create existing invalid admin user
 |WARNING: User 'dba_test'@'%' already exists and will not be created. However, it is missing privileges.|
-|The account 'dba_test'@'%' is missing privileges required to manage an InnoDB cluster:|
+|The account 'dba_test'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT REPLICATION SLAVE ON *.* TO 'dba_test'@'%' WITH GRANT OPTION;|
-||The account 'mydba'@'localhost' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'mydba'@'localhost' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 |Number of 'mydba'@'localhost' accounts: 0|
 
 //@ configureLocalInstance() should fail if user does not have global GRANT OPTION {VER(>=8.0.18)}
-|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...|
-|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT CLONE_ADMIN, CONNECTION_ADMIN, CREATE USER, EXECUTE, FILE, GROUP_REPLICATION_ADMIN, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, REPLICATION_SLAVE_ADMIN, ROLE_ADMIN, SELECT, SHUTDOWN, SYSTEM_VARIABLES_ADMIN ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |For more information, see the online documentation.|
-||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@ configureLocalInstance() should fail if user does not have global GRANT OPTION {VER(>=5.7.0) && VER(<8.0.0)}
-|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...|
-|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |For more information, see the online documentation.|
-||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@ createCluster() should fail if user does not have global GRANT OPTION {VER(>=8.0.18)}
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
-|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT CLONE_ADMIN, CONNECTION_ADMIN, CREATE USER, EXECUTE, FILE, GROUP_REPLICATION_ADMIN, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, REPLICATION_SLAVE_ADMIN, ROLE_ADMIN, SELECT, SHUTDOWN, SYSTEM_VARIABLES_ADMIN ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |For more information, see the online documentation.|
-||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@ createCluster() should fail if user does not have global GRANT OPTION {VER(>=5.7.0) && VER(<8.0.0)}
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
-|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SELECT, SHUTDOWN, SUPER ON *.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'no_global_grant'@'%' WITH GRANT OPTION;|
 |For more information, see the online documentation.|
-||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'no_global_grant'@'%' is missing privileges required to manage an InnoDB Cluster. (RuntimeError)
 
 //@# Dba: getCluster errors
 ||Argument #1 is expected to be a string

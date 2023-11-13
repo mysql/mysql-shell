@@ -18,7 +18,7 @@ function EXPECT_VALIDATING_LOCAL_INSTANCE(port) {
   while (line == "\n") {
     line = testutil.fetchCapturedStdout(true);
   }
-  EXPECT_CONTAINS("Validating local MySQL instance listening at port "+port+" for use in an InnoDB cluster...", line);
+  EXPECT_CONTAINS("Validating local MySQL instance listening at port "+port+" for use in an InnoDB Cluster...", line);
 }
 
 function EXPECT_VALIDATING_INSTANCE(address) {
@@ -26,7 +26,7 @@ function EXPECT_VALIDATING_INSTANCE(address) {
   while (line == "\n") {
     line = testutil.fetchCapturedStdout(true);
   }
-  EXPECT_CONTAINS("Validating MySQL instance at " + address + " for use in an InnoDB cluster...", line);
+  EXPECT_CONTAINS("Validating MySQL instance at " + address + " for use in an InnoDB Cluster...", line);
 }
 
 // Check that the return value of a checkInstance() matches the expected one for a raw, non-configured instance

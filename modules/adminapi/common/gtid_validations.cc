@@ -31,7 +31,7 @@
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -139,18 +139,20 @@ void validate_incremental_recovery(Member_op_action op_action,
   }
 }
 
-Prompt_type validate_auto_recovery(Cluster_type cluster_type,
-                                   Member_op_action op_action,
-                                   bool recovery_possible, bool recovery_safe,
-                                   bool clone_supported, bool gtid_set_diverged,
-                                   bool interactive, bool clone_disabled) {
+Prompt_type validate_auto_recovery(
+    Cluster_type cluster_type, Member_op_action op_action,
+    bool recovery_possible, bool recovery_safe, bool clone_supported,
+    bool gtid_set_diverged, bool interactive, bool clone_disabled,
+    mysqlshdk::utils::Version target_instance_version) {
   auto console = current_console();
 
   Prompt_type prompt = None;
 
   std::string clone_available_since =
       "Built-in clone support is available starting with MySQL 8.0.17 and is "
-      "the recommended method for provisioning instances.";
+      "the recommended method for provisioning instances. Instance is running "
+      "MySQL " +
+      target_instance_version.get_full() + ".";
 
   std::string target_clone_or_provisioned_add =
       "The target instance must be either cloned or fully provisioned before "
@@ -510,7 +512,8 @@ Member_recovery_method validate_instance_recovery(
   } else {
     Prompt_type prompt = validate_auto_recovery(
         cluster_type, op_action, recovery_possible, recovery_safe,
-        clone_supported, gtid_set_diverged, interactive, clone_disabled);
+        clone_supported, gtid_set_diverged, interactive, clone_disabled,
+        target_instance.get_version());
 
     console->print_info();
 

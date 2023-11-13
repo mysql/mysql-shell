@@ -74,7 +74,7 @@ FUNCTIONS
             Create or upgrade a MySQL account to use with MySQL Router.
 
       status([options])
-            Describe the status of the replicaset.
+            Describe the status of the ReplicaSet.
 
       For more help on a specific function, use the \help shell command, e.g.:
       \help ReplicaSet.addInstance
@@ -803,7 +803,7 @@ DESCRIPTION
 
 //@<OUT> Status
 NAME
-      status - Describe the status of the replicaset.
+      status - Describe the status of the ReplicaSet.
 
 SYNTAX
       <ReplicaSet>.status([options])
@@ -812,12 +812,12 @@ WHERE
       options: Dictionary with options.
 
 RETURNS
-      A JSON object describing the status of the members of the replicaset.
+      A JSON object describing the status of the ReplicaSet.
 
 DESCRIPTION
-      This function will connect to each member of the replicaset and query
-      their state, producing a status report of the replicaset as a whole, as
-      well as of their individual members.
+      This function will connect to each member of the ReplicaSet and query
+      their state, producing a status report of the ReplicaSet as a whole, as
+      well as of its individual members.
 
       Options
 
@@ -832,9 +832,8 @@ DESCRIPTION
         of the instance and replication is included, in addition to non-default
         or unexpected replication settings and status.
       - 1 - includes Metadata Version, server UUID and the raw information used
-        to derive the status of the instance, size of the applier queue,
-        value of system variables that protect against unexpected writes
-        etc.
+        to derive the status of the instance, size of the applier queue, value
+        of system variables that protect against unexpected writes etc.
       - 2 - includes important replication related configuration settings, such
         as SSL, worker threads, replication delay and heartbeat delay.
 

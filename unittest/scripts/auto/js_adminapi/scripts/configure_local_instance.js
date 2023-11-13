@@ -223,7 +223,7 @@ testutil.expectPrompt("Do you want to perform the required configuration changes
 dba.configureInstance(null, {clusterAdmin:"admin", clusterAdminPassword:"", interactive: true});
 
 EXPECT_OUTPUT_CONTAINS("Account admin@% was successfully created.");
-EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' was configured to be used in an InnoDB cluster but you must copy ${bug_mycnf_path}2 to the MySQL option file path.`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' was configured to be used in an InnoDB Cluster but you must copy ${bug_mycnf_path}2 to the MySQL option file path.`);
 EXPECT_OUTPUT_CONTAINS("NOTE: MySQL server needs to be restarted for configuration changes to take effect.");
 
 //@<> Cleanup (BUG#30657204) clean-up {VER(< 8.0.0) && __dbug_off == 0}

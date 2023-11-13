@@ -25,26 +25,17 @@
 
 #include <memory>
 
-#include "adminapi/common/common.h"
 #include "modules/adminapi/common/accounts.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
-#include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
-#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/config/config_file_handler.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/clone.h"
-#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 // Constructor receives command parameters, ref to ProvisioningInterface and
 // ref to IConsole. It should also perform basic validation of
@@ -57,8 +48,6 @@ Check_instance::Check_instance(
       m_mycnf_path(verify_mycnf_path),
       m_silent(silent),
       m_skip_check_tables_pk{skip_check_tables_pk} {}
-
-Check_instance::~Check_instance() = default;
 
 void Check_instance::check_instance_address() {
   // Sanity check for the instance address
@@ -158,17 +147,46 @@ bool Check_instance::check_configuration() {
     return false;
   }
 
-  if (!m_silent)
+  if (!m_silent) {
     console->print_info(
         "Instance configuration is compatible with InnoDB cluster");
+  }
+
   return true;
 }
 
-/*
- * Validates the parameter and performs other validations regarding
- * the command execution
- */
-void Check_instance::prepare() {
+void Check_instance::prepare_config_object() {
+  bool use_cfg_handler = false;
+  // if the configuration file was provided and exists, we add it to the
+  // config object.
+  if (!m_mycnf_path.empty()) {
+    if (shcore::is_file(m_mycnf_path)) {
+      use_cfg_handler = true;
+    } else {
+      mysqlsh::current_console()->print_error(
+          "Configuration file " + m_mycnf_path +
+          " doesn't exist. The verification of the file will be skipped.");
+
+      // Clear it up so we don't print any odd log message
+      m_mycnf_path = "";
+    }
+  }
+  // Add server configuration handler depending on SET PERSIST support.
+  // NOTE: Add server handler first to set it has the default handler.
+  m_cfg = mysqlsh::dba::create_server_config(
+      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler,
+      true);
+
+  // Add configuration handle to update option file (if provided) and not to
+  // be skipped
+  if (use_cfg_handler) {
+    mysqlsh::dba::add_config_file_handler(
+        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
+        m_target_instance->get_uuid(), m_mycnf_path, m_mycnf_path);
+  }
+}
+
+shcore::Value Check_instance::do_run() {
   auto console = mysqlsh::current_console();
 
   // Establish a session to the target instance
@@ -184,12 +202,12 @@ void Check_instance::prepare() {
     if (!local_target) {
       console->print_info("Validating MySQL instance at " +
                           m_target_instance->descr() +
-                          " for use in an InnoDB cluster...");
+                          " for use in an InnoDB Cluster...");
     } else {
       console->print_info(
           "Validating local MySQL instance listening at port " +
           std::to_string(m_target_instance->get_canonical_port()) +
-          " for use in an InnoDB cluster...");
+          " for use in an InnoDB Cluster...");
     }
   }
 
@@ -242,57 +260,11 @@ void Check_instance::prepare() {
   if (m_is_valid && !m_silent) {
     console->print_info();
     console->print_info("The instance '" + target +
-                        "' is valid to be used in an InnoDB cluster.");
+                        "' is valid for InnoDB Cluster usage.");
   }
-}
 
-/*
- * Executes the API command.
- *
- * This is a purely check command, no changes are made, thus execute()
- * is a no-op.
- */
-shcore::Value Check_instance::execute() {
   mysqlsh::current_console()->print_info();
+
   return m_ret_val;
 }
-
-void Check_instance::rollback() {
-  // nothing to rollback
-}
-
-void Check_instance::finish() {}
-
-void Check_instance::prepare_config_object() {
-  bool use_cfg_handler = false;
-  // if the configuration file was provided and exists, we add it to the
-  // config object.
-  if (!m_mycnf_path.empty()) {
-    if (shcore::is_file(m_mycnf_path)) {
-      use_cfg_handler = true;
-    } else {
-      mysqlsh::current_console()->print_error(
-          "Configuration file " + m_mycnf_path +
-          " doesn't exist. The verification of the file will be skipped.");
-
-      // Clear it up so we don't print any odd log message
-      m_mycnf_path = "";
-    }
-  }
-  // Add server configuration handler depending on SET PERSIST support.
-  // NOTE: Add server handler first to set it has the default handler.
-  m_cfg = mysqlsh::dba::create_server_config(
-      m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler,
-      true);
-
-  // Add configuration handle to update option file (if provided) and not to
-  // be skipped
-  if (use_cfg_handler) {
-    mysqlsh::dba::add_config_file_handler(
-        m_cfg.get(), mysqlshdk::config::k_dft_cfg_file_handler,
-        m_target_instance->get_uuid(), m_mycnf_path, m_mycnf_path);
-  }
-}
-
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

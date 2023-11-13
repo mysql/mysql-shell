@@ -184,7 +184,7 @@ expect_connect_using_uri();
 
 //@<> WL13236-TSFR4_4
 function expect_standalone_error(func) {
-  EXPECT_THROWS(func, 'Shell.connectToPrimary: Metadata schema of an InnoDB cluster or ReplicaSet not found');
+  EXPECT_THROWS(func, 'Shell.connectToPrimary: Metadata schema of an InnoDB Cluster or ReplicaSet not found');
 }
 
 expect_standalone_error(function() {

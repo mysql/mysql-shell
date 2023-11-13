@@ -143,16 +143,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port1>>>|
 
 //@ SP - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SP - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |Protocol version:             Classic 10|
 |TCP port:                     <<<__mysql_sandbox_port2>>>|
 
@@ -163,7 +163,7 @@
 
 //@ SP - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member
 |Protocol version:             X protocol|
@@ -179,16 +179,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SPX - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -199,7 +199,7 @@
 
 //@ SPX - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member
 |Protocol version:             X protocol|
@@ -215,16 +215,16 @@
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a secondary
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port1>>>0|
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a non-cluster member (error)
 |While handling --redirect-primary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to the primary
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |Protocol version:             X protocol|
 |TCP port:                     <<<__mysql_sandbox_port2>>>0|
 
@@ -235,7 +235,7 @@
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a non-cluster member (error)
 |While handling --redirect-secondary:|
-|Metadata schema of an InnoDB cluster or ReplicaSet not found|
+|Metadata schema of an InnoDB Cluster or ReplicaSet not found|
 
 //@ SP - Connect with --cluster 1
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
@@ -247,15 +247,15 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster on a non-cluster member + cmd (error)
-|Option --cluster requires a session to a member of an InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB Cluster.|
 |ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member interactive (error)
-|Option --cluster requires a session to a member of an InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB Cluster.|
 |ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of an InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB Cluster.|
 |ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --replicaset, expect error {VER(>8.0.0)}
@@ -270,11 +270,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-primary 2
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SP - Connect with --cluster + --redirect-secondary 2
@@ -290,7 +290,7 @@
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
 
 //@ SP - Connect with --replicaset + --redirect-primary 2, expect error {VER(>8.0.0)}
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
 |This function is not available through a session to an instance already in an InnoDB Cluster|
 
@@ -298,7 +298,7 @@
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
 
 //@ SP - Connect with --replicaset + --redirect-secondary 1, expect error {VER(>8.0.0)}
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
 |This function is not available through a session to an instance already in an InnoDB Cluster|
 
@@ -323,7 +323,7 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of an InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB Cluster.|
 |ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SPX - Connect with --cluster + --redirect-primary 1
@@ -331,11 +331,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-primary 2
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --cluster + --redirect-secondary 2
@@ -343,7 +343,7 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX - Connect with --replicaset + --redirect-primary 2, expect error {VER(>8.0.0)}
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port1>>>)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port1>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
 |This function is not available through a session to an instance already in an InnoDB Cluster|
 
@@ -351,7 +351,7 @@
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
 
 //@ SPX - Connect with --replicaset + --redirect-secondary 1, expect error {VER(>8.0.0)}
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port2>>>)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port2>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
 |This function is not available through a session to an instance already in an InnoDB Cluster|
 
@@ -368,7 +368,7 @@
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster on a non-cluster member (error)
-|Option --cluster requires a session to a member of an InnoDB cluster.|
+|Option --cluster requires a session to a member of an InnoDB Cluster.|
 |ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 1
@@ -376,11 +376,11 @@
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 2
-|Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
+|Reconnecting to the PRIMARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>0)...|
 |    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 1
-|Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
+|Reconnecting to the SECONDARY instance of an InnoDB Cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>0)...|
 |"groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
 
 //@ SPX implicit - Connect with --cluster + --redirect-secondary 2

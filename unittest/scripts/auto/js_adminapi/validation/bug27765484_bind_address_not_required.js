@@ -1,5 +1,5 @@
 //@<OUT> checkInstanceConfiguration with bind_address set no error
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.
 
 {
     "status": "ok"

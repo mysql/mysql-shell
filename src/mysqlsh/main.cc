@@ -904,7 +904,7 @@ int main(int argc, char **argv) {
             options.redirect_session) {
           mysqlsh::current_console()->print_error(
               "The " + option_for(options.redirect_session) +
-              " option requires a session to a member of an InnoDB cluster or "
+              " option requires a session to a member of an InnoDB Cluster or "
               "ReplicaSet.");
           return 1;
         }

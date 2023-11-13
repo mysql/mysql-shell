@@ -18,7 +18,7 @@ The following operations are available at 'cluster':
       Cluster.
 
    describe
-      Describe the structure of the cluster.
+      Describe the structure of the Cluster.
 
    dissolve
       Dissolves the cluster.
@@ -73,7 +73,7 @@ The following operations are available at 'cluster':
       Create or upgrade a MySQL account to use with MySQL Router.
 
    status
-      Describe the status of the cluster.
+      Describe the status of the Cluster.
 
    switch-to-single-primary-mode
       Switches the cluster to single-primary mode.
@@ -152,13 +152,13 @@ RETURNS
 
 //@<OUT> CLI cluster describe --help
 NAME
-      describe - Describe the structure of the cluster.
+      describe - Describe the structure of the Cluster.
 
 SYNTAX
       cluster describe
 
 RETURNS
-      A JSON object describing the structure of the cluster.
+      A JSON object describing the structure of the Cluster.
 
 //@<OUT> CLI cluster dissolve --help
 NAME
@@ -483,21 +483,21 @@ OPTIONS
 
 //@<OUT> CLI cluster status --help
 NAME
-      status - Describe the status of the cluster.
+      status - Describe the status of the Cluster.
 
 SYNTAX
       cluster status [<options>]
 
 RETURNS
-      A JSON object describing the status of the cluster.
+      A JSON object describing the status of the Cluster.
 
 OPTIONS
 --extended=<uint>
             Verbosity level of the command output.
 
 --queryMembers=<bool>
-            If true, connect to each Instance of the ReplicaSets to query for
-            more detailed stats about the replication machinery.
+            If true, connect to each Instance of the Cluster to query for more
+            detailed stats about the replication machinery.
 
 //@<OUT> CLI cluster switch-to-single-primary-mode --help
 NAME

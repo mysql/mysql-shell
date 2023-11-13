@@ -1,7 +1,7 @@
 // BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
 //
 // dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid to be used in an InnoDB cluster.
+// SQL and IO threads is valid for InnoDB Cluster usage.
 //
 // As a consequence, the AdminAPI fails to detects that an instance has
 // asynchronous replication running and both addInstance() and rejoinInstance()
@@ -55,7 +55,7 @@ var __grant4 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPO
 var __grant5 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'dba'@'%' WITH GRANT OPTION;";
 
 //@<> BUG#32287986: Run checkInstanceConfiguration()
-EXPECT_THROWS(function(){dba.checkInstanceConfiguration(__dba_uri)}, "The account 'dba'@'%' is missing privileges required to manage an InnoDB cluster.");
+EXPECT_THROWS(function(){dba.checkInstanceConfiguration(__dba_uri)}, "The account 'dba'@'%' is missing privileges required to manage an InnoDB Cluster.");
 
 EXPECT_STDOUT_CONTAINS(__grant1);
 EXPECT_STDOUT_CONTAINS(__grant2);

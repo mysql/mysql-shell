@@ -736,6 +736,11 @@ DESCRIPTION
       - The target cluster's Metadata schema version is 2.1.0 or newer.
       - Unmanaged replication channels are not allowed.
 
+      The domainName must be non-empty and no greater than 63 characters long.
+      It can only start with an alphanumeric character or with _ (underscore),
+      and can only contain alphanumeric, _ ( underscore), . (period), or -
+      (hyphen) characters.
+
       Options
 
       The options dictionary can contain the following values:

@@ -89,7 +89,7 @@ WIPE_OUTPUT();
 EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)}); });
 
 if (testutil.versionCheck(__version, "<", "8.0.0")) {
-    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port1}' was configured to be used in an InnoDB cluster.`);
+    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port1}' was configured to be used in an InnoDB Cluster.`);
 }
 
 check_open_sessions(session1, expected_pids1);
@@ -108,7 +108,7 @@ WIPE_OUTPUT();
 EXPECT_NO_THROWS(function(){ dba.configureInstance(get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin}); });
 
 if (testutil.versionCheck(__version, ">=", "8.0.0")) {
-    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' is already ready to be used in an InnoDB cluster.`);
+    EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' is valid for InnoDB Cluster usage.`);
 }
 
 check_open_sessions(session1, expected_pids1);

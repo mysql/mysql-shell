@@ -1346,28 +1346,28 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
 REGISTER_HELP_FUNCTION(createCluster, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CREATECLUSTER, R"*(
-Creates a MySQL InnoDB cluster.
+Creates a MySQL InnoDB Cluster.
 
-@param name An identifier for the cluster to be created.
+@param name An identifier for the Cluster to be created.
 @param options Optional dictionary with additional parameters described below.
 
-@returns The created cluster object.
+@returns The created Cluster object.
 
-Creates a MySQL InnoDB cluster taking as seed instance the server the shell
+Creates a MySQL InnoDB Cluster taking as seed instance the server the shell
 is currently connected to.
 
 The options dictionary can contain the following values:
 
-@li disableClone: boolean value used to disable the clone usage on the cluster.
+@li disableClone: boolean value used to disable the clone usage on the Cluster.
 @li gtidSetIsComplete: boolean value which indicates whether the GTID set
 of the seed instance corresponds to all transactions executed. Default is false.
-@li multiPrimary: boolean value used to define an InnoDB cluster with multiple
+@li multiPrimary: boolean value used to define an InnoDB Cluster with multiple
 writable instances.
 @li force: boolean, confirms that the multiPrimary option must be applied
 and/or the operation must proceed even if unmanaged replication channels
 were detected.
 ${OPT_INTERACTIVE}
-@li adoptFromGR: boolean value used to create the InnoDB cluster based on
+@li adoptFromGR: boolean value used to create the InnoDB Cluster based on
 existing replication group.
 ${CLUSTER_OPT_MEMBER_SSL_MODE}
 ${OPT_MEMBER_AUTH_TYPE}
@@ -1382,7 +1382,7 @@ ${CLUSTER_OPT_LOCAL_ADDRESS}
 Replication peer addresses to be used instead of the automatically generated
 one. Deprecated and ignored.
 @li manualStartOnBoot: boolean (default false). If false, Group Replication in
-cluster instances will automatically start and rejoin when MySQL starts,
+Cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
 @li replicationAllowedHost: string value to use as the host name part of
 internal replication accounts (i.e. 'mysql_innodb_cluster_###'@'hostname').
@@ -1396,25 +1396,30 @@ ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled. Deprecated.
-@li multiMaster: boolean value used to define an InnoDB cluster with multiple
+@li multiMaster: boolean value used to define an InnoDB Cluster with multiple
 writable instances. Deprecated.
 ${CLUSTER_OPT_COMM_STACK}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
 
-An InnoDB cluster may be setup in two ways:
+An InnoDB Cluster may be setup in two ways:
 
-@li Single Primary: One member of the cluster allows write operations while the
+@li Single Primary: One member of the Cluster allows write operations while the
 rest are read-only secondaries.
-@li Multi Primary: All the members in the cluster allow both read and write
+@li Multi Primary: All the members in the Cluster allow both read and write
 operations.
 
 Note that Multi-Primary mode has limitations about what can be safely executed.
 Make sure to read the MySQL documentation for Group Replication and be aware of
 what is and is not safely executable in such setups.
 
-By default this function creates a Single Primary cluster. Use the multiPrimary
-option set to true if a Multi Primary cluster is required.
+By default this function creates a Single Primary Cluster. Use the multiPrimary
+option set to true if a Multi Primary Cluster is required.
+
+The Cluster's name must be non-empty and no greater than 63 characters long.
+It can only start with an alphanumeric character or with _ (underscore),
+and can only contain alphanumeric, _ ( underscore), . (period), or -
+(hyphen) characters.
 
 <b>Options</b>
 
@@ -1425,20 +1430,20 @@ Defaults to true, unless the Shell is started with the --no-wizards option.
 disableClone should be set to true if built-in clone support should be
 completely disabled, even in instances where that is supported. Built-in clone
 support is available starting with MySQL 8.0.17 and allows automatically
-provisioning new cluster members by copying state from an existing cluster
+provisioning new Cluster members by copying state from an existing Cluster
 member. Note that clone will completely delete all data in the instance being
-added to the cluster.
+added to the Cluster.
 
 gtidSetIsComplete is used to indicate that GTIDs have been always enabled
-at the cluster seed instance and that GTID_EXECUTED contains all transactions
+at the Cluster seed instance and that GTID_EXECUTED contains all transactions
 ever executed. It must be left as false if data was inserted or modified while
 GTIDs were disabled or if RESET MASTER was executed. This flag affects how
-cluster.<<<addInstance>>>() decides which recovery methods are safe to use.
+Cluster.<<<addInstance>>>() decides which recovery methods are safe to use.
 Distributed recovery based on replaying the transaction history is only assumed
 to be safe if the transaction history is known to be complete, otherwise
-cluster members could end up with incomplete data sets.
+Cluster members could end up with incomplete data sets.
 
-adoptFromGR allows creating an InnoDB cluster from an existing unmanaged
+adoptFromGR allows creating an InnoDB Cluster from an existing unmanaged
 Group Replication setup, enabling use of MySQL Router and the shell AdminAPI
 for managing it.
 
@@ -1816,13 +1821,7 @@ shcore::Value Dba::check_instance_configuration(
   instance->close_session();
 
   // Call the API
-  Check_instance op_check_instance{coptions, options->mycnf_path};
-
-  op_check_instance.prepare();
-  ret_val = op_check_instance.execute();
-  op_check_instance.finish();
-
-  return ret_val;
+  return Topology_executor<Check_instance>{coptions, options->mycnf_path}.run();
 }
 
 // -----------------------------------------------------------------------------
@@ -1899,10 +1898,10 @@ REGISTER_HELP_FUNCTION(createReplicaSet, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CREATEREPLICASET, R"*(
 Creates a MySQL InnoDB ReplicaSet.
 
-@param name An identifier for the replicaset to be created.
+@param name An identifier for the ReplicaSet to be created.
 @param options Optional dictionary with additional parameters described below.
 
-@returns The created replicaset object.
+@returns The created ReplicaSet object.
 
 This function will create a managed ReplicaSet using MySQL asynchronous
 replication, as opposed to Group Replication. The MySQL instance the shell is
@@ -1914,15 +1913,15 @@ configuration are compatible with a managed ReplicaSet and if so, a metadata
 schema will be initialized there.
 
 New replica instances can be added through the <<<addInstance>>>() function of
-the returned replicaset object. Status of the instances and their replication
+the returned ReplicaSet object. Status of the instances and their replication
 channels can be inspected with <<<status>>>().
 
 <b>InnoDB ReplicaSets</b>
 
-A replicaset allows managing a GTID-based MySQL replication setup, in a single
+A ReplicaSet allows managing a GTID-based MySQL replication setup, in a single
 PRIMARY/multiple SECONDARY topology.
 
-A replicaset has several limitations compared to a InnoDB cluster
+A ReplicaSet has several limitations compared to a InnoDB cluster
 and thus, it is recommended that InnoDB clusters be preferred unless not
 possible. Generally, a ReplicaSet on its own does not provide High Availability.
 Among its limitations are:
@@ -1940,17 +1939,22 @@ configuration changes automatically.
 @li Statement Based Replication (SBR) is unsupported, only Row Based Replication
 @li GTIDs required
 @li Replication filters are not allowed
-@li All instances in the replicaset must be managed
+@li All instances in the ReplicaSet must be managed
 @li Unmanaged replication channels are not allowed in any instance
+
+The ReplicaSet's name must be non-empty and no greater than 63 characters long.
+It can only start with an alphanumeric character or with _ (underscore),
+and can only contain alphanumeric, _ ( underscore), . (period), or - (
+hyphen) characters.
 
 <b>Adopting an Existing Topology</b>
 
 Existing asynchronous setups can be managed by calling this function with the
 adoptFromAR option. The topology will be automatically scanned and validated,
 starting from the instance the shell is connected to, and all instances that are
-part of the topology will be automatically added to the replicaset.
+part of the topology will be automatically added to the ReplicaSet.
 
-The only changes made by this function to an adopted replicaset are the
+The only changes made by this function to an adopted ReplicaSet are the
 creation of the metadata schema. Existing replication channels will not be
 changed during adoption, although they will be changed during PRIMARY switch
 operations.
@@ -1965,7 +1969,7 @@ The data set of all instances are expected to be identical, but is not verified.
 
 The options dictionary can contain the following values:
 
-@li adoptFromAR: boolean value used to create the replicaset based on an
+@li adoptFromAR: boolean value used to create the ReplicaSet based on an
 existing asynchronous replication setup.
 @li instanceLabel: string a name to identify the target instance.
 Defaults to hostname:port
@@ -1982,7 +1986,7 @@ ${OPT_INTERACTIVE}
 ${OPT_MEMBER_AUTH_TYPE}
 ${OPT_CERT_ISSUER}
 ${OPT_CERT_SUBJECT}
-@li replicationSslMode: SSL mode to use to configure the asynchronous replication channels of the replicaset.
+@li replicationSslMode: SSL mode to use to configure the asynchronous replication channels of the ReplicaSet.
 
 The replicationSslMode option supports the following values:
 
@@ -2619,20 +2623,15 @@ void Dba::do_configure_instance(
   // Add the warnings callback
   target_instance->register_warnings_callback(warnings_callback);
 
-  {
-    // Call the API
-    std::unique_ptr<Configure_instance> op_configure_instance;
-    if (options.local) {
-      op_configure_instance.reset(
-          new Configure_local_instance(target_instance, options, purpose));
-    } else {
-      op_configure_instance.reset(new Configure_instance(
-          target_instance, options, state.source_type, purpose));
-    }
-
-    op_configure_instance->prepare();
-
-    op_configure_instance->execute();
+  // Call the API
+  if (options.local) {
+    Topology_executor<Configure_local_instance>{target_instance, options,
+                                                purpose}
+        .run();
+  } else {
+    Topology_executor<Configure_instance>{target_instance, options,
+                                          state.source_type, purpose}
+        .run();
   }
 }
 

@@ -2628,10 +2628,9 @@
 
 //@ Change the value of applierWorkerThreads of a member of the Cluster {VER(>=8.0.23)}
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster.|
-|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...|
+|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...|
 |This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid for InnoDB Cluster usage.|
 |WARNING: The changes on the value of <<<__replica_keyword>>>_parallel_workers will only take place after the instance leaves and rejoins the Cluster.|
 |Successfully set the value of <<<__replica_keyword>>>_parallel_workers.|
 

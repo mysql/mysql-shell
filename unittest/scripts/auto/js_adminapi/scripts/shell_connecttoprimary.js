@@ -27,7 +27,7 @@ var new_session;
 
 //@<> connect using uri
 function expect_connect_using_uri() {
-  EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB cluster (${hostname_ip}:${__mysql_sandbox_port1})...`);
+  EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB Cluster (${hostname_ip}:${__mysql_sandbox_port1})...`);
   EXPECT_STDOUT_CONTAINS(`Creating a Classic session to 'root@${hostname_ip}:${__mysql_sandbox_port1}'`);
   EXPECT_STDOUT_CONTAINS(`<ClassicSession:root@${hostname_ip}:${__mysql_sandbox_port1}`);
 }
@@ -43,7 +43,7 @@ new_session = shell.connectToPrimary(__hostname_ip_x_uri2);
 EXPECT_EQ(session, new_session);
 new_session.close();
 
-EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB cluster (${hostname_ip}:${__mysql_sandbox_x_port1})...`);
+EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB Cluster (${hostname_ip}:${__mysql_sandbox_x_port1})...`);
 EXPECT_STDOUT_CONTAINS(`Creating an X protocol session to 'root@${hostname_ip}:${__mysql_sandbox_x_port1}'`);
 EXPECT_STDOUT_CONTAINS(`<Session:root@${hostname_ip}:${__mysql_sandbox_x_port1}`);
 
@@ -182,7 +182,7 @@ expect_connect_using_uri();
 
 //@<> try to connect to an instance that is not a member of a cluster, expect error
 function expect_standalone_error(func) {
-  EXPECT_THROWS(func, 'Shell.connectToPrimary: Metadata schema of an InnoDB cluster or ReplicaSet not found');
+  EXPECT_THROWS(func, 'Shell.connectToPrimary: Metadata schema of an InnoDB Cluster or ReplicaSet not found');
 }
 
 expect_standalone_error(function() {

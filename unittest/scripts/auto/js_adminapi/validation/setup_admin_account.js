@@ -145,13 +145,13 @@ Cluster.setupAdminAccount: Could not proceed with the operation because neither 
 Cluster.setupAdminAccount: Account currently in use ('interactive_test'@'%') does not have enough privileges to execute the operation. (RuntimeError)
 
 //@ WL#13536 simulate shell upgrade use case where we want update adminAccount privileges to upgrade metadata {VER(>=8.0.17)}
-|ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 ||Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)
 
 //@ WL#13536 simulate shell upgrade use case where we want update adminAccount privileges to upgrade metadata {VER(<8.0.17)}
-|ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB cluster:|
+|ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB Cluster:|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 ||Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)

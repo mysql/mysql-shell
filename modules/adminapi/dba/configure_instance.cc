@@ -23,30 +23,18 @@
 
 #include "modules/adminapi/dba/configure_instance.h"
 
-#include <algorithm>
-#include <string>
-#include <vector>
-
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/setup_account.h"
-#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/mod_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/config/config_file_handler.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/db/result.h"
-#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -476,28 +464,21 @@ bool Configure_instance::check_configuration_updates(
   m_invalid_cfgs = checks::validate_configuration(
       m_target_instance.get(), cnf_path, m_cfg.get(), m_options.cluster_type,
       m_can_set_persist, restart, config_file_change, dynamic_sysvar_change);
-  if (!m_invalid_cfgs.empty()) {
-    // If no option file change or dynamic variable changes are required but
-    // restart variable was set to true, then it means that only read-only
-    // variables were detected as invalid configs on the server. If SET PERSIST
-    // is supported then those variables still need to be updated (persisted),
-    // otherwise only a restart is required because the value for those
-    // variables is correct in the option file.
-    // NOTE: validate_configuration() requires changes to the option file for
-    //       any invalid server variable, unless it was able to confirm that
-    //       the value is correct in the given option file or SET PERSIST is
-    //       supported.
-    return !(*restart && !*config_file_change && !*dynamic_sysvar_change &&
-             (!m_can_set_persist.has_value() || !m_can_set_persist.value()));
-  } else {
-    console->print_info();
-    console->print_info(
-        "The instance '" + m_target_instance->descr() +
-        "' is valid to be used in " +
-        to_display_string(m_options.cluster_type, Display_form::A_THING_FULL) +
-        ".");
-    return false;
-  }
+
+  if (m_invalid_cfgs.empty()) return false;
+
+  // If no option file change or dynamic variable changes are required but
+  // restart variable was set to true, then it means that only read-only
+  // variables were detected as invalid configs on the server. If SET PERSIST
+  // is supported then those variables still need to be updated (persisted),
+  // otherwise only a restart is required because the value for those
+  // variables is correct in the option file.
+  // NOTE: validate_configuration() requires changes to the option file for
+  //       any invalid server variable, unless it was able to confirm that
+  //       the value is correct in the given option file or SET PERSIST is
+  //       supported.
+  return !(*restart && !*config_file_change && !*dynamic_sysvar_change &&
+           (!m_can_set_persist.has_value() || !m_can_set_persist.value()));
 }
 
 void Configure_instance::ensure_instance_address_usable() {
@@ -829,10 +810,11 @@ void Configure_instance::prepare() {
   }
 }
 
-/*
- * Executes the API command.
- */
-shcore::Value Configure_instance::execute() {
+void Configure_instance::do_run() {
+  if (!m_local_configure) {
+    prepare();
+  }
+
   auto console = mysqlsh::current_console();
   {
     bool need_restore = false;
@@ -884,11 +866,11 @@ shcore::Value Configure_instance::execute() {
                           ".");
     }
   } else {
+    console->print_info();
     console->print_info(
-        "The instance '" + m_target_instance->descr() +
-        "' is already ready to be used in " +
-        to_display_string(m_options.cluster_type, Display_form::A_THING_FULL) +
-        ".");
+        "The instance '" + m_target_instance->descr() + "' is valid for " +
+        to_display_string(m_options.cluster_type, Display_form::THING_FULL) +
+        " usage.");
 
     if (m_set_applier_worker_threads) {
       m_cfg->apply();
@@ -952,8 +934,6 @@ shcore::Value Configure_instance::execute() {
           "take effect.");
     }
   }
-
-  return shcore::Value();
 }
 
 bool Configure_instance::clear_super_read_only(bool silent_fail) {

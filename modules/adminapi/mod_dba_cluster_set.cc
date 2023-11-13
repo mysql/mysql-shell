@@ -202,6 +202,11 @@ ClusterSet
 @li The target instance must have the same credentials used to manage the
 ClusterSet.
 
+The Replica Cluster's name must be non-empty and no greater than 63 characters
+long. It can only start with an alphanumeric character or with _ (underscore),
+and can only contain alphanumeric, _ ( underscore), . (period), or - ( hyphen)
+characters.
+
 For the detailed list of requirements to create an InnoDB Cluster, please use
 \? createCluster
 

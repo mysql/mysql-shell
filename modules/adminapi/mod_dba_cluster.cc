@@ -235,6 +235,10 @@ ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 ${OPT_CERT_SUBJECT}
 
+The label must be non-empty and no greater than 256 characters long. It must be
+unique within the Cluster and can only contain alphanumeric, _ (underscore),
+. (period), - (hyphen), or : (colon) characters.
+
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
 
@@ -526,23 +530,23 @@ void Cluster::remove_instance(
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_DESCRIBE, R"*(
-Describe the structure of the cluster.
+Describe the structure of the Cluster.
 
-@returns A JSON object describing the structure of the cluster.
+@returns A JSON object describing the structure of the Cluster.
 
-This function describes the structure of the cluster including all its
-information, ReplicaSets and Instances.
+This function describes the structure of the Cluster including all its
+information and members.
 
 The returned JSON object contains the following attributes:
 
-@li clusterName: the cluster name
+@li clusterName: the name of the Cluster
 @li defaultReplicaSet: the default ReplicaSet object
 
 The defaultReplicaSet JSON object contains the following attributes:
 
-@li name: the ReplicaSet name
+@li name: the ReplicaSet name (default)
 @li topology: a list of dictionaries describing each instance belonging to the
-ReplicaSet.
+Cluster.
 @li topologyMode: the InnoDB Cluster topology mode.
 
 Each instance dictionary contains the following attributes:
@@ -550,7 +554,6 @@ Each instance dictionary contains the following attributes:
 @li address: the instance address in the form of host:port
 @li label: the instance name identifier
 @li role: the instance role
-@li version: the instance version (only available for instances >= 8.0.11)
 )*");
 
 /**
@@ -573,18 +576,18 @@ shcore::Value Cluster::describe(void) {
 
 REGISTER_HELP_FUNCTION(status, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_STATUS, R"*(
-Describe the status of the cluster.
+Describe the status of the Cluster.
 
 @param options Optional dictionary with options.
 
-@returns A JSON object describing the status of the cluster.
+@returns A JSON object describing the status of the Cluster.
 
-This function describes the status of the cluster including its ReplicaSets and
-Instances. The following options may be given to control the amount of
-information gathered and returned.
+This function describes the status of the Cluster and its members. The
+following options may be given to control the amount of information gathered
+and returned.
 
 @li extended: verbosity level of the command output.
-@li queryMembers: if true, connect to each Instance of the ReplicaSets to query
+@li queryMembers: if true, connect to each Instance of the Cluster to query
 for more detailed stats about the replication machinery.
 
 @attention The queryMembers option will be removed in a future release. Please
@@ -595,7 +598,7 @@ The extended option supports Integer or Boolean values:
 @li 0: disables the command verbosity (default);
 @li 1: includes information about the Metadata Version, Group Protocol
        Version, Group name, cluster member UUIDs, cluster member roles and
-       states as reported byGroup Replication and the list of fenced system
+       states as reported by Group Replication and the list of fenced system
        variables;
 @li 2: includes information about transactions processed by connection and
        applier;
@@ -1162,6 +1165,11 @@ ${CLUSTER_OPT_REPLICATION_OPTION_ZSTD_COMPRESSION_LEVEL}
 ${CLUSTER_OPT_REPLICATION_OPTION_BIND}
 ${CLUSTER_OPT_REPLICATION_OPTION_NETWORK_NAMESPACE}
 
+The clusterName must be non-empty and no greater than 63 characters long. It
+can only start with an alphanumeric character or with _ (underscore), and can
+only contain alphanumeric, _ ( underscore), . (period), or - (hyphen)
+characters.
+
 @attention The failoverConsistency option will be removed in a future release.
 Please use the consistency option instead.
 
@@ -1254,6 +1262,10 @@ ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 ${NAMESPACE_TAG_DETAIL_CLUSTER}
 
 ${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
+
+The label must be non-empty and no greater than 256 characters long. It must be
+unique within the Cluster and can only contain alphanumeric, _ (underscore),
+. (period), - (hyphen), or : (colon) characters.
 
 The replicationSources is a comma separated list of instances (host:port) to
 act as sources of the replication channel, i.e. to provide source failover of
@@ -1634,6 +1646,10 @@ The following is a non-exhaustive list of requirements to create a ClusterSet:
 @li The target cluster's Metadata schema version is 2.1.0 or newer.
 @li Unmanaged replication channels are not allowed.
 
+The domainName must be non-empty and no greater than 63 characters long. It can
+only start with an alphanumeric character or with _ (underscore), and can only
+contain alphanumeric, _ ( underscore), . (period), or - (hyphen) characters.
+
 <b>Options</b>
 
 The options dictionary can contain the following values:
@@ -1763,6 +1779,10 @@ with the PRIMARY after it's provisioned and the replication channel is
 established. If reached, the operation is rolled-back. Default is 0 (no
 timeout).
 ${CLUSTER_OPT_CLONE_DONOR}
+
+The label must be non-empty and no greater than 256 characters long. It must be
+unique within the Cluster and can only contain alphanumeric, _ (underscore),
+. (period), - (hyphen), or : (colon) characters.
 
 The replicationSources is a comma separated list of instances (host:port) to
 act as sources of the replication channel, i.e. to provide source failover of

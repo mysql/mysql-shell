@@ -116,7 +116,7 @@ one server failure.
 ||
 
 //@ FR1-TS-04/05 SETUP {VER(>=8.0.12)}
-|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.|
 |Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
 //@<OUT> FR1-TS-04/05 {VER(>=8.0.12)}

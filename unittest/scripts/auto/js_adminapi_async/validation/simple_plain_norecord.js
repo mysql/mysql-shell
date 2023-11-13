@@ -87,12 +87,11 @@ Assuming full account name 'admin'@'%' for admin
 applierWorkerThreads will be set to the default value of 4.
 ?{}
 
-The instance '<<<__address2>>>' is valid to be used in an InnoDB ReplicaSet.
-
 Creating user admin@%.
 Account admin@% was successfully created.
 
-The instance '<<<__address2>>>' is already ready to be used in an InnoDB ReplicaSet.
+
+The instance '<<<__address2>>>' is valid for InnoDB ReplicaSet usage.
 ?{VER(>=8.0.23)}
 
 Successfully enabled parallel appliers.

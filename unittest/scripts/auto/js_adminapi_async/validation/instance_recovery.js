@@ -173,7 +173,7 @@
 |this method by default, set the 'recoveryMethod' option to 'incremental'.|
 ||
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target replicaset.|
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 ||Instance provisioning required (MYSQLSH 51153)
 
 //@ addInstance: recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>= 8.0.19)}
@@ -319,7 +319,7 @@
 |this further and ensure that the data can be removed prior to choosing the|
 |clone recovery method.|
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target replicaset.|
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 
 ||Instance provisioning required (MYSQLSH 51153)
 
@@ -405,7 +405,7 @@
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target replicaset.|
 
 //@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0) && VER(<8.0.17)}
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 
 //@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
 ||Instance provisioning required (MYSQLSH 51153)
@@ -425,7 +425,7 @@
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target replicaset.|
 
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0) && VER(<8.0.17)}
-|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
+|Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
 ||Instance provisioning required (MYSQLSH 51153)
