@@ -42,7 +42,7 @@
 # the table using 'ALTER TABLE <table_name> FORCE' command
 
 * oldTemporalCheck.docLink
-https://mysqlserverteam.com/mysql-8-0-removing-support-for-old-temporal-datatypes/
+https://dev.mysql.com/blog-archive/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
 * routinesSyntaxCheck.title
 # MySQL 8.0 syntax check for routine-like objects
@@ -222,7 +222,7 @@ https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-re
 # performing upgrade.
 
 * sysVarsNewDefaults.docLink
-https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
+https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/
 
 * zeroDatesCheck.title
 # Zero Date, Datetime, and Timestamp values

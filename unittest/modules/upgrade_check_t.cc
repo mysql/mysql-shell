@@ -897,8 +897,9 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
 
   std::unique_ptr<Upgrade_check> check =
       Sql_upgrade_check::get_sys_vars_new_defaults_check();
-  EXPECT_EQ(0, strcmp("https://mysqlserverteam.com/new-defaults-in-mysql-8-0/",
-                      check->get_doc_link()));
+  EXPECT_EQ(
+      0, strcmp("https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/",
+                check->get_doc_link()));
 
   EXPECT_THROW_LIKE(
       check->run(session, info), Upgrade_check::Check_configuration_error,
@@ -1885,11 +1886,9 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
       ASSERT_TRUE(check.IsObject());
       ASSERT_TRUE(check.HasMember("id"));
       ASSERT_TRUE(check["id"].IsString());
-      if (std::string(check["id"].GetString()) ==
-          "mysqlDeprecatedAuthMethodCheck")
+      if (std::string(check["id"].GetString()) == "deprecatedAuthMethod")
         found_dep_auth_check_id = true;
-      if (std::string(check["id"].GetString()) ==
-          "mysqlDeprecatedDefaultAuthCheck")
+      if (std::string(check["id"].GetString()) == "deprecatedDefaultAuth")
         found_def_auth_check_id = true;
     }
     EXPECT_TRUE(found_dep_auth_check_id);

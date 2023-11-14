@@ -2073,7 +2073,7 @@ class Deprecated_auth_method_check : public Sql_upgrade_check {
  public:
   Deprecated_auth_method_check(mysqlshdk::utils::Version target_ver)
       : Sql_upgrade_check(
-            "mysqlDeprecatedAuthMethodCheck",
+            "deprecatedAuthMethod",
             "Check for deprecated or invalid user authentication methods.",
             std::vector<std::string>{
                 "SELECT CONCAT(user, '@', host), plugin FROM "
@@ -2105,7 +2105,7 @@ class Deprecated_auth_method_check : public Sql_upgrade_check {
 Deprecated_default_auth_check::Deprecated_default_auth_check(
     mysqlshdk::utils::Version target_ver)
     : Sql_upgrade_check(
-          "mysqlDeprecatedDefaultAuthCheck",
+          "deprecatedDefaultAuth",
           "Check for deprecated or invalid default authentication methods in "
           "system variables.",
           std::vector<std::string>{
