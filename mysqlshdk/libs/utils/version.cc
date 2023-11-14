@@ -23,8 +23,8 @@
 
 #include "mysqlshdk/libs/utils/version.h"
 
-#include <cctype>
 #include <charconv>
+#include <stdexcept>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 

@@ -25,12 +25,12 @@
 #define MODULES_ADMINAPI_CLUSTER_DISSOLVE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/command_interface.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace mysqlsh {
 namespace dba {

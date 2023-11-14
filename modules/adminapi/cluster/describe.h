@@ -24,8 +24,6 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_DESCRIBE_H_
 #define MODULES_ADMINAPI_CLUSTER_DESCRIBE_H_
 
-#include <map>
-#include <string>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
@@ -35,11 +33,9 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Describe : public Command_interface {
+class Describe final : public Command_interface {
  public:
-  explicit Describe(const Cluster_impl &cluster);
-
-  ~Describe() override;
+  explicit Describe(const Cluster_impl &cluster) : m_cluster(cluster) {}
 
   /**
    * Prepare the Cluster Describe command for execution.
@@ -69,10 +65,9 @@ class Describe : public Command_interface {
 
  private:
   const Cluster_impl &m_cluster;
+  std::vector<Instance_metadata> m_instances;
 
   shcore::Value get_default_replicaset_description();
-
-  std::vector<Instance_metadata> m_instances;
 
   void feed_metadata_info(shcore::Dictionary_t dict,
                           const Instance_metadata &info);

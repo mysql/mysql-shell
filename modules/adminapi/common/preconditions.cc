@@ -835,34 +835,27 @@ void Precondition_checker::check_session() const {
 
 namespace ManagedInstance {
 std::string describe(State state) {
-  std::string ret_val;
   switch (state) {
     case OnlineRW:
-      ret_val = "Read/Write";
-      break;
+      return "Read/Write";
     case OnlineRO:
-      ret_val = "Read Only";
-      break;
+      return "Read Only";
     case Recovering:
-      ret_val = "Recovering";
-      break;
+      return "Recovering";
     case Unreachable:
-      ret_val = "Unreachable";
-      break;
+      return "Unreachable";
     case Offline:
-      ret_val = "Offline";
-      break;
+      return "Offline";
     case Error:
-      ret_val = "Error";
-      break;
+      return "Error";
     case Missing:
-      ret_val = "(Missing)";
-      break;
+      return "(Missing)";
     case Any:
       assert(0);  // FIXME(anyone) avoid using enum as a bitmask
       break;
   }
-  return ret_val;
+
+  return {};
 }
 }  // namespace ManagedInstance
 

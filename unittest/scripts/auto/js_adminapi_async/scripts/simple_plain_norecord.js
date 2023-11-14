@@ -106,6 +106,19 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
+//@<> describe (just a primary)
+EXPECT_NO_THROWS(function(){ desc = rs.describe(); });
+
+EXPECT_EQ(2, Object.keys(desc).length);
+EXPECT_TRUE(desc.hasOwnProperty('name'));
+EXPECT_TRUE(desc.hasOwnProperty('topology'));
+
+EXPECT_EQ("myrs", desc["name"]);
+EXPECT_EQ(1, desc["topology"].length);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port1}`, desc["topology"][0]["address"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port1}`, desc["topology"][0]["label"]);
+EXPECT_EQ("PRIMARY", desc["topology"][0]["instanceRole"]);
+
 //@ disconnect
 rs.disconnect();
 
@@ -157,6 +170,26 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 EXPECT_REPLICAS_USE_SSL(session1, 2);
+
+//@<> describe (primary + replicas)
+EXPECT_NO_THROWS(function(){ desc = rs.describe(); });
+
+desc;
+EXPECT_EQ(2, Object.keys(desc).length);
+EXPECT_TRUE(desc.hasOwnProperty('name'));
+EXPECT_TRUE(desc.hasOwnProperty('topology'));
+
+EXPECT_EQ("myrs", desc["name"]);
+EXPECT_EQ(3, desc["topology"].length);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port1}`, desc["topology"][0]["address"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port1}`, desc["topology"][0]["label"]);
+EXPECT_EQ("PRIMARY", desc["topology"][0]["instanceRole"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port3}`, desc["topology"][1]["address"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port3}`, desc["topology"][1]["label"]);
+EXPECT_EQ("REPLICA", desc["topology"][1]["instanceRole"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port2}`, desc["topology"][2]["address"]);
+EXPECT_EQ(`127.0.0.1:${__mysql_sandbox_port2}`, desc["topology"][2]["label"]);
+EXPECT_EQ("REPLICA", desc["topology"][2]["instanceRole"]);
 
 //@ removeInstance
 rs.removeInstance(__sandbox_uri_secure_password2);
@@ -240,6 +273,11 @@ check_open_sessions(session3, expected_pids3);
 
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
+//@<> rescan (does nothing)
+WIPE_SHELL_LOG();
+EXPECT_NO_THROWS(function(){ rs.rescan(); });
+EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
+
 //@ listRouters
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (1, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
@@ -275,10 +313,20 @@ rs.status();
 
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
+//@<> rescan (adoptFromAR must use and store the correct replication accounts)
+WIPE_SHELL_LOG();
+
+EXPECT_NO_THROWS(function(){ rs.rescan(); });
+EXPECT_OUTPUT_NOT_CONTAINS(`Updating replication account for instance '127.0.0.1:${__mysql_sandbox_port1}'.`);
+EXPECT_OUTPUT_NOT_CONTAINS(`Updating replication account for instance '127.0.0.1:${__mysql_sandbox_port2}'.`);
+EXPECT_OUTPUT_NOT_CONTAINS(`Updating replication account for instance '127.0.0.1:${__mysql_sandbox_port3}'.`);
+
+EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
+
+//@<> dissolve
+EXPECT_NO_THROWS(function(){ desc = rs.dissolve(); });
+
 //@<> createReplicaSet without ssl in seed
-reset_instance(session1);
-reset_instance(session2);
-reset_instance(session3);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "require_secure_transport", "0");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "skip_ssl", "1");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "require_secure_transport", "0");
@@ -303,9 +351,7 @@ rs.setPrimaryInstance(__sandbox_uri_secure_password1);
 rs.setPrimaryInstance(__sandbox_uri_secure_password2);
 
 //@<> createReplicaSet with ssl in seed
-reset_instance(session1);
-reset_instance(session2);
-reset_instance(session3);
+EXPECT_NO_THROWS(function(){ desc = rs.dissolve(); });
 
 shell.connect(__sandbox_uri1, __secure_password);
 rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});

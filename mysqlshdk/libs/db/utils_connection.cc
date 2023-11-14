@@ -21,11 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/db/utils_connection.h"
+
 #include <algorithm>
 #include <array>
-#include <cctype>
-
-#include "mysqlshdk/libs/db/utils_connection.h"
+#include <iterator>
 
 namespace mysqlshdk {
 namespace db {

@@ -23,6 +23,8 @@
 
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
+#include <stdexcept>
+
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {

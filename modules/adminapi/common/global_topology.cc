@@ -22,16 +22,15 @@
  */
 
 #include "modules/adminapi/common/global_topology.h"
-#include <algorithm>
+
 #include <list>
 #include <vector>
-#include "modules/adminapi/common/common.h"
+
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -559,8 +558,7 @@ void Server_global_topology::load_cluster(MetadataStorage *metadata,
                                           const Cluster_metadata &cluster) {
   m_topology_type = cluster.async_topology_type;
 
-  std::vector<Instance_metadata> instances(
-      metadata->get_replica_set_instances(cluster.cluster_id));
+  auto instances = metadata->get_replica_set_instances(cluster.cluster_id);
   log_debug("%zi instances in replicaset %s", instances.size(),
             cluster.full_cluster_name().c_str());
 

@@ -22,6 +22,9 @@
  */
 
 #include "mysqlshdk/libs/db/ssl_options.h"
+
+#include <stdexcept>
+
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 

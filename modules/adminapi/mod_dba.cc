@@ -52,8 +52,10 @@
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -1850,16 +1852,13 @@ ReplicaSet Dba::getReplicaSet() {}
 ReplicaSet Dba::get_replica_set() {}
 #endif
 std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
-  const auto console = mysqlsh::current_console();
   const auto target_server = connect_to_target_member();
-  std::shared_ptr<MetadataStorage> metadata;
-
   if (!target_server) {
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(target_server);
+  auto metadata = std::make_shared<MetadataStorage>(target_server);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -1872,8 +1871,8 @@ std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
 
   const auto rs = get_replica_set(metadata, target_server);
 
-  console->print_info("You are connected to a member of replicaset '" +
-                      rs->get_name() + "'.");
+  mysqlsh::current_console()->print_info(
+      "You are connected to a member of replicaset '" + rs->get_name() + "'.");
 
   return std::make_shared<ReplicaSet>(rs);
 }

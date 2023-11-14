@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_MYSQL_INSTANCE_H_
 
 #include <cassert>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>

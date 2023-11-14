@@ -26,7 +26,6 @@
 
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"

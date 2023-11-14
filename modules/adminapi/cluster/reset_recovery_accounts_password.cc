@@ -25,7 +25,6 @@
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 

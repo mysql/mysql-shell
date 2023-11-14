@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_CONNECTION_H_
 
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_set>
 

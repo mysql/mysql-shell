@@ -22,17 +22,13 @@
  */
 
 #include "modules/adminapi/cluster/describe.h"
-#include "adminapi/cluster/api_options.h"
+
 #include "adminapi/common/common.h"
 #include "modules/adminapi/common/sql.h"
 
 namespace mysqlsh {
 namespace dba {
 namespace cluster {
-
-Describe::Describe(const Cluster_impl &cluster) : m_cluster(cluster) {}
-
-Describe::~Describe() {}
 
 void Describe::prepare() {
   // Sanity check: Verify if the topology type changed and issue an error if

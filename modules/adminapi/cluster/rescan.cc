@@ -134,8 +134,9 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
 std::vector<std::string> Rescan::detect_invalid_members(
     const std::vector<mysqlshdk::db::Connection_options> &instances_list,
     bool is_active) {
-  std::vector<std::string> invalid_instances;
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
 
+  std::vector<std::string> invalid_instances;
   for (const auto &cnx_opt : instances_list) {
     std::string instance_address =
         cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
@@ -144,9 +145,6 @@ std::vector<std::string> Rescan::detect_invalid_members(
     log_debug(
         "Checking if the instance '%s' is %san active member of the group.",
         instance_address.c_str(), check_type);
-
-    std::shared_ptr<Instance> cluster_instance =
-        m_cluster->get_cluster_server();
 
     if (mysqlshdk::gr::is_active_member(*cluster_instance, cnx_opt.get_host(),
                                         cnx_opt.get_port()) != is_active) {
@@ -348,17 +346,16 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
         shcore::Value(instance.member_id);
     (*newly_discovered_instance)["name"] = shcore::Value::Null();
 
-    std::string instance_address =
-        instance.host + ":" + std::to_string(instance.port);
-
-    (*newly_discovered_instance)["host"] = shcore::Value(instance_address);
+    (*newly_discovered_instance)["host"] =
+        shcore::Value(mysqlshdk::utils::make_host_and_port(
+            instance.host, static_cast<uint16_t>(instance.port)));
 
     if (!instance.version.empty()) {
       (*newly_discovered_instance)["version"] = shcore::Value(instance.version);
     }
 
     newly_discovered_instances->push_back(
-        shcore::Value(newly_discovered_instance));
+        shcore::Value(std::move(newly_discovered_instance)));
   }
 
   std::sort(newly_discovered_instances->begin(),

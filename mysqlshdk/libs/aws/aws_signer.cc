@@ -24,12 +24,10 @@
 #include "mysqlshdk/libs/aws/aws_signer.h"
 
 #include <cassert>
-#include <cstdio>
-#include <cstring>
 #include <memory>
-#include <stdexcept>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

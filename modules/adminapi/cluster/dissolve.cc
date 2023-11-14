@@ -23,23 +23,17 @@
 
 #include "modules/adminapi/cluster/dissolve.h"
 
-#include <mysql/group_replication.h>
-
 #include <utility>
 
 #include "modules/adminapi/common/async_topology.h"
-#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
-#include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -108,7 +102,7 @@ std::shared_ptr<Instance> Dissolve::ensure_instance_reachable(
     // instance not reachable
     auto console = mysqlsh::current_console();
     // Handle use of 'force' option.
-    if (!m_force.has_value() || *m_force == false) {
+    if (!m_force.has_value() || !m_force.value()) {
       console->print_error(
           "Unable to connect to instance '" + instance_address +
           "'. Please verify connection credentials and make sure the "
@@ -161,7 +155,7 @@ void Dissolve::ensure_transactions_sync() {
               .as_uri(mysqlshdk::db::uri::formats::only_transport());
 
       // Handle use of 'force' option.
-      if (!m_force.has_value() || *m_force == false) {
+      if (!m_force.has_value() || !m_force.value()) {
         mysqlsh::current_console()->print_error(
             "The instance '" + instance_address +
             "' was unable to catch up with cluster transactions. There might "
@@ -204,7 +198,7 @@ void Dissolve::handle_unavailable_instances(const std::string &instance_address,
                                             const std::string &instance_state) {
   auto console = mysqlsh::current_console();
 
-  if (!m_force.has_value() || *m_force == false) {
+  if (!m_force.has_value() || !m_force.value()) {
     // Issue an error if 'force' option is not used or false.
     std::string message =
         "The instance '" + instance_address +
@@ -371,9 +365,10 @@ shcore::Value Dissolve::execute() {
   console->print_info("* Dissolving the Cluster...");
 
   // Disable super_read_only mode if it is enabled.
-  bool super_read_only = m_cluster->get_cluster_server()->get_sysvar_bool(
-      "super_read_only", false);
-  if (super_read_only) {
+
+  if (auto sro = m_cluster->get_cluster_server()->get_sysvar_bool(
+          "super_read_only", false);
+      sro) {
     log_info(
         "Disabling super_read_only mode on instance '%s' to run dissolve().",
         m_cluster->get_cluster_server()->descr().c_str());
@@ -421,32 +416,31 @@ shcore::Value Dissolve::execute() {
           m_sync_error_instances.end());
     } catch (const std::exception &err) {
       // Skip error if force=true otherwise issue an error.
-      if (!m_force.has_value() || *m_force == false) {
+      if (!m_force.has_value() || !m_force.value()) {
         console->print_error(
             "The instance '" + instance_address +
             "' was unable to catch up with cluster transactions. There might "
             "be too many transactions to apply or some replication error.");
         throw;
-      } else {
-        // Only add to list of instance with sync error if not already there.
-        if (std::find(m_sync_error_instances.begin(),
-                      m_sync_error_instances.end(),
-                      instance_address) == m_sync_error_instances.end()) {
-          m_sync_error_instances.push_back(instance_address);
-        }
-
-        log_error(
-            "Instance '%s' was unable to catch up with cluster transactions: "
-            "%s",
-            instance_address.c_str(), err.what());
-        console->print_warning(
-            "An error occurred when trying to catch up with cluster "
-            "transactions and instance '" +
-            instance_address +
-            "' might have been left in an inconsistent state that will lead "
-            "to errors if it is reused.");
-        console->print_info();
       }
+
+      // Only add to list of instance with sync error if not already there.
+      if (std::find(m_sync_error_instances.begin(),
+                    m_sync_error_instances.end(),
+                    instance_address) == m_sync_error_instances.end()) {
+        m_sync_error_instances.push_back(instance_address);
+      }
+
+      log_error(
+          "Instance '%s' was unable to catch up with cluster transactions: %s",
+          instance_address.c_str(), err.what());
+      console->print_warning(
+          "An error occurred when trying to catch up with cluster transactions "
+          "and instance '" +
+          instance_address +
+          "' might have been left in an inconsistent state that will lead to "
+          "errors if it is reused.");
+      console->print_info();
     }
 
     // JOB: Remove the instance from the cluster
@@ -458,7 +452,7 @@ shcore::Value Dissolve::execute() {
           mysqlsh::dba::leave_cluster(*instance_ptr, m_supports_member_actions);
         } catch (const std::exception &err) {
           // Skip error if force=true otherwise issue an error.
-          if (!m_force.has_value() || *m_force == false) {
+          if (!m_force.has_value() || !m_force.value()) {
             console->print_error("Unable to remove instance '" +
                                  instance_address + "' from the cluster.");
             throw shcore::Exception::runtime_error(err.what());

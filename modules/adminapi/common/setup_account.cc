@@ -98,19 +98,17 @@ void Setup_account::prepare() {
   if (!m_user_exists && !m_options.password.has_value()) {
     if (m_options.interactive()) {
       prompt_for_password();
-    } else {
-      if (!m_options.require_cert_issuer.has_value() &&
-          !m_options.require_cert_subject.has_value()) {
-        // new user, password was not provided and not interactive mode, so we
-        // must throw an error
-        throw shcore::Exception::runtime_error(shcore::str_format(
-            "Could not proceed with the operation because neither "
-            "password nor client certificate options were specified to create "
-            "account %s@%s. Provide one using the 'password', '%s' and/or '%s' "
-            "options.",
-            m_name.c_str(), m_host.c_str(), kRequireCertIssuer,
-            kRequireCertSubject));
-      }
+    } else if (!m_options.require_cert_issuer.has_value() &&
+               !m_options.require_cert_subject.has_value()) {
+      // new user, password was not provided and not interactive mode, so we
+      // must throw an error
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Could not proceed with the operation because neither "
+          "password nor client certificate options were specified to create "
+          "account %s@%s. Provide one using the 'password', '%s' and/or '%s' "
+          "options.",
+          m_name.c_str(), m_host.c_str(), kRequireCertIssuer,
+          kRequireCertSubject));
     }
   }
 }
@@ -178,6 +176,7 @@ void Setup_account::create_account() {
   } else {
     sql = "CREATE USER IF NOT EXISTS";
   }
+
   if (!m_options.dry_run) {
     sql += shcore::sqlformat(" ?@?", m_name, m_host);
     if (m_options.password.has_value()) {

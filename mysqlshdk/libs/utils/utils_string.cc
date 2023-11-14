@@ -22,17 +22,14 @@
  */
 
 #include "utils/utils_string.h"
-#include <algorithm>
+
 #include <array>
 #include <bitset>
 #include <cassert>
 #include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <cwchar>
-#include <iomanip>
+#include <functional>
 #include <random>
-#include <sstream>
+#include <stdexcept>
 
 #ifdef _WIN32
 #include <windows.h>

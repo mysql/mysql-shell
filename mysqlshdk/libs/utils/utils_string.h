@@ -24,21 +24,20 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_
 #define MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_
 
+#include <wctype.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <cwchar>
-#include <functional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "scripting/common.h"
+#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace shcore {
 

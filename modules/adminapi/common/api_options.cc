@@ -20,21 +20,14 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/cluster/api_options.h"
 
-#include <cinttypes>
-#include <utility>
-#include <vector>
+#include "modules/adminapi/cluster/api_options.h"
 
 #include "adminapi/common/api_options.h"
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
 
 namespace mysqlsh {

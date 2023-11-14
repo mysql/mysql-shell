@@ -92,8 +92,8 @@ namespace dba {
 
 namespace {
 // Constants with the names used to lock the cluster
-constexpr char k_lock_ns[] = "AdminAPI_cluster";
-constexpr char k_lock_name[] = "AdminAPI_lock";
+constexpr std::string_view k_lock_ns{"AdminAPI_cluster"};
+constexpr std::string_view k_lock_name{"AdminAPI_lock"};
 
 template <typename T>
 struct Option_info {
@@ -1376,14 +1376,8 @@ void Cluster_impl::remove_instance_metadata(
     const mysqlshdk::db::Connection_options &instance_def) {
   log_debug("Removing instance from metadata");
 
-  std::string port = std::to_string(instance_def.get_port());
-
-  std::string host = instance_def.get_host();
-
-  // Check if the instance was already added
-  std::string instance_address = host + ":" + port;
-
-  get_metadata_storage()->remove_instance(instance_address);
+  get_metadata_storage()->remove_instance(mysqlshdk::utils::make_host_and_port(
+      instance_def.get_host(), static_cast<uint16_t>(instance_def.get_port())));
 }
 
 mysqlshdk::mysql::Auth_options
@@ -4375,7 +4369,6 @@ void Cluster_impl::wait_instance_recovery(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &join_begin_time,
     Recovery_progress_style progress_style) const {
-  auto console = current_console();
   try {
     auto post_clone_auth = target_instance.get_connection_options();
     post_clone_auth.set_login_options_from(
@@ -4386,6 +4379,7 @@ void Cluster_impl::wait_instance_recovery(
         join_begin_time, progress_style, k_recovery_start_timeout.count(),
         current_shell_options()->get().dba_restart_wait_timeout);
   } catch (const shcore::Exception &e) {
+    auto console = current_console();
     // If the recovery itself failed we abort, but monitoring errors can be
     // ignored.
     if (e.code() == SHERR_DBA_CLONE_RECOVERY_FAILED ||
@@ -4398,6 +4392,7 @@ void Cluster_impl::wait_instance_recovery(
           e.format());
     }
   } catch (const restart_timeout &) {
+    auto console = current_console();
     console->print_warning(
         "Clone process appears to have finished and tried to restart the "
         "MySQL server, but it has not yet started back up.");
@@ -4795,15 +4790,19 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
   // NOTE: Only one lock per namespace is used because lock release is
   // performed by namespace.
   try {
-    log_debug("Acquiring %s lock ('%s', '%s') on '%s'.",
-              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+    log_debug("Acquiring %s lock ('%.*s', '%.*s') on '%s'.",
+              mysqlshdk::mysql::to_string(mode).c_str(),
+              static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+              static_cast<int>(k_lock_name.size()), k_lock_name.data(),
               m_cluster_server->descr().c_str());
     mysqlshdk::mysql::get_lock(*m_cluster_server, k_lock_ns, k_lock_name, mode,
                                timeout.count());
   } catch (const shcore::Error &err) {
     // Abort the operation in case the required lock cannot be acquired.
-    log_info("Failed to get %s lock ('%s', '%s') on '%s': %s",
-             mysqlshdk::mysql::to_string(mode).c_str(), k_lock_ns, k_lock_name,
+    log_info("Failed to get %s lock ('%.*s', '%.*s') on '%s': %s",
+             mysqlshdk::mysql::to_string(mode).c_str(),
+             static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
+             static_cast<int>(k_lock_name.size()), k_lock_name.data(),
              m_cluster_server->descr().c_str(), err.what());
 
     if (err.code() == ER_LOCKING_SERVICE_TIMEOUT) {
@@ -4835,14 +4834,16 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
     // available, otherwise do nothing (ignore if concurrent execution is not
     // supported, e.g., lock service plugin not available).
     try {
-      log_debug("Releasing locks for '%s' on %s.", k_lock_ns,
+      log_debug("Releasing locks for '%.*s' on %s.",
+                static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
                 instance->descr().c_str());
       mysqlshdk::mysql::release_lock(*instance, k_lock_ns);
 
     } catch (const shcore::Error &error) {
       // Ignore any error trying to release locks (e.g., might have not
       // been previously acquired due to lack of permissions).
-      log_error("Unable to release '%s' locks for '%s': %s", k_lock_ns,
+      log_error("Unable to release '%.*s' locks for '%s': %s",
+                static_cast<int>(k_lock_ns.size()), k_lock_ns.data(),
                 instance->descr().c_str(), error.what());
     }
   };

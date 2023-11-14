@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlshdk {
 namespace storage {
