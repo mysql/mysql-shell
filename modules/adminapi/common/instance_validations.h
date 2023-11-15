@@ -71,7 +71,7 @@ enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN, READ_REPLICA };
 
 size_t check_illegal_async_channels(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::unordered_set<std::string> &allowed_channels_);
+    std::unordered_set<std::string> allowed_channels_);
 
 void validate_async_channels(
     const mysqlshdk::mysql::IInstance &instance,

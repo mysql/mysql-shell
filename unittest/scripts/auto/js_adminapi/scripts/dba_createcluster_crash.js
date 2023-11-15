@@ -29,7 +29,7 @@ function try_once(fail_after, verbose, comm_stack) {
       testutil.wipeAllOutput();
     return 42;
   } catch (error) {
-    println("### Create failed as expected", error["message"]);
+    println("### Create failed as expected: ", error["message"]);
     EXPECT_TRUE(error["message"].search("debug break") >= 0);
   }
 
@@ -64,7 +64,7 @@ function try_once(fail_after, verbose, comm_stack) {
 
     EXPECT_FALSE(session.runSql("select * from mysql.slave_master_info where channel_name = '__mysql_innodb_cluster_creating_cluster__'").fetchOne());
   } catch (error) {
-    println("createCluster retry failed", error["message"]);
+    println("### createCluster retry failed: ", error["message"]);
     throw error;
   }
 
@@ -73,7 +73,6 @@ function try_once(fail_after, verbose, comm_stack) {
     // clear everything to prevent verbose output from triggering a failure
     testutil.wipeAllOutput();
   }
-
 
   println("### Cleaning up");
   if (c) {

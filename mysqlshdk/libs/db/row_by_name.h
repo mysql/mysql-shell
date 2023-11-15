@@ -34,6 +34,7 @@
 
 #include "mysqlshdk/libs/db/row.h"
 #include "mysqlshdk/libs/db/row_copy.h"
+#include "utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -48,36 +49,36 @@ class Field_names {
 
   Field_names(const Field_names &) = delete;
   Field_names &operator=(const Field_names &) = delete;
-  Field_names(Field_names &&) = default;
-  Field_names &operator=(Field_names &&) = default;
+  Field_names(Field_names &&) noexcept = default;
+  Field_names &operator=(Field_names &&) noexcept = default;
 
-  inline void add(const std::string &name) {
+  void add(const std::string &name) {
     if (has_field(name)) throw std::invalid_argument("duplicate field " + name);
 
     uint32_t idx = static_cast<uint32_t>(m_fields.size());
     m_fields[name] = idx;
   }
 
-  inline uint32_t field_index(const std::string &name) {
+  uint32_t field_index(const std::string &name) {
     auto it = m_fields.find(name);
     if (it == m_fields.end())
       throw std::invalid_argument("invalid field name " + name);
     return it->second;
   }
 
-  inline const std::string &field_name(uint32_t index) {
+  const std::string &field_name(uint32_t index) {
     for (const auto &f : m_fields) {
       if (f.second == index) return f.first;
     }
     throw std::invalid_argument("invalid field index " + std::to_string(index));
   }
 
-  inline bool has_field(const std::string &field) const {
+  bool has_field(const std::string &field) const {
     return m_fields.find(field) != m_fields.end();
   }
 
  private:
-  std::map<std::string, uint32_t> m_fields;
+  std::map<std::string, uint32_t, shcore::Case_insensitive_comparator> m_fields;
 };
 
 class Row_ref_by_name {

@@ -125,11 +125,11 @@ void copy_data(const mysql::IInstance &instance, const std::string &name,
                const std::string &target);
 
 void create_indicator_tag(const mysql::IInstance &instance,
-                          const std::string &name);
+                          std::string_view name);
 void drop_indicator_tag(const mysql::IInstance &instance,
-                        const std::string &name);
+                        std::string_view name);
 bool check_indicator_tag(const mysql::IInstance &instance,
-                         const std::string &name);
+                         std::string_view name);
 
 mysqlshdk::db::Ssl_options read_ssl_client_options(
     const mysqlshdk::mysql::IInstance &instance, bool set_cert, bool set_ca);

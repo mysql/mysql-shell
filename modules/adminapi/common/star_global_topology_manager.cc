@@ -133,11 +133,12 @@ void validate_unsupported_options(
         SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
   };
 
-  if (master_info.enabled_auto_position == 0) {
-    throw shcore::Exception(target +
-                                " uses replication without auto-positioning, "
-                                "which is not supported by the AdminAPI.",
-                            SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
+  if (!master_info.enabled_auto_position) {
+    throw shcore::Exception(
+        shcore::str_format("%s uses replication without auto-positioning, "
+                           "which is not supported by the AdminAPI.",
+                           target.c_str()),
+        SHERR_DBA_UNSUPPORTED_ASYNC_CONFIGURATION);
   }
 
   constexpr auto k_default_connect_retry = 60;
@@ -153,11 +154,10 @@ void validate_unsupported_options(
   check_equal(std::string(source_term + "_CONNECT_RETRY").c_str(),
               master_info.connect_retry, k_default_connect_retry);
   check_equal(std::string(source_term + "_SSL_VERIFY_SERVER_CERT").c_str(),
-              master_info.ssl_verify_server_cert, 0);
+              master_info.ssl_verify_server_cert ? 1 : 0, 0);
   check_double_equal(std::string(source_term + "_HEARTBEAT_PERIOD").c_str(),
                      master_info.heartbeat_period, k_default_heartbeat_period);
   check_blank(std::string(source_term + "_BIND").c_str(), master_info.bind);
-  check_strequal("IGNORE_SERVER_IDS", master_info.ignored_server_ids, "0");
   check_equal(std::string(source_term + "_RETRY_COUNT").c_str(),
               master_info.retry_count, k_default_retry_count);
   check_blank(std::string(source_term + "_PUBLIC_KEY_PATH").c_str(),
@@ -170,9 +170,7 @@ void validate_unsupported_options(
   check_equal(std::string(source_term + "_DELAY").c_str(),
               channel.relay_log_info.sql_delay, 0);
   check_blank("PRIVILEGE_CHECKS_USER",
-              channel.relay_log_info.privilege_checks_username.value_or(""));
-  check_blank("PRIVILEGE_CHECKS_USER",
-              channel.relay_log_info.privilege_checks_hostname.value_or(""));
+              channel.relay_log_info.privilege_checks_user.value_or(""));
 
   // channel.relay_log_info.require_row_format is allowed. It's new in 8.0.19
   // and if it's set to 1, it requires the binlog_format to be ROW, which is

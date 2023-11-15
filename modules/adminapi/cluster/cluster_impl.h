@@ -524,7 +524,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   /**
    * Checks for missing metadata recovery account entries, and fix them using
-   * info from mysql.slave_master_info.
+   * info from the performance schema replication tables.
    *
    * @param allow_non_standard_format If true, account that don't follow the
    * AdminAPI format are stored, otherwise, a message is generated and the
