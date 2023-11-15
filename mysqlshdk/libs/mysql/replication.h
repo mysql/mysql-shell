@@ -120,34 +120,28 @@ struct Replication_channel {
 };
 
 struct Replication_channel_master_info {
-  std::string master_log_name;
-  uint64_t master_log_pos;
   std::string host;
   std::string user_name;
-  // std::string user_password; will be deprecated/removed
-  uint64_t port;
-  uint64_t connect_retry;
+  uint64_t port{0};
+  uint64_t connect_retry{0};
   int enabled_ssl;
   std::string ssl_ca;
   std::string ssl_capath;
   std::string ssl_cert;
   std::string ssl_cipher;
   std::string ssl_key;
-  int ssl_verify_server_cert;
-  double heartbeat_period;
+  bool ssl_verify_server_cert{false};
+  double heartbeat_period{0.0};
   std::string bind;
-  std::string ignored_server_ids;
-  std::string uuid;
-  uint64_t retry_count;
+  uint64_t retry_count{0};
   std::string ssl_crl;
   std::string ssl_crlpath;
-  int enabled_auto_position;
+  bool enabled_auto_position{false};
   std::string channel_name;
   std::string tls_version;
 
   // 8.0+
   std::optional<std::string> public_key_path;
-  std::optional<int> get_public_key;
   std::optional<std::string> network_namespace;
   std::optional<std::string> compression_algorithm;
   std::optional<uint64_t> zstd_compression_level;
@@ -155,17 +149,10 @@ struct Replication_channel_master_info {
 };
 
 struct Replication_channel_relay_log_info {
-  std::string relay_log_name;
-  uint64_t relay_log_pos;
-  std::string master_log_name;
-  uint64_t master_log_pos;
   int sql_delay;
   uint64_t number_of_workers;
-  uint64_t id;
   std::string channel_name;
-  std::optional<std::string> privilege_checks_username;
-  std::optional<std::string> privilege_checks_hostname;
-  std::optional<int> require_row_format;
+  std::optional<std::string> privilege_checks_user;
 };
 
 struct Replication_channel_failover_source {
@@ -196,6 +183,9 @@ std::string to_string(const Replication_channel::Error &error);
 
 std::string format_status(const Replication_channel &channel,
                           bool verbose = false);
+
+inline constexpr mysqlshdk::utils::Version k_perf_schema_channels_min_version(
+    8, 4, 0);
 
 /**
  * Gets status information for a replication channel.
@@ -228,8 +218,7 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
                        Replication_channel::Error *out_sql_error);
 
 /**
- * Gets configuration for a replication channel (as obtained from
- * mysql.slave_master_info and slave_relay_log_info)
+ * Gets configuration for a replication channel.
  *
  * @return false if the channel does not exist.
  */

@@ -82,8 +82,16 @@ EXPECT_THROWS(function() {
 }, "Invalid value for cloneDonor: Invalid address format in '::1'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
 
 //@<> Try rejoin ONLINE instance (fail).
+shell.options["dba.logSql"] = 1;
+WIPE_SHELL_LOG();
+
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox2); });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname_ip}:${__mysql_sandbox_port2}' is ONLINE and replicating from '${hostname_ip}:${__mysql_sandbox_port1}'.`);
+
+if (__version_num >= 80400) {
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_master_info");
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_relay_log_info");
+}
 
 //@<> Deploy 3rd instance.
 var uuid3 = "5ef81566-9395-11e9-87e9-333333333333";

@@ -118,10 +118,9 @@ void load_instance_channels(Instance *instance,
       if (!mysqlshdk::mysql::get_channel_info(
               *conn, ch.channel_name, &instance->master_channel->master_info,
               &instance->master_channel->relay_log_info)) {
-        throw shcore::Exception::runtime_error(
-            "Could not query replication configuration from "
-            "mysql.slave_master_info, relay_log_info (channel = '" +
-            ch.channel_name + "')");
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Could not query replication configuration for channel '%s'.",
+            ch.channel_name.c_str()));
       }
     } else if (ch.channel_name != "group_replication_applier") {
       log_warning("%s has an unmanaged/unexpected replication channel '%s'",

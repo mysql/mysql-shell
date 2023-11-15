@@ -202,7 +202,15 @@ session1.runSql("create schema foobar");
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 cluster.status();
 
+shell.options["dba.logSql"] = 1;
+WIPE_SHELL_LOG();
+
 cluster.status({extended:1});
+
+if (__version_num >= 80400) {
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_master_info");
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_relay_log_info");
+}
 
 //@<> reset sandbox2
 cluster.removeInstance(__sandbox_uri2, {force:1});
