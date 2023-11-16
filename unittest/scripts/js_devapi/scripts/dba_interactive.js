@@ -176,7 +176,7 @@ connect_to_sandbox([__mysql_sandbox_port2]);
 session.runSql('SET GLOBAL super_read_only = 0');
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER missingprivileges@localhost");
-session.runSql("GRANT SUPER, CREATE USER ON *.* TO missingprivileges@localhost");
+session.runSql("GRANT CREATE USER ON *.* TO missingprivileges@localhost");
 session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO missingprivileges@localhost WITH GRANT OPTION;");

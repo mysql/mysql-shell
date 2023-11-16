@@ -25,14 +25,12 @@
 #include <algorithm>
 #include <array>
 #include <set>
-#include <unordered_set>
 
 // needs to be included first for FRIEND_TEST
 #include "unittest/gprod_clean.h"
 
 #include "modules/util/dump/schema_dumper.h"
 
-#include "modules/util/load/dump_loader.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -790,29 +788,9 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   session->execute(
       "GRANT ALL ON *.* TO 'admin2'@'localhost' WITH GRANT OPTION;");
   session->execute(
-      "CREATE USER IF NOT EXISTS 'superfirst'@'localhost' IDENTIFIED BY "
-      "'pwd';");
-  session->execute(
-      "GRANT SUPER, LOCK TABLES ON *.* TO 'superfirst'@'localhost';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'superafter'@'localhost' IDENTIFIED BY "
-      "'pwd';");
-  session->execute(
-      "GRANT INSERT,super, UPDATE ON *.* TO 'superafter'@'localhost';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'superonly'@'localhost' IDENTIFIED BY "
-      "'pwd';");
-  session->execute("GRANT SUPER, RELOAD ON *.* TO 'superonly'@'localhost';");
-  session->execute(
       "CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost' IDENTIFIED BY "
       "'pwd';");
   session->execute("GRANT SELECT ON * . * TO 'dumptestuser'@'localhost';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'abr@dab'@'localhost' IDENTIFIED BY "
-      "'pwd';");
-  session->execute(
-      "GRANT INSERT,SUPER,FILE,LOCK TABLES , reload, "
-      "SELECT ON * . * TO 'abr@dab'@'localhost';");
   std::string partial_revoke = "ON";
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     partial_revoke = session->query("show variables like 'partial_revokes';")
@@ -907,35 +885,85 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   EXPECT_THAT(out,
               AnyOf(HasSubstr(dumptestuser),
                     HasSubstr(shcore::str_replace(dumptestuser, "'", "`"))));
-  EXPECT_THAT(out, HasSubstr("-- begin user 'abr@dab'@'localhost'"));
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     EXPECT_THAT(out,
                 HasSubstr("GRANT SELECT ON *.* TO `dumptestuser`@`localhost`"));
-    EXPECT_THAT(
-        out,
-        HasSubstr("GRANT LOCK TABLES ON *.* TO `superfirst`@`localhost`;"));
-    EXPECT_THAT(
-        out,
-        HasSubstr("GRANT INSERT, UPDATE ON *.* TO `superafter`@`localhost`;"));
-    EXPECT_THAT(out, Not(HasSubstr("TO `superonly`@`localhost`;")));
-    EXPECT_THAT(out, HasSubstr(R"(-- begin grants 'abr@dab'@'localhost'
-GRANT SELECT, INSERT, LOCK TABLES ON *.* TO `abr@dab`@`localhost`;
--- end grants 'abr@dab'@'localhost')"));
   } else {
     EXPECT_THAT(
         out, HasSubstr("GRANT SELECT ON *.* TO 'dumptestuser'@'localhost';"));
-    EXPECT_THAT(
-        out,
-        HasSubstr("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';"));
-    EXPECT_THAT(
-        out,
-        HasSubstr("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';"));
-    EXPECT_THAT(out, Not(HasSubstr("TO 'superonly'@'localhost';")));
-    EXPECT_THAT(out, HasSubstr(R"(-- begin grants 'abr@dab'@'localhost'
+  }
+  EXPECT_THAT(out, Not(HasSubstr("SUPER")));
+
+  EXPECT_THAT(out, Not(HasSubstr("'root'")));
+  EXPECT_THAT(out, Not(HasSubstr("EXISTS 'mysql")));
+
+  wipe_all();
+  testutil->call_mysqlsh_c({_mysql_uri, "--sql", "-f", file_path});
+  EXPECT_TRUE(output_handler.std_err.empty());
+
+  session->execute("drop user 'dumptestuser'@'localhost';");
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
+    session->execute("DROP ROLE da_dumper");
+    session->execute("DROP USER `dave`@`%`");
+    if (partial_revoke != "ON")
+      session->execute("set global partial_revokes = 'OFF';");
+  }
+}
+
+TEST_F(Schema_dumper_test, dump_filtered_grants_super_priv) {
+  // Skip if version >= 8.4. Super has been removed in 8.4.
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 4)) {
+    SKIP_TEST("SUPER has been removed in 8.4.");
+  };
+
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'superfirst'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute("GRANT SUPER ON *.* TO 'superfirst'@'localhost';");
+  session->execute("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'superafter'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';");
+  session->execute("GRANT SUPER ON *.* TO 'superafter'@'localhost';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'superonly'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute("GRANT RELOAD ON *.* TO 'superonly'@'localhost';");
+  session->execute("GRANT SUPER ON *.* TO 'superonly'@'localhost';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'abr@dab'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute(
+      "GRANT INSERT,SUPER,FILE,LOCK TABLES , reload, "
+      "SELECT ON * . * TO 'abr@dab'@'localhost';");
+
+  Schema_dumper sd(session);
+  sd.opt_mysqlaas = true;
+  sd.opt_strip_restricted_grants = true;
+  Filtering_options filters;
+  filters.users().exclude(
+      std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
+  EXPECT_GE(sd.dump_grants(file.get(), filters).size(), 3);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+  file->flush();
+  file->close();
+  auto out = testutil->cat_file(file_path);
+
+  EXPECT_THAT(
+      out, HasSubstr("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';"));
+  EXPECT_THAT(
+      out,
+      HasSubstr("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';"));
+  EXPECT_THAT(out, Not(HasSubstr("TO 'superonly'@'localhost';")));
+
+  EXPECT_THAT(out, HasSubstr("-- begin user 'abr@dab'@'localhost'"));
+  EXPECT_THAT(out, HasSubstr(R"(-- begin grants 'abr@dab'@'localhost'
 GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
 -- end grants 'abr@dab'@'localhost')"));
-  }
+
   EXPECT_THAT(out, Not(HasSubstr("SUPER")));
 
   EXPECT_THAT(out, Not(HasSubstr("'root'")));
@@ -948,14 +976,7 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
   session->execute("drop user 'superfirst'@'localhost';");
   session->execute("drop user 'superafter'@'localhost';");
   session->execute("drop user 'superonly'@'localhost';");
-  session->execute("drop user 'dumptestuser'@'localhost';");
   session->execute("drop user 'abr@dab'@'localhost';");
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
-    session->execute("DROP ROLE da_dumper");
-    session->execute("DROP USER `dave`@`%`");
-    if (partial_revoke != "ON")
-      session->execute("set global partial_revokes = 'OFF';");
-  }
 }
 
 TEST_F(Schema_dumper_test, opt_mysqlaas) {
