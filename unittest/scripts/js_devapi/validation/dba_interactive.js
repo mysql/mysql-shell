@@ -267,7 +267,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 1 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB Cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN, SUPER ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
@@ -281,7 +281,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 2 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB Cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN, SUPER ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
@@ -295,7 +295,7 @@ The instance cluster settings were successfully persisted.
 
 //@# Dba: configureLocalInstance not enough privileges 3 {VER(<8.0.0)}
 |ERROR: The account 'missingprivileges'@'localhost' is missing privileges required to manage an InnoDB Cluster:|
-|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
+|GRANT FILE, PROCESS, RELOAD, REPLICATION CLIENT, SELECT, SHUTDOWN, SUPER ON *.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'missingprivileges'@'localhost' WITH GRANT OPTION;|
