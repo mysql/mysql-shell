@@ -43,7 +43,6 @@
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/undo.h"
 #include "modules/adminapi/dba/create_cluster.h"
-#include "modules/adminapi/replica_set/replica_set_status.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"

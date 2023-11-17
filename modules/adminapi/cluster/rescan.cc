@@ -1019,7 +1019,7 @@ shcore::Value Rescan::execute() {
   }
 
   // Print warning about not used instances in addInstances.
-  {
+  if (!m_options.add_instances_list.empty()) {
     std::vector<std::string> not_used_add_instances;
     not_used_add_instances.reserve(m_options.add_instances_list.size());
 
@@ -1039,12 +1039,8 @@ shcore::Value Rescan::execute() {
   }
 
   // Check if there are missing instances
-  std::shared_ptr<shcore::Value::Array_type> missing_instances;
-
   if (result->has_key("unavailableInstances")) {
-    missing_instances = result->get_array("unavailableInstances");
-
-    remove_metadata_for_instances(missing_instances);
+    remove_metadata_for_instances(result->get_array("unavailableInstances"));
   }
 
   if (result->has_key("updatedInstances")) {
@@ -1052,7 +1048,7 @@ shcore::Value Rescan::execute() {
   }
 
   // Fix all missing recovery accounts from metadata.
-  m_cluster->ensure_metadata_has_recovery_accounts();
+  m_cluster->ensure_metadata_has_recovery_accounts(true);
 
   // This calls ensures all of the instances have server_id as instance
   // attribute, including the case were rescan is executed and no new/updated
@@ -1108,7 +1104,7 @@ shcore::Value Rescan::execute() {
   ensure_transaction_size_limit_consistency();
 
   // Print warning about not used instances in removeInstances.
-  {
+  if (!m_options.remove_instances_list.empty()) {
     std::vector<std::string> not_used_remove_instances;
     not_used_remove_instances.reserve(m_options.remove_instances_list.size());
 
@@ -1133,7 +1129,7 @@ shcore::Value Rescan::execute() {
   //       the auto-increment settings on all of them.
   if (result->has_key("newTopologyMode") &&
       !result->is_null("newTopologyMode")) {
-    std::string new_topology_mode = result->get_string("newTopologyMode");
+    auto new_topology_mode = result->get_string("newTopologyMode");
 
     if (!new_topology_mode.empty()) {
       console->print_note("The topology mode of the cluster changed to '" +

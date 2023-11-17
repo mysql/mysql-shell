@@ -21,23 +21,25 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/replica_set/replica_set_status.h"
+#include "modules/adminapi/replica_set/status.h"
 
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba::replicaset {
 
 namespace {
 
@@ -86,8 +88,7 @@ void instance_diagnostics(shcore::Dictionary_t status,
   }
 
   if (server.primary_master) {
-    const topology::Channel *channel = instance.master_channel.get();
-    if (channel) {
+    if (instance.master_channel.get()) {
       issues->push_back(
           shcore::Value("ERROR: Instance is a PRIMARY but is replicating from "
                         "another instance."));
@@ -189,7 +190,7 @@ void instance_diagnostics(shcore::Dictionary_t status,
 }
 
 shcore::Dictionary_t server_status(const topology::Server &server,
-                                   const Status_options &opts) {
+                                   int show_details) {
   const topology::Instance *instance = server.get_primary_member();
 
   shcore::Dictionary_t status = shcore::make_dict();
@@ -208,40 +209,41 @@ shcore::Dictionary_t server_status(const topology::Server &server,
   // cluster is the active)
   // - whether member is ONLINE
   // - whether member is in the majority group
-  bool read_write = true;
+  {
+    bool read_write = true;
 
-  status->set("status", shcore::Value(to_string(server.status())));
+    status->set("status", shcore::Value(to_string(server.status())));
 
-  if (instance->connect_error.empty()) {
-    if (instance->is_fenced()) read_write = false;
-    bool is_primary = server.role() == topology::Node_role::PRIMARY;
+    if (instance->connect_error.empty()) {
+      if (instance->is_fenced()) read_write = false;
+      bool is_primary = server.role() == topology::Node_role::PRIMARY;
 
-    // only show fenced if details requested or if the value is unexpected
-    if (opts.show_details ||
-        (server.status() != topology::Node_status::ONLINE) ||
-        (is_primary && !read_write) || (!is_primary && read_write))
-      status->set("fenced", instance->is_fenced() ? shcore::Value::True()
-                                                  : shcore::Value::False());
-  } else {
-    status->set("fenced", shcore::Value::Null());
-    status->set("connectError", shcore::Value(instance->connect_error));
+      // only show fenced if details requested or if the value is unexpected
+      if (show_details || (server.status() != topology::Node_status::ONLINE) ||
+          (is_primary && !read_write) || (!is_primary && read_write))
+        status->set("fenced", instance->is_fenced() ? shcore::Value::True()
+                                                    : shcore::Value::False());
+    } else {
+      status->set("fenced", shcore::Value::Null());
+      status->set("connectError", shcore::Value(instance->connect_error));
+    }
+
+    // This should match the view the router would have of the instance.
+    // Since the router doesn't consider replication state, we can't consider
+    // that here either.
+    if (server.status() != topology::Node_status::INVALIDATED &&
+        server.status() != topology::Node_status::UNREACHABLE)
+      status->set("mode", shcore::Value(read_write ? "R/W" : "R/O"));
+    else
+      status->set("mode", shcore::Value::Null());
   }
-
-  // This should match the view the router would have of the instance.
-  // Since the router doesn't consider replication state, we can't consider
-  // that here either.
-  if (server.status() != topology::Node_status::INVALIDATED &&
-      server.status() != topology::Node_status::UNREACHABLE)
-    status->set("mode", shcore::Value(read_write ? "R/W" : "R/O"));
-  else
-    status->set("mode", shcore::Value::Null());
 
   if (!server.invalidated)
     status->set("instanceRole", shcore::Value(to_string(server.role())));
   else
     status->set("instanceRole", shcore::Value::Null());
 
-  if (opts.show_details) {
+  if (show_details) {
     shcore::Array_t array = shcore::make_array();
     if (instance->read_only.value_or(false))
       array->push_back(shcore::Value("read_only"));
@@ -291,7 +293,7 @@ shcore::Dictionary_t server_status(const topology::Server &server,
                       channel ? &channel->info : nullptr,
                       channel ? &channel->master_info : nullptr,
                       channel ? &channel->relay_log_info : nullptr,
-                      expected_source, opts.show_details)));
+                      expected_source, show_details)));
     }
 
     if (!server.master_instance_uuid.empty() || server.invalidated) {
@@ -317,7 +319,7 @@ shcore::Dictionary_t server_status(const topology::Server &server,
         txstatus = shcore::Value::Null();
       }
       if (server.status() != topology::Node_status::ONLINE || count > 0 ||
-          opts.show_details) {
+          show_details) {
         status->set("transactionSetConsistencyStatus", txstatus);
       }
     }
@@ -392,12 +394,12 @@ std::pair<Global_availability_status, std::string> global_availability_status(
 }
 
 shcore::Dictionary_t cluster_status(
-    const topology::Server_global_topology &topology,
-    const Status_options &opts) {
+    const topology::Server_global_topology &topology, int show_details) {
   shcore::Dictionary_t topo_status = shcore::make_dict();
 
   for (const topology::Server &server : topology.servers()) {
-    topo_status->set(server.label, shcore::Value(server_status(server, opts)));
+    topo_status->set(server.label,
+                     shcore::Value(server_status(server, show_details)));
   }
 
   Global_availability_status astatus;
@@ -408,24 +410,189 @@ shcore::Dictionary_t cluster_status(
   const topology::Node *primary = topology.get_primary_master_node();
 
   return shcore::make_dict(
-      "type", shcore::Value("ASYNC"),                     //
-      "topology", shcore::Value(std::move(topo_status)),  //
-      "status", shcore::Value(to_string(astatus)),        //
-      "statusText", shcore::Value(astatus_text),          //
+      "type", shcore::Value("ASYNC"),                        //
+      "topology", shcore::Value(std::move(topo_status)),     //
+      "status", shcore::Value(to_string(astatus)),           //
+      "statusText", shcore::Value(std::move(astatus_text)),  //
       "primary", primary ? shcore::Value(primary->label) : shcore::Value());
 }
 
 }  // namespace
 
-shcore::Dictionary_t replica_set_status(
-    const topology::Server_global_topology &topology,
-    const Status_options &opts) {
-  shcore::Dictionary_t status = shcore::make_dict();
+shcore::Value Status::do_run(int extended) {
+  auto status = shcore::make_dict();
 
-  status->set("replicaSet", shcore::Value(cluster_status(topology, opts)));
+  const auto &md_storage = m_rset.get_metadata_storage();
 
-  return status;
+  // topology info
+  {
+    Cluster_metadata cmd = m_rset.get_metadata();
+
+    auto topo = topology::scan_global_topology(md_storage.get(), cmd,
+                                               k_replicaset_channel_name, true);
+
+    status->set(
+        "replicaSet",
+        shcore::Value(cluster_status(
+            topo->as<const topology::Server_global_topology>(), extended)));
+
+    status->get_map("replicaSet")
+        ->set("name", shcore::Value(m_rset.get_name()));
+
+    auto get_instance_errors = [](const shcore::Value::Map_type &topo_status,
+                                  const std::string &endpoint) {
+      auto topo_errors = topo_status.get_map(endpoint);
+      if (!topo_errors->has_key("instanceErrors"))
+        topo_errors->set("instanceErrors", shcore::Value(shcore::make_array()));
+
+      return topo_errors->get_array("instanceErrors", nullptr);
+    };
+
+    // check for replication options mismatch
+    for (const topology::Server &server :
+         topo->as<const topology::Server_global_topology>().servers()) {
+      auto i = server.get_primary_member();
+      if (!i->master_channel) continue;
+
+      auto topo_status = status->get_map("replicaSet")->get_map("topology");
+      if (!topo_status->has_key(i->endpoint)) continue;
+
+      // SSL channel mode
+      {
+        std::string_view ssl_mode = kClusterSSLModeDisabled;
+        if (const auto &info = i->master_channel->master_info;
+            info.enabled_ssl != 0) {
+          bool certs_enabled = !info.ssl_ca.empty() || !info.ssl_capath.empty();
+          if (info.ssl_verify_server_cert) {
+            assert(certs_enabled);
+            ssl_mode = kClusterSSLModeVerifyIdentity;
+          } else {
+            ssl_mode = certs_enabled ? kClusterSSLModeVerifyCA
+                                     : kClusterSSLModeRequired;
+          }
+        }
+
+        auto target_map =
+            topo_status->get_map(i->endpoint)->get_map("replication");
+
+        target_map->set("replicationSslMode", shcore::Value(ssl_mode));
+      }
+
+      // check for repl options inconsistencies
+      {
+        bool has_null_options;
+        Async_replication_options ar_options;
+        m_rset.read_replication_options(i->uuid, &ar_options,
+                                        &has_null_options);
+
+        bool not_configured{true};
+        if (!has_null_options) {
+          auto options_to_update = async_merge_repl_options(
+              ar_options, i->master_channel->master_info);
+
+          if (!options_to_update.has_value()) {
+            not_configured = false;
+          }
+        }
+
+        if (not_configured)
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(
+                  "WARNING: The instance replication channel is not configured "
+                  "as expected (to see the affected options, use options()). "
+                  "Please call rejoinInstance() to reconfigure the channel "
+                  "accordingly."));
+      }
+
+      // check replication account
+      {
+        auto [md_account_user, md_account_host] =
+            md_storage->get_instance_repl_account(
+                i->uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
+
+        if (md_account_user.empty() || md_account_host.empty()) {
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(
+                  "ERROR: the instance is missing its replication account info "
+                  "from the metadata. Please call rescan() to fix this."));
+        }
+
+        auto intended_account_user =
+            Base_cluster_impl::make_replication_user_name(
+                i->server_id.value_or(0), k_async_cluster_user_name);
+
+        if (intended_account_user != i->master_channel->master_info.user_name)
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(shcore::str_format(
+                  "WARNING: Incorrect recovery account (%s) being used. Use "
+                  "ReplicaSet.rescan() to repair.",
+                  i->master_channel->master_info.user_name.c_str())));
+
+        if (!md_account_user.empty() &&
+            (md_account_user != i->master_channel->master_info.user_name))
+          get_instance_errors(*topo_status, i->endpoint)
+              ->push_back(shcore::Value(shcore::str_format(
+                  "WARNING: Stored recovery account (%s) doesn't match the one "
+                  "actually in use (%s). Use ReplicaSet.rescan() to repair.",
+                  md_account_user.c_str(),
+                  i->master_channel->master_info.user_name.c_str())));
+      }
+    }
+  }
+
+  // gets the async replication channels SSL info
+  scan_async_channel_ssl_info(status);
+
+  // Gets the metadata version
+  if (extended >= 1) {
+    auto version =
+        mysqlsh::dba::metadata::installed_version(md_storage->get_md_server());
+    status->set("metadataVersion", shcore::Value(version.get_base()));
+  }
+
+  return shcore::Value(status);
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+void Status::scan_async_channel_ssl_info(shcore::Dictionary_t status) {
+  const auto &md_storage = m_rset.get_metadata_storage();
+  auto instances = md_storage->get_replica_set_instances(m_rset.get_id());
+
+  auto topo = status->get_map("replicaSet")->get_map("topology");
+
+  for (const auto &i : instances) {
+    if (!topo->has_key(i.endpoint)) continue;
+    if (!topo->get_map(i.endpoint)->has_key("replication")) continue;
+
+    auto repl_account = md_storage->get_instance_repl_account_user(
+        i.uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
+
+    std::string ssl_cipher, ssl_version;
+    mysqlshdk::mysql::iterate_thread_variables(
+        *(md_storage->get_md_server()), "Binlog Dump GTID", repl_account,
+        "Ssl%",
+        [&ssl_cipher, &ssl_version](const std::string &var_name,
+                                    std::string var_value) {
+          if (var_name == "Ssl_cipher")
+            ssl_cipher = std::move(var_value);
+          else if (var_name == "Ssl_version")
+            ssl_version = std::move(var_value);
+
+          return (ssl_cipher.empty() || ssl_version.empty());
+        });
+
+    if (ssl_cipher.empty() && ssl_version.empty()) continue;
+
+    auto target_map = topo->get_map(i.endpoint)->get_map("replication");
+    assert(target_map->has_key("replicationSsl"));
+
+    if (ssl_cipher.empty())
+      (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_version));
+    else if (ssl_version.empty())
+      (*target_map)["replicationSsl"] = shcore::Value(std::move(ssl_cipher));
+    else
+      (*target_map)["replicationSsl"] = shcore::Value(
+          shcore::str_format("%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
+  }
+}
+
+}  // namespace mysqlsh::dba::replicaset

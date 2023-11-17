@@ -20,19 +20,19 @@ function CHECK_REPL_USERS(session, server_ids, host) {
   var host_ = host ? host : "%";
 
   var users = session.runSql("select user, host from mysql.user where user like 'mysql_innodb_%' order by user").fetchAll();
-  EXPECT_EQ(server_ids.length, users.length);
+  EXPECT_EQ(server_ids.length, users.length, "Number of users");
 
   for (i in server_ids) {
-    EXPECT_EQ("mysql_innodb_rs_"+server_ids[i], users[i][0]);
-    EXPECT_EQ(host_, users[i][1]);
+    EXPECT_EQ("mysql_innodb_rs_"+server_ids[i], users[i][0], `User mismatch: ${users[i][0]}`);
+    EXPECT_EQ(host_, users[i][1], `Host mismatch: ${users[i][1]}`);
 
     row = session.runSql("select attributes->>'$.replicationAccountUser', attributes->>'$.replicationAccountHost' from mysql_innodb_cluster_metadata.instances where attributes->>'$.server_id' = ?", [server_ids[i]]).fetchOne();
     if (host == null) {
       EXPECT_EQ(null, row[0]);
       EXPECT_EQ(null, row[1]);
     } else {
-      EXPECT_EQ(users[i][0], row[0]);
-      EXPECT_EQ(host_, row[1]);
+      EXPECT_EQ(users[i][0], row[0], `MD user mismatch: ${users[i][0]} / ${row[0]}`);
+      EXPECT_EQ(host_, row[1], `MD host mismatch: ${host_} / ${row[1]}`);
     }
   }
 
@@ -107,11 +107,11 @@ c.status();
 // check root user didn't get dropped
 EXPECT_EQ("%,localhost", session1.runSql("select group_concat(host) from mysql.user where user='root' order by host").fetchOne()[0]);
 
-// MD should also be empty
-CHECK_REPL_USERS(session1, [1111, 2222, 3333], null);
+// MD should not be empty
+CHECK_REPL_USERS(session1, [1111, 2222, 3333], "%");
 
 //@<> Check options for default
-EXPECT_EQ(null, get_global_option(c.options(), "replicationAllowedHost"));
+EXPECT_EQ("%", get_global_option(c.options(), "replicationAllowedHost"));
 
 //@<> Check setOption when changing from adopted default
 c.setOption("replicationAllowedHost", hostmask);
@@ -190,8 +190,8 @@ CHECK_REPL_USERS(session1, [1111], hostmask);
 session1.runSql("drop schema mysql_innodb_cluster_metadata");
 session1.runSql("drop user mysql_innodb_rs_1111@?", [hostmask]);
 
-session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
-session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
+session2.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1", [hostname_ip, __mysql_sandbox_port1]);
+session3.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1", [hostname_ip, __mysql_sandbox_port1]);
 session2.runSql("START " + get_replica_keyword());
 session3.runSql("START " + get_replica_keyword());
 
@@ -205,29 +205,29 @@ EXPECT_EQ("%,localhost", session1.runSql("select group_concat(host) from mysql.u
 session1.runSql("select * from mysql_innodb_cluster_metadata.instances");
 session1.runSql("select user,host from mysql.user");
 
-EXPECT_EQ(null, session1.runSql("select group_concat(attributes->>'$.replicationAccountUser') u from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
+EXPECT_EQ(`mysql_innodb_rs_1111,mysql_innodb_rs_2222,mysql_innodb_rs_3333`, session1.runSql("select group_concat(attributes->>'$.replicationAccountUser' ORDER BY attributes->>'$.replicationAccountUser') u from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
 EXPECT_EQ(`mysql_innodb_rs_1111@${hostname_ip},mysql_innodb_rs_2222@${hostname_ip},mysql_innodb_rs_3333@${hostname_ip}`, session1.runSql("select group_concat(concat(user,'@',host)) from mysql.user where user like 'mysql_innodb%' order by user").fetchOne()[0]);
 
-EXPECT_EQ("root", session2.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
-EXPECT_EQ("root", session3.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
+EXPECT_EQ("mysql_innodb_rs_2222", session2.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
+EXPECT_EQ("mysql_innodb_rs_3333", session3.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
 
 //@<> removeInstance on adopt
 c.removeInstance(__sandbox_uri2);
 
-EXPECT_EQ(null, session1.runSql("select group_concat(attributes->>'$.replicationAccountUser') u from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
+EXPECT_EQ(`mysql_innodb_rs_1111,mysql_innodb_rs_3333`, session1.runSql("select group_concat(attributes->>'$.replicationAccountUser' ORDER BY attributes->>'$.replicationAccountUser') u from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
 EXPECT_EQ(`mysql_innodb_rs_1111@${hostname_ip},mysql_innodb_rs_3333@${hostname_ip}`, session1.runSql("select group_concat(concat(user,'@',host)) from mysql.user where user like 'mysql_innodb%' order by user").fetchOne()[0]);
 
 // check root user didn't get dropped
 EXPECT_EQ("%,localhost", session1.runSql("select group_concat(host) from mysql.user where user='root' order by host").fetchOne()[0]);
 
-//@<> addInstance should use the proper hostname_ip
+//@<> addInstance should keep the hostname_ip
 c.addInstance(__sandbox_uri2);
 
-EXPECT_EQ(`mysql_innodb_rs_2222@${hostname_ip}`, session1.runSql("select group_concat(concat(attributes->>'$.replicationAccountUser','@',attributes->>'$.replicationAccountHost')) from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
+EXPECT_EQ(`mysql_innodb_rs_1111@${hostname_ip},mysql_innodb_rs_2222@${hostname_ip},mysql_innodb_rs_3333@${hostname_ip}`, session1.runSql("select group_concat(concat(attributes->>'$.replicationAccountUser','@',attributes->>'$.replicationAccountHost') ORDER BY attributes->>'$.replicationAccountUser') from mysql_innodb_cluster_metadata.instances where attributes->>'$.replicationAccountUser' is not null").fetchOne()[0]);
 EXPECT_EQ(`mysql_innodb_rs_1111@${hostname_ip},mysql_innodb_rs_2222@${hostname_ip},mysql_innodb_rs_3333@${hostname_ip}`, session1.runSql("select group_concat(concat(user,'@',host)) from mysql.user where user like 'mysql_innodb%' order by user").fetchOne()[0]);
 
 EXPECT_EQ("mysql_innodb_rs_2222", session2.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
-EXPECT_EQ("root", session3.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
+EXPECT_EQ("mysql_innodb_rs_3333", session3.runSql("select user_name from mysql.slave_master_info").fetchOne()[0]);
 
 //<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

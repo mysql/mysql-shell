@@ -381,9 +381,6 @@ true
             },
             "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",
-                "instanceErrors": [
-                    "ERROR: the instance is missing its replication account info from the metadata. Please call rescan() to fix this."
-                ],
                 "instanceRole": "SECONDARY",
                 "mode": "R/O",
                 "replication": {
@@ -392,16 +389,13 @@ true
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": null,
+                    "replicationSsl": "TLS_AES_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
             },
             "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>",
-                "instanceErrors": [
-                    "ERROR: the instance is missing its replication account info from the metadata. Please call rescan() to fix this."
-                ],
                 "instanceRole": "SECONDARY",
                 "mode": "R/O",
                 "replication": {
@@ -410,7 +404,7 @@ true
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": null,
+                    "replicationSsl": "TLS_AES_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"

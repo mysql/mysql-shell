@@ -645,7 +645,8 @@ void Cluster_impl::ensure_metadata_has_server_id(
       });
 }
 
-void Cluster_impl::ensure_metadata_has_recovery_accounts() {
+void Cluster_impl::ensure_metadata_has_recovery_accounts(
+    bool allow_non_standard_format) {
   auto endpoints =
       get_metadata_storage()->get_instances_with_recovery_accounts(get_id());
 
@@ -657,16 +658,17 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
 
   execute_in_members(
       {}, get_cluster_server()->get_connection_options(), {},
-      [this, &console, &endpoints](const std::shared_ptr<Instance> &instance,
-                                   const mysqlshdk::gr::Member &gr_member) {
+      [this, &console, &endpoints, &allow_non_standard_format](
+          const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &gr_member) {
         std::string recovery_user = mysqlshdk::mysql::get_replication_user(
             *instance, mysqlshdk::gr::k_gr_recovery_channel);
 
         log_debug("Fixing recovering account '%s' in instance '%s'",
                   recovery_user.c_str(), instance->descr().c_str());
 
-        bool recovery_is_valid = false;
-        if (!recovery_user.empty()) {
+        bool recovery_is_valid = allow_non_standard_format;
+        if (!recovery_is_valid && !recovery_user.empty()) {
           recovery_is_valid =
               shcore::str_beginswith(
                   recovery_user,
@@ -675,31 +677,30 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
                   recovery_user, mysqlshdk::gr::k_group_recovery_user_prefix);
         }
 
-        if (!recovery_user.empty()) {
-          if (!recovery_is_valid) {
-            console->print_error(shcore::str_format(
-                "Unsupported recovery account '%s' has been found for instance "
-                "'%s'. Operations such as "
-                "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
-                "<Cluster>.<<<addInstance>>>() may fail. Please remove and add "
-                "the instance back to the Cluster to ensure a supported "
-                "recovery account is used.",
-                recovery_user.c_str(), instance->descr().c_str()));
-            return true;
-          }
+        if (recovery_user.empty())
+          throw std::logic_error(shcore::str_format(
+              "Recovery user account not found for server address '%s' with "
+              "UUID %s",
+              instance->descr().c_str(), instance->get_uuid().c_str()));
 
-          auto it = endpoints.find(instance->get_uuid());
-          if ((it != endpoints.end()) && (it->second != recovery_user)) {
-            get_metadata_storage()->update_instance_repl_account(
-                gr_member.uuid, Cluster_type::GROUP_REPLICATION,
-                Replica_type::GROUP_MEMBER, recovery_user,
-                get_replication_user_host());
-          }
+        if (!recovery_is_valid) {
+          console->print_error(shcore::str_format(
+              "Unsupported recovery account '%s' has been found for instance "
+              "'%s'. Operations such as "
+              "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
+              "<Cluster>.<<<addInstance>>>() may fail. Please remove and add "
+              "the instance back to the Cluster to ensure a supported "
+              "recovery account is used.",
+              recovery_user.c_str(), instance->descr().c_str()));
+          return true;
+        }
 
-        } else {
-          throw std::logic_error(
-              "Recovery user account not found for server address: " +
-              instance->descr() + " with UUID " + instance->get_uuid());
+        auto it = endpoints.find(instance->get_uuid());
+        if ((it != endpoints.end()) && (it->second != recovery_user)) {
+          get_metadata_storage()->update_instance_repl_account(
+              gr_member.uuid, Cluster_type::GROUP_REPLICATION,
+              Replica_type::GROUP_MEMBER, recovery_user,
+              get_replication_user_host());
         }
 
         return true;
@@ -1432,7 +1433,7 @@ retry:
         current_console()->print_note(
             "Legacy cluster account management detected, will update it "
             "first.");
-        ensure_metadata_has_recovery_accounts();
+        ensure_metadata_has_recovery_accounts(false);
         goto retry;
       } else {
         throw shcore::Exception::runtime_error(

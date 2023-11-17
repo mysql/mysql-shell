@@ -21,24 +21,31 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
-#define MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
+#ifndef MODULES_ADMINAPI_REPLICA_SET_STATUS_H_
+#define MODULES_ADMINAPI_REPLICA_SET_STATUS_H_
 
-#include "modules/adminapi/common/global_topology.h"
+#include "scripting/types.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
+class Replica_set_impl;
+}
 
-struct Status_options {
-  bool show_members = false;
-  int show_details = 0;
+namespace mysqlsh::dba::replicaset {
+
+class Status {
+ protected:
+  Status(Replica_set_impl &rset) noexcept : m_rset(rset) {}
+
+  shcore::Value do_run(int extended);
+  static constexpr bool supports_undo() noexcept { return false; }
+
+ private:
+  void scan_async_channel_ssl_info(shcore::Dictionary_t status);
+
+ private:
+  Replica_set_impl &m_rset;
 };
 
-shcore::Dictionary_t replica_set_status(
-    const topology::Server_global_topology &topology,
-    const Status_options &opts);
+}  // namespace mysqlsh::dba::replicaset
 
-}  // namespace dba
-}  // namespace mysqlsh
-
-#endif  // MODULES_ADMINAPI_REPLICA_SET_REPLICA_SET_STATUS_H_
+#endif  // MODULES_ADMINAPI_REPLICA_SET_STATUS_H_

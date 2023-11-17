@@ -52,6 +52,13 @@ shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user
 //@<> Create cluster adopting from GR
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
 
+// verify that all the recovery accounts have the correct format
+status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
+EXPECT_EQ(2, session.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances WHERE attributes->>'$.recoveryAccountUser' REGEXP '^mysql_innodb_cluster_[[:digit:]]+$'").fetchOne()[0]);
+
 // Verify read_only_targets is set to secondary as default in the metadata
 routing_options = cluster.routingOptions();
 EXPECT_EQ("secondaries", routing_options["global"]["read_only_targets"]);

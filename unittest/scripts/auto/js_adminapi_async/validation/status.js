@@ -513,7 +513,9 @@
                 "fenced": true,
                 "instanceErrors": [
                     "ERROR: Instance is a PRIMARY but is READ-ONLY: read_only=ON",
-                    "ERROR: Instance is a PRIMARY but is replicating from another instance."
+                    "ERROR: Instance is a PRIMARY but is replicating from another instance.",
+                    "WARNING: Incorrect recovery account (root) being used. Use ReplicaSet.rescan() to repair.",
+                    "WARNING: Stored recovery account (mysql_innodb_rs_[[*]]) doesn't match the one actually in use (root). Use ReplicaSet.rescan() to repair."
                 ],
                 "instanceRole": "PRIMARY",
                 "mode": "R/O",
@@ -563,7 +565,9 @@
                 "fenced": true,
                 "instanceErrors": [
                     "ERROR: Instance is a PRIMARY but is READ-ONLY: read_only=ON",
-                    "ERROR: Instance is a PRIMARY but is replicating from another instance."
+                    "ERROR: Instance is a PRIMARY but is replicating from another instance.",
+                    "WARNING: Incorrect recovery account (root) being used. Use ReplicaSet.rescan() to repair.",
+                    "WARNING: Stored recovery account (mysql_innodb_rs_[[*]]) doesn't match the one actually in use (root). Use ReplicaSet.rescan() to repair."
                 ],
                 "instanceRole": "PRIMARY",
                 "mode": "R/O",

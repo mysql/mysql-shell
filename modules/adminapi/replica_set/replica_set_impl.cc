@@ -48,8 +48,8 @@
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/replica_set/describe.h"
 #include "modules/adminapi/replica_set/dissolve.h"
-#include "modules/adminapi/replica_set/replica_set_status.h"
 #include "modules/adminapi/replica_set/rescan.h"
+#include "modules/adminapi/replica_set/status.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -66,8 +66,6 @@ namespace {
 // Constants with the names used to lock the cluster
 constexpr std::string_view k_lock_ns{"AdminAPI_replicaset"};
 constexpr std::string_view k_lock_name{"AdminAPI_lock"};
-
-constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
 
 constexpr const char k_replica_set_attribute_ssl_mode[] =
     "opt_replicationSslMode";
@@ -533,10 +531,15 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
       MetadataStorage::Transaction trx(m_metadata_storage);
       auto id = m_metadata_storage->create_async_cluster_record(this, true);
 
-      if (!options.replication_allowed_host.empty())
+      {
+        auto allowed_host = options.replication_allowed_host.empty()
+                                ? "%"
+                                : options.replication_allowed_host;
+
         m_metadata_storage->update_cluster_attribute(
             id, k_cluster_attribute_replication_allowed_host,
-            shcore::Value(options.replication_allowed_host));
+            shcore::Value(std::move(allowed_host)));
+      }
 
       m_metadata_storage->update_instance_attribute(
           id, k_instance_attribute_cert_subject,
@@ -545,16 +548,21 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
       trx.commit();
     }
 
-    // Create rpl user to be used in the future (for primary).
-    auto user = create_replication_user(
-        m_cluster_server.get(), options.member_auth_options.cert_subject,
-        dry_run);
-
+    // create rpl user for primary
     Instance_id primary_id = 0;
+    {
+      const auto [auth_options, host] = create_replication_user(
+          m_cluster_server.get(), options.member_auth_options.cert_subject,
+          dry_run);
 
-    if (!dry_run)
-      primary_id = manage_instance(primary_instance.get(), {}, "", 0, true);
+      if (!dry_run)
+        primary_id = manage_instance(primary_instance.get(),
+                                     {auth_options.user, host}, "", 0, true);
+    }
+
     console->print_info();
+
+    std::string unused_repl_users;
 
     for (const auto *server : topology->topology()->nodes()) {
       if (server == primary) continue;
@@ -566,16 +574,64 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
       if (!dry_run)
         cert_subject = query_cluster_instance_auth_cert_subject(*instance);
 
-      // Create rpl user to be used in the future (for secondary).
-      user = create_replication_user(instance.get(), cert_subject, dry_run);
+      const auto [auth_options, host] =
+          create_replication_user(instance.get(), cert_subject, dry_run);
 
       log_info("Fencing SECONDARY %s", server->label.c_str());
 
       if (!dry_run) fence_instance(instance.get());
 
       log_info("Recording metadata for %s", server->label.c_str());
-      if (!dry_run) manage_instance(instance.get(), {}, "", primary_id, false);
+      if (!dry_run) {
+        manage_instance(instance.get(), {auth_options.user, host}, "",
+                        primary_id, false);
+
+        auto repl_user_old = mysqlshdk::mysql::get_replication_user(
+            *instance, k_replicaset_channel_name);
+
+        try {
+          mysqlshdk::mysql::stop_replication_receiver(
+              *instance, k_replicaset_channel_name);
+
+          shcore::Scoped_callback start_channel([&instance]() {
+            mysqlshdk::mysql::start_replication_receiver(
+                *instance, k_replicaset_channel_name);
+          });
+
+          mysqlshdk::mysql::Replication_credentials_options repl_options;
+          repl_options.password = auth_options.password.value_or("");
+
+          mysqlshdk::mysql::change_replication_credentials(
+              *instance, k_replicaset_channel_name, auth_options.user,
+              repl_options);
+
+        } catch (...) {
+          console->print_error(
+              shcore::str_format("An error occurred while trying to update the "
+                                 "replication account for instance '%s'. "
+                                 "Please try to invoke the command again.",
+                                 instance->descr().c_str()));
+          throw;
+        }
+
+        auto repl_user_new = mysqlshdk::mysql::get_replication_user(
+            *instance, k_replicaset_channel_name);
+
+        if (!repl_user_old.empty() && !repl_user_new.empty() &&
+            (repl_user_old != repl_user_new) && (repl_user_old != "root")) {
+          if (!unused_repl_users.empty()) unused_repl_users.append(", ");
+          unused_repl_users.append("'").append(repl_user_old).append("'");
+        }
+      }
     }
+
+    if (!unused_repl_users.empty())
+      console->print_info(shcore::str_format(
+          "A new replication user was created for each instance of the "
+          "ReplicaSet, which means that the following users are unused and "
+          "should be removed: %s",
+          unused_repl_users.c_str()));
+
   } catch (...) {
     console->print_error(
         "Failed to update the metadata. Please fix the issue and drop the "
@@ -2230,161 +2286,7 @@ shcore::Value Replica_set_impl::describe() {
 shcore::Value Replica_set_impl::status(int extended) {
   check_preconditions_and_primary_availability("status", false);
 
-  shcore::Dictionary_t status;
-
-  // topology info
-  {
-    Cluster_metadata cmd = get_metadata();
-
-    auto topo = topology::scan_global_topology(
-        get_metadata_storage().get(), cmd, k_replicaset_channel_name, true);
-
-    Status_options opts;
-    opts.show_members = true;
-    opts.show_details = extended;
-
-    status = replica_set_status(
-        topo->as<const topology::Server_global_topology>(), opts);
-
-    status->get_map("replicaSet")->set("name", shcore::Value(get_name()));
-
-    auto get_instance_errors = [](const shcore::Value::Map_type &topo_status,
-                                  const std::string &endpoint) {
-      auto topo_errors = topo_status.get_map(endpoint);
-      if (!topo_errors->has_key("instanceErrors"))
-        topo_errors->set("instanceErrors", shcore::Value(shcore::make_array()));
-
-      return topo_errors->get_array("instanceErrors", nullptr);
-    };
-
-    // check for replication options mismatch
-    for (const topology::Server &server :
-         topo->as<const topology::Server_global_topology>().servers()) {
-      auto i = server.get_primary_member();
-      if (!i->master_channel) continue;
-
-      auto topo_status = status->get_map("replicaSet")->get_map("topology");
-      if (!topo_status->has_key(i->endpoint)) continue;
-
-      // SSL channel mode
-      {
-        std::string_view ssl_mode = kClusterSSLModeDisabled;
-        if (const auto &info = i->master_channel->master_info;
-            info.enabled_ssl != 0) {
-          bool certs_enabled = !info.ssl_ca.empty() || !info.ssl_capath.empty();
-          if (info.ssl_verify_server_cert) {
-            assert(certs_enabled);
-            ssl_mode = kClusterSSLModeVerifyIdentity;
-          } else {
-            ssl_mode = certs_enabled ? kClusterSSLModeVerifyCA
-                                     : kClusterSSLModeRequired;
-          }
-        }
-
-        auto target_map =
-            topo_status->get_map(i->endpoint)->get_map("replication");
-
-        target_map->set("replicationSslMode", shcore::Value(ssl_mode));
-      }
-
-      // check for repl options inconsistencies
-      {
-        bool has_null_options;
-        Async_replication_options ar_options;
-        read_replication_options(i->uuid, &ar_options, &has_null_options);
-
-        bool not_configured{true};
-        if (!has_null_options) {
-          auto options_to_update = async_merge_repl_options(
-              ar_options, i->master_channel->master_info);
-
-          if (!options_to_update.has_value()) {
-            not_configured = false;
-          }
-        }
-
-        if (not_configured)
-          get_instance_errors(*topo_status, i->endpoint)
-              ->push_back(shcore::Value(
-                  "WARNING: The instance replication channel is not configured "
-                  "as expected (to see the affected options, use options()). "
-                  "Please call rejoinInstance() to reconfigure the channel "
-                  "accordingly."));
-      }
-
-      // check replication accounts
-      {
-        auto [account_user, account_host] =
-            get_metadata_storage()->get_instance_repl_account(
-                i->uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
-
-        if (account_user.empty() || account_host.empty()) {
-          get_instance_errors(*topo_status, i->endpoint)
-              ->push_back(shcore::Value(shcore::str_format(
-                  "ERROR: the instance is missing its replication account info "
-                  "from the metadata. Please call rescan() to fix this.")));
-        }
-      }
-    }
-  }
-
-  // Gets the metadata version
-  if (extended >= 1) {
-    auto version = mysqlsh::dba::metadata::installed_version(
-        m_metadata_storage->get_md_server());
-    status->set("metadataVersion", shcore::Value(version.get_base()));
-  }
-
-  // gets the async replication channels SSL info
-  {
-    auto instances =
-        get_metadata_storage()->get_replica_set_instances(get_id());
-
-    auto topo = status->get_map("replicaSet")->get_map("topology");
-
-    for (const auto &i : instances) {
-      if (!topo->has_key(i.endpoint)) continue;
-      if (!topo->get_map(i.endpoint)->has_key("replication")) continue;
-
-      // SSL info
-      {
-        auto repl_account =
-            get_metadata_storage()->get_instance_repl_account_user(
-                i.uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
-
-        std::string ssl_cipher, ssl_version;
-        mysqlshdk::mysql::iterate_thread_variables(
-            *(get_metadata_storage()->get_md_server()), "Binlog Dump GTID",
-            repl_account, "Ssl%",
-            [&ssl_cipher, &ssl_version](const std::string &var_name,
-                                        std::string var_value) {
-              if (var_name == "Ssl_cipher")
-                ssl_cipher = std::move(var_value);
-              else if (var_name == "Ssl_version")
-                ssl_version = std::move(var_value);
-
-              return (ssl_cipher.empty() || ssl_version.empty());
-            });
-
-        if (!ssl_cipher.empty() || !ssl_version.empty()) {
-          auto target_map = topo->get_map(i.endpoint)->get_map("replication");
-          assert(target_map->has_key("replicationSsl"));
-
-          if (ssl_cipher.empty())
-            (*target_map)["replicationSsl"] =
-                shcore::Value(std::move(ssl_version));
-          else if (ssl_version.empty())
-            (*target_map)["replicationSsl"] =
-                shcore::Value(std::move(ssl_cipher));
-          else
-            (*target_map)["replicationSsl"] = shcore::Value(shcore::str_format(
-                "%s %s", ssl_cipher.c_str(), ssl_version.c_str()));
-        }
-      }
-    }
-  }
-
-  return shcore::Value(status);
+  return Topology_executor<replicaset::Status>{*this}.run(extended);
 }
 
 std::shared_ptr<Global_topology_manager> Replica_set_impl::get_topology_manager(
