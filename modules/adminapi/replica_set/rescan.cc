@@ -25,6 +25,7 @@
 
 #include <ranges>
 
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -373,6 +374,41 @@ void Rescan::scan_replication_accounts(const Scoped_instance_list &instances) {
   }
 
   bool updated_account{false};
+
+  // make sure that the account format is correct
+  for (const auto &i : instances.list()) {
+    if (i->get_uuid() == primary->get_uuid()) continue;
+
+    auto replication_user =
+        mysqlshdk::mysql::get_replication_user(*i, k_replicaset_channel_name);
+
+    auto replication_intended_user =
+        Base_cluster_impl::make_replication_user_name(
+            i->get_server_id(), k_async_cluster_user_name);
+
+    if (replication_intended_user == replication_user) continue;
+
+    updated_account = true;
+    console->print_info(shcore::str_format(
+        "Updating replication account for instance '%s'.", i->descr().c_str()));
+
+    const auto [new_auth_options, new_host] = m_rset.create_replication_user(
+        i.get(), m_rset.query_cluster_instance_auth_cert_subject(*i), false);
+
+    {
+      Async_replication_options repl_options;
+      repl_options.repl_credentials = new_auth_options;
+
+      async_update_replica_credentials(i.get(), k_replicaset_channel_name,
+                                       repl_options, false);
+    }
+
+    md->update_instance_repl_account(
+        i->get_uuid(), Cluster_type::ASYNC_REPLICATION, Replica_type::NONE,
+        new_auth_options.user, new_host);
+  }
+
+  // make sure that the MD has the account
   for (const auto &i : instances.list()) {
     if (i->get_uuid() == primary->get_uuid()) continue;
 

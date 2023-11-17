@@ -299,7 +299,6 @@ session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
-
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 session1 = mysql.getSession(__sandbox_uri1);
@@ -382,7 +381,16 @@ var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
 
 // check that repl configs didn't change
 EXPECT_EQ(slaves1, session.runSql("SELECT * FROM performance_schema.replication_connection_configuration").fetchAll());
-EXPECT_EQ(slaves2, session2.runSql("SELECT * FROM performance_schema.replication_connection_configuration").fetchAll());
+
+var slaves2_new = session2.runSql("SELECT * FROM performance_schema.replication_connection_configuration").fetchAll();
+EXPECT_EQ(slaves2[0].length, slaves2_new[0].length);
+for (var i = 0; i < slaves2[0].length; i++) {
+    if (i == 3) {
+        EXPECT_EQ("mysql_innodb_rs_" + session2.runSql("SELECT @@server_id").fetchOne()[0], slaves2_new[0][i]);
+        continue;
+    }
+    EXPECT_EQ(slaves2[0][i], slaves2_new[0][i]);
+}
 
 rs.status();
 
@@ -394,10 +402,49 @@ setup_slave(session2, __mysql_sandbox_port1);
 setup_slave(session3, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+session2.runSql("STOP SLAVE");
+session2.runSql("CHANGE MASTER TO GET_MASTER_PUBLIC_KEY=1");
+session2.runSql("START SLAVE");
+
+session3.runSql("STOP SLAVE");
+session3.runSql("CHANGE MASTER TO GET_MASTER_PUBLIC_KEY=1");
+session3.runSql("START SLAVE");
+
 var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
+
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 rs.status();
+
+reset_instance(session);
+reset_instance(session2);
+reset_instance(session3);
+
+//<> Check unused users message
+
+setup_slave(session2, __mysql_sandbox_port1);
+setup_slave(session3, __mysql_sandbox_port1);
+session.runSql("CREATE USER foo@'%' IDENTIFIED BY 'foo_pwd' REQUIRE NONE");
+session.runSql("GRANT CLONE_ADMIN, EXECUTE ON *.* TO foo@'%'");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
+session.runSql("CREATE USER bar@'%' IDENTIFIED BY 'bar_pwd' REQUIRE NONE");
+session.runSql("GRANT CLONE_ADMIN, EXECUTE ON *.* TO bar@'%'");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO bar@'%'");
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+session2.runSql("STOP SLAVE");
+session2.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='foo', " + get_replication_option_keyword() + "_PASSWORD='foo_pwd', GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1");
+session2.runSql("START SLAVE");
+
+session3.runSql("STOP SLAVE");
+session3.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='bar', " + get_replication_option_keyword() + "_PASSWORD='bar_pwd', GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1");
+session3.runSql("START SLAVE");
+
+var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
+EXPECT_OUTPUT_CONTAINS("A new replication user was created for each instance of the ReplicaSet, which means that the following users are unused and should be removed: 'foo', 'bar'");
 
 reset_instance(session);
 reset_instance(session2);
@@ -428,7 +475,6 @@ function clean(snap) {
 EXPECT_JSON_EQ(snap1, repl_snapshot(session));
 
 EXPECT_JSON_EQ(clean(snap2), clean(repl_snapshot(session2)));
-
 
 reset_instance(session);
 reset_instance(session2);

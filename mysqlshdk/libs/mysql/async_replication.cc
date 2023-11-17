@@ -294,7 +294,7 @@ void stop_replication(const mysqlshdk::mysql::IInstance &instance,
 
 bool stop_replication_safe(const mysqlshdk::mysql::IInstance &instance,
                            const std::string &channel_name, int timeout_sec) {
-  log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica channel '%s' for '%s'...", channel_name.c_str(),
             instance.descr().c_str());
   std::string replica_term =
       mysqlshdk::mysql::get_replica_keyword(instance.get_version());
@@ -310,7 +310,8 @@ bool stop_replication_safe(const mysqlshdk::mysql::IInstance &instance,
       if (n == "0") return true;
 
       log_warning(
-          "Slave_open_tables has unexpected value %s at %s (unsupported SBR in "
+          "Slave_open_tables has unexpected value '%s' at '%s' (unsupported "
+          "SBR in "
           "use?)",
           n.c_str(), instance.descr().c_str());
 
@@ -336,7 +337,7 @@ bool stop_replication_safe(const mysqlshdk::mysql::IInstance &instance,
 
 void start_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
                                 const std::string &channel_name) {
-  log_debug("Starting replica io_thread %s for %s...", channel_name.c_str(),
+  log_debug("Starting replica io_thread '%s' for '%s'...", channel_name.c_str(),
             instance.descr().c_str());
   instance.executef(
       "START " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
@@ -346,7 +347,7 @@ void start_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
 
 void stop_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &channel_name) {
-  log_debug("Stopping replica io_thread %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica io_thread '%s' for '%s'...", channel_name.c_str(),
             instance.descr().c_str());
   instance.executef(
       "STOP " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
@@ -356,8 +357,8 @@ void stop_replication_receiver(const mysqlshdk::mysql::IInstance &instance,
 
 void start_replication_applier(const mysqlshdk::mysql::IInstance &instance,
                                const std::string &channel_name) {
-  log_debug("Starting replica sql_thread %s for %s...", channel_name.c_str(),
-            instance.descr().c_str());
+  log_debug("Starting replica sql_thread '%s' for '%s'...",
+            channel_name.c_str(), instance.descr().c_str());
   instance.executef(
       "START " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " SQL_THREAD FOR CHANNEL ?",
@@ -366,8 +367,8 @@ void start_replication_applier(const mysqlshdk::mysql::IInstance &instance,
 
 void stop_replication_applier(const mysqlshdk::mysql::IInstance &instance,
                               const std::string &channel_name) {
-  log_debug("Stopping replica sql_thread %s for %s...", channel_name.c_str(),
-            instance.descr().c_str());
+  log_debug("Stopping replica sql_thread '%s' for '%s'...",
+            channel_name.c_str(), instance.descr().c_str());
   instance.executef(
       "STOP " + mysqlshdk::mysql::get_replica_keyword(instance.get_version()) +
           " SQL_THREAD FOR CHANNEL ?",

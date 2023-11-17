@@ -173,7 +173,47 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
-                                   [__mysql_sandbox_port2, "OK"]]);
+                                   [__mysql_sandbox_port3, "OK"]]);
+
+//@<> Rescan must change the recovery username if it doesn't have the expected format
+
+session2 = mysql.getSession(__sandbox_uri2);
+
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = ?", [`${hostname}:${__mysql_sandbox_port2}`]);
+
+session2.runSql("STOP group_replication");
+session2.runSql("SET sql_log_bin=0");
+session2.runSql("SET global super_read_only=0");
+session2.runSql("CREATE USER IF NOT EXISTS foo@'%' IDENTIFIED BY 'password'");
+session2.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
+if (__version_num >= 80000) {
+    session2.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
+    session2.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
+    session2.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
+}
+session2.runSql("FLUSH PRIVILEGES");
+session2.runSql("SET sql_log_bin=1");
+session2.runSql("CHANGE MASTER TO MASTER_USER='foo', MASTER_PASSWORD='password' FOR CHANNEL 'group_replication_recovery'");
+
+session.runSql("CREATE USER IF NOT EXISTS foo@'%' IDENTIFIED BY 'password'");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
+if (__version_num >= 80000) {
+    session.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
+    session.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
+    session.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
+}
+session.runSql("FLUSH PRIVILEGES");
+
+session2.runSql("START group_replication");
+session2.close();
+
+EXPECT_NO_THROWS(function(){ cluster.rescan({addUnmanaged: true}); });
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully added to the cluster metadata.`);
+EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'foo' in instance '${hostname}:${__mysql_sandbox_port2}'`);
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@ No-op - Still missing server_id attributes are added
 var initial_atts = session.runSql(`SELECT attributes->'$.server_id' AS server_id FROM mysql_innodb_cluster_metadata.instances WHERE address = '${hostname}:${__mysql_sandbox_port3}'`).fetchOneObject();
@@ -363,7 +403,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                 [__mysql_sandbox_port2, "OK"],
                                 [__mysql_sandbox_port3, "OK"]]);
 
-//@<> Rescan must change the recovery username if it doesn't have the correct format
+//@<> Rescan must change the recovery username if it doesn't have the correct format (even if the prefix is the same)
 session.runSql("CREATE USER IF NOT EXISTS mysql_innodb_cluster_11foo22@'%' IDENTIFIED BY 'password'");
 session.runSql("GRANT ALL ON *.* TO mysql_innodb_cluster_11foo22@'%'");
 session.runSql("FLUSH PRIVILEGES");

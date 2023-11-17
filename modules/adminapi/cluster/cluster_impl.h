@@ -492,6 +492,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   /**
    * Get the list of instances in the states described in the states vector.
+   *
    * @param states Vector of strings with the states of members whose
    * instance_metadata we will retrieve from the cluster. If the states vector
    * is empty, return the list of all instances.
@@ -521,8 +522,12 @@ class Cluster_impl final : public Base_cluster_impl,
    * Checks for missing metadata recovery account entries, and fix them using
    * info from mysql.slave_master_info.
    *
+   * @param allow_non_standard_format If true, account that don't follow the
+   * AdminAPI format are stored, otherwise, a message is generated and the
+   * account ignored.
+   *
    */
-  void ensure_metadata_has_recovery_accounts();
+  void ensure_metadata_has_recovery_accounts(bool allow_non_standard_format);
 
   /**
    * Get an online instance from the cluster.

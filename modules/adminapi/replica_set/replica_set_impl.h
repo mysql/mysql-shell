@@ -46,6 +46,8 @@
 namespace mysqlsh {
 namespace dba {
 
+inline constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
+
 class Replica_set_impl final : public Base_cluster_impl {
  public:
   Replica_set_impl(const std::string &cluster_name,
@@ -164,6 +166,10 @@ class Replica_set_impl final : public Base_cluster_impl {
       topology::Server_global_topology **out_topology = nullptr,
       bool deep = false);
 
+  void read_replication_options(std::string_view instance_uuid,
+                                Async_replication_options *ar_options,
+                                bool *has_null_options);
+
   // Lock methods
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_shared(
@@ -253,9 +259,6 @@ class Replica_set_impl final : public Base_cluster_impl {
       const std::string &function_name,
       bool throw_if_primary_unavailable = true);
 
-  void read_replication_options(std::string_view instance_uuid,
-                                Async_replication_options *ar_options,
-                                bool *has_null_options);
   void read_replication_options(const mysqlshdk::mysql::IInstance *instance,
                                 Async_replication_options *ar_options,
                                 bool *has_null_options = nullptr);

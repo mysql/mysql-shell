@@ -26,6 +26,10 @@ function validate_instance_status(status, instance, expected) {
         EXPECT_EQ(instance_status["status"], "CONNECTING");
         EXPECT_TRUE("instanceErrors" in instance_status);
         EXPECT_CONTAINS("NOTE: Replication I/O thread is reconnecting.", instance_status["instanceErrors"][0]);
+    } else if (expected == "RECV_ACCOUNT") {
+        EXPECT_EQ(instance_status["status"], "ONLINE");
+        EXPECT_TRUE("instanceErrors" in instance_status);
+        EXPECT_CONTAINS("WARNING: Incorrect recovery account ", instance_status["instanceErrors"][0]);
     } else {
         testutil.fail("Unknown state: " + expected)
     }
@@ -321,9 +325,53 @@ EXPECT_OUTPUT_NOT_CONTAINS("Adding instance ");
 EXPECT_OUTPUT_NOT_CONTAINS("Removing instance ");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating replication account for instance ");
 
-//@<> Rescan must ignore invalidated former primaries
-rset.status();
+//@<> Rescan must fix incorrect user account both on the MD and the replication channel
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
 
+rset = dba.createReplicaSet('rset', {gtidSetIsComplete: true});
+rset.addInstance(__sandbox_uri2);
+rset.addInstance(__sandbox_uri3);
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
+
+//change recovery user on the MD only
+user2 = session.runSql("SELECT attributes->>'$.replicationAccountUser' FROM mysql_innodb_cluster_metadata.instances WHERE (address = ?)", [`${hostname}:${__mysql_sandbox_port2}`]).fetchOne()[0];
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_set(COALESCE(attributes, '{}'), \"$.replicationAccountUser\", ?) WHERE (address = ?)", ["bar", `${hostname}:${__mysql_sandbox_port2}`]);
+
+status = rset.status();
+EXPECT_TRUE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"].length, 1);
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][0], `WARNING: Stored recovery account (bar) doesn't match the one actually in use (${user2}). Use ReplicaSet.rescan() to repair.`);
+
+// change the channel username
+session.runSql("CREATE USER IF NOT EXISTS 'foo'@'%' IDENTIFIED BY 'pwd' REQUIRE NONE");
+session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'foo'@'%'");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("STOP REPLICA FOR CHANNEL ''");
+session2.runSql("CHANGE REPLICATION SOURCE TO SOURCE_USER='foo', SOURCE_PASSWORD='pwd' FOR CHANNEL ''");
+session2.runSql("START REPLICA FOR CHANNEL ''");
+
+status = rset.status();
+EXPECT_TRUE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"].length, 2);
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][0], "WARNING: Incorrect recovery account (foo) being used. Use ReplicaSet.rescan() to repair.");
+EXPECT_EQ(status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][1], "WARNING: Stored recovery account (bar) doesn't match the one actually in use (foo). Use ReplicaSet.rescan() to repair.");
+
+// rescan must fix the account and the MD
+EXPECT_NO_THROWS(function(){ rset.rescan(); });
+EXPECT_OUTPUT_CONTAINS(`Updating replication account for instance '${hostname}:${__mysql_sandbox_port2}'.`);
+
+status = rset.status();
+EXPECT_FALSE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
+//@<> Rescan must ignore invalidated former primaries
 testutil.killSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri2);
 
@@ -333,6 +381,8 @@ rset.forcePrimaryInstance(__sandbox_uri2);
 validate_status(rset.status(), [[__mysql_sandbox_port1, "INVALIDATED"], [__mysql_sandbox_port2, "OK"], [__mysql_sandbox_port3, "OK"]]);
 
 testutil.startSandbox(__mysql_sandbox_port1);
+
+WIPE_OUTPUT();
 
 EXPECT_NO_THROWS(function(){ rset.rescan(); });
 EXPECT_OUTPUT_CONTAINS(`Ignoring instance '${hostname}:${__mysql_sandbox_port1}' because it's INVALIDATED. Please rejoin or remove it from the ReplicaSet.`);
@@ -363,6 +413,10 @@ validate_status(rset.status(), [[__mysql_sandbox_port1, "OK"], [__mysql_sandbox_
 
 EXPECT_NO_THROWS(function(){ rset.setPrimaryInstance(__sandbox_uri1); });
 EXPECT_OUTPUT_CONTAINS(`${hostname}:${__mysql_sandbox_port1} was promoted to PRIMARY.`);
+validate_status(rset.status(), [[__mysql_sandbox_port1, "OK"], [__mysql_sandbox_port2, "RECV_ACCOUNT"]]);
+
+EXPECT_NO_THROWS(function(){ rset.rescan(); });
+EXPECT_OUTPUT_CONTAINS(`Updating replication account for instance '${hostname}:${__mysql_sandbox_port2}'.`);
 validate_status(rset.status(), [[__mysql_sandbox_port1, "OK"], [__mysql_sandbox_port2, "OK"]]);
 
 //@<> Rescan after an unreachable instance was forcefully removed

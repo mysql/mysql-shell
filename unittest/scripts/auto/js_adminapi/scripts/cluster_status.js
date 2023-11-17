@@ -116,7 +116,7 @@ var status = cluster.status();
 EXPECT_EQ("WARNING: Unsupported recovery account 'custom_user' has been found for instance '<<<hostname>>>:<<<__mysql_sandbox_port4>>>'. Operations such as Cluster.resetRecoveryAccountsPassword() and Cluster.addInstance() may fail. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["instanceErrors"][0])
 WIPE_STDOUT()
 cluster.rescan();
-EXPECT_STDOUT_CONTAINS("ERROR: Unsupported recovery account 'custom_user' has been found for instance '<<<hostname>>>:<<<__mysql_sandbox_port4>>>'. Operations such as <Cluster>.resetRecoveryAccountsPassword() and <Cluster>.addInstance() may fail. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used.")
+EXPECT_STDOUT_CONTAINS(`Fixing incorrect recovery account 'custom_user' in instance '${hostname}:${__mysql_sandbox_port4}'`)
 
 //@<> clean up cluster - remove sandbox 4 from cluster
 //BUG#32157182
