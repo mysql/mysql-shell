@@ -2914,7 +2914,7 @@ void Dumper::data_task_finished() {
 
   if (m_data_dump_stage && all_tasks_produced() &&
       m_data_tasks_completed == m_data_tasks_total) {
-    m_data_dump_stage->finish();
+    m_data_dump_stage->finish(false);
   }
 }
 
