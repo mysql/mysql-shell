@@ -534,7 +534,7 @@ EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning(True))
 
 #@<> WL15887-TSFR_4_1 - note about strip_definers {not __dbug_off and VER(>=8.2.0)}
 EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_definers" ], "dryRun": True, "showProgress": False }, schema = schema_name , tables = test_tables)
-EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__version}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887 - cleanup {not __dbug_off and VER(>=8.2.0)}
 src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])

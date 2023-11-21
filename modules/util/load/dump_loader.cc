@@ -2035,8 +2035,12 @@ void Dump_loader::show_summary() {
 
   if (!m_options.dry_run()) {
     if (m_checksum_tasks_completed) {
+      assert(m_checksum_tables_stage);
       console->print_info(shcore::str_format(
-          "%" PRIu64 " checksums were verified.", m_checksum_tasks_completed));
+          "%" PRIu64 " checksums were verified in %s.",
+          m_checksum_tasks_completed,
+          format_seconds(m_checksum_tables_stage->duration().seconds(), false)
+              .c_str()));
     }
 
     if (m_checksum_errors) {

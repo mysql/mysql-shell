@@ -3855,7 +3855,8 @@ TEST_BOOL_OPTION("checksum")
 #@<> WL15947-TSFR_1_2_1_1 - checksum option set to true
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "checksum": True, "showProgress": False })
 # checksums are generated
-EXPECT_STDOUT_CONTAINS("Checksum")
+# BUG#35983655 - display duration of checksum operation
+EXPECT_STDOUT_CONTAINS("Checksum duration:")
 # file is written
 EXPECT_TRUE(os.path.isfile(checksum_file))
 
@@ -3952,7 +3953,7 @@ EXPECT_TRUE(test_table_unique_null in checksums["data"][schema_name])
 
 #@<> WL15947 - dry run
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "dryRun": True, "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_unique_null) ], "showProgress": False })
-EXPECT_STDOUT_CONTAINS("Computing checksum...")
+EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 
 #@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])

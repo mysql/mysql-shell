@@ -256,6 +256,8 @@ class Dumper {
 
   void data_task_finished();
 
+  void checksum_task_started();
+
   void checksum_task_finished();
 
   void wait_for_all_tasks();
@@ -484,6 +486,7 @@ class Dumper {
   std::atomic<uint64_t> m_chunking_tasks_completed;
   std::atomic<uint64_t> m_data_tasks_total;
   std::atomic<uint64_t> m_data_tasks_completed;
+  std::atomic<bool> m_checksum_started;
   std::atomic<uint64_t> m_checksum_tasks_total;
   std::atomic<uint64_t> m_checksum_tasks_completed;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
@@ -496,6 +499,7 @@ class Dumper {
   mutable Progress_thread m_progress_thread;
   mutable Progress_thread::Stage *m_current_stage = nullptr;
   Progress_thread::Stage *m_data_dump_stage = nullptr;
+  Progress_thread::Stage *m_checksum_stage = nullptr;
 
   shcore::Synchronized_queue<std::shared_ptr<mysqlshdk::db::ISession>>
       m_session_pool;
