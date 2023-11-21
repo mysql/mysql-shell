@@ -158,12 +158,18 @@ session.runSql("SET GLOBAL super_read_only = 1");
 session.close();
 
 shell.connect(__sandbox_uri1);
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + localhost + "', MASTER_PORT=" + __mysql_sandbox_port2 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
+session.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='" + localhost + "', " + get_replication_option_keyword() + "_PORT=" + __mysql_sandbox_port2 + ", " + get_replication_option_keyword() + "_USER='repl', " + get_replication_option_keyword() + "_PASSWORD='password', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1");
+session.runSql("START " + get_replica_keyword());
 
-do {
-    r = session.runSql("SHOW SLAVE STATUS").fetchOne();
-} while (r.Slave_IO_Running == 'Connecting')
+if (__version_num < 80022) {
+    do {
+        r = session.runSql("SHOW SLAVE STATUS").fetchOne();
+    } while (r.Slave_IO_Running == 'Connecting')
+} else {
+    do {
+        r = session.runSql("SHOW REPLICA STATUS").fetchOne();
+    } while (r.Replica_IO_Running == 'Connecting')
+}
 
 EXPECT_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);

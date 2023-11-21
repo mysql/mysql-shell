@@ -110,7 +110,7 @@ rs.rejoinInstance(sockuri3);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
 session3 = mysql.getSession(sockuri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 rs.rejoinInstance(sockuri3, {recoveryMethod:"clone"});
 

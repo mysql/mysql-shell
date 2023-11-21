@@ -11,7 +11,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@<> STOP secondary before adding tags to test that information is retrived from the primary
 shell.connect(__sandbox_uri2);
-session.runSql("STOP SLAVE");
+session.runSql("STOP " + get_replica_keyword());
 
 //@<> WL#13788 Set some tags and later confirm the output of rs.options
 rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", 0);

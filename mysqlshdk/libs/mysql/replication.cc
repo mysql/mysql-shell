@@ -608,13 +608,22 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
 std::vector<Slave_host> get_slaves(
     const mysqlshdk::mysql::IInstance &instance) {
   std::vector<Slave_host> slaves;
+  std::shared_ptr<mysqlshdk::db::IResult> result;
 
-  auto result = instance.query("SHOW SLAVE HOSTS");
+  if (instance.get_version() < utils::Version(8, 2, 0)) {
+    result = instance.query("SHOW SLAVE HOSTS");
+  } else {
+    result = instance.query("SHOW REPLICAS");
+  }
   while (auto row = result->fetch_one_named()) {
     Slave_host host;
     host.host = row.get_string("Host");
     host.port = row.get_uint("Port");
-    host.uuid = row.get_string("Slave_UUID");
+    if (instance.get_version() < utils::Version(8, 2, 0)) {
+      host.uuid = row.get_string("Slave_UUID");
+    } else {
+      host.uuid = row.get_string("Replica_UUID");
+    }
     slaves.push_back(std::move(host));
   }
 
@@ -1044,6 +1053,15 @@ std::string get_replication_source_keyword(
     return "MASTER";
   } else {
     return (command == true ? "REPLICATION SOURCE" : "SOURCE");
+  }
+}
+
+std::string get_binary_logs_keyword(const mysqlshdk::utils::Version &version,
+                                    bool status) {
+  if (version < mysqlshdk::utils::Version(8, 2, 0)) {
+    return "MASTER";
+  } else {
+    return (status == true ? "BINARY LOG" : "BINARY LOGS AND GTIDS");
   }
 }
 

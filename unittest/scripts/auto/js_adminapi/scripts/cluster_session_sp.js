@@ -405,7 +405,7 @@ cluster.dissolve({force:true});
 session.runSql("set sql_log_bin=0");
 session.runSql("set global super_read_only = 0");
 session.runSql("drop schema mysql_innodb_cluster_metadata");
-session.runSql("reset master");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 session.runSql("set sql_log_bin=1");
 
 //@ Finalization

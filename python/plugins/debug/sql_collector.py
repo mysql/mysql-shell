@@ -978,6 +978,11 @@ class DiagnosticsSession:
             kw_replica = "SLAVE"
             kw_replicas = "SLAVE HOSTS"
 
+        if self.session.version >= 80200:
+            kw_binary_log = "BINARY LOG"
+        else:
+            kw_binary_log = "MASTER"
+
         queries = [
             ("global variables",
              """SELECT g.variable_name name, g.variable_value value /*!80000, i.variable_source source*/
@@ -989,7 +994,7 @@ class DiagnosticsSession:
             # replication configuration
             "SHOW BINARY LOGS",
             f"SHOW {kw_replicas}",
-            "SHOW MASTER STATUS",
+            f"SHOW {kw_binary_log} STATUS",
             f"SHOW {kw_replica} STATUS",
             ("replication master_info",
              """SELECT * FROM mysql.slave_master_info ORDER BY Channel_name""",

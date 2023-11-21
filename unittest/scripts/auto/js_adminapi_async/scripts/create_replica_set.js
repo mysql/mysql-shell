@@ -104,7 +104,7 @@ reset_instance(session);
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo)");
 dba.createReplicaSet("myrs");
 
-session.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/ FOR CHANNEL 'bla'", [__mysql_port]);
+session.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/ FOR CHANNEL 'bla'", [__mysql_port]);
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo) FOR CHANNEL 'bla'");
 dba.createReplicaSet("myrs");
 

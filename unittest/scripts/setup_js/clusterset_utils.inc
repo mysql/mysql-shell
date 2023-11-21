@@ -59,8 +59,8 @@ function reset_instance(session) {
             continue;
         session.runSql("DROP USER ?@?", [row[0], row[1]]);
     }
-    session.runSql("RESET MASTER");
-    session.runSql("RESET SLAVE ALL");
+    session.runSql("RESET " + get_reset_binary_logs_keyword() );
+    session.runSql("RESET " + get_replica_keyword() + " ALL");
 }
 
 function wipeout_cluster(psession, cluster_or_urls) {

@@ -19,7 +19,7 @@ dba.rebootClusterFromCompleteOutage();
 
 //@<> AR Cleanup {VER(>=8.0.4)}
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 
 //@# Dba_preconditions_standalone, get_cluster_fails
 dba.getCluster("");

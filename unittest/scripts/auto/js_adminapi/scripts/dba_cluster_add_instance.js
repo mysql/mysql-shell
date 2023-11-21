@@ -74,7 +74,7 @@ shell.connect(__sandbox_uri2);
 session.runSql("STOP GROUP_REPLICATION");
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("SET GLOBAL super_read_only = off");
-session.runSql("CHANGE MASTER TO MASTER_USER='rpl_user', MASTER_PASSWORD='rpl_user' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='rpl_user', " + get_replication_option_keyword() + "_PASSWORD='rpl_user' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("START GROUP_REPLICATION");
 EXPECT_STDERR_EMPTY();
 shell.connect(__sandbox_uri1);

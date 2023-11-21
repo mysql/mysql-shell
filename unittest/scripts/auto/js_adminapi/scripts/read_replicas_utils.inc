@@ -54,8 +54,8 @@ function reset_read_replica(uri, cluster) {
     session.runSql("DROP USER ?@?", [row[0], row[1]]);
   }
 
-  session.runSql("RESET MASTER");
-  session.runSql("RESET SLAVE ALL");
+  session.runSql("RESET " + get_reset_binary_logs_keyword());
+  session.runSql("RESET " + get_replica_keyword() + " ALL");
 
   var server_uuid = session.runSql("select @@global.server_uuid").fetchOne()[0];
   master_session.runSql("delete from mysql_innodb_cluster_metadata.instances where mysql_server_uuid = ?", [server_uuid]);

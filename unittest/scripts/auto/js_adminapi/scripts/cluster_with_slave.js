@@ -39,11 +39,12 @@ session4 = mysql.getSession("admin:pwd@localhost:"+__mysql_sandbox_port4);
 session1.runSql("create user 'async'@'localhost' identified by 'test'");
 session1.runSql("grant replication slave on *.* to 'async'@'localhost'");
 
-session4.runSql("change master to master_host='localhost', master_port=/*(*/ ? /*)*/, master_user='async', master_password='test', master_ssl=1", [__mysql_sandbox_port1]);
+session4.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_host='localhost', " + get_replication_option_keyword() + "_port=/*(*/ ? /*)*/, " + get_replication_option_keyword() + "_user='async', " + get_replication_option_keyword() + "_password='test', " + get_replication_option_keyword() + "_ssl=1", [__mysql_sandbox_port1]);
 
 // filter out MD schema
 session4.runSql("CHANGE REPLICATION FILTER Replicate_Ignore_DB = (mysql_innodb_cluster_metadata)");
-session4.runSql("START SLAVE");
+
+session4.runSql("START " + get_replica_keyword());
 
 //@<> create cluster
 shell.connect("admin:pwd@localhost:"+__mysql_sandbox_port1);
@@ -60,7 +61,7 @@ cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port2, {recoveryMetho
 // Here, the slave should still be OK, because we added the instance using the same session
 // as createCluster(), which still has mysql_innodb_cluster_metadata as the default DB.
 // So any grants executed here will be filtered out.
-shell.dumpRows(session4.runSql("SHOW SLAVE STATUS"), "vertical");
+shell.dumpRows(session4.runSql("SHOW " + get_replica_keyword() + " STATUS"), "vertical");
 
 //@<> addInstance another one using clone {VER(>=8.0.17)}
 shell.connect("admin:pwd@localhost:"+__mysql_sandbox_port1);
@@ -92,15 +93,12 @@ shell.dumpRows(session.runSql("select user,host from mysql.user"), "tabbed");
 shell.dumpRows(session4.runSql("select user,host from mysql.user"), "tabbed");
 
 //@<> With bug #30609075 replication would be broken now
-shell.dumpRows(session4.runSql("SHOW SLAVE STATUS"), "vertical");
+shell.dumpRows(session4.runSql("SHOW " + get_replica_keyword() + " STATUS"), "vertical");
 
 // With the bug, we'd get:
 // Last_Errno: 1410
 // Last_Error: Error 'You are not allowed to create a user with GRANT' on query. Default database: ''. Query: 'GRANT BACKUP_ADMIN ON *.* TO 'mysql_innodb_cluster_233387353'@'%''
-EXPECT_EQ(0, session4.runSql("SHOW SLAVE STATUS").fetchOne().Last_Errno);
-
-
-
+EXPECT_EQ(0, session4.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchOne().Last_Errno);
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

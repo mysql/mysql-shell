@@ -41,7 +41,6 @@
 #include <array>
 #include <functional>
 #include <map>
-#include <regex>
 #include <unordered_set>
 
 #include "my_sys.h"
@@ -51,8 +50,8 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -3444,8 +3443,10 @@ Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
   Instance_cache::Binlog binlog;
 
   try {
-    const auto result = m_mysql->query("SHOW MASTER STATUS;");
-
+    const auto result = m_mysql->query(shcore::str_format(
+        "SHOW %s STATUS", mysqlshdk::mysql::get_binary_logs_keyword(
+                              m_mysql->get_server_version(), true)
+                              .c_str()));
     if (const auto row = result->fetch_one()) {
       binlog.file = row->get_string(0);    // File
       binlog.position = row->get_uint(1);  // Position

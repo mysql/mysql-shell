@@ -35,14 +35,14 @@ def dissolve():
     session1 = mysql.get_session(__sandbox_uri1)
     session1.run_sql("set global super_read_only=0")
     session1.run_sql("drop schema if exists mysql_innodb_cluster_metadata")
-    session1.run_sql("reset master")
+    session1.run_sql("reset " + get_reset_binary_logs_keyword())
     session1.close()
     session2 = mysql.get_session(__sandbox_uri2)
     session2.run_sql("set global super_read_only=0")
     session2.run_sql("drop schema if exists mysql_innodb_cluster_metadata")
-    session2.run_sql("stop slave")
-    session2.run_sql("reset slave all")
-    session2.run_sql("reset master")
+    session2.run_sql("stop " + get_replica_keyword())
+    session2.run_sql("reset " + get_replica_keyword() + " all")
+    session2.run_sql("reset " + get_reset_binary_logs_keyword())
     session2.close()
 
 

@@ -84,7 +84,7 @@ function check_apis(sslMode, authType) {
     check_option(options.replicaSet.globalOptions, "replicationSslMode", sslMode);
 
     // rejoin
-    session2.runSql("STOP SLAVE SQL_THREAD");
+    session2.runSql("STOP " + get_replica_keyword() + " SQL_THREAD");
     EXPECT_NO_THROWS(function(){ rset.rejoinInstance(__sandbox_uri2); });
 
     // setPrimaryInstance

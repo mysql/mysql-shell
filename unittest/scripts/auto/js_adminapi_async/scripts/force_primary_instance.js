@@ -150,10 +150,10 @@ rs = rebuild_rs();
 //       elected because all the retrieved GTIDs must be applied by the failover
 //       algorithm to avoid losing trxs. Thus, the only way to make it behind
 //       is to ensure it failed to receive all trxs from the primary.
-session2.runSql("STOP SLAVE IO_THREAD");
+session2.runSql("STOP " + get_replica_keyword() + " IO_THREAD");
 session.runSql("create schema testdb");
 testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
-session2.runSql("START SLAVE IO_THREAD");
+session2.runSql("START " + get_replica_keyword() + " IO_THREAD");
 
 shell.connect(__sandbox_uri2);
 rs=dba.getReplicaSet();
@@ -202,8 +202,8 @@ testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 
 // restart replication now that the primary is back
-session2.runSql("STOP SLAVE");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("START " + get_replica_keyword());
 
 session2.runSql("FLUSH TABLES WITH READ LOCK");
 // sandbox2 slave be stuck because of the lock, even if its not getting anything from the primary
@@ -211,7 +211,11 @@ session.runSql("CREATE SCHEMA testdb");
 // wait til it gets stuck
 var i = 10;
 while (i > 0) {
-    var row = session2.runSql("SELECT PROCESSLIST_STATE from performance_schema.threads where name='thread/sql/slave_sql'").fetchOne();
+    if (__version_num < 80022) {
+        var row = session2.runSql("SELECT PROCESSLIST_STATE from performance_schema.threads where name='thread/sql/slave_sql'").fetchOne();
+    } else {
+        var row = session2.runSql("SELECT PROCESSLIST_STATE from performance_schema.threads where name='thread/sql/replica_sql'").fetchOne();
+    }
     if (row) {
         var state = row[0];
         if (state == "Waiting for global read lock")

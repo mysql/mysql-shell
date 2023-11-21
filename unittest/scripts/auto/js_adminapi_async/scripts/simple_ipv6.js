@@ -82,7 +82,7 @@ rs.rejoinInstance(sandbox3);
 
 //@ rejoinInstance (clone) (should fail) {VER(>=8.0.17)}
 session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 rs.rejoinInstance(sandbox3, {recoveryMethod:"clone"});
 

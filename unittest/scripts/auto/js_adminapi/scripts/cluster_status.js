@@ -111,7 +111,7 @@ EXPECT_EQ(0, session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
 cluster.addInstance(__sandbox_uri4);
 shell.connect(__sandbox_uri4);
-session.runSql("CHANGE MASTER TO MASTER_USER='custom_user', MASTER_PASSWORD='custom_user' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='custom_user', " + get_replication_option_keyword() + "_PASSWORD='custom_user' FOR CHANNEL 'group_replication_recovery'");
 var status = cluster.status();
 EXPECT_EQ("WARNING: Unsupported recovery account 'custom_user' has been found for instance '<<<hostname>>>:<<<__mysql_sandbox_port4>>>'. Operations such as Cluster.resetRecoveryAccountsPassword() and Cluster.addInstance() may fail. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["instanceErrors"][0])
 WIPE_STDOUT()
@@ -359,7 +359,7 @@ if (__version_num > 80000) {
     session.runSql(`GRANT CONNECTION_ADMIN ON *.* TO '${new_user}'\@'%'`);
 }
 
-session.runSql(`CHANGE MASTER TO MASTER_USER = '${new_user}', MASTER_PASSWORD = 'foo' FOR CHANNEL 'group_replication_recovery'`);
+session.runSql(`change ` + get_replication_source_keyword() + ` TO ` + get_replication_option_keyword() + `_USER = '${new_user}', ` + get_replication_option_keyword() + `_PASSWORD = 'foo' FOR CHANNEL 'group_replication_recovery'`);
 
 session.runSql(`DROP USER IF EXISTS '${old_user}'\@'%'`);
 session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_set(COALESCE(attributes, '{}'), '$.recoveryAccountUser', '${new_user}') WHERE (mysql_server_uuid = CAST(@@server_uuid as char))`);
@@ -601,7 +601,7 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 //@<> BUG#30401048: Keep instance 1 in RECOVERING state {VER(>=8.0.14)}
 session.close();
 shell.connect(__sandbox_uri1);
-session.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER = 'not_exist', " + get_replication_option_keyword() + "_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("STOP GROUP_REPLICATION");
 session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("create schema foo");

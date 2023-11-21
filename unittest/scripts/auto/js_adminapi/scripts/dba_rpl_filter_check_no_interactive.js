@@ -45,7 +45,7 @@ dba.createCluster("testCluster");
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (), REPLICATE_DO_DB = ()");
 
 //@# Dba: create_cluster fails with repl filter {VER(>=8.0.11)}
-session.runSql("CHANGE MASTER TO master_host='localhost', master_port=3306 FOR CHANNEL 'x'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=3306 FOR CHANNEL 'x'");
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo) FOR CHANNEL 'x'");
 dba.createCluster("testCluster");
 
@@ -53,7 +53,7 @@ session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo), REPLICATE
 dba.createCluster("testCluster");
 
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (), REPLICATE_DO_DB = () FOR CHANNEL 'x'");
-session.runSql("RESET SLAVE ALL");
+session.runSql("RESET " + get_replica_keyword() + " ALL");
 
 //@# Dba: create_cluster succeed without binlog-do-db nor repl filter
 cluster = dba.createCluster("testCluster", {gtidSetIsComplete: true});
@@ -69,7 +69,7 @@ testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.changeSandboxConf(__mysql_sandbox_port3, "binlog-ignore-db", "");
 testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri3);
-session.runSql("CHANGE MASTER TO master_host='localhost', master_port=3306 FOR CHANNEL 'x'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=3306 FOR CHANNEL 'x'");
 
 //@# Dba: add_instance fails with global repl filter {VER(>=8.0.11)}
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo)");
@@ -90,7 +90,7 @@ cluster.addInstance(__sandbox_uri3);
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (), REPLICATE_DO_DB = () FOR CHANNEL 'x'");
 
 //@# Dba: add_instance succeeds without repl filter
-session.runSql("RESET SLAVE ALL");
+session.runSql("RESET " + get_replica_keyword() + " ALL");
 cluster.addInstance(__sandbox_uri3);
 
 //@ Finalization

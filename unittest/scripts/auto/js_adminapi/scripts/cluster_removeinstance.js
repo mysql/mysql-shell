@@ -92,7 +92,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 shell.connect(__sandbox_uri2);
 session.runSql('STOP GROUP_REPLICATION');
-session.runSql('RESET SLAVE ALL');
+session.runSql('RESET ' + get_replica_keyword() + ' ALL');
 
 c.removeInstance(__sandbox_uri2, {force:true});
 

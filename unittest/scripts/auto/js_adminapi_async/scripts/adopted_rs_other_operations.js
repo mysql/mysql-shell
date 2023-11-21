@@ -15,8 +15,8 @@ var session2 = mysql.getSession(__sandbox_uri2);
 // BUG#30505897 : rejoin_instance fails when replicaset was adopted
 session1.runSql("CREATE USER rpl@'%' IDENTIFIED BY 'rpl'");
 session1.runSql("GRANT REPLICATION SLAVE ON *.* TO rpl@'%'");
-session2.runSql("CHANGE MASTER TO MASTER_HOST='"+hostname_ip+"', master_port="+__mysql_sandbox_port1+", master_user='rpl', master_password='rpl', master_auto_position=1, get_master_public_key=1");
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='"+hostname_ip+"', " + get_replication_option_keyword() + "_PORT="+__mysql_sandbox_port1+", " + get_replication_option_keyword() + "_USER='rpl', " + get_replication_option_keyword() + "_PASSWORD='rpl', " + get_replication_option_keyword() + "_AUTO_POSITION=1, get_" + get_replication_option_keyword() + "_public_key=1");
+session2.runSql("START " + get_replica_keyword());
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@<> Adopt custom replicaset.
@@ -27,7 +27,7 @@ var r = dba.createReplicaSet("R", {"adoptFromAR": true});
 strip_status(r.status());
 
 //@<> Stop replication on instance 2.
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 //@ Status, instance 2 OFFLINE.
 strip_status(r.status());

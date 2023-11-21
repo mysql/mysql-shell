@@ -97,7 +97,7 @@ EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "
 //      CONTINUE WITH CLONE
 
 //@<> createReplicaCluster: recoveryMethod:clone, interactive, make sure no prompts
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true, recoveryMethod: "clone"})}, "debug", "LogicError");
 
@@ -113,7 +113,7 @@ EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod
 mark_gtid_set_complete(false);
 
 //@<> createReplicaCluster: recoveryMethod:clone, subset GTIDs -> clone
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone"})}, "debug", "LogicError");
 EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod option");
@@ -130,7 +130,7 @@ EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod
 //
 
 //@<> createReplicaCluster: recoveryMethod:incremental, interactive, make sure no prompts
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "debug", "LogicError");
 
@@ -148,7 +148,7 @@ EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, subset GTIDs -> incr
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "debug", "LogicError");
 
@@ -157,7 +157,7 @@ EXPECT_OUTPUT_CONTAINS("* Checking transaction state of the instance...");
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery selected through the recoveryMethod option");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, errant GTIDs -> error
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
 
@@ -181,7 +181,7 @@ EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check of the MySQL instance at '${__
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a
 testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "i");
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "debug", "LogicError");
 
@@ -200,7 +200,7 @@ EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems
 mark_gtid_set_complete(false);
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 
@@ -217,7 +217,7 @@ EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is reco
 // Non-interactive tests
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, empty GTID -> error
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "'recoveryMethod' option must be set to 'clone' or 'incremental'", "MYSQLSH");
@@ -239,7 +239,7 @@ EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems
 mark_gtid_set_complete(false);
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, subset GTIDs -> incr
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "debug", "LogicError");
@@ -247,7 +247,7 @@ EXPECT_OUTPUT_CONTAINS("WARNING: It should be safe to rely on replication to inc
 EXPECT_OUTPUT_CONTAINS("Incremental state recovery was selected because it seems to be safely usable.");
 
 //@<> createReplicaCluster: recoveryMethod:auto, non-interactive, errant GTIDs -> error
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "Instance provisioning required", "MYSQLSH");
@@ -266,8 +266,8 @@ EXPECT_OUTPUT_CONTAINS("ERROR: The target instance must be either cloned or full
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 
-session4.runSql("RESET MASTER");
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, purged GTID -> prompt c/a
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
@@ -288,7 +288,7 @@ EXPECT_OUTPUT_CONTAINS(`NOTE: The target instance '${__endpoint4}' has not been 
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt
 mark_gtid_set_complete(false);
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "debug", "LogicError");
@@ -298,7 +298,7 @@ EXPECT_OUTPUT_CONTAINS("Clone based recovery was selected because it seems to be
 
 //@<> createReplicaCluster: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt
 mark_gtid_set_complete(false);
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false})}, "debug", "LogicError");
@@ -308,7 +308,7 @@ EXPECT_OUTPUT_CONTAINS("Clone based recovery was selected because it seems to be
 
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 
@@ -319,14 +319,14 @@ EXPECT_OUTPUT_CONTAINS(`WARNING: Discarding these extra GTID events can either b
 EXPECT_OUTPUT_CONTAINS("Having extra GTID events is not expected, and it is recommended to investigate this further and ensure that the data can be removed prior to choosing the clone recovery method.");
 
 //@<> createReplicaCluster: recoveryMethod:incremental, purged GTID -> error
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS(`NOTE: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it is missing transactions that were purged from all clusterset members.`);
 
 //@<> createReplicaCluster: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental"})}, "Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered.", "MYSQLSH");
@@ -334,7 +334,7 @@ EXPECT_OUTPUT_CONTAINS(`${__endpoint4} has the following errant GTIDs that do no
 EXPECT_OUTPUT_CONTAINS("00025721-1111-1111-1111-111111111111:1");
 
 //@<> createReplicaCluster: recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"})}, "debug", "LogicError");
 
@@ -343,7 +343,7 @@ EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod
 
 
 //@<> createReplicaCluster: recoveryMethod:clone, errant GTIDs + purged GTIDs -> clone
-session4.runSql("RESET MASTER");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"})}, "debug", "LogicError");
 

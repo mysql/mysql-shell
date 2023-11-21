@@ -94,10 +94,10 @@ CHECK_REPL_USERS(session1, [1111], "%");
 session1.runSql("drop schema mysql_innodb_cluster_metadata");
 session1.runSql("drop user mysql_innodb_rs_1111@'%'");
 
-session2.runSql("change master to master_host=?, master_port=?, master_user='root', master_password='root', MASTER_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
-session3.runSql("change master to master_host=?, master_port=?, master_user='root', master_password='root', MASTER_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
-session2.runSql("start slave");
-session3.runSql("start slave");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
+session3.runSql("START " + get_replica_keyword());
 
 shell.connect(__sandbox_uri1);
 
@@ -190,10 +190,10 @@ CHECK_REPL_USERS(session1, [1111], hostmask);
 session1.runSql("drop schema mysql_innodb_cluster_metadata");
 session1.runSql("drop user mysql_innodb_rs_1111@?", [hostmask]);
 
-session2.runSql("change master to master_host=?, master_port=?, master_user='root', master_password='root', MASTER_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
-session3.runSql("change master to master_host=?, master_port=?, master_user='root', master_password='root', MASTER_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
-session2.runSql("start slave");
-session3.runSql("start slave");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST=?, " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1", [hostname_ip, __mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
+session3.runSql("START " + get_replica_keyword());
 
 c = dba.createReplicaSet("clus", {adoptFromAR:1, replicationAllowedHost:hostname_ip});
 c.status();

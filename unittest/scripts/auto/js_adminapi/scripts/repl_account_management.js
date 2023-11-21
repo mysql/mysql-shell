@@ -96,9 +96,9 @@ session1.runSql("create user mysql_innodb_cluster_r3294023486@localhost");
 session1.runSql("create user mysql_innodb_cluster_r3294023487@localhost");
 session1.runSql("create user mysql_innodb_cluster_r3294023488@localhost");
 
-session1.runSql("change master to master_user='mysql_innodb_cluster_r3294023486' for channel 'group_replication_recovery'");
-session2.runSql("change master to master_user='mysql_innodb_cluster_r3294023487' for channel 'group_replication_recovery'");
-session3.runSql("change master to master_user='mysql_innodb_cluster_r3294023488' for channel 'group_replication_recovery'");
+session1.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='mysql_innodb_cluster_r3294023486' for channel 'group_replication_recovery'");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='mysql_innodb_cluster_r3294023487' for channel 'group_replication_recovery'");
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='mysql_innodb_cluster_r3294023488' for channel 'group_replication_recovery'");
 
 session1.runSql("drop user mysql_innodb_cluster_1111@'%'");
 session1.runSql("drop user mysql_innodb_cluster_2222@'%'");
@@ -137,9 +137,9 @@ CHECK_RECOVERY_USER(session3);
 //@<> Check users on adopt
 session1.runSql("drop schema mysql_innodb_cluster_metadata");
 
-session1.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
-session2.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
-session3.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
+session1.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
 
 c = dba.createCluster("clus", {adoptFromGR:1});
 c.status();
@@ -227,9 +227,9 @@ session1.runSql("drop user mysql_innodb_cluster_1111@?", ["%"]);
 session1.runSql("drop user mysql_innodb_cluster_2222@?", ["%"]);
 session1.runSql("drop user mysql_innodb_cluster_3333@?", ["%"]);
 
-session1.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
-session2.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
-session3.runSql("change master to master_user='root' for channel 'group_replication_recovery'");
+session1.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='root' for channel 'group_replication_recovery'");
 
 c = dba.createCluster("clus", {adoptFromGR:1, replicationAllowedHost:hostname_ip});
 c.status();

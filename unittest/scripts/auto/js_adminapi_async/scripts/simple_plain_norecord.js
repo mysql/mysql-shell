@@ -222,7 +222,7 @@ EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
 session3 = mysql.getSession(__sandbox_uri3, __secure_password);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 rs.rejoinInstance(__sandbox_uri_secure_password3, {recoveryMethod:"clone"});
 
