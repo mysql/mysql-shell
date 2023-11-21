@@ -1572,10 +1572,13 @@ void Dump_reader::show_metadata() const {
                                          "Binlog_position", binlog_position(),
                                          "Executed_GTID_set", gtid_executed()));
 
+  const auto yaml = shcore::Value(metadata).yaml();
   const auto console = current_console();
 
   console->println();
-  console->println(shcore::Value(metadata).yaml());
+  console->println(yaml);
+
+  log_info("%s", yaml.c_str());
 }
 
 bool Dump_reader::should_create_pks() const {

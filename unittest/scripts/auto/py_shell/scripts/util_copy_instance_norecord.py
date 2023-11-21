@@ -318,17 +318,20 @@ EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: The value of 'maxBytesPe
 
 #@<> WL15298_TSFR_4_5_2
 # WL15298_TSFR_5_1_2
-EXPECT_SUCCESS(__sandbox_uri2, { "maxBytesPerTransaction": "1M" })
+EXPECT_SUCCESS(__sandbox_uri2, { "maxBytesPerTransaction": "1M" }, setup = lambda: WIPE_SHELL_LOG())
 # WL15298_TSFR_4_5_7
 EXPECT_STDOUT_NOT_CONTAINS("Analyzing tables")
 # WL15298_TSFR_4_6_1
-EXPECT_STDOUT_MATCHES(re.compile(r"""
----
+p = re.compile(r"""
+.*---
 Dump_metadata:
   Binlog_file: .*
   Binlog_position: .*
   Executed_GTID_set: .*
-"""))
+""")
+EXPECT_STDOUT_MATCHES(p)
+# BUG#35883344 - binlog info should be written to the log file
+EXPECT_SHELL_LOG_MATCHES(p)
 
 #@<> WL15298 - test invalid values of maxBytesPerTransaction option
 TEST_STRING_OPTION("maxBytesPerTransaction")
