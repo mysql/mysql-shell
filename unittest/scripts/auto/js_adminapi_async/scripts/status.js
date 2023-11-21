@@ -70,53 +70,53 @@ rs = dba.getReplicaSet();
 // ==== Various Config Options
 
 //@<> Replication delay, extended:0
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO master_delay=42");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_delay=42");
+session2.runSql("START " + get_replica_keyword());
 
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb2].replication.options.delay, 42);
 
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO master_delay=0");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_delay=0");
+session2.runSql("START " + get_replica_keyword());
 
 //@<> Heartbeat interval, extended:2
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO MASTER_HEARTBEAT_PERIOD=123");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HEARTBEAT_PERIOD=123");
+session2.runSql("START " + get_replica_keyword());
 
 s = rs.status({extended:2});
 EXPECT_EQ(s.replicaSet.topology[sb2].replication.options.heartbeatPeriod, 123);
 
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO MASTER_HEARTBEAT_PERIOD=30");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HEARTBEAT_PERIOD=30");
+session2.runSql("START " + get_replica_keyword());
 
 //@<> SSL, extended:2 - not implemented yet
-// session2.runSql("STOP SLAVE");
-// session2.runSql("CHANGE MASTER TO MASTER_SSL=1");
-// session2.runSql("START SLAVE");
+// session2.runSql("STOP " + get_replica_keyword());
+// session2.runSql("change " + get_replication_source_keyword() + " MASTER_SSL=1");
+// session2.runSql("START " + get_replica_keyword());
 
 // s = rs.status({extended:2});
 // EXPECT_EQ(s.replicaSet.topology[sb2].replication.options.sslEnabled, true);
 
-// session2.runSql("STOP SLAVE");
-// session2.runSql("CHANGE MASTER TO MASTER_SSL=0");
-// session2.runSql("START SLAVE");
+// session2.runSql("STOP " + get_replica_keyword());
+// session2.runSql("change " + get_replication_source_keyword() + " MASTER_SSL=0");
+// session2.runSql("START " + get_replica_keyword());
 
 //@<> Worker threads, extended:0
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 session2.runSql("SET GLOBAL slave_parallel_workers=3");
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replica_keyword());
 
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb2].replication.applierWorkerThreads, 3);
 
 if (__version_num < 80300) {
-    session2.runSql("STOP SLAVE");
+    session2.runSql("STOP " + get_replica_keyword());
     session2.runSql("SET GLOBAL slave_parallel_workers=0");
-    session2.runSql("START SLAVE");
+    session2.runSql("START " + get_replica_keyword());
 }
 
 // ==== Error conditions
@@ -145,7 +145,7 @@ println(s);
 
 //@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23)}
 session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 dba.configureReplicaSetInstance(__sandbox_uri2);
 
 //@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23)}
@@ -158,11 +158,11 @@ EXPECT_EQ(s.replicaSet.topology[sb2].status, "ONLINE");
 println(s);
 
 //@<> BUG#32015164: Finalize (restore value of slave_parallel_workers)
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 if (__version_num < 80300) {
     session2.runSql("SET GLOBAL slave_parallel_workers=0");
 }
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replica_keyword());
 
 //@ Primary is RO, should show as error
 session1.runSql("SET GLOBAL super_read_only=1");
@@ -170,14 +170,14 @@ s = rs.status();
 session1.runSql("SET GLOBAL super_read_only=0");
 
 //@ Replication stopped in a secondary
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 rs.status();
 
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replica_keyword());
 
 //@ Replication running in a primary
-session1.runSql("CHANGE MASTER TO MASTER_HOST='localhost', MASTER_PORT=/*(*/?/*)*/, MASTER_USER='root', MASTER_PASSWORD='root'", [__mysql_sandbox_port2]);
-session1.runSql("START SLAVE");
+session1.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root'", [__mysql_sandbox_port2]);
+session1.runSql("START " + get_replica_keyword());
 // Ignore SQL and IO Thread state output, because they can still be in an
 // intermediary state (slower machines running tests), ensuring determinism:
 // - SQL Thread: "Reading event from the relay log" instead of
@@ -186,7 +186,7 @@ session1.runSql("START SLAVE");
 //              "Waiting for <<<__source_keyword>>> to send event";
 rs.status();
 
-session1.runSql("STOP SLAVE");
+session1.runSql("STOP " + get_replica_keyword());
 
 //@ A secondary is down
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});

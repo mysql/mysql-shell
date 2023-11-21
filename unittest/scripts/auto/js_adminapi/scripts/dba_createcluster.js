@@ -801,8 +801,9 @@ session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 session.close();
 shell.connect(__sandbox_uri2);
 
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='" + hostname + "', " + get_replication_option_keyword() + "_PORT=" + __mysql_sandbox_port1 + ", " + get_replication_option_keyword() + "_USER='repl', " + get_replication_option_keyword() + "_PASSWORD='password', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1");
+
+session.runSql("START " + get_replica_keyword());
 
 //@ Create cluster async replication (should fail)
 dba.createCluster('testAsync', {clearReadOnly: true});

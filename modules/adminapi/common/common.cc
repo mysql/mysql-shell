@@ -253,7 +253,10 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type) {
   // SHOW MASTER STATUS includes info about binlog filters, which filter
   // events from being written to the binlog, at the master
-  auto result = instance.query("SHOW MASTER STATUS");
+  auto result = instance.query(shcore::str_format(
+      "SHOW %s STATUS",
+      mysqlshdk::mysql::get_binary_logs_keyword(instance.get_version(), true)
+          .c_str()));
 
   while (auto row = result->fetch_one()) {
     if (!row->get_string(2, "").empty() || !row->get_string(3, "").empty())

@@ -500,7 +500,7 @@ shell.options.useWizards=0;
 
 // clean the errant trxs
 session4.runSql("drop schema errant");
-session4.runSql("reset master");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 
 // purge binlogs
 var session1 = mysql.getSession(__sandbox_uri1);

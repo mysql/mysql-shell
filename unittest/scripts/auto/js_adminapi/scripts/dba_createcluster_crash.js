@@ -80,7 +80,7 @@ function try_once(fail_after, verbose, comm_stack) {
     c.dissolve();
     session.runSql("set global super_read_only=0");
     session.runSql("drop schema if exists mysql_innodb_cluster_metadata");
-    session.runSql("reset master");
+    session.runSql("RESET " + get_reset_binary_logs_keyword());
   }
 }
 

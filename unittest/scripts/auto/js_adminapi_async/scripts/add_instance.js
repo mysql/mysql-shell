@@ -277,7 +277,7 @@ EXPECT_EQ(1, get_sysvar(session2, "super_read_only"));
 // metadata exists and instance is there
 shell.dumpRows(session2.runSql("SELECT * FROM mysql_innodb_cluster_metadata.v2_ar_members ORDER BY instance_id"), "tabbed");
 // repl should be running
-shell.dumpRows(session2.runSql("SHOW SLAVE STATUS"), "vertical");
+shell.dumpRows(session2.runSql("SHOW " + get_replica_keyword() + " STATUS"), "vertical");
 
 rs.removeInstance(__sandbox2);
 reset_instance(session2);

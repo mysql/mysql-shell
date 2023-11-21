@@ -214,7 +214,7 @@ testutil.releaseLocks(session1, lock_instance);
 rs.addInstance(__sandbox_uri2);
 
 //@<> Stop replication on instance 2 to rejoin it.
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 //@<> Rejoin instance when another operation in progress on the target (fail)
 // Rejoin instance when another operation holds an exclusive lock on the target instance (fail).

@@ -189,21 +189,21 @@ session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 
 //@<> BUG#29305551: setup asynchronous replication on the target instance
-session.runSql("CHANGE MASTER TO MASTER_HOST='test', MASTER_PORT=3306, MASTER_USER='foo', MASTER_PASSWORD='bar'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='test', " + get_replication_option_keyword() + "_PORT=3306, " + get_replication_option_keyword() + "_USER='foo', " + get_replication_option_keyword() + "_PASSWORD='bar'");
 
 //@ BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
 var c = dba.rebootClusterFromCompleteOutage("test");
 
 //@<> BUG#29305551: clean-up for the next test
-session.runSql("RESET SLAVE ALL");
+session.runSql("RESET " + get_replica_keyword() + " ALL");
 
 // Set async channel on instance2
 session.close();
 shell.connect(__sandbox_uri2);
 
-session.runSql("RESET SLAVE ALL");
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
+session.runSql("RESET " + get_replica_keyword() + " ALL");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='" + hostname + "', " + get_replication_option_keyword() + "_PORT=" + __mysql_sandbox_port1 + ", " + get_replication_option_keyword() + "_USER='repl', " + get_replication_option_keyword() + "_PASSWORD='password', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1");
+session.runSql("START " + get_replica_keyword());
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
@@ -218,7 +218,7 @@ c.status();
 // be provided as implemented in BUG#29305551
 session.runSql("STOP group_replication");
 shell.connect(__sandbox_uri2);
-session.runSql("STOP SLAVE");
+session.runSql("STOP " + get_replica_keyword());
 
 //@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail with channels stopped
 shell.connect(__sandbox_uri1);
@@ -384,7 +384,7 @@ c.removeInstance(__sandbox_uri2, {force: true});
 
 // clean instance 2 errant transactions
 session2.runSql("DROP DATABASE ERRANTDB2");
-session2.runSql("RESET MASTER");
+session2.runSql("RESET " + get_reset_binary_logs_keyword());
 
 c.addInstance(__sandbox_uri2);
 
@@ -393,7 +393,7 @@ session1.runSql("STOP group_replication");
 session2.runSql("STOP group_replication");
 session1.runSql("FLUSH BINARY LOGS");
 session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
-session2.runSql("RESET MASTER");
+session2.runSql("RESET " + get_reset_binary_logs_keyword());
 EXPECT_THROWS(function(){ 
   dba.rebootClusterFromCompleteOutage("test");
 }, `The instance '${hostname}:${__mysql_sandbox_port2}' has an incompatible GTID set with the seed instance '${hostname}:${__mysql_sandbox_port1}' (former has missing transactions). If you wish to proceed, the 'force' option must be explicitly set.`);

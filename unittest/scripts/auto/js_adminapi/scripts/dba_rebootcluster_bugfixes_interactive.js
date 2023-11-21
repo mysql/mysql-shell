@@ -135,8 +135,8 @@ session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 session.close();
 shell.connect(__sandbox_uri2);
 
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='" + hostname + "', " + get_replication_option_keyword() + "_PORT=" + __mysql_sandbox_port1 + ", " + get_replication_option_keyword() + "_USER='repl', " + get_replication_option_keyword() + "_PASSWORD='password', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1");
+session.runSql("START " + get_replica_keyword());
 session.close();
 
 //@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
@@ -155,7 +155,7 @@ c.status();
 // Even if replication is not running but configured, the warning/error has to
 // be provided as implemented in BUG#29305551
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port3]);
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 //@ BUG#32197197 - Reboot cluster from complete outage, rejoin fails with channels stopped
 shell.connect(__sandbox_uri1);

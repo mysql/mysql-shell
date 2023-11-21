@@ -216,7 +216,10 @@ binlog_info_header = "---"
 binlog_file = ""
 binlog_position = 0
 gtid_executed = ""
-binlog_info = session1.run_sql("SHOW MASTER STATUS").fetch_one()
+if __version_num < 80200:
+    binlog_info = session1.run_sql("SHOW MASTER STATUS").fetch_one()
+else:
+    binlog_info = session1.run_sql("SHOW BINARY LOG STATUS").fetch_one()
 
 if binlog_info is not None:
     if len(binlog_info[0]) > 0:

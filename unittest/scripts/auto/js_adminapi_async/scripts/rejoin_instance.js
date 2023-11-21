@@ -127,7 +127,7 @@ rs.rejoinInstance(other_user_uri);
 
 //@<> Stop replication at instance 3.
 sb3 = hostname_ip+":"+__mysql_sandbox_port3;
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "OFFLINE");
 
@@ -155,7 +155,7 @@ s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 
 //@<> Stop SQL thread at instance 3.
-session3.runSql("STOP SLAVE SQL_THREAD");
+session3.runSql("STOP " + get_replica_keyword() + " SQL_THREAD");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "OFFLINE");
 
@@ -165,7 +165,7 @@ s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 
 //@<> Stop IO thread at instance 3.
-session3.runSql("STOP SLAVE IO_THREAD");
+session3.runSql("STOP " + get_replica_keyword() + " IO_THREAD");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "OFFLINE");
 
@@ -176,8 +176,8 @@ EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 
 //@<> Reset and Stop replication at instance 3.
 sb3 = hostname_ip+":"+__mysql_sandbox_port3;
-session3.runSql("STOP SLAVE");
-session3.runSql("RESET SLAVE ALL");
+session3.runSql("STOP " + get_replica_keyword());
+session3.runSql("RESET " + get_replica_keyword() + " ALL");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ERROR");
 
@@ -253,22 +253,22 @@ EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 //@<> Add a connection failure, which puts the channel on connecting (change password of rpl user for instance 3).
 rpl_user3 = "mysql_innodb_rs_33";
 session2.runSql("SET PASSWORD FOR '" + rpl_user3 + "'@'%' = 'wrong_pass'");
-session3.runSql("STOP SLAVE");
-session3.runSql("START SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
+session3.runSql("START " + get_replica_keyword());
 s = rs.status();
 EXPECT_EQ("CONNECTING", s.replicaSet.topology[sb3].status);
 EXPECT_TRUE("instanceErrors" in s.replicaSet.topology[sb3]);
 EXPECT_EQ("NOTE: Replication I/O thread is reconnecting.", s.replicaSet.topology[sb3].instanceErrors[0]);
 
 //@ Rejoin instance with connection failure, rpl user password reset (succeed).
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 rs.rejoinInstance(__sandbox3);
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "ONLINE");
 
 //@<> Stop replication at instance 3 and purge transactions from the PRIMARY.
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 session2.runSql("CREATE DATABASE purged_trx_db");
 session2.runSql("FLUSH BINARY LOGS");
 session2.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
@@ -279,15 +279,15 @@ rs.rejoinInstance(__sandbox3);
 
 //@<> Stop replication at instance 3..
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 //@ Try to rejoin instance with purged transactions on PRIMARY and gtid-set empty (should fail)
-session3.runSql("RESET MASTER");
+session3.runSql("RESET " + get_reset_binary_logs_keyword());
 rs.rejoinInstance(__sandbox3);
 
 //@<> Stop replication at instance 3...
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 //@ Try to rejoin instance with purged transactions on PRIMARY (should work with clone) {VER(>=8.0.17)}
 rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone"});
@@ -296,14 +296,14 @@ rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone"});
 
 //@<> Stop replication at instance 3
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 //@ cloneDonor valid {VER(>=8.0.17)}
 rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox1});
 
 //@<> Stop replication at instance 3 again
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 //@ cloneDonor valid 2 {VER(>=8.0.17)}
 rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
@@ -316,7 +316,7 @@ rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDo
 
 //@<> BUG#30628746: preparation {VER(>=8.0.17)}
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 var session1 = mysql.getSession(__sandbox_uri1);
 session1.runSql("lock tables mysql.user read");
 
@@ -329,7 +329,7 @@ session1.runSql("unlock tables");
 
 //@<> BUG#30632029: preparation
 var session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 // We must verify if the slave is stopped and the channels reset
 //@<> BUG#30632029: add instance using clone and a secondary as donor {VER(<8.0.23)}
@@ -372,7 +372,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 EXPECT_EQ("5ef81566-9395-11e9-87e9-333333333333", session.runSql("SELECT mysql_server_uuid FROM mysql_innodb_cluster_metadata.instances WHERE instance_name= ?", [hostname_ip+":"+__mysql_sandbox_port3]).fetchOne()[0]);
 
 session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[`${hostname_ip}:${__mysql_sandbox_port3}`].status, "OFFLINE");
 

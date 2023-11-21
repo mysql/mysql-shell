@@ -130,9 +130,9 @@ setup_slave(session2, __mysql_sandbox_port1);
 //@<> SSL=1
 session1 = mysql.getSession(__sandbox_uri1);
 
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=1", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
@@ -141,9 +141,9 @@ reset_instance(session2);
 setup_slave(session2, __mysql_sandbox_port1);
 
 //@<> SSL=0
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_ssl=0", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=0", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
@@ -155,7 +155,7 @@ setup_slave(session2, __mysql_sandbox_port1);
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo)");
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
-session.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/ FOR CHANNEL 'bla'", [__mysql_port]);
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/ FOR CHANNEL 'bla'", [__mysql_port]);
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo) FOR CHANNEL 'bla'");
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
@@ -178,9 +178,9 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 
 //@ broken repl (should fail)
 shell.connect(__sandbox_uri2);
-session.runSql("STOP SLAVE");
-session.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='badpass', MASTER_AUTO_POSITION=1, MASTER_SSL=1", [__mysql_sandbox_port1]);
-session.runSql("START SLAVE");
+session.runSql("STOP " + get_replica_keyword());
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='badpass', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1", [__mysql_sandbox_port1]);
+session.runSql("START " + get_replica_keyword());
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
 reset_instance(session);
@@ -189,8 +189,8 @@ reset_instance(session);
 shell.connect(__sandbox_uri1);
 reset_instance(session);
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root' FOR CHANNEL 'bla'", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE FOR CHANNEL 'bla'");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root' FOR CHANNEL 'bla'", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword() + " FOR CHANNEL 'bla'");
 
 // this should fail because of the channel name
 dba.createReplicaSet("myrs", {adoptFromAR:true});
@@ -199,7 +199,7 @@ dba.createReplicaSet("myrs", {adoptFromAR:true});
 setup_slave(session2, __mysql_sandbox_port1);
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
-session2.runSql("STOP SLAVE FOR CHANNEL 'bla'");
+session2.runSql("STOP " + get_replica_keyword() + " FOR CHANNEL 'bla'");
 reset_instance(session2);
 
 //@ bad repl channels - master has a bogus channel
@@ -207,7 +207,7 @@ setup_slave(session, __mysql_sandbox_port3, "foob");
 setup_slave(session2, __mysql_sandbox_port1);
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
-session.runSql("STOP SLAVE FOR CHANNEL 'foob'");
+session.runSql("STOP " + get_replica_keyword() + " FOR CHANNEL 'foob'");
 reset_instance(session);
 reset_instance(session2);
 
@@ -294,8 +294,8 @@ testutil.deployRawSandbox(__mysql_sandbox_port2, "root", {gtid_mode:'OFF', serve
 shell.connect(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root'", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root'", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:true});
 
@@ -314,50 +314,50 @@ session3 = mysql.getSession(__sandbox_uri3);
 
 //@ unsupported option: delay (should fail)
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_delay=5", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_delay=5", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ unsupported option: connect_retry (should fail)
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_connect_retry=4", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_connect_retry=4", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ unsupported option: retry_count (should fail)
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_retry_count=3", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_retry_count=3", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ unsupported option: heartbeat (should fail)
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, master_heartbeat_period=32", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_heartbeat_period=32", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ unsupported option: no auto_position (should fail)
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root'", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root'", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ unsupported option: MASTER_COMPRESSION_ALGORITHMS (should fail) {VER(>=8.0.18)}
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, MASTER_COMPRESSION_ALGORITHMS='zstd'", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_COMPRESSION_ALGORITHMS='zstd'", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 
 //@ supported option: GET_MASTER_PUBLIC_KEY
 reset_instance(session2);
-session2.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1, GET_MASTER_PUBLIC_KEY=1", [__mysql_sandbox_port1]);
-session2.runSql("START SLAVE");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1, GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1", [__mysql_sandbox_port1]);
+session2.runSql("START " + get_replica_keyword());
 
 dba.createReplicaSet("myrs", {adoptFromAR:1});
 

@@ -120,7 +120,7 @@ EXPECT_TRUE(get_sysvar(session2, "super_read_only"));
 // metadata exists, but instance is not there
 shell.dumpRows(session2.runSql("SELECT * FROM mysql_innodb_cluster_metadata.v2_ar_members ORDER BY instance_id"), "tabbed");
 // repl should be stopped
-shell.dumpRows(session2.runSql("SHOW SLAVE STATUS"));
+shell.dumpRows(session2.runSql("SHOW " + get_replica_keyword() + " STATUS"));
 // slave_master_info should be empty
 shell.dumpRows(session2.runSql("SELECT * FROM mysql.slave_master_info"));
 
@@ -269,7 +269,7 @@ reset_instance(session2);
 EXPECT_THROWS(function () { rs.addInstance(__sandbox2); }, `${hostname_ip}:${__mysql_sandbox_port2} is already a member of this replicaset.`);
 
 //@<> remove with repl already stopped - no force (should fail)
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Replication is not active in target instance`);
 
@@ -292,11 +292,11 @@ The instance '${hostname_ip}:${__mysql_sandbox_port2}' was removed from the repl
 // sync done during removal will never catch up
 reset_instance(session2);
 rs.addInstance(__sandbox2);
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 session.runSql("CREATE SCHEMA testdb2");
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replica_keyword());
 
 EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Missing purged transactions at ${hostname_ip}:${__mysql_sandbox_port2}`);
 

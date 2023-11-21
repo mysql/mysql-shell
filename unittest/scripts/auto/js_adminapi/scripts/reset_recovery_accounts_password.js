@@ -294,7 +294,7 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = 
 session.runSql("RENAME USER \'mysql_innodb_cluster_"+ server_id2.toString()+"'@'%' to 'nonstandart'@'%'");
 session.runSql("ALTER USER 'nonstandart'@'%' IDENTIFIED BY 'password123'");
 shell.connect(__sandbox_uri2);
-session.runSql("CHANGE MASTER TO master_user='nonstandart', master_password='password123' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='nonstandart', " + get_replication_option_keyword() + "_PASSWORD='password123' FOR CHANNEL 'group_replication_recovery'");
 session.close();
 shell.connect(__sandbox_uri1);
 

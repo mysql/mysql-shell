@@ -95,7 +95,7 @@ rs.rejoinInstance("admin:blaa@"+__sandbox3);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
 session3 = mysql.getSession("admin:blaa@"+__sandbox3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 rs.rejoinInstance("admin:blaa@"+__sandbox3, {recoveryMethod:"clone"});
 

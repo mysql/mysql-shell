@@ -32,7 +32,7 @@ c2.addInstance(__sandbox_uri4);
 c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3");
 
 function execute_after(session, delay, sql) {
-  session.runSql("create event ev1 on schedule every ? second on completion not preserve disable on slave do "+sql, [delay]);
+  session.runSql("create event ev1 on schedule every ? second on completion not preserve disable on "+ get_replica_keyword() +" do "+sql, [delay]);
 }
 
 //@<> INCLUDE clusterset_utils.inc

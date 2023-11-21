@@ -735,7 +735,7 @@ function exist_in_metadata_schema(port) {
 }
 
 function reset_instance(session) {
-  session.runSql("STOP SLAVE");
+  session.runSql("STOP " + get_replica_keyword());
   try {
   session.runSql("STOP group_replication");
   } catch (e) {}
@@ -760,8 +760,8 @@ function reset_instance(session) {
           continue;
       session.runSql("DROP USER ?@?", [row[0], row[1]]);
   }
-  session.runSql("RESET MASTER");
-  session.runSql("RESET SLAVE ALL");
+  session.runSql("RESET " + get_reset_binary_logs_keyword());
+  session.runSql("RESET " + get_replica_keyword() + " ALL");
 }
 
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
@@ -2016,3 +2016,34 @@ function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, g
   }
 }
 
+function get_reset_binary_logs_keyword() {
+  if (__version_num < 80200) {
+    return "MASTER";
+  }
+
+  return "BINARY LOGS AND GTIDS";
+}
+
+function get_replica_keyword() {
+  if (__version_num < 80022) {
+    return "SLAVE";
+  }
+
+  return "REPLICA";
+}
+
+function get_replication_source_keyword() {
+  if (__version_num < 80022) {
+    return "MASTER";
+  }
+
+  return "REPLICATION SOURCE";
+}
+
+function get_replication_option_keyword() {
+  if (__version_num < 80022) {
+    return "MASTER";
+  }
+
+  return "SOURCE";
+}

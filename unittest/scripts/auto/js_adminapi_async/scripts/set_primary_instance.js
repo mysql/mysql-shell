@@ -147,30 +147,30 @@ rs.setPrimaryInstance(__sandbox2);
 // restore
 testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
-session2.runSql("STOP SLAVE");
-session2.runSql("START SLAVE");
-session3.runSql("STOP SLAVE");
-session3.runSql("START SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
+session2.runSql("START " + get_replica_keyword());
+session3.runSql("STOP " + get_replica_keyword());
+session3.runSql("START " + get_replica_keyword());
 
 //@ promoted has broken/stopped replication (should fail)
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 rs.setPrimaryInstance(__sandbox2);
 
 //@ a secondary has broken replication (should fail)
 rs.setPrimaryInstance(__sandbox3);
 
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replica_keyword());
 
 //@ primary has unexpected replication channel (should fail)
-session.runSql("CHANGE MASTER TO MASTER_HOST='localhost', MASTER_PORT=?, MASTER_USER='root', MASTER_PASSWORD='root'", [__mysql_sandbox_port2]);
-session.runSql("START SLAVE");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=?, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root'", [__mysql_sandbox_port2]);
+session.runSql("START " + get_replica_keyword());
 rs.status();
 
 rs.setPrimaryInstance(__sandbox2);
 
-session.runSql("STOP SLAVE");
-session.runSql("RESET SLAVE ALL");
+session.runSql("STOP " + get_replica_keyword());
+session.runSql("RESET " + get_replica_keyword() + " ALL");
 
 //@ promoted is down (should fail)
 testutil.stopSandbox(__mysql_sandbox_port3, {wait:1});
@@ -184,16 +184,16 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ a secondary has errant GTIDs (should fail)
 var session3 = mysql.getSession(__sandbox_uri3);
-var before2 = strip_slave_status(session2.runSql("SHOW SLAVE STATUS").fetchAll());
-var before3 = strip_slave_status(session3.runSql("SHOW SLAVE STATUS").fetchAll());
+var before2 = strip_slave_status(session2.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchAll());
+var before3 = strip_slave_status(session3.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchAll());
 
 inject_errant_gtid(session3);
 
 rs.setPrimaryInstance(__sandbox2);
 
-EXPECT_EQ([], session.runSql("SHOW SLAVE STATUS").fetchAll());
-EXPECT_EQ(before2, strip_slave_status(session2.runSql("SHOW SLAVE STATUS").fetchAll()));
-EXPECT_EQ(before3, strip_slave_status(session3.runSql("SHOW SLAVE STATUS").fetchAll()));
+EXPECT_EQ([], session.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchAll());
+EXPECT_EQ(before2, strip_slave_status(session2.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchAll()));
+EXPECT_EQ(before3, strip_slave_status(session3.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchAll()));
 
 //@ Replication conflict error (should fail)
 // Create a DB at the slave and then create the same one in the master

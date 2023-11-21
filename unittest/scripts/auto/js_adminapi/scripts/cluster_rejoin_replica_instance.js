@@ -162,7 +162,7 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Target instance must be given as host:port. Crede
 //@<> rejoinInstance(read_replica) - prompt required - interactive false - error
 shell.options.useWizards=1;
 
-session3.runSql("reset master");
+session3.runSql("RESET " + get_reset_binary_logs_keyword());
 
 var session2 = mysql.getSession(__sandbox_uri2);
 

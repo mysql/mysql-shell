@@ -94,7 +94,7 @@ session.runSql("STOP replica FOR CHANNEL 'clusterset_replication'");
 
 session.runSql("SET GLOBAL super_read_only = 0");
 session.runSql("STOP group_replication;")
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 session.runSql("SET GLOBAL super_read_only = 1");
 
 EXPECT_THROWS(function(){
@@ -150,7 +150,7 @@ session.runSql("STOP replica FOR CHANNEL 'clusterset_replication'");
 
 session.runSql("SET GLOBAL super_read_only = 0");
 session.runSql("STOP group_replication;")
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 session.runSql("SET GLOBAL super_read_only = 1");
 
 session.runSql("SELECT * FROM mysql.gtid_executed;");

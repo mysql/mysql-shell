@@ -38,7 +38,7 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri2);
 rs = dba.getReplicaSet();
-session.runSql("STOP SLAVE");
+session.runSql("STOP " + get_replica_keyword());
 
 testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
 
@@ -56,12 +56,12 @@ shell.connect(__sandbox_uri2);
 rs=dba.getReplicaSet();
 
 session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 
 testutil.waitForReplConnectionError(__mysql_sandbox_port3, "");
 
 session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 EXPECT_NO_THROWS(function() { rs.forcePrimaryInstance(__sandbox3); });
 EXPECT_OUTPUT_NOT_CONTAINS("* Waiting for all received transactions to be applied");
@@ -88,10 +88,10 @@ testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 rs = rebuild_rs();
 // Make sb2 behind by making it not retrieve all trx from primary.
-session2.runSql("STOP SLAVE IO_THREAD");
+session2.runSql("STOP " + get_replica_keyword() + " IO_THREAD");
 session.runSql("CREATE SCHEMA mydb");
 testutil.stopSandbox(__mysql_sandbox_port1);
-session2.runSql("START SLAVE IO_THREAD");
+session2.runSql("START " + get_replica_keyword() + " IO_THREAD");
 shell.connect(__sandbox_uri2);
 rs=dba.getReplicaSet();
 
@@ -169,9 +169,9 @@ rs = rebuild_rs();
 testutil.stopSandbox(__mysql_sandbox_port1);
 
 session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replica_keyword());
 session3 = mysql.getSession(__sandbox_uri3);
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replica_keyword());
 
 shell.connect(__sandbox_uri3);
 rs = dba.getReplicaSet();

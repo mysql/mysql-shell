@@ -204,18 +204,18 @@
 |3	<<<cluster_id>>>	2	<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>	5ef81566-9395-11e9-87e9-222222222222	SECONDARY	1	5ef81566-9395-11e9-87e9-111111111111|
 |2|
 |*************************** 1. row ***************************|
-|               Slave_IO_State: Waiting for <<<__source_keyword>>> to send event|
-|                  Master_Host: <<<hostname_ip>>>|
-|                  Master_User: mysql_innodb_rs_22|
-|                  Master_Port: <<<__mysql_sandbox_port1>>>|
+|             <<<__replica_keyword_capital>>>_IO_State: Waiting for <<<__source_keyword>>> to send event|
+|                  <<<__source_keyword_capital>>>_Host: <<<hostname_ip>>>|
+|                  <<<__source_keyword_capital>>>_User: mysql_innodb_rs_22|
+|                  <<<__source_keyword_capital>>>_Port: <<<__mysql_sandbox_port1>>>|
 |                Connect_Retry: 60|
-|              Master_Log_File: |
-|          Read_Master_Log_Pos: |
+|              <<<__source_keyword_capital>>>_Log_File: |
+|          Read_<<<__source_keyword_capital>>>_Log_Pos: |
 |               Relay_Log_File: |
 |                Relay_Log_Pos: |
-|        Relay_Master_Log_File: |
-|             Slave_IO_Running: Yes|
-|            Slave_SQL_Running: Yes|
+|        Relay_<<<__source_keyword_capital>>>_Log_File: |
+|           <<<__replica_keyword_capital>>>_IO_Running: Yes|
+|          <<<__replica_keyword_capital>>>_SQL_Running: Yes|
 |              Replicate_Do_DB: |
 |          Replicate_Ignore_DB: |
 |           Replicate_Do_Table: |
@@ -225,44 +225,44 @@
 |                   Last_Errno: 0|
 |                   Last_Error: |
 |                 Skip_Counter: 0|
-|          Exec_Master_Log_Pos: |
+|          Exec_<<<__source_keyword_capital>>>_Log_Pos: |
 |              Relay_Log_Space: |
 |              Until_Condition: None|
 |               Until_Log_File: |
 |                Until_Log_Pos: 0|
-|           Master_SSL_Allowed: Yes|
-|           Master_SSL_CA_File: |
-|           Master_SSL_CA_Path: |
-|              Master_SSL_Cert: |
-|            Master_SSL_Cipher: |
-|               Master_SSL_Key: |
-|        Seconds_Behind_Master: |
-|Master_SSL_Verify_Server_Cert: No|
+|           <<<__source_keyword_capital>>>_SSL_Allowed: Yes|
+|           <<<__source_keyword_capital>>>_SSL_CA_File: |
+|           <<<__source_keyword_capital>>>_SSL_CA_Path: |
+|              <<<__source_keyword_capital>>>_SSL_Cert: |
+|            <<<__source_keyword_capital>>>_SSL_Cipher: |
+|               <<<__source_keyword_capital>>>_SSL_Key: |
+|        Seconds_Behind_<<<__source_keyword_capital>>>: |
+|<<<__source_keyword_capital>>>_SSL_Verify_Server_Cert: No|
 |                Last_IO_Errno: 0|
 |                Last_IO_Error: |
 |               Last_SQL_Errno: 0|
 |               Last_SQL_Error: |
 |  Replicate_Ignore_Server_Ids: |
-|             Master_Server_Id: 11|
-|                  Master_UUID: 5ef81566-9395-11e9-87e9-111111111111|
-|             Master_Info_File: mysql.slave_master_info|
+|             <<<__source_keyword_capital>>>_Server_Id: 11|
+|                  <<<__source_keyword_capital>>>_UUID: 5ef81566-9395-11e9-87e9-111111111111|
+|             <<<__source_keyword_capital>>>_Info_File: mysql.slave_master_info|
 |                    SQL_Delay: 0|
 |          SQL_Remaining_Delay: NULL|
-|      Slave_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
-|           Master_Retry_Count: <<<(__version_num<80100)?86400:10>>>|
-|                  Master_Bind: |
+|    <<<__replica_keyword_capital>>>_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
+|           <<<__source_keyword_capital>>>_Retry_Count: <<<(__version_num<80100)?86400:10>>>|
+|                  <<<__source_keyword_capital>>>_Bind: |
 |      Last_IO_Error_Timestamp: |
 |     Last_SQL_Error_Timestamp: |
-|               Master_SSL_Crl: |
-|           Master_SSL_Crlpath: |
+|               <<<__source_keyword_capital>>>_SSL_Crl: |
+|           <<<__source_keyword_capital>>>_SSL_Crlpath: |
 |           Retrieved_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:1-|
 |            Executed_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:1-|
 |                Auto_Position: 1|
 |         Replicate_Rewrite_DB: |
 |                 Channel_Name: |
-|           Master_TLS_Version: |
-|       Master_public_key_path: |
-|        Get_master_public_key: 0|
+|           <<<__source_keyword_capital>>>_TLS_Version: |
+|       <<<__source_keyword_capital>>>_public_key_path: |
+|        Get_<<<__source_keyword_capital>>>_public_key: 0|
 |            Network_Namespace: |
 
 //@# target is super-read-only

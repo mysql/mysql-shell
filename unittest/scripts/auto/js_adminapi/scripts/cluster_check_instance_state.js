@@ -136,7 +136,7 @@ purgeLogs(session);
 //@<> WL#13208: TS_FR5_1 connect to instance 2 to clean all transactions {VER(>=8.0.17)}
 session.close();
 var s2 = shell.connect(__sandbox_uri2);
-s2.runSql("RESET MASTER");
+s2.runSql("RESET " + get_reset_binary_logs_keyword());
 
 //@ WL#13208: TS_FR5_1 No errors for instance 2 using checkInstanceState() {VER(>=8.0.17)}
 c.checkInstanceState(__sandbox_uri2);

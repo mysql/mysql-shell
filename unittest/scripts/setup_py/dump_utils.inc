@@ -136,7 +136,7 @@ def wipeout_server(session):
     for user,host in session.run_sql("select user,host from mysql.user").fetch_all():
         if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
             session.run_sql("drop user ?@?", [user,host])
-    session.run_sql("reset master")
+    session.run_sql("reset " + get_reset_binary_logs_keyword())
     session.run_sql("set global foreign_key_checks=1")
 
 def truncate_all_tables(session):

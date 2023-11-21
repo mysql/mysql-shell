@@ -220,7 +220,7 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4], c1, c2);
 CHECK_REPLICA_CLUSTER([__sandbox_uri5], c1, c3);
 CHECK_CLUSTER_SET(session);
 
-session5.runSql("show slave status");
+session5.runSql("show " + get_replica_keyword() + " status");
 
 //@<> Switch primary 3/1/1
 

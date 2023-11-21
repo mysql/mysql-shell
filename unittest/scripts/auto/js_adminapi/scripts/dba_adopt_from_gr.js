@@ -34,8 +34,8 @@ session.runSql("SET GLOBAL group_replication_local_address='localhost:"+__mysql_
 session2.runSql("SET GLOBAL group_replication_local_address='localhost:"+__mysql_sandbox_gr_port2+"'");
 session2.runSql("SET GLOBAL group_replication_group_seeds='"+hostname+":"+__mysql_sandbox_gr_port1+"'");
 session2.runSql("SET GLOBAL group_replication_recovery_use_ssl=1");
-session.runSql("CHANGE MASTER TO master_user='mysql_innodb_cluster_r1', master_password='aaa' FOR CHANNEL 'group_replication_recovery'");
-session2.runSql("CHANGE MASTER TO master_user='some_user', master_password='aaa' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='mysql_innodb_cluster_r1', " + get_replication_option_keyword() + "_password='aaa' FOR CHANNEL 'group_replication_recovery'");
+session2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_user='some_user', " + get_replication_option_keyword() + "_password='aaa' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("SET GLOBAL group_replication_bootstrap_group=1");
 session.runSql("START group_replication");
 session.runSql("SET GLOBAL group_replication_bootstrap_group=0");

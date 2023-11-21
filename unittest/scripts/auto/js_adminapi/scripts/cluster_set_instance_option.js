@@ -180,7 +180,7 @@ print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "P
 //@<> Check that setInstanceOption works if you have quorum and the instance reachable but not online
 // keep instance 3 in RECOVERING state by setting a wrong recovery user.
 session3 = shell.connect(__sandbox_uri3);
-session3.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
+session3.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER = 'not_exist', " + get_replication_option_keyword() + "_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session3.runSql("STOP GROUP_REPLICATION");
 session1 = mysql.getSession(__sandbox_uri1);
 session1.runSql("create schema foo");

@@ -1,6 +1,10 @@
 
 function reset_instance(session) {
-    session.runSql("STOP SLAVE");
+    if (__version < 80022) {
+        session.runSql("STOP " + get_replica_keyword());
+    } else {
+        session.runSql("STOP REPLICA");
+    }
     session.runSql("SET GLOBAL super_read_only=0");
     session.runSql("SET GLOBAL read_only=0");
     session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
@@ -22,8 +26,8 @@ function reset_instance(session) {
             continue;
         session.runSql("DROP USER ?@?", [row[0], row[1]]);
     }
-    session.runSql("RESET MASTER");
-    session.runSql("RESET SLAVE ALL");
+    session.runSql("RESET " + get_reset_binary_logs_keyword());
+    session.runSql("RESET " + get_replica_keyword() + " ALL");
 }
 
 function reset_provision_instance(session, master) {
@@ -31,8 +35,8 @@ function reset_provision_instance(session, master) {
 
     setup_slave(session, shell.parseUri(master.uri).port);
     session.runSql("SELECT wait_for_executed_gtid_set(?)", [master.runSql("SELECT @@gtid_executed").fetchOne()[0]]);
-    session.runSql("STOP SLAVE");
-    session.runSql("RESET SLAVE ALL");
+    session.runSql("STOP " + get_replica_keyword());
+    session.runSql("RESET " + get_replica_keyword() + " ALL");
 }
 
 function strip_status(status) {
@@ -93,9 +97,13 @@ function rebuild_rs_delayed(delay, gtid_set_is_complete) {
     testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
     var used_delay = [delay ? delay : 60];
     println("Adding " + used_delay + "s delay to sb2");
-    s2.runSql("STOP SLAVE");
-    s2.runSql("CHANGE MASTER TO master_delay=?", used_delay);
-    s2.runSql("START SLAVE");
+    s2.runSql("STOP " + get_replica_keyword());
+    if (__version_num < 80023) {
+        s2.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "delay=?", used_delay);
+    } else {
+        s2.runSql("CHANGE SOURCE TO source_delay=?", used_delay);
+    }
+    s2.runSql("START " + get_replica_keyword());
     s2.close();
     s3.close();
     println("END REBUILD_RS");
@@ -113,26 +121,40 @@ function start_standalone_gr(session, grport) {
 
 function stop_standalone_gr(session) {
     session.runSql("STOP group_replication");
-    session.runSql("RESET SLAVE ALL");
+    if (__version < 80022) {
+        session.runSql("RESET " + get_replica_keyword() + " ALL");
+    } else {
+        session.runSql("RESET REPLICA ALL");
+    }
 }
 
 function setup_slave(session, master_port, channel_name) {
     if (channel_name == undefined)
         channel_name = "";
-    session.runSql("CHANGE MASTER TO master_host='localhost', master_port=/*(*/?/*)*/, master_user='root', master_password='root', master_auto_position=1 FOR CHANNEL ?", [master_port, channel_name]);
-    session.runSql("START SLAVE FOR CHANNEL ?", [channel_name]);
+    session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='localhost', " + get_replication_option_keyword() + "_PORT=/*(*/?/*)*/, " + get_replication_option_keyword() + "_USER='root', " + get_replication_option_keyword() + "_PASSWORD='root', " + get_replication_option_keyword() + "_AUTO_POSITION=1 FOR CHANNEL ?", [master_port, channel_name]);
+    session.runSql("START " + get_replica_keyword() + " FOR CHANNEL ?", [channel_name]);
     while (true) {
-        r = session.runSql("SHOW SLAVE STATUS").fetchOne();
-        if (r.Slave_IO_Running != 'Connecting')
-            break;
+        r = session.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchOne();
+        if (__version_num < 80022) {
+            if (r.Slave_IO_Running != 'Connecting')
+                break;
+        } else {
+            if (r.Replica_IO_Running != 'Connecting')
+                break;
+        }
     }
 }
 
 function wait_slave(session) {
     while (true) {
-        r = session.runSql("SHOW SLAVE STATUS").fetchOne();
-        if (r.Slave_SQL_Running_State == "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates")
-            break;
+        r = session.runSql("SHOW " + get_replica_keyword() + " STATUS").fetchOne();
+        if (__version_num < 80022) {
+            if (r.Slave_SQL_Running_State == "Slave has read all relay log; waiting for more updates")
+                break;
+        } else {
+            if (r.Replica_SQL_Running_State == "Replica has read all relay log; waiting for more updates")
+                break;
+        }
     }
 }
 

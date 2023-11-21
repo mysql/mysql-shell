@@ -2370,9 +2370,15 @@ session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema + "_2" ])
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
 
 #@<> BUG#32490714 - running a dump should not change binlog position
-[binlog_file, binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+if __version_num < 80200:
+    [binlog_file, binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+else:
+    [binlog_file, binlog_position, _, _, _] = session.run_sql('SHOW BINARY LOG STATUS;').fetch_one()
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
-[new_binlog_file, new_binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+if __version_num < 80200:
+    [new_binlog_file, new_binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+else:
+    [new_binlog_file, new_binlog_position, _, _, _] = session.run_sql('SHOW BINARY LOG STATUS;').fetch_one()
 
 EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
 EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")

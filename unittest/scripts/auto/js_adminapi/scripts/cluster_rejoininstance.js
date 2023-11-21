@@ -71,8 +71,8 @@ session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 session.close();
 shell.connect(__sandbox_uri2);
 
-session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
-session.runSql("START SLAVE");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_HOST='" + hostname + "', " + get_replication_option_keyword() + "_PORT=" + __mysql_sandbox_port1 + ", " + get_replication_option_keyword() + "_USER='repl', " + get_replication_option_keyword() + "_PASSWORD='password', " + get_replication_option_keyword() + "_AUTO_POSITION=1, " + get_replication_option_keyword() + "_SSL=1");
+session.runSql("START " + get_replica_keyword());
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
@@ -80,19 +80,19 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 c.rejoinInstance(__sandbox_uri2);
 
 // Stop and reset async channel on instance2
-session.runSql("STOP SLAVE");
+session.runSql("STOP " + get_replica_keyword());
 
 // BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
 //
 // Even if replication is not running but configured, the warning/error has to
 // be provided as implemented in BUG#29305551
-session.runSql("STOP SLAVE");
+session.runSql("STOP " + get_replica_keyword());
 
 //@ rejoinInstance async replication error with channels stopped
 c.rejoinInstance(__sandbox_uri2);
 
 // BUG#32197197: clean-up
-session.runSql("RESET SLAVE ALL FOR CHANNEL ''");
+session.runSql("RESET " + get_replica_keyword() + " ALL FOR CHANNEL ''");
 
 // Tests for deprecation of ipWhitelist in favor of ipAllowlist
 
@@ -158,7 +158,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@ BUG#29754915: keep instance 2 in RECOVERING state by setting a wrong recovery user.
 session.close();
 shell.connect(__sandbox_uri2);
-session.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
+session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER = 'not_exist', " + get_replication_option_keyword() + "_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
 session.runSql("STOP GROUP_REPLICATION");
 session1 = mysql.getSession(__sandbox_uri1);
 session1.runSql("create schema foo");
@@ -356,7 +356,7 @@ var gtid_executed = session.runSql("SELECT @@global.gtid_executed").fetchOne()[0
 session2.runSql("stop group_replication;")
 
 // Simulate errant transactions
-session2.runSql("RESET MASTER");
+session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
 //@ Rejoin instance fails if the target instance contains errant transactions (BUG#29953812) {VER(>=8.0.17)}
@@ -366,7 +366,7 @@ cluster.rejoinInstance(__sandbox_uri2);
 cluster.rejoinInstance(__sandbox_uri2);
 
 //@<> Rejoin instance with an empty gtid-set - auto incremental since gtidSetIsComplete was used when creating the cluster
-session2.runSql("RESET MASTER");
+session2.runSql("RESET " + get_reset_binary_logs_keyword());
 
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2); });
 
@@ -374,7 +374,7 @@ EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2); });
 session2.runSql("stop group_replication;")
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
-session2.runSql("RESET MASTER");
+session2.runSql("RESET " + get_reset_binary_logs_keyword());
 
 cluster.rejoinInstance(__sandbox_uri2);
 

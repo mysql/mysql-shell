@@ -9,7 +9,7 @@ dba.getReplicaSet();
 //@ getReplicaSet() in a standalone instance with GR MD 1.0.1 (should fail) {VER(>8.0.4)}
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 // import the MD schema and hack it to match the test environment
 testutil.importData(__sandbox_uri1, __data_path+"/dba/md-1.0.1-cluster_1member.sql", "mysql_innodb_cluster_metadata");
 
@@ -18,7 +18,7 @@ dba.getReplicaSet();
 //@ getReplicaSet() in a standalone instance with GR MD 2.0.0 (should fail) {VER(>8.0.4)}
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 // import the MD schema and hack it to match the test environment
 testutil.importData(__sandbox_uri1, __data_path+"/dba/md-2.0.0-cluster_1member.sql", "mysql_innodb_cluster_metadata");
 
@@ -27,7 +27,7 @@ dba.getReplicaSet();
 //@<> getReplicaSet() in a standalone instance with AR MD 2.0.0 in 5.7 (should fail) {VER(<8.0.4)}
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 // import the MD schema and hack it to match the test environment
 testutil.importData(__sandbox_uri1, __data_path+"/dba/md-2.0.0-replicaset_1member.sql", "mysql_innodb_cluster_metadata");
 
@@ -35,7 +35,7 @@ dba.getReplicaSet();
 
 //@<> getReplicaSet() in a GR instance (prepare)
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
-session.runSql("RESET MASTER");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
 
 c = dba.createCluster("cluster");
 
@@ -49,8 +49,8 @@ dba.getReplicaSet();
 c.dissolve();
 session.runSql("SET GLOBAL super_read_only=0");
 session.runSql("SET GLOBAL read_only=0");
-session.runSql("RESET MASTER");
-session.runSql("RESET SLAVE ALL");
+session.runSql("RESET " + get_reset_binary_logs_keyword());
+session.runSql("RESET " + get_replica_keyword() + " ALL");
 
 //@<> Setup replicaset {VER(>=8.0.11)}
 shell.connect(__sandbox_uri1);

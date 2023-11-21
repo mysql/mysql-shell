@@ -686,7 +686,7 @@ def reset_instance(session):
       session.run_sql("SELECT asynchronous_connection_failover_reset()")
     except:
         pass
-    session.run_sql("STOP SLAVE")
+    session.run_sql("STOP " + get_replica_keyword())
     try:
         session.run_sql("STOP group_replication")
         session.run_sql("SET PERSIST group_replication_start_on_boot=0")
@@ -709,8 +709,8 @@ def reset_instance(session):
         if row[0] == "root" and (row[1] == "localhost" or row[1] == "%"):
             continue
         session.run_sql("DROP USER ?@?", [row[0], row[1]])
-    session.run_sql("RESET MASTER")
-    session.run_sql("RESET SLAVE ALL")
+    session.run_sql("RESET " + get_reset_binary_logs_keyword())
+    session.run_sql("RESET " + get_replica_keyword() + " ALL")
 
 
 def reset_multi(ports):
@@ -822,3 +822,27 @@ class Docker_manipulator:
             self.client.containers.prune()
             if remove_image:
                 self.client.images.remove(image=self.img.id, force=True)
+
+def get_reset_binary_logs_keyword():
+  if __version_num < 80200:
+    return "MASTER"
+
+  return "BINARY LOGS AND GTIDS"
+
+def get_replica_keyword():
+  if __version_num < 80022:
+    return "SLAVE"
+
+  return "REPLICA"
+
+def get_replication_source_keyword():
+  if __version_num < 80022:
+    return "MASTER"
+
+  return "REPLICATION SOURCE"
+
+def get_replication_option_keyword():
+  if __version_num < 80022:
+    return "MASTER"
+
+  return "SOURCE"

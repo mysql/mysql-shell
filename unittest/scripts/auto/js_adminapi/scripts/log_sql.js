@@ -23,7 +23,7 @@ var create_cluster_sql = [
     "SELECT @@hostname, @@report_host",
     "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'",
     "START GROUP_REPLICATION",
-    "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, MASTER_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
+    "change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, " + get_replication_option_keyword() + "_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
     "CHANGE REPLICATION SOURCE TO SOURCE_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, SOURCE_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
 ];
 

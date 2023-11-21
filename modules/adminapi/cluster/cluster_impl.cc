@@ -4428,7 +4428,10 @@ int64_t Cluster_impl::prepare_clone_recovery(
 
     // RESET MASTER to clear GTID_EXECUTED in case it's diverged, otherwise
     // clone is not executed and GR rejects the instance
-    target_instance.query("RESET MASTER");
+    target_instance.query(shcore::str_format(
+        "RESET %s",
+        mysqlshdk::mysql::get_binary_logs_keyword(target_instance.get_version())
+            .c_str()));
   }
 
   // Make sure the Clone plugin is installed or uninstalled depending on the
