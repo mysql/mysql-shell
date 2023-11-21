@@ -664,7 +664,7 @@ setup_db(test_user_account)
 
 #@<> WL15887-TSFR_4_1 - note about strip_definers {not __dbug_off and VER(>=8.2.0)}
 EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_definers" ], "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__version}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887-TSFR_5_1 - user/role with SET_ANY_DEFINER {not __dbug_off and VER(>=8.2.0)}
 for account in account_names:

@@ -2741,7 +2741,7 @@ EXPECT_TRUE(test_table_unique_null in checksums["data"][schema_name])
 
 #@<> WL15947 - dry run
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "dryRun": True, "checksum": True, "includeTables": [ quote_identifier(schema_name, test_table_unique_null) ], "showProgress": False })
-EXPECT_STDOUT_CONTAINS("Computing checksum...")
+EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 
 #@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])

@@ -950,6 +950,8 @@ class Dumper::Table_worker final {
     log_debug("%sComputing checksum of %s (%s)", m_log_id.c_str(),
               task.name.c_str(), task.id.c_str());
 
+    m_dumper->checksum_task_started();
+
     if (Dry_run::DISABLED == m_dumper->m_options.dry_run_mode()) {
       task.checksum->compute(
           m_session,
@@ -2003,23 +2005,34 @@ void Dumper::do_run() {
     create_schema_ddl_tasks();
     create_table_tasks();
 
-    if (!m_options.is_dry_run() && !m_worker_interrupt) {
-      auto msg = "Running data dump using " +
-                 std::to_string(m_options.threads()) + " thread";
+    if (!m_worker_interrupt) {
+      std::string msg;
 
-      if (m_options.threads() > 1) {
-        msg += 's';
+      if (!m_options.is_dry_run()) {
+        msg = "Running data dump using " + std::to_string(m_options.threads()) +
+              " thread";
+
+        if (m_options.threads() > 1) {
+          msg += 's';
+        }
+
+        msg += '.';
       }
-
-      msg += '.';
 
       if (m_checksum) {
-        msg += " Checksumming enabled.";
+        if (!msg.empty()) {
+          msg += ' ';
+        }
+
+        msg += "Checksumming enabled.";
       }
 
-      current_console()->print_status(msg);
+      if (!msg.empty()) {
+        current_console()->print_status(msg);
+      }
 
-      if (m_options.show_progress() && m_options.dump_data()) {
+      if (!m_options.is_dry_run() && m_options.show_progress() &&
+          m_options.dump_data()) {
         current_console()->print_note(
             "Progress information uses estimated values and may not be "
             "accurate.");
@@ -2027,7 +2040,6 @@ void Dumper::do_run() {
     }
 
     initialize_throughput_progress();
-    initialize_checksum_progress();
 
     maybe_push_shutdown_tasks();
     wait_for_all_tasks();
@@ -2918,6 +2930,14 @@ void Dumper::data_task_finished() {
   }
 }
 
+void Dumper::checksum_task_started() {
+  bool expected = false;
+
+  if (m_checksum_started.compare_exchange_strong(expected, true)) {
+    initialize_checksum_progress();
+  }
+}
+
 void Dumper::checksum_task_finished() { ++m_checksum_tasks_completed; }
 
 void Dumper::wait_for_all_tasks() {
@@ -3145,6 +3165,7 @@ void Dumper::create_table_tasks() {
   m_chunking_tasks_completed = 0;
   m_data_tasks_total = 0;
   m_data_tasks_completed = 0;
+  m_checksum_started = false;
   m_checksum_tasks_total = 0;
   m_checksum_tasks_completed = 0;
 
@@ -3921,6 +3942,11 @@ void Dumper::summarize() const {
                           m_data_dump_stage->duration().to_string());
   }
 
+  if (m_checksum_stage) {
+    console->print_status("Checksum duration: " +
+                          m_checksum_stage->duration().to_string());
+  }
+
   console->print_status("Total duration: " +
                         m_progress_thread.duration().to_string());
 
@@ -4062,7 +4088,7 @@ void Dumper::initialize_checksum_progress() {
   config.total = [this]() { return m_checksum_tasks_total.load(); };
   config.is_total_known = [this]() { return all_tasks_produced(); };
 
-  m_current_stage =
+  m_current_stage = m_checksum_stage =
       m_progress_thread.start_stage("Computing checksum", std::move(config));
 }
 

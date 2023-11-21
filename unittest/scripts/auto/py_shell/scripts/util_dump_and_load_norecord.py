@@ -2970,6 +2970,8 @@ test = lambda: util.load_dump(no_data_dump_dir, { "checksum": True, "loadDdl": F
 # WL15947-TSFR_2_4_3 - load an empty table
 wipeout_server(session2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "checksum": True, "resetProgress": True, "showProgress": False }))
+# BUG#35983655 - display duration of checksum verification
+EXPECT_STDOUT_CONTAINS(" checksums were verified in ")
 
 # WL15947-TSFR_2_4_2 - checksum existing tables without loading the data
 # this throws because both dumps were created with different contents (one had `where` option)
