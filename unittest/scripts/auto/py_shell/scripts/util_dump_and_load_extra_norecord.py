@@ -260,9 +260,14 @@ def EXPECT_BINLOG_INFO(file, position, gtid, options = {}):
     for option in [ "showMetadata", "dryRun" ]:
         if option not in options:
             options[option] = True
+    WIPE_SHELL_LOG()
     util.load_dump(os.path.join(outdir, "fulldump"), options)
+    yaml = testutil.yaml({ "Dump_metadata": { "Binlog_file": file, "Binlog_position": position, "Executed_GTID_set": gtid } })
     EXPECT_STDOUT_CONTAINS(binlog_info_header)
-    EXPECT_STDOUT_CONTAINS(testutil.yaml({ "Dump_metadata": { "Binlog_file": file, "Binlog_position": position, "Executed_GTID_set": gtid } }))
+    EXPECT_STDOUT_CONTAINS(yaml)
+    # BUG#35883344 - binlog info should be written to the log file
+    for line in yaml.splitlines():
+        EXPECT_SHELL_LOG_CONTAINS(line)
 
 #@<> showMetadata defaults to false
 util.load_dump(os.path.join(outdir, "fulldump"), { "dryRun": True })
