@@ -925,60 +925,79 @@ void Rescan::ensure_recovery_accounts_match() {
   m_cluster->execute_in_members(
       [this](const std::shared_ptr<Instance> &instance,
              const Instance_md_and_gr_member &info) {
-        if (info.second.state != mysqlshdk::gr::Member_state::RECOVERING &&
-            info.second.state != mysqlshdk::gr::Member_state::UNREACHABLE) {
-          // Get the instance's recovery account
-          std::string recovery_user;
-          std::vector<std::string> recovery_user_hosts;
-          std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-              m_cluster->get_replication_user(*instance);
-
-          // Check if the account is using the old prefix
-          bool old_prefix = false;
-          if (shcore::str_beginswith(
-                  recovery_user,
-                  mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
-            old_prefix = true;
-          }
-
-          // Generate the recovery account string for this instance
-          std::string recovery_user_generated =
-              Cluster_impl::make_replication_user_name(
-                  instance->get_server_id(),
-                  old_prefix ? mysqlshdk::gr::k_group_recovery_old_user_prefix
-                             : mysqlshdk::gr::k_group_recovery_user_prefix);
-
-          // If the recovery user being used is different than the generated
-          // one it means the instance was added using clone as the recovery
-          // method and waitRecovery set to zero so the AdminAPI couldn't
-          // handle the fact that clone copies everything including
-          // mysql.slave_master_info where the replication credentials for the
-          // recovery channel are stored
-          if (recovery_user != recovery_user_generated) {
-            // Ensure the user exists first
-            if (!m_cluster->get_primary_master()->user_exists(
-                    recovery_user_generated, recovery_user_hosts.front())) {
-              log_debug("Recovery account '%s' does not exist in the cluster",
-                        recovery_user_generated.c_str());
-              return true;
-            }
-
-            mysqlsh::current_console()->print_info(shcore::str_format(
-                "Fixing incorrect recovery account '%s' in instance '%s'",
-                recovery_user.c_str(), instance->descr().c_str()));
-
-            // Generate and set a new password and update the replication
-            // credentials
-            m_cluster->reset_recovery_password(
-                instance, recovery_user_generated, recovery_user_hosts);
-
-            // Update the recovery account to the right one
-            log_info("Updating recovery account in metadata");
-            m_cluster->get_metadata_storage()->update_instance_repl_account(
-                instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-                recovery_user_generated, recovery_user_hosts.front());
-          }
+        switch (info.second.state) {
+          case mysqlshdk::gr::Member_state::RECOVERING:
+          case mysqlshdk::gr::Member_state::UNREACHABLE:
+            return true;
+          default:
+            break;
         }
+
+        // Get the instance's recovery account
+        std::string recovery_user;
+        std::vector<std::string> recovery_user_hosts;
+        std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+            m_cluster->get_replication_user(*instance);
+
+        // Check if the account is using the old prefix
+        auto old_prefix = shcore::str_beginswith(
+            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix);
+
+        // Generate the recovery account string for this instance
+        std::string recovery_user_generated =
+            Cluster_impl::make_replication_user_name(
+                instance->get_server_id(),
+                old_prefix ? mysqlshdk::gr::k_group_recovery_old_user_prefix
+                           : mysqlshdk::gr::k_group_recovery_user_prefix);
+
+        // If the recovery user being used is different than the generated one
+        // it means the instance was added using clone as the recovery method
+        // and waitRecovery set to zero so the AdminAPI couldn't handle the fact
+        // that clone copies everything including mysql.slave_master_info where
+        // the replication credentials for the recovery channel are stored. Or
+        // if the recovery user has changed / created explicitly by the user.
+        if (recovery_user == recovery_user_generated) return true;
+
+        auto console = mysqlsh::current_console();
+
+        console->print_info(shcore::str_format(
+            "Fixing incorrect recovery account '%s' in instance '%s'",
+            recovery_user.c_str(), instance->descr().c_str()));
+
+        if (!m_cluster->get_primary_master()->user_exists(
+                recovery_user_generated, recovery_user_hosts.front())) {
+          log_info("Recovery account '%s' does not exist in the cluster.",
+                   recovery_user_generated.c_str());
+
+          recovery_user_generated = Cluster_impl::make_replication_user_name(
+              instance->get_server_id(),
+              mysqlshdk::gr::k_group_recovery_user_prefix);
+
+          auto [new_user, new_host] = m_cluster->recreate_replication_user(
+              instance,
+              m_cluster->query_cluster_instance_auth_cert_subject(*instance));
+
+          m_cluster->get_metadata_storage()->update_instance_repl_account(
+              instance->get_uuid(), Cluster_type::GROUP_REPLICATION, new_user,
+              new_host);
+
+          console->print_warning(shcore::str_format(
+              "A new recovery user for instance '%s' was created, which leaves "
+              "the previous user, '%s', unused, so it should be removed.",
+              instance->descr().c_str(), recovery_user.c_str()));
+
+        } else {
+          log_info("Updating recovery account '%s' in metadata.",
+                   recovery_user_generated.c_str());
+
+          m_cluster->reset_recovery_password(instance, recovery_user_generated,
+                                             recovery_user_hosts);
+
+          m_cluster->get_metadata_storage()->update_instance_repl_account(
+              instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
+              recovery_user_generated, recovery_user_hosts.front());
+        }
+
         return true;
       },
       [](const shcore::Error &, const Instance_md_and_gr_member &) {
