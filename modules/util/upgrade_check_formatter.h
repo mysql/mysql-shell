@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,8 @@ class Upgrade_check_output_formatter {
 
   virtual void check_info(const std::string &server_addres,
                           const std::string &server_version,
-                          const std::string &target_version) = 0;
+                          const std::string &target_version,
+                          bool explicit_target_version) = 0;
   virtual void check_results(const Upgrade_check &check,
                              const std::vector<Upgrade_issue> &results) = 0;
   virtual void check_error(const Upgrade_check &check, const char *description,

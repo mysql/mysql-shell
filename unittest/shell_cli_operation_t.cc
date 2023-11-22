@@ -850,6 +850,16 @@ TEST_F(Shell_cli_operation_test, integration_test) {
                     {"--", "util", "check-for-server-upgrade", uri.c_str()}, "",
                     env));
   MY_EXPECT_STDOUT_CONTAINS("will now be checked for compatibility issues");
+  MY_EXPECT_STDOUT_CONTAINS("To check for a different target server version");
+  output_handler.wipe_all();
+
+  EXPECT_NE(10,
+            testutil->call_mysqlsh_c({"--", "util", "check-for-server-upgrade",
+                                      uri.c_str(), "--target-version=8.3.0"},
+                                     "", env));
+  MY_EXPECT_STDOUT_CONTAINS("will now be checked for compatibility issues");
+  MY_EXPECT_STDOUT_NOT_CONTAINS(
+      "To check for a different target server version");
   output_handler.wipe_all();
 
   MY_EXPECT_EQ_OR_DUMP(
