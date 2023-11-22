@@ -69,13 +69,17 @@ struct Upgrade_issue {
 struct Upgrade_check_options {
   static const shcore::Option_pack_def<Upgrade_check_options> &options();
 
-  mysqlshdk::utils::Version target_version =
-      mysqlshdk::utils::Version(MYSH_VERSION);
+  std::optional<mysqlshdk::utils::Version> target_version;
   std::string config_path;
   std::string output_format;
   std::optional<std::string> password;
 
+  mysqlshdk::utils::Version get_target_version() const;
+
  private:
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Upgrade_check_options, set_target_version);
+#endif
   void set_target_version(const std::string &value);
 };
 
@@ -89,6 +93,7 @@ class Upgrade_check {
     mysqlshdk::utils::Version target_version;
     std::string server_os;
     std::string config_path;
+    bool explicit_target_version;
   };
 
   enum class Target {

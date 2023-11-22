@@ -69,13 +69,18 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void check_info(const std::string &server_addres,
                   const std::string &server_version,
-                  const std::string &target_version) override {
+                  const std::string &target_version,
+                  bool explicit_target_version) override {
     print_paragraph(
         shcore::str_format(
             "The MySQL server at %s, version %s, will now be checked for "
-            "compatibility issues for upgrade to MySQL %s...",
+            "compatibility issues for upgrade to MySQL %s%s...",
             server_addres.c_str(), server_version.c_str(),
-            target_version.c_str()),
+            target_version.c_str(),
+            explicit_target_version
+                ? ""
+                : ". To check for a different target server version, use the "
+                  "targetVersion option"),
         0, 0);
   }
 
@@ -170,7 +175,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void check_info(const std::string &server_addres,
                   const std::string &server_version,
-                  const std::string &target_version) override {
+                  const std::string &target_version,
+                  [[maybe_unused]] bool explicit_target_version) override {
     rapidjson::Value addr;
     addr.SetString(server_addres.c_str(), server_addres.length(), m_allocator);
     m_json_document.AddMember("serverAddress", addr, m_allocator);

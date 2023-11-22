@@ -20,6 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#include "unittest/gprod_clean.h"
 
 #include "modules/util/mod_util.h"
 #include "modules/util/upgrade_check.h"
@@ -178,6 +179,27 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   std::string db;
   std::vector<mysqlsh::Upgrade_issue> issues;
 };
+
+TEST(Upgrade_check_options, set_target_version) {
+  Upgrade_check_options options;
+  options.set_target_version("8");
+  EXPECT_EQ(Version(MYSH_VERSION), options.target_version);
+
+  options.set_target_version("8.0");
+  EXPECT_EQ(Version(LATEST_MYSH_80_VERSION), options.target_version);
+
+  options.set_target_version("8.1");
+  EXPECT_EQ(Version(8, 1, 0), options.target_version);
+
+  options.set_target_version("8.2");
+  EXPECT_EQ(Version(8, 2, 0), options.target_version);
+
+  options.set_target_version("8.3");
+  EXPECT_EQ(Version(8, 3, 0), options.target_version);
+
+  options.set_target_version("8.0.34");
+  EXPECT_EQ(Version(8, 0, 34), options.target_version);
+}
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version current(MYSH_VERSION);

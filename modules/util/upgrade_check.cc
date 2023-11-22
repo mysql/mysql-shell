@@ -53,7 +53,16 @@ namespace {
 
 const Version ALL_VERSIONS("777.777.777");
 
-}
+// This map should be updated with the latest version of each series to enable
+// gatting the latest version available in case a partial version is provided
+// as the taget value, so for example, not needed when patch version is 0 in
+// the last version of a series
+static std::unordered_map<std::string, Version> latest_versions = {
+    {"8", Version(MYSH_VERSION)},  // If 8 is given, latest version
+                                   // is the current shell version
+    {"8.0", Version(LATEST_MYSH_80_VERSION)}};
+
+}  // namespace
 
 std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
   std::stringstream ss;
@@ -96,9 +105,17 @@ const shcore::Option_pack_def<Upgrade_check_options>
   return opts;
 }
 
+mysqlshdk::utils::Version Upgrade_check_options::get_target_version() const {
+  return target_version.value_or(mysqlshdk::utils::Version(MYSH_VERSION));
+}
+
 void Upgrade_check_options::set_target_version(const std::string &value) {
-  if (!value.empty() && value != "8.0") {
-    target_version = Version(value);
+  if (!value.empty()) {
+    if (latest_versions.contains(value)) {
+      target_version = latest_versions.at(value);
+    } else {
+      target_version = Version(value);
+    }
   }
 }
 
@@ -2160,7 +2177,8 @@ bool UNUSED_VARIABLE(register_get_deprecated_default_auth_check) =
 
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format) {
-  m_upgrade_info.target_version = options.target_version;
+  m_upgrade_info.target_version = options.get_target_version();
+  m_upgrade_info.explicit_target_version = options.target_version.has_value();
   m_upgrade_info.config_path = options.config_path;
 
   if (m_output_format.empty()) {
@@ -2231,7 +2249,8 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
 
   print->check_info(config.session()->get_connection_options().uri_endpoint(),
                     config.upgrade_info().server_version_long,
-                    config.upgrade_info().target_version.get_base());
+                    config.upgrade_info().target_version.get_base(),
+                    config.upgrade_info().explicit_target_version);
 
   const auto checklist =
       Upgrade_check::create_checklist(config.upgrade_info(), config.targets());
