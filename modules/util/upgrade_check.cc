@@ -2081,7 +2081,8 @@ class Deprecated_auth_method_check : public Sql_upgrade_check {
             std::vector<std::string>{
                 "SELECT CONCAT(user, '@', host), plugin FROM "
                 "mysql.user WHERE plugin IN (" +
-                deprecated_auth_funcs::get_auth_list() + ");"},
+                deprecated_auth_funcs::get_auth_list() +
+                ") AND user NOT LIKE 'mysql_router%';"},
             Upgrade_issue::WARNING),
         m_target_version(target_ver) {
     m_advice =
@@ -2176,6 +2177,39 @@ bool UNUSED_VARIABLE(register_get_deprecated_default_auth_check) =
     Upgrade_check::register_check(
         &Sql_upgrade_check::get_deprecated_default_auth_check,
         Upgrade_check::Target::SYSTEM_VARIABLES, "8.0.0", "8.1.0", "8.2.0");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_deprecated_router_auth_method_check(
+    const Upgrade_check::Upgrade_info &info) {
+  return std::make_unique<Sql_upgrade_check>(
+      "deprecatedRouterAuthMethod",
+      "Check for deprecated or invalid authentication methods in use by MySQL "
+      "Router internal accounts.",
+      std::vector<std::string>{
+          "SELECT CONCAT(user, '@', host), ' - router user "
+          "with deprecated authentication method.' FROM "
+          "mysql.user WHERE plugin IN (" +
+          deprecated_auth_funcs::get_auth_list() +
+          ") AND user LIKE 'mysql_router%';"},
+      info.target_version >= Version(8, 4, 0) ? Upgrade_issue::ERROR
+                                              : Upgrade_issue::WARNING,
+      "The following accounts are MySQL Router accounts that use a deprecated "
+      "authentication method.\n"
+      "Those accounts are automatically created at bootstrap time when the "
+      "Router is not instructed to use an existing account. Please upgrade "
+      "MySQL Router to the latest version to ensure deprecated authentication "
+      "methods are no longer used.\n"
+      "Since version 8.0.19 it's also possible to instruct MySQL Router to use "
+      "a dedicated account. That account can be created using the AdminAPI.");
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_get_deprecated_router_auth_method_check) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_deprecated_router_auth_method_check,
+        Upgrade_check::Target::AUTHENTICATION_PLUGINS, "8.0.0", "8.1.0",
+        "8.2.0");
 }
 
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)

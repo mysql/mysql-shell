@@ -2141,6 +2141,108 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
   ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
 }
 
+namespace {
+std::string local_usr(const std::string &user) { return user + "@localhost"; }
+
+void drop_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+               const std::string &user) {
+  ASSERT_NO_THROW(
+      session->execute("drop user if exists '" + user + "'@'localhost';"));
+}
+
+void add_user(std::shared_ptr<mysqlshdk::db::ISession> session,
+              const std::string &user, const std::string &plugin) {
+  ASSERT_NO_THROW(session->execute("create user '" + user +
+                                   "'@'localhost' identified with "
+                                   "'" +
+                                   plugin + "';"));
+}
+}  // namespace
+
+TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
+  bool authentication_fido_installed = is_plugin_loaded("authentication_fido");
+  bool uninstall_authentication_fido = false;
+  if (!authentication_fido_installed) {
+    authentication_fido_installed = install_plugin("authentication_fido");
+    if (!authentication_fido_installed) {
+      SKIP_TEST(
+          "This test requires loaded authentication_fido MySQL Server plugin.");
+    } else {
+      uninstall_authentication_fido = true;
+    }
+  }
+
+  const std::string k_usr_sha = "user_sha_auth2";
+  const std::string k_usr_native = "usr_native_auth2";
+  const std::string k_usr_fido = "user_fido_auth2";
+  const std::string k_router_user1 = "mysql_router1_79mwl0xo1ep5";
+  const std::string k_router_user2 = "mysql_router335_cb43tc6945rz";
+
+  const std::string k_auth_sha = "sha256_password";
+  const std::string k_auth_native = "mysql_native_password";
+  const std::string k_auth_fido = "authentication_fido";
+
+  shcore::Scoped_callback cleanup([this, uninstall_authentication_fido,
+                                   &k_usr_sha, &k_usr_native, &k_usr_fido,
+                                   &k_router_user1, &k_router_user2]() {
+    drop_user(session, k_usr_sha);
+    drop_user(session, k_usr_native);
+    drop_user(session, k_usr_fido);
+    drop_user(session, k_router_user1);
+    drop_user(session, k_router_user2);
+    if (uninstall_authentication_fido) {
+      uninstall_plugin("authentication_fido");
+    }
+  });
+
+  PrepareTestDatabase("test");
+
+  Upgrade_check::Upgrade_info temp_info;
+  temp_info.target_version = Version(8, 4, 0);
+  auto check =
+      Sql_upgrade_check::get_deprecated_router_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 0);
+
+  add_user(session, k_usr_sha, k_auth_sha);
+  add_user(session, k_usr_native, k_auth_native);
+  add_user(session, k_usr_fido, k_auth_fido);
+
+  EXPECT_ISSUES(check.get(), 0);
+
+  add_user(session, k_router_user1, k_auth_native);
+  add_user(session, k_router_user2, k_auth_sha);
+
+  EXPECT_ISSUES(check.get(), 2);
+
+  EXPECT_EQ(issues[0].schema, local_usr(k_router_user1));
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::ERROR);
+  EXPECT_EQ(issues[0].description,
+            " - router user with deprecated authentication method.");
+
+  EXPECT_EQ(issues[1].schema, local_usr(k_router_user2));
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::ERROR);
+  EXPECT_EQ(issues[1].description,
+            " - router user with deprecated authentication method.");
+
+  temp_info.target_version = Version(8, 2, 0);
+  check = Sql_upgrade_check::get_deprecated_router_auth_method_check(temp_info);
+
+  EXPECT_ISSUES(check.get(), 2);
+
+  EXPECT_EQ(issues[0].schema, local_usr(k_router_user1));
+  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[0].description,
+            " - router user with deprecated authentication method.");
+
+  EXPECT_EQ(issues[1].schema, local_usr(k_router_user2));
+  EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
+  EXPECT_EQ(issues[1].description,
+            " - router user with deprecated authentication method.");
+
+  ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
 namespace dep_def_auth_check {
 void set_authentication_policy(std::shared_ptr<mysqlshdk::db::ISession> session,
                                const std::string &val) {

@@ -458,3 +458,19 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * deprecatedDefaultAuth.docLink
 
+* deprecatedRouterAuthMethod.title
+# Check for deprecated or invalid authentication methods in use by MySQL Router internal accounts.
+
+* deprecatedRouterAuthMethod.description
+# Warning: The following accounts are MySQL Router accounts that use a deprecated authentication
+# method.\n
+# Those accounts are automatically created at bootstrap time when the Router is not instructed to
+# use an existing account. Please upgrade MySQL Router to the latest version to ensure deprecated
+# authentication methods are no longer used.\n
+# Since version 8.0.19 it's also possible to instruct MySQL Router to use a dedicated account. That
+# account can be created using the AdminAPI.
+
+* deprecatedRouterAuthMethod.docLink
+https://dev.mysql.com/doc/mysql-shell/en/configuring-router-user.html\n
+https://dev.mysql.com/doc/mysql-router/en/mysqlrouter.html#option_mysqlrouter_account
+
