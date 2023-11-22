@@ -227,6 +227,9 @@ class Sql_upgrade_check : public Upgrade_check {
   get_invalid_engine_foreign_key_check();
   static std::unique_ptr<Sql_upgrade_check> get_deprecated_auth_method_check(
       const Upgrade_check::Upgrade_info &info);
+  static std::unique_ptr<Sql_upgrade_check>
+  get_deprecated_router_auth_method_check(
+      const Upgrade_check::Upgrade_info &info);
   static std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
       const Upgrade_check::Upgrade_info &info);
 
