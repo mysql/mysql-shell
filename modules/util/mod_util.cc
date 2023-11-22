@@ -43,6 +43,7 @@
 #include "modules/util/json_importer.h"
 #include "modules/util/load/dump_loader.h"
 #include "modules/util/load/load_dump_options.h"
+#include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
@@ -969,17 +970,21 @@ void Util::import_table_files(
   Import_table importer(opt);
   importer.interrupt(&interrupt);
 
-  auto console = mysqlsh::current_console();
+  const auto console = mysqlsh::current_console();
   console->print_info(opt.target_import_info());
 
   importer.import();
 
-  const bool thread_thrown_exception = importer.any_exception();
-  if (!thread_thrown_exception) {
+  if (!interrupt && !importer.any_exception()) {
     console->print_info(importer.import_summary());
   }
 
   console->print_info(importer.rows_affected_info());
+
+  if (interrupt) {
+    throw shcore::cancelled("Interrupted by user");
+  }
+
   importer.rethrow_exceptions();
 }
 
