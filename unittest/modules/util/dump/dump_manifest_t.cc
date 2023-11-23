@@ -301,7 +301,10 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
       "@.load.progress.json");
   const auto progress_file_uri =
       write_config->service_endpoint() + rw_par.access_uri;
-  EXPECT_THROW_LIKE(read_manifest.file(progress_file_uri), shcore::Exception,
+  const auto missing_file = read_manifest.file(progress_file_uri);
+  EXPECT_FALSE(missing_file->exists());
+  missing_file->open(mysqlshdk::storage::Mode::READ);
+  EXPECT_THROW_LIKE(missing_file->read(buffer, 1), shcore::Exception,
                     "Unknown object in manifest");
 }
 

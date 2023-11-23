@@ -225,13 +225,20 @@ class Http_manifest_object : public mysqlshdk::storage::backend::Http_object {
   std::string m_full_name;
 };
 
+mysqlshdk::Masked_string get_full_path(
+    const std::shared_ptr<Manifest_reader> &reader,
+    const Dump_manifest_read_config_ptr &config, const std::string &full_name) {
+  return reader->has_object(full_name)
+             ? mysqlshdk::oci::anonymize_par(
+                   config->par().endpoint() +
+                   reader->get_object(full_name).name())
+             : config->par().endpoint() + full_name;
+}
+
 Http_manifest_object::Http_manifest_object(
     const std::shared_ptr<Manifest_reader> &reader,
     const Dump_manifest_read_config_ptr &config, const std::string &full_name)
-    : Http_object(
-          mysqlshdk::oci::anonymize_par(config->par().endpoint() +
-                                        reader->get_object(full_name).name()),
-          true),
+    : Http_object(get_full_path(reader, config, full_name), true),
       m_reader(reader),
       m_config(config),
       m_full_name(full_name) {}
@@ -246,6 +253,13 @@ bool Http_manifest_object::exists() const {
   if (!exists && !m_reader->is_complete()) {
     m_reader->reload();
     exists = m_reader->has_object(m_full_name);
+
+    // exists() is called when opening the file, if this file didn't exist
+    // before, we need to update its full path now
+    if (exists) {
+      const_cast<Http_manifest_object *>(this)->set_full_path(
+          get_full_path(m_reader, m_config, m_full_name));
+    }
   }
 
   return exists;
