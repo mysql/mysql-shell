@@ -117,6 +117,8 @@ class Http_object : public IFile {
 
   std::optional<rest::Response_error> fetch_file_size() const;
 
+  void set_full_path(const Masked_string &full_path);
+
   off64_t m_offset = 0;
   Masked_string m_base;
   std::string m_path;

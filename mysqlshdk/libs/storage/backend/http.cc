@@ -342,6 +342,11 @@ std::optional<rest::Response_error> Http_object::fetch_file_size() const {
   return {};
 }
 
+void Http_object::set_full_path(const Masked_string &full_path) {
+  m_base = get_uri_base(full_path);
+  m_path = get_uri_path(full_path);
+}
+
 void Http_directory::init_rest(const Masked_string &url) { m_url = url; }
 
 bool Http_directory::exists() const {
