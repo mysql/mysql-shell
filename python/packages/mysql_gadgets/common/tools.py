@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -170,17 +170,17 @@ def get_tool_path(basedir, tool, fix_ext=True, required=True,
     # Search for the tool
     none_found = True
     for path in search_paths:
-        norm_path = os.path.normpath(path)
+        # Use realpath() to get the canonical path and eliminate any symlinks
+        norm_path = os.path.normpath(os.path.realpath(path))
         if os.path.isdir(norm_path):
-            toolpath = os.path.normpath(os.path.join(norm_path, tool))
+            toolpath = os.path.join(norm_path, tool)
             if os.path.isfile(toolpath):
                 none_found = False
                 if not check_tool_func or check_tool_func(toolpath):
                     return r"{0}{1}{0}".format(quote_char, toolpath)
             else:
                 if tool == "mysqld.exe":
-                    toolpath = os.path.normpath(
-                        os.path.join(norm_path, "mysqld-nt.exe"))
+                    toolpath = os.path.join(norm_path, "mysqld-nt.exe")
                     if os.path.isfile(toolpath):
                         none_found = False
                         if not check_tool_func or check_tool_func(toolpath):
