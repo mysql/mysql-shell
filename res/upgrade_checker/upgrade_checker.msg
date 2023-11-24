@@ -77,7 +77,7 @@ https://dev.mysql.com/doc/refman/en/keywords.html
 https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
 
 * mysqlSchemaCheck.title
-# Table names in the mysql schema conflicting with new tables in latest MySQL.
+# Table names in the mysql schema conflicting with new tables in the latest MySQL.
 
 * mysqlSchemaCheck.description
 # Error: The following tables in mysql schema have names that will conflict with the ones
@@ -91,12 +91,12 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-strategies.html#upgrade-prereq
 # Partitioned tables using engines with non native partitioning
 
 * nonNativePartitioningCheck.description
-# Error: In latest MySQL storage engine is responsible for providing its own partitioning handler,
-# and the MySQL server no longer provides generic partitioning support. InnoDB and NDB are the only
-# storage engines that provide a native partitioning handler that is supported in latest MySQL. A
-# partitioned table using any other storage engine must be altered—either to convert it to InnoDB
-# or NDB, or to remove its partitioning—before upgrading the server, else it cannot be used
-# afterwards.
+# Error: In the latest MySQL storage engine is responsible for providing its own partitioning
+# handler, and the MySQL server no longer provides generic partitioning support. InnoDB and NDB are
+# the only storage engines that provide a native partitioning handler that is supported in the
+# latest MySQL. A partitioned table using any other storage engine must be altered—either to
+# convert it to InnoDB or NDB, or to remove its partitioning—before upgrading the server, else it
+# cannot be used afterwards.
 
 * nonNativePartitioningCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-configuration-changes
@@ -129,7 +129,7 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * sqlModeFlagCheck.description
 # Notice: The following DB objects have obsolete options persisted for sql_mode, which will be
-# cleared during upgrade to 8.1.
+# cleared during the upgrade.
 
 * sqlModeFlagCheck.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
@@ -252,10 +252,10 @@ https://lefred.be/content/mysql-8-0-and-wrong-dates/
 # Table names containing 'FTS'
 
 * ftsTablenameCheck.description
-# Error: Upgrading from 5.7 to latest MySQL version does not support tables with name containing
-# 'FTS' character string. The workaround is to rename the table for the upgrade - e.g. it is enough
-# to change any letter of the 'FTS' part to a lower case. It can be renamed back again after the
-# upgrade.
+# Error: Upgrading from 5.7 to the latest MySQL version does not support tables with name
+# containing 'FTS' character string. The workaround is to rename the table for the upgrade - e.g.
+# it is enough to change any letter of the 'FTS' part to a lower case. It can be renamed back again
+# after the upgrade.
 
 * ftsTablenameCheck.docLink
 
@@ -442,19 +442,19 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 
 * mysqlInvalidEngineForeignKeyCheck.docLink
 
-* mysqlDeprecatedAuthMethodCheck.title
+* deprecatedAuthMethod.title
 # Check for deprecated or invalid user authentication methods.
 
-* mysqlDeprecatedAuthMethodCheck.description
+* deprecatedAuthMethod.description
 # The following users are using a deprecated authentication method:\n
 
-* mysqlDeprecatedAuthMethodCheck.docLink
+* deprecatedAuthMethod.docLink
 
-* mysqlDeprecatedDefaultAuthCheck.title
+* deprecatedDefaultAuth.title
 # Check for deprecated or invalid default authentication methods in system variables.
 
-* mysqlDeprecatedDefaultAuthCheck.description
+* deprecatedDefaultAuth.description
 # The following variables have problems with their set authentication method:\n
 
-* mysqlDeprecatedDefaultAuthCheck.docLink
+* deprecatedDefaultAuth.docLink
 
