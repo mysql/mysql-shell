@@ -158,6 +158,13 @@ single.addInstance(add_instance_options);
 add_instance_options['port'] = __mysql_sandbox_port2;
 single.addInstance(add_instance_options);
 
+//@<> Failure adding instance already in the InnoDB cluster but (MISSING)
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING)");
+
+EXPECT_THROWS_TYPE(function() { single.addInstance(__sandbox_uri1)}, "The instance '" + __endpoint1 + "' is already part of this InnoDB Cluster", "RuntimeError");
+EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${__endpoint1}' is already part of this InnoDB Cluster but is (MISSING). Please use <Cluster>.rejoinInstance() to rejoin it.`);
+
 //@<> don't check for tables with PK BUG#32992693 {VER(>=8.0.17)}
 reset_instance(session); //reset instance 3
 session.runSql("CREATE SCHEMA test;");

@@ -538,14 +538,36 @@ void ensure_instance_not_belong_to_cluster(
     // these types don't need any more checks
     case TargetType::Standalone:
     case TargetType::StandaloneWithMetadata:
-    case TargetType::StandaloneInMetadata:
     case TargetType::AsyncReplication:
       return;
     default:
       break;
   }
 
-  if (type != TargetType::InnoDBClusterSetOffline) {
+  if (type == TargetType::StandaloneInMetadata) {
+    // Check if the instance is (MISSING)
+    try {
+      // Double-check that the instance is part of this Cluster
+      auto metadata_cluster =
+          std::make_shared<MetadataStorage>(cluster_instance);
+
+      metadata_cluster->get_instance_by_uuid(instance->get_uuid());
+
+      current_console()->print_error(
+          "Instance '" + instance->descr() +
+          "' is already part of this InnoDB Cluster but is (MISSING). Please "
+          "use <Cluster>.<<<rejoinInstance()>>> to rejoin it.");
+
+      throw shcore::Exception("The instance '" + instance->descr() +
+                                  "' is already part of this InnoDB Cluster",
+                              SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+    } catch (const shcore::Exception &exp) {
+      if (exp.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+      // If not part of the Metadata it can be considered a standalone
+      // instance (might have been forcefully removed)
+      return;
+    }
+  } else if (type != TargetType::InnoDBClusterSetOffline) {
     // Retrieves the new instance UUID
     std::string uuid = instance->get_uuid();
 
