@@ -293,7 +293,7 @@ WIPE_OUTPUT()
 #@<> Plugin code to demonstrate missing mandatory arguments generate an error
 plugin_code = """
 def print_element(key, elements):
-    print(elements[key])
+    print(f"{elements[key]} ({key})")
 
 obj = shell.create_extension_object()
 shell.add_extension_object_member(obj, "printElement", print_element, {
@@ -323,7 +323,7 @@ testutil.create_file(plugin_path, plugin_code)
 
 #@<> Ensures documented default elements are used (the exposed function has no defaults)
 rc = call_mysqlsh(["--", "custom_plugin", "print-element", "one"])
-EXPECT_STDOUT_CONTAINS("default value for one")
+EXPECT_STDOUT_CONTAINS("default value for one (one)")
 WIPE_OUTPUT()
 
 #@<> Attempts printing unexisting default element
@@ -333,7 +333,7 @@ WIPE_OUTPUT()
 
 #@<> Prints custom element
 rc = call_mysqlsh(["--", "custom_plugin", "print-element", "item", "--item", "this is a custom element"])
-EXPECT_STDOUT_CONTAINS("this is a custom element")
+EXPECT_STDOUT_CONTAINS("this is a custom element (item)")
 WIPE_OUTPUT()
 
 #@<> Testing default elements are overriden by the new defaults
@@ -351,10 +351,20 @@ WIPE_OUTPUT()
 
 #@<> Tests default values are used even in API calls
 rc = call_mysqlsh(["-e", "custom_plugin.printElement('two')"])
-EXPECT_STDOUT_CONTAINS("default value for two")
+EXPECT_STDOUT_CONTAINS("default value for two (two)")
 WIPE_OUTPUT()
 
 
+#@<> Testing integer like parameter with leading 0's is interpreted verbatim
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "00456", "--00456", "this is a custom digits element"])
+EXPECT_STDOUT_CONTAINS("this is a custom digits element (00456)")
+WIPE_OUTPUT()
+
+
+#@<> Testing float like parameter with leading 0's is interpreted verbatim
+rc = call_mysqlsh(["--", "custom_plugin", "print-element", "00.456", "--00.456", "this is a custom digits.digits element"])
+EXPECT_STDOUT_CONTAINS("this is a custom digits.digits element (00.456)")
+WIPE_OUTPUT()
 
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

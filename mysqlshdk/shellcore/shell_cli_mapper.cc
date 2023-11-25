@@ -43,8 +43,14 @@ shcore::Value interpret_string_value(const std::string &input,
   try {
     auto ret_val = shcore::Value::parse(input);
 
-    // If the values was properly parsed as a string we let the value intact
-    if (ret_val.get_type() == shcore::Value_type::String)
+    // If the values was properly parsed as a string or is it is parsed as a
+    // number and there is data loss in the parsing we let the value intact
+    auto type = ret_val.get_type();
+    if (type == shcore::Value_type::String ||
+        ((type == shcore::Value_type::Integer ||
+          type == shcore::Value_type::UInteger ||
+          type == shcore::Value_type::Float) &&
+         ret_val.repr() != input))
       ret_val = shcore::Value(input);
 
     return ret_val;
