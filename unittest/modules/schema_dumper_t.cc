@@ -912,9 +912,9 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
 }
 
 TEST_F(Schema_dumper_test, dump_filtered_grants_super_priv) {
-  // Skip if version >= 8.4. Super has been removed in 8.4.
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 4)) {
-    SKIP_TEST("SUPER has been removed in 8.4.");
+  // Skip if version >= 8.0. Super is deprecated in 8.0.
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0)) {
+    SKIP_TEST("SUPER has been deprecated in 8.0.");
   };
 
   session->execute(
