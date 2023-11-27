@@ -24,10 +24,10 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_GTID_UTILS_H_
 #define MYSQLSHDK_LIBS_MYSQL_GTID_UTILS_H_
 
+#include <cstdint>
 #include <functional>
-#include <string>
-
 #include <stdexcept>
+#include <string>
 
 namespace mysqlshdk::mysql {
 
