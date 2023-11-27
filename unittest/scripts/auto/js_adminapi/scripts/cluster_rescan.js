@@ -360,6 +360,31 @@ cluster.rescan({addInstances: [member_address2, member_address3]});
 
 //@<> WL10644 - TSF2_1: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                [__mysql_sandbox_port2, "OK"],
+                                [__mysql_sandbox_port3, "OK"]]);
+
+//@<> Rescan must change the recovery username if it doesn't have the correct format
+session.runSql("CREATE USER IF NOT EXISTS mysql_innodb_cluster_11foo22@'%' IDENTIFIED BY 'password'");
+session.runSql("GRANT ALL ON *.* TO mysql_innodb_cluster_11foo22@'%'");
+session.runSql("FLUSH PRIVILEGES");
+
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql(`CHANGE ${get_replication_source_keyword()} TO ${get_replication_option_keyword()}_USER='mysql_innodb_cluster_11foo22', ${get_replication_option_keyword()}_PASSWORD='password' FOR CHANNEL 'group_replication_recovery'`);
+session2.close();
+
+var recovery_account = session.runSql("SELECT (attributes->>'$.recoveryAccountUser') FROM mysql_innodb_cluster_metadata.instances WHERE address = ?", [`${hostname}:${__mysql_sandbox_port2}`]).fetchOne()[0];
+session.runSql("DROP USER ?", [recovery_account]);
+
+WIPE_SHELL_LOG();
+
+EXPECT_NO_THROWS(function(){ cluster.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'mysql_innodb_cluster_11foo22' in instance '${hostname}:${__mysql_sandbox_port2}'`);
+EXPECT_OUTPUT_CONTAINS(`A new recovery user for instance '${hostname}:${__mysql_sandbox_port2}' was created, which leaves the previous user, 'mysql_innodb_cluster_11foo22', unused, so it should be removed.`);
+EXPECT_SHELL_LOG_CONTAINS(`Recovery account '${recovery_account}' does not exist in the cluster.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS(`Updating recovery account '${recovery_account}' in metadata.`);
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 

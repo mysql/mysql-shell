@@ -14,18 +14,18 @@ var sb2 = hostname_ip+":"+__mysql_sandbox_port2;
 var sb3 = hostname_ip+":"+__mysql_sandbox_port3;
 
 function CHECK_REPL_USERS(session, server_ids, host, ensure_format) {
-  var users = session.runSql("select user, host from mysql.user where user like 'mysql_innodb_%' order by user").fetchAll();
-  EXPECT_EQ(server_ids.length, users.length);
+  var users = session.runSql("select user, host from mysql.user where (user like 'mysql\\_innodb\\_cluster\\_%') and (user not like 'mysql\\_innodb\\_cluster\\_r%') order by user").fetchAll();
+  EXPECT_EQ(server_ids.length, users.length, `Verifying user number: ${server_ids.length} / ${users.length}`);
 
   for (i in server_ids) {
     if (ensure_format === undefined || ensure_format)
       EXPECT_EQ("mysql_innodb_cluster_"+server_ids[i], users[i][0]);
-    EXPECT_EQ(host, users[i][1]);
+    EXPECT_EQ(host, users[i][1], `Verifying host: ${host} / ${users[i][1]}`);
 
     row = session.runSql("select i.attributes->>'$.recoveryAccountUser', i.attributes->>'$.recoveryAccountHost' from mysql_innodb_cluster_metadata.instances i where i.attributes->>'$.server_id'=?", [server_ids[i]]).fetchOne();
     
-    EXPECT_EQ(users[i][0], row[0]);
-    EXPECT_EQ(host, row[1]);
+    EXPECT_EQ(users[i][0], row[0], `Verifying user MD: ${users[i][0]} / ${row[0]}`);
+    EXPECT_EQ(host, row[1], `Verifying host MD: ${host} / ${row[1]}`);
   }
 }
 
@@ -35,7 +35,7 @@ function CHECK_RECOVERY_USER(session) {
 
   var user = session.runSql("select user_name from mysql.slave_master_info where channel_name='group_replication_recovery'").fetchOne()[0];
   
-  EXPECT_EQ(meta_user, user);
+  EXPECT_EQ(meta_user, user, "account in 'group_replication_recovery' vs account in MD");
 }
 
 function get_global_option(options, name) {
@@ -147,9 +147,9 @@ c.status();
 // check root user didn't get dropped
 EXPECT_EQ("%,localhost", session1.runSql("select group_concat(host) from mysql.user where user='root' order by host").fetchOne()[0]);
 
-session1.runSql("drop user mysql_innodb_cluster_r3294023486@'%'");
-session1.runSql("drop user mysql_innodb_cluster_r3294023487@'%'");
-session1.runSql("drop user mysql_innodb_cluster_r3294023488@'%'");
+session1.runSql("drop user if exists mysql_innodb_cluster_r3294023486@'%'");
+session1.runSql("drop user if exists mysql_innodb_cluster_r3294023487@'%'");
+session1.runSql("drop user if exists mysql_innodb_cluster_r3294023488@'%'");
 CHECK_REPL_USERS(session1, [1111, 2222, 3333], "%");
 
 //@<> Check replicationAllowedHost
