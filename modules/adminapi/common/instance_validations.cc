@@ -31,13 +31,11 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
-#include "modules/adminapi/common/sql.h"
-#include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 // Naming convention for validations:
@@ -530,7 +528,7 @@ void validate_performance_schema_enabled(
 void ensure_instance_not_belong_to_cluster(
     const std::shared_ptr<Instance> &instance,
     const std::shared_ptr<Instance> &cluster_instance,
-    const std::string &cluster_id) {
+    std::string_view cluster_id, bool omit_missing_instance_warn) {
   auto metadata = std::make_shared<MetadataStorage>(instance);
   auto type = mysqlsh::dba::get_instance_type(*metadata, *instance);
 
@@ -553,10 +551,12 @@ void ensure_instance_not_belong_to_cluster(
 
       metadata_cluster->get_instance_by_uuid(instance->get_uuid());
 
-      current_console()->print_error(
-          "Instance '" + instance->descr() +
-          "' is already part of this InnoDB Cluster but is (MISSING). Please "
-          "use <Cluster>.<<<rejoinInstance()>>> to rejoin it.");
+      if (!omit_missing_instance_warn)
+        current_console()->print_error(
+            shcore::str_format("Instance '%s' is already part of this InnoDB "
+                               "Cluster but is (MISSING). Please use "
+                               "<Cluster>.<<<rejoinInstance()>>> to rejoin it.",
+                               instance->descr().c_str()));
 
       throw shcore::Exception("The instance '" + instance->descr() +
                                   "' is already part of this InnoDB Cluster",

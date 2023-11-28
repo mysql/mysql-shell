@@ -310,13 +310,16 @@ EXPECT_NO_THROWS(function() { cluster.removeInstance(__sandbox_uri3); });
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster)
 
 //@<> addInstance on replica cluster
+shell.connect(__sandbox_uri4);
+
 EXPECT_NO_THROWS(function() { replicacluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone"}); });
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
 
 //@<> rejoinInstance on a replica cluster
 session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP group_replication");
-shell.connect(__sandbox_uri4);
+
 EXPECT_NO_THROWS(function() { replicacluster.rejoinInstance(__sandbox_uri3); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
