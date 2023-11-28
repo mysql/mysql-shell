@@ -192,12 +192,11 @@ cluster_lock_check(function() {
 
 cluster.addInstance(__sandbox_uri3, {ipAllowlist: allowlist});
 
-disable_auto_rejoin(__mysql_sandbox_port3);
+cluster.status();
 
-shell.connect(__sandbox_uri1);
-testutil.killSandbox(__mysql_sandbox_port3);
-testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-testutil.startSandbox(__mysql_sandbox_port3);
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP group_replication;");
+session3.close();
 
 cluster_lock_check(function() {
     cluster.rejoinInstance(__sandbox_uri3, {ipAllowlist: allowlist});
@@ -320,21 +319,19 @@ instance_lock_check(session3, __mysql_sandbox_port3, function() {
     dba.configureLocalInstance(__sandbox_uri3);
 });
 
-//@<> exclusive instance lock on dba.rebootClusterFromCompleteOutage()
-
 session1.close();
 session3.close();
+session4.close();
 
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
+//@<> exclusive instance lock on dba.rebootClusterFromCompleteOutage()
 
-testutil.killSandbox(__mysql_sandbox_port1);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
-testutil.startSandbox(__mysql_sandbox_port2);
+cluster.status();
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
+
+session1.runSql("STOP group_replication;");
+session2.runSql("STOP group_replication;");
 
 shell.connect(__sandbox_uri1);
 

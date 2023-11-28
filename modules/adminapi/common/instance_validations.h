@@ -65,7 +65,7 @@ void validate_performance_schema_enabled(
 void ensure_instance_not_belong_to_cluster(
     const std::shared_ptr<Instance> &instance,
     const std::shared_ptr<Instance> &cluster_instance,
-    const std::string &cluster_id);
+    std::string_view cluster_id, bool omit_missing_instance_warn = false);
 
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,

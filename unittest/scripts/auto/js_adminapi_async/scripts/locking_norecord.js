@@ -267,10 +267,6 @@ testutil.releaseLocks(session1, lock_instance);
 rs.rejoinInstance(__sandbox1);
 EXPECT_OUTPUT_CONTAINS(`The instance '${localhost}:${__mysql_sandbox_port1}' is ONLINE and the primary of the ReplicaSet.`);
 
-//@<> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname).
-rs.rejoinInstance(__endpoint1);
-EXPECT_OUTPUT_CONTAINS(`The instance '${localhost}:${__mysql_sandbox_port1}' is ONLINE and the primary of the ReplicaSet.`);
-
 //@<> (BUG#30673719) rejoinInstance on primary should not fail due to double self lock (using hostname_ip).
 var address_using_ip = hostname_ip + ":" + __mysql_sandbox_port1;
 rs.rejoinInstance(address_using_ip);

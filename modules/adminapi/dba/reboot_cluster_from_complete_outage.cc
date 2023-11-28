@@ -35,13 +35,10 @@
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/mod_dba.h"
 #include "modules/errors.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh::dba {
 
@@ -734,7 +731,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
     try {
       mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
           m_target_instance, m_cluster->impl()->get_cluster_server(),
-          m_cluster->impl()->get_id());
+          m_cluster->impl()->get_id(), true);
     } catch (const shcore::Exception &exp) {
       m_already_member =
           (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
