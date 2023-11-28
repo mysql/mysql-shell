@@ -663,11 +663,11 @@ wipeout_server(session2)
 
 session2.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
 session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
-sql_log_bin_privileges = [ 'SUPER' ]
-if __version_num >= 80000:
-    sql_log_bin_privileges.append('SYSTEM_VARIABLES_ADMIN')
-if __version_num >= 80014:
-    sql_log_bin_privileges.append('SESSION_VARIABLES_ADMIN')
+
+sql_log_bin_privileges = [ 'SUPER', 'SYSTEM_VARIABLES_ADMIN', 'SESSION_VARIABLES_ADMIN' ]
+all_privileges = [x[0].upper() for x in session2.run_sql('SHOW PRIVILEGES').fetch_all()]
+sql_log_bin_privileges = [x for x in sql_log_bin_privileges if x in all_privileges]
+
 session2.run_sql("REVOKE {0} ON *.* FROM 'admin'@'%'".format(", ".join(sql_log_bin_privileges)))
 
 shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))

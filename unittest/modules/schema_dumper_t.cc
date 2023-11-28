@@ -1147,11 +1147,9 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       " `mysql`.`abradabra`"} :
       std::set<std::string>{
         "User 'testusr1'@'localhost' is granted restricted privileges: "
-        "BINLOG_ADMIN, FILE, RELOAD, SUPER",
-        "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
+        "BINLOG_ADMIN, FILE, RELOAD",
         "User 'testusr3'@'localhost' is granted restricted privileges: "
         "BINLOG_ADMIN, FILE, RELOAD",
-        "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
         "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
         "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
         "User 'testusr6'@'localhost' has explicit grants on mysql "

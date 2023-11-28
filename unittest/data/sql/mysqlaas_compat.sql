@@ -21,17 +21,14 @@ DROP USER IF EXISTS testusr6@localhost;
 -- only restricted privs
 
 CREATE USER testusr1@localhost IDENTIFIED BY 'pass';
-GRANT SUPER, FILE, RELOAD/*!80000 , BINLOG_ADMIN */ ON *.* TO testusr1@localhost;
-
-CREATE USER testusr2@localhost IDENTIFIED BY 'pass';
-GRANT SUPER ON *.* TO testusr2@localhost;
+GRANT FILE, RELOAD/*!80000 , BINLOG_ADMIN */ ON *.* TO testusr1@localhost;
 
 CREATE USER testusr3@localhost IDENTIFIED BY 'pass';
 GRANT FILE, RELOAD/*!80000 , BINLOG_ADMIN */ ON *.* TO testusr3@localhost WITH GRANT OPTION;
 
 -- mixed privs
 CREATE USER testusr4@localhost IDENTIFIED BY 'pass';
-GRANT SUPER, REPLICATION SLAVE ON *.* TO testusr4@localhost;
+GRANT REPLICATION SLAVE ON *.* TO testusr4@localhost;
 
 CREATE USER testusr5@localhost IDENTIFIED BY 'pass';
 GRANT FILE, REPLICATION SLAVE, SELECT, INSERT, UPDATE, DELETE ON *.* TO testusr5@localhost;
