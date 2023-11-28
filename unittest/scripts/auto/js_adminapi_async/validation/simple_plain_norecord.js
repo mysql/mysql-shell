@@ -389,7 +389,7 @@ true
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_[[*]]",
+                    "replicationSsl": "[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"
@@ -404,7 +404,7 @@ true
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null,
-                    "replicationSsl": "TLS_AES_[[*]]",
+                    "replicationSsl": "[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
                 "status": "ONLINE"

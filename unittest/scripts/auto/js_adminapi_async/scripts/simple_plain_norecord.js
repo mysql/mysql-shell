@@ -180,6 +180,9 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
+testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
+testutil.waitReplicationChannelState(__mysql_sandbox_port1, "", "ON");
+
 EXPECT_REPLICAS_USE_SSL(session3, 2);
 
 //@ forcePrimaryInstance (prepare)
