@@ -128,7 +128,7 @@ N/A
 #@ WL11651-TSFR18_2 - --locks - blocked
 ||
 
-#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - metadata
+#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nwaiting - metadata
 ||
 
 #@ WL11651-TSFR18_2 - cleanup
@@ -143,7 +143,7 @@ N/A
 #@ WL11651-TSFR18_2 - --locks - blocked - InnoDB
 ||
 
-#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - InnoDB
+#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nwaiting - InnoDB
 ||
 
 #@ WL11651-TSFR18_2 - cleanup - InnoDB

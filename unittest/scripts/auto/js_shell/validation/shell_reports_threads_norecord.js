@@ -46,7 +46,7 @@
    user: threads_test
 command: Sleep
 
-//@ WL11651-TSFR6_1 - Run the threads report, validate that the default columns in the report are: tid, cid, user, host, db, command, time, state, txstate, info, nblocking.
+//@ WL11651-TSFR6_1 - Run the threads report, validate that the default columns in the report are: tid, cid, user, host, db, command, time, state, txstate, info, nwaiting.
 ||
 
 //@ WL11651-TSFR6_2 - Run the threads report with --background option, validate that the default columns in the report are: tid, name, nio, ioltncy, iominltncy, ioavgltncy, iomaxltncy.

@@ -67,8 +67,13 @@ namespace {
      "I")                                                                      \
   XX(locks, Bool,                                                              \
      "Shows additional information about locks blocking the thread and locks " \
-     "blocked by the thread.",                                                 \
+     "blocked by the thread. Use --raw-locks for a more comprehensive view.",  \
      "L")                                                                      \
+  XX(raw_locks, Bool,                                                          \
+     "Shows information about metadata locks, data locks, rwlocks and "        \
+     "mutexes currently held or waited on by the thread. Use --locks to get "  \
+     "a higher level view of metadata and data locks.",                        \
+     "R")                                                                      \
   XX(prep_stmts, Bool,                                                         \
      "Lists the prepared statements allocated for the thread.", "P")           \
   XX(status, String, "Lists the session status variables for the thread.",     \
@@ -121,10 +126,11 @@ class Thread_report : public Native_report {
  private:
   struct Section {
    public:
-#define SECTION_TYPE \
-  X(BRIEF, "brief")  \
-  X(LIST, "list")    \
-  X(TABLE, "table")  \
+#define SECTION_TYPE      \
+  X(BRIEF, "brief")       \
+  X(LIST, "list")         \
+  X(TABLE, "table")       \
+  X(VERTICAL, "vertical") \
   X(GROUP, "group")
 
     enum class Type {
@@ -162,6 +168,10 @@ class Thread_report : public Native_report {
 
           case Type::TABLE:
             formatted = table_formatter(data);
+            break;
+
+          case Type::VERTICAL:
+            formatted = vertical_formatter(data);
             break;
 
           case Type::GROUP:
@@ -267,7 +277,8 @@ class Thread_report : public Native_report {
 
     // if 'all' was set, turn on all sections of the report except for 'brief'
     if (o.all) {
-      o.client = o.innodb = o.locks = o.prep_stmts = o.general = true;
+      o.client = o.innodb = o.locks = o.raw_locks = o.prep_stmts = o.general =
+          true;
       o.status = o.vars = o.user_vars = "";
     }
 
@@ -277,9 +288,9 @@ class Thread_report : public Native_report {
     // remaining sections was requested
     if (!o.general) {
       o.general =
-          !(o.brief || o.client || o.innodb || o.locks || o.prep_stmts ||
-            static_cast<bool>(o.status) || static_cast<bool>(o.vars) ||
-            static_cast<bool>(o.user_vars));
+          !(o.brief || o.client || o.innodb || o.locks || o.raw_locks ||
+            o.prep_stmts || static_cast<bool>(o.status) ||
+            static_cast<bool>(o.vars) || static_cast<bool>(o.user_vars));
     }
 
     if (o.brief) {
@@ -300,6 +311,10 @@ class Thread_report : public Native_report {
 
     if (o.locks) {
       m_sections.emplace_back(&Thread_report::locks_section);
+    }
+
+    if (o.raw_locks) {
+      m_sections.emplace_back(&Thread_report::raw_locks_section);
     }
 
     if (o.prep_stmts) {
@@ -475,49 +490,68 @@ JOIN sys.innodb_lock_waits AS ilw ON ilw.waiting_pid = t.PROCESSLIST_ID)";
 
       add_section(
           group,
-          section(Section::Type::TABLE, "Waiting for InnoDB locks", query,
-                  {
-                      {"wait_started", "Wait started",
-                       "cast(ilw.wait_started as char)"},
-                      {"wait_elapsed", "Elapsed", "cast(ilw.wait_age as char)"},
-                      {"object", "Locked table", "ilw.locked_table"},
-                      {"waiting_lock_type", "Type", "ilw.locked_type"},
-                      {"blocking_pid", "CID", "ilw.blocking_pid"},
-                      {"blocking_query", "Query", "ilw.blocking_query"},
-                      {"blocking_account", "Account",
-                       "concat(t.processlist_user, '@', t.processlist_host)"},
-                      {"blocking_trx_started", "Transaction started",
-                       "cast(ilw.blocking_trx_started as char)"},
-                      {"blocking_trx_elapsed", "Elapsed",
-                       "cast(ilw.blocking_trx_age as char)"},
-                  }));
+          section(
+              Section::Type::VERTICAL, "Waiting for InnoDB locks", query,
+              {
+                  {"wait_started", "Wait started",
+                   "cast(ilw.wait_started as char)"},
+                  {"wait_elapsed", "Elapsed", "cast(ilw.wait_age as char)"},
+                  {"object", "Locked table", "ilw.locked_table"},
+                  {"waiting_lock_type", "Type", "ilw.locked_type"},
+                  {"waiting_query", "Query", "ilw.waiting_query"},
+                  {"blocking_pid", "CID", "ilw.blocking_pid"},
+                  {"blocking_query", "Blocking query", "ilw.blocking_query"},
+                  {"blocking_account", "Account",
+                   "concat(t.processlist_user, '@', t.processlist_host)"},
+                  {"blocking_trx_started", "Transaction started",
+                   "cast(ilw.blocking_trx_started as char)"},
+                  {"blocking_trx_elapsed", "Elapsed",
+                   "cast(ilw.blocking_trx_age as char)"},
+              }));
     }
 
     {
       static constexpr auto query = R"(AS metadata_blocked_by
-FROM performance_schema.threads AS t
-JOIN sys.schema_table_lock_waits AS stlw ON stlw.waiting_thread_id = t.THREAD_ID)";
+  FROM performance_schema.metadata_locks g
+ INNER JOIN performance_schema.metadata_locks p 
+    ON g.object_type = p.object_type
+   AND IF(g.object_schema IS NULL, p.object_schema IS NULL, g.object_schema = p.object_schema)
+   AND IF(g.object_name IS NULL, p.object_name IS NULL, g.object_name = p.object_name)
+  /*!80000 AND IF(g.column_name IS NULL, p.column_name IS NULL, g.column_name = p.column_name) */
+   AND p.lock_status = 'PENDING' AND g.lock_status = 'GRANTED'
+ INNER JOIN performance_schema.threads gt ON g.owner_thread_id = gt.thread_id
+ INNER JOIN performance_schema.threads t ON p.owner_thread_id = t.thread_id
+  LEFT JOIN performance_schema.events_statements_current gs ON g.owner_thread_id = gs.thread_id
+  LEFT JOIN performance_schema.events_statements_current ps ON p.owner_thread_id = ps.thread_id)";
 
       add_section(
           group,
-          section(Section::Type::TABLE, "Waiting for metadata locks", query,
+          section(Section::Type::VERTICAL, "Waiting for metadata locks", query,
                   {
                       {"wait_started", "Wait started",
-                       "cast(date_sub(now(), interval stlw.waiting_query_secs "
+                       "cast(date_sub(now(), interval t.processlist_time "
                        "second) as char)"},
-                      {"wait_elapsed", "Elapsed",
-                       "cast(sec_to_time(stlw.waiting_query_secs) as char)"},
-                      {"object", "Locked table",
-                       "concat(sys.quote_identifier(stlw.object_schema), '.', "
-                       "sys.quote_identifier(stlw.object_name))"},
+                      {"wait_elapsed", "Wait elapsed",
+                       "cast(sec_to_time(t.processlist_time) as char)"},
+                      {"object_type", "Object type", "p.object_type"},
+                      {"object", "Locked object",
+                       "concat(sys.quote_identifier(p.object_schema), '.', "
+                       "sys.quote_identifier(p.object_name))"},
                       {"waiting_lock_type", "Type",
-                       "concat(stlw.waiting_lock_type, ' (', "
-                       "stlw.waiting_lock_duration, ')')"},
-                      {"blocking_pid", "CID", "stlw.blocking_pid"},
-                      {"blocking_query", "Query", "''"},
-                      {"blocking_account", "Account", "stlw.blocking_account"},
-                      {"blocking_trx_started", "Transaction started", "''"},
-                      {"blocking_trx_elapsed", "Elapsed", "''"},
+                       "concat(p.lock_type, ' (', "
+                       "p.lock_duration, ')')"},
+                      {"waiting_query", "Query",
+                       "sys.format_statement(t.processlist_info)"},
+                      {"blocking_pid", "CID", "gt.processlist_id"},
+                      {"blocking_query", "Blocking query",
+                       "sys.format_statement(gt.processlist_info)"},
+                      {"blocking_account", "Account",
+                       "sys.ps_thread_account(g.owner_thread_id)"},
+                      {"blocking_trx_started", "Transaction started",
+                       "cast(date_sub(now(), interval gt.processlist_time "
+                       "second) as char)"},
+                      {"blocking_trx_elapsed", "Elapsed",
+                       "cast(sec_to_time(gt.processlist_time) as char)"},
                   }));
     }
 
@@ -528,7 +562,7 @@ JOIN sys.innodb_lock_waits AS ilw ON ilw.blocking_pid = t.PROCESSLIST_ID)";
 
       add_section(
           group,
-          section(Section::Type::TABLE, "Blocking InnoDB locks", query,
+          section(Section::Type::VERTICAL, "Blocking InnoDB locks", query,
                   {
                       {"wait_started", "Wait started",
                        "cast(ilw.wait_started as char)"},
@@ -542,30 +576,153 @@ JOIN sys.innodb_lock_waits AS ilw ON ilw.blocking_pid = t.PROCESSLIST_ID)";
 
     {
       static constexpr auto query = R"(AS metadata_blocking
-FROM performance_schema.threads AS t
-JOIN sys.schema_table_lock_waits AS stlw ON stlw.blocking_thread_id = t.THREAD_ID)";
+  FROM performance_schema.metadata_locks g
+ INNER JOIN performance_schema.metadata_locks p 
+    ON g.object_type = p.object_type
+   AND IF(g.object_schema IS NULL, p.object_schema IS NULL, g.object_schema = p.object_schema)
+   AND IF(g.object_name IS NULL, p.object_name IS NULL, g.object_name = p.object_name)
+   /*!80000 AND IF(g.column_name IS NULL, p.column_name IS NULL, g.column_name = p.column_name) */
+   AND p.lock_status = 'PENDING' AND g.lock_status = 'GRANTED'
+ INNER JOIN performance_schema.threads t ON g.owner_thread_id = t.thread_id
+ INNER JOIN performance_schema.threads pt ON p.owner_thread_id = pt.thread_id
+  LEFT JOIN performance_schema.events_statements_current gs ON g.owner_thread_id = gs.thread_id
+  LEFT JOIN performance_schema.events_statements_current ps ON p.owner_thread_id = ps.thread_id)";
 
       add_section(
           group,
-          section(Section::Type::TABLE, "Blocking metadata locks", query,
+          section(Section::Type::VERTICAL, "Blocking metadata locks", query,
                   {
                       {"wait_started", "Wait started",
-                       "cast(date_sub(now(), interval "
-                       "stlw.waiting_query_secs second) as char)"},
-                      {"wait_elapsed", "Elapsed",
-                       "cast(sec_to_time(stlw.waiting_query_secs) as char)"},
-                      {"object", "Locked table",
-                       "concat(sys.quote_identifier(stlw.object_schema),"
-                       " '.', sys.quote_identifier(stlw.object_name))"},
-                      {"waiting_lock_type", "Type",
-                       "concat(stlw.waiting_lock_type, ' (', "
-                       "stlw.waiting_lock_duration, ')')"},
-                      {"waiting_pid", "CID", "stlw.waiting_pid"},
-                      {"waiting_query", "Query", "stlw.waiting_query"},
+                       "cast(date_sub(now(), interval t.processlist_time "
+                       "second) as char)"},
+                      {"wait_elapsed", "Wait elapsed",
+                       "cast(sec_to_time(t.processlist_time) as char)"},
+                      {"object_type", "Object type", "g.object_type"},
+                      {"object", "Locked object",
+                       "concat(sys.quote_identifier(g.object_schema), '.', "
+                       "sys.quote_identifier(g.object_name))"},
+                      {"blocking_lock_type", "Type",
+                       "concat(g.lock_type, ' (', "
+                       "g.lock_duration, ')')"},
+                      {"blocking_query", "Query",
+                       "sys.format_statement(t.processlist_info)"},
+                      {"waiting_pid", "CID", "pt.processlist_id"},
+                      {"waiting_query", "Waiting query",
+                       "sys.format_statement(pt.processlist_info)"},
+                      {"waiting_account", "Account",
+                       "sys.ps_thread_account(p.owner_thread_id)"},
+                      {"waiting_trx_started", "Transaction started",
+                       "cast(date_sub(now(), interval pt.processlist_time "
+                       "second) as char)"},
+                      {"waiting_trx_elapsed", "Elapsed",
+                       "cast(sec_to_time(pt.processlist_time) as char)"},
                   }));
     }
 
     return section(Section::Type::GROUP, "Locks", std::move(group));
+  }
+
+  Section raw_locks_section() const {
+    auto group = shcore::make_array();
+    auto version = m_session->get_server_version();
+    bool is_80 = version >= mysqlshdk::utils::Version(8, 0, 0);
+
+    {
+      static constexpr auto query = R"(AS metadata
+FROM performance_schema.threads AS t
+JOIN performance_schema.metadata_locks AS m ON m.OWNER_THREAD_ID = t.THREAD_ID
+LEFT JOIN performance_schema.events_statements_current AS e
+  ON m.OWNER_EVENT_ID = e.EVENT_ID
+   )";
+
+      add_section(
+          group,
+          section(
+              Section::Type::TABLE, "Metadata Locks", query,
+              {{"object_type", "Object type", "m.object_type"},
+               {"object", "Object",
+                "concat(if(m.object_schema is null, '', "
+                "          sys.quote_identifier(m.object_schema)),"
+                " if(m.object_schema is not null and m.object_name "
+                "       is not null, '.', ''),"
+                " if(m.object_name is null, '',"
+                "  concat("
+                "   sys.quote_identifier(m.object_name) /*!80000 ,"
+                "   if(m.column_name is null, '',"
+                "     concat('.', sys.quote_identifier(m.column_name)))*/)))"},
+               {"type", "Lock type", "m.lock_type"},
+               {"duration", "Duration", "m.lock_duration"},
+               {"lock_status", "Status", "m.lock_status"},
+               {"owner_event_id", "Event ID", "m.owner_event_id"},
+               {"start_time", "Start time",
+                "cast(date_sub(now(), interval t.processlist_time "
+                "second) as char)"},
+               {"waiting_trx_elapsed", "Elapsed",
+                "cast(sec_to_time(t.processlist_time) as char)"}}));
+    }
+
+    {
+      static constexpr auto query = R"(AS table_handles
+FROM performance_schema.threads AS t
+JOIN performance_schema.table_handles AS h ON h.OWNER_THREAD_ID = t.THREAD_ID)";
+
+      add_section(
+          group, section(Section::Type::TABLE, "Table Handles", query,
+                         {{"object_type", "Object type", "h.object_type"},
+                          {"object", "Object",
+                           "concat(sys.quote_identifier(h.object_schema), '.', "
+                           "sys.quote_identifier(h.object_name))"},
+                          {"internal_lock", "Internal lock", "h.internal_lock"},
+                          {"external_lock", "External lock", "h.external_lock"},
+                          {"owner_event_id", "Event ID", "h.owner_event_id"}}));
+    }
+
+    if (is_80) {
+      static constexpr auto query = R"(AS datalocks
+FROM performance_schema.threads AS t
+JOIN performance_schema.data_locks AS d ON d.THREAD_ID = t.THREAD_ID)";
+
+      add_section(
+          group,
+          section(Section::Type::TABLE, "Data Locks", query,
+                  {{"engine", "Engine", "d.engine"},
+                   {"engine_lock_id", "Engine lock ID", "d.engine_lock_id"},
+                   {"engine_transaction_id", "Engine trx ID",
+                    "d.engine_transaction_id"},
+                   {"event_id", "Event ID", "d.event_id"},
+                   {"object", "Object",
+                    "concat(sys.quote_identifier(d.object_schema), '.', "
+                    "sys.quote_identifier(d.object_name))"},
+                   {"partition", "Partition", "d.partition_name"},
+                   {"subpartition", "Sub-partition", "d.subpartition_name"},
+                   {"index", "Index", "d.index_name"},
+                   {"type", "Type", "d.lock_type"},
+                   {"mode", "Mode", "d.lock_mode"},
+                   {"status", "Status", "d.lock_status"},
+                   {"data", "Data", "d.lock_data"}}));
+    }
+
+    {
+      static constexpr auto query = R"(AS mutexes
+FROM performance_schema.threads AS t
+JOIN performance_schema.mutex_instances AS m ON m.LOCKED_BY_THREAD_ID = t.THREAD_ID)";
+
+      add_section(group, section(Section::Type::TABLE, "Mutexes", query,
+                                 {{"name", "Name", "m.name"}}));
+    }
+
+    {
+      static constexpr auto query = R"(AS rwlocks
+FROM performance_schema.threads AS t
+JOIN performance_schema.rwlock_instances AS m ON m.WRITE_LOCKED_BY_THREAD_ID = t.THREAD_ID)";
+
+      add_section(group, section(Section::Type::TABLE, "RWLocks", query,
+                                 {{"name", "Name", "m.name"},
+                                  {"read_locked_by_count", "Read Locked by",
+                                   "m.read_locked_by_count"}}));
+    }
+
+    return section(Section::Type::GROUP, "All Locks", std::move(group));
   }
 
   Section prep_stmts_section() const {

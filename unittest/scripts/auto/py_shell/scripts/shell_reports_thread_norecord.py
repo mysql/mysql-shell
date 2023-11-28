@@ -51,7 +51,8 @@ __test_ids = get_ids(__test_session)
 __session_ids = get_ids(session)
 
 #@ create database
-session.run_sql("CREATE DATABASE IF NOT EXISTS thread_test")
+session.run_sql("DROP DATABASE IF EXISTS thread_test")
+session.run_sql("CREATE DATABASE thread_test")
 session.run_sql("CREATE TABLE IF NOT EXISTS thread_test.innodb (value int) ENGINE=InnoDB")
 session.run_sql("INSERT INTO thread_test.innodb VALUES (1)")
 
@@ -219,35 +220,29 @@ WIPE_STDOUT()
 
 \show thread --tid <<<__test_ids['tid']>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'Wait started:.*Wait elapsed:.*Object type:.*Locked object:.*Type:.*Query:.*CID:.*Waiting query:.*Account:.*Transaction started:.*Elapsed:.*', re.DOTALL))
 EXPECT_STDOUT_CONTAINS(str(blocked_cid))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
-EXPECT_STDOUT_CONTAINS('SHARED_READ (TRANSACTION)')
+EXPECT_STDOUT_CONTAINS('SHARED_NO_READ_WRITE (TRANSACTION)')
 EXPECT_STDOUT_CONTAINS('SELECT * FROM thread_test.innodb')
-
-# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (1)
-EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR18_2 - --locks - blocked
 WIPE_STDOUT()
 
 \show thread --cid <<<blocked_cid>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\| Account +\| Transaction started +\| Elapsed +\|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'Wait started:.*Wait elapsed:.*Object type:.*Locked object:.*Type:.*Query:.*CID:.*Blocking query:.*Account:.*Transaction started:.*Elapsed:.*', re.DOTALL))
 EXPECT_STDOUT_CONTAINS(str(__test_ids['cid']))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('SHARED_READ (TRANSACTION)')
 EXPECT_STDOUT_CONTAINS('thread_test@{0}'.format(__host))
 
-# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (2)
-EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
-
-#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - metadata
-report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
+#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nwaiting - metadata
+report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nwaiting', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
 EXPECT_EQ(1, report[1][0])
 EXPECT_EQ(0, report[1][1])
 
-report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'cid = {0}'.format(blocked_cid)})['report']
+report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nwaiting', 'where': 'cid = {0}'.format(blocked_cid)})['report']
 EXPECT_EQ(0, report[1][0])
 EXPECT_EQ(1, report[1][1])
 
@@ -269,38 +264,48 @@ WIPE_STDOUT()
 
 \show thread --tid <<<__test_ids['tid']>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'Wait started:.*Elapsed:.*Locked table:.*Type:.*CID:.*Query:.*', re.DOTALL))
 EXPECT_STDOUT_CONTAINS(str(blocked_cid))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('RECORD')
 EXPECT_STDOUT_CONTAINS('UPDATE thread_test.innodb SET value = 7')
-
-# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (3)
-EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR18_2 - --locks - blocked - InnoDB
 WIPE_STDOUT()
 
 \show thread --cid <<<blocked_cid>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\| Account +\| Transaction started +\| Elapsed +\|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'Wait started:.*Elapsed:.*Locked table:.*Type:.*Query:.*CID:.*Blocking query:.*Account:.*Transaction started:.*Elapsed:.*', re.DOTALL))
 EXPECT_STDOUT_CONTAINS(str(__test_ids['cid']))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('RECORD')
 EXPECT_STDOUT_CONTAINS('thread_test@{0}'.format(__host))
 
-# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (4)
-EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
-
-#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - InnoDB
-report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
-EXPECT_EQ(1, report[1][0])
+#@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nwaiting - InnoDB
+report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nwaiting', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
+EXPECT_EQ(3 if __version_num > 80000 else 0, report[1][0])
 EXPECT_EQ(0, report[1][1])
 
-report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'cid = {0}'.format(blocked_cid)})['report']
-EXPECT_EQ(0, report[1][0])
-EXPECT_EQ(1, report[1][1])
+report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nwaiting', 'where': 'cid = {0}'.format(blocked_cid)})['report']
+EXPECT_EQ(1 if __version_num > 80000 else 0, report[1][0])
+EXPECT_EQ(1 if __version_num > 80000 else 0, report[1][1])
 
+#@<> --raw-locks
+WIPE_STDOUT()
+
+\show thread --tid <<<__test_ids['tid']>>> --raw-locks
+
+EXPECT_STDOUT_CONTAINS("Metadata Locks")
+EXPECT_STDOUT_CONTAINS("Table Handles")
+if __version_num >= 80000:
+    EXPECT_STDOUT_CONTAINS("Data Locks")
+EXPECT_STDOUT_CONTAINS("Mutexes")
+EXPECT_STDOUT_CONTAINS("RWLocks")
+
+EXPECT_STDOUT_MATCHES(re.compile(r'\| Object type +\| Object +\| Lock type +\| Duration +\| Status +\| Event ID +\| Start time +\| Elapsed +\|', re.DOTALL))
+EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
+if __version_num >= 80000:
+    EXPECT_STDOUT_CONTAINS('RECORD')
 
 #@ WL11651-TSFR18_2 - cleanup - InnoDB
 __test_session.run_sql("ROLLBACK")

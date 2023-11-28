@@ -151,17 +151,29 @@ namespace {
     "ID of the statement that is currently being executed by the thread")      \
   S("Counters")                                                                \
   X("nblocked",                                                                \
-    "(SELECT count(*) FROM sys.innodb_lock_waits AS ilw WHERE "                \
-    "t.PROCESSLIST_ID = ilw.blocking_pid) + (SELECT count(*) FROM "            \
-    "sys.schema_table_lock_waits AS stlw WHERE t.THREAD_ID = "                 \
-    "stlw.blocking_thread_id)",                                                \
+    "(SELECT count(*)"                                                         \
+    " FROM performance_schema.metadata_locks g"                                \
+    " INNER JOIN performance_schema.metadata_locks p"                          \
+    "   ON g.object_type = p.object_type"                                      \
+    "   AND IF(g.object_schema IS NULL, p.object_schema IS NULL,"              \
+    "         g.object_schema = p.object_schema)"                              \
+    "   AND IF(g.object_name IS NULL, p.object_name IS NULL, g.object_name ="  \
+    "         p.object_name)"                                                  \
+    "  /*!80000 AND IF(g.column_name IS NULL, p.column_name IS NULL, "         \
+    "     g.column_name = p.column_name) */"                                   \
+    "   AND p.lock_status = 'PENDING' AND g.lock_status = 'GRANTED'"           \
+    " WHERE g.owner_thread_id = t.THREAD_ID) /*!80000 +"                       \
+    "(SELECT count(*) FROM "                                                   \
+    "performance_schema.data_locks AS dl WHERE t.THREAD_ID = dl.thread_id "    \
+    "AND dl.lock_status = 'GRANTED') */",                                      \
     "the number of other threads blocked by the thread")                       \
   X("nblocking",                                                               \
     "(SELECT count(*) FROM sys.innodb_lock_waits AS ilw WHERE "                \
     "t.PROCESSLIST_ID = ilw.waiting_pid) + (SELECT count(*) FROM "             \
     "sys.schema_table_lock_waits AS stlw WHERE t.THREAD_ID = "                 \
     "stlw.waiting_thread_id)",                                                 \
-    "the number of other threads blocking the thread")                         \
+    "the number of other threads blocking the thread (deprecated, use "        \
+    "nwaiting)")                                                               \
   X("npstmts",                                                                 \
     "(SELECT count(*) FROM performance_schema.prepared_statements_instances "  \
     "AS psi WHERE psi.OWNER_THREAD_ID = t.THREAD_ID)",                         \
@@ -170,6 +182,13 @@ namespace {
     "(SELECT count(*) FROM performance_schema.user_variables_by_thread AS "    \
     "uvbt WHERE t.THREAD_ID = uvbt.THREAD_ID)",                                \
     "the number of user variables defined for the thread")                     \
+  X("nwaiting",                                                                \
+    "(SELECT count(*) FROM performance_schema.metadata_locks AS mdl WHERE "    \
+    "t.thread_id = mdl.owner_thread_id AND mdl.lock_status = 'PENDING') "      \
+    "/*!80000 + (SELECT count(*) FROM "                                        \
+    "performance_schema.data_locks AS dl WHERE t.THREAD_ID = dl.thread_id "    \
+    "AND dl.lock_status = 'WAITING') */",                                      \
+    "number of locks this thread is waiting for")                              \
   S("Information about transactions")                                          \
   X("ntxrlckd", "trx.TRX_ROWS_LOCKED",                                         \
     "the approximate number or rows locked by the current InnoDB transaction") \
@@ -302,7 +321,8 @@ std::vector<std::string> get_details() {
      {"The <b>format</b> option expects a string in the following form: "      \
       "<b>column[=alias][,column[=alias]]*</b>. If column with the given "     \
       "name does not exist, all columns that match the given prefix are "      \
-      "selected and alias is ignored."},                                       \
+      "selected and alias is ignored. If the format starts with a +, the "     \
+      "specified columns are added after the default format."},                \
      false, false, nullable<std::string>)                                      \
   XX(where, String, "Allows to filter the result.", "",                        \
      std::vector<std::string>(                                                 \
@@ -384,12 +404,19 @@ class Threads_report : public Native_report {
     }
 
     // format
-    if (!o.format) {
+    if (!o.format || (!o.format->empty() && o.format->front() == '+')) {
+      std::string extras;
+      if (o.format) {
+        extras = *o.format;
+        extras[0] = ',';
+      }
       if (o.background && !o.all && !o.foreground) {
-        o.format = "tid,name,nio,ioltncy,iominltncy,ioavgltncy,iomaxltncy";
+        o.format =
+            "tid,name,nio,ioltncy,iominltncy,ioavgltncy,iomaxltncy" + extras;
       } else {
         o.format =
-            "tid,cid,user,host,db,command,time,state,txstate,info,nblocking";
+            "tid,cid,user,host,db,command,time,state,txstate,info,nwaiting" +
+            extras;
       }
     }
 

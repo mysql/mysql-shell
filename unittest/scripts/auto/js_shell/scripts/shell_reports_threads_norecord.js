@@ -168,6 +168,16 @@ EXPECT_STDERR_EMPTY();
 
 EXPECT_EQ(all, count_rows());
 
+//@<> nblocking format
+WIPE_STDOUT();
+
+\show threads -A --format=+nblocking
+
+EXPECT_STDOUT_CONTAINS("nblocking");
+EXPECT_STDERR_EMPTY();
+
+EXPECT_EQ(all, count_rows());
+
 //@ WL11651-TSFR4_3 - Run the threads report with the --foreground and --background options, validate that the info displayed list all the threads: foreground and background.
 WIPE_STDOUT();
 
@@ -185,19 +195,19 @@ EXPECT_EQ(all, count_rows());
 //@ WL11651-TSFR5_1 - Run the threads report, validate that the output of the report is presented as a list-type report - vertical.
 \show threads --vertical -f -o user,command --where "tid = <<<__test_ids.tid>>>"
 
-//@ WL11651-TSFR6_1 - Run the threads report, validate that the default columns in the report are: tid, cid, user, host, db, command, time, state, txstate, info, nblocking.
+//@ WL11651-TSFR6_1 - Run the threads report, validate that the default columns in the report are: tid, cid, user, host, db, command, time, state, txstate, info, nwaiting.
 WIPE_STDOUT();
 
 \show threads
 
-EXPECT_STDOUT_MATCHES(/\| tid +\| cid +\| user +\| host +\| db +\| command +\| time +\| state +\| txstate +\| info +\| nblocking +\|/);
+EXPECT_STDOUT_MATCHES(/\| tid +\| cid +\| user +\| host +\| db +\| command +\| time +\| state +\| txstate +\| info +\| nwaiting +\|/);
 EXPECT_STDERR_EMPTY();
 
 WIPE_STDOUT();
 
 \show threads --foreground
 
-EXPECT_STDOUT_MATCHES(/\| tid +\| cid +\| user +\| host +\| db +\| command +\| time +\| state +\| txstate +\| info +\| nblocking +\|/);
+EXPECT_STDOUT_MATCHES(/\| tid +\| cid +\| user +\| host +\| db +\| command +\| time +\| state +\| txstate +\| info +\| nwaiting +\|/);
 EXPECT_STDERR_EMPTY();
 
 //@ WL11651-TSFR6_2 - Run the threads report with --background option, validate that the default columns in the report are: tid, name, nio, ioltncy, iominltncy, ioavgltncy, iomaxltncy.
@@ -394,7 +404,7 @@ test_column("stmtid", "ignore");
 // nblocked - the number of other threads blocked by the thread
 // tested in shell_reports_thread_norecord.py, when locks are set up
 
-// nblocking - the number of other threads blocking the thread
+// nwaiting - the number of other threads blocking the thread
 // tested in shell_reports_thread_norecord.py, when locks are set up
 
 // npstmts - the number of prepared statements allocated by the thread
@@ -642,8 +652,8 @@ var all_columns = [
   "stmtid",
   // nblocked - the number of other threads blocked by the thread
   "nblocked",
-  // nblocking - the number of other threads blocking the thread
-  "nblocking",
+  // nwaiting - the number of locks the thread is waiting for
+  "nwaiting",
   // npstmts - the number of prepared statements allocated by the thread
   "npstmts",
   // nvars - the number of user variables defined for the thread
