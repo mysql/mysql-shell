@@ -53,7 +53,7 @@ testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1"]));
 EXPECT_OUTPUT_CONTAINS(`Creating a Classic session to 'localhost:${__mysql_sandbox_port1}/test_user_db?auth-method=authentication_ldap_sasl_client`)
 
 // The client library will pick the system user anyway
-EXPECT_OUTPUT_CONTAINS(`SSO user not found, Please perform SSO authentication using kerberos.`)
+EXPECT_OUTPUT_CONTAINS('Unknown MySQL error')
 WIPE_OUTPUT()
 
 //@<> WL14553-TSFR_9_4 - User given but no password {ldap_kerberos_available}
