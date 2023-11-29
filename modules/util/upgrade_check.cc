@@ -323,10 +323,10 @@ std::unique_ptr<Sql_upgrade_check> Sql_upgrade_check::get_old_temporal_check() {
       std::vector<std::string>{
           "SELECT table_schema, table_name,column_name,column_type "
           "FROM information_schema.columns WHERE column_type LIKE "
-          "'timestamp /* 5.5 binary format */';"},
+          "'%5.5 binary format%';"},
       Upgrade_issue::ERROR,
       "Following table columns use a deprecated and no longer supported "
-      "timestamp disk storage format. They must be converted to the new format "
+      "temporal disk storage format. They must be converted to the new format "
       "before upgrading. It can by done by rebuilding the table using 'ALTER "
       "TABLE <table_name> FORCE' command",
       nullptr, std::forward_list<std::string>{"SET show_old_temporals = ON;"},

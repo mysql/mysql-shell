@@ -37,7 +37,7 @@
 # Usage of old temporal type
 
 * oldTemporalCheck.description
-# Error: Following table columns use a deprecated and no longer supported timestamp disk storage
+# Error: Following table columns use a deprecated and no longer supported temporal disk storage
 # format. They must be converted to the new format before upgrading. It can by done by rebuilding
 # the table using 'ALTER TABLE <table_name> FORCE' command
 
