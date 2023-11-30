@@ -1,6 +1,6 @@
 Licensing Information User Manual
 
-MySQL Shell, part of MySQL 8.2.0 Community
+MySQL Shell, part of MySQL 8.3.0 Community
      __________________________________________________________________
 
 Introduction
@@ -8,18 +8,18 @@ Introduction
    This License Information User Manual contains Oracle's product license
    and other licensing information, including licensing information for
    third-party software which may be included in this distribution of
-   MySQL Shell, part of MySQL 8.2.0 Community.
+   MySQL Shell, part of MySQL 8.3.0 Community.
 
-   Last updated: October 2023
+   Last updated: November 2023
 
 Licensing Information
 
-   This release of MySQL Shell, part of MySQL 8.2.0 Community, is brought
+   This release of MySQL Shell, part of MySQL 8.3.0 Community, is brought
    to you by the MySQL team at Oracle. This software is released under
    version 2 of the GNU General Public License (GPLv2), as set forth
    below, with the following additional permissions:
 
-   This distribution of MySQL Shell, part of MySQL 8.2.0 Community, is
+   This distribution of MySQL Shell, part of MySQL 8.3.0 Community, is
    distributed with certain software (including but not limited to
    OpenSSL) that is licensed under separate terms, as designated in a
    particular file or component or in the license documentation. Without
@@ -413,65 +413,12 @@ Licenses for Third-Party Components
    that have created these. Standard licenses referenced herein are
    detailed in the Standard Licenses section.
 
-ansi-to-react
-
-Copyright (c) 2022, Safia Abdalla
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-3. Neither the name of the copyright holder nor the names of its
-   contributors may be used to endorse or promote products derived from
-   this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
-TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
----------------------------- Fourth-party information ----------------------
-== NAME OF DEPENDENCY 1
 anser
 
+The MIT License (MIT)
+
 Copyright (c) 2012-22 Ionică Bizău <bizauionica@gmail.com> (https://ionicabizau.
-net)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
---------------------------------(separator)---------------------------------
-== NAME OF DEPENDENCY 2
-escape-carriage
-
-Copyright (c) 2016 Lukas Geiger
+net
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -2994,31 +2941,6 @@ The following notice applies to
    ======================================================================
    ======================================================================
 
-keyboard-key
-
-Copyright (c) 2018 Levi Thomason
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-   ======================================================================
-   ======================================================================
-
 libssh
 
 You are receiving a copy of libssh as part of MySQL Workbench in object code
@@ -3917,239 +3839,6 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-   ======================================================================
-   ======================================================================
-
-pixi-scrollbox
-
-Copyright (c) 2018 YOPEY YOPEY LLC
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----------------------------- Fourth-party information ----------------------
-== penner 0.1.3, MIT
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2013 Boris Cherny
---------------------------------(separator)---------------------------------
-
-   ======================================================================
-   ======================================================================
-
-pixi-viewport
-
-Copyright (c) 2017 YOPEY YOPEY LLC
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----------------------------- Fourth-party information ----------------------
-== penner 0.1.3, MIT
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2013 Boris Cherny
-
---------------------------------(separator)---------------------------------
-
-   ======================================================================
-   ======================================================================
-
-pixi.js
-
-Copyright (c) 2013-2017 Mathew Groves, Chad Engler
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
----------------------------- Fourth-party information ----------------------
-
-== @pixi/accessibility@6.2.2, MIT
-== @pixi/app@6.2.2, MIT
-== @pixi/compressed-textures@6.2.2, MIT
-== @pixi/constants@6.2.2, MIT
-== @pixi/core@6.2.2, MIT
-== @pixi/display@6.2.2, MIT
-== @pixi/extract@6.2.2, MIT
-== @pixi/filter-alpha@6.2.2, MIT
-== @pixi/filter-blur@6.2.2, MIT
-== @pixi/filter-color-matrix@6.2.2, MIT
-== @pixi/filter-displacement@6.2.2, MIT
-== @pixi/filter-fxaa@6.2.2, MIT
-== @pixi/filter-noise@6.2.2, MIT
-== @pixi/loaders@6.2.2, MIT
-== @pixi/math@6.2.2, MIT
-== @pixi/mesh@6.2.2, MIT
-== @pixi/mesh-extras@6.2.2, MIT
-== @pixi/mixin-cache-as-bitmap@6.2.2, MIT
-== @pixi/mixin-get-child-by-name@6.2.2, MIT
-== @pixi/mixin-get-global-position@6.2.2, MIT
-== @pixi/particle-container@6.2.2, MIT
-== @pixi/polyfill@6.2.2, MIT
-== @pixi/prepare@6.2.2, MIT
-== @pixi/runner@6.2.2, MIT
-== @pixi/ticker@6.2.2, MIT
-== @pixi/graphics@6.2.2, MIT
-== @pixi/interaction@6.2.2, MIT
-== @pixi/settings@6.2.2, MIT
-== @pixi/sprite@6.2.2, MIT
-== @pixi/sprite-animated@6.2.2, MIT
-== @pixi/sprite-tiling@6.2.2, MIT
-== @pixi/spritesheet@6.2.2, MIT
-== @pixi/text@6.2.2, MIT
-== @pixi/text-bitmap@6.2.2, MIT
-== @pixi/ticker@6.2.2, MIT
-== @pixi/utils@6.2.2, MIT
-
-== License - Copyright Notices
-MIT / Exactly as above
-
---------------------------------(separator)---------------------------------
-== promise-polyfill@8.2.1, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright (c) 2014 Roman Dvornov
-
---------------------------------(separator)---------------------------------
-== object-assign@4.1.1, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright (c) Sindre Sorhus  (sindresorhus.com)
-
---------------------------------(separator)---------------------------------
-== ismobilejs@1.1.1, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright (c) 2019 Kai Mallea
-
---------------------------------(separator)---------------------------------
-== @types/earcut, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyrights are respective of each contributor listed at the beginning of
-each definition file.
-
---------------------------------(separator)---------------------------------
-== earcut@2.2.3, ISC
-
-== License + Copyright
-ISC License
-
-Copyright (c) 2016, Mapbox
-
-Permission to use, copy, modify, and/or distribute this software for any purpose
-with or without fee is hereby granted, provided that the above copyright notice
-and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
-OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-THIS SOFTWARE.
-
---------------------------------(separator)---------------------------------
-== eventemitter3@4.0.7, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright (c) 2014 Arnout Kazemier
-
---------------------------------(separator)---------------------------------
-== url@0.11.0, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright 2014 Joyent, Inc. and other Node contributors.
-
---------------------------------(separator)---------------------------------
-== punycode@2.1.1, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright Mathias Bynens
-
---------------------------------(separator)---------------------------------
-== querystring@0.2.1, MIT
-
-== License
-MIT License
-
-== Copyright Notices
-Copyright 2012 Irakli Gozalishvili
-
---------------------------------(separator)---------------------------------
 
    ======================================================================
    ======================================================================
@@ -5341,118 +5030,6 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-   ======================================================================
-   ======================================================================
-
-react-monaco-editor
-
-Copyright (c) 2016-present Leon Shi Permission is hereby granted, free
-of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software
-without restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished
-to do so, subject to the following conditions: The above copyright
-notice and this permission notice shall be included in all copies or
-substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS",
-WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----------------------------- Fourth-party information ----------------------
-== monaco-editor
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2016 - present Microsoft Corporation
-
---------------------------------(separator)---------------------------------
-== regenerator-runtime
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2014-present, Facebook, Inc.
-
---------------------------------(separator)---------------------------------
-== prop-types
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2013-present, Facebook, Inc.
-
---------------------------------(separator)---------------------------------
-== loose-envify
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2015 Andres Suarez <zertosh@gmail.com>
-
---------------------------------(separator)---------------------------------
-== js-tokens
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 Simon Lydell
-
---------------------------------(separator)---------------------------------
-== object-assign
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) Sindre Sorhus <indresorhus@gmail.com> (sindresorhus.com)
-
---------------------------------(separator)---------------------------------
-== react-is
-
-== License
-The MIT License (MIT)
-
-== Copyright Notices
-Copyright (c) Facebook, Inc. and its affiliates.
-
---------------------------------(separator)---------------------------------
-
-   ======================================================================
-   ======================================================================
-
-reconnecting-websocket
-
-Copyright (c) 2018 Pedro Ladaria
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

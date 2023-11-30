@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ ENDIF()
 
 # A string(TIMESTAMP YEAR "%Y") would do but as using "date" above, use the same
 IF (NOT DEFINED DEB_COPYRIGHT_YEAR)
-  SET (DEB_COPYRIGHT_YEAR "2023" CACHE STRING "")
+  SET (DEB_COPYRIGHT_YEAR "2024" CACHE STRING "")
 ENDIF()
 
 # We make sure it loads only the protobuf version
