@@ -1,27 +1,23 @@
-
-#@<> Check that -c works as expected
+# @<> Check that -c works as expected
 
 testutil.call_mysqlsh(["-c", "import sys; print(sys.argv)", "hello", "--foo", "--bar"])
 EXPECT_STDOUT_CONTAINS("['-c', 'hello', '--foo', '--bar']")
 
-#@<> Check that subprocess works
+# @<> Check that subprocess works
 
-with open(__tmp_dir+"/subproc.py", "w+") as f:
-    f.write("""
+with open(__tmp_dir + "/subproc.py", "w+") as f:
+    f.write(
+        """
 import multiprocessing
-def run_proc():
-    print("".join(list(reversed("dlrow olleh"))).upper())
+def run_proc(arg):
+    print("".join(list(reversed("dlrow olleh"))).upper() + str(arg+1))
 
 if __name__ == "__main__":
-    proc = multiprocessing.Process(target=run_proc)
+    with multiprocessing.Pool(3) as p:
+        p.map(run_proc, [1,3,5,7])
+"""
+    )
 
-    proc.start()
-    proc.join()
-    proc.close()
-""")
+testutil.call_mysqlsh(["-f", __tmp_dir + "/subproc.py"])
 
-# on systems which use 'spawn' start method, if PYTHONDONTWRITEBYTECODE env var
-# is set, python will add the -B command line option to the spawned process
-testutil.call_mysqlsh(["-f", __tmp_dir+"/subproc.py"], "", ["PYTHONDONTWRITEBYTECODE=0"])
-
-EXPECT_STDOUT_CONTAINS("HELLO WORLD")
+EXPECT_STDOUT_CONTAINS("HELLO WORLD8")
