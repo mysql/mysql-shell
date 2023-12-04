@@ -115,9 +115,8 @@ std::wstring python_home() {
   return utf8_to_wide(home);
 }
 
-std::wstring program_name(const std::wstring &home) {
-  return utf8_to_wide(shcore::path::join_path(
-      wide_to_utf8(home), shcore::path::basename(PYTHON_EXECUTABLE)));
+std::wstring program_name() {
+  return utf8_to_wide(g_mysqlsh_path, strlen(g_mysqlsh_path));
 }
 
 void pre_initialize_python() {
@@ -176,17 +175,14 @@ void initialize_python() {
   if (const auto home = python_home(); !home.empty()) {
     check_status(PyConfig_SetString(&config, &config.home, home.c_str()),
                  "set Python home");
-
-    check_status(PyConfig_SetString(&config, &config.program_name,
-                                    program_name(home).c_str()),
-                 "set program name");
-  } else {
-    check_status(PyConfig_SetString(&config, &config.program_name,
-                                    utf8_to_wide(PYTHON_EXECUTABLE).c_str()),
-                 "set program name");
   }
-  // we want config.argv to be set to an array holding an empty string, this
-  // is done by default by Python
+
+  check_status(
+      PyConfig_SetString(&config, &config.program_name, program_name().c_str()),
+      "set program name");
+
+  // we want config.argv to be set to an array holding an empty string, this is
+  // done by default by Python
 
   check_status(Py_InitializeFromConfig(&config), "initialize");
 }
@@ -251,14 +247,14 @@ void py_unregister_module(const std::string &name) {
 py::Release py_run_string_interactive(const std::string &str, PyObject *globals,
                                       PyObject *locals,
                                       PyCompilerFlags *flags) {
-  // Previously, we were using PyRun_StringFlags() with the Py_single_input
-  // flag to run the code string and capture its output using a custom
+  // Previously, we were using PyRun_StringFlags() with the Py_single_input flag
+  // to run the code string and capture its output using a custom
   // sys.displayhook, however Python's grammar allows only for a single
-  // statement (simple_stmt or compound_stmt) to be used in such case. Since
-  // we want to be able to run multiple statements at once, Py_file_input flag
-  // is the alternative which allows the code string to be a sequence of
-  // statements, but unfortunately it does not allow to obtain the result of
-  // the execution.
+  // statement (simple_stmt or compound_stmt) to be used in such case. Since we
+  // want to be able to run multiple statements at once, Py_file_input flag is
+  // the alternative which allows the code string to be a sequence of
+  // statements, but unfortunately it does not allow to obtain the result of the
+  // execution.
   //
   // Below, the code string is parsed as a series of statements using the
   // Py_file_input flag, producing the AST representation. We use this

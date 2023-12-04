@@ -82,8 +82,6 @@ if(HAVE_PYTHON)
     ${PYTHON_SCRIPTING_SOURCES}
   )
 
-  add_definitions(-DPYTHON_EXECUTABLE="${PYTHON_EXECUTABLE}")
-
   # dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
   # https://www.python.org/dev/peps/pep-3123/
   # This should be removed when we switch to Python 3.x

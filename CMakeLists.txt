@@ -738,7 +738,6 @@ if(HAVE_PYTHON)
 
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
-    FIND_PACKAGE(Python "${USE_PYTHON_VERSION}" REQUIRED)
     FIND_PACKAGE(PythonLibs "${USE_PYTHON_VERSION}" REQUIRED)
     # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
     # By default they take the value of PB2WORKDIR and PYTHON_SOURCENAME env vars
@@ -762,16 +761,6 @@ if(HAVE_PYTHON)
     # If we're using a Python build for bundling, ensure we build against it too
     GET_PYTHON_VERSION("${BUNDLED_PYTHON_DIR}" PYTHONLIBS_VERSION_STRING)
     GET_MAJOR_MINOR("${PYTHONLIBS_VERSION_STRING}" PYTHONLIBS_MAJOR_MINOR)
-    FIND_PROGRAM(PYTHON_EXECUTABLE
-      NAMES
-        python${PYTHONLIBS_MAJOR_MINOR}mu
-        python${PYTHONLIBS_MAJOR_MINOR}m
-        python${PYTHONLIBS_MAJOR_MINOR}u
-        python${PYTHONLIBS_MAJOR_MINOR}
-      HINTS
-        "${BUNDLED_PYTHON_DIR}/bin"
-      NO_DEFAULT_PATH
-    )
     FIND_PATH(PYTHON_INCLUDE_DIRS
       NAMES
         Python.h
@@ -798,7 +787,6 @@ if(HAVE_PYTHON)
       SET(BUNDLED_SHARED_PYTHON "YES")
     ENDIF()
   ELSE()
-    FIND_PACKAGE(Python "${USE_PYTHON_VERSION}" REQUIRED)
     FIND_PACKAGE(PythonLibs "${USE_PYTHON_VERSION}" REQUIRED)
   ENDIF()
 endif()
@@ -863,7 +851,6 @@ IF(PYTHONLIBS_FOUND OR BUNDLED_PYTHON_DIR)
     add_definitions(-DHAVE_PYTHON=1) # 1 means normal (or windows)
   ENDIF()
   message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
-  message(STATUS "PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE}")
   message(STATUS "PYTHON_INCLUDE_DIRS: ${PYTHON_INCLUDE_DIRS}")
   message(STATUS "PYTHON_LIBRARIES: ${PYTHON_LIBRARIES}")
 

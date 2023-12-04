@@ -262,7 +262,6 @@ IF(HAVE_PYTHON)
   if(WIN32)
     remove_definitions(-DUNICODE)
     IF(PYTHON_LIBRARY_PATH)
-      INSTALL(FILE "${PYTHON_EXECUTABLE}" DESTINATION "lib" RENAME python COMPONENT main)
       INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" USE_SOURCE_PERMISSIONS COMPONENT main)
       INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" USE_SOURCE_PERMISSIONS COMPONENT main)
       IF(PYTHON_DEPS)
@@ -287,8 +286,6 @@ IF(HAVE_PYTHON)
 
                         # Copy the Python runtime
     add_custom_command(TARGET mysqlsh PRE_BUILD
-                      COMMAND ${CMAKE_COMMAND} -E copy
-                      "${PYTHON_EXECUTABLE}" $<TARGET_FILE_DIR:mysqlsh>/../lib
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib)
     add_custom_command(TARGET mysqlsh PRE_BUILD
@@ -319,7 +316,6 @@ IF(HAVE_PYTHON)
     GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
     INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" USE_SOURCE_PERMISSIONS COMPONENT main
               PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
-    install_bundled_binaries(BINARIES ${PYTHON_EXECUTABLE} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
     INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
             DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
     IF(PYTHON_DEPS)
@@ -334,9 +330,6 @@ IF(HAVE_PYTHON)
 
     # Copy to build dir to allow testing
     add_custom_command(TARGET mysqlsh POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                      "${BUNDLED_PYTHON_DIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
                       "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}")
