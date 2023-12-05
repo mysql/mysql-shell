@@ -77,7 +77,6 @@ file(GLOB api_module_SOURCES
       "util/json_importer.cc"
       "util/mod_util.cc"
       "util/upgrade_check.cc"
-      "util/upgrade_check_formatter.cc"
       "mod_mysql.cc"
       "mod_mysql_*.cc"
       "mod_mysqlsh.cc"
@@ -97,6 +96,14 @@ file(GLOB api_module_SOURCES
       "reports/thread.cc"
       "reports/threads.cc"
       "reports/utils.cc"
+      "util/upgrade_checker/common.cc"
+      "util/upgrade_checker/sql_upgrade_check.cc"
+      "util/upgrade_checker/upgrade_check_config.cc"
+      "util/upgrade_checker/upgrade_check_formatter.cc"
+      "util/upgrade_checker/upgrade_check_options.cc"
+      "util/upgrade_checker/upgrade_check.cc"
+      "util/upgrade_checker/upgrade_check_registry.cc"
+      "util/upgrade_checker/upgrade_check_creators.cc"
 )
 
 IF(CMAKE_COMPILER_IS_GNUCXX)

@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/upgrade_check_formatter.h"
+#include "modules/util/upgrade_checker/upgrade_check_formatter.h"
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+namespace upgrade_checker {
 
 namespace {
 
@@ -326,4 +327,5 @@ Upgrade_check_output_formatter::get_formatter(const std::string &format) {
       "Allowed values for outputFormat parameter are TEXT or JSON");
 }
 
+}  // namespace upgrade_checker
 }  // namespace mysqlsh

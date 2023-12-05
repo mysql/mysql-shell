@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/upgrade_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
@@ -242,7 +242,8 @@ void handle_debug_options(int *argc, char ***argv) {
         filename = (*argv)[i] + strlen("--generate-uc-translation") + 1;
       }
       try {
-        mysqlsh::Upgrade_check::prepare_translation_file(filename.c_str());
+        mysqlsh::upgrade_checker::Upgrade_check_registry::
+            prepare_translation_file(filename.c_str());
         std::cout << "Upgrade checker translation file written to: " << filename
                   << std::endl;
       } catch (const std::exception &e) {

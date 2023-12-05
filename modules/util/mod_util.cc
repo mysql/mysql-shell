@@ -161,7 +161,8 @@ None Util::check_for_server_upgrade(dict options);
 
 void Util::check_for_server_upgrade(
     const std::optional<mysqlshdk::db::Connection_options> &connection_options,
-    const shcore::Option_pack_ref<Upgrade_check_options> &options) {
+    const shcore::Option_pack_ref<upgrade_checker::Upgrade_check_options>
+        &options) {
   mysqlshdk::db::Connection_options connection;
 
   if (connection_options.has_value()) {
@@ -194,7 +195,7 @@ void Util::check_for_server_upgrade(
     throw std::runtime_error("Unable to get information about a user");
   }
 
-  Upgrade_check_config config{*options};
+  upgrade_checker::Upgrade_check_config config{*options};
   config.set_session(session);
   config.set_user_privileges(privileges.get());
 

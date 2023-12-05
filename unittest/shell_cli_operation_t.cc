@@ -1067,7 +1067,7 @@ class Test_cli_integration_api_options : public Shell_cli_operation_test {
 
 TEST_F(Test_cli_integration_api_options, all) {
   /** The UTILS Object **/
-  TEST_API_CLI_OPTIONS(mysqlsh::Upgrade_check_options, "util",
+  TEST_API_CLI_OPTIONS(mysqlsh::upgrade_checker::Upgrade_check_options, "util",
                        "check-for-server-upgrade", "dummy_uri@localhost");
 
   TEST_API_CLI_OPTIONS(mysqlsh::import_table::Import_table_option_pack, "util",

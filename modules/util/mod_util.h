@@ -81,7 +81,8 @@ class SHCORE_PUBLIC Util : public Extensible_object {
   void check_for_server_upgrade(
       const std::optional<mysqlshdk::db::Connection_options>
           &connection_options = {},
-      const shcore::Option_pack_ref<Upgrade_check_options> &options = {});
+      const shcore::Option_pack_ref<upgrade_checker::Upgrade_check_options>
+          &options = {});
 
 #if DOXYGEN_JS
   Undefined importJson(String file, Dictionary options);

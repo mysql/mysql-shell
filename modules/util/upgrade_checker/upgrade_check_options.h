@@ -21,31 +21,36 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_UPGRADE_CHECK_H_
-#define MODULES_UTIL_UPGRADE_CHECK_H_
+#ifndef MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_OPTIONS_H_
+#define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_OPTIONS_H_
 
-#include "modules/util/upgrade_checker/upgrade_check_config.h"
+#include <optional>
+#include <string>
 
-namespace mysqlshdk {
-namespace db {
-class ISession;
-class IRow;
-}  // namespace db
-}  // namespace mysqlshdk
+#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
-/**
- * Checks if server is ready for upgrade.
- *
- * @param config upgrade configuration
- *
- * @returns true if server is eligible for upgrade (there were no errors)
- */
-bool check_for_upgrade(const Upgrade_check_config &config);
+struct Upgrade_check_options {
+  static const shcore::Option_pack_def<Upgrade_check_options> &options();
+
+  std::optional<mysqlshdk::utils::Version> target_version;
+  std::string config_path;
+  std::string output_format;
+  std::optional<std::string> password;
+
+  mysqlshdk::utils::Version get_target_version() const;
+
+ private:
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Upgrade_check_options, set_target_version);
+#endif
+  void set_target_version(const std::string &value);
+};
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_UPGRADE_CHECK_H_
+#endif  // MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_OPTIONS_H_

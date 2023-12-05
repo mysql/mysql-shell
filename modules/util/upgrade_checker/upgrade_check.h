@@ -21,31 +21,47 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_UPGRADE_CHECK_H_
-#define MODULES_UTIL_UPGRADE_CHECK_H_
+#ifndef MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_H_
+#define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_H_
 
-#include "modules/util/upgrade_checker/upgrade_check_config.h"
+#include <memory>
+#include <vector>
 
-namespace mysqlshdk {
-namespace db {
-class ISession;
-class IRow;
-}  // namespace db
-}  // namespace mysqlshdk
+#include "modules/util/upgrade_checker/common.h"
+#include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
-/**
- * Checks if server is ready for upgrade.
- *
- * @param config upgrade configuration
- *
- * @returns true if server is eligible for upgrade (there were no errors)
- */
-bool check_for_upgrade(const Upgrade_check_config &config);
+class Upgrade_check {
+ public:
+  explicit Upgrade_check(const char *name) : m_name(name) {}
+  virtual ~Upgrade_check() {}
+
+  virtual const char *get_name() const { return m_name; }
+  virtual const char *get_title() const;
+  virtual const char *get_description() const;
+  virtual const char *get_doc_link() const;
+  virtual Upgrade_issue::Level get_level() const = 0;
+  virtual bool is_runnable() const { return true; }
+  virtual bool is_multi_lvl_check() const { return false; }
+
+  virtual std::vector<Upgrade_issue> run(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info) = 0;
+
+  virtual const char *get_description_internal() const { return nullptr; }
+  virtual const char *get_doc_link_internal() const { return nullptr; }
+  virtual const char *get_title_internal() const { return nullptr; }
+
+  const char *get_text(const char *field) const;
+
+ private:
+  const char *m_name;
+};
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_UPGRADE_CHECK_H_
+#endif  // MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_H_

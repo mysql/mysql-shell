@@ -4538,18 +4538,19 @@ bool Dumper::check_for_upgrade_errors() const {
     return false;
   }
 
-  Upgrade_check_options options;
+  upgrade_checker::Upgrade_check_options options;
   options.target_version = m_options.target_version();
-  Upgrade_check_config config{options};
+  upgrade_checker::Upgrade_check_config config{options};
 
   config.set_session(session());
   config.set_user_privileges(m_user_privileges.get());
   // we check engines even though MDS forces InnoDB, because "force_innodb"
   // compatibility option is not going to be able to fix them
-  config.set_targets(
-      Upgrade_check::Target_flags(Upgrade_check::Target::OBJECT_DEFINITIONS) |
-      Upgrade_check::Target::ENGINES | Upgrade_check::Target::MDS_SPECIFIC);
-  config.set_issue_filter([this](const Upgrade_issue &issue) {
+  config.set_targets(upgrade_checker::Target_flags(
+                         upgrade_checker::Target::OBJECT_DEFINITIONS) |
+                     upgrade_checker::Target::ENGINES |
+                     upgrade_checker::Target::MDS_SPECIFIC);
+  config.set_issue_filter([this](const upgrade_checker::Upgrade_issue &issue) {
     const auto schema = m_cache.schemas.find(issue.schema);
 
     if (m_cache.schemas.end() != schema &&

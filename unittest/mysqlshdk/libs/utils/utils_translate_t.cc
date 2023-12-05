@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -85,7 +85,7 @@ TEST_F(Translate_test, create_translation_file) {
     writer.write_entry(
         "reservedKeywordsCheck.advice", nullptr,
         "Following table columns use a deprecated and no longer supported "
-        "timestamp disk storage format. They must be converted to the new "
+        "temporal disk storage format. They must be converted to the new "
         "format "
         "before upgrading. It can by done by rebuilding the table using 'ALTER "
         "TABLE <table_name> FORCE' command");
@@ -94,10 +94,10 @@ TEST_F(Translate_test, create_translation_file) {
                 "# Reserved keywords check", "",
                 "* reservedKeywordsCheck.advice",
                 "Following table columns use a deprecated and no "
-                "longer supported timestamp disk storage format.",
-                "They must be converted to the new format before "
-                "upgrading. It can by done by rebuilding the table",
-                "using 'ALTER TABLE <table_name> FORCE' command", "",
+                "longer supported temporal disk storage format. They",
+                "must be converted to the new format before "
+                "upgrading. It can by done by rebuilding the table using",
+                "'ALTER TABLE <table_name> FORCE' command", "",
                 "* reservedKeywordsCheck.docLink", ""});
   }
 }

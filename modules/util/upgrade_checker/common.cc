@@ -21,31 +21,39 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_UPGRADE_CHECK_H_
-#define MODULES_UTIL_UPGRADE_CHECK_H_
+#include "modules/util/upgrade_checker/common.h"
 
-#include "modules/util/upgrade_checker/upgrade_check_config.h"
-
-namespace mysqlshdk {
-namespace db {
-class ISession;
-class IRow;
-}  // namespace db
-}  // namespace mysqlshdk
+#include <sstream>
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
-/**
- * Checks if server is ready for upgrade.
- *
- * @param config upgrade configuration
- *
- * @returns true if server is eligible for upgrade (there were no errors)
- */
-bool check_for_upgrade(const Upgrade_check_config &config);
+std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
+  std::stringstream ss;
+  ss << problem.get_db_object();
+  if (!problem.description.empty()) ss << " - " << problem.description;
+  return ss.str();
+}
+
+const char *Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
+  switch (level) {
+    case Upgrade_issue::ERROR:
+      return "Error";
+    case Upgrade_issue::WARNING:
+      return "Warning";
+    case Upgrade_issue::NOTICE:
+      return "Notice";
+  }
+  return "Notice";
+}
+
+std::string Upgrade_issue::get_db_object() const {
+  std::stringstream ss;
+  ss << schema;
+  if (!table.empty()) ss << "." << table;
+  if (!column.empty()) ss << "." << column;
+  return ss.str();
+}
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
-
-#endif  // MODULES_UTIL_UPGRADE_CHECK_H_

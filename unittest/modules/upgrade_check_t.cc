@@ -22,8 +22,15 @@
  */
 #include "unittest/gprod_clean.h"
 
+#include <memory>
+
 #include "modules/util/mod_util.h"
 #include "modules/util/upgrade_check.h"
+#include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/manual_check.h"
+#include "modules/util/upgrade_checker/sql_upgrade_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_creators.h"
+#include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -44,13 +51,14 @@
 using Version = mysqlshdk::utils::Version;
 
 namespace mysqlsh {
+namespace upgrade_checker {
+
 using mysqlshdk::db::Connection_options;
 
 namespace {
 
-Upgrade_check::Upgrade_info upgrade_info(const Version &server,
-                                         const Version &target) {
-  Upgrade_check::Upgrade_info si;
+Upgrade_info upgrade_info(const Version &server, const Version &target) {
+  Upgrade_info si;
 
   si.server_version = server;
   si.target_version = target;
@@ -174,10 +182,10 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
   void EXPECT_NO_ISSUES(Upgrade_check *check) { EXPECT_ISSUES(check, 0); }
 
-  Upgrade_check::Upgrade_info info;
+  Upgrade_info info;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string db;
-  std::vector<mysqlsh::Upgrade_issue> issues;
+  std::vector<Upgrade_issue> issues;
 };
 
 TEST(Upgrade_check_options, set_target_version) {
@@ -205,36 +213,36 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version current(MYSH_VERSION);
   Version prev(current.get_major(), current.get_minor(),
                current.get_patch() - 1);
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+  EXPECT_THROW_LIKE(Upgrade_check_registry::create_checklist(
                         upgrade_info(Version("5.7"), Version("5.7"))),
                     std::invalid_argument, "This tool supports checking");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+  EXPECT_THROW_LIKE(Upgrade_check_registry::create_checklist(
                         upgrade_info(Version("5.6.11"), Version("8.0"))),
                     std::invalid_argument, "at least at version 5.7");
   EXPECT_THROW_LIKE(
-      Upgrade_check::create_checklist(upgrade_info(
+      Upgrade_check_registry::create_checklist(upgrade_info(
           Version("5.7.19"),
           Version(mysqlshdk::utils::k_shell_version.get_major(),
                   mysqlshdk::utils::k_shell_version.get_minor() + 1, 0))),
       std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(
-      Upgrade_check::create_checklist(upgrade_info(current, current)),
+      Upgrade_check_registry::create_checklist(upgrade_info(current, current)),
       std::invalid_argument,
       "MySQL Shell cannot check MySQL server instances for upgrade if they are "
       "at a version the same as or higher than the MySQL Shell version.");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+  EXPECT_THROW_LIKE(Upgrade_check_registry::create_checklist(
                         upgrade_info(Version("8.0.12"), Version("8.0.12"))),
                     std::invalid_argument, "Target version must be greater");
-  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+  EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
       upgrade_info(Version("5.7.19"), current)));
-  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+  EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
       upgrade_info(Version("5.7.17"), Version("8.0"))));
-  EXPECT_NO_THROW(Upgrade_check::create_checklist(
+  EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
       upgrade_info(Version("5.7"), Version("8.0.12"))));
 
   std::vector<std::unique_ptr<Upgrade_check>> checks;
-  EXPECT_NO_THROW(
-      checks = Upgrade_check::create_checklist(upgrade_info(prev, current)));
+  EXPECT_NO_THROW(checks = Upgrade_check_registry::create_checklist(
+                      upgrade_info(prev, current)));
   // Check for table command is there for every valid version as a last check
   EXPECT_FALSE(checks.empty());
   EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
@@ -243,8 +251,7 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_old_temporal_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_old_temporal_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
   // No way to create test data in 5.7
@@ -253,8 +260,7 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
 TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_reserved_keywords_check(info);
+  std::unique_ptr<Sql_upgrade_check> check = get_reserved_keywords_check(info);
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
@@ -299,14 +305,14 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUE(issues[12], "grouping", "rows");
   EXPECT_ISSUE(issues[13], "grouping", "LEAD");
 
-  check = Sql_upgrade_check::get_reserved_keywords_check(
+  check = get_reserved_keywords_check(
       upgrade_info(Version(5, 7, 0), Version(8, 0, 30)));
   ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_EQ(12, issues.size());
   EXPECT_ISSUE(issues[10], "grouping", "rows");
   EXPECT_ISSUE(issues[11], "grouping", "LEAD");
 
-  check = Sql_upgrade_check::get_reserved_keywords_check(
+  check = get_reserved_keywords_check(
       upgrade_info(Version(5, 7, 0), Version(8, 0, 11)));
   ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_EQ(10, issues.size());
@@ -386,7 +392,7 @@ END)*",
       DECLARE `ROW` INT DEFAULT 4;
      end)*"};
 
-  auto check = Sql_upgrade_check::get_routine_syntax_check();
+  auto check = get_routine_syntax_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
@@ -407,8 +413,7 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_utf8mb3_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_utf8mb3_check();
   EXPECT_NE(nullptr, check->get_doc_link());
 
   session->execute(
@@ -425,8 +430,7 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 TEST_F(MySQL_upgrade_check_test, mysql_schema) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_mysql_schema_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_mysql_schema_check();
   EXPECT_NO_ISSUES(check.get());
   EXPECT_NE(nullptr, check->get_doc_link());
 
@@ -449,8 +453,7 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("test_innodb_rowformat");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_innodb_rowformat_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_innodb_rowformat_check();
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute(
@@ -464,8 +467,7 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_zerofill_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_zerofill_check();
   EXPECT_ISSUES(check.get());
   // some tables in mysql schema use () syntax
   size_t old_count = issues.size();
@@ -494,8 +496,7 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
 TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_foreign_key_length_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_foreign_key_length_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
   // No way to prepare test data in 5.7
@@ -505,8 +506,7 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("aaa_test_maxdb_sql_mode");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_maxdb_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
@@ -544,7 +544,7 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
   ASSERT_NO_THROW(
       session->execute("create table Clone(COMPONENT integer, cube int);"));
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_obsolete_sql_mode_flags_check();
+      get_obsolete_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   // NO_AUTO_CREATE_USER is in default sql_mode in 5.7 so its expected that we
   // would get a lot of issues here
@@ -588,7 +588,7 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
 
   PrepareTestDatabase("aaa_test_enum_set_element_length");
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_enum_set_element_length_check();
+      get_enum_set_element_length_check();
   EXPECT_EQ(
       0,
       strcmp(
@@ -636,8 +636,7 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
 
   PrepareTestDatabase("aaa_test_partitioned_in_shared");
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
-          info);
+      get_partitioned_tables_in_shared_tablespaces_check(info);
   EXPECT_NO_ISSUES(check.get());
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "mysql-nutshell.html#mysql-nutshell-removals",
@@ -658,8 +657,7 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 17));
 
   PrepareTestDatabase("aaa_circular_directory");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_circular_directory_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_circular_directory_check();
   EXPECT_EQ(0,
             strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                    "upgrading-from-previous-series.html#upgrade-innodb-changes",
@@ -678,8 +676,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("aaa_test_removed_functions");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_removed_functions_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_removed_functions_check();
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
@@ -742,8 +739,7 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
   PrepareTestDatabase("aaa_test_group_by_asc");
-  std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_groupby_asc_syntax_check();
+  std::unique_ptr<Sql_upgrade_check> check = get_groupby_asc_syntax_check();
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
                       check->get_doc_link()));
@@ -812,15 +808,14 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
 TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
-  std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_log_vars_check(info);
+  std::unique_ptr<Upgrade_check> check = get_removed_sys_log_vars_check(info);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-logging",
                       check->get_doc_link()));
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, info), Upgrade_check::Check_configuration_error,
+        check->run(session, info), Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
   } else {
@@ -831,33 +826,32 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
 extern "C" const char *g_test_home;
 
 TEST_F(MySQL_upgrade_check_test, configuration_check) {
-  Config_check defined("test",
+  auto defined =
+      get_config_check("test",
                        {{"basedir", "homedir"},
                         {"option_to_drop_with_no_value", nullptr},
                         {"not_existing_var", nullptr},
                         {"again_not_there", "personalized msg"}},
-                       Config_check::Mode::FLAG_DEFINED, Upgrade_issue::NOTICE,
-                       "problem");
-  ASSERT_THROW(defined.run(session, info),
-               Upgrade_check::Check_configuration_error);
+                       Config_mode::DEFINED, Upgrade_issue::NOTICE, "problem");
+  ASSERT_THROW(defined->run(session, info), Check_configuration_error);
 
   info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
-  EXPECT_ISSUES(&defined, 2);
+  EXPECT_ISSUES(defined.get(), 2);
   EXPECT_EQ("option_to_drop_with_no_value", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::NOTICE, issues[0].level);
   EXPECT_EQ("problem", issues[0].description);
   EXPECT_EQ("basedir", issues[1].schema);
   EXPECT_NE(std::string::npos, issues[1].description.find("homedir"));
 
-  Config_check undefined("test",
-                         {{"basedir", "homedir"},
-                          {"option_to_drop_with_no_value", nullptr},
-                          {"not_existing_var", nullptr},
-                          {"again_not_there", "personalized msg"}},
-                         Config_check::Mode::FLAG_UNDEFINED,
-                         Upgrade_issue::WARNING, "undefined");
-  EXPECT_ISSUES(&undefined, 2);
+  auto undefined = get_config_check("test",
+                                    {{"basedir", "homedir"},
+                                     {"option_to_drop_with_no_value", nullptr},
+                                     {"not_existing_var", nullptr},
+                                     {"again_not_there", "personalized msg"}},
+                                    Config_mode::UNDEFINED,
+                                    Upgrade_issue::WARNING, "undefined");
+  EXPECT_ISSUES(undefined.get(), 2);
   EXPECT_EQ("again_not_there", issues[0].schema);
   EXPECT_NE(std::string::npos, issues[0].description.find("personalized msg"));
   EXPECT_EQ("not_existing_var", issues[1].schema);
@@ -870,15 +864,14 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
 TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
-  std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_removed_sys_vars_check(info);
+  std::unique_ptr<Upgrade_check> check = get_removed_sys_vars_check(info);
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "added-deprecated-removed.html#optvars-removed",
                       check->get_doc_link()));
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
-        check->run(session, info), Upgrade_check::Check_configuration_error,
+        check->run(session, info), Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
     info.config_path.assign(
@@ -895,14 +888,13 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
 TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Upgrade_check> check =
-      Sql_upgrade_check::get_sys_vars_new_defaults_check();
+  std::unique_ptr<Upgrade_check> check = get_sys_vars_new_defaults_check();
   EXPECT_EQ(
       0, strcmp("https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/",
                 check->get_doc_link()));
 
   EXPECT_THROW_LIKE(
-      check->run(session, info), Upgrade_check::Check_configuration_error,
+      check->run(session, info), Check_configuration_error,
       "To run this check requires full path to MySQL server configuration "
       "file to be specified at 'configPath' key of options dictionary");
   info.config_path.assign(
@@ -918,7 +910,7 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
 
   // Preparing data for this check requires manipulating datadir by hand, we
   // only check here that queries run fine
-  auto check = Sql_upgrade_check::get_schema_inconsistency_check();
+  auto check = get_schema_inconsistency_check();
 
   // Make sure special characters like hyphen are handled well
   PrepareTestDatabase("schema_inconsitencies_test");
@@ -998,7 +990,7 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("mysql_non_native_partitioning");
-  auto check = Sql_upgrade_check::get_nonnative_partitioning_check();
+  auto check = get_nonnative_partitioning_check();
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "upgrading-from-previous-series.html#upgrade-"
                       "configuration-changes",
@@ -1019,13 +1011,11 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   auto si = upgrade_info(Version(5, 7, 25), Version(8, 0, 17));
   si.server_os = compile_os;
 #if defined(WIN32)
-  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(si),
-               Upgrade_check::Check_not_needed);
+  EXPECT_THROW(get_fts_in_tablename_check(si), Check_not_needed);
 #else
   PrepareTestDatabase("fts_tablename");
-  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(info),
-               Upgrade_check::Check_not_needed);
-  auto check = Sql_upgrade_check::get_fts_in_tablename_check(si);
+  EXPECT_THROW(get_fts_in_tablename_check(info), Check_not_needed);
+  auto check = get_fts_in_tablename_check(si);
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -1047,21 +1037,21 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("mysql_check_table_test");
-  Check_table_command check;
-  EXPECT_NO_ISSUES(&check);
+  auto check = get_table_command_check();
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
       session->execute("create table part(i integer) engine=myisam partition "
                        "by range(i) (partition p0 values less than (1000), "
                        "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_ISSUES(&check);
+  EXPECT_NO_ISSUES(check.get());
 }
 
 TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   PrepareTestDatabase("mysql_zero_dates_check_test");
-  auto check = Sql_upgrade_check::get_zero_dates_check();
+  auto check = get_zero_dates_check();
   EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
                       check->get_doc_link()));
   EXPECT_NO_ISSUES(check.get());
@@ -1084,7 +1074,7 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
 TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  auto check = Sql_upgrade_check::get_engine_mixup_check();
+  auto check = get_engine_mixup_check();
   EXPECT_NE(nullptr, strstr(check->get_description(),
                             "Rename the MyISAM table to a temporary name"));
   EXPECT_NO_ISSUES(check.get());
@@ -1097,7 +1087,7 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   const auto si23 = upgrade_info(_target_server_version, Version(8, 0, 23));
-  auto check = Sql_upgrade_check::get_old_geometry_types_check(si23);
+  auto check = get_old_geometry_types_check(si23);
   EXPECT_NE(nullptr, strstr(check->get_description(),
                             "The following columns are spatial data columns "
                             "created in MySQL Server version 5.6"));
@@ -1107,12 +1097,11 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   EXPECT_NO_ISSUES(check.get());
 
   const auto si24 = upgrade_info(_target_server_version, Version(8, 0, 24));
-  EXPECT_THROW(Sql_upgrade_check::get_old_geometry_types_check(si24),
-               Upgrade_check::Check_not_needed);
+  EXPECT_THROW(get_old_geometry_types_check(si24), Check_not_needed);
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
-  auto manual = Upgrade_check::create_checklist(
+  auto manual = Upgrade_check_registry::create_checklist(
       upgrade_info(Version("5.7.0"), Version("8.0.11")));
   manual.erase(std::remove_if(manual.begin(), manual.end(),
                               [](const std::unique_ptr<Upgrade_check> &c) {
@@ -1409,30 +1398,26 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
 TEST_F(MySQL_upgrade_check_test, convert_usage) {
   {
     // upgrade to < 8.0.28 needs no check
-    ASSERT_THROW(
-        Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            upgrade_info(Version(8, 0, 26), Version(8, 0, 27))),
-        Upgrade_check::Check_not_needed);
+    ASSERT_THROW(get_changed_functions_generated_columns_check(
+                     upgrade_info(Version(8, 0, 26), Version(8, 0, 27))),
+                 Check_not_needed);
 
     // upgrade between >= 8.0.28 needs no check
-    ASSERT_THROW(
-        Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            upgrade_info(Version(8, 0, 28), Version(8, 0, 29))),
-        Upgrade_check::Check_not_needed);
+    ASSERT_THROW(get_changed_functions_generated_columns_check(
+                     upgrade_info(Version(8, 0, 28), Version(8, 0, 29))),
+                 Check_not_needed);
 
-    ASSERT_NO_THROW(
-        Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            upgrade_info(Version(5, 7, 28), Version(8, 0, 28))));
+    ASSERT_NO_THROW(get_changed_functions_generated_columns_check(
+        upgrade_info(Version(5, 7, 28), Version(8, 0, 28))));
 
-    ASSERT_NO_THROW(
-        Sql_upgrade_check::get_changed_functions_generated_columns_check(
-            upgrade_info(Version(8, 0, 27), Version(8, 0, 29))));
+    ASSERT_NO_THROW(get_changed_functions_generated_columns_check(
+        upgrade_info(Version(8, 0, 27), Version(8, 0, 29))));
   }
 
   auto options = upgrade_info(Version(8, 0, 11), Version(8, 0, 28));
 
   std::unique_ptr<Sql_upgrade_check> check =
-      Sql_upgrade_check::get_changed_functions_generated_columns_check(options);
+      get_changed_functions_generated_columns_check(options);
 
   EXPECT_NE(nullptr, check->get_doc_link());
 
@@ -1476,8 +1461,7 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
 
   PrepareTestDatabase("columns_which_cannot_have_defaults_check_test");
 
-  const auto check =
-      Sql_upgrade_check::get_columns_which_cannot_have_defaults_check();
+  const auto check = get_columns_which_cannot_have_defaults_check();
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "data-type-defaults.html#data-type-defaults-explicit",
                       check->get_doc_link()));
@@ -1532,7 +1516,7 @@ TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
 
-  const auto check = Sql_upgrade_check::get_orphaned_routines_check();
+  const auto check = get_orphaned_routines_check();
 
   EXPECT_NO_ISSUES(check.get());
 
@@ -1587,7 +1571,7 @@ TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {
       "CREATE PROCEDURE $correct_procedure_second$()\nBEGIN\nSELECT "
       "'Some name with dollars $0.00';\nEND;"));
 
-  const auto check = Sql_upgrade_check::get_dollar_sign_name_check();
+  const auto check = get_dollar_sign_name_check();
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute("CREATE SCHEMA $wrong_schema_dollar_name;"));
@@ -1648,7 +1632,7 @@ TEST_F(MySQL_upgrade_check_test, too_large_index_check) {
       "kdsncvlkasnfcklanskldnlaksndklasndlkanslkdnaslkndlkasndklanslkdnkncfosdn"
       "cfvlknsadkvnalksdnvlkansdlkvcnalkdsncq');"));
 
-  const auto check = Sql_upgrade_check::get_index_too_large_check();
+  const auto check = get_index_too_large_check();
   EXPECT_NO_ISSUES(check.get());
 
   EXPECT_ANY_THROW(
@@ -1695,7 +1679,7 @@ TEST_F(MySQL_upgrade_check_test, empty_dot_table_syntax_check) {
       session->execute("create TRIGGER correct_trigger BEFORE INSERT ON "
                        "dot_table FOR EACH ROW delete from dot_table;"));
 
-  const auto check = Sql_upgrade_check::get_empty_dot_table_syntax_check();
+  const auto check = get_empty_dot_table_syntax_check();
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute("set GLOBAL SQL_MODE=ANSI_QUOTES;"));
@@ -1767,7 +1751,7 @@ TEST_F(MySQL_upgrade_check_test, invalid_engine_foreign_key_check) {
   ASSERT_NO_THROW(session->execute(R"(CREATE TABLE `secondtable` (
   `idColumn` int NOT NULL, PRIMARY KEY(`idColumn`)) ENGINE = InnoDB;)"));
 
-  const auto check = Sql_upgrade_check::get_invalid_engine_foreign_key_check();
+  const auto check = get_invalid_engine_foreign_key_check();
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute("DROP TABLE secondtable;"));
@@ -1807,7 +1791,7 @@ TEST_F(MySQL_upgrade_check_test, no_database_selected_corrupted_check) {
   ASSERT_NO_THROW(session->execute("use temp_db;"));
   ASSERT_NO_THROW(session->execute("drop database temp_db;"));
 
-  const auto check = std::make_unique<Check_table_command>();
+  const auto check = get_table_command_check();
   EXPECT_ISSUES(check.get(), 2);
   EXPECT_EQ("test", issues[0].schema);
   EXPECT_EQ("test_view", issues[0].table);
@@ -1920,9 +1904,9 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
   ASSERT_NO_THROW(
       session->execute("drop user if exists 'usr_fido_auth'@'localhost';"));
 
-  Upgrade_check::Upgrade_info temp_info;
+  Upgrade_info temp_info;
   temp_info.target_version = Version(8, 4, 0);
-  auto check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  auto check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 0, remove_false_positives);
 
@@ -1950,7 +1934,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
 
   // WL#15973-TSFR_1_3_2
   temp_info.target_version = Version(8, 3, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 2, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
@@ -1969,7 +1953,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
 
   // WL#15973-TSFR_1_3_3
   temp_info.target_version = Version(8, 2, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 2, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
@@ -1988,7 +1972,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
 
   // WL#15973-TSFR_1_3_4
   temp_info.target_version = Version(8, 1, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 2, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
@@ -2006,7 +1990,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
             "be considered to correct this before upgrading to 8.4.0 release.");
 
   temp_info.target_version = Version(8, 0, 27);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 2, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_native_auth@localhost");
@@ -2060,9 +2044,9 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
   ASSERT_NO_THROW(
       session->execute("drop user if exists 'usr_fido_auth'@'localhost';"));
 
-  Upgrade_check::Upgrade_info temp_info;
+  Upgrade_info temp_info;
   temp_info.target_version = Version(8, 4, 0);
-  auto check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  auto check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 0, remove_false_positives);
 
@@ -2082,7 +2066,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
 
   // WL#15973-TSFR_1_3_2
   temp_info.target_version = Version(8, 3, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 1, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
@@ -2096,7 +2080,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
 
   // WL#15973-TSFR_1_3_3
   temp_info.target_version = Version(8, 2, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 1, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
@@ -2111,7 +2095,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
 
   // WL#15973-TSFR_1_3_4
   temp_info.target_version = Version(8, 1, 0);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 1, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
@@ -2124,7 +2108,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check_fido) {
       "in a future release. Consider using authentication_webauthn instead.");
 
   temp_info.target_version = Version(8, 0, 27);
-  check = Sql_upgrade_check::get_deprecated_auth_method_check(temp_info);
+  check = get_deprecated_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 1, remove_false_positives);
   EXPECT_EQ(issues[0].schema, "usr_fido_auth@localhost");
@@ -2197,10 +2181,9 @@ TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
 
   PrepareTestDatabase("test");
 
-  Upgrade_check::Upgrade_info temp_info;
+  Upgrade_info temp_info;
   temp_info.target_version = Version(8, 4, 0);
-  auto check =
-      Sql_upgrade_check::get_deprecated_router_auth_method_check(temp_info);
+  auto check = get_deprecated_router_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 0);
 
@@ -2226,7 +2209,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
             " - router user with deprecated authentication method.");
 
   temp_info.target_version = Version(8, 2, 0);
-  check = Sql_upgrade_check::get_deprecated_router_auth_method_check(temp_info);
+  check = get_deprecated_router_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), 2);
 
@@ -2251,10 +2234,9 @@ void set_authentication_policy(std::shared_ptr<mysqlshdk::db::ISession> session,
 }
 
 std::unique_ptr<Sql_upgrade_check> make_check(const Version &ver) {
-  Upgrade_check::Upgrade_info temp_info;
+  Upgrade_info temp_info;
   temp_info.target_version = ver;
-  return Deprecated_default_auth_check::get_deprecated_default_auth_check(
-      temp_info);
+  return get_deprecated_default_auth_check(temp_info);
 }
 
 }  // namespace dep_def_auth_check
@@ -2423,93 +2405,134 @@ TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_check) {
   run_check("sha256_password");
 }
 
+void set_default_auth_data(testing::Mock_session *session,
+                           const std::string &default_plugin_value,
+                           const std::string &default_policy_value = "*,,") {
+  static const std::string default_auth_sql =
+      "show variables where variable_name = "
+      "'default_authentication_plugin' AND value IN ('sha256_password', "
+      "'mysql_native_password', 'authentication_fido');";
+
+  session->expect_query(default_auth_sql);
+
+  if (default_plugin_value == "") {
+    session->then_return({});
+  } else {
+    session->then_return(
+        {{default_auth_sql,
+          {"Variable_name", "Value"},
+          {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+          {{"default_authentication_plugin", default_plugin_value}}}});
+  }
+
+  static const std::string default_auth_policy_sql =
+      "show variables where variable_name = 'authentication_policy' "
+      "AND (value LIKE '%sha256_password%' OR value LIKE "
+      "'%mysql_native_password%' OR value LIKE "
+      "'%authentication_fido%');";
+
+  session->expect_query(default_auth_policy_sql);
+  if (default_policy_value == "*,,") {
+    session->then_return({});
+  } else {
+    session->then_return(
+        {{default_auth_policy_sql,
+          {"Variable_name", "Value"},
+          {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+          {{"authentication_policy", default_policy_value}}}});
+  }
+}
+
 TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_parsing_check) {
-  const std::string k_test_var_def = "default_authentication_plugin";
   const std::string k_test_var_def_v = "sha256_password";
   const std::string k_test_var_def_v_fido = "authentication_fido";
 
+  auto msession = std::make_shared<testing::Mock_session>();
   std::vector<Upgrade_issue> temp_issues;
 
-  auto check =
-      std::make_unique<Deprecated_default_auth_check>(Version(8, 4, 0));
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  auto uinfo = upgrade_info(_target_server_version, Version(8, 4, 0));
+  auto check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_2_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 3, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 3, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 1, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v, &temp_issues);
+  uinfo = upgrade_info(_target_server_version, Version(8, 1, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v);
+  temp_issues = check->run(msession, uinfo);
 
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_3_2
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 5, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
+  uinfo = upgrade_info(_target_server_version, Version(8, 5, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
 
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 4, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 4, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::ERROR);  // WL#15973-TSFR_2_4_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 3, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 3, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 2, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 2, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::WARNING);  // WL#15973-TSFR_2_5_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 1, 0));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 1, 0));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_1
 
-  check = std::make_unique<Deprecated_default_auth_check>(Version(8, 0, 27));
-  temp_issues.clear();
-  check->parse_var(k_test_var_def, k_test_var_def_v_fido, &temp_issues);
-
+  uinfo = upgrade_info(_target_server_version, Version(8, 0, 27));
+  check = get_deprecated_default_auth_check(uinfo);
+  set_default_auth_data(msession.get(), k_test_var_def_v_fido);
+  temp_issues = check->run(msession, uinfo);
   EXPECT_EQ(temp_issues.size(), 1);
   EXPECT_EQ(temp_issues[0].schema, "default_authentication_plugin");
   EXPECT_EQ(temp_issues[0].level,
             Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_1
 }
 
+}  // namespace upgrade_checker
 }  // namespace mysqlsh
