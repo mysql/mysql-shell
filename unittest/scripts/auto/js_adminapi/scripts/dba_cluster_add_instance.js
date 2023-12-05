@@ -1,5 +1,5 @@
 // Assumptions: smart deployment routines available
-//@ Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id:111});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id:222});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id:333});
@@ -9,19 +9,13 @@ var add_instance_options = {host:localhost, port: 0000, password:'root', scheme:
 shell.connect(__sandbox_uri1);
 var singleSession = session;
 
-//@ create first cluster
-// Regression for BUG#270621122: Deprecate memberSslMode (ensure no warning is showed for createCluster)
-var single = dba.createCluster('single', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
+//@<> create first cluster
+var single;
+EXPECT_NO_THROWS(function(){ single = dba.createCluster('single', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true}); });
+EXPECT_OUTPUT_NOT_CONTAINS("WARNING: Option 'memberSslMode' is deprecated");
 
-//@ ipWhitelist deprecation error {VER(>=8.0.23)}
-testutil.callMysqlsh([__sandbox_uri1, "--", "cluster", "add-instance", __sandbox_uri2, "--ip-whitelist=AUTOMATIC", "--ip-allowlist=127.0.0.1"])
-
-//@ Success adding instance
-// Regression for BUG#270621122: Deprecate memberSslMode
-single.addInstance(__sandbox_uri2, {memberSslMode: 'AUTO'});
-
-// Waiting for the second added instance to become online
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+//@<> Success adding instance
+EXPECT_NO_THROWS(function(){ single.addInstance(__sandbox_uri2); });
 
 // Wait for the second added instance to fetch all the replication data
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
@@ -39,17 +33,15 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = 
 //BUG#32157182
 
 // check status during clone
-var pid = testutil.callMysqlshAsync(["--js", __sandbox_uri1, "--cluster", "-e", `os.sleep(2); s=cluster.status()['defaultReplicaSet']['topology']['${hostname}:${__mysql_sandbox_port3}']; print(s.address, '=', s.mode, '/', s.role, '/', s.status, '\\n');`]);
+var pid = testutil.callMysqlshAsync(["--js", __sandbox_uri1, "--cluster", "-e", `os.sleep(5); s=cluster.status()['defaultReplicaSet']['topology']['${hostname}:${__mysql_sandbox_port3}']; print(s.address, '=', s.mode, '/', s.role, '/', s.status, '\\n');`]);
 
 single.addInstance(__sandbox_uri3, {label: '2node2', recoveryMethod: "clone"});
 EXPECT_STDOUT_CONTAINS("Unable to enable clone on the instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': MetadataError: The replication recovery account in use by '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not stored in the metadata. Use cluster.rescan() to update the metadata.")
+EXPECT_STDOUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port3}' was successfully added to the cluster.`);
 
 testutil.waitMysqlshAsync(pid);
 
-// ensure cloned instance is not R/W (Bug #30902267	MEMBER SHOULD NOT BE REPORTED AS R/W DURING CLONE)
-EXPECT_STDOUT_CONTAINS(`${hostname}:${__mysql_sandbox_port3} = n/a / HA / RECOVERING`);
-
-WIPE_STDOUT()
+WIPE_STDOUT();
 
 //@<> cleanup {VER(>=8.0.17)}
 //BUG#32157182
@@ -57,7 +49,7 @@ single.removeInstance(__sandbox_uri3);
 
 //@<> create cluster with unsupported recovery user
 //BUG#32157182
-single.dissolve({interactive: false});
+single.dissolve();
 var single;
 if (__version_num < 80027) {
   single = dba.createCluster("c", {gtidSetIsComplete: true});
@@ -88,9 +80,9 @@ EXPECT_STDOUT_CONTAINS("ERROR: Unsupported recovery account has been found for i
 
 //@<> cleanup cluster and recreate
 //BUG#32157182
-single.dissolve({interactive: false});
+single.dissolve();
 single = dba.createCluster('single', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-single.addInstance(__sandbox_uri2, {memberSslMode: 'AUTO'});
+single.addInstance(__sandbox_uri2);
 // deploy another
 
 //@<> Connect to the future new seed node
@@ -140,7 +132,7 @@ var multiSession = session;
 
 // We must use clearReadOnly because the instance 3 was removed from the cluster before
 // (BUG#26422638)
-var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiPrimary:true, force:true, clearReadOnly: true, gtidSetIsComplete: true});
+var multi = dba.createCluster('multi', {memberSslMode:'REQUIRED', multiPrimary:true, force:true, gtidSetIsComplete: true});
 
 //@ Failure adding instance from multi cluster into single
 add_instance_options['port'] = __mysql_sandbox_port3;

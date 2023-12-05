@@ -460,7 +460,7 @@ Adding instance to the cluster...
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configure_local_instance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configure_instance() command locally (with the config path) to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 #@ add_instance() 2
@@ -629,15 +629,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
     },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
-
-#@ dba_configure_local_instance() 1: {VER(<8.0.11)}
-||
-
-#@ dba_configure_local_instance() 2: {VER(<8.0.11)}
-||
-
-#@ dba_configure_local_instance() 3: {VER(<8.0.11)}
-||
 
 #@ Kill instance 2
 ||

@@ -368,10 +368,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@ WL10644 - TSF4_2: status() error because topology mode changed.
 ||The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
-//@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
-|The updateTopologyMode option is deprecated. The topology-mode is now automatically updated.|
-
-
 //@<OUT> WL10644 - TSF4_5: Check auto_increment settings after change to single-primary.
 auto_increment_increment: 1
 auto_increment_offset: 2
@@ -394,9 +390,9 @@ Result of the rescanning operation for the 'c' cluster:
 
 NOTE: The topology mode of the cluster changed to 'Multi-Primary'.
 Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
 Topology mode was successfully updated to 'Multi-Primary' in the cluster metadata.
 
 //@<OUT> WL10644 - TSF4_6: Check auto_increment settings after change to multi-primary.

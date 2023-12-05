@@ -21,7 +21,7 @@ dba.configureInstance();
 // Verify that the instance is not valid using dba.checkInstanceConfiguration()
 dba.checkInstanceConfiguration(__sandbox_uri1);
 // Configure the instance
-dba.configureInstance(__sandbox_uri1, {interactive: false});
+dba.configureInstance(__sandbox_uri1);
 // Verify that the instance is not valid by restarting it and
 // using dba.checkInstanceConfiguration()
 testutil.restartSandbox(__mysql_sandbox_port1);
@@ -45,14 +45,14 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 //@ FR1.1_1 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 // Configure the instance
-dba.configureInstance(__sandbox_uri1, {interactive: false});
+dba.configureInstance(__sandbox_uri1);
 
 // FR1.1_2 - Try to configure [LOCAL] instance using dba.configureInstance() with variable persisted and VALID servers >= [8.0.11]
 //It should succeed configuring
 
 //@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 // Verify that the instance was successfully configured
 testutil.restartSandbox(__mysql_sandbox_port1);
 dba.checkInstanceConfiguration(__sandbox_uri1);
@@ -82,11 +82,11 @@ testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
 
 //@ FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' but no cnf file path {VER(>=8.0.11)}
-dba.configureInstance(__sandbox_uri1, {interactive: false});
+dba.configureInstance(__sandbox_uri1);
 
 //@ FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' with cnf file path {VER(>=8.0.11)}
 // Also covers: FR3.2 - If the instance is local and the MySQL config file path is provided by the user as a parameter.
-dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 
 //@ FR2_2 TEARDOWN {VER(>=8.0.11)}
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -107,8 +107,14 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 //@FR3.1_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' {VER(<8.0.11)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
-dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+
+shell.options.useWizards=0;
+
 // Verify that the instance was successfully configured
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 
@@ -127,7 +133,7 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 //@# FR3.2_1 - Configure local instance with 'persisted-globals-load' set to 'OFF' providing mycnfPath {VER(<8.0.11)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 // Verify that the instance was successfully configured
 dba.checkInstanceConfiguration(__sandbox_uri1);
 
@@ -149,8 +155,12 @@ session.close();
 
 
 //@# FR3.3_1 - Configure local instance that does not require changes {VER(<8.0.11)}
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select an option [1]: ", "3");
-dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+
+shell.options.useWizards=0;
 
 //@ FR3.3_1 TEARDOWN {VER(<8.0.11)}
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -182,20 +192,24 @@ testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
 testutil.startSandbox(__mysql_sandbox_port1);
 
 //@ FR5 Configure instance not valid for InnoDB cluster, with interaction enabled {VER(>=8.0.11)}
-// Also covers: FR6 - The function must maintain the current optional parameters available in dba.configureLocalInstance() and include a new boolean optional flag 'interactive'.
+// Also covers: FR6 - The function must maintain the current optional parameters available in dba.configureInstance() and include a new boolean optional flag 'interactive'.
 //              FR6_1 - Configure LOCAL instance using dba.configureInstance() with the NEW optional parameter 'interactive' on VALID servers >= [8.0.11]
 // Also covers: ET_3 and ET_9
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select an option [1]: ", "3");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureInstance(__sandbox_uri1, {interactive: true});
+dba.configureInstance(__sandbox_uri1);
+
+shell.options.useWizards=0;
 
 //@ FR5 TEARDOWN {VER(>=8.0.11)}
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 // FR7 - When dba.configureInstance() is called on an instance which belongs to
 // an InnoDB Cluster it won't persist the GR configurations as
-// dba.configureLocalInstance() did, but terminate with an error.
+// dba.configureInstance() did, but terminate with an error.
 
 //@ FR7 SETUP {VER(>=8.0.11)}
 // Deploy a pre-configured sandbox since we're not testing configure itself
@@ -231,35 +245,46 @@ testutil.startSandbox(__mysql_sandbox_port1);
 // is prompted having a default (if enter is pressed) of 'root'
 
 //@ ET_5 - Call dba.configureInstance() with interactive flag set to true and not specifying username {VER(>=8.0.11)}
+shell.options.useWizards=1;
+
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
 testutil.expectPassword("Please provide the password for '", "wrongpwd");
-dba.configureInstance(uri1, {interactive: true});
+dba.configureInstance(uri1);
+
+shell.options.useWizards=0;
 
 // ET_6 - Missing username. if interactive DISABLED, an error is thrown regarding the missing value for the username.
 // Impossible to test: inability to get the current system user from the test framework
 
 // ET_7 - Missing password. if interactive ENABLED, the value for the password is prompted
 //@ ET_7 - Call dba.configureInstance() with interactive flag set to true and not specifying a password {VER(>=8.0.11)}
+shell.options.useWizards=1;
+
 var root_uri1 = "root@" + uri1;
 testutil.expectPassword("Please provide the password for '" + root_uri1 + "': ", "wrongpwd");
-dba.configureInstance(root_uri1, {interactive: true});
+dba.configureInstance(root_uri1);
+
+shell.options.useWizards=0;
 
 // ET_8 - Missing password. if interactive DISABLED, an error is thrown regarding the missing value for the password.
 //@ ET_8 - Call dba.configureInstance() with interactive flag set to false and not specifying a password {VER(>=8.0.11)}
-dba.configureInstance(root_uri1, {interactive: false});
+dba.configureInstance(root_uri1);
 
 // ET_10 - Missing administration account password and interactive is ENABLED
 // the password is not provided in 'clusterAdminPassword', the Shell prompts the user
 // for the password to be used in the administration account created.
 //@ ET_10 - Call dba.configuereInstance() with interactive flag set to true and using clusterAdmin {VER(>=8.0.11)}
+shell.options.useWizards=1;
+
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
-dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "clusterAdminAccount"});
+dba.configureInstance(__sandbox_uri1, {clusterAdmin: "clusterAdminAccount"});
 
-// ET_12 - Super read-only enabled and 'clearReadOnly' is not set with interactive is ENABLED
-// prompts the user if wants to disable super_read_only to continue with the operation.
+shell.options.useWizards=0;
+
+// ET_12 - Super read-only enabled and interactive is ENABLED
 shell.connect(__sandbox_uri1);
 if (testutil.versionCheck(__version, "<", "8.0.21")) {
     session.runSql("RESET PERSIST binlog_checksum");
@@ -269,42 +294,58 @@ session.runSql("RESET PERSIST gtid_mode");
 session.runSql("RESET PERSIST server_id");
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
+
 //@ ET_12 - Call dba.configuereInstance() with interactive flag set to true, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
+shell.options.useWizards=1;
+
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureInstance(__sandbox_uri1, {interactive: true, clusterAdmin: "newClusterAdminAccount"});
+dba.configureInstance(__sandbox_uri1, {clusterAdmin: "newClusterAdminAccount"});
 session.close();
 
-//@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set {VER(>=8.0.11)}
+shell.options.useWizards=0;
+
+//@<> ET_12_alt - Super read-only enabled {VER(>=8.0.11)}
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
+
+shell.options.useWizards=1;
+
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2", clearReadOnly: true});
+EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2"}); });
 
-//@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set 5.7 {VER(<8.0.11)}
+shell.options.useWizards=0;
+
+//@<> ET_12_alt - Super read-only enabled 5.7 {VER(<8.0.11)}
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
+
+shell.options.useWizards=1;
+
 testutil.expectPassword("Password for new account: ", "newPwd");
 testutil.expectPassword("Confirm password: ", "newPwd");
 testutil.expectPrompt("Do you want to perform the required configuration changes?", "Y");
-dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2", clearReadOnly: true});
+EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount2"}); });
 
-// ET_13 - Super read-only enabled and 'clearReadOnly' is not set with interactive is DISABLED
+shell.options.useWizards=0;
+
+// ET_13 - Super read-only enabled and interactive is DISABLED
 // super_read_only automatically disabled to execute the operation and then re-enabled back
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
-//@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
-dba.configureInstance(__sandbox_uri1, {interactive: false, mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount3", clusterAdminPassword: "pwd"});
+
+//@<> ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
+EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin: "newClusterAdminAccount3", clusterAdminPassword: "pwd"}); });
 
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
 
-//@ ET TEARDOWN
+//@<> ET TEARDOWN
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

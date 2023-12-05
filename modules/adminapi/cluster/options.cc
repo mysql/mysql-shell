@@ -30,7 +30,6 @@
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -51,10 +50,13 @@ const std::map<std::string_view, std::string_view> k_global_cluster_options{
  * <sysvar, name>
  */
 const std::map<std::string_view, std::string_view> k_instance_options{
-    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
-    {kIpWhitelist, kGrIpWhitelist},         {kIpAllowlist, kGrIpAllowlist},
-    {kLocalAddress, kGrLocalAddress},       {kMemberWeight, kGrMemberWeight},
-    {kExpelTimeout, kGrExpelTimeout},       {kConsistency, kGrConsistency},
+    {kExitStateAction, kGrExitStateAction},
+    {kGroupSeeds, kGrGroupSeeds},
+    {kIpAllowlist, kGrIpAllowlist},
+    {kLocalAddress, kGrLocalAddress},
+    {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},
+    {kConsistency, kGrConsistency},
     {kAutoRejoinTries, kGrAutoRejoinTries}};
 
 }  // namespace
@@ -259,12 +261,6 @@ shcore::Array_t Options::get_instance_options(
   // If the target instance does not support a particular option, it will be
   // listed with the null value, as expected.
   for (const auto &cfg : k_instance_options) {
-    // Skip ipWhitelist since that's removed in 8.3.0
-    if (target_instance_version >= mysqlshdk::utils::Version(8, 3, 0) &&
-        cfg.first == kIpWhitelist) {
-      continue;
-    }
-
     shcore::Dictionary_t option = shcore::make_dict();
     auto value = instance.get_sysvar_string(
         cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
@@ -273,8 +269,8 @@ shcore::Array_t Options::get_instance_options(
     (*option)["variable"] = shcore::Value(cfg.second);
 
     // Check if the option exists in the target server
-    (*option)["value"] =
-        value.has_value() ? shcore::Value(*value) : shcore::Value::Null();
+    (*option)["value"] = value.has_value() ? shcore::Value(std::move(*value))
+                                           : shcore::Value::Null();
 
     array->push_back(shcore::Value(std::move(option)));
   }
@@ -309,12 +305,6 @@ shcore::Array_t Options::get_instance_options(
       // If the option is part of the list of supported options by the AdminAPI,
       // skip it as it was already retrieved before
       if (option_supported_by_adminapi(name)) continue;
-
-      // Skip ipWhitelist since that's removed in 8.3.0
-      if (target_instance_version >= mysqlshdk::utils::Version(8, 3, 0) &&
-          name == kIpWhitelist) {
-        continue;
-      }
 
       shcore::Dictionary_t option = shcore::make_dict();
 

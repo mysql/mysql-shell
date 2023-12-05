@@ -68,8 +68,6 @@ Create_replica_cluster::prepare_create_cluster_options() {
 
   options->gr_options.ssl_mode = m_options.gr_options.ssl_mode;
   options->gr_options.ip_allowlist = m_options.gr_options.ip_allowlist;
-  options->gr_options.ip_allowlist_option_name =
-      m_options.gr_options.ip_allowlist_option_name;
   options->gr_options.local_address = m_options.gr_options.local_address;
   options->gr_options.exit_state_action =
       m_options.gr_options.exit_state_action;
@@ -340,7 +338,7 @@ void Create_replica_cluster::prepare() {
           m_options.clone_options.recovery_method.value_or(
               Member_recovery_method::AUTO),
           m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete(),
-          m_options.interactive());
+          current_shell_options()->get().wizards);
 
   // check connectivity between this and the primary of the clusterset
   if (current_shell_options()->get().dba_connectivity_checks) {

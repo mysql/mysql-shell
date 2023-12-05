@@ -7,7 +7,7 @@ var cluster_admin_uri= "mysql://admin:pwd@" + hostname_ip + ":" + __mysql_sandbo
 shell.connect(cluster_admin_uri);
 c = dba.createCluster("sample");
 EXPECT_STDERR_EMPTY();
-c.dissolve({interactive: false});
+c.dissolve();
 session.close();
 
 //@<> check if innodb is forced for metadata schema BUG#32110085
@@ -16,7 +16,7 @@ session.runSql("SET GLOBAL super_read_only = OFF")
 session.runSql("SET default_storage_engine = MyISAM");
 var tmp;
 EXPECT_NO_THROWS(function() { tmp = dba.createCluster("C"); });
-tmp.dissolve({interactive: false});
+tmp.dissolve();
 session.runSql("SET GLOBAL super_read_only = OFF")
 
 //@<> restore default sotrage engine
@@ -26,7 +26,7 @@ session.runSql("SET default_storage_engine = InnoDb");
 session.runSql("SET GLOBAL binlog_checksum = 'CRC32';");
 c = dba.createCluster("sample");
 EXPECT_STDERR_EMPTY();
-c.dissolve({interactive: false});
+c.dissolve();
 
 //@<> dba.createCluster error if table without pk exists or unsupported engine found BUG#29771457
 session.runSql("SET GLOBAL super_read_only = OFF")

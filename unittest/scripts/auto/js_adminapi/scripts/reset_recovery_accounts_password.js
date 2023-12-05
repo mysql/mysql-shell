@@ -75,14 +75,16 @@ shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@WL#12776 An error is thrown if instance not online and the force option is not used and we are not in interactive mode
-c.resetRecoveryAccountsPassword({interactive:false});
+c.resetRecoveryAccountsPassword();
 
 //@WL#12776 An error is thrown if instance not online and the force option is not used and we we reply no to the interactive prompt
+shell.options.useWizards=1;
 testutil.expectPrompt("Do you want to continue anyway (the recovery password for the instance will not be reset)? [y/N]: ", "n");
-c.resetRecoveryAccountsPassword({interactive:true});
+c.resetRecoveryAccountsPassword();
 
 //@WL#12776 An error is thrown if instance not online and the force option is false (no prompts are shown in interactive mode because force option was already set).
-c.resetRecoveryAccountsPassword({interactive:true, force:false});
+c.resetRecoveryAccountsPassword({force:false});
+shell.options.useWizards=0;
 
 //@<> Simulate the instance3 dropping the GR group
 session.close();
@@ -97,7 +99,9 @@ var old_auth_string_1 = get_rpl_user_auth_string(server_id1);
 var old_auth_string_2 = get_rpl_user_auth_string(server_id2);
 var old_auth_string_3 = get_rpl_user_auth_string(server_id3);
 
-c.resetRecoveryAccountsPassword({interactive:true, force:true});
+shell.options.useWizards=1;
+c.resetRecoveryAccountsPassword({force:true});
+shell.options.useWizards=0;
 
 var new_auth_string_1 = get_rpl_user_auth_string(server_id1);
 var new_auth_string_2 = get_rpl_user_auth_string(server_id2);
@@ -129,7 +133,9 @@ var old_auth_string_1 = get_rpl_user_auth_string(server_id1);
 var old_auth_string_2 = get_rpl_user_auth_string(server_id2);
 var old_auth_string_3 = get_rpl_user_auth_string(server_id3);
 
-c.resetRecoveryAccountsPassword({interactive:true, force:true});
+shell.options.useWizards=1;
+c.resetRecoveryAccountsPassword({force:true});
+shell.options.useWizards=0;
 
 var new_auth_string_1 = get_rpl_user_auth_string(server_id1);
 var new_auth_string_2 = get_rpl_user_auth_string(server_id2);
@@ -224,32 +230,36 @@ testutil.killSandbox(__mysql_sandbox_port3);
 
 WIPE_OUTPUT();
 EXPECT_THROWS(function() {
-    c.resetRecoveryAccountsPassword({interactive:false});
+    c.resetRecoveryAccountsPassword();
 }, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
 
 EXPECT_OUTPUT_CONTAINS(`Unable to connect to instance '${hostname}:${__mysql_sandbox_port3}'. Please, verify connection credentials and make sure the instance is available.`);
 
 // an error must be thrown if the force option is not used and we we reply no to the interactive prompt
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Do you want to continue anyway (the recovery password for the instance will not be reset)? [y/N]: ", "n");
 EXPECT_THROWS(function() {
-    c.resetRecoveryAccountsPassword({interactive:true});
+    c.resetRecoveryAccountsPassword();
 }, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
 
 // an error must be thrown if the force option is false (no prompts are shown in interactive mode because force option was already set).
 EXPECT_THROWS(function() {
-    c.resetRecoveryAccountsPassword({interactive:true, force:false});
+    c.resetRecoveryAccountsPassword({force:false});
 }, `Can't connect to MySQL server on '${hostname}:${__mysql_sandbox_port3}'`);
 
 // won't throw, but password won't be changed because instance isn't reachable
 WIPE_STDOUT();
 WIPE_SHELL_LOG();
 
-EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword({interactive:true, force:true}); });
+EXPECT_NO_THROWS(function(){ c.resetRecoveryAccountsPassword({force:true}); });
 
 EXPECT_SHELL_LOG_NOT_CONTAINS(`Changing '${hostname}:${__mysql_sandbox_port3}''s recovery credentials`);
 
 EXPECT_OUTPUT_CONTAINS(`The recovery password of instance '${hostname}:${__mysql_sandbox_port3}' will not be reset because the instance is not reachable.`);
 EXPECT_OUTPUT_CONTAINS(`WARNING: Not all recovery or replication account passwords were successfully reset, the following instance was skipped: '${hostname}:${__mysql_sandbox_port3}'. Bring this instance back online and run the <Cluster>.resetRecoveryAccountsPassword() operation again if you want to reset its recovery account password.`);
+
+shell.options.useWizards=0;
 
 // bring instance ONLINE and try again (must work)
 testutil.startSandbox(__mysql_sandbox_port3);

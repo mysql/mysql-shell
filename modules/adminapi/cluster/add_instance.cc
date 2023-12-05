@@ -102,8 +102,8 @@ void Add_instance::check_and_resolve_instance_configuration(
 
   // Resolve the SSL Mode to use to configure the instance.
   if (m_primary_instance) {
-    resolve_instance_ssl_mode_option(*m_target_instance, *m_primary_instance,
-                                     &m_gr_opts.ssl_mode);
+    m_gr_opts.ssl_mode = resolve_instance_ssl_mode_option(*m_target_instance,
+                                                          *m_primary_instance);
     log_info("SSL mode used to configure the instance: '%s'",
              to_string(m_gr_opts.ssl_mode).c_str());
   }
@@ -324,7 +324,7 @@ void Add_instance::prepare(checks::Check_type check_type,
   if (add_instance) {
     try {
       mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-          m_target_instance, m_primary_instance, m_cluster_impl->get_id());
+          *m_target_instance, *m_primary_instance, m_cluster_impl->get_id());
     } catch (const shcore::Exception &exp) {
       m_already_member =
           (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
@@ -398,7 +398,7 @@ void Add_instance::prepare(checks::Check_type check_type,
       *m_target_instance,
       add_instance ? Member_op_action::ADD_INSTANCE
                    : Member_op_action::REJOIN_INSTANCE,
-      *m_clone_opts.recovery_method, m_options.interactive());
+      *m_clone_opts.recovery_method, current_shell_options()->get().wizards);
 
   // Check for various instance specific configuration issues
   check_and_resolve_instance_configuration(
@@ -730,8 +730,9 @@ void Add_instance::do_run() {
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
-      m_cluster_impl->wait_instance_recovery(
-          *m_target_instance, join_begin_time, m_options.get_wait_recovery());
+      m_cluster_impl->wait_instance_recovery(*m_target_instance,
+                                             join_begin_time,
+                                             m_options.get_recovery_progress());
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the
@@ -782,7 +783,8 @@ void Add_instance::do_run() {
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
         if (m_comm_stack == kCommunicationStackMySQL &&
-            m_options.get_wait_recovery() == Recovery_progress_style::NOWAIT) {
+            m_options.get_recovery_progress() ==
+                Recovery_progress_style::NOWAIT) {
           store_local_replication_account();
         } else {
           store_cloned_replication_account();
@@ -801,7 +803,7 @@ void Add_instance::do_run() {
     // may be running and the change master command will fail as the slave io
     // thread is running
     if (owns_repl_user &&
-        m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT) {
+        m_options.get_recovery_progress() != Recovery_progress_style::NOWAIT) {
       restore_group_replication_account();
     }
 
@@ -849,10 +851,10 @@ void Add_instance::do_run() {
     // using clone, all members are currently using the new recovery user, which
     // means that we need to restore them all back to their corresponding users.
     {
-      auto restore_accounts =
-          (m_comm_stack == kCommunicationStackMySQL) &&
-          !recovery_certificates &&
-          (m_options.get_wait_recovery() != Recovery_progress_style::NOWAIT);
+      auto restore_accounts = (m_comm_stack == kCommunicationStackMySQL) &&
+                              !recovery_certificates &&
+                              (m_options.get_recovery_progress() !=
+                               Recovery_progress_style::NOWAIT);
       restore_accounts |= (m_comm_stack != kCommunicationStackMySQL) &&
                           recovery_certificates &&
                           (restore_clone_threshold > 0);

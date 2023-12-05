@@ -314,9 +314,9 @@ instance_lock_check(session3, __mysql_sandbox_port3, function() {
     dba.configureInstance(__sandbox_uri3);
 });
 
-//@<> exclusive instance lock on dba.configureLocalInstance()
+//@<> exclusive instance lock on dba.configureInstance()
 instance_lock_check(session3, __mysql_sandbox_port3, function() {
-    dba.configureLocalInstance(__sandbox_uri3);
+    dba.configureInstance(__sandbox_uri3);
 });
 
 session1.close();
@@ -440,7 +440,7 @@ session2.close();
 var session1 = mysql.getSession(__sandbox_uri1);
 var session2 = mysql.getSession(__sandbox_uri2);
 
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 
 instance_lock_check(session1, __mysql_sandbox_port1, function() {
     cluster = dba.createCluster('cluster', {adoptFromGR: true, force: true});

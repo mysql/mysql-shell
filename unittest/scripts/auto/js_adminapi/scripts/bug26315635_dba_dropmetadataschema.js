@@ -12,10 +12,10 @@ dba.createCluster("tempCluster", {gtidSetIsComplete: true});
 session.runSql("stop group_replication;")
 
 //@# drop metadata: standalone instance with metadata, force false
-dba.dropMetadataSchema({clearReadOnly: true})
+dba.dropMetadataSchema()
 
 //@# drop metadata: standalone instance with metadata, force true
-dba.dropMetadataSchema({force: true, clearReadOnly: true})
+dba.dropMetadataSchema({force: true})
 
 // create new cluster
 var cluster = dba.createCluster("tempCluster", {gtidSetIsComplete: true});

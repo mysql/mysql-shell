@@ -148,7 +148,6 @@ class Cluster_impl final : public Base_cluster_impl,
   void set_primary_instance(
       const Connection_options &instance_def,
       const cluster::Set_primary_instance_options &options);
-  shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(std::optional<bool> force,
                                const bool interactive);
   void fence_all_traffic();

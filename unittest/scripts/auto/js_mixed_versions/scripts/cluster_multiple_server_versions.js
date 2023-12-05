@@ -28,7 +28,7 @@ EXPECT_NO_THROWS(function () {
 
 //@<> Add an 8.0 instance to the cluster
 EXPECT_NO_THROWS(function () {
-    cluster.addInstance(__sandbox_uri1, {recoveryMethod:'incremental', waitRecovery:1});
+    cluster.addInstance(__sandbox_uri1, {recoveryMethod:'incremental'});
 }, "Adding an 8.0 Instance");
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

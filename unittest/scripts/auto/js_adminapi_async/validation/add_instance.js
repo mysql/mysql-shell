@@ -14,13 +14,12 @@
 ||Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 ||Argument #1 is expected to be a string (TypeError)
 ||Argument #1 is expected to be a string (TypeError)
-||Invalid options: badOption (ArgumentError)
+||Argument #2: Invalid options: badOption (ArgumentError)
 ||Argument #1 is expected to be a string (TypeError)
 ||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>'
-||Invalid value '0' for option 'waitRecovery'. It must be an integer in the range [1, 3].
 ||Invalid value for option recoveryMethod: bogus (ArgumentError)
-||Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
-||Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
+||Invalid value '42' for option 'recoveryProgress'. It must be an integer in the range [0, 2]. (ArgumentError)
+||Invalid value '42' for option 'recoveryProgress'. It must be an integer in the range [0, 2]. (ArgumentError)
 ||Option cloneDonor only allowed if option recoveryMethod is set to 'clone'. (ArgumentError)
 ||Invalid value for cloneDonor, string value cannot be empty. (ArgumentError)
 ||Invalid value for cloneDonor: Invalid address format in 'foobar'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)

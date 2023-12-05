@@ -13,8 +13,8 @@ var expel_timeout = 1;
 var exit_state = "ABORT_SERVER";
 var consistency = "BEFORE_ON_PRIMARY_FAILOVER";
 var local_address1 = hostname + ":" + (__mysql_sandbox_port3 * 10 + 1).toString();
-var ip_white_list80 = hostname_ip + "," + real_hostname;
-var ip_white_list57 = hostname_ip;
+var ip_allow_list80 = hostname_ip + "," + real_hostname;
+var ip_allow_list57 = hostname_ip;
 var member_weight1 = 15;
 var grp_name = "a1efe13d-20c3-11e9-9b77-3c6aa7197def";
 var local_address2 = hostname + ":" + (__mysql_sandbox_port3).toString();
@@ -31,9 +31,9 @@ shell.connect(__sandbox_uri1);
 var c;
 
 if (__version_num < 80027) {
-  c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name, autoRejoinTries: auto_rejoin_tries, gtidSetIsComplete: true});
+  c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, "consistency": consistency, localAddress: local_address1, ipAllowlist: ip_allow_list80, memberWeight: member_weight1, groupName: grp_name, autoRejoinTries: auto_rejoin_tries, gtidSetIsComplete: true});
 } else {
-  c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, failoverConsistency: consistency, localAddress: local_address1, ipWhitelist: ip_white_list80, memberWeight: member_weight1, groupName: grp_name, autoRejoinTries: auto_rejoin_tries, gtidSetIsComplete: true, communicationStack: "xcom"});
+  c = dba.createCluster("test", {expelTimeout: expel_timeout, exitStateAction: exit_state, "consistency": consistency, localAddress: local_address1, ipAllowlist: ip_allow_list80, memberWeight: member_weight1, groupName: grp_name, autoRejoinTries: auto_rejoin_tries, gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
@@ -44,22 +44,22 @@ shell.options["dba.connectivityChecks"] = false;
 
 shell.connect(__sandbox_uri1);
 
-var c = dba.createCluster("test", {localAddress: local_address1, ipWhitelist: ip_white_list57, groupName: grp_name, gtidSetIsComplete: true});
+var c = dba.createCluster("test", {localAddress: local_address1, ipAllowlist: ip_allow_list57, groupName: grp_name, gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 //@ BUG29265869 - Add instance with custom GR settings. {VER(>=8.0.16)}
-c.addInstance(__sandbox_uri2, {exitStateAction: exit_state, localAddress: local_address2, ipWhitelist: ip_white_list80, memberWeight: member_weight2,  autoRejoinTries: auto_rejoin_tries});
+c.addInstance(__sandbox_uri2, {exitStateAction: exit_state, localAddress: local_address2, ipAllowlist: ip_allow_list80, memberWeight: member_weight2,  autoRejoinTries: auto_rejoin_tries});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ BUG29265869 - Add instance with custom GR settings for 5.7. {VER(<8.0.0)}
-c.addInstance(__sandbox_uri2, {localAddress: local_address2, ipWhitelist: ip_white_list57, memberWeight: member_weight2});
+c.addInstance(__sandbox_uri2, {localAddress: local_address2, ipAllowlist: ip_allow_list57, memberWeight: member_weight2});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ BUG29265869 - Persist GR settings for 5.7. {VER(<8.0.0)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 //@<OUT> BUG29265869 - Show initial cluster options.
 normalize_cluster_options(c.options());
@@ -92,7 +92,7 @@ shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage("test");
 
 if (testutil.versionCheck(__version, "<", "8.0.11")){
-  EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+  EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 * Waiting for seed instance to become ONLINE...
 ${hostname}:${__mysql_sandbox_port1} was restored.`);
 
@@ -101,7 +101,7 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`Rejoining instance '${hostname}:${__mysql_sand
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 State recovery already finished for '${hostname}:${__mysql_sandbox_port2}'
 
-WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);
 }
 else {
@@ -154,9 +154,9 @@ c.dissolve({force: true});
 shell.connect(__sandbox_uri1);
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
+  c = dba.createCluster('test', {gtidSetIsComplete: true});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true, communicationStack: "xcom"});
+  c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 
 //@<> BUG#29305551: Add instance to the cluster
@@ -166,9 +166,9 @@ session.close();
 
 //@<> Update the configuration files again {VER(<8.0.0)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 
 //@<> BUG#29305551: Reset gr_start_on_boot on all instances
@@ -250,7 +250,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);
@@ -339,9 +339,9 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> BUG30501978 - Persist GR settings for 5.7. {VER(<8.0.0)}
 var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
 var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 //@<> BUG30501978 Reset gr_start_on_boot on all instances and kill all cluster members
 disable_auto_rejoin(__mysql_sandbox_port1);

@@ -1,5 +1,5 @@
 // Assumptions: smart deployment rountines available
-//@ Initialization
+//@<> Initialization
 begin_dba_log_sql(2);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -32,20 +32,21 @@ session.runSql('GRANT ALL PRIVILEGES ON *.* TO \'foo\'@\'%\' WITH GRANT OPTION')
 session.runSql('SET sql_log_bin=1');
 session.close();
 
-//@ Connect to instance 1
+//@<> Connect to instance 1
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'foo', password: 'bar'});
 
-//@ create cluster
-var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
+//@<> create cluster
+var cluster;
+EXPECT_NO_THROWS(function(){ cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true}); });
 
-//@ Adding instance 2 using the root account
-cluster.addInstance({dbUser: 'root', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'root'});
+//@<> Adding instance 2 using the root account
+EXPECT_NO_THROWS(function(){ cluster.addInstance({dbUser: 'root', password: 'root', host: 'localhost', port:__mysql_sandbox_port2}); });
 
 // Waiting for the instance 2 to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ Adding instance 3
-cluster.addInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port3}, {password: 'bar'});
+//@<> Adding instance 3
+EXPECT_NO_THROWS(function(){ cluster.addInstance({dbUser: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port3}); });
 
 // Waiting for the instance 3 to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -67,15 +68,8 @@ EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "(MISSING)");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
-
-//@ ipWhitelist deprecation error {VER(>=8.0.23)}
-cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
-
-//@<OUT> Rejoin instance 2
-// Regression for BUG#270621122: Deprecate memberSslMode
-cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
-
-// Waiting for instance 2 to become back online
+//@<> Rejoin instance 2
+cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2, password: 'bar'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Cluster status after rejoin
@@ -84,12 +78,12 @@ EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
-//@<OUT> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
-// operation should succeed (no error), but not do anything
-cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'bar'});
+//@<> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+EXPECT_NO_THROWS(function(){ cluster.rejoinInstance({dbUser: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port2}); });
+EXPECT_OUTPUT_CONTAINS(`NOTE: ${hostname}:${__mysql_sandbox_port2} is already an active (ONLINE) member of cluster 'dev'.`)
 
-//@ Dissolve cluster
-cluster.dissolve({force: true})
+//@<> Dissolve cluster
+EXPECT_NO_THROWS(function(){ cluster.dissolve({force: true}); });
 
 session.close();
 

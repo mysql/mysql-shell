@@ -25,6 +25,8 @@ testutil.expectPrompt("Please select an option [1]: ", "2");
 testutil.expectPrompt("Account Name: ", "repl_admin");
 
 // BUG#29634790 Selecting Option #2 With Dba.configureinstance - No Option To Enter Password
+shell.options.useWizards=1;
+
 testutil.expectPassword("Password for new account: ", "sample");
 testutil.expectPassword("Confirm password: ", "sample");
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
@@ -32,8 +34,10 @@ if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 
-dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: mycnf});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf});
 testutil.assertNoPrompts();
+
+shell.options.useWizards=0;
 
 // Uninstall the validate_password plugin: negative and positive tests done
 ensure_plugin_disabled("validate_password", session1, "validate_password");
@@ -44,16 +48,18 @@ shell.connect('repl_admin:sample@' + uri1);
 session.close();
 
 //@<> test configureInstance providing clusterAdminPassword without clusterAdmin
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminPassword: "whatever" });}, "The clusterAdminPassword option is allowed only if clusterAdmin is specified.");
+shell.options.useWizards=1;
+
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {clusterAdminPassword: "whatever"});}, "The clusterAdminPassword option is allowed only if clusterAdmin is specified.");
 
 //@<> test configureInstance providing clusterAdminCertIssuer without clusterAdmin
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminCertIssuer: "whatever" });}, "The clusterAdminCertIssuer option is allowed only if clusterAdmin is specified.");
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {clusterAdminCertIssuer: "whatever"});}, "The clusterAdminCertIssuer option is allowed only if clusterAdmin is specified.");
 
 //@<> test configureInstance providing clusterAdminCertSubject without clusterAdmin
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdminCertSubject: "whatever" });}, "The clusterAdminCertSubject option is allowed only if clusterAdmin is specified.");
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {clusterAdminCertSubject: "whatever"});}, "The clusterAdminCertSubject option is allowed only if clusterAdmin is specified.");
 
 //@<> test configureInstance providing clusterAdminPassword and an existing clusterAdmin
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "repl_admin", clusterAdminPassword: "whatever" });}, "The 'repl_admin'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.");
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {clusterAdmin: "repl_admin", clusterAdminPassword: "whatever"});}, "The 'repl_admin'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.");
 
 //@ configureInstance custom cluster admin and no password
 var root_uri1 = "root@" + uri1;
@@ -66,7 +72,9 @@ if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 
-dba.configureInstance(__sandbox_uri1, {interactive:true, mycnfPath: mycnf});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf});
+
+shell.options.useWizards=0;
 
 //@<> Verify that the default value for applierWorkerThreads was set (4) {VER(>=8.0.23)}
 EXPECT_EQ(4, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
@@ -152,6 +160,113 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 dba.configureInstance(__sandbox_uri1);
 
 //@<> Cleanup canonical IPv4 addresses are supported WL#12758
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> Initialization IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+//@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+dba.configureInstance(__sandbox_uri1);
+
+//@<> Cleanup IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ create cluster admin
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
+
+shell.options.useWizards=1;
+dba.configureInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+shell.options.useWizards=0;
+
+//@<OUT> check global privileges of cluster admin
+session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = \"'ca'@'%'\" ORDER BY PRIVILEGE_TYPE");
+
+//@<OUT> check schema privileges of cluster admin
+session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES WHERE GRANTEE = \"'ca'@'%'\" ORDER BY TABLE_SCHEMA, PRIVILEGE_TYPE");
+
+//@<OUT> check table privileges of cluster admin
+session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = \"'ca'@'%'\" ORDER BY TABLE_SCHEMA, TABLE_NAME, PRIVILEGE_TYPE");
+
+//@ cluster admin should be able to create another cluster admin
+shell.options.useWizards=1;
+dba.configureInstance("ca:ca@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca2", clusterAdminPassword: "ca2", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+shell.options.useWizards=0;
+
+// Smart deployment cleanup
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ Deploy instances (with invalid server_id).
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server_id": "0", "report_host": hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+
+//@ Deploy instances (with invalid server_id in 8.0). {VER(>=8.0.3)}
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname});
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "server_id");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.restartSandbox(__mysql_sandbox_port2);
+var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+
+//@<OUT> checkInstanceConfiguration with server_id error.
+dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: mycnf1});
+
+//@<OUT> configureInstance server_id updated but needs restart.
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
+
+//@<OUT> configureInstance still indicate that a restart is needed.
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
+
+//@ Restart sandbox 1.
+testutil.restartSandbox(__mysql_sandbox_port1);
+
+//@<OUT> configureInstance no issues after restart for sandobox 1.
+dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
+
+// Regression tests with instance with no server_id in the option file
+//@<OUT> checkInstanceConfiguration no server_id in my.cnf (error). {VER(>=8.0.3)}
+dba.checkInstanceConfiguration(__sandbox_uri2, {mycnfPath: mycnf2});
+
+//@<OUT> configureInstance no server_id in my.cnf (needs restart). {VER(>=8.0.3)}
+dba.configureInstance(__sandbox_uri2, {mycnfPath: mycnf2});
+
+//@<OUT> configureInstance no server_id in my.cnf (still needs restart). {VER(>=8.0.3)}
+dba.configureInstance(__sandbox_uri2, {mycnfPath: mycnf2});
+
+//@ Restart sandbox 2. {VER(>=8.0.3)}
+testutil.restartSandbox(__mysql_sandbox_port2);
+
+//@<OUT> configureInstance no issues after restart for sandbox 2. {VER(>=8.0.3)}
+dba.configureInstance(__sandbox_uri2, {mycnfPath: mycnf2});
+
+//@ Clean-up deployed instances.
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ Clean-up deployed instances (with invalid server_id in 8.0). {VER(>=8.0.3)}
+testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@ ConfigureInstance should fail if there's no session nor parameters provided
+testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
+dba.configureInstance();
+
+// Create cluster
+shell.connect({scheme: 'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
+
+var cluster = dba.createCluster('Cluster');
+testutil.makeFileReadOnly(testutil.getSandboxConfPath(__mysql_sandbox_port1));
+
+//@# Error no write privileges {VER(<8.0.11)}
+var cnfPath = testutil.getSandboxConfPath(__mysql_sandbox_port1).split("\\").join("\\\\");
+var __sandbox1_conf_path = cnfPath;
+// This call is for persisting stuff like group_seeds, not configuring the instance
+dba.configureInstance('root@localhost:' + __mysql_sandbox_port1, {mycnfPath:cnfPath, password:'root'});
+
+//@ Close session
+session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@<> Initialization IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}

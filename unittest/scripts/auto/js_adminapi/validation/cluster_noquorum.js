@@ -13,9 +13,6 @@ Cluster.rejoinInstance: There is no quorum to perform the operation (MYSQLSH 510
 //@<ERR> dissolve
 Cluster.dissolve: There is no quorum to perform the operation (MYSQLSH 51011)
 
-//@<ERR> checkInstanceState
-Cluster.checkInstanceState: There is no quorum to perform the operation (MYSQLSH 51011)
-
 //@<ERR> rescan
 Cluster.rescan: There is no quorum to perform the operation (MYSQLSH 51011)
 

@@ -12,7 +12,7 @@ shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
 cluster.addInstance(__sandbox_uri2);
-dba.configureLocalInstance(__sandbox_uri2);
+dba.configureInstance(__sandbox_uri2);
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -65,35 +65,26 @@ testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 cluster.removeInstance(__sandbox_uri2);
-cluster.dissolve({interactive: false});
+cluster.dissolve();
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {gtidSetIsComplete: true}); });
 
-//@<> Test cluster.checkInstanceState
-
+//@<> Test cluster.switchToSinglePrimaryMode {VER(>=8.0.13)}
 session2 = mysql.getSession(__sandbox_uri2);
 reset_instance(session2);
 session2.close();
 
-EXPECT_NO_THROWS(function() { cluster.checkInstanceState(hostname + ":" + __mysql_sandbox_port2); });
-EXPECT_NO_THROWS(function() { cluster.checkInstanceState(hostname_caps + ":" + __mysql_sandbox_port2); });
-
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-EXPECT_THROWS(function() {
-    cluster.checkInstanceState(hostname + ":" + __mysql_sandbox_port2);
-}, `The instance '${hostname_caps}:${__mysql_sandbox_port2}' already belongs to the cluster: 'cluster'`);
-
-//@<> Test cluster.switchToSinglePrimaryMode {VER(>=8.0.13)}
 cluster.switchToMultiPrimaryMode();
 EXPECT_NO_THROWS(function() { cluster.switchToSinglePrimaryMode(hostname_caps + ":" + __mysql_sandbox_port2); });
 EXPECT_NO_THROWS(function() { cluster.switchToSinglePrimaryMode(hostname_caps + ":" + __mysql_sandbox_port1); });
 
 //@<> Test dba.rebootClusterFromCompleteOutage
 
-dba.configureLocalInstance(__sandbox_uri1);
-dba.configureLocalInstance(__sandbox_uri2);
+dba.configureInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri2);
 
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);

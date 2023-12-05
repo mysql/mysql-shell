@@ -31,17 +31,17 @@ testutil.startSandbox(__mysql_sandbox_port3);
 //@ Configure instance on port 1.
 //TODO: The test should check for BUG#26836230
 var cnfPath1 = os.path.join(__sandbox_dir, __mysql_sandbox_port1.toString(), "my.cnf");
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root'});
+dba.configureInstance("root:root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1});
 
 //@ Configure instance on port 2.
 //TODO: The test should check for BUG#26836230
 var cnfPath2 = os.path.join(__sandbox_dir, __mysql_sandbox_port2.toString(), "my.cnf");
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, password:'root'});
+dba.configureInstance("root:root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2});
 
 //@ Configure instance on port 3.
 //TODO: The test should check for BUG#26836230
 var cnfPath3 = os.path.join(__sandbox_dir, __mysql_sandbox_port3.toString(), "my.cnf");
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3, password:'root'});
+dba.configureInstance("root:root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3});
 
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.stopSandbox(__mysql_sandbox_port2);
@@ -60,7 +60,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
 //@ Create cluster with success.
-var cluster = dba.createCluster('bug26818744', {memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('bug26818744', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 //@ Add instance on port 2 to cluster with success.
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");

@@ -106,8 +106,8 @@ EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2) });
 if (__version_num < 80000) {
   var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
   var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-  dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
-  dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: mycnf2});
+  dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
+  dba.configureInstance(__sandbox_uri2, {mycnfPath: mycnf2});
 }
 
 if (__version_num < 80027) {
@@ -116,31 +116,16 @@ if (__version_num < 80027) {
   check_gr_settings(cluster, [__endpoint1, __endpoint2], "MYSQL");
 }
 
-//@<> Adding multiple instances using clone and waitRecovery:0 must not fail {VER(>=8.0.27)}
-//
-// BUG#34237375: instance fails to join cluster using 'mysql' commstack, clone and waitRecovery:0
-//
-//  When the communication stack is 'MYSQL', the AdminAPI reconfigures the
-// recovery account in every single active member of the cluster to use its own
-// GR recovery replication credentials and not the one that was created for the
-// joining instance. However, when waitRecovery is zero and clone was used, each
-// instance has configured on the replication channel the credentials of the
-// donor member (since it was cloned), and also has the information about the
-// recovery account outdated.
-// That reconfiguration happens in most cases before clone has finished so the
-// credentials for the replication channel (that are cloned) won't match since
-// they were already reset in the Cluster by that reconfiguration mechanism.
-EXPECT_NO_THROWS(function() {cluster.removeInstance(__sandbox_uri2) });
-EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery: 0}) });
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", waitRecovery: 0}) });
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+//@<> Adding multiple instances using clone must not fail {VER(>=8.0.27)}
 
-//@<> Cluster.rescan() must ensure the right recovery accounts are used in the cluster when clone recovery is used with waitRecovery:0 {VER(>=8.0.27)}
+EXPECT_NO_THROWS(function() {cluster.removeInstance(__sandbox_uri2) });
+EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone"}) });
+EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone"}) });
+
+//@<> Cluster.rescan() must ensure the right recovery accounts are used in the cluster when clone recovery is used {VER(>=8.0.27)}
 EXPECT_NO_THROWS(function() {cluster.removeInstance(__sandbox_uri2) });
 EXPECT_NO_THROWS(function() {cluster.removeInstance(__sandbox_uri3) });
-EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery: 0}) });
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone"}) });
 
 EXPECT_NO_THROWS(function() {cluster.rescan(); });
 
@@ -314,15 +299,14 @@ EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint2); });
 
 check_gr_settings(cluster, [__endpoint1, __endpoint2], "MYSQL");
 
-//@<> Cluster.rescan() must ensure the right recovery accounts are used in the cluster when clone recovery is used with waitRecovery:0 and comm protocol is MySQL {VER(>=8.0.27)}
+//@<> Cluster.rescan() must ensure the right recovery accounts are used in the cluster when clone recovery is used and comm protocol is MySQL {VER(>=8.0.27)}
 cluster.dissolve();
 
 shell.connect(__sandbox_uri1);
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("test", {gtidSetIsComplete: true, communicationStack: "xcom"}) });
 
-EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery: 0}) });
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone"}) });
 
 EXPECT_NO_THROWS(function() {cluster.rescan(); });
 

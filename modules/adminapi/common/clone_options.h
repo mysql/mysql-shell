@@ -50,9 +50,8 @@ struct Clone_options {
     JOIN_READ_REPLICA        // Only recoveryMethod
   };
 
-  Clone_options() : target(NONE) {}
-
-  explicit Clone_options(Unpack_target t) : target(t) {}
+  explicit Clone_options() noexcept {}
+  explicit Clone_options(Unpack_target t) noexcept : target(t) {}
 
   template <typename Unpacker>
   Unpacker &unpack(Unpacker *options) {
@@ -66,10 +65,9 @@ struct Clone_options {
 
   void set_clone_donor(const std::string &value);
 
-  Unpack_target target;
-
+  Unpack_target target{NONE};
   std::optional<bool> disable_clone;
-  bool gtid_set_is_complete = false;
+  bool gtid_set_is_complete{false};
   std::optional<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
   std::optional<std::string> clone_donor;

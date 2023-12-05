@@ -24,7 +24,7 @@ shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#11032: Create cluster 1 {VER(>=5.7.20)}
-var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true})
+var c = dba.createCluster('test', {gtidSetIsComplete: true})
 
 //@ WL#11032: addInstance() errors using memberWeight option {VER(>=5.7.20)}
 // F1.2 - The memberWeight option shall be an integer value.
@@ -50,7 +50,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.11.
 
 //@ WL#11032: Create cluster 2 {VER(>=8.0.11)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75, gtidSetIsComplete: true});
 
 //@ WL#11032: Add instance using a valid value for memberWeight (-50) {VER(>=8.0.11)}
 c.addInstance(__sandbox_uri2, {memberWeight: -50})
@@ -108,7 +108,7 @@ shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
 //@ WL#12049: Create cluster 1 {VER(>=5.7.24)}
-var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true})
+var c = dba.createCluster('test', {gtidSetIsComplete: true})
 
 //@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
 // F1.2 - The exitStateAction option shall be a string value.
@@ -138,7 +138,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.12.
 
 //@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY", gtidSetIsComplete: true});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY", gtidSetIsComplete: true});
 
 //@ WL#12049: Add instance using a valid exitStateAction 2 {VER(>=8.0.12)}
 c.addInstance(__sandbox_uri2, {exitStateAction: "READ_ONLY"})
@@ -231,7 +231,7 @@ c.dissolve({force: true});
 // FR2 The value for group_replication_consistency must be the same on all cluster members that support the option
 //@ WL#12067: TSF2_2 The value for group_replication_consistency must be the same on all cluster members (multi-primary) {VER(>=8.0.14)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', { clearReadOnly:true, consistency: "1", multiPrimary:true, force: true, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {consistency: "1", multiPrimary:true, force: true, gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 
@@ -284,7 +284,7 @@ c.dissolve({force: true});
 // FR2 The value for group_replication_member_expel_timeout must be the same on all cluster members that support the option
 //@ WL#12050: TSF2_2 The value for group_replication_member_expel_timeout must be the same on all cluster members (multi-primary) {VER(>=8.0.13)}
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', { clearReadOnly:true, expelTimeout: 200, multiPrimary:true, force: true, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {expelTimeout: 200, multiPrimary:true, force: true, gtidSetIsComplete: true});
 c.addInstance(__sandbox_uri2);
 session.close();
 

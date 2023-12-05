@@ -77,12 +77,15 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
 //@<> BUG#30339460: Use configureInstance to create the Admin user.
+shell.options.useWizards=1;
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, { interactive: true, clusterAdmin: "admin_user", clusterAdminPassword: "admin_pwd", mycnfPath: mycnf_path }); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, {clusterAdmin: "admin_user", clusterAdminPassword: "admin_pwd", mycnfPath: mycnf_path}); });
+
+shell.options.useWizards=0;
 
 //@<> BUG#30339460: Revert some previous configureInstance() change to require some settings to be fixed.
 shell.connect(__sandbox_uri1);
@@ -98,13 +101,17 @@ session.runSql("SET GLOBAL gtid_mode = DEFAULT");
 session.runSql("SET GLOBAL server_id = DEFAULT");
 
 //@<> BUG#30339460: Use configureInstance with the Admin user (no error).
+shell.options.useWizards=1;
+
 var admin_uri = "admin_user:admin_pwd@" + hostname + ":" + __mysql_sandbox_port1;
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011) {
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 
-EXPECT_NO_THROWS(function() { dba.configureInstance(admin_uri, { interactive: true, mycnfPath: mycnf_path}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(admin_uri, {mycnfPath: mycnf_path}); });
+
+shell.options.useWizards=0;
 
 //@<> BUG#30339460: clean-up.
 testutil.destroySandbox(__mysql_sandbox_port1);

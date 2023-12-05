@@ -17,7 +17,7 @@ NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable
 
 The instance will be removed from the InnoDB Cluster.
 
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
@@ -83,7 +83,7 @@ Number of accounts for '<<<recovery_user_2>>>': 1
 //@ BUG#28855764: clean-up.
 ||
 
-//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+//@ WL#12773: FR4 - The ipAllowlist shall not change the behavior defined by FR1
 |mysql_innodb_cluster_11111, %|
 |mysql_innodb_cluster_22222, %|
 |mysql_innodb_cluster_33333, %|
@@ -104,10 +104,6 @@ Number of recovery user before addInstance(): 1
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
 |[::1]:<<<__mysql_sandbox_port2>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port2>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port2>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port2>>>"}|
 
-// If the target instance is >= 8.0.23, when ipWhitelist is used a deprecation warning must be printed
-//@ IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>=8.0.23)}
-|WARNING: The ipWhitelist option is deprecated in favor of ipAllowlist. ipAllowlist will be set instead.|
-
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port2>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
 ||Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
@@ -116,6 +112,6 @@ Number of recovery user before addInstance(): 1
 |ERROR: Cannot join instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' to cluster: unsupported localAddress value.|
 ||Cannot use value '[::1]:<<<__mysql_sandbox_gr_port1>>>' for option localAddress because it has an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
 
-//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-||Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
+//@ IPv6 on ipAllowlist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+||Invalid value for ipAllowlist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
 

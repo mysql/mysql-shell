@@ -820,14 +820,14 @@ void Base_cluster_impl::setup_account_common(
   // contain unsupported grants.
 
   // The pool is initialized with the metadata using the current session
-  auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
+  MetadataStorage metadata(get_cluster_server());
 
   const auto primary_instance = get_primary_master();
   shcore::on_leave_scope finally_primary([this]() { release_primary(); });
 
   // get the metadata version to build an accurate list of grants
   mysqlshdk::utils::Version metadata_version;
-  if (!metadata->check_version(&metadata_version)) {
+  if (!metadata.check_version(&metadata_version)) {
     throw std::logic_error("Internal error, metadata not found.");
   }
 

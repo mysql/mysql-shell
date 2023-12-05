@@ -95,12 +95,16 @@ EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Unable to create the step 
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata_previous");
 
 //@ Upgrades the metadata, no registered routers
+shell.options.useWizards=1;
+
 // Gets the cluster while MD is 1.0.1
 var c = dba.getCluster();
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata();
 
 //@ Upgrades the metadata, up to date
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata();
+
+shell.options.useWizards=0;
 
 //@<> Tests accessing the cluster after the metadata migration
 c.status();
@@ -122,7 +126,7 @@ dba.upgradeMetadata()
 //@<> WL13386-TSFR1_4 Upgrades the metadata, interactive off, error
 shell.connect(__sandbox_uri1);
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
-EXPECT_THROWS(function () { dba.upgradeMetadata({interactive:false}) }, "Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema");
+EXPECT_THROWS(function () { dba.upgradeMetadata(); }, "Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema");
 
 //@ WL13386-TSFR1_5 Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
 session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (2, 'second', 2, NULL)")
@@ -136,9 +140,11 @@ session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (9, 'ni
 session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (10, 'tenth', 2, NULL)")
 
 // Chooses to unregister the existing routers
+shell.options.useWizards=1;
 testutil.expectPrompt("Please select an option: ", "2")
 testutil.expectPrompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata();
+shell.options.useWizards=0;
 
 //@ WL13386-TSFR1_5 Upgrades the metadata, upgrade done by unregistering more than 10 routers with router accounts
 // Fake router account to get the account upgrade tested
@@ -157,8 +163,10 @@ session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (10, 't
 session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (11, 'eleventh', 2, NULL)")
 
 // Aborts first attempt, accounts remain updated
+shell.options.useWizards=1;
 testutil.expectPrompt("Please select an option: ", "3")
-EXPECT_NO_THROWS(function () { dba.upgradeMetadata({interactive:true})});
+EXPECT_NO_THROWS(function () { dba.upgradeMetadata(); });
+shell.options.useWizards=0;
 
 //@<> WL13386-TSFR2_1 Account Verification
 // Verifying grants for mysql_router_test
@@ -182,20 +190,30 @@ EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_
 EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
 //@ Second upgrade attempt should succeed
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select an option: ", "2")
 testutil.expectPrompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata();
 EXPECT_STDERR_NOT_CONTAINS("Table 'v2_routers' already exists");
 
+shell.options.useWizards=0;
+
 //@<> Account verification with no outdated routers dry run
+shell.options.useWizards=1;
+
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 session.runSql("delete from mysql_innodb_cluster_metadata.routers")
 session.runSql("CREATE USER mysql_router2_bc0e9n9dnfzk@`%` IDENTIFIED BY 'whatever'")
-dba.upgradeMetadata({interactive:true, dryRun:true});
+dba.upgradeMetadata({dryRun:true});
 EXPECT_STDOUT_CONTAINS("3 Router accounts need to be updated.")
 
+shell.options.useWizards=0;
+
 //@<> Account verification with no outdated routers
-dba.upgradeMetadata({interactive:true});
+shell.options.useWizards=1;
+
+dba.upgradeMetadata();
 session.runSql("SHOW GRANTS FOR mysql_router2_bc0e9n9dnfzk@`%`")
 EXPECT_STDOUT_CONTAINS("Updating Router accounts...")
 EXPECT_STDOUT_CONTAINS("NOTE: 3 Router accounts have been updated.")
@@ -207,14 +225,20 @@ EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."global_variables"'
 EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_member_stats"')
 EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
+shell.options.useWizards=0;
+
 //@ Test Migration from 1.0.1 to 2.2.0
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 test_session = mysql.getSession(__sandbox_uri1)
 
 // Chooses to unregister the existing router
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select an option: ", "2")
 testutil.expectPrompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata();
+
+shell.options.useWizards=0;
 
 //@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.2.0, Data Verification
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
@@ -246,7 +270,9 @@ var old_router_attributes = JSON.parse(old_router.attributes)
 var result = test_session.runSql("select * from mysql_innodb_cluster_metadata.hosts where host_id = " + old_router.host_id);
 var old_host = result.fetchOneObject();
 
-dba.upgradeMetadata({interactive:true})
+shell.options.useWizards=1;
+dba.upgradeMetadata();
+shell.options.useWizards=0;
 
 var result = test_session.runSql("select * from mysql_innodb_cluster_metadata.clusters");
 var new_cluster = result.fetchOneObject();

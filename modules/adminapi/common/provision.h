@@ -141,7 +141,7 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  * @param instance target Instance object to start the cluster.
  * @param gr_opts Group_replication_options structure with the GR options
  *                to set for the instance (i.e., group_name, ssl_mode,
- *                local_address, group_seeds, ip_whitelist, member_weight,
+ *                local_address, group_seeds, ip_allowlist, member_weight,
  *                expel_timeout, exit_state_action, and failover_consistency)
  *                when defined.
  * @param requires_certificates If true, the server certificates (ssl_cert and
@@ -180,7 +180,7 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
  *                      to join.
  * @param gr_opts Group_replication_options structure with the GR options
  *                to set for the instance (i.e., ssl_mode, local_address,
- *                group_seeds, ip_whitelist, member_weight, expel_timeout,
+ *                group_seeds, ip_allowlist, member_weight, expel_timeout,
  *                exit_state_action, and failover_consistency) when defined.
  * @param requires_certificates If true, the server certificates (ssl_cert and
  *                              ssl_key) are read and set in the corresponding

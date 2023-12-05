@@ -51,9 +51,12 @@ EXPECT_THROWS_TYPE(function() { cluster.dissolve()}, "Can't connect to MySQL ser
 EXPECT_OUTPUT_CONTAINS(`ERROR: Unable to connect to instance '${__endpoint3}'. Please verify connection credentials and make sure the instance is available.`);
 
 //@<> Dissolve cluster - Some read-replicas unreachable - interactive enabled - cancel
-testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "n");
+shell.options.useWizards=1;
 
-EXPECT_THROWS_TYPE(function() { cluster.dissolve({interactive: true})}, "Operation canceled by user.", "RuntimeError");
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "n");
+EXPECT_THROWS_TYPE(function() { cluster.dissolve(); }, "Operation canceled by user.", "RuntimeError");
+
+shell.options.useWizards=0;
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 The cluster still has the following registered instances:

@@ -54,7 +54,7 @@ EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' is v
 
 
 //@<> Configures the instance, read only set, no prompt
-EXPECT_NO_THROWS(function() { dba.configureInstance(connection2, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd", clearReadOnly: true}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(connection2, {clusterAdmin: "testUser", clusterAdminPassword: "testUserPwd"}); });
 
 EXPECT_OUTPUT_CONTAINS(`Configuring local MySQL instance listening at port ${__mysql_sandbox_port2} for use in an InnoDB Cluster...`);
 EXPECT_OUTPUT_CONTAINS(`NOTE: Instance detected as a sandbox.`);
@@ -124,9 +124,9 @@ session.close();
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 
 // killSandboxInstance does not wait until the process is actually killed

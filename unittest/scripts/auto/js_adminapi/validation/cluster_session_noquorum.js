@@ -74,7 +74,7 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
+//@<OUT> getCluster() and status()
 {
     "clusterName": "dev",
     "defaultReplicaSet": {
@@ -188,7 +188,7 @@
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
-//@<OUT> 2 getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
+//@<OUT> 2 getCluster() and status()
 {
     "clusterName": "dev",
     "defaultReplicaSet": {

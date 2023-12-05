@@ -200,14 +200,17 @@ rs.setupRouterAccount("dryruntest", {password: "fooo", dryRun:true});
 testutil.expectPassword("Password for new account: ", "1111");
 testutil.expectPassword("Confirm password: ", "1111");
 
-rs.setupRouterAccount("interactive_test@%", {interactive: true});
+shell.options.useWizards = true;
+rs.setupRouterAccount("interactive_test@%");
+shell.options.useWizards = false;
+
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'interactive_test', password: '1111'});
 session.close();
 shell.connect(__sandbox_uri1);
 
 //@<> WL#13536 TSFR6_8 Creating new account fails if password not provided and interactive mode is disabled
-rs.setupRouterAccount("interactive_test_2@%", {interactive: false});
+rs.setupRouterAccount("interactive_test_2@%");
 EXPECT_EQ(0, count_users_like(session1, "interactive_test_2", "%"));
 
 //@<> WL#13536 TSET_6 Validate operation fails if user doesn't have enough privileges to create/upgrade account

@@ -50,9 +50,9 @@ scene.cluster.addInstance(__sandbox_uri2);
 scene.cluster.addInstance(__sandbox_uri3);
 
 //@<> FR2
-dba.configureLocalInstance(__sandbox_uri1);
-dba.configureLocalInstance(__sandbox_uri2);
-dba.configureLocalInstance(__sandbox_uri3);
+dba.configureInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri2);
+dba.configureInstance(__sandbox_uri3);
 
 disable_auto_rejoin(__mysql_sandbox_port3);
 

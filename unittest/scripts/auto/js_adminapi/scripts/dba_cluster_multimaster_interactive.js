@@ -26,9 +26,9 @@ testutil.expectPrompt("Are you sure you want to dissolve the cluster? [y/N]:", "
 Cluster.dissolve({force: true});
 Cluster.disconnect();
 
-//@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+//@<OUT> Dba: createCluster multiPrimary with interaction, regression for BUG#25926603
 testutil.expectPrompt("Confirm [y/N]", "y");
-dba.createCluster('devCluster', {multiMaster: true, gtidSetIsComplete: true});
+dba.createCluster('devCluster', {multiPrimary: true, gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -82,7 +82,7 @@ Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
 testutil.expectPrompt("Confirm [y/N]", "y");
-dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
+dba.createCluster('devCluster', {multiPrimary: true, gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 Cluster = dba.getCluster('devCluster');
@@ -133,7 +133,7 @@ var session3 = mysql.getSession(__sandbox_uri3);
 var server_id = session3.runSql("select @@server_id").fetchOne()[0];
 var repl_user = "mysql_innodb_cluster_"+server_id;
 
-Cluster.rejoinInstance({user: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
+Cluster.rejoinInstance({user: "root", host: "localhost", port: __mysql_sandbox_port3});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

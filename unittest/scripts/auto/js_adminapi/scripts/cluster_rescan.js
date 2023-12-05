@@ -146,6 +146,10 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: "cd93eab4-b5
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 var mycnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 //@<> Get needed Server_Ids and UUIDs.
 shell.connect(__sandbox_uri1);
 instance1_id = get_server_id(session);
@@ -437,8 +441,10 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_2: Rescan with addInstances:[incomplete_valid_list] and interactive:true.
+shell.options.useWizards=1;
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
-cluster.rescan({addInstances: [member_address2], interactive: true});
+cluster.rescan({addInstances: [member_address2]});
+shell.options.useWizards=0;
 
 //@<> WL10644 - TSF2_2: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -454,7 +460,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_3: Rescan with addInstances:[incomplete_valid_list] and interactive:false.
-cluster.rescan({addInstances: [member_address2], interactive: false});
+cluster.rescan({addInstances: [member_address2]});
 
 //@<> WL10644 - TSF2_3: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -468,7 +474,8 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SING
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
-cluster.rescan({addInstances: "AUTO", interactive: true});
+shell.options.useWizards=1;
+cluster.rescan({addInstances: "AUTO"});
 
 //@<> WL10644 - TSF2_4: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -483,12 +490,14 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SING
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
-cluster.rescan({addUnmanaged: true, interactive: true});
+cluster.rescan({addUnmanaged: true});
 EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
 
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
+
+shell.options.useWizards=0;
 
 //@<> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
@@ -498,7 +507,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SING
                                    [__mysql_sandbox_port2, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_5: Rescan with addInstances:"auto" and interactive:false.
-cluster.rescan({addInstances: "auto", interactive: false});
+cluster.rescan({addInstances: "auto"});
 
 //@<> WL10644 - TSF2_5: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -573,10 +582,14 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_2: Rescan with removeInstances:[incomplete_valid_list] and interactive:true.
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]:", "y");
 var member_fqdn_address2 = hostname + ":" + __mysql_sandbox_port2;
 var member_fqdn_address3 = hostname + ":" + __mysql_sandbox_port3;
-cluster.rescan({removeInstances: [member_fqdn_address2], interactive: true});
+cluster.rescan({removeInstances: [member_fqdn_address2]});
+
+shell.options.useWizards=0;
 
 //@<> WL10644 - TSF3_2: Number of instances in the MD after rescan().
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -619,7 +632,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_3: Rescan with removeInstances:[incomplete_valid_list] and interactive:false.
-cluster.rescan({removeInstances: [member_fqdn_address2], interactive: false});
+cluster.rescan({removeInstances: [member_fqdn_address2]});
 
 //@<> WL10644 - TSF3_3: Number of instances in the MD after rescan().
 EXPECT_EQ(2, count_in_metadata_schema());
@@ -655,7 +668,9 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_4: Rescan with removeInstances:"auto" and interactive:true.
-cluster.rescan({removeInstances: "auto", interactive: true});
+shell.options.useWizards=1;
+cluster.rescan({removeInstances: "auto"});
+shell.options.useWizards=0;
 
 //@<> WL10644 - TSF3_4: Number of instances in the MD after rescan().
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -678,6 +693,9 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
@@ -687,7 +705,10 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "MISSING"],
                                    [__mysql_sandbox_port3, "MISSING"]]);
 
-cluster.rescan({removeObsolete: true, interactive: true});
+shell.options.useWizards=1;
+cluster.rescan({removeObsolete: true});
+shell.options.useWizards=0;
+
 EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
 
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -698,10 +719,11 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF3_5: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
+
+shell.options["dba.connectivityChecks"] = false;
 cluster.addInstance(__hostname_uri2);
 cluster.addInstance(__hostname_uri3);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+shell.options["dba.connectivityChecks"] = true;
 
 //@<> WL10644 - TSF3_5: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
@@ -728,7 +750,7 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 EXPECT_EQ(3, count_in_metadata_schema());
 
 //@<> WL10644 - TSF3_5: Rescan with removeInstances:"auto" and interactive:false.
-cluster.rescan({removeInstances: "AUTO", interactive: false});
+cluster.rescan({removeInstances: "AUTO"});
 
 //@<> WL10644 - TSF3_5: Number of instances in the MD after rescan().
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -770,14 +792,9 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode =
 //@<> BUG#29330769: Topology mode in MD before rescan().
 get_metadata_topology_mode();
 
-//@<> BUG#29330769: Rescan without using updateTopologyMode and change needed.
-cluster.rescan();
-
 //@<> BUG#29330769: Check topology mode in MD after rescan().
+cluster.rescan();
 get_metadata_topology_mode();
-
-//@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
-cluster.rescan({updateTopologyMode: true});
 
 //@<> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -792,7 +809,7 @@ check_auto_increment_settings(__sandbox_uri3);
 //@<> Create multi-primary cluster.
 // NOTE: Cluster re-created for test to work with both 5.7 and 8.0 servers.
 cluster.dissolve();
-var cluster = dba.createCluster("c", {multiPrimary: true, clearReadOnly: true, force: true, gtidSetIsComplete: true, manualStartOnBoot: true});
+var cluster = dba.createCluster("c", {multiPrimary: true, force: true, gtidSetIsComplete: true, manualStartOnBoot: true});
 cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
@@ -813,7 +830,9 @@ set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
 
 //@<> WL10644 - TSF4_3: Rescan with interactive:true and change needed.
-cluster.rescan({interactive: true});
+shell.options.useWizards=1;
+cluster.rescan();
+shell.options.useWizards=0;
 
 //@<> WL10644 - TSF4_3: Check topology mode in MD after rescan().
 EXPECT_EQ("mm", get_metadata_topology_mode());
@@ -833,7 +852,7 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode =
 EXPECT_EQ("pm", get_metadata_topology_mode());
 
 //@<> WL10644 - TSF4_4: Rescan with interactive:false and change needed.
-cluster.rescan({interactive: false});
+cluster.rescan();
 
 //@<> WL10644 - TSF4_4: Check topology mode in MD after rescan().
 EXPECT_EQ("mm", get_metadata_topology_mode());
@@ -976,7 +995,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication
 EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
 EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the Cluster's metadata...");
 
-//@<> Bug #33235502 Check for incorrect recovery accounts and fix them
+//@<> Bug #33235502 Check for incorrect recovery accounts
 shell.options["useWizards"] = false;
 
 cluster.dissolve({force:true});
@@ -985,15 +1004,7 @@ var cluster = dba.createCluster("c");
 
 if (testutil.versionCheck(__version, ">=", "8.0.11")) {
 
-    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone", waitRecovery:0});
-    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-    status = cluster.status();
-    EXPECT_TRUE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Incorrect recovery account (mysql_innodb_cluster_${instance2_id}) being used. Use Cluster.rescan() to repair.`));
-
-    WIPE_STDOUT();
-    cluster.rescan();
-    EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'mysql_innodb_cluster_${instance2_id}' in instance '${hostname}:${__mysql_sandbox_port1}'`)
+    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
 
     status = cluster.status();
     EXPECT_FALSE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Incorrect recovery account (mysql_innodb_cluster_${instance2_id}) being used. Use Cluster.rescan() to repair.`));
@@ -1002,8 +1013,7 @@ if (testutil.versionCheck(__version, ">=", "8.0.11")) {
 //@<> Bug #33235502 Check for multiple unused recovery accounts and fix them
 
 if (testutil.versionCheck(__version, "<", "8.0.11")) {
-    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", waitRecovery:0});
-    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+    cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"});
 }
 
 // delete the instance using the recovery account to create the cenario where the account isn't being used
@@ -1067,9 +1077,11 @@ testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: instance3_uuid, server_id: instance3_id, report_host: hostname_ip});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
+disable_auto_rejoin(__mysql_sandbox_port3);
+
 c = dba.createCluster("cluster" , {gtidSetIsComplete:1});
 c.addInstance(__sandbox_uri3);
-dba.configureLocalInstance(__sandbox_uri3);
+dba.configureInstance(__sandbox_uri3);
 c.status();
 
 shell.connect(__sandbox_uri3);

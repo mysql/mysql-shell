@@ -383,9 +383,13 @@ session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instan
 
 WIPE_OUTPUT();
 
-EXPECT_NO_THROWS(function() { cluster.rescan({ interactive: true }); });
+shell.options.useWizards=1;
+
+EXPECT_NO_THROWS(function() { cluster.rescan(); });
 EXPECT_OUTPUT_CONTAINS("New instances were discovered in the cluster but ignore because the cluster requires SSL certificate authentication.");
 EXPECT_OUTPUT_CONTAINS("Please stop GR on those members and then add them to the cluster using cluster.addInstance() with the appropriate authentication options.");
+
+shell.options.useWizards=0;
 
 status = cluster.status();
 EXPECT_NE(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"].length, 0);
@@ -407,7 +411,7 @@ shell.connect(__sandbox_uri1);
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
 
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 
 EXPECT_THROWS(function() {
     dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER_PASSWORD", certIssuer: "/CN=Test_CA", adoptFromGR: true });

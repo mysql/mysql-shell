@@ -63,14 +63,13 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   JSON checkInstanceConfiguration(InstanceDef instance, Dictionary options);
   Undefined configureReplicaSetInstance(InstanceDef instance,
                                         Dictionary options);
-  Undefined configureLocalInstance(InstanceDef instance, Dictionary options);
   Undefined configureInstance(InstanceDef instance, Dictionary options);
   Cluster createCluster(String name, Dictionary options);
   ReplicaSet createReplicaSet(String name, Dictionary options);
   Undefined deleteSandboxInstance(Integer port, Dictionary options);
   Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
-  Cluster getCluster(String name, Dictionary options);
+  Cluster getCluster(String name);
   ClusterSet getClusterSet();
   ReplicaSet getReplicaSet();
   Undefined killSandboxInstance(Integer port, Dictionary options);
@@ -84,14 +83,13 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Session session;
   JSON check_instance_configuration(InstanceDef instance, dict options);
   None configure_replica_set_instance(InstanceDef instance, dict options);
-  None configure_local_instance(InstanceDef instance, dict options);
   None configure_instance(InstanceDef instance, dict options);
   Cluster create_cluster(str name, dict options);
   ReplicaSet create_replica_set(str name, dict options);
   None delete_sandbox_instance(int port, dict options);
   Instance deploy_sandbox_instance(int port, dict options);
   None drop_metadata_schema(dict options);
-  Cluster get_cluster(str name, dict options);
+  Cluster get_cluster(str name);
   ClusterSet get_cluster_set();
   ReplicaSet get_replica_set();
   None kill_sandbox_instance(int port, dict options);
@@ -103,7 +101,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   explicit Dba(shcore::IShell_core *owner);
   explicit Dba(const std::shared_ptr<ShellBaseSession> &session);
-  virtual ~Dba();
+  virtual ~Dba() = default;
 
   virtual std::string class_name() const { return "Dba"; }
 
@@ -128,9 +126,9 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       std::shared_ptr<Instance> group_server, bool reboot_cluster = false,
       bool allow_invalidated = false) const;
 
-  void do_configure_instance(
-      const mysqlshdk::db::Connection_options &instance_def_,
-      const Configure_instance_options &options, Cluster_type purpose);
+  void do_configure_instance(mysqlshdk::db::Connection_options instance_def,
+                             const Configure_instance_options &options,
+                             Cluster_type purpose);
 
  public:  // Exported public methods
   shcore::Value check_instance_configuration(
@@ -154,11 +152,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       int port,
       const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
 
-  void configure_local_instance(
-      const std::optional<Connection_options> &instance_def = {},
-      const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
-          &options = {});
-
   void configure_instance(
       const std::optional<Connection_options> &instance_def = {},
       const shcore::Option_pack_ref<Configure_cluster_instance_options>
@@ -176,8 +169,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Option_pack_ref<Upgrade_metadata_options> &options);
 
   std::shared_ptr<Cluster> get_cluster(
-      const std::optional<std::string> &cluster_name = {},
-      const shcore::Dictionary_t &options = {}) const;
+      const std::optional<std::string> &cluster_name = {}) const;
   void drop_metadata_schema(
       const shcore::Option_pack_ref<Drop_metadata_schema_options> &options);
 

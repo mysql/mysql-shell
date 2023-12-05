@@ -228,7 +228,6 @@ for (index in tests) {
 //@<> getCluster test: compatible metadata
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-// Sandbox to be used in Cluster.checkInstanceState
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
@@ -305,11 +304,6 @@ for (index in tests) {
             print_debug("Cluster.describe()");
             testutil.wipeAllOutput();
             println(cluster.describe())
-        },
-        function () {
-            print_debug("Cluster.checkInstanceState()");
-            testutil.wipeAllOutput();
-            println(cluster.checkInstanceState(__sandbox_uri2));
         }
     ]
 

@@ -142,7 +142,8 @@ Member_recovery_method Rejoin_replica_instance::validate_instance_recovery() {
       *m_donor_instance, *m_target_instance, check_recoverable,
       m_options.clone_options.recovery_method.value_or(
           Member_recovery_method::AUTO),
-      m_cluster_impl->get_gtid_set_is_complete(), m_options.interactive());
+      m_cluster_impl->get_gtid_set_is_complete(),
+      current_shell_options()->get().wizards);
 }
 
 void Rejoin_replica_instance::validate_replication_channels() {

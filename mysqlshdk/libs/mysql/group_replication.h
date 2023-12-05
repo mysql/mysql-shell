@@ -455,7 +455,7 @@ Group_member_recovery_status detect_recovery_status(
  * assume that name resolution is the same across all the cluster instances and
  * the machine where the ngshell is running.
  *
- * // Note cannot be used for ipWhitelist validation as ipWhitelist values
+ * // Note cannot be used for ipAllowlist validation as ipAllowlist values
  * // don't have a port, just IP/hostname and also accept netmasks.
  * @param endpoint The endpoint we want to check is supported by the instance to
  * be used as either localAddress or groupSeed.

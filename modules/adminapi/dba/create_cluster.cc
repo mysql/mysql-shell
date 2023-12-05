@@ -25,7 +25,6 @@
 
 #include <memory>
 #include <set>
-#include <utility>
 #include <vector>
 
 #include "adminapi/cluster/cluster_impl.h"
@@ -105,7 +104,8 @@ void Create_cluster::validate_create_cluster_options() {
   TargetType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type == mysqlsh::dba::TargetType::GroupReplication) {
-    if (!m_options.adopt_from_gr.has_value() && m_options.interactive()) {
+    if (!m_options.adopt_from_gr.has_value() &&
+        current_shell_options()->get().wizards) {
       if (console->confirm(
               "You are connected to an instance that belongs to an unmanaged "
               "replication group.\nDo you want to setup an InnoDB Cluster "
@@ -140,8 +140,8 @@ void Create_cluster::validate_create_cluster_options() {
           "group to adopt");
     }
 
-    // Using communicationStack and adoptFromGR and/or ipAllowlist/ipWhitelist
-    // at the same time is forbidden
+    // Using communicationStack and adoptFromGR and/or ipAllowlist at the same
+    // time is forbidden
     if (m_options.gr_options.communication_stack.has_value()) {
       throw shcore::Exception::argument_error(shcore::str_format(
           "Cannot use the '%s' option if '%s' is set to true.",
@@ -160,8 +160,7 @@ void Create_cluster::validate_create_cluster_options() {
           kCommunicationStackMySQL &&
       m_options.gr_options.ip_allowlist.has_value()) {
     throw shcore::Exception::argument_error(shcore::str_format(
-        "Cannot use '%s' when setting the '%s' option to '%s'",
-        m_options.gr_options.ip_allowlist_option_name.c_str(),
+        "Cannot use '%s' when setting the '%s' option to '%s'", kIpAllowlist,
         kCommunicationStack, kCommunicationStackMySQL));
   }
 
@@ -177,7 +176,7 @@ void Create_cluster::validate_create_cluster_options() {
   if (!m_options.multi_primary) m_options.multi_primary = false;
 
   if (*m_options.multi_primary && !m_options.force.value_or(false)) {
-    if (m_options.interactive()) {
+    if (current_shell_options()->get().wizards) {
       console->print_para(
           "The MySQL InnoDB Cluster is going to be setup in advanced "
           "Multi-Primary Mode. Before continuing you have to confirm that you "
@@ -270,8 +269,7 @@ void Create_cluster::prepare() {
     // default
     if (m_options.gr_options.ip_allowlist.has_value()) {
       throw shcore::Exception::argument_error(shcore::str_format(
-          "Cannot use '%s' when the '%s' is '%s'",
-          m_options.gr_options.ip_allowlist_option_name.c_str(),
+          "Cannot use '%s' when the '%s' is '%s'", kIpAllowlist,
           kCommunicationStack, kCommunicationStackMySQL));
     }
 
@@ -365,7 +363,7 @@ void Create_cluster::prepare() {
       // Make sure the target instance does not already belong to a cluster.
       if (!m_retrying)
         mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-            m_target_instance, m_target_instance, {});
+            *m_target_instance, *m_target_instance, {});
 
       // Get the address used by GR for the added instance (used in MD).
       m_address_in_metadata = m_target_instance->get_canonical_address();

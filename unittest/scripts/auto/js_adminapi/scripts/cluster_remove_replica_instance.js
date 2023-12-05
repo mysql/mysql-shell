@@ -124,9 +124,11 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Unable to connect to the target instance '${__end
 EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${__endpoint3}' is not reachable and cannot be safely removed from the cluster.
 To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.`);
 
-//@<> Attempt to remove the unreachable read-replica with interactive: true
+//@<> Attempt to remove the unreachable read-replica with interactive
+shell.options.useWizards=1;
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)? [y/N]: ", "n");
-EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__endpoint3, {interactive: true})}, "Can't connect to MySQL server on '" + __endpoint3 + "'", "MySQL Error");
+EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__endpoint3)}, "Can't connect to MySQL server on '" + __endpoint3 + "'", "MySQL Error");
+shell.options.useWizards=0;
 
 //@<> Attempt to remove the unreachable read-replica with force: true
 EXPECT_NO_THROWS(function() { cluster.removeInstance(__endpoint3, {force: 1}); });

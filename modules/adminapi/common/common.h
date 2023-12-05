@@ -202,9 +202,7 @@ inline constexpr const char kGrExitStateAction[] =
     "group_replication_exit_state_action";
 inline constexpr const char kGroupSeeds[] = "groupSeeds";
 inline constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
-inline constexpr const char kIpWhitelist[] = "ipWhitelist";
 inline constexpr const char kIpAllowlist[] = "ipAllowlist";
-inline constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
 inline constexpr const char kGrIpAllowlist[] = "group_replication_ip_allowlist";
 inline constexpr const char kLocalAddress[] = "localAddress";
 inline constexpr const char kGrLocalAddress[] =
@@ -215,7 +213,6 @@ inline constexpr const char kGrMemberWeight[] =
 inline constexpr const char kExpelTimeout[] = "expelTimeout";
 inline constexpr const char kGrExpelTimeout[] =
     "group_replication_member_expel_timeout";
-inline constexpr const char kFailoverConsistency[] = "failoverConsistency";
 inline constexpr const char kGrFailoverConsistency[] =
     "group_replication_consistency";
 inline constexpr const char kConsistency[] = "consistency";
@@ -253,10 +250,8 @@ inline constexpr const char kClusterAdminCertSubject[] =
 inline constexpr const char kClusterAdminPasswordExpiration[] =
     "clusterAdminPasswordExpiration";
 inline constexpr const char kRestart[] = "restart";
-inline constexpr const char kClearReadOnly[] = "clearReadOnly";
 inline constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
 inline constexpr const char kMultiPrimary[] = "multiPrimary";
-inline constexpr const char kMultiMaster[] = "multiMaster";
 inline constexpr const char kForce[] = "force";
 inline constexpr const char kAdoptFromGR[] = "adoptFromGR";
 inline constexpr const char kAddInstances[] = "addInstances";
@@ -264,14 +259,12 @@ inline constexpr const char kRemoveInstances[] = "removeInstances";
 inline constexpr const char kAddUnmanaged[] = "addUnmanaged";
 inline constexpr const char kRemoveObsolete[] = "removeObsolete";
 inline constexpr const char kRejoinInstances[] = "rejoinInstances";
-inline constexpr const char kWaitRecovery[] = "waitRecovery";
 inline constexpr const char kRecoveryProgress[] = "recoveryProgress";
 inline constexpr const char kLabel[] = "label";
 inline constexpr const char kExtended[] = "extended";
 inline constexpr const char kQueryMembers[] = "queryMembers";
 inline constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
 inline constexpr const char kUpdate[] = "update";
-inline constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
 inline constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 inline constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
 inline constexpr const char kAll[] = "all";
@@ -334,8 +327,6 @@ inline const std::map<std::string, Option_availability>
           mysqlshdk::utils::Version("5.7.20")}},
         {kExpelTimeout,
          {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13"), {}}},
-        {kFailoverConsistency,
-         {kGrFailoverConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kConsistency,
          {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kAutoRejoinTries,
@@ -479,10 +470,9 @@ void resolve_ssl_mode_option(const std::string &option,
                              const mysqlshdk::mysql::IInstance &instance,
                              Cluster_ssl_mode *ssl_mode);
 
-void resolve_instance_ssl_mode_option(
+Cluster_ssl_mode resolve_instance_ssl_mode_option(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::mysql::IInstance &pinstance,
-    Cluster_ssl_mode *member_ssl_mode);
+    const mysqlshdk::mysql::IInstance &pinstance);
 
 void validate_instance_ssl_mode(Cluster_type type,
                                 const mysqlshdk::mysql::IInstance &instance,
@@ -512,8 +502,7 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
 bool SHCORE_PUBLIC validate_cluster_group_name(
     const mysqlshdk::mysql::IInstance &instance, const std::string &group_name);
 
-bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              std::optional<bool> clear_read_only);
+bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance);
 
 enum class Instance_rejoinability {
   REJOINABLE,

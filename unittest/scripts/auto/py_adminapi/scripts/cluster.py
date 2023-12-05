@@ -9,7 +9,6 @@ cluster = dba.create_cluster('devCluster')
 
 validate_members(cluster, [
     'add_instance',
-    'check_instance_state',
     'describe',
     'dissolve',
     'disconnect',

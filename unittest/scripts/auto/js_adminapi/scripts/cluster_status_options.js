@@ -791,8 +791,6 @@ EXPECT_THROWS(function(){cluster.status({extended: -1})}, "Option 'extended' UIn
 EXPECT_THROWS(function(){cluster.status({extended: 4})}, "Invalid value '4' for option 'extended'. It must be an integer in the range [0, 3].");
 // Invalid value type float for extended.
 EXPECT_THROWS(function(){cluster.status({extended: 1.5})}, "Option 'extended' UInteger expected, but Float value is out of range");
-// Invalid value type string for queryMembers.
-EXPECT_THROWS(function(){cluster.status({queryMembers: ""})}, "Option 'queryMembers' Bool expected, but value is String");
 
 
 //@<> WL#13084 - TSF4_2: extended: 1 provides the following information:
@@ -876,27 +874,6 @@ EXPECT_NE(undefined, fence_sys_vars);
 var transactions = json_find_key(stat, "transactions");
 EXPECT_NE(undefined, transactions);
 
-// TS_E4	Validate that when calling cluster.status() with extended and queryMembers options set to false, information about additional transactions stats is not printed.
-var stat = cluster.status({extended:2, queryMembers:false});
-
-//@<> 8.0 execution 2 {VER(>=8.0) && VER(<8.0.23)}
-json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
-
-//@<> 8.0 execution 2 {VER(>=8.0.23) && VER(<8.0.26)}
-json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
-
-//@<> 8.0 execution 2 {VER(>=8.0.26)}
-json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
-
-//@<> 8.0.31 execution 2 {VER(>=8.0.31)}
-json_check(stat, extended_2_status_templ_8031, [], ["replicationLag"]);
-
-//@<> 5.7 execution 2 {VER(<8.0)}
-json_check(stat, extended_2_status_templ_57);
-
-// TS_E2	Verify that giving no boolean values to the new dictionary options throws an exception when calling cluster.status().
-EXPECT_THROWS(function(){cluster.status({extended:"yes", queryMembers:"maybe"})}, "Option 'extended' UInteger expected, but value is String");
-
 // TS1_2 - Verify that information about additional transactions stats is not printed when using cluster.status() and the option extended is not given or is set to false.
 //@<> F2- default 8.0 {VER(>=8.0)}
 var stat = cluster.status();
@@ -910,21 +887,20 @@ json_check(stat, base_status_templ_57);
 // TS4_1    Verify that the I/O thread and applied workers information is added to the status of a member when calling cluster.status().
 // TS7_1    Verify that information about the regular transaction processed is added to the status of a member that is Online when calling cluster.status().
 // TS10_1   Validate that information about member_id/server_uuid and GR group name is added to the output when calling cluster.status() if brief is set to false.
-// WL#13084 - TSF4_4: extended: 3 includes transactions information (same as queryMembers: true).
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0) && VER(<8.0.23)}
+//@<> F3- Verify output with extended: 3 for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_80);
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.23) && VER(<8.0.26)}
+//@<> F3- Verify output with extended: 3 for 8.0 {VER(>=8.0.23) && VER(<8.0.26)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_8023);
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.26)}
+//@<> F3- Verify output with extended: 3 for 8.0 {VER(>=8.0.26)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_8026);
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 5.7 {VER(<8.0)}
+//@<> F3- Verify output with extended: 3 for 5.7 {VER(<8.0)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_57);
 
@@ -948,28 +924,8 @@ EXPECT_NE(undefined, connection);
 var workers = json_find_key(stat, "workers");
 EXPECT_NE(undefined, workers);
 
-//@<> TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0) && VER(<8.0.23)}
-var stat_qm = cluster.status({queryMembers: true, extended:false});
-json_check(stat_qm, full_status_templ_80);
-
-//@<> TS_E3 Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0.23)}
-var stat_qm = cluster.status({queryMembers: true, extended:false});
-json_check(stat_qm, full_status_templ_8023);
-
-//@<> TS_E3 Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(<8.0)}
-var stat_qm = cluster.status({queryMembers: true, extended:false});
-json_check(stat_qm, full_status_templ_57);
-
-//@<> WL#13084 - TSF5_2: extended: 3 is the same as queryMembers: true.
-var stat_ext_3 = cluster.status({queryMembers: true});
-EXPECT_EQ(stat, stat_ext_3);
-
-// If the option queryMembers is set to true, it takes precedence over extended option overriding the used value to 3.
-var stat_qm_true_ext_2 = cluster.status({queryMembers: true, extended: 2});
-EXPECT_EQ(stat, stat_qm_true_ext_2);
-
-// With 2 members
-cluster.addInstance(__sandbox_uri2, {waitRecovery: 0});
+//@<> Add secondary member
+cluster.addInstance(__sandbox_uri2);
 
 // TS6_1	Verify that information about the recovery process is added to the status of a member that is on Recovery status when calling cluster.status().
 
@@ -1002,35 +958,10 @@ json_check(stat, extended_2_status_templ_8031, [], allowed_unexpected);
 //@<> F7- Check that recovery stats are there 8.0 - extended 3 {VER(>=8.0)}
 var stat = cluster.status({extended:3});
 println(stat);
-EXPECT_EQ("RECOVERING", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)["status"]);
+EXPECT_EQ("ONLINE", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)["status"]);
 var allowed_missing = ["appliedCount", "checkedCount", "committedAllMembers", "conflictsDetectedCount", "inApplierQueueCount", "inQueueCount", "lastConflictFree", "proposedCount", "rollbackCount"];
 // currentlyQueueing only appears if the worker is currently processing a tx
 allowed_missing.push("currentlyQueueing");
-
-//@<> F7- Check that recovery stats for transactions are there 8.0 {VER(>=8.0) && VER(<8.0.23)}
-var transactions = json_find_key(stat, "transactions");
-json_check(transactions, transaction_status_templ, allowed_missing, ["recoveryChannel"]);
-
-//@<> F7- Check that recovery stats for transactions are there 8.0.23 {VER(>=8.0.23)}
-var transactions = json_find_key(stat, "transactions");
-
-EXPECT_NE(undefined, transactions["connection"]);
-EXPECT_NE(undefined, transactions["coordinator"]);
-EXPECT_NE(undefined, transactions["workers"]);
-EXPECT_EQ(4, transactions["workers"].length);
-json_check(transactions["coordinator"], coordinator_status_templ_80);
-
-// WL13208-TS_FR8_3 - Distributed Recovery displays state
-var recovery = json_find_key(stat, "recovery");
-json_check(recovery, distributed_recovery_status_templ, [], ["recoveryChannel"]);
-
-// Wait recovery to finish
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-var stat = cluster.status({extended:3});
-println(stat);
-var recovery = json_find_key(stat, "recovery");
-EXPECT_FALSE(recovery);
 
 //@<> WL13208-TS_FR8_2 - Clone Recovery status displays state information {VER(>=8.0)}
 cluster.removeInstance(hostname+":"+__mysql_sandbox_port2);
@@ -1042,24 +973,12 @@ for (i = 0; i < NUM_DATA_ROWS; i++) {
 
 session2 = mysql.getSession(__sandbox_uri2);
 
-// the recovery should fail because it can't connect to the primary
-cluster.addInstance(__sandbox_uri2, {waitRecovery: 0, recoveryMethod:'clone'});
+// the recovery should not fail
+cluster.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
 
 var stat = cluster.status({ extended: 3 });
-var recovery = json_find_key(stat, "recovery");
-
-// When the check for clone progress is executed right after clone has
-// started there's a tiny gap of time on which P_S.clone_progress hasn't
-// been populated yet. In that scenario, "currentStage" is undefined.
-while (recovery["currentStage"] == undefined) {
-    stat = cluster.status({ extended: 3 });
-    recovery = json_find_key(stat, "recovery");
-}
-
-var allowed_missing = ["currentStageProgress"];
-json_check(recovery, clone_recovery_status_templ, allowed_missing, ["recoveryChannel"]);
-
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+println(stat);
+EXPECT_EQ(undefined, json_find_key(stat, "recovery"));
 
 //@<> F4 - shutdown member2 and try again to see if connect error is included
 // TS_3_1	Verify that a shellConnectError is added to the status of a member if the shell can't connect to it when calling cluster.status().
@@ -1074,8 +993,7 @@ EXPECT_NE(undefined, loc["shellConnectError"]);
 
 //@<> F6- With parallel appliers for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 // TS5_1	Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
-cluster.addInstance(__sandbox_uri3, {waitRecovery: 0});
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+cluster.addInstance(__sandbox_uri3);
 
 var stat = cluster.status({extended:3});
 var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];
@@ -1087,8 +1005,7 @@ json_check(tx["coordinator"], coordinator_status_templ_80);
 
 //@<> F6- With parallel appliers for 5.7 {VER(<8.0)}
 // TS5_1    Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
-cluster.addInstance(__sandbox_uri3, {waitRecovery: 0});
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+cluster.addInstance(__sandbox_uri3);
 
 var stat = cluster.status({extended:3});
 var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];

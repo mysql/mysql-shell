@@ -245,25 +245,10 @@ status = cluster.status();
 
 // ---- recovery status
 
-//@ recoveryChannel during recovery
-
+//@<> recoveryChannel with error
+// and instanceError with recovery channel error
 cluster.addInstance(__sandbox_uri3);
 
-// create the table in sb2 so we can lock it
-create_testdb(session2);
-session2.runSql("lock tables testdb.data read");
-
-session1.runSql("insert into testdb.data values (default, repeat('x', 200000))");
-
-cluster.addInstance(__sandbox_uri2, {waitRecovery:0});
-
-cluster.status({extended:1});
-
-session2.runSql("unlock tables");
-
-//@ recoveryChannel with error
-// and instanceError with recovery channel error
-cluster.removeInstance(__sandbox_uri2);
 reset_instance(session2);
 create_testdb(session2);
 session2.runSql("set global group_replication_recovery_retry_count=2");
@@ -278,47 +263,19 @@ session2.runSql("insert into testdb.data values (42, 'breakme')");
 session2.runSql("set sql_log_bin=1");
 session2.runSql("set global super_read_only=1");
 
-// freeze recovery when it tries to insert to this table
-session2.runSql("lock tables testdb.data read");
+// this ultimatly fails
+EXPECT_THROWS(function(){
+    cluster.addInstance(__sandbox_uri2);
+}, "Distributed recovery has failed");
 
-cluster.addInstance(__sandbox_uri2, {waitRecovery:0});
-
-session2.runSql("unlock tables");
-
-cluster.status();
-wait(200, 1, function(){return cluster.status().defaultReplicaSet.topology[hostname+":"+__mysql_sandbox_port2].status == "(MISSING)"; });
-
-cluster.status();
 // ---- other instanceErrors
 
-//@ instanceError with split-brain
-session2.runSql("stop group_replication");
-session2.runSql("set global group_replication_bootstrap_group=1");
+//@ instanceError with an instance that has its UUID changed
 
-if (__version_num >= 80027) {
-    session2.runSql("set global group_replication_communication_stack='xcom'");
-}
-
-session2.runSql("start group_replication");
-session2.runSql("set global group_replication_bootstrap_group=0");
-
-cluster.status();
-
-//@ instanceError with unmanaged member
-session2.runSql("stop group_replication");
-cluster.removeInstance(__sandbox_uri2, {force:1});
+// insert the instance correctly
 reset_instance(session2);
 cluster.addInstance(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-session1.runSql("delete from mysql_innodb_cluster_metadata.instances where instance_name like ?", ["%"+__mysql_sandbox_port2]);
-
-cluster.status();
-
-// insert back the instance
-cluster.rescan({addInstances:"auto"});
-
-//@ instanceError with an instance that has its UUID changed
 shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
@@ -551,7 +508,7 @@ cluster.status()
 
 //@<> Check for OK_NO_TOLERANCE_PARTIAL (BUG#33989031)
 if (testutil.versionCheck(__version, "<", "8.0.0"))
-  dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: mycnf3});
+  dba.configureInstance(__sandbox_uri3, {mycnfPath: mycnf3});
 
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
@@ -581,12 +538,6 @@ var cluster = dba.getCluster();
 
 //@<OUT> Status with a new primary
 cluster.status();
-
-//@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (true).
-cluster.status({queryMembers:true});
-
-//@<OUT> WL#13084 - TSF5_1: queryMembers option is deprecated (false).
-cluster.status({queryMembers:false});
 
 // BUG#30401048: ERROR VERIFYING METADATA VERSION
 // Regression test to ensure that when a consistency level of "BEFORE", "AFTER" or

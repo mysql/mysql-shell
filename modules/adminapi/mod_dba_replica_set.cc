@@ -23,6 +23,8 @@
 
 #include "modules/adminapi/mod_dba_replica_set.h"
 
+#include <tuple>
+
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
 
@@ -211,13 +213,10 @@ does not execute them
 status()
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
-@li waitRecovery: Integer value to indicate the recovery process verbosity
-level.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
 level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
-${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
@@ -255,33 +254,17 @@ If interaction is disabled, the operation will be canceled instead.
 
 If recoveryMethod is not specified 'auto' will be used by default.
 
-The waitRecovery option supports the following values:
-
-@li 0: not supported.
-@li 1: do not show any progress information.
-@li 2: show detailed static progress information.
-@li 3: show detailed dynamic progress information using progress bars.
-
 The recoveryProgress option supports the following values:
 
 @li 0: do not show any progress information.
 @li 1: show detailed static progress information.
 @li 2: show detailed dynamic progress information using progress bars.
 
-By default, if the standard output on which the Shell is running refers to a
-terminal, the waitRecovery option has the value of 3. Otherwise, it has the
-value of 2.
-
 The cloneDonor option is used to override the automatic selection of a donor to
 be used when clone is selected as the recovery method. By default, a SECONDARY
 member will be chosen as donor. If no SECONDARY members are available the
 PRIMARY will be selected. The option accepts values in the format: 'host:port'.
 IPv6 addresses are not supported.
-
-@attention The waitRecovery option will be removed in a future release.
-Please use the recoveryProgress option instead.
-
-@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -300,7 +283,7 @@ void ReplicaSet::add_instance(
   assert_valid("addInstance");
 
   // this validates the instance_def
-  (void)get_connection_options(shcore::Value(instance_def));
+  std::ignore = get_connection_options(shcore::Value(instance_def));
 
   // TODO(anyone): The implementation should be updated to receive the options
   // object
@@ -308,14 +291,13 @@ void ReplicaSet::add_instance(
 
   execute_with_pool(
       [&]() {
-        impl()->add_instance(instance_def, options->ar_options,
-                             options->clone_options, options->instance_label,
-                             options->cert_subject, opts->get_wait_recovery(),
-                             options->timeout, options->interactive(),
-                             options->dry_run);
-        return shcore::Value();
+        impl()->add_instance(
+            instance_def, options->ar_options, options->clone_options,
+            options->instance_label, options->cert_subject,
+            opts->get_recovery_progress(), options->timeout,
+            current_shell_options()->get().wizards, options->dry_run);
       },
-      options->interactive());
+      current_shell_options()->get().wizards);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, ReplicaSet);
@@ -364,13 +346,10 @@ The options dictionary may contain the following values:
 does not execute them
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
-@li waitRecovery: Integer value to indicate the recovery process verbosity
-level.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
 level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
-${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
@@ -390,33 +369,17 @@ If interaction is disabled, the operation will be canceled instead.
 
 If recoveryMethod is not specified 'auto' will be used by default.
 
-The waitRecovery option supports the following values:
-
-@li 0: not supported.
-@li 1: do not show any progress information.
-@li 2: show detailed static progress information.
-@li 3: show detailed dynamic progress information using progress bars.
-
 The recoveryProgress option supports the following values:
 
 @li 0: do not show any progress information.
 @li 1: show detailed static progress information.
 @li 2: show detailed dynamic progress information using progress bars.
 
-By default, if the standard output on which the Shell is running refers to a
-terminal, the waitRecovery option has the value of 3. Otherwise, it has the
-value of 2.
-
 The cloneDonor option is used to override the automatic selection of a donor to
 be used when clone is selected as the recovery method. By default, a SECONDARY
 member will be chosen as donor. If no SECONDARY members are available the
 PRIMARY will be selected. The option accepts values in the format: 'host:port'.
 IPv6 addresses are not supported.
-
-@attention The waitRecovery option will be removed in a future release.
-Please use the recoveryProgress option instead.
-
-@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -435,22 +398,19 @@ void ReplicaSet::rejoin_instance(
         &options) {
   assert_valid("rejoinInstance");
 
-  std::string clone_donor;
-
   // this validates the instance_def
-  (void)get_connection_options(shcore::Value(instance_def));
+  std::ignore = get_connection_options(shcore::Value(instance_def));
 
-  // Init progress_style
   auto opts = options;
 
   execute_with_pool(
       [&]() {
-        impl()->rejoin_instance(instance_def, options->clone_options,
-                                opts->get_wait_recovery(), options->timeout,
-                                options->interactive(), options->dry_run);
-        return shcore::Value();
+        impl()->rejoin_instance(instance_def, opts->clone_options,
+                                opts->get_recovery_progress(), opts->timeout,
+                                current_shell_options()->get().wizards,
+                                opts->dry_run);
       },
-      options->interactive());
+      current_shell_options()->get().wizards);
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, ReplicaSet);

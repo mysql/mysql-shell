@@ -1,24 +1,3 @@
-//@ Initialization
-||
-
-
-//@ Cluster: addInstance errors
-||Invalid number of arguments, expected 1 to 2 but got 0
-||Invalid number of arguments, expected 1 to 2 but got 4
-||Argument #2 is expected to be a map
-||Argument #2 is expected to be a map
-||Invalid connection options, expected either a URI or a Connection Options Dictionary
-||Invalid URI: empty.
-||Invalid values in connection options: ipWhitelist, memberSslMode
-||Argument #2 is expected to be a map
-||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
-||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
-||Invalid value for ipWhitelist: string value cannot be empty.
-||The label can not be empty.
-||The label can only start with an alphanumeric or the '_' character.
-||The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
-||The label can not be greater than 256 characters.
-
 //@ Cluster: addInstance with interaction, error
 ||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB Cluster
 
@@ -73,7 +52,7 @@ See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -82,7 +61,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
@@ -133,7 +112,7 @@ See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -142,8 +121,8 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: describe1
@@ -171,16 +150,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
         "topologyMode": "Single-Primary"
     }
 }
-
-//@<ERR> Cluster: removeInstance errors
-Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
-Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
-Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string (TypeError)
-Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> not found [[*]]
-
-//@ Cluster: removeInstance
-||
 
 //@<OUT> Cluster: describe2
 {
@@ -231,16 +200,6 @@ Are you sure you want to dissolve the cluster? [y/N]:
 //@<ERR> Cluster: dissolve error: not empty
 Cluster.dissolve: Operation canceled by user. (RuntimeError)
 
-//@ Cluster: dissolve errors
-||Argument #1 is expected to be a map
-||Invalid number of arguments, expected 0 to 1 but got 2
-||Argument #1 is expected to be a map
-||Invalid options: enforce
-||Option 'force' Bool expected, but value is String
-
-//@ Cluster: remove_instance 3
-||
-
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
@@ -277,7 +236,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
@@ -328,7 +287,7 @@ See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions
 A new instance will be added to the InnoDB Cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -337,8 +296,8 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@# Dba: kill instance 3
@@ -346,18 +305,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 
 //@# Dba: start instance 3
 ||
-
-//@: Cluster: rejoinInstance errors
-||Invalid number of arguments, expected 1 to 2 but got 0
-||Invalid number of arguments, expected 1 to 2 but got 3
-||Invalid connection options, expected either a URI or a Connection Options Dictionary
-||Invalid values in connection options: ipWhitelist, memberSslMode
-||Argument #2 is expected to be a map
-||Could not open connection to 'localhost'
-||Could not open connection to 'localhost:3306'
-||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
-||Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.
-||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 <<<(__version_num>=80011) ? "NOTE: The instance 'localhost:"+__mysql_sandbox_port3+"' is running auto-rejoin process, which will be cancelled.\n\n":""\>>>
@@ -374,7 +321,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
-<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
 
 <<<(__version_num>=80011) ? "NOTE: Cancelling active GR auto-initialization at "+hostname+":"+__mysql_sandbox_port3+"\n":""\>>>
@@ -385,8 +332,8 @@ NOTE: User '<<<repl_user>>>'@'%' already existed at instance '<<<hostname>>>:<<<
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
 State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'
 
-<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
+<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.\n":""\>>>
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
 //@<OUT> Cluster: final dissolve

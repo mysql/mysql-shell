@@ -49,10 +49,8 @@ const shcore::Option_pack_def<Add_instance_options>
           .include(&Add_instance_options::gr_options)
           .include(&Add_instance_options::clone_options)
           .optional(kLabel, &Add_instance_options::label)
-          .include<Wait_recovery_option>()
           .include<Recovery_progress_option>()
-          .optional(kCertSubject, &Add_instance_options::set_cert_subject)
-          .include<Password_interactive_options>();
+          .optional(kCertSubject, &Add_instance_options::set_cert_subject);
   return opts;
 }
 
@@ -73,7 +71,6 @@ const shcore::Option_pack_def<Rejoin_instance_options>
           .include(&Rejoin_instance_options::clone_options)
           .include<Recovery_progress_option>()
           .optional(kDryRun, &Rejoin_instance_options::dry_run)
-          .include<Password_interactive_options>()
           .include<Timeout_option>();
 
   return opts;
@@ -85,17 +82,14 @@ const shcore::Option_pack_def<Remove_instance_options>
       shcore::Option_pack_def<Remove_instance_options>()
           .optional(kForce, &Remove_instance_options::force)
           .optional(kDryRun, &Remove_instance_options::dry_run)
-          .include<Password_interactive_options>()
           .include<Timeout_option>();
 
   return opts;
 }
 
 const shcore::Option_pack_def<Status_options> &Status_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Status_options>()
-          .optional(kExtended, &Status_options::set_extended)
-          .optional(kQueryMembers, &Status_options::set_query_members);
+  static const auto opts = shcore::Option_pack_def<Status_options>().optional(
+      kExtended, &Status_options::set_extended);
 
   return opts;
 }
@@ -113,22 +107,6 @@ void Status_options::set_extended(uint64_t value) {
   extended = value;
 }
 
-void Status_options::set_query_members(bool value) {
-  auto console = mysqlsh::current_console();
-
-  std::string specific_value = value ? " with value 3" : "";
-  console->print_warning(
-      shcore::str_format("The '%s' option is deprecated. "
-                         "Please use the 'extended' option%s instead.",
-                         kQueryMembers, specific_value.c_str()));
-
-  console->print_info();
-
-  if (value) {
-    extended = 3;
-  }
-}
-
 const shcore::Option_pack_def<Options_options> &Options_options::options() {
   static const auto opts = shcore::Option_pack_def<Options_options>().optional(
       kAll, &Options_options::all);
@@ -139,9 +117,6 @@ const shcore::Option_pack_def<Options_options> &Options_options::options() {
 const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Rescan_options>()
-          .include<Interactive_option>()
-          .optional(kUpdateTopologyMode,
-                    &Rescan_options::set_update_topology_mode)
           .optional(kAddInstances, &Rescan_options::set_list_option)
           .optional(kRemoveInstances, &Rescan_options::set_list_option)
           .optional(kAddUnmanaged, &Rescan_options::set_bool_option)
@@ -152,15 +127,6 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
                     &Rescan_options::update_view_change_uuid);
 
   return opts;
-}
-
-void Rescan_options::set_update_topology_mode(bool /*value*/) {
-  auto console = mysqlsh::current_console();
-  console->print_info(shcore::str_format(
-      "The %s option is deprecated. The topology-mode is now automatically "
-      "updated.",
-      kUpdateTopologyMode));
-  console->print_info();
 }
 
 void Rescan_options::set_bool_option(const std::string &option, bool value) {

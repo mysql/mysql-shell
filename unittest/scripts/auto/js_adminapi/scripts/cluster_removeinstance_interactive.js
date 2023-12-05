@@ -26,8 +26,10 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 var cluster = dba.createCluster('dev', {gtidSetIsComplete: true});
 
 //@ remove instance not in MD but reachable when there's just 1 (should fail)
-cluster.removeInstance(__hostname_uri3, {interactive:true});
-cluster.removeInstance(__hostname_uri3, {interactive:false});
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=1;
 
 //@ Adding instance
 cluster.addInstance(__sandbox_uri2);
@@ -36,16 +38,18 @@ cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ remove instance not in MD but reachable when there are 2 (should fail)
-cluster.removeInstance(__hostname_uri3, {interactive:true});
-cluster.removeInstance(__hostname_uri3, {interactive:false});
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=1;
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {interactive: true, mycnfPath: cnfPath1, password:'root'});
+dba.configureInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root'});
 
 //@ Configure instance on port2 to persist auto-rejoin settings {VER(<8.0.11)}
 var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {interactive: true, mycnfPath: cnfPath2, password:'root'});
+dba.configureInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, password:'root'});
 
 //@<OUT> Number of instance according to GR.
 print_instances_count_for_gr();
@@ -85,11 +89,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: true)
 // WL#11862 - FR3_1
-cluster.removeInstance(__sandbox_uri2, {interactive: true});
+cluster.removeInstance(__sandbox_uri2);
 
 //@<OUT> Removing instance (interactive: false)
 // WL#11862 - FR3_1
-cluster.removeInstance(__sandbox_uri3, {interactive: false});
+shell.options.useWizards=0;
+cluster.removeInstance(__sandbox_uri3);
+shell.options.useWizards=1;
 
 //@ Adding instance on port2 back (interactive: true, force: false)
 // WL#11862 - FR3_2
@@ -103,14 +109,15 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: true, force: false)
 // WL#11862 - FR3_2
-cluster.removeInstance(__sandbox_uri2, {interactive: true, force: false});
+cluster.removeInstance(__sandbox_uri2, {force: false});
 
 //@<OUT> Removing instance (interactive: true, force: true)
 // WL#11862 - FR3_3
-cluster.removeInstance(__sandbox_uri3, {interactive: true, force: true});
+cluster.removeInstance(__sandbox_uri3, {force: true});
 
 //@ Adding instance on port2 back (interactive: false, force: false)
 // WL#11862 - FR3_4
+shell.options.useWizards=0;
 cluster.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -121,11 +128,12 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: false, force: false)
 // WL#11862 - FR3_4
-cluster.removeInstance(__sandbox_uri2, {interactive: false, force: false});
+cluster.removeInstance(__sandbox_uri2, {force: false});
 
 //@<OUT> Removing instance (interactive: false, force: true)
 // WL#11862 - FR3_4
-cluster.removeInstance(__sandbox_uri3, {interactive: false, force: true});
+cluster.removeInstance(__sandbox_uri3, {force: true});
+shell.options.useWizards=1;
 
 //@ Adding instance on port2 back (force: false)
 // WL#11862 - FR5_1
@@ -252,7 +260,9 @@ cluster.removeInstance('root:wrong@'+hostname_ip+':' + __mysql_sandbox_port2);
 
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-cluster.removeInstance('root:root@'+hostname+':' + __mysql_sandbox_port2, {interactive: false});
+shell.options.useWizards=0;
+cluster.removeInstance('root:root@'+hostname+':' + __mysql_sandbox_port2);
+shell.options.useWizards=1;
 
 //@ Error removing stopped instance on port2 (no prompt if force is used)
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
@@ -267,7 +277,7 @@ cluster.removeInstance('root:root@'+hostname+':' + __mysql_sandbox_port2);
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
 // BUG#26986141 : REMOVEINSTANCE DOES NOT ACCEPT A SECOND PARAMETER
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "y");
-cluster.removeInstance('root@'+hostname+':' + __mysql_sandbox_port2, {PassWord: "root"});
+cluster.removeInstance('root:root@'+hostname+':' + __mysql_sandbox_port2);
 
 //@<OUT> Confirm instance2 is not in cluster metadata
 // WL#11862 - FR5_3
@@ -275,19 +285,25 @@ host_exist_in_metadata_schema(__mysql_sandbox_port2);
 
 //@ Remove unreachable instance (interactive: false, force: false) - error
 // WL#11862 - FR4_5
-cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3, {force: false});
+shell.options.useWizards=1;
 
 //@ Remove unreachable instance (interactive: false, force: true) - success
 // WL#11862 - FR4_5
-cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3, {force: true});
+shell.options.useWizards=1;
 
 //@ remove instance not in MD and unreachable, interactive true (should fail)
 // BUG#30580393: error focusing on instance not being reachable (since it could be in MD with a different host).
-cluster.removeInstance(__hostname_uri3, {interactive:true});
+cluster.removeInstance(__hostname_uri3);
 
 //@ remove instance not in MD and unreachable, interactive false (should fail)
 // BUG#30580393: error focusing on instance not being reachable (since it could be in MD with a different host).
-cluster.removeInstance(__hostname_uri3, {interactive:false});
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=1;
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 cluster.status();
@@ -306,11 +322,13 @@ testutil.waitSandboxAlive(__mysql_sandbox_port3);
 
 //@ remove reachable instance but not MD, interactive false (should fail)
 // BUG#30580393: only issue error indicating that instance does not belong to replicaset when reachable.
-cluster.removeInstance(__hostname_uri3, {interactive:false});
+shell.options.useWizards=0;
+cluster.removeInstance(__hostname_uri3);
+shell.options.useWizards=1;
 
 //@ remove reachable instance but not MD, interactive true (should fail)
 // BUG#30580393: only issue error indicating that instance does not belong to replicaset when reachable.
-cluster.removeInstance(__hostname_uri3, {interactive:true});
+cluster.removeInstance(__hostname_uri3);
 
 //@ Connect to instance2 (removed unreachable)
 // WL#11862 - FR5_3
@@ -357,26 +375,29 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<> Remove unreachable instance (interactive: true, force: false) - error
 // WL#11862 - FR4_3
-cluster.removeInstance(__hostname_uri2, {interactive: true, force: false});
+cluster.removeInstance(__hostname_uri2, {force: false});
 
 //@<> Remove unreachable instance (interactive: false) - error
 // WL#11862 - FR4_4
-EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3, {interactive: false}); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at "]);
+shell.options.useWizards=0;
+EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at "]);
+shell.options.useWizards=1;
+
 EXPECT_STDOUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at "])
 EXPECT_STDOUT_CONTAINS_MULTILINE("ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.\nTo safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.");
 
 //@<> Remove unreachable instance (interactive: true, answer NO) - error
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
-cluster.removeInstance(__hostname_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2);
 
 //@<> Remove unreachable instance (interactive: true, answer YES) - success
 // WL#11862 - FR4_1
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "y");
-cluster.removeInstance(__hostname_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2);
 
 //@<> Remove unreachable instance (interactive: true, force: true) - success
 // WL#11862 - FR4_2
-cluster.removeInstance(__hostname_uri3, {interactive: true, force: true});
+cluster.removeInstance(__hostname_uri3, {force: true});
 
 //@ Remove instance post actions (ensure they do not rejoin cluster)
 testutil.changeSandboxConf(__mysql_sandbox_port2, 'group_replication_start_on_boot', 'OFF');
@@ -441,7 +462,7 @@ cluster.disconnect();
 
 //@ Cluster re-created with success
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
-var cluster = dba.createCluster('dev', {clearReadOnly: true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {gtidSetIsComplete: true});
 
 session.close();
 cluster.disconnect();

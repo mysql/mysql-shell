@@ -17,7 +17,7 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
 //@ Setup 2 member cluster
-var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', multiPrimary: true, force: true, clearReadOnly:true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {memberSslMode: 'DISABLED', multiPrimary: true, force: true, gtidSetIsComplete: true});
 cluster.addInstance({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -66,9 +66,9 @@ EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 cluster.disconnect();
 session.close();
 
-//@<> MP - getCluster() on primary with connectToPrimary: true
+//@<> MP - getCluster(null) on primary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();
@@ -82,9 +82,9 @@ EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 cluster.disconnect();
 session.close();
 
-//@<> MP - getCluster() on another primary with connectToPrimary: true
+//@<> MP - getCluster(null) on another primary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();
@@ -98,41 +98,9 @@ EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
 cluster.disconnect();
 session.close();
 
-//@<> MP - getCluster() on primary with connectToPrimary: false
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-
-// check the shell is connected to where we expect
-shell.status();
-EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port1}`);
-WIPE_OUTPUT();
-
-// check the cluster is connected to where we expect
-cluster.status();
-EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
-
-cluster.disconnect();
-session.close();
-
-//@<> MP - getCluster() on another primary with connectToPrimary: false
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-
-// check the shell is connected to where we expect
-shell.status();
-EXPECT_OUTPUT_CONTAINS(`TCP port:                     ${__mysql_sandbox_port2}`);
-WIPE_OUTPUT();
-
-// check the cluster is connected to where we expect
-cluster.status();
-EXPECT_OUTPUT_CONTAINS(`"groupInformationSourceMember": "${primary_address}"`);
-
-cluster.disconnect();
-session.close();
-
-//@<> MPX - getCluster() on primary
+//@<> MPX - getCluster() on primary (x protocol)
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();
@@ -148,7 +116,7 @@ session.close();
 
 //@<> MPX - getCluster() on primary (no redirect)
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();

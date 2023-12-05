@@ -109,9 +109,9 @@ var __local_address_2 = ":" + valid_port;
 var __result_local_address_2 = hostname + __local_address_2;
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_2});
+  c = dba.createCluster('test', {localAddress: __local_address_2});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_2, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __local_address_2, communicationStack: "xcom"});
 }
 
 //@<> Confirm local address is set correctly (FR1-TS-1-2)
@@ -126,9 +126,9 @@ var result_port = __mysql_sandbox_port1 * 10 + 1;
 var __result_local_address_3 = __local_address_3 + result_port;
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __result_local_address_3});
+  c = dba.createCluster('test', {localAddress: __result_local_address_3});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __result_local_address_3, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __result_local_address_3, communicationStack: "xcom"});
 }
 
 //@<> Confirm local address is set correctly (FR1-TS-1-3)
@@ -142,9 +142,9 @@ var __local_address_4 = (__mysql_sandbox_port2 * 10 + 1).toString();
 var __result_local_address_4 = hostname + ":" + __local_address_4;
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4});
+  c = dba.createCluster('test', {localAddress: __local_address_4});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_4, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __local_address_4, communicationStack: "xcom"});
 }
 
 //@<> Confirm local address is set correctly (FR1-TS-1-4)
@@ -158,9 +158,9 @@ var __local_address_9 = localhost;
 var __result_local_address_9 = __local_address_9 + ":" + result_port;
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_9});
+  c = dba.createCluster('test', {localAddress: __local_address_9});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_9, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __local_address_9, communicationStack: "xcom"});
 }
 
 //@<> Confirm local address is set correctly (FR1-TS-1-9)
@@ -175,9 +175,9 @@ var __local_address_10 = localhost + ":" + __local_address_port_10;
 var __result_local_address_10 = __local_address_10;
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_10});
+  c = dba.createCluster('test', {localAddress: __local_address_10});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __local_address_10, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __local_address_10, communicationStack: "xcom"});
 }
 
 //@<> Confirm local address is set correctly (FR1-TS-1-10)
@@ -191,7 +191,7 @@ shell.options["dba.connectivityChecks"] = true;
 //@ Create cluster specifying aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa for groupName (FR3-TS-1-1)
 var __group_name_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 var __result_group_name_1 = __group_name_1;
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: __group_name_1});
+var c = dba.createCluster('test', {groupName: __group_name_1});
 
 //@<> Confirm group name is set correctly (FR3-TS-1-1)
 EXPECT_EQ(__result_group_name_1, get_sysvar(session, "group_replication_group_name"));
@@ -202,9 +202,9 @@ c.dissolve({force: true});
 //@ Create cluster
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
+  c = dba.createCluster('test', {gtidSetIsComplete: true});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true, communicationStack: "xcom"});
+  c = dba.createCluster('test', {gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 
 //@<> Add instance errors using localAddress option
@@ -345,9 +345,9 @@ var __cfg_local_address3 = localhost + ":" + __local_port3;
 var __cfg_group_name = "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 var c;
 if (__version_num < 80027) {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __cfg_local_address1, groupName: __cfg_group_name, gtidSetIsComplete: true});
+  c = dba.createCluster('test', {localAddress: __cfg_local_address1, groupName: __cfg_group_name, gtidSetIsComplete: true});
 } else {
-  c = dba.createCluster('test', {clearReadOnly: true, localAddress: __cfg_local_address1, groupName: __cfg_group_name, gtidSetIsComplete: true, communicationStack: "xcom"});
+  c = dba.createCluster('test', {localAddress: __cfg_local_address1, groupName: __cfg_group_name, gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 
 //@ Add instance with a specific localAddress (FR1-TS-4)
@@ -367,13 +367,13 @@ c.disconnect();
 
 //@ Configure seed instance (FR1-TS-4)
 var cnfPath1 = os.path.join(__sandbox_dir, __mysql_sandbox_port1.toString(), "my.cnf");
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root', user: 'root'}, {mycnfPath: cnfPath1});
+dba.configureInstance({host: localhost, port: __mysql_sandbox_port1, password:'root', user: 'root'}, {mycnfPath: cnfPath1});
 
 //@ Configure added instance (FR1-TS-4)
 session.close();
 add_instance_options['port'] = __mysql_sandbox_port2;
 var cnfPath2 = os.path.join(__sandbox_dir, __mysql_sandbox_port2.toString(), "my.cnf");
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
+dba.configureInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
 
 //@ Stop seed and added instance with specific options (FR1-TS-4)
 testutil.stopSandbox(__mysql_sandbox_port2, {wait: 1});

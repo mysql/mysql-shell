@@ -24,15 +24,15 @@
 #ifndef MODULES_ADMINAPI_COMMON_INSTANCE_VALIDATIONS_H_
 #define MODULES_ADMINAPI_COMMON_INSTANCE_VALIDATIONS_H_
 
-#include <memory>
 #include <string>
+#include <string_view>
+#include <unordered_set>
 #include <vector>
 
-#include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
@@ -45,10 +45,8 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
 bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
                       bool skip_check_tables_pk);
 
-void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance);
-
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
-    mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
+    const mysqlshdk::mysql::IInstance &instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config, Cluster_type cluster_type,
     std::optional<bool> can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
@@ -63,14 +61,9 @@ void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance);
 
 void ensure_instance_not_belong_to_cluster(
-    const std::shared_ptr<Instance> &instance,
-    const std::shared_ptr<Instance> &cluster_instance,
-    std::string_view cluster_id, bool omit_missing_instance_warn = false);
-
-void ensure_instance_not_belong_to_metadata(
-    const mysqlshdk::mysql::IInstance &instance,
-    const std::string &address_in_metadata,
-    const mysqlsh::dba::Cluster_impl &cluster);
+    const mysqlsh::dba::Instance &instance,
+    const mysqlsh::dba::Instance &cluster_instance, std::string_view cluster_id,
+    bool omit_missing_instance_warn = false);
 
 enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN, READ_REPLICA };
 

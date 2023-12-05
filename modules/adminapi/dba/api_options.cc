@@ -21,18 +21,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/dba/api_options.h"
+
 #include <array>
-#include <optional>
 #include <string_view>
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/server_features.h"
-#include "modules/adminapi/dba/api_options.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "shellcore/shell_options.h"
 
@@ -99,8 +95,7 @@ const shcore::Option_pack_def<Check_instance_configuration_options>
           .optional(kMyCnfPath,
                     &Check_instance_configuration_options::mycnf_path)
           .optional(kVerifyMyCnf,
-                    &Check_instance_configuration_options::mycnf_path)
-          .include<Password_interactive_options>();
+                    &Check_instance_configuration_options::mycnf_path);
 
   return opts;
 }
@@ -118,8 +113,7 @@ const shcore::Option_pack_def<Configure_instance_options>
                     &Configure_instance_options::cluster_admin_cert_subject)
           .optional(kClusterAdminPasswordExpiration,
                     &Configure_instance_options::set_password_expiration)
-          .optional(kRestart, &Configure_instance_options::restart)
-          .include<Password_interactive_options>();
+          .optional(kRestart, &Configure_instance_options::restart);
 
   return opts;
 }
@@ -164,53 +158,6 @@ void Configure_instance_options::set_password_expiration(
   }
 }
 
-void Configure_cluster_local_instance_options::set_mycnf_path(
-    const std::string &value) {
-  mycnf_path = value;
-}
-void Configure_cluster_local_instance_options::set_output_mycnf_path(
-    const std::string &value) {
-  output_mycnf_path = value;
-}
-void Configure_cluster_local_instance_options::set_clear_read_only(bool value) {
-  handle_deprecated_option(kClearReadOnly, "");
-
-  clear_read_only = value;
-
-  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                  { throw std::logic_error("debug"); });
-}
-
-Configure_cluster_local_instance_options::
-    Configure_cluster_local_instance_options() {
-  local = true;
-  cluster_type = Cluster_type::GROUP_REPLICATION;
-}
-
-const shcore::Option_pack_def<Configure_cluster_local_instance_options>
-    &Configure_cluster_local_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Configure_cluster_local_instance_options>()
-          .include<Configure_instance_options>()
-          .optional(kMyCnfPath,
-                    &Configure_cluster_local_instance_options::set_mycnf_path)
-          .optional(
-              kOutputMycnfPath,
-              &Configure_cluster_local_instance_options::set_output_mycnf_path)
-          .optional(
-              kClearReadOnly,
-              &Configure_cluster_local_instance_options::set_clear_read_only,
-              "", shcore::Option_extract_mode::CASE_INSENSITIVE,
-              shcore::Option_scope::DEPRECATED);
-
-  return opts;
-}
-
-Configure_cluster_instance_options::Configure_cluster_instance_options()
-    : Configure_cluster_local_instance_options() {
-  local = false;
-}
-
 void Configure_cluster_instance_options::set_replica_parallel_workers(
     int64_t value) {
   if (value < 0)
@@ -221,21 +168,29 @@ void Configure_cluster_instance_options::set_replica_parallel_workers(
   replica_parallel_workers = value;
 }
 
+void Configure_cluster_instance_options::set_mycnf_path(
+    const std::string &value) {
+  mycnf_path = value;
+}
+
+void Configure_cluster_instance_options::set_output_mycnf_path(
+    const std::string &value) {
+  output_mycnf_path = value;
+}
+
 const shcore::Option_pack_def<Configure_cluster_instance_options>
     &Configure_cluster_instance_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Configure_cluster_instance_options>()
-          .include<Configure_cluster_local_instance_options>()
+          .include<Configure_instance_options>()
+          .optional(kMyCnfPath,
+                    &Configure_cluster_instance_options::set_mycnf_path)
+          .optional(kOutputMycnfPath,
+                    &Configure_cluster_instance_options::set_output_mycnf_path)
           .optional(kApplierWorkerThreads, &Configure_cluster_instance_options::
                                                set_replica_parallel_workers);
 
   return opts;
-}
-
-Configure_replicaset_instance_options::Configure_replicaset_instance_options()
-    : Configure_instance_options() {
-  cluster_type = Cluster_type::ASYNC_REPLICATION;
-  clear_read_only = true;
 }
 
 void Configure_replicaset_instance_options::set_replica_parallel_workers(
@@ -309,39 +264,14 @@ const shcore::Option_pack_def<Create_cluster_options>
           .include(&Create_cluster_options::gr_options)
           .include(&Create_cluster_options::clone_options)
           .include(&Create_cluster_options::member_auth_options)
-          .optional(kMultiPrimary, &Create_cluster_options::set_multi_primary)
-          .optional(kMultiMaster, &Create_cluster_options::set_multi_primary,
-                    "", shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
+          .optional(kMultiPrimary, &Create_cluster_options::multi_primary)
           .optional(kAdoptFromGR, &Create_cluster_options::adopt_from_gr)
-          .optional(kClearReadOnly,
-                    &Create_cluster_options::set_clear_read_only)
           .optional(kReplicationAllowedHost,
                     &Create_cluster_options::replication_allowed_host)
-          .include<Force_interactive_options>();
+          .include<Force_options>();
+  ;
 
   return opts;
-}
-
-void Create_cluster_options::set_multi_primary(const std::string &option,
-                                               bool value) {
-  if (option == kMultiMaster) {
-    handle_deprecated_option(kMultiMaster, kMultiPrimary,
-                             multi_primary.has_value(), false);
-  }
-
-  multi_primary = value;
-}
-
-void Create_cluster_options::set_clear_read_only(bool value) {
-  auto console = current_console();
-  console->print_warning(
-      shcore::str_format("The %s option is deprecated. The super_read_only "
-                         "mode is now automatically cleared.",
-                         kClearReadOnly));
-  console->print_info();
-
-  clear_read_only = value;
 }
 
 const shcore::Option_pack_def<Create_replicaset_options>
@@ -360,7 +290,6 @@ const shcore::Option_pack_def<Create_replicaset_options>
                     &Create_replicaset_options::gtid_set_is_complete)
           .optional(kReplicationAllowedHost,
                     &Create_replicaset_options::replication_allowed_host)
-          .include<Interactive_option>()
           .include(&Create_replicaset_options::member_auth_options);
 
   return opts;
@@ -387,24 +316,11 @@ void Create_replicaset_options::set_ssl_mode(const std::string &value) {
   ssl_mode = to_cluster_ssl_mode(value);
 }
 
-void Drop_metadata_schema_options::set_clear_read_only(bool value) {
-  handle_deprecated_option(kClearReadOnly, "");
-
-  clear_read_only = value;
-
-  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                  { throw std::logic_error("debug"); });
-}
-
 const shcore::Option_pack_def<Drop_metadata_schema_options>
     &Drop_metadata_schema_options::options() {
   static const auto opts =
-      shcore::Option_pack_def<Drop_metadata_schema_options>()
-          .optional(kForce, &Drop_metadata_schema_options::force)
-          .optional(kClearReadOnly,
-                    &Drop_metadata_schema_options::set_clear_read_only, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED);
+      shcore::Option_pack_def<Drop_metadata_schema_options>().optional(
+          kForce, &Drop_metadata_schema_options::force);
 
   return opts;
 }
@@ -416,18 +332,6 @@ const shcore::Option_pack_def<Reboot_cluster_options>
           .optional(kForce, &Reboot_cluster_options::force)
           .optional(kDryRun, &Reboot_cluster_options::dry_run)
           .optional("primary", &Reboot_cluster_options::set_primary)
-          .optional(kClearReadOnly,
-                    &Reboot_cluster_options::set_clear_read_only, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
-          .optional(mysqlshdk::db::kUser,
-                    &Reboot_cluster_options::set_user_passwd, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
-          .optional(mysqlshdk::db::kPassword,
-                    &Reboot_cluster_options::set_user_passwd, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
           .optional(kSwitchCommunicationStack,
                     &Reboot_cluster_options::set_switch_communication_stack, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE)
@@ -461,9 +365,10 @@ void Reboot_cluster_options::check_option_values(
 
   if (!switch_communication_stack && comm_stack == kCommunicationStackMySQL &&
       gr_options.ip_allowlist.has_value()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Cannot use '%s' when the Cluster's communication stack is '%s'",
-        gr_options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Cannot use 'ipAllowList' when the Cluster's "
+                           "communication stack is '%s'",
+                           kCommunicationStackMySQL));
   }
 
   // Validate the usage of the localAddress option
@@ -472,32 +377,6 @@ void Reboot_cluster_options::check_option_values(
                                   switch_communication_stack.value_or(""),
                                   canonical_port);
   }
-}
-
-void Reboot_cluster_options::set_user_passwd(const std::string &option,
-                                             const std::string &) {
-  auto console = current_console();
-
-  console->print_warning(shcore::str_format(
-      "The '%s' option is no longer used (it's deprecated): the connection "
-      "data is taken from the active shell session.",
-      option.c_str()));
-  console->print_info();
-
-  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                  { throw std::logic_error("debug"); });
-}
-
-void Reboot_cluster_options::set_clear_read_only(bool) {
-  auto console = current_console();
-  console->print_warning(shcore::str_format(
-      "The '%s' option is no longer used (it's deprecated): super_read_only is "
-      "automatically cleared.",
-      kClearReadOnly));
-  console->print_info();
-
-  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                  { throw std::logic_error("debug"); });
 }
 
 void Reboot_cluster_options::set_primary(std::string value) {
@@ -541,9 +420,8 @@ std::chrono::seconds Reboot_cluster_options::get_timeout() const {
 const shcore::Option_pack_def<Upgrade_metadata_options>
     &Upgrade_metadata_options::options() {
   static const auto opts =
-      shcore::Option_pack_def<Upgrade_metadata_options>()
-          .optional(kDryRun, &Upgrade_metadata_options::dry_run)
-          .include<Interactive_option>();
+      shcore::Option_pack_def<Upgrade_metadata_options>().optional(
+          kDryRun, &Upgrade_metadata_options::dry_run);
 
   return opts;
 }

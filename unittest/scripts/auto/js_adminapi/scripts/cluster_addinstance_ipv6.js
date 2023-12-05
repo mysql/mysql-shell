@@ -5,8 +5,8 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "::1"});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: "127.0.0.1"});
 
 // create admin accounts
-dba.configureLocalInstance(__sandbox_uri1, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
-dba.configureLocalInstance(__sandbox_uri2, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri1, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri2, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
 
 // Create transaction on instance1
 shell.connect(__sandbox_uri1);
@@ -27,7 +27,7 @@ EXPECT_THROWS(function () { cluster.addInstance(__sandbox_admin_uri2, {recoveryM
 
 //@<> Add instance 3, which uses IPv4 to the cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: "127.0.0.1"});
-dba.configureLocalInstance(__sandbox_uri3, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri3, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
 cluster.addInstance(__sandbox_admin_uri3, {recoveryMethod: "incremental"});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

@@ -267,17 +267,6 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}},
           k_primary_not_required,
           kClusterGlobalStateAny}},
-        {"Dba.configureLocalInstance",
-         {k_min_gr_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet |
-              TargetType::InnoDBClusterSetOffline | TargetType::Unknown |
-              TargetType::GroupReplication,
-          ReplicationQuorum::State::any(),
-          {},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
         {"Dba.checkInstanceConfiguration",
          {k_min_gr_version,
           TargetType::Standalone | TargetType::StandaloneWithMetadata |
@@ -407,13 +396,6 @@ const std::map<std::string, Function_availability>
           k_primary_required,
           kClusterGlobalStateAny,
           true}},
-        {"Cluster.checkInstanceState",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny}},
         {"Cluster.rescan",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
@@ -719,8 +701,6 @@ const std::map<std::string, Function_availability>
           TargetType::AsyncReplicaSet,
           na_quorum,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.checkInstanceState",
-         {k_min_ar_version, TargetType::AsyncReplicaSet, na_quorum, {}}},
         {"ReplicaSet.setPrimaryInstance",
          {k_min_ar_version,
           TargetType::AsyncReplicaSet,

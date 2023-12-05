@@ -63,20 +63,21 @@ struct Deploy_sandbox_options : public Stop_sandbox_options {
   shcore::Array_t mysqld_options;
 };
 
-struct Check_instance_configuration_options
-    : public Password_interactive_options {
+struct Check_instance_configuration_options {
   static const shcore::Option_pack_def<Check_instance_configuration_options>
       &options();
 
   std::string mycnf_path;
 };
 
-struct Configure_instance_options : public Password_interactive_options {
+struct Configure_instance_options {
+  explicit Configure_instance_options(Cluster_type type) noexcept
+      : cluster_type{type} {}
+
   static const shcore::Option_pack_def<Configure_instance_options> &options();
 
   void set_password_expiration(const shcore::Value &value);
 
-  bool local = false;
   Cluster_type cluster_type;
 
   std::string cluster_admin;
@@ -88,32 +89,28 @@ struct Configure_instance_options : public Password_interactive_options {
   std::optional<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
-  std::optional<bool> clear_read_only;
 };
 
-struct Configure_cluster_local_instance_options
-    : public Configure_instance_options {
-  Configure_cluster_local_instance_options();
-  static const shcore::Option_pack_def<Configure_cluster_local_instance_options>
-      &options();
-  void set_mycnf_path(const std::string &value);
-  void set_output_mycnf_path(const std::string &value);
-  void set_clear_read_only(bool value);
-};
+struct Configure_cluster_instance_options : public Configure_instance_options {
+  Configure_cluster_instance_options() noexcept
+      : Configure_instance_options{Cluster_type::GROUP_REPLICATION} {}
 
-struct Configure_cluster_instance_options
-    : public Configure_cluster_local_instance_options {
-  Configure_cluster_instance_options();
   static const shcore::Option_pack_def<Configure_cluster_instance_options>
       &options();
+
   void set_replica_parallel_workers(int64_t value);
+  void set_mycnf_path(const std::string &value);
+  void set_output_mycnf_path(const std::string &value);
 };
 
 struct Configure_replicaset_instance_options
     : public Configure_instance_options {
-  Configure_replicaset_instance_options();
+  Configure_replicaset_instance_options() noexcept
+      : Configure_instance_options{Cluster_type::ASYNC_REPLICATION} {}
+
   static const shcore::Option_pack_def<Configure_replicaset_instance_options>
       &options();
+
   void set_replica_parallel_workers(int64_t value);
 };
 
@@ -129,10 +126,8 @@ struct Replication_auth_options {
   std::string cert_subject;
 };
 
-struct Create_cluster_options : public Force_interactive_options {
+struct Create_cluster_options : public Force_options {
   static const shcore::Option_pack_def<Create_cluster_options> &options();
-  void set_multi_primary(const std::string &option, bool value);
-  void set_clear_read_only(bool value);
 
   bool get_adopt_from_gr(bool default_value = false) const noexcept {
     return adopt_from_gr.value_or(default_value);
@@ -143,13 +138,12 @@ struct Create_cluster_options : public Force_interactive_options {
   Replication_auth_options member_auth_options;
   std::optional<bool> adopt_from_gr;
   std::optional<bool> multi_primary;
-  std::optional<bool> clear_read_only;
   bool dry_run = false;
 
   std::string replication_allowed_host;
 };
 
-struct Create_replicaset_options : public Interactive_option {
+struct Create_replicaset_options {
   static const shcore::Option_pack_def<Create_replicaset_options> &options();
   void set_instance_label(const std::string &optionvalue);
   void set_ssl_mode(const std::string &value);
@@ -161,26 +155,20 @@ struct Create_replicaset_options : public Interactive_option {
 
   std::string replication_allowed_host;
 
-  // TODO(rennox): This is here but is not really used (options never set)
-  Async_replication_options ar_options;
   Replication_auth_options member_auth_options;
   Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
 };
 
 struct Drop_metadata_schema_options {
   static const shcore::Option_pack_def<Drop_metadata_schema_options> &options();
-  void set_clear_read_only(bool value);
 
   std::optional<bool> force;
-  std::optional<bool> clear_read_only;
 };
 
 struct Reboot_cluster_options {
   static const shcore::Option_pack_def<Reboot_cluster_options> &options();
   void check_option_values(const mysqlshdk::utils::Version &version,
                            int canonical_port, const std::string &comm_stack);
-  void set_user_passwd(const std::string &option, const std::string &value);
-  void set_clear_read_only(bool value);
   void set_primary(std::string value);
   void set_switch_communication_stack(const std::string &value);
   void set_timeout(uint32_t timeout_seconds);
@@ -188,12 +176,15 @@ struct Reboot_cluster_options {
   bool get_force(bool default_value = false) const noexcept {
     return force.value_or(default_value);
   }
+
   bool get_dry_run(bool default_value = false) const noexcept {
     return dry_run.value_or(default_value);
   }
+
   std::string get_primary(std::string default_value = {}) const noexcept {
     return primary.value_or(std::move(default_value));
   }
+
   std::chrono::seconds get_timeout() const;
 
   std::optional<bool> force;
@@ -204,7 +195,7 @@ struct Reboot_cluster_options {
   Reboot_group_replication_options gr_options;
 };
 
-struct Upgrade_metadata_options : public Interactive_option {
+struct Upgrade_metadata_options {
   static const shcore::Option_pack_def<Upgrade_metadata_options> &options();
 
   bool dry_run = false;

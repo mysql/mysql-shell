@@ -49,13 +49,14 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
 
 // WL#12011: AdminAPI: Refactor dba.createCluster()
-//@<> WL#12011: FR2-04 - invalid value for interactive option.
-EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {interactive: "not a valid type"}) }, "Argument #2: Option 'interactive' Bool expected, but value is String", "TypeError");
 
 //@<> WL#12011: FR2-01 - interactive = true.
-testutil.expectPrompt("Confirm [y/N]:", "n");
+shell.options.useWizards=1;
 
-EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {interactive: true, multiPrimary: true}) }, "Cancelled", "RuntimeError");
+testutil.expectPrompt("Confirm [y/N]:", "n");
+EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {multiPrimary: true}) }, "Cancelled", "RuntimeError");
+
+shell.options.useWizards=0;
 
 EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
 
@@ -92,7 +93,7 @@ See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions
 NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 * Checking connectivity and SSL configuration...
 
-WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
 The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
@@ -154,10 +155,10 @@ if (__version_num >= 80002) {
     EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_start_on_boot': default value ('true') is the expected.");
 }
 
-//@<> Check if dba.configureLocalInstance() only sets vars that don't have it's default values {VER(<8.0.2)}
+//@<> Check if dba.configureInstance() only sets vars that don't have it's default values {VER(<8.0.2)}
 WIPE_SHELL_LOG();
 
-EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(); });
+EXPECT_NO_THROWS(function(){ dba.configureInstance(); });
 
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_disjoint_gtids_join': default value ('OFF') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_lower_version_join': default value ('OFF') is the expected.");
@@ -331,7 +332,7 @@ c.dissolve({force: true});
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY) {VER(>=5.7.24)}
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
-var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "READ_ONLY"});
+var c = dba.createCluster('test', {exitStateAction: "READ_ONLY"});
 
 //@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
@@ -345,7 +346,7 @@ c.dissolve({force: true});
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (1) {VER(>=5.7.24)}
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
-var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "1"});
+var c = dba.createCluster('test', {exitStateAction: "1"});
 
 //@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (1) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
@@ -359,7 +360,7 @@ c.dissolve({force: true});
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (0) {VER(>=5.7.24)}
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
-var c = dba.createCluster('test', {clearReadOnly: true, exitStateAction: "0"});
+var c = dba.createCluster('test', {exitStateAction: "0"});
 
 //@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (0) {VER(>=5.7.24)}
 // F1.1 - If the exitStateAction option is given, the
@@ -378,7 +379,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.12.
 
 //@ WL#12049: Create cluster {VER(>=8.0.12)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY"});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", exitStateAction: "READ_ONLY"});
 
 //@<OUT> WL#12049: exitStateAction must be persisted on mysql >= 8.0.12 {VER(>=8.0.12)}
 print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
@@ -461,7 +462,7 @@ c.dissolve({force: true});
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (100) {VER(>=5.7.20)}
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
-var c = dba.createCluster('test', {clearReadOnly: true, memberWeight: 100});
+var c = dba.createCluster('test', {memberWeight: 100});
 
 //@<> WL#11032: Confirm group_replication_member_weight is set correctly (100) {VER(>=5.7.20)}
 // F1.1 - If the memberWeight option is given, the
@@ -475,7 +476,7 @@ c.dissolve({force: true});
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (-50) {VER(>=5.7.20)}
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
-var c = dba.createCluster('test', {clearReadOnly: true, memberWeight: -50});
+var c = dba.createCluster('test', {memberWeight: -50});
 
 //@<> WL#11032: Confirm group_replication_member_weight is set correctly (0) {VER(>=5.7.20)}
 // F1.1 - If the memberWeight option is given, the
@@ -494,7 +495,7 @@ c.dissolve({force: true});
 // the target instance, if the MySQL Server instance version is >= 8.0.11.
 
 //@ WL#11032: Create cluster {VER(>=8.0.11)}
-var c = dba.createCluster('test', {clearReadOnly: true, groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75});
+var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", memberWeight: 75});
 
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.11)}
 print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
@@ -561,8 +562,6 @@ var c = dba.createCluster('test', {consistency: "10"});
 
 var c = dba.createCluster('test', {consistency: 1});
 
-var c = dba.createCluster('test', {consistency: "1", failoverConsistency: "1"});
-
 //@ WL#12067: TSF1_1 Create cluster using BEFORE_ON_PRIMARY_FAILOVER as value for consistency {VER(>=8.0.14)}
 var c = dba.createCluster('test', {consistency: "BEFORE_ON_PRIMARY_FAILOVER"});
 
@@ -577,7 +576,7 @@ c.dissolve({force: true});
 
 //@ WL#12067: TSF1_2 Create cluster using EVENTUAL as value for consistency {VER(>=8.0.14)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true, consistency: "EVENTUAL"});
+var c = dba.createCluster('test', {consistency: "EVENTUAL"});
 
 //@<> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
 EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
@@ -589,7 +588,7 @@ EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency", "PERS
 c.dissolve({force: true});
 
 //@ WL#12067: TSF1_1 Create cluster using 1 as value for consistency {VER(>=8.0.14)}
-var c = dba.createCluster('test', {clearReadOnly:true, consistency: "1"});
+var c = dba.createCluster('test', {consistency: "1"});
 
 //@<> WL#12067: TSF1_1 Confirm group_replication_consistency is set correctly (1) {VER(>=8.0.14)}
 EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency"));
@@ -599,7 +598,7 @@ c.dissolve({force: true});
 
 //@ WL#12067: TSF1_2 Create cluster using 0 as value for consistency {VER(>=8.0.14)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true, consistency: "0"});
+var c = dba.createCluster('test', {consistency: "0"});
 
 //@<> WL#12067: TSF1_2 Confirm group_replication_consistency is set correctly (0) {VER(>=8.0.14)}
 EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
@@ -609,7 +608,7 @@ c.dissolve({force: true});
 
 //@ WL#12067: TSF1_3 Create cluster using no value for consistency {VER(>=8.0.14)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true});
+var c = dba.createCluster('test');
 
 //@<> WL#12067: TSF1_3 Confirm without consistency group_replication_consistency is set to default (EVENTUAL) {VER(>=8.0.14)}
 EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
@@ -619,7 +618,7 @@ c.dissolve({force: true});
 
 //@ WL#12067: TSF1_7 Create cluster using evenTual as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true, consistency: "EvenTual"});
+var c = dba.createCluster('test', {consistency: "EvenTual"});
 
 //@<> WL#12067: TSF1_7 Confirm group_replication_consistency is set correctly (EVENTUAL) {VER(>=8.0.14)}
 EXPECT_EQ("EVENTUAL", get_sysvar(session, "group_replication_consistency"));
@@ -629,7 +628,7 @@ c.dissolve({force: true});
 
 //@ WL#12067: TSF1_8 Create cluster using Before_ON_PriMary_FailoveR as value for consistency throws no exception (case insensitive) {VER(>=8.0.14)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true, consistency: "Before_ON_PriMary_FailoveR"});
+var c = dba.createCluster('test', {consistency: "Before_ON_PriMary_FailoveR"});
 
 //@<> WL#12067: TSF1_8 Confirm group_replication_consistency is set correctly (BEFORE_ON_PRIMARY_FAILOVER) {VER(>=8.0.14)}
 EXPECT_EQ("BEFORE_ON_PRIMARY_FAILOVER", get_sysvar(session, "group_replication_consistency"));
@@ -704,7 +703,7 @@ shell.connect(__sandbox_uri1);
 
 //@ WL#12050: TSF1_2 Create cluster using no value for expelTimeout, confirm it has the default value {VER(>=8.0.13)}
 // NOTE: the server is in super-read-only since it was dissolved so we must disable it
-var c = dba.createCluster('test', {clearReadOnly:true});
+var c = dba.createCluster('test');
 c.disconnect();
 
 //@<> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
@@ -795,7 +794,7 @@ var c = dba.createCluster('test', {autoRejoinTries: 2017});
 var c = dba.createCluster('test', {autoRejoinTries: 2016});
 session.close();
 shell.connect(__sandbox_uri2);
-var c2 = dba.createCluster('test2', {clearReadOnly: true});
+var c2 = dba.createCluster('test2');
 session.close();
 
 //@<> WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
@@ -825,12 +824,12 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri2);
 if (__version_num < 80027) {
     EXPECT_THROWS(function() {
-        dba.createCluster('test', {localAddress: '1a', clearReadOnly: true});
+        dba.createCluster('test', {localAddress: '1a'});
     }, "The 'localAddress' isn't compatible with the Group Replication automatically generated list of allowed IPs.");
 }
 else {
     EXPECT_THROWS(function() {
-        dba.createCluster('test', {localAddress: '1a', clearReadOnly: true});
+        dba.createCluster('test', {localAddress: '1a'});
     }, "Server address configuration error");
 }
 
@@ -877,10 +876,10 @@ session.runSql("change " + get_replication_source_keyword() + " TO " + get_repli
 session.runSql("START " + get_replica_keyword());
 
 //@ Create cluster async replication (should fail)
-dba.createCluster('testAsync', {clearReadOnly: true});
+dba.createCluster('testAsync');
 
 //@<> Create cluster async replication using force option (should pass)
-EXPECT_NO_THROWS(function(){dba.createCluster('testAsync', {clearReadOnly: true, force: true});});
+EXPECT_NO_THROWS(function(){dba.createCluster('testAsync', {force: true});});
 
 //@<> BUG#29305551: Finalization
 session.close();
@@ -901,7 +900,9 @@ shell.connect(__sandbox_uri1);
 //@<> BUG#29361352: no warning or prompt for multi-primary (interactive: true, multiPrimary: false).
 
 var c;
-EXPECT_NO_THROWS(function() { c = dba.createCluster('test', {interactive: true, multiPrimary: false, force: false}); });
+shell.options.useWizards=1;
+EXPECT_NO_THROWS(function() { c = dba.createCluster('test', {multiPrimary: false, force: false}); });
+shell.options.useWizards=0;
 
 if (__version_num < 80011) {
  EXPECT_STDOUT_CONTAINS_MULTILINE(`A new InnoDB Cluster will be created on instance '${hostname}:${__mysql_sandbox_port1}'.
@@ -920,7 +921,7 @@ See https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions
 NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.
 * Checking connectivity and SSL configuration...
 
-WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' cannot persist Group Replication configuration since MySQL version ${__version} does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.
 Creating InnoDB Cluster 'test' on '${hostname}:${__mysql_sandbox_port1}'...
 
 Adding Seed Instance...
@@ -1027,14 +1028,14 @@ testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id: 11111});
 shell.connect(__sandbox_uri1);
 
-//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+//@ WL#12773: FR4 - The ipAllowlist shall not change the behavior defined by FR1
 var result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var old_account_number = result.fetchOne()[0];
 
 if (__version_num < 80027) {
-    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip])
+    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-allowlist=192.168.2.1/15,127.0.0.1," + hostname_ip])
 } else {
-    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip, "--communication-stack=xcom"])
+    testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-allowlist=192.168.2.1/15,127.0.0.1," + hostname_ip, "--communication-stack=xcom"])
 }
 print(get_all_gr_recovery_accounts(session));
 
@@ -1106,40 +1107,37 @@ print_metadata_instance_addresses(session);
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
-//@<> Initialization IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> Initialization IPv6 addresses are supported on localAddress and ipAllowlist WL#12758 {VER(>= 8.0.14)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
 shell.connect(__sandbox_uri1);
 
-//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> IPv6 addresses are supported on localAddress and ipAllowlist WL#12758 {VER(>= 8.0.14)}
 var local_address = "[::1]:" + __mysql_sandbox_gr_port1;
-var ip_white_list = "::1, 127.0.0.1";
-var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;
-c = dba.createCluster("cluster", {ipWhitelist:ip_white_list, groupSeeds:group_seeds, localAddress:local_address, communicationStack: "xcom"});
+var ip_allow_list = "::1, 127.0.0.1";
+EXPECT_NO_THROWS(function(){ c = dba.createCluster("cluster", {ipAllowlist:ip_allow_list, localAddress:local_address, communicationStack: "xcom"}); });
 
-//@<> If the target instance is >= 8.0.23, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.23)}
+//@<> If the target instance is >= 8.0.23, ipAllowlist is automatically used to set ipAllowlist {VER(>=8.0.23)}
 shell.connect(__sandbox_uri1);
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> If the target instance is >= 8.0.23, ipWhitelist is automatically used to set ipAllowlist {VER(>=8.0.14) && VER(<8.0.23)}
+//@<> If the target instance is >= 8.0.23, ipAllowlist is automatically used to set ipAllowlist {VER(>=8.0.14) && VER(<8.0.23)}
 shell.connect(__sandbox_uri1);
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
-
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
-EXPECT_EQ(group_seeds, get_sysvar(session, "group_replication_group_seeds"));
 
 //@<> Dissolve the cluster {VER(>=8.0)}
 c.dissolve({force: true});
 
-//@<> Verify the new option ipAllowlist that deprecates ipWhitelist sets the allowlist {VER(>=8.0.23)}
+//@<> Verify the new option ipAllowlist that deprecates ipAllowlist sets the allowlist {VER(>=8.0.23)}
 if (__version_num < 80027) {
-    c = dba.createCluster("cluster", {ipAllowlist: ip_white_list});
+    c = dba.createCluster("cluster", {ipAllowlist: ip_allow_list});
 } else {
-    c = dba.createCluster("cluster", {ipAllowlist: ip_white_list, communicationStack: "xcom"});
+    c = dba.createCluster("cluster", {ipAllowlist: ip_allow_list, communicationStack: "xcom"});
 }
 
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> Cleanup IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> Cleanup IPv6 addresses are supported on localAddress and ipAllowlist WL#12758 {VER(>= 8.0.14)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
@@ -1166,8 +1164,8 @@ shell.connect(__sandbox_uri1);
 var local_address = "[::1]:" + __mysql_sandbox_gr_port1;
 var c = dba.createCluster("cluster", {localAddress:local_address});
 
-//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-var c = dba.createCluster("cluster", {ipWhitelist:"::1, 127.0.0.1"});
+//@ IPv6 on ipAllowlist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+var c = dba.createCluster("cluster", {ipAllowlist:"::1, 127.0.0.1"});
 
 //@<> Cleanup IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();

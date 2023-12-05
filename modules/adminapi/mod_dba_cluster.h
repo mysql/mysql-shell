@@ -55,13 +55,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 #if DOXYGEN_JS
   String name;  //!< $(CLUSTER_GETNAME_BRIEF)
   Undefined addInstance(InstanceDef instance, Dictionary options);
-  Dictionary checkInstanceState(InstanceDef instance);
   ClusterSet createClusterSet(String domainName, Dictionary options);
   ClusterSet getClusterSet();
   Dictionary describe();
   Undefined disconnect();
   Undefined dissolve(Dictionary options);
-  Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
+  Undefined forceQuorumUsingPartitionOf(InstanceDef instance);
   String getName();
   Dictionary listRouters(Dictionary options);
   Undefined setRoutingOption(String option, String value);
@@ -89,13 +88,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
-  dict check_instance_state(InstanceDef instance);
   ClusterSet create_cluster_set(str domainName, dict options);
   ClusterSet get_cluster_set();
   dict describe();
   None disconnect();
   None dissolve(dict options);
-  None force_quorum_using_partition_of(InstanceDef instance, str password);
+  None force_quorum_using_partition_of(InstanceDef instance);
   str get_name();
   dict list_routers(dict options);
   None set_routing_option(str option, str value);
@@ -148,14 +146,11 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   shcore::Value describe(void);
   shcore::Value status(
       const shcore::Option_pack_ref<cluster::Status_options> &options);
-  void dissolve(
-      const shcore::Option_pack_ref<Force_interactive_options> &options);
-  shcore::Value check_instance_state(const Connection_options &instance_def);
+  void dissolve(const shcore::Option_pack_ref<Force_options> &options);
   void rescan(const shcore::Option_pack_ref<cluster::Rescan_options> &options);
   void reset_recovery_accounts_password(
-      const shcore::Option_pack_ref<Force_interactive_options> &options);
-  void force_quorum_using_partition_of(const Connection_options &instance_def,
-                                       const char *password = nullptr);
+      const shcore::Option_pack_ref<Force_options> &options);
+  void force_quorum_using_partition_of(const Connection_options &instance_def);
   void disconnect();
 
   void remove_router_metadata(const std::string &router_def);

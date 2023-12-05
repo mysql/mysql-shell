@@ -45,8 +45,8 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
 
 //@<> Dba.rebootClusterFromCompleteOutage errors
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
@@ -142,7 +142,7 @@ EXPECT_EQ(true, (status_instance_3 == "RECOVERING") ||  (status_instance_3 == "O
 cluster.rejoinInstance(__sandbox_uri3)
 // cluster.addInstance(__sandbox_uri3);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -166,7 +166,7 @@ cluster.disconnect();
 // enable super-read-only to make sure it is automatically disabled by rebootCluster
 // also checking that clearReadOnly flag has been deprecated.
 set_sysvar(session, "super_read_only", 1);
-cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: false});
+cluster = dba.rebootClusterFromCompleteOutage("dev");
 
 // TODO(alfredo) - reboot should internally wait for sro to be cleared, but it doesn't right now, so we keep checking for up to 3s
 // i = 30;

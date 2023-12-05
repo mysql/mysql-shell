@@ -21,7 +21,6 @@ validateMembers(Cluster, [
   'addInstance',
   'removeInstance',
   'rejoinInstance',
-  'checkInstanceState',
   'describe',
   'status',
   'help',
@@ -83,35 +82,23 @@ EXPECT_THROWS(function (){
 }, "Argument #2 is expected to be a map");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {memberSslMode: "foo", password: "root"});
-}, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
-
-EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {memberSslMode: "", password: "root"});
-}, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
-
-EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {ipWhitelist: " ", password: "root"});
-}, "Invalid value for ipWhitelist: string value cannot be empty.");
-
-EXPECT_THROWS(function (){
     Cluster.addInstance({HoSt:'localhost', port: __mysql_sandbox_port1, PassWord:'root', scheme:'mysql', user: 'root'}, {});
 }, `The instance '${hostname}:${__mysql_sandbox_port1}' is already part of this InnoDB Cluster`);
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "", password: "root"});
+    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: ""});
 }, "The label can not be empty.");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid", password: "root"});
+    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid"});
 }, "The label can only start with an alphanumeric or the '_' character.");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char", password: "root"});
+    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char"});
 }, "The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.");
 
 EXPECT_THROWS(function (){
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123", password: "root"});
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"});
 }, "The label can not be greater than 256 characters.");
 
 //@<> Cluster: addInstance 2
@@ -247,10 +234,9 @@ EXPECT_NO_THROWS(function (){ Cluster.removeInstance(__sandbox_uri1); });
 EXPECT_NO_THROWS(function (){ Cluster.disconnect(); });
 
 EXPECT_THROWS(function (){ Cluster.addInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
-EXPECT_THROWS(function (){ Cluster.checkInstanceState(); }, "Invalid number of arguments, expected 1 but got 0");
 EXPECT_THROWS(function (){ Cluster.describe(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle");
 EXPECT_THROWS(function (){ Cluster.dissolve(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle");
-EXPECT_THROWS(function (){ Cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 but got 0");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
 EXPECT_THROWS(function (){ Cluster.removeInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
 EXPECT_THROWS(function (){ Cluster.rescan(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle");
@@ -355,9 +341,6 @@ EXPECT_THROWS(function (){ Cluster.rejoinInstance({host: "localhost", schema: 'a
 EXPECT_THROWS(function (){ Cluster.rejoinInstance({host: "localhost"}); }, "Could not open connection to 'localhost'");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance("localhost:3306"); }, "Could not open connection to 'localhost:3306'");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance("somehost:3306", "root"); }, "Argument #2 is expected to be a map");
-EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "foo", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
-EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "", password: "root"}); }, "Invalid value for memberSslMode option. Supported values: DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY,AUTO.");
-EXPECT_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {ipWhitelist: " ", password: "root"}); }, "Invalid value for ipWhitelist: string value cannot be empty.");
 
 //@<> Dba: rejoin instance 3 ok {VER(<8.0.11)}
 EXPECT_NO_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"}); });
@@ -394,10 +377,9 @@ shell.options["useWizards"] = true;
 EXPECT_EQ("devCluster", Cluster.getName());
 
 EXPECT_THROWS(function (){ Cluster.addInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
-EXPECT_THROWS(function (){ Cluster.checkInstanceState(); }, "Invalid number of arguments, expected 1 but got 0");
 EXPECT_THROWS(function (){ Cluster.describe(); }, "Can't call function 'describe' on an offline Cluster");
 EXPECT_THROWS(function (){ Cluster.dissolve(); }, "Can't call function 'dissolve' on an offline Cluster");
-EXPECT_THROWS(function (){ Cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function (){ Cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 but got 0");
 EXPECT_THROWS(function (){ Cluster.rejoinInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
 EXPECT_THROWS(function (){ Cluster.removeInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
 EXPECT_THROWS(function (){ Cluster.rescan(); }, "Can't call function 'rescan' on an offline Cluster");

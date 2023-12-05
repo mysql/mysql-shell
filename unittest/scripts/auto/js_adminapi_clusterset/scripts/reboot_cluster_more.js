@@ -391,6 +391,8 @@ for (i = 0; i < 20; i++) {
 shell.connect(__sandbox_uri4);
 
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage(); });
+testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);

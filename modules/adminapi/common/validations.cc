@@ -25,6 +25,8 @@
 
 #include <string>
 
+#include <mysqld_error.h>
+
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -32,6 +34,7 @@
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -89,7 +92,7 @@ void validate_ar_configuration(mysqlshdk::mysql::IInstance *target_instance) {
       target_instance, mysqlshdk::config::k_dft_cfg_server_handler, true);
 
   if (!checks::validate_configuration(
-           target_instance, "", cfg.get(), Cluster_type::ASYNC_REPLICATION,
+           *target_instance, "", cfg.get(), Cluster_type::ASYNC_REPLICATION,
            true, &restart, &config_file_change, &sysvar_change, &ret_val)
            .empty()) {
     if (restart && !config_file_change && !sysvar_change) {

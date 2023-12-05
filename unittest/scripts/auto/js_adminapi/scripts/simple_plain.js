@@ -81,12 +81,12 @@ session2 = mysql.getSession(__sandbox_uri2, pwd);
 expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 
-//@<> configureLocalInstance
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+//@<> configureInstance (__mysql_sandbox_port1)
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
 WIPE_OUTPUT();
 
-EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)}); });
+EXPECT_NO_THROWS(function(){ dba.configureInstance(get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)}); });
 
 if (testutil.versionCheck(__version, "<", "8.0.0")) {
     EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port1}' was configured to be used in an InnoDB Cluster.`);
@@ -100,7 +100,7 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 session1 = mysql.getSession(__sandbox_uri1, pwd);
 expected_pids1 = get_open_sessions(session1);
 
-//@<> configureInstance
+//@<> configureInstance (__mysql_sandbox_port2)
 EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 WIPE_OUTPUT();
@@ -135,14 +135,6 @@ check_open_sessions(session2, expected_pids2);
 
 //@<> status
 status = cluster.status();
-
-check_open_sessions(session1, expected_pids1);
-check_open_sessions(session2, expected_pids2);
-
-//@<> checkInstanceState
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, get_uri(__mysql_sandbox_port2, pwd));
-
-EXPECT_NO_THROWS(function(){ cluster.checkInstanceState(get_uri(__mysql_sandbox_port2, pwd)); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);

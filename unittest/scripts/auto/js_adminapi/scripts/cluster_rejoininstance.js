@@ -8,7 +8,7 @@ function check_auto_increment_multi_primary(session, base_value) {
     EXPECT_EQ(expected_offset, get_sysvar(session, "auto_increment_offset"), "Incorrect auto_increment_offset value.");
 }
 
-//@ Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
@@ -94,18 +94,16 @@ c.rejoinInstance(__sandbox_uri2);
 // BUG#32197197: clean-up
 session.runSql("RESET " + get_replica_keyword() + " ALL FOR CHANNEL ''");
 
-// Tests for deprecation of ipWhitelist in favor of ipAllowlist
+//@<> Verify that ipAllowlist sets the right sysvars depending on the version
+var ip_allow_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
 
-//@<> Verify that ipWhitelist sets the right sysvars depending on the version
-var ip_white_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
+c.rejoinInstance(__sandbox_uri2, {ipAllowlist: ip_allow_list});
 
-c.rejoinInstance(__sandbox_uri2, {ipWhitelist: ip_white_list});
+//@<> Verify that ipAllowlist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
-
-//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+//@<> Verify that ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@<> Simulate the instance dropping the GR group to rejoin it again
 session.runSql("STOP group_replication");
@@ -114,32 +112,32 @@ shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 //@<> Verify the new option ipAllowlist sets the right sysvars depending on the version
-ip_white_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
+ip_allow_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
 
-c.rejoinInstance(__sandbox_uri2, {ipAllowlist:ip_white_list});
+c.rejoinInstance(__sandbox_uri2, {ipAllowlist:ip_allow_list});
 session.close();
 shell.connect(__sandbox_uri2);
 
 //@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
-//@ Finalization
+//@<> Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
 // BUG#29754915: rejoininstance fails if one or more cluster members have the recovering state
 // NOTE: This issue was fixed from the Group Replication side for MySQL 8.0.17 by BUG#29754967.
-//@ BUG#29754915: deploy sandboxes.
+//@<> BUG#29754915: deploy sandboxes.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
-//@ BUG#29754915: create cluster.
+//@<> BUG#29754915: create cluster.
 // Use XCOM comm stack, otherwise, with MYSQL comm stack recovery won't even start
 shell.connect(__sandbox_uri1);
 
@@ -155,7 +153,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@ BUG#29754915: keep instance 2 in RECOVERING state by setting a wrong recovery user.
+//@<> BUG#29754915: keep instance 2 in RECOVERING state by setting a wrong recovery user.
 session.close();
 shell.connect(__sandbox_uri2);
 session.runSql("change " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER = 'not_exist', " + get_replication_option_keyword() + "_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
@@ -165,20 +163,20 @@ session1.runSql("create schema foo");
 session.runSql("START GROUP_REPLICATION");
 testutil.waitMemberState(__mysql_sandbox_port2, "RECOVERING");
 
-//@ BUG#29754915: stop Group Replication on instance 3.
+//@<> BUG#29754915: stop Group Replication on instance 3.
 
 // Enable offline_mode (BUG#33396423)
 var session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("SET GLOBAL offline_mode=1");
 session3.runSql("STOP GROUP_REPLICATION");
 
-//@ BUG#29754915: get cluster to try to rejoin instance 3.
+//@<> BUG#29754915: get cluster to try to rejoin instance 3.
 session.close();
 shell.connect(__sandbox_uri1);
 var c = dba.getCluster();
 
 //@<> BUG#29754915: rejoin instance 3 successfully.
-c.rejoinInstance(__sandbox_uri3);
+EXPECT_NO_THROWS(function(){ c.rejoinInstance(__sandbox_uri3); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // ensure offline_mode was disabled (BUG#33396423)
@@ -197,7 +195,7 @@ var topology = c.status()["defaultReplicaSet"]["topology"];
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "RECOVERING");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
-//@ BUG#29754915: clean-up.
+//@<> BUG#29754915: clean-up.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -226,18 +224,18 @@ session.close();
 shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
-//@<> IPv6 addresses are supported on rejoinInstance ipWhitelist WL#12758 {VER(>= 8.0.14)}
-var ip_white_list = "::1, 127.0.0.1," + hostname_ip;
-cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist:ip_white_list});
+//@<> IPv6 addresses are supported on rejoinInstance ipAllowlist WL#12758 {VER(>= 8.0.14)}
+var ip_allow_list = "::1, 127.0.0.1," + hostname_ip;
+cluster.rejoinInstance(__sandbox_uri2, {ipAllowlist:ip_allow_list});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 shell.connect(__sandbox_uri2);
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+//@<> Confirm that ipAllowlist is set {VER(>= 8.0.14) && VER(<8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+//@<> Confirm that ipAllowlist is set {VER(>= 8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> localAddress supported on rejoinInstance WL#14765 {VER(>= 8.0.14)}
 session.runSql("STOP GROUP_REPLICATION");
@@ -276,10 +274,10 @@ cluster = dba.getCluster();
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 cluster.rejoinInstance(__sandbox_uri2);
 
-//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+//@ IPv6 on ipAllowlist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 testutil.changeSandboxConf(__mysql_sandbox_port2, "report_host", "127.0.0.1");
 testutil.restartSandbox(__mysql_sandbox_port2);
-cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "::1, 127.0.0.1"});
+cluster.rejoinInstance(__sandbox_uri2, {ipAllowlist: "::1, 127.0.0.1"});
 
 //@<> Cleanup canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();

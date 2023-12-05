@@ -45,25 +45,6 @@ struct Timeout_option {
   int timeout = 0;
 };
 
-struct Interactive_option {
-  static const shcore::Option_pack_def<Interactive_option> &options();
-  void set_interactive(bool interactive);
-  bool interactive() const;
-
- private:
-  std::optional<bool> m_interactive;
-};
-
-struct Wait_recovery_option {
-  static const shcore::Option_pack_def<Wait_recovery_option> &options();
-  void set_wait_recovery(const std::string &option, int value);
-  Recovery_progress_style get_wait_recovery();
-
- private:
-  std::optional<Recovery_progress_style> m_wait_recovery;
-  std::optional<Recovery_progress_style> m_recovery_progress;
-};
-
 struct Recovery_progress_option {
   static const shcore::Option_pack_def<Recovery_progress_option> &options();
   void set_recovery_progress(int value);
@@ -73,15 +54,8 @@ struct Recovery_progress_option {
   std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
-struct Password_interactive_options : public Interactive_option {
-  static const shcore::Option_pack_def<Password_interactive_options> &options();
-  void set_password(const std::string &option, const std::string &value);
-
-  std::optional<std::string> password;
-};
-
-struct Force_interactive_options : public Interactive_option {
-  static const shcore::Option_pack_def<Force_interactive_options> &options();
+struct Force_options {
+  static const shcore::Option_pack_def<Force_options> &options();
 
   std::optional<bool> force;
 };
@@ -92,11 +66,12 @@ struct List_routers_options {
   bool only_upgrade_required = false;
 };
 
-struct Setup_account_options : public Password_interactive_options {
+struct Setup_account_options {
   static const shcore::Option_pack_def<Setup_account_options> &options();
 
   void set_password_expiration(const shcore::Value &value);
 
+  std::optional<std::string> password;
   std::optional<std::string> require_cert_issuer;
   std::optional<std::string> require_cert_subject;
   // -1 means never, not set means default, >= 0 means n days

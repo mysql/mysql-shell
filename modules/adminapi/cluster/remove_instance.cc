@@ -469,7 +469,7 @@ void Remove_instance::prepare() {
             "longer connectable, use the 'force' option to remove it from the "
             "metadata.");
 
-        if (!m_options.interactive() || m_options.force ||
+        if (!current_shell_options()->get().wizards || m_options.force ||
             !prompt_to_force_remove())
           throw;
       } else {
@@ -574,7 +574,7 @@ void Remove_instance::prepare() {
             "To safely remove it from the cluster, it must be brought back "
             "ONLINE. If not possible, use the 'force' option to remove it "
             "anyway.");
-        if (!m_options.interactive() || m_options.force ||
+        if (!current_shell_options()->get().wizards || m_options.force ||
             !prompt_to_force_remove())
           throw shcore::Exception(
               "Instance is not ONLINE and cannot be safely removed",

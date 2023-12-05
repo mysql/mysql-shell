@@ -96,7 +96,6 @@ RETURNS
 
 OPTIONS
 --memberSslMode=<str>
-            SSL mode used on the instance
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
@@ -105,11 +104,6 @@ OPTIONS
 --localAddress=<str>
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
-
---groupSeeds=<str>
-            String value with a comma-separated list of the Group Replication
-            peer addresses to be used instead of the automatically generated
-            one. Deprecated and ignored.
 
 --exitStateAction=<str>
             String value indicating the group replication exit state action.
@@ -237,7 +231,6 @@ RETURNS
 
 OPTIONS
 --memberSslMode=<str>
-            SSL mode used on the instance
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
@@ -323,12 +316,6 @@ RETURNS
       Nothing.
 
 OPTIONS
---updateTopologyMode=<bool>
-            Boolean value used to indicate if the topology mode (single-primary
-            or multi-primary) in the metadata should be updated (true) or not
-            (false) to match the one being used by the cluster. By default, the
-            metadata is not updated (false). Deprecated.
-
 --addInstances[:<type>]=<value>
             List with the connection data of the new active instances to add to
             the metadata, or "auto" to automatically add missing instances to
@@ -352,6 +339,12 @@ OPTIONS
 --upgradeCommProtocol=<bool>
             Boolean. Set to true to upgrade the Group Replication communication
             protocol to the highest version possible.
+
+--updateViewChangeUuid=<bool>
+            Boolean value used to indicate if the command should generate and
+            set a value for Group Replication View Change UUID in the whole
+            Cluster. Required for InnoDB ClusterSet usage (if running MySQL
+            version lower than 8.3.0).
 
 //@<OUT> CLI cluster reset-recovery-accounts-password --help
 NAME
@@ -494,10 +487,6 @@ RETURNS
 OPTIONS
 --extended=<uint>
             Verbosity level of the command output.
-
---queryMembers=<bool>
-            If true, connect to each Instance of the Cluster to query for more
-            detailed stats about the replication machinery.
 
 //@<OUT> CLI cluster switch-to-single-primary-mode --help
 NAME

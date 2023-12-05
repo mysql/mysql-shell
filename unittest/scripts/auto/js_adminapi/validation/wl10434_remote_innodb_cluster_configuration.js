@@ -248,8 +248,6 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 ?{}
-WARNING: The interactive option is deprecated and will be removed in a future release.
-
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -777,15 +775,3 @@ Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
-
-//@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set
-||
-
-//@ ET_12_alt - Super read-only enabled and 'clearReadOnly' is set 5.7
-||
-
-//@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
-||
-
-//@ ET TEARDOWN
-||

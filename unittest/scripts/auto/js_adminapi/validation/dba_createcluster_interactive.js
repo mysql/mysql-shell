@@ -35,7 +35,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80027)?"NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.\n":""\>>>
 * Checking connectivity and SSL configuration...
 
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB Cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 The MySQL InnoDB Cluster is going to be setup in advanced Multi-Primary Mode. Consult its requirements and limitations in https://dev.mysql.com/doc/refman/en/group-replication-limitations.html
@@ -98,13 +98,9 @@ one server failure.
 ||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
 ||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
-||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
 //@ WL#12067: TSF1_1 Create cluster using a valid as value for consistency {VER(>=8.0.14)}
 ||
-
-//@<OUT> Create cluster using a valid value for failoverConsistency {VER(>=8.0.14)}
-WARNING: The failoverConsistency option is deprecated. Please use the consistency option instead.
 
 //@ WL#12067: Finalization
 ||
@@ -141,7 +137,7 @@ NOTE: Group Replication will communicate with other members using '<<<hostname>>
 <<<(__version_num<80027)?"NOTE: When adding more instances to the Cluster, be aware that the subnet masks dictate whether the instance's address is automatically added to the allowlist or not. Please specify the 'ipAllowlist' accordingly if needed.\n":""\>>>
 * Checking connectivity and SSL configuration...
 
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.\n":""\>>>
 Creating InnoDB Cluster 'test' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...

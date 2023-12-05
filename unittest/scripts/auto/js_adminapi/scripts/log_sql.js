@@ -204,19 +204,13 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[3]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[5]);
 
-//@<> WL#13294: check instance state (dba.logSql = 0).
-WIPE_SHELL_LOG();
-c.checkInstanceState(__sandbox_uri3);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_state_sql[0]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_state_sql[1]);
-
 //@<> WL#13294: add another instance (dba.logSql = 0).
 c.addInstance(__sandbox_uri3);
 
 //@<> WL#13294: persist GR configuration settings for 5.7 servers (dba.logSql = 0). {VER(<8.0.11)}
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<> WL#13294: Stop GR on an instance to use rejoin instance (dba.logSql = 0).
 shell.connect(__sandbox_uri3);
@@ -444,19 +438,13 @@ if (__version_num < 80000) {
 }
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
-//@<> WL#13294: check instance state (dba.logSql = 1).
-WIPE_SHELL_LOG();
-c.checkInstanceState(__sandbox_uri3);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_state_sql[0]);
-EXPECT_SHELL_LOG_NOT_CONTAINS(check_instance_state_sql[1]);
-
 //@<> WL#13294: add another instance (dba.logSql = 1).
 c.addInstance(__sandbox_uri3);
 
 //@<> WL#13294: persist GR configuration settings for 5.7 servers (dba.logSql = 1). {VER(<8.0.11)}
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<> WL#13294: Stop GR on an instance to use rejoin instance (dba.logSql = 1).
 shell.connect(__sandbox_uri3);
@@ -685,19 +673,13 @@ if (__version_num < 80000) {
 }
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
-//@<> WL#13294: check instance state (dba.logSql = 2).
-WIPE_SHELL_LOG();
-c.checkInstanceState(__sandbox_uri3);
-EXPECT_SHELL_LOG_CONTAINS(check_instance_state_sql[0]);
-EXPECT_SHELL_LOG_CONTAINS(check_instance_state_sql[1]);
-
 //@<> WL#13294: add another instance (dba.logSql = 2).
 c.addInstance(__sandbox_uri3);
 
 //@<> WL#13294: persist GR configuration settings for 5.7 servers (dba.logSql = 2). {VER(<8.0.11)}
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<> WL#13294: Stop GR on an instance to use rejoin instance (dba.logSql = 2).
 shell.connect(__sandbox_uri3);

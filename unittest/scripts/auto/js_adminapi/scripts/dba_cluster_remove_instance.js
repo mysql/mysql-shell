@@ -103,11 +103,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: true)
 // WL#11862 - FR3_1
-cluster.removeInstance(__sandbox_uri2, {interactive: true});
+shell.options.useWizards=1;
+cluster.removeInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 //@<OUT> Removing instance (interactive: false)
 // WL#11862 - FR3_1
-cluster.removeInstance(__sandbox_uri3, {interactive: false});
+cluster.removeInstance(__sandbox_uri3);
 
 //@ Adding instance on port2 back (interactive: true, force: false)
 // WL#11862 - FR3_2
@@ -121,11 +123,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: true, force: false)
 // WL#11862 - FR3_2
-cluster.removeInstance(__sandbox_uri2, {interactive: true, force: false});
+shell.options.useWizards=1;
+cluster.removeInstance(__sandbox_uri2, {force: false});
 
 //@<OUT> Removing instance (interactive: true, force: true)
 // WL#11862 - FR3_3
-cluster.removeInstance(__sandbox_uri3, {interactive: true, force: true});
+cluster.removeInstance(__sandbox_uri3, {force: true});
+shell.options.useWizards=0;
 
 //@ Adding instance on port2 back (interactive: false, force: false)
 // WL#11862 - FR3_4
@@ -139,11 +143,11 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Removing instance (interactive: false, force: false)
 // WL#11862 - FR3_4
-cluster.removeInstance(__sandbox_uri2, {interactive: false, force: false});
+cluster.removeInstance(__sandbox_uri2, {force: false});
 
 //@<OUT> Removing instance (interactive: false, force: true)
 // WL#11862 - FR3_4
-cluster.removeInstance(__sandbox_uri3, {interactive: false, force: true});
+cluster.removeInstance(__sandbox_uri3, {force: true});
 
 //@ Adding instance on port2 back (force: false)
 // WL#11862 - FR5_1
@@ -270,7 +274,7 @@ cluster.removeInstance('root:root@' + hostname + ':' + __mysql_sandbox_port2);
 
 //@ Remove stopped instance on port2 with force option
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
-cluster.removeInstance('root@' + hostname + ':' + __mysql_sandbox_port2, {force: true, PassWord: "root"});
+cluster.removeInstance('root:root@' + hostname + ':' + __mysql_sandbox_port2, {force: true});
 
 //@<OUT> Confirm instance2 is not in cluster metadata
 // WL#11862 - FR5_3
@@ -278,11 +282,11 @@ host_exist_in_metadata_schema(__mysql_sandbox_port2);
 
 //@<> Remove unreachable instance (interactive: false, force: false) - error
 // WL#11862 - FR4_5
-cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
+cluster.removeInstance(__hostname_uri3, {force: false});
 
 //@<> Remove unreachable instance (interactive: false, force: true) - success
 // WL#11862 - FR4_5
-cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
+cluster.removeInstance(__hostname_uri3, {force: true});
 
 //@<> Cluster status after removal of instance on port2 and port3
 var status = cluster.status();
@@ -345,26 +349,32 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<> Remove unreachable instance (interactive: true, force: false) - error
 // WL#11862 - FR4_3
-cluster.removeInstance(__hostname_uri2, {interactive: true, force: false});
+shell.options.useWizards=1;
+cluster.removeInstance(__hostname_uri2, {force: false});
+shell.options.useWizards=0;
 
 //@<> Remove unreachable instance (interactive: false) - error
 // WL#11862 - FR4_4
-EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3, {interactive: false}); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
+EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
 EXPECT_STDOUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
 EXPECT_STDOUT_CONTAINS_MULTILINE("ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.\nTo safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.");
 
 //@<> Remove unreachable instance (interactive: true, answer NO) - error
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
-cluster.removeInstance(__hostname_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2);
 
 //@<> Remove unreachable instance (interactive: true, answer YES) - success
 // WL#11862 - FR4_1
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "y");
-cluster.removeInstance(__hostname_uri2, {interactive: true});
+cluster.removeInstance(__hostname_uri2);
 
 //@<> Remove unreachable instance (interactive: true, force: true) - success
 // WL#11862 - FR4_2
-cluster.removeInstance(__hostname_uri3, {interactive: true, force: true});
+cluster.removeInstance(__hostname_uri3, {force: true});
+
+shell.options.useWizards=0;
 
 //@ Remove instance post actions (ensure they do not rejoin cluster)
 // NOTE: This is not enough for server version >= 8.0.11 because persisted variables take precedence.
@@ -429,7 +439,7 @@ cluster.disconnect();
 
 //@ Cluster re-created with success
 // Regression for BUG#25226130 : REMOVAL OF SEED NODE BREAKS DISSOLVE
-var cluster = dba.createCluster('dev', {clearReadOnly: true, gtidSetIsComplete: true});
+var cluster = dba.createCluster('dev', {gtidSetIsComplete: true});
 
 session.close();
 cluster.disconnect();

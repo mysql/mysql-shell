@@ -52,11 +52,11 @@ EXPECT_THROWS(function() {
     rs.rejoinInstance(__sandbox1, {recoveryMethod: "bogus"});
 }, "Invalid value for option recoveryMethod: bogus");
 EXPECT_THROWS(function() {
-    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
-}, "Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3].");
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "clone", recoveryProgress:42});
+}, "Invalid value '42' for option 'recoveryProgress'. It must be an integer in the range [0, 2].");
 EXPECT_THROWS(function() {
-    rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
-}, "Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3].");
+    rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", recoveryProgress:42});
+}, "Invalid value '42' for option 'recoveryProgress'. It must be an integer in the range [0, 2].");
 EXPECT_THROWS(function() {
     rs.rejoinInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
 }, "Option cloneDonor only allowed if option recoveryMethod is set to 'clone'.");
@@ -299,14 +299,18 @@ var session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP " + get_replica_keyword());
 
 //@ cloneDonor valid {VER(>=8.0.17)}
-rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox1});
+shell.options.useWizards = true;
+rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox1});
+shell.options.useWizards = false;
 
 //@<> Stop replication at instance 3 again
 var session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP " + get_replica_keyword());
 
 //@ cloneDonor valid 2 {VER(>=8.0.17)}
-rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = true;
+rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = false;
 
 // BUG#30628746: ADD_INSTANCE: CLONEDONOR FAILS, USER DOES NOT EXIST
 // This bug caused a failure when a clone donor was selected that was processing transactions.
@@ -321,10 +325,15 @@ var session1 = mysql.getSession(__sandbox_uri1);
 session1.runSql("lock tables mysql.user read");
 
 //@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
-rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+shell.options.useWizards = true;
+rs.rejoinInstance(__sandbox3, {timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+shell.options.useWizards = false;
 
 //@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
-rs.rejoinInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = true;
+rs.rejoinInstance(__sandbox3, {timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = false;
+
 session1.runSql("unlock tables");
 
 //@<> BUG#30632029: preparation
@@ -348,7 +357,9 @@ var bug_30632029 = [
 \option dba.logSql = 2
 WIPE_SHELL_LOG();
 
-rs.rejoinInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = true;
+rs.rejoinInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = false;
 
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 // EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);

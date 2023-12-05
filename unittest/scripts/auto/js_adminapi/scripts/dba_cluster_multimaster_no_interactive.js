@@ -14,7 +14,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> Dba: createCluster multiPrimary, ok
 var cluster;
-EXPECT_NO_THROWS(function() { cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, clearReadOnly: true}); });
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true}); });
 
 cluster.disconnect();
 
@@ -27,9 +27,7 @@ EXPECT_NO_THROWS(function() { Cluster.dissolve({force: true}); });
 Cluster.disconnect();
 
 //@<> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
-EXPECT_NO_THROWS(function() { Cluster = dba.createCluster('devCluster', {multiMaster: true, force: true, clearReadOnly: true, gtidSetIsComplete: true}); });
-
-EXPECT_OUTPUT_CONTAINS(`WARNING: The multiMaster option is deprecated. Please use the multiPrimary option instead.`);
+EXPECT_NO_THROWS(function() { Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, gtidSetIsComplete: true}); });
 
 Cluster.disconnect();
 
@@ -86,7 +84,7 @@ EXPECT_NO_THROWS(function() { Cluster.dissolve({force: true}); });
 Cluster.disconnect();
 
 //@<> Dba: createCluster multiPrimary 2, ok
-EXPECT_NO_THROWS(function() { Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', clearReadOnly: true, gtidSetIsComplete: true}); });
+EXPECT_NO_THROWS(function() { Cluster = dba.createCluster('devCluster', {multiPrimary: true, force: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true}); });
 
 Cluster.disconnect();
 
@@ -132,7 +130,7 @@ EXPECT_THROWS_TYPE(function() { Cluster.rejoinInstance({host: "localhost"}); }, 
 EXPECT_THROWS_TYPE(function() { Cluster.rejoinInstance("localhost:3306"); }, "Could not open connection to 'localhost:3306'", "MySQL Error");
 
 //@<> Dba: rejoin instance 3 ok
-EXPECT_NO_THROWS(function() { Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3, password:"root"}, {memberSslMode: 'REQUIRED'}); });
+EXPECT_NO_THROWS(function() { Cluster.rejoinInstance({user: "root", host: "localhost", port:__mysql_sandbox_port3, password:"root"}); });
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

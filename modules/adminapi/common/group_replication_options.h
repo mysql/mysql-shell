@@ -43,13 +43,12 @@ struct Group_replication_options {
     CREATE_REPLICA_CLUSTER,  // all but group_name, group_seeds,
                              // manual_start_on_boot
     JOIN,                    // all but group_name
-    REJOIN,                  // only memberSslMode, ipWhitelist and localAddress
+    REJOIN,                  // only memberSslMode, ipAllowlist and localAddress
     REBOOT                   // same as REJOIN plus sslMode
   };
 
-  Group_replication_options() : target(NONE) {}
-
-  explicit Group_replication_options(Unpack_target t) : target(t) {}
+  explicit Group_replication_options() noexcept = default;
+  explicit Group_replication_options(Unpack_target t) noexcept : target(t) {}
 
   void check_option_values(const mysqlshdk::utils::Version &version,
                            int canonical_port);
@@ -75,13 +74,13 @@ struct Group_replication_options {
   void set_transaction_size_limit(int64_t value);
   void set_paxos_single_leader(bool value);
 
-  Unpack_target target;
+  Unpack_target target{NONE};
 
+  Cluster_ssl_mode ssl_mode{Cluster_ssl_mode::NONE};
   std::optional<mysqlshdk::mysql::Auth_options> recovery_credentials;
 
   std::optional<std::string> group_name;
   std::optional<std::string> view_change_uuid;
-  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
   std::optional<std::string> ip_allowlist;
   std::optional<std::string> local_address;
   std::optional<std::string> group_seeds;
@@ -94,8 +93,6 @@ struct Group_replication_options {
   std::optional<std::string> communication_stack;
   std::optional<int64_t> transaction_size_limit;
   std::optional<bool> paxos_single_leader;
-
-  std::string ip_allowlist_option_name;
 };
 
 void validate_local_address_option(std::string_view address,
@@ -115,7 +112,6 @@ struct Rejoin_group_replication_options : public Group_replication_options {
   static const shcore::Option_pack_def<Rejoin_group_replication_options>
       &options();
 
-  void set_ssl_mode(const std::string &value);
   void set_ip_allowlist(const std::string &option, const std::string &value);
 };
 
@@ -134,8 +130,6 @@ struct Join_group_replication_options
       : Rejoin_group_replication_options(t) {}
   static const shcore::Option_pack_def<Join_group_replication_options>
       &options();
-
-  void set_group_seeds(const std::string &value);
 };
 
 struct Cluster_set_group_replication_options
@@ -155,6 +149,7 @@ struct Create_group_replication_options
       &options();
 
   void set_group_name(const std::string &value);
+  void set_ssl_mode(const std::string &value);
 
   void set_consistency(const std::string &option, const std::string &value) {
     Group_replication_options::set_consistency(option, value);

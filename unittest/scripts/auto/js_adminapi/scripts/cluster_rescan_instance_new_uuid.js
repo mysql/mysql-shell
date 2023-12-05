@@ -55,7 +55,11 @@ validate_rescan();
 //@<> Update instance and do interactive rescan
 uuid = new_uuid;
 restart_instance_with_new_uuid(__mysql_sandbox_port2, "2222");
-cluster.rescan({interactive:true})
+
+shell.options.useWizards=1;
+cluster.rescan();
+shell.options.useWizards=0;
+
 validate_rescan();
 
 //@<> Finalize

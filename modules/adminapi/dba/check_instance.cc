@@ -124,7 +124,7 @@ bool Check_instance::check_configuration() {
   bool config_file_change;
   bool dynamic_sysvar_change;
   if (!checks::validate_configuration(
-           m_target_instance.get(), m_mycnf_path, m_cfg.get(),
+           *m_target_instance, m_mycnf_path, m_cfg.get(),
            Cluster_type::GROUP_REPLICATION, m_can_set_persist, &restart,
            &config_file_change, &dynamic_sysvar_change, &m_ret_val)
            .empty()) {

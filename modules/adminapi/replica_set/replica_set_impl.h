@@ -111,12 +111,6 @@ class Replica_set_impl final : public Base_cluster_impl {
 
   shcore::Value options();
 
-  shcore::Value check_instance_state(
-      const Connection_options & /*instance_def*/) {
-    check_preconditions("checkInstanceState");
-    throw std::logic_error("not implemented");
-  }
-
   shcore::Value list_routers(bool only_upgrade_required) override;
 
   void remove_router_metadata(const std::string &router) override;

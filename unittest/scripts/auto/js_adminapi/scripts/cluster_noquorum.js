@@ -18,9 +18,6 @@ cluster.rejoinInstance(__sandbox_uri3);
 //@ dissolve
 cluster.dissolve();
 
-//@ checkInstanceState
-cluster.checkInstanceState(__sandbox_uri3);
-
 //@ rescan
 cluster.rescan();
 
@@ -33,7 +30,6 @@ cluster.describe();
 
 //@ Fini
 scene.destroy();
-
 
 // BUG#25267603: addInstance() tries to use offline node after lost quorum
 //@<> BUG#25267603: Init cluster.

@@ -42,10 +42,9 @@ rs.addInstance({}, {});
 rs.addInstance(__sandbox1, {badOption:123});
 rs.addInstance([__endpoint1]);
 rs.addInstance(__sandbox3);
-rs.addInstance(__sandbox2, {waitRecovery:0});
 rs.addInstance(__sandbox2, {recoveryMethod: "bogus"});
-rs.addInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
-rs.addInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
+rs.addInstance(__sandbox1, {recoveryMethod: "clone", recoveryProgress:42});
+rs.addInstance(__sandbox1, {recoveryMethod: "incremental", recoveryProgress:42});
 rs.addInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});
 rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:""});
 rs.addInstance(__sandbox1, {recoveryMethod: "clone", cloneDonor:"foobar"});
@@ -437,39 +436,47 @@ var rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:false});
 var session2 = mysql.getSession(__sandbox_uri2);
 reset_instance(session2);
 
-rs.addInstance(__sandbox2, {interactive:false});
+shell.options.useWizards = false;
+rs.addInstance(__sandbox2);
+shell.options.useWizards = true;
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail) {VER(<8.0.17)}
 reset_instance(session2);
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "a");
-rs.addInstance(__sandbox2, {interactive:true});
+rs.addInstance(__sandbox2);
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 prompt-no (should fail) {VER(>=8.0.17)}
 reset_instance(session2);
 testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "a");
-rs.addInstance(__sandbox2, {interactive:true});
+rs.addInstance(__sandbox2);
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 prompt-yes {VER(<8.0.17)}
 reset_instance(session2);
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "i");
-rs.addInstance(__sandbox2, {interactive:true});
+rs.addInstance(__sandbox2);
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 prompt-yes {VER(>=8.0.17)}
 reset_instance(session2);
 testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "i");
-rs.addInstance(__sandbox2, {interactive:true});
+rs.addInstance(__sandbox2);
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:INCREMENTAL
+shell.options.useWizards = false;
+
 rs.removeInstance(__sandbox2);
 reset_instance(session2);
 
-rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"INCREMENTAL"});
+shell.options.useWizards = true;
+rs.addInstance(__sandbox2, {recoveryMethod:"INCREMENTAL"});
+shell.options.useWizards = false;
 
 //@ instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:CLONE {VER(>=8.0.17)}
 rs.removeInstance(__sandbox2);
 reset_instance(session2);
 
-rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"CLONE"});
+shell.options.useWizards = true;
+rs.addInstance(__sandbox2, {recoveryMethod:"CLONE"});
+shell.options.useWizards = false;
 
 //@ instance has a subset of the master GTID set + gtidSetIsComplete:0
 // Falls-back automatically to incremental recovery
@@ -482,13 +489,17 @@ var session2 = mysql.getSession(__sandbox_uri2);
 rs.removeInstance(__sandbox2);
 reset_instance(session2);
 
-rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox3});
+shell.options.useWizards = true;
+
+rs.addInstance(__sandbox2, {recoveryMethod:"clone", cloneDonor: __sandbox3});
 
 //@ cloneDonor valid {VER(>=8.0.17)}
-rs.addInstance(__sandbox2, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox1});
+rs.addInstance(__sandbox2, {recoveryMethod:"clone", cloneDonor: __sandbox1});
 
 //@ cloneDonor valid 2 {VER(>=8.0.17)}
-rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+rs.addInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox2});
+
+shell.options.useWizards = false;
 
 // BUG#30628746: ADD_INSTANCE: CLONEDONOR FAILS, USER DOES NOT EXIST
 // This bug caused a failure when a clone donor was selected that was processing transactions.
@@ -502,10 +513,12 @@ var session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("lock tables mysql.user read");
 
 //@ BUG#30628746: wait for timeout {VER(>=8.0.17)}
-rs.addInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = true;
+rs.addInstance(__sandbox3, {timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox2});
 
 //@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
-rs.addInstance(__sandbox3, {interactive:true, timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+rs.addInstance(__sandbox3, {timeout:3, recoveryMethod:"clone", cloneDonor: __sandbox1});
+shell.options.useWizards = false;
 
 session2.runSql("unlock tables");
 
@@ -528,7 +541,9 @@ var bug_30632029 = [
 shell.options['dba.logSql'] = 2
 WIPE_SHELL_LOG();
 
-rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = true;
+rs.addInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox2});
+shell.options.useWizards = false;
 
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
@@ -541,7 +556,9 @@ rs.removeInstance(__sandbox3);
 testutil.changeSandboxConf(__mysql_sandbox_port3, "foo", "bar");
 // Also tests the restartWaitTimeout option
 shell.options["dba.restartWaitTimeout"] = 1;
-rs.addInstance(__sandbox_uri3, {interactive:true, recoveryMethod:"clone"});
+shell.options["useWizards"] = true;
+rs.addInstance(__sandbox_uri3, {recoveryMethod:"clone"});
+shell.options["useWizards"] = false;
 shell.options["dba.restartWaitTimeout"] = 60;
 
 // TODO(miguel):
@@ -550,10 +567,10 @@ shell.options["dba.restartWaitTimeout"] = 60;
 //rs.removeInstance(__sandbox3);
 // BUG#30657911: add instance using clone and simulating a restart timeout
 //testutil.dbugSet("+d,dba_abort_monitor_clone_recovery_wait_restart");
-//rs.addInstance(__sandbox3, {interactive:true, recoveryMethod:"clone"});
+//rs.addInstance(__sandbox3, {recoveryMethod:"clone"});
 //testutil.dbugSet("");
 // BUG#30657911: retry adding instance without using a recoveryMethod
-//rs.addInstance(__sandbox3, {interactive:true});
+//rs.addInstance(__sandbox3);
 
 // Rollback
 //--------------------------------

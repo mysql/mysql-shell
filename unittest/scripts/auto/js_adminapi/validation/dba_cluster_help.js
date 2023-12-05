@@ -24,12 +24,6 @@ FUNCTIONS
       addReplicaInstance(instance[, options])
             Adds a Read Replica Instance to the Cluster.
 
-      checkInstanceState(instance)
-            Verifies the instance gtid state in relation to the cluster.
-
-            ATTENTION: This function is deprecated and will be removed in a
-                       future release of MySQL Shell.
-
       createClusterSet(domainName[, options])
             Creates a MySQL InnoDB ClusterSet from an existing standalone
             InnoDB Cluster.
@@ -49,7 +43,7 @@ FUNCTIONS
       fenceWrites()
             Fences a Cluster from Write Traffic.
 
-      forceQuorumUsingPartitionOf(instance[, password])
+      forceQuorumUsingPartitionOf(instance)
             Restores the cluster from quorum loss.
 
       getClusterSet()
@@ -152,25 +146,12 @@ DESCRIPTION
       - label: an identifier for the instance being added
       - recoveryMethod: Preferred method of state recovery. May be auto, clone
         or incremental. Default is auto.
-      - waitRecovery: Integer value to indicate if the command shall wait for
-        the recovery process to finish and its verbosity level. Deprecated.
       - recoveryProgress: Integer value to indicate the recovery process
         verbosity level.
-      - password: the instance connection password. Deprecated.
-      - memberSslMode: SSL mode used on the instance
-      - ipWhitelist: The list of hosts allowed to connect to the instance for
-        group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
-      - groupSeeds: string value with a comma-separated list of the Group
-        Replication peer addresses to be used instead of the automatically
-        generated one. Deprecated and ignored.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
@@ -183,9 +164,6 @@ DESCRIPTION
       The label must be non-empty and no greater than 256 characters long. It
       must be unique within the Cluster and can only contain alphanumeric, _
       (underscore), . (period), - (hyphen), or : (colon) characters.
-
-      The password may be contained on the instance definition, however, it can
-      be overwritten if it is specified on the options.
 
       The recoveryMethod option supports the following values:
 
@@ -203,25 +181,11 @@ DESCRIPTION
         forward. If interaction is disabled, the operation will be canceled
         instead.
 
-      The waitRecovery option supports the following values:
-
-      - 0: do not wait and let the recovery process to finish in the
-        background.
-      - 1: block until the recovery process to finishes.
-      - 2: block until the recovery process finishes and show progress
-        information.
-      - 3: block until the recovery process finishes and show progress using
-        progress bars.
-
       The recoveryProgress option supports the following values:
 
       - 0: do not show any progress information.
       - 1: show detailed static progress information.
       - 2: show detailed dynamic progress information using progress bars.
-
-      By default, if the standard output on which the Shell is running refers
-      to a terminal, the waitRecovery option has the value of 3. Otherwise, it
-      has the value of 2.
 
       The exitStateAction option supports the following values:
 
@@ -261,10 +225,6 @@ DESCRIPTION
       stack is 'XCOM'. In case the automatically determined  default port value
       is invalid (> 65535) then an error is thrown.
 
-      The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is
-      ignored. 'group_replication_group_seeds' is automatically set based on
-      the current topology.
-
       The value for exitStateAction is used to configure how Group Replication
       behaves when a server instance leaves the group unintentionally (for
       example after encountering an applier error) or exhausts its auto-rejoin
@@ -294,65 +254,6 @@ DESCRIPTION
       quickly, setting this option prevents users from having to manually add
       the expelled node back to the group. The autoRejoinTries option accepts
       positive integer values and, since 8.0.21, defaults to 3.
-
-      ATTENTION: The memberSslMode option will be removed in a future release.
-
-      ATTENTION: The ipWhitelist option will be removed in a future release.
-                 Please use the ipAllowlist option instead.
-
-      ATTENTION: The groupSeeds option will be removed in a future release.
-
-      ATTENTION: The waitRecovery option will be removed in a future release.
-                 Please use the recoveryProgress option instead.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
-
-//@<OUT> Check Instance State
-NAME
-      checkInstanceState - Verifies the instance gtid state in relation to the
-                           cluster.
-
-SYNTAX
-      <Cluster>.checkInstanceState(instance)
-
-WHERE
-      instance: An instance definition.
-
-RETURNS
-      resultset A JSON object with the status.
-
-DESCRIPTION
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell.
-
-      Analyzes the instance executed GTIDs with the executed/purged GTIDs on
-      the cluster to determine if the instance is valid for the cluster.
-
-      The instance definition is the connection data for the instance.
-
-      For additional information on connection data use \? connection.
-
-      The returned JSON object contains the following attributes:
-
-      - state: the state of the instance
-      - reason: the reason for the state reported
-
-      The state of the instance can be one of the following:
-
-      - ok: if the instance transaction state is valid for the cluster
-      - error: if the instance transaction state is not valid for the cluster
-
-      The reason for the state reported can be one of the following:
-
-      - new: if the instance doesn't have any transactions
-      - recoverable:  if the instance executed GTIDs are not conflicting with
-        the executed GTIDs of the cluster instances
-      - diverged: if the instance executed GTIDs diverged with the executed
-        GTIDs of the cluster instances
-      - lost_transactions: if the instance has more executed GTIDs than the
-        executed GTIDs of the cluster instances
 
 //@<OUT> Describe
 NAME
@@ -426,10 +327,6 @@ DESCRIPTION
         be executed, even if some members of the cluster cannot be reached or
         the timeout was reached when waiting for members to catch up with
         replication changes. By default, set to false.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
 
       The force option (set to true) must only be used to dissolve a cluster
       with instances that are permanently not available (no longer reachable)
@@ -439,18 +336,15 @@ DESCRIPTION
       and the cluster dissolved without the force option to avoid errors trying
       to reuse the instances and add them back to a cluster.
 
-      ATTENTION: The interactive option will be removed in a future release.
-
 //@<OUT> Force Quorum Using Partition Of
 NAME
       forceQuorumUsingPartitionOf - Restores the cluster from quorum loss.
 
 SYNTAX
-      <Cluster>.forceQuorumUsingPartitionOf(instance[, password])
+      <Cluster>.forceQuorumUsingPartitionOf(instance)
 
 WHERE
       instance: An instance definition to derive the forced group from.
-      password: String with the password for the connection. Deprecated.
 
 RETURNS
       Nothing.
@@ -472,8 +366,6 @@ DESCRIPTION
       When this function is used, all the members that are ONLINE from the
       point of view of the given instance definition will be added to the
       group.
-
-      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Get Name
 NAME
@@ -602,18 +494,10 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - password: the instance connection password. Deprecated.
       - recoveryMethod: Preferred method of state recovery. May be auto, clone
         or incremental. Default is auto.
       - recoveryProgress: Integer value to indicate the recovery process
         verbosity level. recovery process to finish and its verbosity level.
-      - memberSslMode: SSL mode used on the instance
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
-      - ipWhitelist: The list of hosts allowed to connect to the instance for
-        group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - localAddress: string value with the Group Replication local address to
@@ -626,9 +510,6 @@ DESCRIPTION
         with the PRIMARY after it's provisioned and the replication channel is
         established. If reached, the operation is rolled-back. Default is 0 (no
         timeout). Available only for Read Replicas.
-
-      The password may be contained on the instance definition, however, it can
-      be overwritten if it is specified on the options.
 
       The recoveryMethod option supports the following values:
 
@@ -682,15 +563,6 @@ DESCRIPTION
       stack is 'XCOM'. In case the automatically determined  default port value
       is invalid (> 65535) then an error is thrown.
 
-      ATTENTION: The memberSslMode option will be removed in a future release.
-
-      ATTENTION: The ipWhitelist option will be removed in a future release.
-                 Please use the ipAllowlist option instead.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
-
 //@<OUT> Remove Instance
 NAME
       removeInstance - Removes an Instance from the cluster.
@@ -714,14 +586,9 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - password: the instance connection password. Deprecated.
       - force: boolean, indicating if the instance must be removed (even if
         only from metadata) in case it cannot be reached. By default, set to
         false.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - dryRun: boolean if true, all validations and steps for removing the
         instance are executed, but no changes are actually made. An exception
         will be thrown when finished.
@@ -729,19 +596,12 @@ DESCRIPTION
         with the PRIMARY. If reached, the operation is rolled-back. Default is
         0 (no timeout).
 
-      The password may be contained in the instance definition, however, it can
-      be overwritten if it is specified on the options.
-
       The force option (set to true) must only be used to remove instances that
       are permanently not available (no longer reachable) or never to be reused
       again in a cluster. This allows to remove from the metadata an instance
       than can no longer be recovered. Otherwise, the instance must be brought
       back ONLINE and removed without the force option to avoid errors trying
       to add it back to a cluster.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> SetInstanceOption
 NAME
@@ -896,8 +756,6 @@ DESCRIPTION
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
-      - failoverConsistency: string value indicating the consistency guarantees
-        that the cluster provides.
       - consistency: string value indicating the consistency guarantees that
         the cluster provides.
       - expelTimeout: integer value to define the time period in seconds that
@@ -940,9 +798,6 @@ DESCRIPTION
       It can only start with an alphanumeric character or with _ (underscore),
       and can only contain alphanumeric, _ ( underscore), . (period), or -
       (hyphen) characters.
-
-      ATTENTION: The failoverConsistency option will be removed in a future
-                 release. Please use the consistency option instead.
 
       ATTENTION: The transactionSizeLimit option is not supported on Replica
                  Clusters of InnoDB ClusterSets.
@@ -1140,10 +995,6 @@ DESCRIPTION
       - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -1157,15 +1008,10 @@ DESCRIPTION
       permissions to be granted to `user` account without actually creating
       and/or performing any changes to it.
 
-      The interactive option can be used to explicitly enable or disable the
-      interactive prompts that help the user through the account setup process.
-
       To change authentication options for an existing account, set `update` to
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
-
-      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> setupRouterAccount
 NAME
@@ -1205,10 +1051,6 @@ DESCRIPTION
       - requireCertSubject: Optional SSL certificate subject for the account.
       - dryRun: boolean value used to enable a dry run of the account setup
         process. Default value is False.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - update: boolean value that must be enabled to allow updating the
         privileges and/or password of existing accounts. Default value is
         False.
@@ -1222,15 +1064,10 @@ DESCRIPTION
       permissions to be granted to `user` account without actually creating
       and/or performing any changes to it.
 
-      The interactive option can be used to explicitly enable or disable the
-      interactive prompts that help the user through the account setup process.
-
       To change authentication options for an existing account, set `update` to
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
-
-      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Rescan
 NAME
@@ -1255,17 +1092,9 @@ DESCRIPTION
       - addInstances: List with the connection data of the new active instances
         to add to the metadata, or "auto" to automatically add missing
         instances to the metadata. Deprecated.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - removeInstances: List with the connection data of the obsolete
         instances to remove from the metadata, or "auto" to automatically
         remove obsolete instances from the metadata. Deprecated.
-      - updateTopologyMode: boolean value used to indicate if the topology mode
-        (single-primary or multi-primary) in the metadata should be updated
-        (true) or not (false) to match the one being used by the cluster. By
-        default, the metadata is not updated (false). Deprecated.
       - upgradeCommProtocol: boolean. Set to true to upgrade the Group
         Replication communication protocol to the highest version possible.
       - updateViewChangeUuid: boolean value used to indicate if the command
@@ -1284,11 +1113,6 @@ DESCRIPTION
       accept list connection data. In addition, the "auto" value can be used
       for both options in order to automatically add or remove the instances in
       the metadata, without having to explicitly specify them.
-
-      ATTENTION: The updateTopologyMode option will be removed in a future
-                 release.
-
-      ATTENTION: The interactive option will be removed in a future release.
 
       ATTENTION: The addInstances and removeInstances options will be removed
                  in a future release. Use addUnmanaged and removeObsolete
@@ -1313,11 +1137,6 @@ DESCRIPTION
       gathered and returned.
 
       - extended: verbosity level of the command output.
-      - queryMembers: if true, connect to each Instance of the Cluster to query
-        for more detailed stats about the replication machinery.
-
-      ATTENTION: The queryMembers option will be removed in a future release.
-                 Please use the extended option instead.
 
       The extended option supports Integer or Boolean values:
 
@@ -1434,18 +1253,12 @@ DESCRIPTION
         error occurs when trying to reset the passwords on any of the
         instances, for example if any of them is not online. By default, set to
         false.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
 
       The use of the force option (set to true) is not recommended. Use it only
       if really needed when instances are permanently not available (no longer
       reachable) or never going to be reused again in a cluster. Prefer to
       bring the non available instances back ONLINE or remove them from the
       cluster if they will no longer be used.
-
-      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> createClusterSet
 NAME

@@ -13,12 +13,6 @@ dba.configureInstance(__sandbox_uri2, { clusterAdmin: "cluster_admin2", clusterA
 shell.connect({ user: 'cluster_admin', password: 'foo', host: 'localhost', port: __mysql_sandbox_port1 });
 var cluster = dba.createCluster('Europe');
 
-//@<> Check instance state with credentials which mismatch seed instance
-EXPECT_THROWS(function () {
-    cluster.checkInstanceState({ user: 'cluster_admin2', password: 'bar', host: 'localhost', port: __mysql_sandbox_port2 });
-}, "Invalid target instance specification");
-EXPECT_OUTPUT_CONTAINS("ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them (localhost:"+__mysql_sandbox_port2+")");
-
 //@<> credentials that match seed instance, but does not exist at instance
 EXPECT_THROWS(function () {
     cluster.addInstance({ user: 'cluster_admin', password: 'foo', host: 'localhost', port: __mysql_sandbox_port2 }, { recoveryMethod: "incremental" });

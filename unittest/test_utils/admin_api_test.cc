@@ -20,6 +20,7 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/test_utils/admin_api_test.h"
+
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
@@ -53,7 +54,6 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
 
   shcore::Argument_list args;
   shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options;
-  options->gr_options.ssl_mode = mysqlsh::dba::to_cluster_ssl_mode("REQUIRED");
   options->clone_options.gtid_set_is_complete = true;
 
   _cluster =

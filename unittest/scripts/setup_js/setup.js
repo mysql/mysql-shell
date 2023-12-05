@@ -1700,7 +1700,7 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
       testutil.waitMemberState(ports[i], "ONLINE");
 
       if (testutil.versionCheck(__version, "<", "8.0.0")) {
-        dba.configureLocalInstance(uri, {mycnfPath: testutil.getSandboxConfPath(ports[i])});
+        dba.configureInstance(uri, {mycnfPath: testutil.getSandboxConfPath(ports[i])});
       }
     }
   }

@@ -3,7 +3,7 @@
 //@<> Skip tests in 8.0.4 to not trigger GR plugin deadlock {VER(==8.0.4)}
 testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
-//@ Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -51,10 +51,8 @@ var status = cluster.status();
 EXPECT_EQ(1, Object.keys(status["defaultReplicaSet"]["topology"]).length)
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 
-//@ Add instance 2
+//@<> Add instance 2
 cluster.addInstance(__sandbox_uri2);
-
-// Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Persist the configuration on the cnf file {VER(<8.0.11)}
@@ -66,8 +64,8 @@ var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "group_replication_ssl_mode", "DISABLED");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_ssl_mode", "DISABLED");
 
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: cnfPath1});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnfPath2});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: cnfPath1});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: cnfPath2});
 
 //@<> reboot with GR plugin uninstalled
 // covers Bug#30531848 RESTARTED INNODB CLUSTER NOT FINDING GR PLUGIN
@@ -110,23 +108,21 @@ EXPECT_EQ(vars2, session2.runSql("show variables like 'group_replication%'").fet
 // ensure offline_mode was disabled (BUG#33396423)
 EXPECT_EQ(0, session.runSql("select @@offline_mode").fetchOne()[0]);
 
-//@ Add instance 3
+//@<> Add instance 3
 session.close();
-// session is stored on the cluster object so changing the global session should not affect cluster operations
+
 shell.connect(__sandbox_uri2);
 
 cluster.addInstance(__sandbox_uri3);
-
-// Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<> check group_seeds correctly persisted {VER(<8.0.11)}
 EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox_gr_port3}`, testutil.getSandboxConf(__mysql_sandbox_port1, "loose_group_replication_group_seeds"));
@@ -160,7 +156,7 @@ EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}
 session.close();
 shell.connect(__sandbox_uri1);
 
-//@ Get data about existing replication users before reboot.
+//@<> Get data about existing replication users before reboot.
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
 var rpl_users_rows = get_rpl_users();
 session.close();
@@ -219,14 +215,9 @@ EXPECT_THROWS(function () {
 EXPECT_OUTPUT_CONTAINS(`WARNING: One or more instances of the Cluster could not be reached and cannot be rejoined nor ensured to be OFFLINE: '${hostname}:${__mysql_sandbox_port3}'. Cluster may diverge and become inconsistent unless all instances are either reachable or certain to be OFFLINE and not accepting new transactions. You may use the 'force' option to bypass this check and proceed anyway.`);
 
 //@<> Dba.rebootClusterFromCompleteOutage success
-EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage("dev", {force: true, user:'root', password:'root', clearReadOnly: true}); });
-EXPECT_OUTPUT_CONTAINS("The 'clearReadOnly' option is no longer used (it's deprecated): super_read_only is automatically cleared.");
-EXPECT_OUTPUT_CONTAINS("The 'user' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
-EXPECT_OUTPUT_CONTAINS("The 'password' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
+EXPECT_NO_THROWS(function () { cluster = dba.rebootClusterFromCompleteOutage("dev", {force: true}); });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully rejoined to the cluster.`);
 EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
-// |WARNING: The user option is deprecated and will be removed in a future release. If not specified, the user name is taken from the active session.|
-// |WARNING: The password option is deprecated and will be removed in a future release. If not specified, the password is taken from the active session.|
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

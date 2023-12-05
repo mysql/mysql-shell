@@ -68,10 +68,9 @@ shell.status();
 cluster.status();
 cluster.disconnect();
 
-//@ SP - getCluster() on primary with connectToPrimary: true: deprecated - auto-redirect to primary
+//@ SP - getCluster(null) on primary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
-EXPECT_OUTPUT_CONTAINS("WARNING: Option 'connectToPrimary' is deprecated and it will be removed in a future release. Shell will attempt to connect to the primary member of the Cluster by default and fallback to a secondary when not possible");
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();
@@ -79,9 +78,9 @@ shell.status();
 cluster.status();
 cluster.disconnect();
 
-//@ SP - getCluster() on secondary with connectToPrimary: true: deprecated - auto-redirect to primary
+//@ SP - getCluster(null) on secondary
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 
 // check the shell is connected to where we expect
 shell.status();
@@ -89,96 +88,41 @@ shell.status();
 cluster.status();
 cluster.disconnect();
 
-//@ SP - getCluster() on primary with connectToPrimary: false: deprecated - auto-redirect to primary
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-EXPECT_OUTPUT_CONTAINS("WARNING: Option 'connectToPrimary' is deprecated and it will be removed in a future release. Shell will attempt to connect to the primary member of the Cluster by default and fallback to a secondary when not possible");
-
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
-cluster.disconnect();
-
-//@ SP - getCluster() on secondary with connectToPrimary: false: deprecated - auto-redirect to primary
-shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
-cluster.disconnect();
-
-//@ SPX - getCluster() on session to primary: true: deprecated - auto-redirect to primary
+//@ SPX - getCluster() on session to primary
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 // check the shell is connected to where we expect
 shell.status();
 // check the cluster is connected to where we expect
 cluster.status();
 cluster.disconnect();
 
-//@ SPX - getCluster() on session to secondary: true: deprecated - auto-redirect to primary
+//@ SPX - getCluster() on session to secondary
 shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port2*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 // check the shell is connected to where we expect
 shell.status();
 // check the cluster is connected to where we expect
 cluster.status();
 cluster.disconnect();
 
-//@ SPX - getCluster() on session to primary: false: deprecated - auto-redirect to primary
-shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
-cluster.disconnect();
-
-//@ SPX - getCluster() on session to secondary: false: deprecated - auto-redirect to primary
-shell.connect({scheme:'mysqlx', host: localhost, port: __mysql_sandbox_port2*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
-cluster.disconnect();
-
-//@ SPX implicit - getCluster() on session to primary: true: deprecated - auto-redirect to primary
+//@ SPX implicit - getCluster() on session to primary
 shell.connect({host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 // check the shell is connected to where we expect
 shell.status();
 // check the cluster is connected to where we expect
 cluster.status();
 cluster.disconnect();
 
-//@ SPX implicit - getCluster() on session to secondary: true: deprecated - auto-redirect to primary
+//@ SPX implicit - getCluster() on session to secondary
 shell.connect({host: localhost, port: __mysql_sandbox_port2*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:true});
+var cluster = dba.getCluster(null);
 // check the shell is connected to where we expect
 shell.status();
 // check the cluster is connected to where we expect
 cluster.status();
 cluster.disconnect();
-
-//@ SPX implicit - getCluster() on session to primary: false: deprecated - auto-redirect to primary
-shell.connect({host: localhost, port: __mysql_sandbox_port1*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
-cluster.disconnect();
-
-//@ SPX implicit - getCluster() on session to secondary: false: deprecated - auto-redirect to primary
-shell.connect({host: localhost, port: __mysql_sandbox_port2*10, user: 'root', password: 'root'});
-var cluster = dba.getCluster(null, {connectToPrimary:false});
-// check the shell is connected to where we expect
-shell.status();
-// check the cluster is connected to where we expect
-cluster.status();
 
 //@ SP - Connect with no options and ensure it will connect to the specified member
 testutil.callMysqlsh([__sandbox_uri1, "-e", "shell.status()"]);
@@ -362,6 +306,9 @@ testutil.callMysqlsh([__sandbox_xuri1_, "--js", "--redirect-secondary", "-e", "p
 testutil.callMysqlsh([__sandbox_xuri2_, "--js", "--redirect-secondary", "-e", "println(cluster.status())", "--cluster"]);
 
 //@<> SP - getCluster() on session to secondary with primary gone but still reported as primary - auto-redirect to secondary
+shell.connect(__sandbox_uri1);
+var cluster = dba.getCluster();
+
 cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberTransactions(__mysql_sandbox_port3);
 

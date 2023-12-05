@@ -21,10 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/adminapi/cluster/api_options.h"
+#include "modules/adminapi/common/api_options.h"
 
+#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 
 namespace mysqlsh::dba {
 
@@ -44,58 +45,6 @@ void Timeout_option::set_timeout(int value) {
   timeout = value;
 }
 
-const shcore::Option_pack_def<Interactive_option>
-    &Interactive_option::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Interactive_option>().optional(
-          kInteractive, &Interactive_option::set_interactive, "",
-          shcore::Option_extract_mode::CASE_INSENSITIVE,
-          shcore::Option_scope::DEPRECATED);
-  return opts;
-}
-
-void Interactive_option::set_interactive(bool interactive) {
-  handle_deprecated_option(kInteractive, "");
-
-  DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                  { throw std::logic_error("debug"); });
-
-  m_interactive = interactive;
-}
-
-bool Interactive_option::interactive() const {
-  return m_interactive.value_or(current_shell_options()->get().wizards);
-}
-
-const shcore::Option_pack_def<Password_interactive_options>
-    &Password_interactive_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Password_interactive_options>()
-          .optional(mysqlshdk::db::kPassword,
-                    &Password_interactive_options::set_password, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
-          .optional(mysqlshdk::db::kDbPassword,
-                    &Password_interactive_options::set_password, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
-          .include<Interactive_option>();
-
-  return opts;
-}
-
-const shcore::Option_pack_def<Wait_recovery_option>
-    &Wait_recovery_option::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Wait_recovery_option>()
-          .optional(kRecoveryProgress, &Wait_recovery_option::set_wait_recovery)
-          .optional(kWaitRecovery, &Wait_recovery_option::set_wait_recovery, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED);
-
-  return opts;
-}
-
 const shcore::Option_pack_def<Recovery_progress_option>
     &Recovery_progress_option::options() {
   static const auto opts =
@@ -103,16 +52,6 @@ const shcore::Option_pack_def<Recovery_progress_option>
           kRecoveryProgress, &Recovery_progress_option::set_recovery_progress);
 
   return opts;
-}
-
-Recovery_progress_style Wait_recovery_option::get_wait_recovery() {
-  if (!m_wait_recovery.has_value()) {
-    m_wait_recovery = isatty(STDOUT_FILENO)
-                          ? Recovery_progress_style::PROGRESSBAR
-                          : Recovery_progress_style::TEXTUAL;
-  }
-
-  return *m_wait_recovery;
 }
 
 Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
@@ -125,81 +64,14 @@ Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
   return *m_recovery_progress;
 }
 
-namespace {
-void validate_wait_recovery(int value) {
-  // Validate waitRecovery option UInteger [0, 3]
-  if (value < 0 || value > 3) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
-                           "integer in the range [0, 3].",
-                           value, kWaitRecovery));
-  }
-}
-
-void validate_recovery_progress(int value) {
-  // Validate recoveryProgress option UInteger [0, 3]
+void Recovery_progress_option::set_recovery_progress(int value) {
+  // Validate recoveryProgress option UInteger [0, 2]
   if (value < 0 || value > 2) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
                            "integer in the range [0, 2].",
                            value, kRecoveryProgress));
   }
-}
-}  // namespace
-
-void Wait_recovery_option::set_wait_recovery(const std::string &option,
-                                             int value) {
-  if (option == kWaitRecovery) {
-    handle_deprecated_option(kWaitRecovery, kRecoveryProgress,
-                             m_recovery_progress.has_value(), false);
-
-    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                    { throw std::logic_error("debug"); });
-  }
-
-  // Validate waitRecovery option UInteger [0, 3]
-  if (option == kWaitRecovery) {
-    validate_wait_recovery(value);
-  } else {
-    // Validate recoveryProgress option UInteger [0, 2]
-    validate_recovery_progress(value);
-  }
-
-  if (option == kWaitRecovery) {
-    switch (value) {
-      case 0:
-        m_wait_recovery = Recovery_progress_style::NOWAIT;
-        break;
-      case 1:
-        m_wait_recovery = Recovery_progress_style::NOINFO;
-        break;
-      case 2:
-        m_wait_recovery = Recovery_progress_style::TEXTUAL;
-        break;
-      case 3:
-        m_wait_recovery = Recovery_progress_style::PROGRESSBAR;
-        break;
-    }
-  } else {
-    switch (value) {
-      case 0:
-        m_recovery_progress = Recovery_progress_style::NOINFO;
-        break;
-      case 1:
-        m_recovery_progress = Recovery_progress_style::TEXTUAL;
-        break;
-      case 2:
-        m_recovery_progress = Recovery_progress_style::PROGRESSBAR;
-        break;
-    }
-
-    m_wait_recovery = m_recovery_progress;
-  }
-}
-
-void Recovery_progress_option::set_recovery_progress(int value) {
-  // Validate recoveryProgress option UInteger [0, 2]
-  validate_recovery_progress(value);
 
   switch (value) {
     case 0:
@@ -214,30 +86,9 @@ void Recovery_progress_option::set_recovery_progress(int value) {
   }
 }
 
-void Password_interactive_options::set_password(const std::string &option,
-                                                const std::string &value) {
-  if (option == mysqlshdk::db::kDbPassword) {
-    handle_deprecated_option(mysqlshdk::db::kDbPassword,
-                             mysqlshdk::db::kPassword, password.has_value(),
-                             true);
-  }
-
-  if (option == mysqlshdk::db::kPassword) {
-    handle_deprecated_option(mysqlshdk::db::kPassword, "");
-
-    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                    { throw std::logic_error("debug"); });
-  }
-
-  password = value;
-}
-
-const shcore::Option_pack_def<Force_interactive_options>
-    &Force_interactive_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Force_interactive_options>()
-          .optional(kForce, &Force_interactive_options::force)
-          .include<Interactive_option>();
+const shcore::Option_pack_def<Force_options> &Force_options::options() {
+  static const auto opts = shcore::Option_pack_def<Force_options>().optional(
+      kForce, &Force_options::force);
 
   return opts;
 }
@@ -255,6 +106,7 @@ const shcore::Option_pack_def<Setup_account_options>
     &Setup_account_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Setup_account_options>()
+          .optional(mysqlshdk::db::kPassword, &Setup_account_options::password)
           .optional(kDryRun, &Setup_account_options::dry_run)
           .optional(kUpdate, &Setup_account_options::update)
           .optional(kRequireCertIssuer,
@@ -262,8 +114,7 @@ const shcore::Option_pack_def<Setup_account_options>
           .optional(kRequireCertSubject,
                     &Setup_account_options::require_cert_subject)
           .optional(kPasswordExpiration,
-                    &Setup_account_options::set_password_expiration)
-          .include<Password_interactive_options>();
+                    &Setup_account_options::set_password_expiration);
 
   return opts;
 }
@@ -304,12 +155,6 @@ REGISTER_HELP(
     "`true`. It is possible to change password without affecting "
     "certificate options or vice-versa but certificate options can only be "
     "changed together.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL,
-    "The interactive option can be used to explicitly enable or disable the "
-    "interactive prompts that help the user through the account setup "
-    "process.");
 
 void Setup_account_options::set_password_expiration(
     const shcore::Value &value) {

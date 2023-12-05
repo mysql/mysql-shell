@@ -44,9 +44,8 @@ using mysqlshdk::utils::Version;
 
 namespace mysqlsh {
 namespace dba {
-extern void validate_ip_whitelist_option(
-    const mysqlshdk::utils::Version &version, const std::string &ip_whitelist,
-    const std::string &ip_allowlist_option_name);
+extern void validate_ip_allowlist_option(
+    const mysqlshdk::utils::Version &version, std::string_view ip_allowlist);
 }  // namespace dba
 }  // namespace mysqlsh
 
@@ -302,7 +301,6 @@ TEST_F(Admin_api_common_test,
 
 TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
-  mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
 
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root", sandbox_opts);
@@ -327,13 +325,9 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   auto peer = create_session(_mysql_sandbox_ports[0]);
   auto instance = create_session(_mysql_sandbox_ports[1]);
 
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    AUTO          enabled
   try {
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
+    auto member_ssl_mode =
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer);
     EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -343,132 +337,13 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
     ADD_FAILURE();
   }
 
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    REQUIRED      enabled
-  try {
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
-    EXPECT_STREQ("REQUIRED", to_string(member_ssl_mode).c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE(
-        "Unexpected failure at memberSslMode='REQUIRED', instance "
-        "with SSL");
-    ADD_FAILURE();
-  }
-
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    VERIFY_CA      enabled
-  try {
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
-    EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE(
-        "Unexpected failure at memberSslMode='VERIFY_CA', instance "
-        "with SSL");
-    ADD_FAILURE();
-  }
-
-  // Cluster SSL memberSslMode    Instance SSL
-  //----------- -------------     ------------
-  // REQUIRED    VERIFY_IDENTITY  enabled
-  try {
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
-    EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
-  } catch (const shcore::Exception &e) {
-    SCOPED_TRACE(e.what());
-    SCOPED_TRACE(
-        "Unexpected failure at memberSslMode='VERIFY_IDENTITY', instance "
-        "with SSL");
-    ADD_FAILURE();
-  }
-
-  // NOTE: This test only applies to 8.0. In 5.7, ssl_ca and ssl_capath are
-  // read-only so whenever the server is started with SSL support those are
-  // unchangeable. If the server is changed to not start with SSL support, then
-  // the command would fail with the error indicating the Cluster is using SSL
-  // so the instance cannot be added - Different code-path.
-  //
-  // To avoid looking at the version to decide whether the test shall be
-  // executed or not, we simply emplace the test in a try..catch block ensuring
-  // the exception caught when running in 5.7 is about ssl_ca being read-only.
-  try {
-    auto current_ssl_ca = instance->get_sysvar_string("ssl_ca").value_or("");
-    auto current_ssl_capath =
-        instance->get_sysvar_string("ssl_capath").value_or("");
-
-    instance->set_sysvar_default("ssl_ca");
-    instance->set_sysvar_default("ssl_capath");
-
-    // An exception should be raised when the CA options are not set and
-    // VERIFY_CA is used as memberSslMode
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-    EXPECT_THROW_MSG(
-        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                       &member_ssl_mode),
-        std::runtime_error,
-        "memberSslMode 'VERIFY_CA' requires Certificate Authority (CA) "
-        "certificates to be supplied.");
-
-    MY_EXPECT_STDOUT_CONTAINS(
-        "ERROR: CA certificates options not set. ssl_ca or ssl_capath are "
-        "required, to supply a CA certificate that matches the one used by the "
-        "server.");
-
-    // An exception should be raised when the CA options are not set and
-    // VERIFY_IDENTITY is used as memberSslMode
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-    EXPECT_THROW_MSG(
-        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                       &member_ssl_mode),
-        std::runtime_error,
-        "memberSslMode 'VERIFY_IDENTITY' requires Certificate Authority (CA) "
-        "certificates to be supplied.");
-
-    MY_EXPECT_STDOUT_CONTAINS(
-        "ERROR: CA certificates options not set. ssl_ca or ssl_capath are "
-        "required, to supply a CA certificate that matches the one used by the "
-        "server.");
-
-    // Set back the original values
-    instance->set_sysvar("ssl_ca", current_ssl_ca);
-    instance->set_sysvar("ssl_capath", current_ssl_capath);
-  } catch (const mysqlshdk::db::Error &e) {
-    // In 5.7 ssl_ca and ssl_capath are read_only variables
-    EXPECT_STREQ("Variable 'ssl_ca' is a read only variable", e.what());
-  }
-
-  // Cluster SSL memberSslMode
-  //----------- -------------
-  // REQUIRED    DISABLED
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::DISABLED;
-  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode_option(
-                       *instance, *peer, &member_ssl_mode),
-                   std::runtime_error,
-                   "The cluster has TLS (encryption) enabled. "
-                   "To add the instance '" +
-                       instance->descr() +
-                       "' to the cluster either disable TLS on the cluster, "
-                       "remove the memberSslMode option or use it with any of "
-                       "'AUTO', 'REQUIRED', 'VERIFY_CA' or "
-                       "'VERIFY_IDENTITY'.");
-
   // Cluster SSL  memberSslMode     Instance SSL
   //-----------   ---------------   ------------
   // VERIFY_CA    "AUTO"            enabled
   try {
     peer->execute("SET GLOBAL group_replication_ssl_mode=VERIFY_CA");
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
+    auto member_ssl_mode =
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer);
     EXPECT_STREQ("VERIFY_CA", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -483,9 +358,8 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // VERIFY_CA    "AUTO"            enabled
   try {
     peer->execute("SET GLOBAL group_replication_ssl_mode=VERIFY_IDENTITY");
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
+    auto member_ssl_mode =
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer);
     EXPECT_STREQ("VERIFY_IDENTITY", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -502,57 +376,14 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   // Cluster SSL memberSslMode Instance SSL
   //----------- ------------- ------------
   // REQUIRED    AUTO          disabled
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-  EXPECT_THROW_MSG(mysqlsh::dba::resolve_instance_ssl_mode_option(
-                       *instance, *peer, &member_ssl_mode),
-                   std::runtime_error,
-                   "Instance '" + instance->descr() +
-                       "' does not support TLS and cannot join a cluster with "
-                       "TLS (encryption) enabled. Enable TLS support on the "
-                       "instance and try again, otherwise it can only be added "
-                       "to a cluster with TLS disabled.");
-
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    REQUIRED      disabled
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer),
       std::runtime_error,
       "Instance '" + instance->descr() +
-          "' does not support TLS and cannot join a cluster with TLS "
-          "(encryption) enabled. Enable TLS support on the instance and try "
-          "again, otherwise it can only be added to a cluster with TLS "
-          "disabled.");
-
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    VERIFY_CA      disabled
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA;
-  EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
-      std::runtime_error,
-      "Instance '" + instance->descr() +
-          "' does not support TLS and cannot join a cluster with TLS "
-          "(encryption) enabled. Enable TLS support on the instance and try "
-          "again, otherwise it can only be added to a cluster with TLS "
-          "disabled.");
-
-  // Cluster SSL memberSslMode    Instance SSL
-  //----------- -------------     ------------
-  // REQUIRED    VERIFY_IDENTITY   disabled
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY;
-  EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
-      std::runtime_error,
-      "Instance '" + instance->descr() +
-          "' does not support TLS and cannot join a cluster with TLS "
-          "(encryption) enabled. Enable TLS support on the instance and try "
-          "again, otherwise it can only be added to a cluster with TLS "
-          "disabled.");
+          "' does not support TLS and cannot join a cluster with "
+          "TLS (encryption) enabled. Enable TLS support on the "
+          "instance and try again, otherwise it can only be added "
+          "to a cluster with TLS disabled.");
 
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
@@ -561,7 +392,6 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
-  mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
 
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root", sandbox_opts);
   testutil->deploy_sandbox(_mysql_sandbox_ports[1], "root", sandbox_opts);
@@ -585,27 +415,12 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   auto peer = create_session(_mysql_sandbox_ports[0]);
   auto instance = create_session(_mysql_sandbox_ports[1]);
 
-  // Cluster SSL memberSslMode
-  //----------- -------------
-  // DISABLED    REQUIRED
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::REQUIRED;
-  EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
-      std::runtime_error,
-      "The cluster has TLS (encryption) disabled. "
-      "To add the instance '" +
-          instance->descr() +
-          "' to the cluster either enable TLS on the cluster, remove the "
-          "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
-
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // DISABLED    AUTO          OFF
   try {
-    member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
-    mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                   &member_ssl_mode);
+    auto member_ssl_mode =
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer);
     EXPECT_STREQ("DISABLED", to_string(member_ssl_mode).c_str());
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -618,10 +433,8 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // DISABLED    ""            ON
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer),
       std::runtime_error,
       "The instance '" + instance->descr() +
           "' is configured to require a secure transport but the cluster has "
@@ -632,10 +445,8 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   // Cluster SSL memberSslMode require_secure_transport
   //----------- ------------- ------------------------
   // DISABLED    AUTO          ON
-  member_ssl_mode = mysqlsh::dba::Cluster_ssl_mode::AUTO;
   EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer,
-                                                     &member_ssl_mode),
+      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer),
       std::runtime_error,
       "The instance '" + instance->descr() +
           "' is configured to require a secure transport but the cluster has "
@@ -1031,64 +842,12 @@ TEST_F(Admin_api_common_test, super_read_only_server_on_flag_true) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), true);
+        mysqlshdk::mysql::Instance(session));
     EXPECT_TRUE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at super_read_only_server_on_flag_true");
     ADD_FAILURE();
-  }
-
-  session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
-}
-
-TEST_F(Admin_api_common_test,
-       super_read_only_server_on_flag_false_open_sessions) {
-  enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
-  auto session = mysqlshdk::db::mysql::Session::create();
-  session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
-
-  auto extra_session = mysqlshdk::db::mysql::Session::create();
-  extra_session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
-
-  // super_read_only is ON, no active sessions
-  session->query("set global super_read_only = 1");
-
-  try {
-    mysqlsh::dba::validate_super_read_only(mysqlshdk::mysql::Instance(session),
-                                           false);
-    SCOPED_TRACE("Unexpected success calling validate_super_read_only");
-    ADD_FAILURE();
-  } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Server in SUPER_READ_ONLY mode", e.what());
-  }
-
-  session->close();
-  extra_session->close();
-  testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
-}
-
-TEST_F(Admin_api_common_test,
-       super_read_only_server_on_flag_false_no_open_sessions) {
-  enable_replay();
-  testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
-  auto session = mysqlshdk::db::mysql::Session::create();
-  session->connect(
-      testutil->sandbox_connection_options(_mysql_sandbox_ports[0], "root"));
-
-  // super_read_only is ON, no active sessions
-  session->query("set global super_read_only = 1");
-  try {
-    mysqlsh::dba::validate_super_read_only(mysqlshdk::mysql::Instance(session),
-                                           false);
-    SCOPED_TRACE("Unexpected success calling validate_super_read_only");
-    ADD_FAILURE();
-  } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Server in SUPER_READ_ONLY mode", e.what());
   }
 
   session->close();
@@ -1107,7 +866,7 @@ TEST_F(Admin_api_common_test, super_read_only_server_off_flag_true) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), true);
+        mysqlshdk::mysql::Instance(session));
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1131,7 +890,7 @@ TEST_F(Admin_api_common_test, super_read_only_server_off_flag_false) {
 
   try {
     auto read_only = mysqlsh::dba::validate_super_read_only(
-        mysqlshdk::mysql::Instance(session), false);
+        mysqlshdk::mysql::Instance(session));
     EXPECT_FALSE(read_only);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
@@ -1143,7 +902,7 @@ TEST_F(Admin_api_common_test, super_read_only_server_off_flag_false) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST(mod_dba_common, validate_ipwhitelist_option) {
+TEST(mod_dba_common, validate_ipallowlist_option) {
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
@@ -1153,26 +912,25 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   auto ver_800 = mysqlshdk::utils::Version(8, 0, 0);
   int canonical_port = 3306;
 
-  // Error if the ipWhitelist is empty.
-  options.ip_allowlist_option_name = "ipWhitelist";
+  // Error if the ipAllowlist is empty.
   options.ip_allowlist = "";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Invalid value for ipWhitelist: string value cannot be empty.",
+    EXPECT_STREQ("Invalid value for ipAllowlist: string value cannot be empty.",
                  e.what());
   }
 
-  // Error if the ipWhitelist string is empty (only whitespace).
+  // Error if the ipAllowlist string is empty (only whitespace).
   options.ip_allowlist = " ";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Invalid value for ipWhitelist: string value cannot be empty.",
+    EXPECT_STREQ("Invalid value for ipAllowlist: string value cannot be empty.",
                  e.what());
   }
 
@@ -1180,11 +938,11 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "192.168.1.1/0";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '192.168.1.1/0': subnet value in CIDR "
+        "Invalid value for ipAllowlist '192.168.1.1/0': subnet value in CIDR "
         "notation is not valid.",
         e.what());
   }
@@ -1193,11 +951,11 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "192.168.1.1/33";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '192.168.1.1/33': subnet value in CIDR "
+        "Invalid value for ipAllowlist '192.168.1.1/33': subnet value in CIDR "
         "notation is not supported (version >= 8.0.14 required for IPv6 "
         "support).",
         e.what());
@@ -1207,11 +965,11 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "1/33";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '1/33': subnet value in CIDR "
+        "Invalid value for ipAllowlist '1/33': subnet value in CIDR "
         "notation is not supported (version >= 8.0.14 required for IPv6 "
         "support).",
         e.what());
@@ -1222,51 +980,51 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "192.168.1.1/0,192.168.1.1/33";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '192.168.1.1/0': subnet value in CIDR "
+        "Invalid value for ipAllowlist '192.168.1.1/0': subnet value in CIDR "
         "notation is not valid.",
         e.what());
   }
 
-  // Error if ipWhitelist is an IPv6 address and not supported by server
+  // Error if ipAllowlist is an IPv6 address and not supported by server
   options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist "
+        "Invalid value for ipAllowlist "
         "'2001:0db8:85a3:0000:0000:8a2e:0370:7334': IPv6 not supported "
         "(version >= 8.0.14 required for IPv6 support).",
         e.what());
   }
 
-  // Error if ipWhitelist is not a valid IPv4 address (not supported, < 8.0.4)
+  // Error if ipAllowlist is not a valid IPv4 address (not supported, < 8.0.4)
   options.ip_allowlist = "256.255.255.255";
   try {
     options.check_option_values(Version(8, 0, 3), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
+        "Invalid value for ipAllowlist '256.255.255.255': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).",
         e.what());
   }
 
-  // Error if ipWhitelist is not a valid IPv4 address
+  // Error if ipAllowlist is not a valid IPv4 address
   options.ip_allowlist = "256.255.255.255/16";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist '256.255.255.255/16': CIDR notation can "
+        "Invalid value for ipAllowlist '256.255.255.255/16': CIDR notation can "
         "only be used with IPv4 or IPv6 addresses.",
         e.what());
   }
@@ -1275,11 +1033,11 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "localhost";
   try {
     options.check_option_values(Version(8, 0, 3), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist 'localhost': hostnames are not "
+        "Invalid value for ipAllowlist 'localhost': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).",
         e.what());
   }
@@ -1288,11 +1046,11 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "localhost/8";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist 'localhost/8': CIDR notation can only "
+        "Invalid value for ipAllowlist 'localhost/8': CIDR notation can only "
         "be used with IPv4 or IPv6 addresses.",
         e.what());
   }
@@ -1301,21 +1059,21 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   options.ip_allowlist = "bogus/8";
   try {
     options.check_option_values(Version(8, 0, 4), canonical_port);
-    SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
+    SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
     EXPECT_STREQ(
-        "Invalid value for ipWhitelist 'bogus/8': CIDR notation can only be "
+        "Invalid value for ipAllowlist 'bogus/8': CIDR notation can only be "
         "used with IPv4 or IPv6 addresses.",
         e.what());
   }
 
-  // No error if ipWhitelist is an IPv6 address and server does support it
+  // No error if ipAllowlist is an IPv6 address and server does support it
   options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   {
     options.check_option_values(Version(8, 0, 14), canonical_port);
     SCOPED_TRACE(
-        "No error if ipWhitelist is an IPv6 address and server does support "
+        "No error if ipAllowlist is an IPv6 address and server does support "
         "it");
     EXPECT_NO_THROW(
         options.check_option_values(Version(8, 0, 14), canonical_port));
@@ -1323,15 +1081,15 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
 
   options.ip_allowlist = "256.255.255.255";
   {
-    // Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4
+    // Error if ipAllowlist is not a valid IPv4 address and version < 8.0.4
     // since it is not a valid IPv4 it assumes it must be an hostname and
     // hostnames are not supported below 8.0.4
     SCOPED_TRACE(
-        "Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4");
+        "Error if ipAllowlist is not a valid IPv4 address and version < 8.0.4");
     EXPECT_THROW_LIKE(
         options.check_option_values(Version(8, 0, 0), canonical_port),
         shcore::Exception,
-        "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
+        "Invalid value for ipAllowlist '256.255.255.255': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).");
   }
 
@@ -1342,7 +1100,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     EXPECT_THROW_LIKE(
         options.check_option_values(Version(8, 0, 0), canonical_port),
         shcore::Exception,
-        "Invalid value for ipWhitelist 'localhost': hostnames are not "
+        "Invalid value for ipAllowlist 'localhost': hostnames are not "
         "supported (version >= 8.0.4 required for hostname support).");
   }
 
@@ -1355,17 +1113,17 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
         options.check_option_values(Version(8, 0, 4), canonical_port));
   }
 
-  // No error if the ipWhitelist is a valid IPv4 address
+  // No error if the ipAllowlist is a valid IPv4 address
   options.ip_allowlist = "192.168.1.1";
   EXPECT_NO_THROW(
       options.check_option_values(Version(8, 0, 4), canonical_port));
 
-  // No error if the ipWhitelist is a valid IPv4 address with a valid CIDR value
+  // No error if the ipAllowlist is a valid IPv4 address with a valid CIDR value
   options.ip_allowlist = "192.168.1.1/15";
   EXPECT_NO_THROW(
       options.check_option_values(Version(8, 0, 4), canonical_port));
 
-  // No error if the ipWhitelist consist of several valid IPv4 addresses with a
+  // No error if the ipAllowlist consist of several valid IPv4 addresses with a
   // valid CIDR value
   // NOTE: if the server version is > 8.0.4, hostnames are allowed too so we
   // must test it
@@ -1940,141 +1698,101 @@ TEST_F(Admin_api_common_test, resolve_gr_local_address) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
 }
 
-TEST_F(Admin_api_common_test, set_wait_recovery) {
+TEST_F(Admin_api_common_test, set_recovery_progress) {
   mysqlsh::dba::cluster::Add_instance_options options;
 
-  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 0);
-  EXPECT_EQ(options.get_wait_recovery(),
-            mysqlsh::dba::Recovery_progress_style::NOWAIT);
-
-  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 1);
-  EXPECT_EQ(options.get_wait_recovery(),
+  options.set_recovery_progress(0);
+  EXPECT_EQ(options.get_recovery_progress(),
             mysqlsh::dba::Recovery_progress_style::NOINFO);
 
-  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 2);
-  EXPECT_EQ(options.get_wait_recovery(),
+  options.set_recovery_progress(1);
+  EXPECT_EQ(options.get_recovery_progress(),
             mysqlsh::dba::Recovery_progress_style::TEXTUAL);
 
-  options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 3);
-  EXPECT_EQ(options.get_wait_recovery(),
-            mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
-
-  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 0);
-  EXPECT_EQ(options.get_wait_recovery(),
-            mysqlsh::dba::Recovery_progress_style::NOINFO);
-
-  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 1);
-  EXPECT_EQ(options.get_wait_recovery(),
-            mysqlsh::dba::Recovery_progress_style::TEXTUAL);
-
-  options.set_wait_recovery(mysqlsh::dba::kRecoveryProgress, 2);
-  EXPECT_EQ(options.get_wait_recovery(),
+  options.set_recovery_progress(2);
+  EXPECT_EQ(options.get_recovery_progress(),
             mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
 }
 
-TEST_F(Admin_api_common_test, ip_whitelist) {
+TEST_F(Admin_api_common_test, ip_allowlist) {
   using V = const mysqlshdk::utils::Version;
   {
-    const std::string ip_whitelist{};
+    std::string_view ip_allowlist{};
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.17"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist: string value cannot be empty.");
+        "Invalid value for 'ipAllowlist': string value cannot be empty.");
 
     // Verify that the option name is presented as ipAllowlist when used
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.22"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpAllowlist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.22"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipAllowlist: string value cannot be empty.");
+        "Invalid value for 'ipAllowlist': string value cannot be empty.");
   }
   {
-    const std::string ip_whitelist{
+    std::string_view ip_allowlist{
         "192.168.0.0/24,::ffff:10.2.0.3/128,::10.3.0.3/128,::ffff:10.2.0.3/16,"
         "::10.3.0.3/16,10.100.23.1/128"};
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.14"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '10.100.23.1/128': subnet value in CIDR "
+        "Invalid value for ipAllowlist '10.100.23.1/128': subnet value in CIDR "
         "notation is not supported for IPv4 addresses.");
   }
   {
-    const std::string ip_whitelist{
+    std::string_view ip_allowlist{
         "192.168.0.1/8,127.0.0.1, 10.123.4.11, ::1,mysql.cluster.example.com"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.17"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.14"}, ip_allowlist);
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.13"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+        "Invalid value for ipAllowlist '::1': IPv6 not supported");
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.10"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+        "Invalid value for ipAllowlist '::1': IPv6 not supported");
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.4"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+        "Invalid value for ipAllowlist '::1': IPv6 not supported");
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.3"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+        "Invalid value for ipAllowlist '::1': IPv6 not supported");
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"5.7.27"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+        "Invalid value for ipAllowlist '::1': IPv6 not supported");
   }
   {
-    const std::string ip_whitelist{
+    std::string_view ip_allowlist{
         "192.168.0.1/8,127.0.0.1,10.123.4.11, mysql.cluster.example.com"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.17"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.14"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.13"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.10"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.4"}, ip_allowlist);
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.3"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
+        "Invalid value for ipAllowlist 'mysql.cluster.example.com': hostnames "
         "are not supported");
     EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
+        mysqlsh::dba::validate_ip_allowlist_option(V{"5.7.27"}, ip_allowlist),
         shcore::Exception,
-        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
+        "Invalid value for ipAllowlist 'mysql.cluster.example.com': hostnames "
         "are not supported");
   }
   {
-    const std::string ip_whitelist{"192.168.0.1/8, 127.0.0.1,10.123.4.11"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
+    std::string_view ip_allowlist{"192.168.0.1/8, 127.0.0.1,10.123.4.11"};
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.17"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.14"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.13"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.10"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.4"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"8.0.3"}, ip_allowlist);
+    mysqlsh::dba::validate_ip_allowlist_option(V{"5.7.27"}, ip_allowlist);
   }
 }
 

@@ -18,7 +18,6 @@ shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', 
 validateMembers(dba, [
     'checkInstanceConfiguration',
     'configureInstance',
-    'configureLocalInstance',
     'configureReplicaSetInstance',
     'createCluster',
     'createReplicaSet',
@@ -50,11 +49,6 @@ dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'REQUIRED'});
 dba.createCluster('devCluster', {adoptFromGR: true, memberSslMode: 'DISABLED'});
 dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: true, force: true});
 dba.createCluster('devCluster', {adoptFromGR: true, multiPrimary: false});
-dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: true, force: true});
-dba.createCluster('devCluster', {adoptFromGR: true, multiMaster: false});
-dba.createCluster('devCluster', {multiPrimary:false, multiMaster: false});
-dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
-dba.createCluster('devCluster', {ipWhitelist: "  "});
 dba.createCluster('#');
 dba.createCluster("_1234567890::_1234567890123456789012345678901234567890123456789012345678901234");
 dba.createCluster("::");
@@ -70,7 +64,7 @@ var result = session.runSql("SELECT @@GLOBAL.SQL_MODE");
 var row = result.fetchOne();
 print("Current sql_mode is: "+ row[0] + "\n");
 
-var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 print(c1);
 
 var enable_bug_26979375 = true;
@@ -116,7 +110,7 @@ session.runSql("SET sql_log_bin = 1");
 session.close();
 
 shell.connect({scheme:'mysql', host: "127.0.0.1", port: __mysql_sandbox_port1, user: 'test_user', password: ''});
-c1 = dba.createCluster("devCluster", {clearReadOnly: true});
+c1 = dba.createCluster("devCluster");
 c1
 
 //@ Dba: dissolve cluster created using a non existing user that authenticates as another user (BUG#26979375) {enable_bug_26979375}
@@ -133,7 +127,7 @@ session.runSql("DROP user 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
 //@<OUT> Dba: createCluster with interaction
-var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
+var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED'});
 
 //@ Dba: checkInstanceConfiguration in a cluster member
 testutil.expectPassword("*", "root");
@@ -145,204 +139,28 @@ dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2);
 
 //@<OUT> Dba: checkInstanceConfiguration ok 2
 testutil.expectPassword("*", "root");
-dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port2, {password:'root'});
+dba.checkInstanceConfiguration('root:root@localhost:' + __mysql_sandbox_port2);
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors
 var uri2 = 'root@localhost:' + __mysql_sandbox_port2;
 var res = dba.checkInstanceConfiguration(uri2, {mycnfPath:'mybad.cnf'});
 
-// TODO: This test needs an actual remote instance
-//  Dba: configureLocalInstance error 1
-//dba.configureLocalInstance('someotherhost:' + __mysql_sandbox_port1);
-
-// TODO(rennox): This test case is not reliable since requires
-// that no my.cnf exist on the default paths
-//--@<OUT> Dba: configureLocalInstance error 2
-//dba.configureLocalInstance('localhost:' + __mysql_port);
-
-//@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
-var __sandbox_dir = testutil.getSandboxPath();
-var cnfPath1 = os.path.join(__sandbox_dir, __mysql_sandbox_port1.toString(), "my.cnf");
-testutil.expectPassword("*", "root");
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
-
-//@<OUT> Dba: configureLocalInstance error 3 bad call {VER(>=8.0.11)}
-testutil.expectPassword("*", "root");
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port1);
-
 session.close();
 
-//@ Dba: Create user without all necessary privileges
-// create user that has all permissions to admin a cluster but doesn't have
-// the grant privileges for them, so it cannot be used to create viable accounts
-// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
-// PERMISSIONS, CREATES A WRONG NEW USER
-
+//@ createCluster() should fail if user does not have global GRANT OPTION
 shell.connect(__sandbox_uri2);
-session.runSql('SET GLOBAL super_read_only = 0');
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("CREATE USER missingprivileges@localhost");
-session.runSql("GRANT CREATE USER ON *.* TO missingprivileges@localhost");
-session.runSql("GRANT SELECT ON `performance_schema`.* TO missingprivileges@localhost WITH GRANT OPTION");
-session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO missingprivileges@localhost");
-session.runSql("GRANT REPLICATION SLAVE ON *.* TO missingprivileges@localhost WITH GRANT OPTION;");
-session.runSql("SET SQL_LOG_BIN=1");
-var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
-var row = result.fetchOne();
-print("Number of accounts: "+ row[0] + "\n");
-session.close();
 
-//@# Dba: configureLocalInstance not enough privileges 1
-testutil.expectPassword("*", "");
-// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
-// PERMISSIONS, CREATES A WRONG NEW USER
-dba.configureLocalInstance('missingprivileges@localhost:' + __mysql_sandbox_port2);
-
-//@# Dba: configureLocalInstance not enough privileges 2
-testutil.expectPassword("*", "");
-// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
-// PERMISSIONS, CREATES A WRONG NEW USER
-dba.configureLocalInstance('missingprivileges@localhost:' + __mysql_sandbox_port2,
-    {clusterAdmin: "missingprivileges", clusterAdminPassword:""});
-
-//@# Dba: configureLocalInstance not enough privileges 3
-testutil.expectPassword("*", "");
-// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
-// PERMISSIONS, CREATES A WRONG NEW USER
-
-dba.configureLocalInstance('missingprivileges@localhost:' + __mysql_sandbox_port2);
-
-//@ Dba: Show list of users to make sure the user missingprivileges@% was not created
-// Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
-// PERMISSIONS, CREATES A WRONG NEW USER
-shell.connect(__sandbox_uri2);
-var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='%'");
-var row = result.fetchOne();
-print("Number of accounts: "+ row[0] + "\n");
-
-//@ Dba: Delete created user and reconnect to previous sandbox
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("DROP USER missingprivileges@localhost");
-session.runSql("SET SQL_LOG_BIN=1");
-var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='localhost'");
-var row = result.fetchOne();
-print("Number of accounts: "+ row[0] + "\n");
-session.close();
-shell.connect(__sandbox_uri1);
-
-//@<OUT> Dba: configureLocalInstance updating config file
-testutil.expectPassword("*", "root");
-testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
-dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath:'mybad.cnf'});
-
-//@ Dba: create an admin user with all needed privileges
-// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-shell.connect(__sandbox_uri2);
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("CREATE USER 'mydba'@'localhost' IDENTIFIED BY ''");
-session.runSql("GRANT ALL ON *.* TO 'mydba'@'localhost' WITH GRANT OPTION");
-session.runSql("SET SQL_LOG_BIN=1");
-var result = session.runSql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'");
-var row = result.fetchOne();
-print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
-session.close();
-
-//@<OUT> Dba: configureLocalInstance create different admin user
-testutil.expectPassword("*", "");  // Pass for mydba
-testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("Account Name: ", "dba_test");  // account name
-testutil.expectPassword("Password for new account: ", "");        // account pass
-testutil.expectPassword("Confirm password: ", "");        // account pass confirmation
-
-// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
-
-//@<OUT> Dba: configureLocalInstance create existing valid admin user
-testutil.expectPassword("*", "");  // Pass for mydba
-testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("Account Name: ", "dba_test");  // account name
-
-// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
-
-//@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
-shell.connect(__sandbox_uri2);
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'");
-session.runSql("SET SQL_LOG_BIN=1");
-session.close();
-
-//@ Dba: configureLocalInstance create existing invalid admin user
-testutil.expectPassword("*", "");  // Pass for mydba
-testutil.expectPrompt("*", "2");   // Option (account with diff name)
-testutil.expectPrompt("Account Name: ", "dba_test");  // account name
-
-// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-dba.configureLocalInstance('mydba@localhost:' + __mysql_sandbox_port2);
-
-//@ Dba: Delete previously create an admin user with all needed privileges
-// Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-shell.connect(__sandbox_uri2);
-session.runSql("SET SQL_LOG_BIN=0");
-session.runSql("DROP USER 'mydba'@'localhost'");
-session.runSql("DROP USER 'dba_test'@'%'");
-session.runSql("SET SQL_LOG_BIN=1");
-var result = session.runSql("SELECT COUNT(*) FROM mysql.user WHERE user='mydba' and host='localhost'");
-var row = result.fetchOne();
-print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
-session.close();
-
-//@# Check if all missing privileges are reported for user with no privileges
-shell.connect(__sandbox_uri2);
-// Create account with no privileges
-session.runSql("SET sql_log_bin = 0");
-session.runSql("CREATE USER 'no_privileges'@'%'");
-//NOTE: at least privileges to access the metadata are required, otherwise another error is issued.
-session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'no_privileges'@'%'");
-// NOTE: This privilege is required othe the generated error will be:
-//Dba.configureLocalInstance: Unable to detect target instance state. Please check account privileges.
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members` TO 'no_privileges'@'%'");
-// NOTE: These privileges are required or the the generated error will be:
-//Unable to detect state for instance 'me7nw6-mac:3326'. Please check account privileges.
-session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'no_privileges'@'%' WITH GRANT OPTION;");
-session.runSql("GRANT SELECT ON `performance_schema`.`threads` TO 'no_privileges'@'%'");
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO 'no_privileges'@'%'");
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_connection_status` TO 'no_privileges'@'%'");
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status` TO 'no_privileges'@'%'");
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO 'no_privileges'@'%'");
-session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO 'no_privileges'@'%'");
-
-session.runSql("SET sql_log_bin = 1");
-session.close();
-
-// Test
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, user: 'no_privileges', password:''});
-
-shell.connect(__sandbox_uri2);
-// Drop user
-session.runSql("SET sql_log_bin = 0");
-session.runSql("DROP user 'no_privileges'@'%'");
-session.runSql("SET sql_log_bin = 1");
-
-// Create account without global grant option
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_global_grant'@'%'");
 session.runSql("GRANT ALL PRIVILEGES on *.* to 'no_global_grant'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
-//@ configureLocalInstance() should fail if user does not have global GRANT OPTION
-dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, user: 'no_global_grant', password:''});
-
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port2, user: 'no_global_grant', password: ''});
-
-//@ createCluster() should fail if user does not have global GRANT OPTION
 dba.createCluster("cluster");
-
 session.close();
 
 shell.connect(__sandbox_uri2);
-// Drop user
 session.runSql("SET sql_log_bin = 0");
 session.runSql("DROP user 'no_global_grant'@'%'");
 session.runSql("SET sql_log_bin = 1");

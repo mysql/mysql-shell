@@ -74,7 +74,7 @@ bool Configure_instance::check_config_path_for_update() {
 
   // If the cnf file path is empty attempt to resolve it
   if (m_options.mycnf_path.empty()) {
-    if (m_options.interactive())
+    if (current_shell_options()->get().wizards)
       m_options.mycnf_path = prompt_cnf_path(*m_target_instance);
 
     // If interactive is disabled or the attempt to resolve the cnf file
@@ -99,7 +99,7 @@ bool Configure_instance::check_config_path_for_update() {
     // Check if the configuration file does not exist
     if (!shcore::is_file(m_options.mycnf_path)) {
       console->print_warning(m_options.mycnf_path + " does not exist.");
-      if (m_options.interactive()) {
+      if (current_shell_options()->get().wizards) {
         // Ask the user if accepts that a new file is created in the same path
         // as myCnfPath
         if (console->confirm("Do you want to create a new MySQL "
@@ -115,7 +115,7 @@ bool Configure_instance::check_config_path_for_update() {
     try {
       shcore::check_file_writable_or_throw(m_options.mycnf_path);
     } catch (const std::exception &e) {
-      if (m_options.interactive()) {
+      if (current_shell_options()->get().wizards) {
         console->print_warning("mycnfPath is not writable: " +
                                m_options.mycnf_path + ": " + e.what());
         console->print_info(
@@ -138,7 +138,7 @@ bool Configure_instance::check_config_path_for_update() {
   if (!m_options.output_mycnf_path.empty() || prompt_output_path) {
     for (;;) {
       if (prompt_output_path) {
-        assert(m_options.interactive());
+        assert(current_shell_options()->get().wizards);
         // Prompt the user for an alternative filepath and suggest the user to
         // sudo cp into the right place
         if (console->prompt("Output path for updated configuration file: ",
@@ -289,10 +289,10 @@ void Configure_instance::check_create_admin_user() {
     // Check that the account in use isn't too restricted (like localhost only)
     if (!check_admin_account_access_restrictions(
             *m_target_instance, m_current_user, m_current_host,
-            m_options.interactive(), m_purpose)) {
+            current_shell_options()->get().wizards, m_purpose)) {
       // If interaction is enabled use the console_handler admin-user
       // handling function
-      if (m_options.interactive()) {
+      if (current_shell_options()->get().wizards) {
         console->print_info();
         if (!prompt_create_usable_admin_account(m_current_user, m_current_host,
                                                 m_options.cluster_type,
@@ -362,12 +362,11 @@ void Configure_instance::check_create_admin_user() {
         m_options.cluster_admin_password =
             m_target_instance->get_connection_options().get_password();
       } else if (!m_options.cluster_admin_password.has_value()) {
-        if (m_options.interactive()) {
-          m_options.cluster_admin_password = prompt_new_account_password();
-        } else {
+        if (!current_shell_options()->get().wizards)
           throw shcore::Exception::runtime_error(
               "password for clusterAdmin required");
-        }
+
+        m_options.cluster_admin_password = prompt_new_account_password();
       }
     }
   } else {
@@ -462,7 +461,7 @@ bool Configure_instance::check_configuration_updates(
   }
 
   m_invalid_cfgs = checks::validate_configuration(
-      m_target_instance.get(), cnf_path, m_cfg.get(), m_options.cluster_type,
+      *m_target_instance, cnf_path, m_cfg.get(), m_options.cluster_type,
       m_can_set_persist, restart, config_file_change, dynamic_sysvar_change);
 
   if (m_invalid_cfgs.empty()) return false;
@@ -786,7 +785,7 @@ void Configure_instance::prepare() {
   }
 
   // If there is anything to be done, ask the user for confirmation
-  if (m_options.interactive()) {
+  if (current_shell_options()->get().wizards) {
     if (m_needs_configuration_update) {
       // If the user does not accept the changes terminate the operation
       if (console->confirm(
@@ -811,9 +810,7 @@ void Configure_instance::prepare() {
 }
 
 void Configure_instance::do_run() {
-  if (!m_local_configure) {
-    prepare();
-  }
+  prepare();
 
   auto console = mysqlsh::current_console();
   {
@@ -944,17 +941,15 @@ bool Configure_instance::clear_super_read_only(bool silent_fail) {
 
   // Handle clear_read_only interaction
   try {
-    bool super_read_only =
-        validate_super_read_only(*m_target_instance, m_options.clear_read_only);
+    if (!validate_super_read_only(*m_target_instance)) {
+      return false;
+    }
 
     // If super_read_only was disabled, print the information
-    if (super_read_only) {
-      mysqlsh::current_console()->print_info(
-          "Disabled super_read_only on the instance '" +
-          m_target_instance->descr() + "'");
-      return true;
-    }
-    return false;
+    mysqlsh::current_console()->print_info(
+        "Disabled super_read_only on the instance '" +
+        m_target_instance->descr() + "'");
+    return true;
 
   } catch (const shcore::Exception &) {
     if (silent_fail) return false;

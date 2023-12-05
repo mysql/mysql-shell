@@ -8,7 +8,7 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 EXPECT_STDERR_EMPTY();
 
 //@<> create cluster admin
-dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 
 session.close();
@@ -57,7 +57,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 // Create cluster admin account
-dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port2, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureInstance("root:root@localhost:" + __mysql_sandbox_port2, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 EXPECT_STDOUT_CONTAINS("Account ca@% was successfully created.")
 
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
@@ -174,7 +174,7 @@ session.runSql("SET PERSIST group_replication_tls_source='mysql_admin'");
 EXPECT_THROWS(function() { cluster.addInstance(__sandbox_uri2); }, "Instance check failed")
 
 //@<> dba.configureInstance() to fix the bad configuration of group_replication_tls_source {VER(>=8.0.21)}
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2, {clearReadOnly: 1}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2); });
 
 //@<> Cluster.addInstance() successful {VER(>=8.0.21)}
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
@@ -189,7 +189,7 @@ session.runSql("SET PERSIST group_replication_tls_source='mysql_admin'");
 EXPECT_THROWS(function() { cluster.rejoinInstance(__endpoint2); }, "Instance check failed")
 
 //@<> dba.configureInstance() to fix the bad configuration of group_replication_tls_source in rejoinInstance {VER(>=8.0.21)}
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2, {clearReadOnly: 1}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri2); });
 
 //@<> Cluster.rejoinInstance() successful {VER(>=8.0.21)}
 EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint2); });
@@ -212,7 +212,7 @@ EXPECT_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage(); }, "
 EXPECT_OUTPUT_CONTAINS("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
 
 //@<> dba.configureInstance() to fix the bad configuration of group_replication_tls_source in rebootClusterFromCompleteOutage() {VER(>=8.0.21)}
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, {clearReadOnly: 1}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1); });
 
 //@<> dba.rebootClusterFromCompleteOutage() successful {VER(>=8.0.21)}
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage(); });
@@ -228,7 +228,7 @@ EXPECT_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage(); }, "
 EXPECT_OUTPUT_CONTAINS("ERROR: Instance must be configured and validated with dba.checkInstanceConfiguration() and dba.configureInstance() before it can be used in an InnoDB cluster.");
 
 //@<> dba.configureInstance() to fix the bad configuration of group_replication_tls_source in rebootClusterFromCompleteOutage() {VER(<8.0.21)}
-EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1, {clearReadOnly: 1}); });
+EXPECT_NO_THROWS(function() { dba.configureInstance(__sandbox_uri1); });
 
 //@<> dba.rebootClusterFromCompleteOutage() successful {VER(<8.0.21)}
 EXPECT_NO_THROWS(function() { cluster = dba.rebootClusterFromCompleteOutage(); });

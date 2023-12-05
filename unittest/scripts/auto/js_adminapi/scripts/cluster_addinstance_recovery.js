@@ -81,10 +81,10 @@ testutil.clearTraps();
 testutil.setTrap("mysql", ["sql regex start group_replication"], {msg: "debug"});
 
 //@ bogus recoveryMethod (should fail)
-c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"foobar"});
+c.addInstance(__sandbox_uri2, {recoveryMethod:"foobar"});
 
 //@ bogus recoveryMethod (should fail if target instance does not support it) {VER(<8.0.17)}
-c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"clone"});
+c.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
 
 // Regression test for BUG#29954085 and BUG#29960838:
 //
@@ -99,7 +99,7 @@ c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"clone"});
 // uninstalled on all cluster members
 
 //@ Ensure clone enabled on all cluster members on clone recovery {VER(>=8.0.17)}
-c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"clone"});
+c.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
 
 EXPECT_TRUE(clone_installed(session1));
 EXPECT_TRUE(clone_installed(session2));
@@ -110,25 +110,33 @@ EXPECT_TRUE(clone_installed(session2));
 // supporting clone, we simply ensure the plugin is uninstalled
 uninstall_clone(session1);
 EXPECT_FALSE(clone_installed(session1));
-c.addInstance(__sandbox_uri2, {interactive:false, recoveryMethod:"clone"});
+c.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
 
 EXPECT_TRUE(clone_installed(session1));
 EXPECT_TRUE(clone_installed(session2));
 
 //@ recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>=8.0.17)}
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental recovery/[A]bort (default Clone): ", "i");
 mark_gtid_set_complete(false);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+c.addInstance(__sandbox_uri2);
+
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 
 //@ recoveryMethod:auto, interactive, cloneDisabled, empty GTID -> prompt i/a
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "a");
 mark_gtid_set_complete(false);
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+c.addInstance(__sandbox_uri2);
+
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
@@ -136,7 +144,9 @@ mark_clone_disabled(false);
 //@ recoveryMethod:auto, interactive, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 
@@ -146,7 +156,9 @@ mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 
@@ -155,7 +167,9 @@ session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 
@@ -163,7 +177,9 @@ EXPECT_NE(1, clone_threshold());
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 
@@ -173,7 +189,9 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-
 
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
@@ -184,7 +202,7 @@ mark_clone_disabled(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 
@@ -192,7 +210,7 @@ EXPECT_NE(1, clone_threshold());
 mark_gtid_set_complete(false);
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
@@ -200,7 +218,7 @@ mark_clone_disabled(false);
 //@ recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr {VER(>=8.0.17)}
 mark_gtid_set_complete(true);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 
@@ -210,7 +228,7 @@ mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 
@@ -218,7 +236,7 @@ EXPECT_NE(1, clone_threshold());
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 
@@ -228,12 +246,10 @@ session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-
 
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 EXPECT_NE(1, clone_threshold());
 mark_clone_disabled(false);
-
-
 
 // ====
 
@@ -241,7 +257,9 @@ mark_clone_disabled(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 
-c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"incremental"});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
+shell.options.useWizards=0;
 
 //@ recoveryMethod:incremental, empty GTID -> incr
 mark_gtid_set_complete(false);
@@ -294,7 +312,9 @@ session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 
-c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"clone"});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
+shell.options.useWizards=0;
 
 //@ recoveryMethod:clone, empty GTID -> clone {VER(>=8.0.17)}
 mark_gtid_set_complete(false);
@@ -376,7 +396,9 @@ session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(true);
 
 // Add the second instance to the cluster using incremental recovery
-c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"incremental"});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
+shell.options.useWizards=0;
 
 // Remove the seed
 c.removeInstance(__sandbox_uri1);
@@ -417,13 +439,15 @@ testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default 
 mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 //@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
 mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 
-c.addInstance(__sandbox_uri2, {interactive:false});
+c.addInstance(__sandbox_uri2);
 
 // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
 //@ recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -431,7 +455,9 @@ mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
 //@ recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -439,13 +465,17 @@ mark_gtid_set_complete(false);
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 //@ recoveryMethod:auto, interactive, cloneDisabled, purged GTID -> error
 mark_gtid_set_complete(false);
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=0;
 
 mark_clone_disabled(false);
 
@@ -454,7 +484,9 @@ session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=1;
 
 //@ recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs + purged GTIDs -> error
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -462,7 +494,9 @@ session2.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-1111111111
 
 mark_clone_disabled(true);
 
-c.addInstance(__sandbox_uri2, {interactive:true});
+shell.options.useWizards=1;
+c.addInstance(__sandbox_uri2);
+shell.options.useWizards=1;
 
 mark_clone_disabled(false);
 

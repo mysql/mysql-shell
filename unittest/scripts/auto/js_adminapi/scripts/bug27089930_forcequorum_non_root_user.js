@@ -8,15 +8,15 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 //@ Configure instance 1 creating an Admin User.
 var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: cnfPath1, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: cnfPath1, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
 
 //@ Configure instance 2 creating an Admin User.
 var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnfPath2, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: cnfPath2, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
 
 //@ Configure instance 3 creating an Admin User.
 var cnfPath3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: cnfPath3, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
+dba.configureInstance(__sandbox_uri3, {mycnfPath: cnfPath3, clusterAdmin: "gr_user", clusterAdminPassword: "gr_pass"});
 
 //@ Create a cluster with 3 members.
 var admin_user_uri1 = "gr_user:gr_pass@localhost:"+__mysql_sandbox_port1;

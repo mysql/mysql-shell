@@ -32,7 +32,6 @@ EXPECT_THROWS(function(){ rc.dissolve(); }, "Cluster 'replica' cannot be dissolv
 //  - cluster.describe()
 //  - cluster.options()
 //  - cluster.listRouters()
-//  - cluster.checkInstanceState()
 
 //@<> Cluster monitoring operations must be allowed in PRIMARY and REPLICA Clusters
 EXPECT_NO_THROWS(function(){ cluster.status(); });
@@ -41,8 +40,6 @@ EXPECT_NO_THROWS(function(){ cluster.describe(); });
 EXPECT_NO_THROWS(function(){ rc.describe(); });
 EXPECT_NO_THROWS(function(){ cluster.options(); });
 EXPECT_NO_THROWS(function(){ rc.options(); });
-EXPECT_NO_THROWS(function(){ cluster.checkInstanceState(__sandbox_uri4); });
-EXPECT_NO_THROWS(function(){ rc.checkInstanceState(__sandbox_uri4); });
 
 // Cluster topology changes are allowed only if the Replication channel is healthy
 shell.connect(__sandbox_uri2);

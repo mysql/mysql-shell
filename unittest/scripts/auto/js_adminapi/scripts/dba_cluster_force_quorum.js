@@ -91,10 +91,9 @@ var cluster = dba.getCluster();
 EXPECT_OUTPUT_CONTAINS("WARNING: Cluster has no quorum and cannot process write transactions: Group has no quorum");
 
 //@<> Cluster.forceQuorumUsingPartitionOf errors
-EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(); }, "Invalid number of arguments, expected 1 but got 0");
 EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(1); }, "Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary");
 EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(""); }, "Argument #1: Invalid URI: empty.");
-EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(1, ""); }, "Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary");
 EXPECT_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}); }, `The instance '${localhost}:${__mysql_sandbox_port2}' cannot be used to restore the cluster as it is not an active member of replication group.`);
 
 //@<> enable interactive mode
@@ -123,16 +122,6 @@ scene.make_no_quorum([__mysql_sandbox_port1]);
 //not restart the killed instances.
 EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'}); });
 
-//@<> Cluster.forceQuorumUsingPartitionOf success (explicit password)
-
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-scene.make_no_quorum([__mysql_sandbox_port1]);
-
-EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'}, 'root'); });
-
 //@<> Cluster.forceQuorumUsingPartitionOf check paswword mismatch
 
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -149,11 +138,6 @@ EXPECT_THROWS(function(){
 EXPECT_OUTPUT_CONTAINS(`Password for user root at ${localhost}:${__mysql_sandbox_port1} must be the same as in the rest of the cluster.`);
 
 WIPE_OUTPUT();
-
-EXPECT_THROWS(function(){
-    cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'}, "bar");
-}, "Invalid target instance specification");
-EXPECT_OUTPUT_CONTAINS(`Password for user root at ${localhost}:${__mysql_sandbox_port1} must be the same as in the rest of the cluster.`);
 
 //@<> Cluster.forceQuorumUsingPartitionOf check user mismatch
 

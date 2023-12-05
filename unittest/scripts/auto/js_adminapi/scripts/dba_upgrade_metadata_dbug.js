@@ -42,7 +42,7 @@ prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_u
 
 //@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
 
 //@<> Preparation for the following tests
 other_session = mysql.getSession(__sandbox_uri1);
@@ -54,10 +54,12 @@ dba.upgradeMetadata();
 testutil.dbugSet("");
 
 //@<> WL13386-TSFR1_1-B upgradeMetadata patch upgrade interactive
+shell.options.useWizards=1;
 testutil.dbugSet("+d,dba_EMULATE_CURRENT_MD_1_0_1");
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
-dba.upgradeMetadata({interactive:true});
+dba.upgradeMetadata();
 testutil.dbugSet("");
+shell.options.useWizards=0;
 
 //@<> WL13386-TSFR1_2 upgradeMetadata minor upgrade no interactive
 testutil.dbugSet("+d,dba_EMULATE_CURRENT_MD_1_0_1");
@@ -66,12 +68,14 @@ dba.upgradeMetadata();
 testutil.dbugSet("");
 
 //@<> WL13386-TSFR1_3-A upgradeMetadata minor interactive, skip upgrade
+shell.options.useWizards=1;
 testutil.dbugSet("+d,dba_EMULATE_CURRENT_MD_1_0_1,dba_EMULATE_UNEXISTING_MD");
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 set_metadata_version(1, -1, 0);
 testutil.expectPrompt("Do you want to proceed with the upgrade? [y/N]: ", "n");
-dba.upgradeMetadata({interactive:true});
+dba.upgradeMetadata();
 testutil.dbugSet("");
+shell.options.useWizards=0;
 
 //@<> WL13386-TSFR1_3-B upgradeMetadata minor interactive, do upgrade
 testutil.dbugSet("+d,dba_EMULATE_ROUTER_UPGRADE");
@@ -81,9 +85,13 @@ load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 set_metadata_version(1, -1, 0);
 // Router upgrade emulation requires router to have ID = 2
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET router_id = 2 WHERE router_id=1");
+
+shell.options.useWizards=1;
 testutil.expectPrompt("Do you want to proceed with the upgrade? [y/N]: ", "y")
 testutil.expectPrompt("Please select an option: ", "1")
-dba.upgradeMetadata({interactive:true});
+dba.upgradeMetadata();
+shell.options.useWizards=0;
+
 testutil.dbugSet("");
 
 //@<> WL13386-TSET_1 upgradeMetadata, failed at BACKING_UP_METADATA state after backup schema was created
@@ -163,8 +171,9 @@ other_session.close();
 // Drops the backup schema created on the previous test
 session.runSql("DROP DATABASE mysql_innodb_cluster_metadata_bkp");
 
-
 //@ Upgrades the metadata, interactive options simulating unregister (no upgrade performed)
+shell.options.useWizards=1;
+
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (2, 'test-router', 2, NULL)")
 testutil.dbugSet("+d,dba_EMULATE_ROUTER_UNREGISTER")
@@ -178,7 +187,7 @@ testutil.expectPrompt("Unregistering a Router implies it will not be used in the
 testutil.expectPrompt("Please select an option: ", "4")
 // Chooses to abort the operation
 testutil.expectPrompt("Please select an option: ", "3")
-EXPECT_NO_THROWS(function(){dba.upgradeMetadata({interactive:true})})
+EXPECT_NO_THROWS(function(){ dba.upgradeMetadata(); })
 testutil.dbugSet("")
 
 //@ Upgrades the metadata, interactive options simulating upgrade (no upgrade performed)
@@ -194,8 +203,10 @@ testutil.expectPrompt("Unregistering a Router implies it will not be used in the
 testutil.expectPrompt("Please select an option: ", "4")
 // Chooses to abort the operation
 testutil.expectPrompt("Please select an option: ", "3")
-EXPECT_NO_THROWS(function(){dba.upgradeMetadata({interactive:true})})
+EXPECT_NO_THROWS(function(){ dba.upgradeMetadata(); })
 testutil.dbugSet("")
+
+shell.options.useWizards=0;
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.rmfile(metadata_1_0_1_file);

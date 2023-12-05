@@ -1,16 +1,3 @@
-//@ Initialization
-||
-
-
-//@ create first cluster
-|~WARNING: Option 'memberSslMode' is deprecated|
-
-//@ ipWhitelist deprecation error {VER(>=8.0.23)}
-|Cannot use the ipWhitelist and ipAllowlist options simultaneously. The ipWhitelist option is deprecated, please use the ipAllowlist option instead.|
-
-//@ Success adding instance
-|WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.|
-
 //@<OUT> Check that recovery account looks OK and that it was stored in the metadata and that it was configured
 user	host
 mysql_innodb_cluster_111	%

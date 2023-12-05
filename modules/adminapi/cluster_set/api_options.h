@@ -42,12 +42,12 @@ struct Create_cluster_set_options {
   std::string replication_allowed_host;
 };
 
-struct Create_replica_cluster_options : public Interactive_option,
-                                        public Timeout_option,
+struct Create_replica_cluster_options : public Timeout_option,
                                         public Recovery_progress_option {
   static const shcore::Option_pack_def<Create_replica_cluster_options>
       &options();
 
+  void set_ssl_mode(const std::string &value);
   void set_cert_subject(const std::string &value);
   void set_repl_connect_retry(int value);
   void set_repl_retry_count(int value);

@@ -21,9 +21,9 @@ EXPECT_THROWS(function(){
 }, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
-//@<> configureLocalInstance error with innodb_page_size=4k.
+//@<> configureInstance error with innodb_page_size=4k.
 EXPECT_THROWS(function(){
-  dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
+  dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
 }, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 

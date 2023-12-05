@@ -16,8 +16,8 @@ c = dba.createCluster("cluster", {gtidSetIsComplete:1});
 c.addInstance(__sandbox_uri2);
 
 //@<> persist settings in 5.7 {VER(<8.0.0)}
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //@<> check configs while servers are online
 session1 = mysql.getSession(__sandbox_uri1);
@@ -107,8 +107,8 @@ shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_grou
 c = dba.createCluster("newcluster", {adoptFromGR:1});
 
 //@<> persist settings in 5.7 after adopt {VER(<8.0.0)}
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //@<> restart and check
 testutil.restartSandbox(__mysql_sandbox_port1);

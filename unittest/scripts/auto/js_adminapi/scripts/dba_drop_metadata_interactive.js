@@ -9,8 +9,6 @@ EXPECT_THROWS(function () { dba.dropMetadataSchema(1,2,3,4,5) }, "Invalid number
 EXPECT_THROWS(function () { dba.dropMetadataSchema("Whatever") }, "Argument #1 is expected to be a map")
 EXPECT_THROWS(function () { dba.dropMetadataSchema({not_valid:true}) }, "Invalid options: not_valid")
 EXPECT_THROWS(function () { dba.dropMetadataSchema({force:"NotABool"}) }, "Option 'force' Bool expected, but value is String")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly:"NotABool"}) }, "Option 'clearReadOnly' Bool expected, but value is String")
-
 
 //@<> drop metadata: no user response
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "");
@@ -42,31 +40,15 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 
-shell.connect(__sandbox_uri2);
-
-testutil.wipeAllOutput();
-testutil.expectPrompt("Are you sure you want to remove the Metadata? [y/N]:", "y");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly: false}) }, "Server in SUPER_READ_ONLY");
-
-var count = testutil.fetchCapturedStdout(false).match(/You must first unset it to be able to perform any changes to this instance/g).length;
-EXPECT_EQ(1, count);
-
 shell.connect(__sandbox_uri1);
 cluster = dba.rebootClusterFromCompleteOutage();
 
-//@<> InnoDB Cluster: drop metadata on read only master, rejecting to clear it
+//@<> InnoDB Cluster: drop metadata on read only master, accepting to clear it
 shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL super_read_only=1");
 
-testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly: false}) }, "Server in SUPER_READ_ONLY");
-
-//@<> InnoDB Cluster: drop metadata on slave with read only master, rejecting to clear it
 shell.connect(__sandbox_uri2);
-testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly: false}) }, "Server in SUPER_READ_ONLY");
 
-//@<> InnoDB Cluster: drop metadata on read only master, accepting to clear it
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 dba.dropMetadataSchema()
 EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
@@ -79,7 +61,7 @@ scene.destroy();
 scene = new ClusterScenario([__mysql_sandbox_port1]);
 shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL super_read_only=1");
-dba.dropMetadataSchema({force:true, clearReadOnly:true});
+dba.dropMetadataSchema({force:true});
 EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
 session.close();
 scene.destroy();
@@ -101,19 +83,12 @@ testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A
 rset.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY()
 
-//@<> Replica Set: drop metadata on read only master, rejecting to clear it {VER(>8.0.0)}
+//@<> Replica Set: drop metadata on read only master, accepting to clear it {VER(>8.0.0)}
 shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL super_read_only=1");
-testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly: false}) }, "Server in SUPER_READ_ONLY");
 
-//@<> Replica Set: drop metadata on a slave with a read only master, rejecting to clear it {VER(>8.0.0)}
 shell.connect(__sandbox_uri2);
-testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly: false}) },
-    "Server in SUPER_READ_ONLY mode");
 
-//@<> Replica Set: drop metadata on read only master, accepting to clear it {VER(>8.0.0)}
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 dba.dropMetadataSchema()
 EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
@@ -126,6 +101,6 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 shell.connect(__sandbox_uri1);
 var rset = dba.createReplicaSet("myrs");
 session.runSql("SET GLOBAL super_read_only=1");
-dba.dropMetadataSchema({force:true, clearReadOnly:true});
+dba.dropMetadataSchema({force:true});
 EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
 testutil.destroySandbox(__mysql_sandbox_port1);

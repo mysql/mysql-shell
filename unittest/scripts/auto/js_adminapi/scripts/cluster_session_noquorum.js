@@ -31,11 +31,8 @@ var cluster = dba.getCluster();
 cluster.status();
 cluster.disconnect();
 
-//@<> getCluster() and connectToPrimary:true (OK: deprecated: auto-redirect primary)
-EXPECT_NO_THROWS(function() { cluster = dba.getCluster(null, {connectToPrimary:true}); });
-
-//@<OUT> getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
-var cluster = dba.getCluster(null, {connectToPrimary:false});
+//@<OUT> getCluster() and status()
+var cluster = dba.getCluster(null);
 cluster.status();
 cluster.disconnect();
 
@@ -79,11 +76,9 @@ var cluster = dba.getCluster();
 cluster.status();
 
 cluster.disconnect();
-//@<> 2 getCluster() and connectToPrimary:true (OK: deprecated: auto-redirect primary)
-EXPECT_NO_THROWS(function() { cluster = dba.getCluster(null, {connectToPrimary:true}); });
 
-//@<OUT> 2 getCluster() and connectToPrimary:false (OK: deprecated: auto-redirect primary)
-var cluster = dba.getCluster(null, {connectToPrimary:false});
+//@<OUT> 2 getCluster() and status()
+var cluster = dba.getCluster(null);
 cluster.status();
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-primary (fail)

@@ -12,7 +12,9 @@ testutil.expectPrompt("Confirm [y/N]:", "n");
 var c = dba.createCluster('test', {multiPrimary: true});
 
 //@<> WL#12011: FR2-02 - interactive = false.
-var c = dba.createCluster('test', {interactive: false, multiPrimary: true, force: true});
+shell.options.useWizards=0;
+var c = dba.createCluster('test', {multiPrimary: true, force: true});
+shell.options.useWizards=1;
 
 //@ WL#12011: Finalization.
 c.disconnect();
@@ -151,16 +153,17 @@ var c = dba.createCluster('test', {consistency: "10"});
 
 var c = dba.createCluster('test', {consistency: 1});
 
-var c = dba.createCluster('test', {consistency: "1", failoverConsistency: "1"});
-
 //@ WL#12067: TSF1_1 Create cluster using a valid as value for consistency {VER(>=8.0.14)}
 var c = dba.createCluster('test', {consistency: "BEFORE_ON_PRIMARY_FAILOVER"});
 
 //@<> Dissolve the cluster {VER(>=8.0.14)}
-c.dissolve({interactive: false, force: true})
+shell.options.useWizards=0;
+c.dissolve({force: true})
+shell.options.useWizards=1;
 
-//@<OUT> Create cluster using a valid value for failoverConsistency {VER(>=8.0.14)}
-var c = dba.createCluster('test', {clearReadOnly: true, failoverConsistency: "BEFORE_ON_PRIMARY_FAILOVER"});
+//@<> Create cluster using a valid value for consistency {VER(>=8.0.14)}
+var c;
+EXPECT_NO_THROWS(function(){ c = dba.createCluster('test', {consistency: "BEFORE_ON_PRIMARY_FAILOVER"}); });
 
 //@ WL#12067: Finalization
 c.disconnect();

@@ -21,11 +21,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/common/provision.h"
+
 #include <map>
 
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/preconditions.h"
-#include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
@@ -198,7 +198,7 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
     config->set("group_replication_group_seeds", gr_opts.group_seeds);
   }
 
-  // Set GR IP whitelist (if provided).
+  // Set GR IP allowlist (if provided).
   if (gr_opts.ip_allowlist.has_value()) {
     if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
       config->set("group_replication_ip_whitelist", gr_opts.ip_allowlist,
@@ -225,7 +225,7 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
                 "memberWeight");
   }
 
-  // Set GR (failover) consistency (if provided).
+  // Set GR consistency (if provided).
   if (gr_opts.consistency.has_value()) {
     // GR consistency can be an index value, in this case convert it to
     // an integer otherwise an SQL error will occur when using this value
@@ -821,10 +821,10 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - local_address determined based on the given localAddress option
   //   (resolved by the caller);
   // - group_seeds (if provided);
-  // - IP whitelist (if provided);
+  // - IP allowlist (if provided);
   // - exit state action (if provided);
   // - member weight (if provided);
-  // - (failover) consistency (if provided);
+  // - consistency (if provided);
   // - expel timeout (if provided);
   // - auto-rejoin tries (if provided);
   // - Enable GR start on boot;
@@ -916,10 +916,10 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   // - local_address determined based on the given localAddress option
   //   (resolved by the caller);
   // - group_seeds as set by the caller
-  // - IP whitelist (if provided);
+  // - IP allowlist (if provided);
   // - exit state action (if provided);
   // - member weight (if provided);
-  // - (failover) consistency (if provided);
+  // - consistency (if provided);
   // - expel timeout (if provided);
   // - auto-rejoin tries (if provided);
   // - Enable GR start on boot;

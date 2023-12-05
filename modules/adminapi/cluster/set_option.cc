@@ -22,13 +22,11 @@
  */
 
 #include "modules/adminapi/cluster/set_option.h"
+
 #include "adminapi/common/common.h"
 #include "adminapi/common/server_features.h"
-#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -135,7 +133,6 @@ void Set_option::ensure_option_valid() const {
    *     - disableClone
    *     - exitStateAction
    *     - memberWeight
-   *     - failoverConsistency
    *     - consistency
    *     - expelTimeout
    *     - replicationAllowedHost
@@ -147,14 +144,6 @@ void Set_option::ensure_option_valid() const {
       m_option != kReplicationAllowedHost) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Option '%s' not supported.", m_option.c_str()));
-  }
-
-  // Verify the deprecation of failoverConsistency
-  if (m_option == kFailoverConsistency) {
-    mysqlsh::current_console()->print_warning(
-        "The failoverConsistency option is deprecated. "
-        "Please use the consistency option instead.");
-    return;
   }
 
   if (m_option == kClusterName) {

@@ -26,17 +26,16 @@
 #include "modules/adminapi/common/accounts.h"
 #include "mysqlshdk/include/shellcore/console.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
-Setup_account::Setup_account(const std::string &name, const std::string &host,
-                             const Setup_account_options &options,
+Setup_account::Setup_account(std::string name, std::string host,
+                             Setup_account_options options,
                              std::vector<std::string> grants,
                              const mysqlshdk::mysql::IInstance &primary_server,
-                             Cluster_type purpose)
-    : m_name(name),
-      m_host(host),
-      m_options(options),
+                             Cluster_type purpose) noexcept
+    : m_name(std::move(name)),
+      m_host(std::move(host)),
+      m_options(std::move(options)),
       m_purpose(purpose),
       m_privilege_list(std::move(grants)),
       m_primary_server(primary_server) {}
@@ -86,6 +85,7 @@ void Setup_account::prepare() {
         "to update the existing account's privileges.",
         m_name.c_str(), m_host.c_str()));
   }
+
   // Also throw an error if user does not exist and update is enabled
   if (!m_user_exists && m_options.update) {
     throw shcore::Exception::runtime_error(shcore::str_format(
@@ -96,17 +96,16 @@ void Setup_account::prepare() {
 
   // Prompt for the password in case it is necessary
   if (!m_user_exists && !m_options.password.has_value()) {
-    if (m_options.interactive()) {
+    if (current_shell_options()->get().wizards) {
       prompt_for_password();
     } else if (!m_options.require_cert_issuer.has_value() &&
                !m_options.require_cert_subject.has_value()) {
       // new user, password was not provided and not interactive mode, so we
       // must throw an error
       throw shcore::Exception::runtime_error(shcore::str_format(
-          "Could not proceed with the operation because neither "
-          "password nor client certificate options were specified to create "
-          "account %s@%s. Provide one using the 'password', '%s' and/or '%s' "
-          "options.",
+          "Could not proceed with the operation because neither password nor "
+          "client certificate options were specified to create account %s@%s. "
+          "Provide one using the 'password', '%s' and/or '%s' options.",
           m_name.c_str(), m_host.c_str(), kRequireCertIssuer,
           kRequireCertSubject));
     }
@@ -177,39 +176,38 @@ void Setup_account::create_account() {
     sql = "CREATE USER IF NOT EXISTS";
   }
 
-  if (!m_options.dry_run) {
-    sql += shcore::sqlformat(" ?@?", m_name, m_host);
-    if (m_options.password.has_value()) {
-      sql += shcore::sqlformat(" IDENTIFIED BY /*((*/ ? /*))*/",
-                               m_options.password.value());
-    }
-    if (m_options.require_cert_issuer.has_value() ||
-        m_options.require_cert_subject.has_value()) {
-      if (!m_options.require_cert_issuer.value_or("").empty() ||
-          !m_options.require_cert_subject.value_or("").empty()) {
-        sql += " REQUIRE";
-      } else {
-        sql += " REQUIRE NONE";
-      }
-      if (!m_options.require_cert_issuer.value_or("").empty()) {
-        sql += shcore::sqlformat(" ISSUER ?", *m_options.require_cert_issuer);
-      }
-      if (!m_options.require_cert_subject.value_or("").empty()) {
-        sql += shcore::sqlformat(" SUBJECT ?", *m_options.require_cert_subject);
-      }
-    }
-    if (m_options.password_expiration.has_value()) {
-      if (*m_options.password_expiration < 0) {
-        sql += " PASSWORD EXPIRE NEVER";
-      } else {
-        sql += shcore::sqlformat(" PASSWORD EXPIRE INTERVAL ? DAY",
-                                 *m_options.password_expiration);
-      }
-    }
+  if (m_options.dry_run) return;
 
-    m_primary_server.execute(sql);
+  sql += shcore::sqlformat(" ?@?", m_name, m_host);
+  if (m_options.password.has_value()) {
+    sql += shcore::sqlformat(" IDENTIFIED BY /*((*/ ? /*))*/",
+                             m_options.password.value());
   }
+  if (m_options.require_cert_issuer.has_value() ||
+      m_options.require_cert_subject.has_value()) {
+    if (!m_options.require_cert_issuer.value_or("").empty() ||
+        !m_options.require_cert_subject.value_or("").empty()) {
+      sql += " REQUIRE";
+    } else {
+      sql += " REQUIRE NONE";
+    }
+    if (!m_options.require_cert_issuer.value_or("").empty()) {
+      sql += shcore::sqlformat(" ISSUER ?", *m_options.require_cert_issuer);
+    }
+    if (!m_options.require_cert_subject.value_or("").empty()) {
+      sql += shcore::sqlformat(" SUBJECT ?", *m_options.require_cert_subject);
+    }
+  }
+  if (m_options.password_expiration.has_value()) {
+    if (*m_options.password_expiration < 0) {
+      sql += " PASSWORD EXPIRE NEVER";
+    } else {
+      sql += shcore::sqlformat(" PASSWORD EXPIRE INTERVAL ? DAY",
+                               *m_options.password_expiration);
+    }
+  }
+
+  m_primary_server.execute(sql);
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

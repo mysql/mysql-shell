@@ -67,7 +67,7 @@ prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_u
 
 //@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
 
 //@<> Verify Cluster Status
 load_metadata(__sandbox_uri1, metadata_1_0_1_file, false, group_name)

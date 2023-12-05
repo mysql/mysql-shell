@@ -211,19 +211,23 @@ c.addInstance(__sandbox_uri2);
 session2.runSql("STOP GROUP_REPLICATION");
 
 // prompt whether to remove without sync should appear
+shell.options.useWizards=1;
+
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)?", "n");
 
-EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1}); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
 
 //@<> removeInstance() - OFFLINE, force:false, interactive
-EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:false}); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
+EXPECT_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:false}); }, "Instance is not ONLINE and cannot be safely removed", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
 
 //@<> removeInstance() - OFFLINE, force:true, interactive
-EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {interactive:1, force:true}); });
+EXPECT_NO_THROWS(function() { c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:true}); });
 EXPECT_OUTPUT_CONTAINS("NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is reachable but has state OFFLINE");
 EXPECT_OUTPUT_CONTAINS("The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.");
+
+shell.options.useWizards=0;
 
 // ------------------------
 
@@ -551,175 +555,27 @@ EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint3, {force: true}); });
 testutil.waitMemberTransactions(__mysql_sandbox_port1, __mysql_sandbox_port2);
 
 // Validate that the recovery account (mysql_innodb_cluster_3333) was dropped from the cluster
-
-// Get all users
 var users_in_use = get_all_recovery_accounts(session);
 var all_users = get_all_users(session);
 
 EXPECT_FALSE(users_in_use.includes(recovery_account_in_use));
 EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
 
-testutil.waitMemberTransactions(__mysql_sandbox_port1, __mysql_sandbox_port2);
-
-// Validate that if an account is still in use, it's not dropped
-
-// use clone and waitRecovery:0 so that the recovery account is not updated and
-// the one from the seed is used by the target instance
-c.removeInstance(__sandbox_uri1);
-c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-
-//   Recovery Accounts (commStack XCOM)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-// RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-//   |------------|---------------------------|---------------------------|
-
-//   Recovery Accounts (commStack MYSQL)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-// RO| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-//   |------------|---------------------------|---------------------------|
-
-// Get the recovery user created for instance 1 (mysql_innodb_cluster_1111)
-shell.connect(__sandbox_uri1);
-var recovery_account = get_recovery_account(session, true);
-var recovery_account_generated = "mysql_innodb_cluster_" + server_id1;
-session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
-
-// Kill instance 1
-shell.connect(__sandbox_uri2);
-testutil.killSandbox(__mysql_sandbox_port1);
-testutil.waitMemberState(__mysql_sandbox_port1, "UNREACHABLE");
-
-// Quorum is lost, restore it
-c.forceQuorumUsingPartitionOf(__sandbox_uri2);
-
-// Force remove instance 1
-EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint1, {force: true}); });
-
-// Get all users
-var users_in_use = get_all_recovery_accounts(session);
-var all_users = get_all_users(session);
-
-// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
-EXPECT_TRUE(users_in_use.includes(recovery_account));
-
-// Validate that the recovery account generated for the instance was dropped from the cluster
-if (comm_stack == "XCOM") {
-  EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
-}
-
-// Add instance 1 back with clone and waitRecovery:0 so that the recovery
-// account is not updated and the one from the seed is used by the target instance
-testutil.startSandbox(__mysql_sandbox_port1);
-c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-
-//   Recovery Accounts (commStack XCOM)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-// RO| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-//   |------------|---------------------------|---------------------------|
-
-//   Recovery Accounts (commStack MYSQL)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-// RO| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-//   |------------|---------------------------|---------------------------|
-
-// Stop GR on instance 1, leaving it reachable
-shell.connect(__sandbox_uri1);
-
-var recovery_account = get_recovery_account(session, false);
-var recovery_account_generated = "mysql_innodb_cluster_" + server_id1;
-
-session.runSql("STOP group_replication");
-shell.connect(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING)");
-
-// Force remove instance 1
-EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint1, {force: true}); });
-
-// Get all users
-var users_in_use = get_all_recovery_accounts(session);
-
-// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
-EXPECT_TRUE(users_in_use.includes(recovery_account));
-
-// Validate that the recovery account generated for the instance was dropped from the cluster
-if (comm_stack == "XCOM") {
-  EXPECT_FALSE(users_in_use.includes(recovery_account_generated));
-}
-
-// Add instance 1 back to the cluster
-c.addInstance(__sandbox_uri1, {recoveryMethod: "clone", waitRecovery: 0})
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+c.rescan();
 
 // Change the primary to instance 1
 c.setPrimaryInstance(__sandbox_uri1);
 
-//   Recovery Accounts (commStack XCOM)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 1 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-// RO| instance 2 | mysql_innodb_cluster_2222 | mysql_innodb_cluster_2222 |
-//   |------------|---------------------------|---------------------------|
-
-//   Recovery Accounts (commStack MYSQL)
-//   |------------|---------------------------|---------------------------|
-//   |////////////| recovery account in use   | recovery account in md    |
-//   |____________|___________________________|___________________________|
-// RW| instance 1 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-// RO| instance 2 | mysql_innodb_cluster_1111 | mysql_innodb_cluster_1111 |
-//   |------------|---------------------------|---------------------------|
-
 // Remove instance 2 from the cluster
 EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint2, {force: true}); });
 
-// instance's 2 recovery account must be kept since it's in use by instance 1
-
-// Get all users
+// Validate that the recovery account was dropped from the cluster
 shell.connect(__sandbox_uri1);
 var users_in_use = get_all_recovery_accounts(session);
+var recovery_account_in_use = get_recovery_account(session);
 
-// Validate that the recovery account was NOT dropped from the cluster since it's still being used by instance 2
-//
-// removeInstance() attempts to clean-up the accounts of the instance being
-// removed in case its unused, by doing a lookup in the metadata. We are
-// removing instance2 (mysql_innodb_cluster_2222) so the account is not removed and the account from instance 1 is still in the cluster even though unused.
-
-if (comm_stack == "XCOM") {
-
-    EXPECT_EQ(users_in_use.length, 2);
-    EXPECT_TRUE(users_in_use.includes(recovery_account));
-
-    var status = c.status();
-    EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
-    EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"].length, 1);
-    EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0], `WARNING: Incorrect recovery account (mysql_innodb_cluster_${server_id2}) being used. Use Cluster.rescan() to repair.`)
-
-    WIPE_STDOUT();
-    EXPECT_NO_THROWS(function() {c.rescan(); });
-    EXPECT_OUTPUT_CONTAINS(`Fixing incorrect recovery account 'mysql_innodb_cluster_${server_id2}' in instance '${hostname}:${__mysql_sandbox_port2}'`)
-
-    users_in_use = get_all_recovery_accounts(session);
-    EXPECT_EQ(users_in_use.length, 1);
-    EXPECT_TRUE(users_in_use.includes(recovery_account_generated));
-
-} else {
-    EXPECT_EQ(users_in_use.length, 1);
-    EXPECT_TRUE(users_in_use.includes(recovery_account));
-}
+EXPECT_EQ(users_in_use.length, 1);
+EXPECT_TRUE(users_in_use.includes(recovery_account_in_use));
 
 status = c.status();
 EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);

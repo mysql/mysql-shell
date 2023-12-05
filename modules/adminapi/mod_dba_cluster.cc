@@ -108,11 +108,9 @@ void Cluster::init() {
   expose("resetRecoveryAccountsPassword",
          &Cluster::reset_recovery_accounts_password, "?options")
       ->cli();
-  expose("checkInstanceState", &Cluster::check_instance_state, "instance")
-      ->cli();
   expose("rescan", &Cluster::rescan, "?options")->cli();
   expose("forceQuorumUsingPartitionOf",
-         &Cluster::force_quorum_using_partition_of, "instance", "?password")
+         &Cluster::force_quorum_using_partition_of, "instance")
       ->cli();
   expose("disconnect", &Cluster::disconnect)->cli(false);
   expose("switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
@@ -217,19 +215,10 @@ The options dictionary may contain the following attributes:
 @li label: an identifier for the instance being added
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
-@li waitRecovery: Integer value to indicate if the command shall wait for the
-recovery process to finish and its verbosity level. Deprecated.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
 level.
-@li password: the instance connection password. Deprecated.
-@li memberSslMode: SSL mode used on the instance
-${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
-@li groupSeeds: string value with a comma-separated list of the Group
-Replication peer addresses to be used instead of the automatically generated
-one. Deprecated and ignored.
-${OPT_INTERACTIVE}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
@@ -238,9 +227,6 @@ ${OPT_CERT_SUBJECT}
 The label must be non-empty and no greater than 256 characters long. It must be
 unique within the Cluster and can only contain alphanumeric, _ (underscore),
 . (period), - (hyphen), or : (colon) characters.
-
-The password may be contained on the instance definition, however, it can be
-overwritten if it is specified on the options.
 
 The recoveryMethod option supports the following values:
 
@@ -256,23 +242,11 @@ This is the default value. A prompt will be shown if not possible to safely
 determine a safe way forward. If interaction is disabled, the operation will be
 canceled instead.
 
-The waitRecovery option supports the following values:
-
-@li 0: do not wait and let the recovery process to finish in the background.
-@li 1: block until the recovery process to finishes.
-@li 2: block until the recovery process finishes and show progress information.
-@li 3: block until the recovery process finishes and show progress using
-progress bars.
-
 The recoveryProgress option supports the following values:
 
 @li 0: do not show any progress information.
 @li 1: show detailed static progress information.
 @li 2: show detailed dynamic progress information using progress bars.
-
-By default, if the standard output on which the Shell is running refers to a
-terminal, the waitRecovery option has the value of 3. Otherwise, it has the
-value of 2.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
@@ -283,29 +257,11 @@ discouraged since incorrect values can lead to Group Replication errors.
 
 ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
-The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is ignored.
-'group_replication_group_seeds' is automatically set based on the current
-topology.
-
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
-
-@attention The memberSslMode option will be removed in a future release.
-
-@attention The ipWhitelist option will be removed in a future release.
-Please use the ipAllowlist option instead.
-
-@attention The groupSeeds option will be removed in a future release.
-
-@attention The waitRecovery option will be removed in a future release.
-Please use the recoveryProgress option instead.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -319,16 +275,10 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
 void Cluster::add_instance(
-    const Connection_options &instance_def_,
+    const Connection_options &instance_def,
     const shcore::Option_pack_ref<cluster::Add_instance_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
-
-  auto instance_def = instance_def_;
-
-  if (options->password.has_value()) {
-    instance_def.set_password(*(options->password));
-  }
 
   validate_instance_label(options->label, *impl());
 
@@ -357,15 +307,11 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
-@li password: the instance connection password. Deprecated.
 @li recoveryMethod: Preferred method of state recovery. May be auto, clone or
 incremental. Default is auto.
 @li recoveryProgress: Integer value to indicate the recovery process verbosity
 level.
 recovery process to finish and its verbosity level.
-@li memberSslMode: SSL mode used on the instance
-${OPT_INTERACTIVE}
-${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 ${CLUSTER_OPT_LOCAL_ADDRESS}
 @li dryRun: boolean if true, all validations and steps for rejoining the
@@ -376,9 +322,6 @@ clone-based recovery. Available only for Read Replicas.
 with the PRIMARY after it's provisioned and the replication channel is
 established. If reached, the operation is rolled-back. Default is 0 (no
 timeout). Available only for Read Replicas.
-
-The password may be contained on the instance definition, however, it can be
-overwritten if it is specified on the options.
 
 The recoveryMethod option supports the following values:
 
@@ -412,15 +355,6 @@ The localAddress is an advanced option and its usage is discouraged
 since incorrect values can lead to Group Replication errors.
 
 ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
-
-@attention The memberSslMode option will be removed in a future release.
-
-@attention The ipWhitelist option will be removed in a future release.
-Please use the ipAllowlist option instead.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -435,16 +369,10 @@ Dict Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
 void Cluster::rejoin_instance(
-    const Connection_options &instance_def_,
+    const Connection_options &instance_def,
     const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
-
-  auto instance_def = instance_def_;
-
-  if (options->password.has_value()) {
-    instance_def.set_password(*(options->password));
-  }
 
   return execute_with_pool(
       [&]() {
@@ -471,10 +399,8 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
-@li password: the instance connection password. Deprecated.
 @li force: boolean, indicating if the instance must be removed (even if only
 from metadata) in case it cannot be reached. By default, set to false.
-${OPT_INTERACTIVE}
 @li dryRun: boolean if true, all validations and steps for removing the
 instance are executed, but no changes are actually made. An exception will be
 thrown when finished.
@@ -482,19 +408,12 @@ thrown when finished.
 with the PRIMARY. If reached, the operation is rolled-back. Default is 0 (no
 timeout).
 
-The password may be contained in the instance definition, however, it can be
-overwritten if it is specified on the options.
-
 The force option (set to true) must only be used to remove instances that are
 permanently not available (no longer reachable) or never to be reused again in
 a cluster. This allows to remove from the metadata an instance than can no
 longer be recovered. Otherwise, the instance must be brought back ONLINE and
 removed without the force option to avoid errors trying to add it back to a
 cluster.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -509,16 +428,10 @@ None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
 void Cluster::remove_instance(
-    const Connection_options &instance_def_,
+    const Connection_options &instance_def,
     const shcore::Option_pack_ref<cluster::Remove_instance_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
-
-  auto instance_def = instance_def_;
-
-  if (options->password.has_value()) {
-    instance_def.set_password(*(options->password));
-  }
 
   return execute_with_pool(
       [&]() {
@@ -587,11 +500,6 @@ following options may be given to control the amount of information gathered
 and returned.
 
 @li extended: verbosity level of the command output.
-@li queryMembers: if true, connect to each Instance of the Cluster to query
-for more detailed stats about the replication machinery.
-
-@attention The queryMembers option will be removed in a future release. Please
-use the extended option instead.
 
 The extended option supports Integer or Boolean values:
 
@@ -682,7 +590,6 @@ The options dictionary may contain the following attributes:
 executed, even if some members of the cluster cannot be reached or the timeout
 was reached when waiting for members to catch up with replication changes. By
 default, set to false.
-${OPT_INTERACTIVE}
 
 The force option (set to true) must only be used to dissolve a cluster with
 instances that are permanently not available (no longer reachable) or never to
@@ -691,8 +598,6 @@ from the metadata, including instances than can no longer be recovered.
 Otherwise, the instances must be brought back ONLINE and the cluster dissolved
 without the force option to avoid errors trying to reuse the instances and add
 them back to a cluster.
-
-@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -706,14 +611,14 @@ Undefined Cluster::dissolve(Dictionary options) {}
 None Cluster::dissolve(dict options) {}
 #endif
 
-void Cluster::dissolve(
-    const shcore::Option_pack_ref<Force_interactive_options> &options) {
+void Cluster::dissolve(const shcore::Option_pack_ref<Force_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
   return execute_with_pool(
       [&]() {
-        impl()->dissolve(options->force, options->interactive());
+        impl()->dissolve(options->force,
+                         current_shell_options()->get().wizards);
         // Set the flag, marking this cluster instance as invalid.
         invalidate();
       },
@@ -741,15 +646,12 @@ The options dictionary may contain the following attributes:
 @li force: boolean, indicating if the operation will continue in case an
 error occurs when trying to reset the passwords on any of the
 instances, for example if any of them is not online. By default, set to false.
-${OPT_INTERACTIVE}
 
 The use of the force option (set to true) is not recommended. Use it only
 if really needed when instances are permanently not available (no longer
 reachable) or never going to be reused again in a cluster. Prefer to bring the
 non available instances back ONLINE or remove them from the cluster if they will
 no longer be used.
-
-@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -764,14 +666,15 @@ None Cluster::reset_recovery_accounts_password(dict options) {}
 #endif
 
 void Cluster::reset_recovery_accounts_password(
-    const shcore::Option_pack_ref<Force_interactive_options> &options) {
+    const shcore::Option_pack_ref<Force_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("resetRecoveryAccountsPassword");
 
   return execute_with_pool(
       [&]() {
         // Reset the recovery passwords.
-        impl()->reset_recovery_password(options->force, options->interactive());
+        impl()->reset_recovery_password(options->force,
+                                        current_shell_options()->get().wizards);
       },
       false);
 }
@@ -793,14 +696,9 @@ The options dictionary may contain the following attributes:
 @li addInstances: List with the connection data of the new active instances to
 add to the metadata, or "auto" to automatically add missing instances to the
 metadata. Deprecated.
-${OPT_INTERACTIVE}
 @li removeInstances: List with the connection data of the obsolete instances to
 remove from the metadata, or "auto" to automatically remove obsolete instances
 from the metadata. Deprecated.
-@li updateTopologyMode: boolean value used to indicate if the topology mode
-(single-primary or multi-primary) in the metadata should be updated (true) or
-not (false) to match the one being used by the cluster. By default, the
-metadata is not updated (false). Deprecated.
 @li upgradeCommProtocol: boolean. Set to true to upgrade the Group Replication
 communication protocol to the highest version possible.
 @li updateViewChangeUuid: boolean value used to indicate if the command should
@@ -819,10 +717,6 @@ instances to add or remove from the metadata, respectively. Both options accept
 list connection data. In addition, the "auto" value can be used for both
 options in order to automatically add or remove the instances in the metadata,
 without having to explicitly specify them.
-
-@attention The updateTopologyMode option will be removed in a future release.
-
-@attention The interactive option will be removed in a future release.
 
 @attention The addInstances and removeInstances options will be removed in a
 future release. Use addUnmanaged and removeObsolete instead.
@@ -873,7 +767,6 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTER_FORCEQUORUMUSINGPARTITIONOF, R"*(
 Restores the cluster from quorum loss.
 
 @param instance An instance definition to derive the forced group from.
-@param password Optional string with the password for the connection. Deprecated.
 
 @returns Nothing.
 
@@ -892,8 +785,6 @@ in the network, but not accessible from your location.
 
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -902,101 +793,27 @@ view of the given instance definition will be added to the group.
  * $(CLUSTER_FORCEQUORUMUSINGPARTITIONOF)
  */
 #if DOXYGEN_JS
-Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance,
-                                               String password) {}
+Undefined Cluster::forceQuorumUsingPartitionOf(InstanceDef instance) {}
 #elif DOXYGEN_PY
-None Cluster::force_quorum_using_partition_of(InstanceDef instance,
-                                              str password) {}
+None Cluster::force_quorum_using_partition_of(InstanceDef instance) {}
 #endif
 
 void Cluster::force_quorum_using_partition_of(
-    const Connection_options &instance_def_, const char *password) {
-  auto instance_def = instance_def_;
-  set_password_from_string(&instance_def, password);
-
-  if (password) {
-    handle_deprecated_option(mysqlshdk::db::kPassword, "");
-
-    DBUG_EXECUTE_IF("dba_deprecated_option_fail",
-                    { throw std::logic_error("debug"); });
-  }
-
+    const Connection_options &instance_def_) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("forceQuorumUsingPartitionOf");
 
+  auto instance_def = instance_def_;
   if (!instance_def.has_port() && !instance_def.has_socket()) {
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
   }
 
-  bool interactive = current_shell_options()->get().wizards;
-
   return execute_with_pool(
       [&]() {
-        impl()->force_quorum_using_partition_of(instance_def, interactive);
+        impl()->force_quorum_using_partition_of(
+            instance_def, current_shell_options()->get().wizards);
       },
       false);
-}
-
-REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_CHECKINSTANCESTATE, R"*(
-Verifies the instance gtid state in relation to the cluster.
-
-@param instance An instance definition.
-
-@returns resultset A JSON object with the status.
-
-@attention This function is deprecated and will be removed in a future release
-of MySQL Shell.
-
-Analyzes the instance executed GTIDs with the executed/purged GTIDs on the
-cluster to determine if the instance is valid for the cluster.
-
-The instance definition is the connection data for the instance.
-
-${TOPIC_CONNECTION_MORE_INFO}
-
-The returned JSON object contains the following attributes:
-
-@li state: the state of the instance
-@li reason: the reason for the state reported
-
-The state of the instance can be one of the following:
-
-@li ok: if the instance transaction state is valid for the cluster
-@li error: if the instance transaction state is not valid for the cluster
-
-The reason for the state reported can be one of the following:
-
-@li new: if the instance doesn't have any transactions
-@li recoverable:  if the instance executed GTIDs are not conflicting with the
-executed GTIDs of the cluster instances
-@li diverged: if the instance executed GTIDs diverged with the executed GTIDs
-of the cluster instances
-@li lost_transactions: if the instance has more executed GTIDs than the
-executed GTIDs of the cluster instances
-)*");
-
-/**
- * $(CLUSTER_CHECKINSTANCESTATE_BRIEF)
- *
- * $(CLUSTER_CHECKINSTANCESTATE)
- */
-#if DOXYGEN_JS
-Undefined Cluster::checkInstanceState(InstanceDef instance) {}
-#elif DOXYGEN_PY
-None Cluster::check_instance_state(InstanceDef instance) {}
-#endif
-
-shcore::Value Cluster::check_instance_state(
-    const Connection_options &instance_def) {
-  assert_valid("checkInstanceState");
-
-  mysqlsh::current_console()->print_warning(
-      "This function is deprecated and will be removed in a future release of "
-      "MySQL Shell.");
-
-  return execute_with_pool(
-      [&]() { return impl()->check_instance_state(instance_def); }, false);
 }
 
 REGISTER_HELP_FUNCTION(switchToSinglePrimaryMode, Cluster);
@@ -1147,7 +964,6 @@ ${NAMESPACE_TAG}
 @li clusterName: string value to define the cluster name.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
-${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
@@ -1169,9 +985,6 @@ The clusterName must be non-empty and no greater than 63 characters long. It
 can only start with an alphanumeric character or with _ (underscore), and can
 only contain alphanumeric, _ ( underscore), . (period), or - (hyphen)
 characters.
-
-@attention The failoverConsistency option will be removed in a future release.
-Please use the consistency option instead.
 
 @attention The transactionSizeLimit option is not supported on Replica Clusters of InnoDB ClusterSets.
 

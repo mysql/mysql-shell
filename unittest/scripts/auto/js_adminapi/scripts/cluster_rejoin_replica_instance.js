@@ -159,9 +159,7 @@ var __sandbox_uri3_wrong = "mysql://root:toor@localhost:3336";
 EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri3_wrong); }, "Invalid target instance specification", "ArgumentError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them`);
 
-//@<> rejoinInstance(read_replica) - prompt required - interactive false - error
-shell.options.useWizards=1;
-
+//@<> rejoinInstance(read_replica) - prompt required - error
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 
 var session2 = mysql.getSession(__sandbox_uri2);
@@ -171,10 +169,10 @@ session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 session2.runSql("FLUSH BINARY LOGS");
 session2.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 
-EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri3, {interactive: false}); }, "Instance provisioning required", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri3); }, "Instance provisioning required", "MYSQLSH");
 
-//@<> rejoinInstance(read_replica) - interactive false, recoveryMethod: clone - success
-EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri3, {interactive: false, recoveryMethod: "clone"}); });
+//@<> rejoinInstance(read_replica) - recoveryMethod: clone - success
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone"}); });
 
 CHECK_READ_REPLICA(__sandbox_uri3, cluster, "primary", __endpoint1);
 

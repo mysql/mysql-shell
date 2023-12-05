@@ -199,14 +199,16 @@ c.setupAdminAccount("dryruntest", {password: "fooo", dryRun:true});
 testutil.expectPassword("Password for new account: ", "1111");
 testutil.expectPassword("Confirm password: ", "1111");
 
-c.setupAdminAccount("interactive_test@%", {interactive: true});
+shell.options.useWizards=1;
+c.setupAdminAccount("interactive_test@%");
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'interactive_test', password: '1111'});
 session.close();
 shell.connect(__sandbox_uri1);
 
 //@<> WL#13536 TSFR6_4 Creating new account fails if password not provided and interactive mode is disabled
-c.setupAdminAccount("interactive_test_2@%", {interactive: false});
+shell.options.useWizards=0;
+c.setupAdminAccount("interactive_test_2@%");
 EXPECT_EQ(0, count_users_like(session1, "interactive_test_2", "%"));
 
 //@<> WL#13536 TSET_6 Validate operation fails if user doesn't have enough privileges to create/upgrade account
@@ -223,7 +225,7 @@ EXPECT_EQ(0, count_users_like(session1, "missing_privs", "%"));
 // Added because of BUG#30612423
 session.close();
 shell.connect(__sandbox_uri3);
-dba.configureLocalInstance(__sandbox_uri3 ,{clusterAdmin: "old_shell", clusterAdminPassword: "123"});
+dba.configureInstance(__sandbox_uri3 ,{clusterAdmin: "old_shell", clusterAdminPassword: "123"});
 // Create cluster using root account
 var c = dba.createCluster("Cluster", {gtidSetIsComplete: true});
 // DROP metadata privileges that were only added on this WL to simulate an old clusterAdminAccount

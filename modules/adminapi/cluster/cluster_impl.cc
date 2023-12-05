@@ -38,7 +38,6 @@
 #include "adminapi/common/instance_pool.h"
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/cluster/add_replica_instance.h"
-#include "modules/adminapi/cluster/check_instance_state.h"
 #include "modules/adminapi/cluster/describe.h"
 #include "modules/adminapi/cluster/dissolve.h"
 #include "modules/adminapi/cluster/options.h"
@@ -940,24 +939,24 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
       }
 
       // Print a warning if SET PERSIST is not supported, for users to execute
-      // dba.configureLocalInstance().
+      // dba.configureInstance().
       if (!support_set_persist.has_value()) {
-        console->print_warning(
-            "Instance '" + instance_def.first.endpoint +
-            "' cannot persist configuration since MySQL version " +
-            instance->get_version().get_base() +
-            " does not support the SET PERSIST command "
-            "(MySQL version >= 8.0.11 required). Please use the dba." +
-            "<<<configureLocalInstance>>>() command locally to persist the "
-            "changes.");
+        console->print_warning(shcore::str_format(
+            "Instance '%s' cannot persist configuration since MySQL version %s "
+            "does not support the SET PERSIST command (MySQL version >= 8.0.11 "
+            "required). Please use the dba.<<<configureInstance>>>() command "
+            "locally, using the 'mycnfPath' option, to persist the changes.",
+            instance_def.first.endpoint.c_str(),
+            instance->get_version().get_base().c_str()));
+
       } else if (!support_set_persist.value()) {
-        console->print_warning(
-            "Instance '" + instance_def.first.endpoint +
-            "' will not load the persisted cluster configuration upon reboot "
-            "since 'persisted-globals-load' is set to 'OFF'. Please use the "
-            "dba.<<<configureLocalInstance>>>"
-            "() command locally to persist the changes or set "
-            "'persisted-globals-load' to 'ON' on the configuration file.");
+        console->print_warning(shcore::str_format(
+            "Instance '%s' will not load the persisted cluster configuration "
+            "upon reboot since 'persisted-globals-load' is set to 'OFF'. "
+            "Please use the dba.<<<configureInstance>>>() command locally "
+            "(with the config file path) to persist the changes or set "
+            "'persisted-globals-load' to 'ON' on the configuration file.",
+            instance_def.first.endpoint.c_str()));
       }
     } else {
       // Ignore instance with an invalid state (i.e., do not issue an erro), if
@@ -2869,27 +2868,6 @@ const std::string Cluster_impl::get_view_change_uuid() const {
 
   // default empty
   return "";
-}
-
-shcore::Value Cluster_impl::check_instance_state(
-    const Connection_options &instance_def) {
-  check_preconditions("checkInstanceState");
-
-  Scoped_instance target(connect_target_instance(instance_def, true));
-
-  // Create the Cluster Check_instance_state object and execute it.
-  cluster::Check_instance_state op_check_instance_state(*this, target);
-
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
-      [&op_check_instance_state]() { op_check_instance_state.finish(); });
-
-  // Prepare the Cluster Check_instance_state  command execution
-  // (validations).
-  op_check_instance_state.prepare();
-
-  // Execute Cluster Check_instance_state  operations.
-  return op_check_instance_state.execute();
 }
 
 void Cluster_impl::switch_to_single_primary_mode(

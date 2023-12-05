@@ -117,8 +117,6 @@ class Configure_instance {
   // List of invalid (incompatible) configurations to update.
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
-  bool m_local_configure = false;
-
  private:
   const Cluster_type m_purpose;
   const TargetType::Type m_instance_type;

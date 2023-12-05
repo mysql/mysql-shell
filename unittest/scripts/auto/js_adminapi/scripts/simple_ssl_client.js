@@ -101,7 +101,7 @@ cluster.addInstance("root:root@127.0.0.1:"+__mysql_sandbox_port2);
 
 EXPECT_THROWS(function(){cluster.addInstance("127.0.0.1:"+__mysql_sandbox_port3);}, "Access denied for user 'user1'@'localhost'");
 
-dba.configureLocalInstance("root:root@127.0.0.1:"+__mysql_sandbox_port3, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port3), clusterAdmin:"user1@'%'", clusterAdminPassword:"", clusterAdminCertIssuer:"/CN=Test_CA", clusterAdminCertSubject:"/CN=user1@%"});
+dba.configureInstance("root:root@127.0.0.1:"+__mysql_sandbox_port3, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port3), clusterAdmin:"user1@'%'", clusterAdminPassword:"", clusterAdminCertIssuer:"/CN=Test_CA", clusterAdminCertSubject:"/CN=user1@%"});
 cluster.addInstance("127.0.0.1:"+__mysql_sandbox_port3);
 
 //@ status

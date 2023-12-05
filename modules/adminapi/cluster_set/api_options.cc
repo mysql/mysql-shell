@@ -66,10 +66,11 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
     &Create_replica_cluster_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Create_replica_cluster_options>()
-          .include<Interactive_option>()
           .include<Timeout_option>()
           .optional(kDryRun, &Create_replica_cluster_options::dry_run)
           .include<Recovery_progress_option>()
+          .optional(kMemberSslMode,
+                    &Create_replica_cluster_options::set_ssl_mode)
           .optional(kReplicationAllowedHost,
                     &Create_replica_cluster_options::replication_allowed_host)
           .include(&Create_replica_cluster_options::gr_options)
@@ -101,6 +102,19 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
               &Create_replica_cluster_options::set_repl_network_namespace);
 
   return opts;
+}
+
+void Create_replica_cluster_options::set_ssl_mode(const std::string &value) {
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+    std::string valid_values = shcore::str_join(kClusterSSLModeValues, ",");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s option. Supported values: %s.",
+        kClusterSetReplicationSslMode, valid_values.c_str()));
+  }
+
+  // Set the ssl-mode
+  gr_options.ssl_mode = to_cluster_ssl_mode(value);
 }
 
 void Create_replica_cluster_options::set_cert_subject(

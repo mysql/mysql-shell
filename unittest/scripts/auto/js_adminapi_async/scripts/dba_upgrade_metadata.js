@@ -28,13 +28,15 @@ var rset = dba.createReplicaSet("myrs", {gtidSetIsComplete:true});
 rset.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY()
 
+shell.options.useWizards = true;
+
 //@<> Upgrades the metadata, up to date
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata()
 EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.2.0).`);
 
 //@<> Upgrades the metadata from slave, up to date
 shell.connect(__sandbox_uri2)
-dba.upgradeMetadata({interactive:true})
+dba.upgradeMetadata()
 EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.2.0).`);
 
 //@<> Cleanup

@@ -36,15 +36,15 @@ function get_mysqlx_endpoint(uri) {
   return shell.unparseUri({ 'socket': u.socket });
 }
 
-//@<> configureLocalInstance
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+//@<> configureInstance uri
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
-dba.configureLocalInstance(sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 testutil.restartSandbox(__mysql_sandbox_port1);
 
 session1 = mysql.getSession(sockuri1);
 
-//@<> configureInstance
+//@<> configureInstance endpoint
 EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, sockuri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
 dba.configureInstance(sockuri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
@@ -58,11 +58,6 @@ cluster = dba.createCluster("mycluster");
 
 //@<> status
 status = cluster.status();
-
-//@<> checkInstanceState
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, sockuri2);
-
-cluster.checkInstanceState(sockuri2);
 
 //@<> describe
 cluster.describe();

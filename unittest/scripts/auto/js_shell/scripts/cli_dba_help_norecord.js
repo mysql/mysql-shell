@@ -12,9 +12,6 @@ callMysqlsh(["--", "dba", "check-instance-configuration", "--help"])
 //@ CLI dba configure-instance --help
 callMysqlsh(["--", "dba", "configure-instance", "--help"])
 
-//@ CLI dba configure-local-instance --help
-callMysqlsh(["--", "dba", "configure-local-instance", "--help"])
-
 //@ CLI dba configure-replica-set-instance --help
 callMysqlsh(["--", "dba", "configure-replica-set-instance", "--help"])
 

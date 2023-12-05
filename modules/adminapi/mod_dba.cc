@@ -42,12 +42,10 @@
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/dba/check_instance.h"
 #include "modules/adminapi/dba/configure_instance.h"
-#include "modules/adminapi/dba/configure_local_instance.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/dba/reboot_cluster_from_complete_outage.h"
 #include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
-#include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
@@ -264,9 +262,6 @@ REGISTER_HELP(CLUSTER_OPT_EXIT_STATE_ACTION,
 REGISTER_HELP(CLUSTER_OPT_MEMBER_WEIGHT,
               "@li memberWeight: integer value with a percentage weight for "
               "automatic primary election on failover.");
-REGISTER_HELP(CLUSTER_OPT_FAILOVER_CONSISTENCY,
-              "@li failoverConsistency: string value indicating the "
-              "consistency guarantees that the cluster provides.");
 REGISTER_HELP(CLUSTER_OPT_CONSISTENCY,
               "@li consistency: string value indicating the "
               "consistency guarantees that the cluster provides.");
@@ -279,9 +274,6 @@ REGISTER_HELP(
     "@li autoRejoinTries: integer value to define the number of times an "
     "instance will attempt to rejoin the cluster after being expelled.");
 
-REGISTER_HELP(CLUSTER_OPT_IP_WHITELIST,
-              "@li ipWhitelist: The list of hosts allowed to connect to the "
-              "instance for group replication. Deprecated.");
 REGISTER_HELP(CLUSTER_OPT_IP_ALLOWLIST,
               "@li ipAllowlist: The list of hosts allowed to connect to the "
               "instance for group replication. Only valid if "
@@ -347,13 +339,6 @@ REGISTER_HELP(
     "network namespace to use for TCP/IP connections to the replication source "
     "server or, if the MySQL communication stack is in use, for Group "
     "Replication’s group communication connections.");
-
-REGISTER_HELP(
-    OPT_INTERACTIVE,
-    "@li interactive: boolean value used to disable/enable the wizards in the "
-    "command execution, i.e. prompts and confirmations will be provided or not "
-    "according to the value set. The default value is equal to MySQL Shell "
-    "wizard mode. Deprecated.");
 
 REGISTER_HELP(OPT_APPLIERWORKERTHREADS,
               "@li applierWorkerThreads: Number of threads used for applying "
@@ -734,8 +719,6 @@ Dba::Dba(const std::shared_ptr<ShellBaseSession> &session)
   init();
 }
 
-Dba::~Dba() {}
-
 bool Dba::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
@@ -747,7 +730,7 @@ void Dba::init() {
   // Pure functions
   expose("createCluster", &Dba::create_cluster, "name", "?options")->cli();
 
-  expose("getCluster", &Dba::get_cluster, "?name", "?options")->cli(false);
+  expose("getCluster", &Dba::get_cluster, "?name")->cli(false);
   expose("dropMetadataSchema", &Dba::drop_metadata_schema, "?options")->cli();
   expose("checkInstanceConfiguration", &Dba::check_instance_configuration,
          "?instance", "?options")
@@ -769,9 +752,6 @@ void Dba::init() {
          &Dba::reboot_cluster_from_complete_outage, "?clusterName", "?options")
       ->cli();
   expose("upgradeMetadata", &Dba::upgrade_metadata, "?options")->cli();
-  expose("configureLocalInstance", &Dba::configure_local_instance, "?instance",
-         "?options")
-      ->cli();
   expose("configureInstance", &Dba::configure_instance, "?instance", "?options")
       ->cli();
   expose("configureReplicaSetInstance", &Dba::configure_replica_set_instance,
@@ -1076,7 +1056,6 @@ Returns an object representing a Cluster.
 
 @param name Optional parameter to specify the name of the Cluster to be
 returned.
-@param options Optional dictionary with additional options.
 
 @returns The Cluster object identified by the given name or the default Cluster.
 
@@ -1084,13 +1063,6 @@ If name is not specified or is null, the default Cluster will be returned.
 
 If name is specified, and no Cluster with the indicated name is found, an
 error will be raised.
-
-The options dictionary may contain the following attributes:
-
-@li connectToPrimary: boolean value used to indicate if Shell should
-automatically connect to the primary member of the Cluster or not. Deprecated
-and ignored, Shell will attempt to connect to the primary by default and
-fallback to a secondary when not possible.
 )*");
 /**
  * $(DBA_GETCLUSTER_BRIEF)
@@ -1098,13 +1070,12 @@ fallback to a secondary when not possible.
  * $(DBA_GETCLUSTER)
  */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(String name, Dictionary options) {}
+Cluster Dba::getCluster(String name) {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(str name, dict options) {}
+Cluster Dba::get_cluster(str name) {}
 #endif
 std::shared_ptr<Cluster> Dba::get_cluster(
-    const std::optional<std::string> &cluster_name,
-    const shcore::Dictionary_t &options) const {
+    const std::optional<std::string> &cluster_name) const {
   std::shared_ptr<Instance> target_member, group_server;
   std::shared_ptr<MetadataStorage> metadata, metadata_at_target;
 
@@ -1130,14 +1101,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
         Instance_pool::Auth_options{target_member->get_connection_options()});
 
     check_function_preconditions("Dba.getCluster", metadata, target_member);
-
-    if (options && options->has_key("connectToPrimary")) {
-      console->print_warning(
-          "Option 'connectToPrimary' is deprecated and it will "
-          "be removed in a future release. Shell will attempt to connect to "
-          "the primary member of the Cluster by default and fallback to a "
-          "secondary when not possible");
-    }
 
     bool is_read_replica =
         metadata->get_instance_by_uuid(target_member->get_uuid())
@@ -1239,7 +1202,17 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           ": Unable to find a cluster PRIMARY member from the active shell "
           "session because the cluster has too many UNREACHABLE members and "
           "no quorum is possible.");
-    } else if (e.code() == SHERR_DBA_METADATA_MISSING) {
+    }
+    if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET) {
+      // we can inform to the user with an hint (the user called getCluster on a
+      // replicat set)
+      console->print_info(
+          "No InnoDB Cluster found, did you meant to call "
+          "dba.<<<getReplicaSet>>>()?");
+      throw e;
+    }
+
+    if (e.code() == SHERR_DBA_METADATA_MISSING && target_member) {
       // The Metadata does not contain this Cluster, however, the preconditions
       // checker verified the existence of the Cluster in the Metadata schema of
       // the current Shell session meaning:
@@ -1254,37 +1227,27 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       // we must check if the Cluster is part of a ClusterSet to print a
       // warning and obtain the Cluster object from its own Metadata.
       // If not, we must error out right away.
-      if (target_member) {
-        auto cluster =
-            get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                        metadata_at_target, group_server);
+      auto cluster =
+          get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                      metadata_at_target, group_server);
 
-        std::string cs_domain_name;
-        // The correct MD thinks this cluster is a member, check if it thinks
-        // it's a member itself
-        if (metadata_at_target->check_cluster_set(target_member.get(), nullptr,
-                                                  &cs_domain_name)) {
-          console->print_warning(
-              "The Cluster '" + cluster->impl()->get_name() +
-              "' appears to have been removed from the ClusterSet '" +
-              cs_domain_name +
-              "', however its own metadata copy wasn't properly updated during "
-              "the removal");
+      // The correct MD thinks this cluster is a member, check if it thinks
+      // it's a member itself
+      std::string cs_domain_name;
+      if (metadata_at_target->check_cluster_set(target_member.get(), nullptr,
+                                                &cs_domain_name)) {
+        console->print_warning(shcore::str_format(
+            "The Cluster '%s' appears to have been removed from the ClusterSet "
+            "'%s', however its own metadata copy wasn't properly updated "
+            "during the removal",
+            cluster->impl()->get_name().c_str(), cs_domain_name.c_str()));
 
-          // Mark that the cluster was already removed from the clusterset but
-          // doesn't know about it yet
-          cluster->impl()->set_cluster_set_remove_pending(true);
+        // Mark that the cluster was already removed from the clusterset but
+        // doesn't know about it yet
+        cluster->impl()->set_cluster_set_remove_pending(true);
 
-          return cluster;
-        }
+        return cluster;
       }
-    } else if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET) {
-      // we can inform to the user with an hint (the user called getCluster on a
-      // replicat set)
-      console->print_info(
-          "No InnoDB Cluster found, did you meant to call "
-          "dba.<<<getReplicaSet>>>()?");
-      throw e;
     }
 
     throw;
@@ -1377,21 +1340,16 @@ writable instances.
 @li force: boolean, confirms that the multiPrimary option must be applied
 and/or the operation must proceed even if unmanaged replication channels
 were detected.
-${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB Cluster based on
 existing replication group.
 ${CLUSTER_OPT_MEMBER_SSL_MODE}
 ${OPT_MEMBER_AUTH_TYPE}
 ${OPT_CERT_ISSUER}
 ${OPT_CERT_SUBJECT}
-${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 @li groupName: string value with the Group Replication group name UUID to be
 used instead of the automatically generated one.
 ${CLUSTER_OPT_LOCAL_ADDRESS}
-@li groupSeeds: string value with a comma-separated list of the Group
-Replication peer addresses to be used instead of the automatically generated
-one. Deprecated and ignored.
 @li manualStartOnBoot: boolean (default false). If false, Group Replication in
 Cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
@@ -1402,13 +1360,8 @@ any other member using accounts with this hostname value.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_CONSISTENCY}
-${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled. Deprecated.
-@li multiMaster: boolean value used to define an InnoDB Cluster with multiple
-writable instances. Deprecated.
 ${CLUSTER_OPT_COMM_STACK}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT}
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER}
@@ -1433,10 +1386,6 @@ and can only contain alphanumeric, _ ( underscore), . (period), or -
 (hyphen) characters.
 
 <b>Options</b>
-
-interactive controls whether prompts are shown for MySQL passwords,
-confirmations and handling of cases where user feedback may be required.
-Defaults to true, unless the Shell is started with the --no-wizards option.
 
 disableClone should be set to true if built-in clone support should be
 completely disabled, even in instances where that is supported. Built-in clone
@@ -1477,10 +1426,6 @@ The value for groupName is used to set the Group Replication system variable
 
 ${CLUSTER_OPT_LOCAL_ADDRESS_EXTRA}
 
-The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is ignored.
-'group_replication_group_seeds' is automatically set based on the current
-topology.
-
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
 ${CLUSTER_OPT_CONSISTENCY_DETAIL}
@@ -1500,21 +1445,6 @@ ${CLUSTER_OPT_COMM_STACK_EXTRA}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
-
-@attention The clearReadOnly option will be removed in a future release.
-
-@attention The multiMaster option will be removed in a future release. Please
-use the multiPrimary option instead.
-
-@attention The failoverConsistency option will be removed in a future release.
-Please use the consistency option instead.
-
-@attention The ipWhitelist option will be removed in a future release.
-Please use the ipAllowlist option instead.
-
-@attention The groupSeeds option will be removed in a future release.
-
-@attention The interactive option will be removed in a future release.
 )*");
 
 /**
@@ -1531,8 +1461,6 @@ Cluster Dba::create_cluster(str name, dict options) {}
 shcore::Value Dba::create_cluster(
     const std::string &cluster_name,
     const shcore::Option_pack_ref<Create_cluster_options> &options) {
-  std::string instance_label;
-
   std::shared_ptr<Instance> group_server;
   std::shared_ptr<MetadataStorage> metadata;
 
@@ -1639,10 +1567,6 @@ Drops the Metadata Schema.
 The options dictionary may contain the following options:
 
 @li force: boolean, confirms that the drop operation must be executed.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled. Deprecated and default value is true.
-
-@attention The clearReadOnly option will be removed in a future release and it's no longer needed, super_read_only is automatically cleared.
 )*");
 
 /**
@@ -1704,7 +1628,7 @@ void Dba::drop_metadata_schema(
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(*instance, options->clear_read_only);
+    validate_super_read_only(*instance);
 
     metadata::uninstall(instance);
     if (interactive) {
@@ -1745,11 +1669,6 @@ Alias for verifyMyCnf
 @li verifyMyCnf: Optional path to the MySQL configuration file for the
 instance. If this option is given, the configuration file will be verified for
 the expected option values, in addition to the global MySQL system variables.
-@li password: The password to get connected to the instance. Deprecated.
-${OPT_INTERACTIVE}
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
 
 The returned descriptive text of the operation result indicates whether the
 instance is valid for InnoDB Cluster usage or not. If not, a table containing
@@ -1767,10 +1686,6 @@ The note can be one of the following:
 @li Update the config file.
 @li Update the server variable.
 @li Restart the server.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -1791,20 +1706,13 @@ shcore::Value Dba::check_instance_configuration(
   auto instance_def = instance_def_;
   const auto has_co = instance_def && instance_def->has_data();
 
-  if (has_co && options->password.has_value()) {
-    auto connection_options = instance_def.operator->();
-    connection_options->set_password(*options->password);
-  }
-
-  shcore::Value ret_val;
-  std::shared_ptr<Instance> instance;
-  std::shared_ptr<MetadataStorage> metadata;
-
   // Establish the session to the target instance
+  std::shared_ptr<Instance> instance;
   if (has_co) {
     if (instance_def->has_ssh_options())
       throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
-    instance = Instance::connect(*instance_def, options->interactive());
+    instance = Instance::connect(*instance_def,
+                                 current_shell_options()->get().wizards);
   } else {
     instance = connect_to_target_member();
   }
@@ -1814,7 +1722,7 @@ shcore::Value Dba::check_instance_configuration(
         "An open session is required to perform this operation.");
   }
 
-  metadata = std::make_shared<MetadataStorage>(instance);
+  auto metadata = std::make_shared<MetadataStorage>(instance);
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -1990,7 +1898,6 @@ of the seed instance corresponds to all transactions executed. Default is false.
 internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname'). Default is %.
 It must be possible for any member of the ReplicaSet to connect to any other
 member using accounts with this hostname value.
-${OPT_INTERACTIVE}
 ${OPT_MEMBER_AUTH_TYPE}
 ${OPT_CERT_ISSUER}
 ${OPT_CERT_SUBJECT}
@@ -2010,8 +1917,6 @@ ${OPT_MEMBER_AUTH_TYPE_EXTRA}
 
 When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate is used as its client certificate when authenticating replication channels
 with peer servers. replicationSslMode must be at least REQUIRED, although VERIFY_CA or VERIFY_IDENTITY are recommended for additional security.
-
-@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(DBA_CREATEREPLICASET_BRIEF)
@@ -2568,21 +2473,16 @@ void Dba::start_sandbox_instance(
   exec_instance_op("start", port, options->sandbox_dir);
 }
 
-void Dba::do_configure_instance(
-    const mysqlshdk::db::Connection_options &instance_def_,
-    const Configure_instance_options &options, Cluster_type purpose) {
-  auto instance_def = instance_def_;
-
-  if (instance_def.has_data() && options.password.has_value()) {
-    instance_def.set_password(*options.password);
-  }
-
+void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
+                                const Configure_instance_options &options,
+                                Cluster_type purpose) {
   // Establish the session to the target instance
   std::shared_ptr<Instance> target_instance;
   if (instance_def.has_data()) {
     if (instance_def.has_ssh_options())
       throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
-    target_instance = Instance::connect(instance_def, options.interactive());
+    target_instance =
+        Instance::connect(instance_def, current_shell_options()->get().wizards);
   } else {
     target_instance = connect_to_target_member();
   }
@@ -2605,9 +2505,8 @@ void Dba::do_configure_instance(
     state = check_function_preconditions("Dba.configureReplicaSetInstance",
                                          metadata, target_instance);
   } else {
-    state = check_function_preconditions(
-        options.local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
-        metadata, target_instance);
+    state = check_function_preconditions("Dba.configureInstance", metadata,
+                                         target_instance);
   }
 
   ipool->set_metadata(metadata);
@@ -2636,76 +2535,9 @@ void Dba::do_configure_instance(
   target_instance->register_warnings_callback(warnings_callback);
 
   // Call the API
-  if (options.local) {
-    Topology_executor<Configure_local_instance>{target_instance, options,
-                                                purpose}
-        .run();
-  } else {
-    Topology_executor<Configure_instance>{target_instance, options,
-                                          state.source_type, purpose}
-        .run();
-  }
-}
-
-REGISTER_HELP_FUNCTION(configureLocalInstance, dba);
-REGISTER_HELP_FUNCTION_TEXT(DBA_CONFIGURELOCALINSTANCE, R"*(
-Validates and configures a local instance for MySQL InnoDB Cluster usage.
-
-@param instance Optional An instance definition.
-@param options Optional Additional options for the operation.
-
-@returns Nothing
-
-@attention This function is deprecated and will be removed in a future release
-of MySQL Shell, use dba.configureInstance() instead.
-
-This function reviews the instance configuration to identify if it is valid for
-usage in an InnoDB cluster, making configuration changes if necessary.
-
-The instance definition is the connection data for the instance.
-
-${TOPIC_CONNECTION_MORE_INFO}
-
-${CONFIGURE_INSTANCE_COMMON_OPTIONS}
-
-${CONFIGURE_INSTANCE_COMMON_DETAILS_1}
-
-The returned descriptive text of the operation result indicates whether the
-instance was successfully configured for InnoDB Cluster usage or if it was
-already valid for InnoDB Cluster usage.
-
-${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
-
-@attention The clearReadOnly option will be removed in a future release and
-it's no longer needed, super_read_only is automatically cleared.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
-)*");
-
-/**
- * $(DBA_CONFIGURELOCALINSTANCE_BRIEF)
- *
- * $(DBA_CONFIGURELOCALINSTANCE)
- */
-#if DOXYGEN_JS
-Undefined Dba::configureLocalInstance(InstanceDef instance,
-                                      Dictionary options) {}
-#elif DOXYGEN_PY
-None Dba::configure_local_instance(InstanceDef instance, dict options) {}
-#endif
-void Dba::configure_local_instance(
-    const std::optional<Connection_options> &instance_def,
-    const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
-        &options) {
-  mysqlsh::current_console()->print_warning(
-      "This function is deprecated and will be removed in a future release of "
-      "MySQL Shell, use dba.<<<configureInstance()>>> instead.");
-
-  return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, *options,
-      Cluster_type::GROUP_REPLICATION);
+  Topology_executor<Configure_instance>{target_instance, options,
+                                        state.source_type, purpose}
+      .run();
 }
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
@@ -2733,13 +2565,6 @@ This function reviews the instance configuration to identify if it is valid for
 usage in group replication and cluster. An exception is thrown if not.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
-
-@attention The clearReadOnly option will be removed in a future release and
-it's no longer needed, super_read_only is automatically cleared.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
@@ -2748,7 +2573,6 @@ The options dictionary may contain the following options:
 @li mycnfPath: The path to the MySQL configuration file of the instance.
 @li outputMycnfPath: Alternative output path to write the MySQL configuration
 file of the instance.
-@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of the "cluster administrator" account.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
 @li clusterAdminPasswordExpiration: Password expiration setting for the account.
@@ -2756,19 +2580,13 @@ May be set to the number of days for expiration, 'NEVER' to disable expiration
 and 'DEFAULT' to use the system default.
 @li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
 @li clusterAdminCertSubject: Optional SSL certificate subject for the account.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled. Deprecated and default value is true.
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
-${OPT_INTERACTIVE}
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_1, R"*(
 If the outputMycnfPath option is used, only that file is updated and mycnfPath
 is treated as read-only.
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
 
 The clusterAdmin must be a standard MySQL account name. It could be either an
 existing account or an account to be created.
@@ -2832,7 +2650,6 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following options:
 
-@li password: The password to be used on the connection. Deprecated.
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
@@ -2841,13 +2658,9 @@ May be set to the number of days for expiration, 'NEVER' to disable expiration
 and 'DEFAULT' to use the system default.
 @li clusterAdminCertIssuer: Optional SSL certificate issuer for the account.
 @li clusterAdminCertSubject: Optional SSL certificate subject for the account.
-${OPT_INTERACTIVE}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
 ${OPT_APPLIERWORKERTHREADS}
-
-The connection password may be contained on the instance definition, however,
-it can be overwritten if it is specified on the options.
 
 This function reviews the instance configuration to identify if it is valid for
 usage in replicasets. An exception is thrown if not.
@@ -2859,10 +2672,6 @@ and a table with the following information:
 @li Variable: the invalid configuration variable.
 @li Current Value: the current value for the invalid configuration variable.
 @li Required Value: the required value for the configuration variable.
-
-@attention The interactive option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
 )*");
 
 /**
@@ -2897,10 +2706,6 @@ this function.
 
 The options dictionary can contain the next values:
 
-@li user: The user used for the instances sessions required operations.
-@li password: The password used for the instances sessions required operations. Deprecated.
-@li clearReadOnly: boolean value used to confirm that super_read_only must be
-disabled.
 @li force: boolean value to indicate that the operation must be executed even if some members of
 the Cluster cannot be reached, or the primary instance selected has a diverging or lower GTID_SET.
 @li dryRun: boolean value that if true, all validations and steps of the command are
@@ -2943,12 +2748,6 @@ ${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
 The option is used to switch the value of paxosSingleLeader previously in
 use by the Cluster, to either enable or disable it.
 
-@attention The clearReadOnly option will be removed in a future release.
-
-@attention The user option will be removed in a future release.
-
-@attention The password option will be removed in a future release.
-
 This function reboots a cluster from complete outage. It obtains the
 Cluster information from the instance MySQL Shell is connected to and
 uses the most up-to-date instance in regards to transactions as new seed
@@ -2961,12 +2760,6 @@ The current session must be connected to a former instance of the
 cluster.
 
 If name is not specified, the default cluster will be returned.
-
-@note The user and password options are no longer used, the connection data is
-taken from the active shell session.
-
-@note The clearReadOnly option is no longer used, super_read_only is
-automatically cleared.
 )*");
 
 /**
@@ -3080,11 +2873,6 @@ The options dictionary accepts the following attributes:
 
 @li dryRun: boolean, if true all validations and steps to run the upgrade
 process are executed but no changes are actually made.
-${OPT_INTERACTIVE}
-
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the upgrade process. The default
-value is equal to MySQL Shell wizard mode.
 
 <b>The Upgrade Process</b>
 
@@ -3100,14 +2888,11 @@ which point you can stop the upgrade to resume later.
 -# Upgrade MySQL Router to the latest version (same version number as the Shell)
 -# Continue or re-execute dba.<<<upgradeMetadata>>>()
 
-
 <b>Failed Upgrades</b>
 
 If the installed metadata is not available because a previous call to this
 function ended unexpectedly, this function will restore the metadata to the
 state it was before the failed upgrade operation.
-
-@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(DBA_UPGRADEMETADATA_BRIEF)
@@ -3171,7 +2956,7 @@ void Dba::upgrade_metadata(
   // acquire required lock on target instance.
   auto i_lock = metadata->get_md_server()->get_lock_exclusive();
 
-  Upgrade_metadata op_upgrade(metadata, options->interactive(),
+  Upgrade_metadata op_upgrade(metadata, current_shell_options()->get().wizards,
                               options->dry_run);
 
   shcore::on_leave_scope finally([&op_upgrade]() { op_upgrade.finish(); });

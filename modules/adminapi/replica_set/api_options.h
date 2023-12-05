@@ -37,19 +37,18 @@
 
 namespace mysqlsh::dba::replicaset {
 
-struct Wait_recovery_option {
-  static const shcore::Option_pack_def<Wait_recovery_option> &options();
+struct Recovery_progress_option {
+  static const shcore::Option_pack_def<Recovery_progress_option> &options();
 
-  void set_wait_recovery(const std::string &option, int value);
-  Recovery_progress_style get_wait_recovery();
+  void set_recovery_progress(int value);
+  Recovery_progress_style get_recovery_progress();
 
  private:
-  std::optional<Recovery_progress_style> m_wait_recovery, m_recovery_progress;
+  std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
-struct Rejoin_instance_options : public Wait_recovery_option,
-                                 public Timeout_option,
-                                 public Interactive_option {
+struct Rejoin_instance_options : public Recovery_progress_option,
+                                 public Timeout_option {
   static const shcore::Option_pack_def<Rejoin_instance_options> &options();
 
   Join_replicaset_clone_options clone_options;

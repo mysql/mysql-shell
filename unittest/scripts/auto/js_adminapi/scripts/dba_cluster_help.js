@@ -28,12 +28,6 @@ cluster.help("addInstance")
 //@ Add Instance \? [USE:Add Instance]
 \? cluster.addinstance
 
-//@ Check Instance State
-cluster.help("checkInstanceState")
-
-//@ Check Instance State, \? [USE:Check Instance State]
-\? checkInstanceState
-
 //@ Describe
 cluster.help("describe")
 

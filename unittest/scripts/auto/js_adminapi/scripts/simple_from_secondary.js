@@ -30,12 +30,6 @@ cluster.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 
 // POSITIVE CASES
 
-//@<> checkInstanceState
-shell.connect(__sandbox_uri2);
-cluster = dba.getCluster();
-
-cluster.checkInstanceState(__sandbox_uri3);
-
 //@<> addInstance using clone recovery {VER(>=8.0.17)}
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
@@ -186,9 +180,6 @@ run_nolog(session1, "alter user root@'localhost' account lock");
 // this cluster object will connect to the primary, although the other one wont
 shell.connect("root2:@localhost:"+__mysql_sandbox_port1);
 cluster2= dba.getCluster();
-
-//@<> checkInstanceState (no primary, should fail)
-EXPECT_THROWS(function(){cluster.checkInstanceState(__sandbox_uri3)}, "Access denied for user 'root'@'localhost'. Account is locked.");
 
 //@<> addInstance using clone recovery (no primary, should fail) {VER(>=8.0.17)}
 EXPECT_THROWS(function(){cluster.addInstance(__sandbox_uri3, {recoveryMethod:'clone'})}, "Access denied for user 'root'@'localhost'. Account is locked.");

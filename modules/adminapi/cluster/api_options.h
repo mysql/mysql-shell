@@ -39,9 +39,7 @@
 
 namespace mysqlsh::dba::cluster {
 
-struct Add_instance_options : public Password_interactive_options,
-                              public Wait_recovery_option,
-                              public Recovery_progress_option {
+struct Add_instance_options : public Recovery_progress_option {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
   void set_cert_subject(const std::string &value);
@@ -52,8 +50,7 @@ struct Add_instance_options : public Password_interactive_options,
   std::string cert_subject;
 };
 
-struct Rejoin_instance_options : public Password_interactive_options,
-                                 public Timeout_option,
+struct Rejoin_instance_options : public Timeout_option,
                                  public Recovery_progress_option {
   static const shcore::Option_pack_def<Rejoin_instance_options> &options();
   Rejoin_group_replication_options gr_options;
@@ -61,8 +58,7 @@ struct Rejoin_instance_options : public Password_interactive_options,
   bool dry_run = false;
 };
 
-struct Remove_instance_options : public Password_interactive_options,
-                                 public Timeout_option {
+struct Remove_instance_options : public Timeout_option {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
   bool get_force(bool default_value = false) const noexcept {
@@ -87,13 +83,11 @@ struct Options_options {
   bool all = false;
 };
 
-struct Rescan_options : public Interactive_option {
+struct Rescan_options {
   static const shcore::Option_pack_def<Rescan_options> &options();
   void set_bool_option(const std::string &option, bool value);
   void set_list_option(const std::string &option, const shcore::Value &value);
-  void set_update_topology_mode(bool value);
 
-  std::optional<bool> update_topology_mode;
   std::vector<mysqlshdk::db::Connection_options> add_instances_list;
   std::vector<mysqlshdk::db::Connection_options> remove_instances_list;
   bool auto_add = false;

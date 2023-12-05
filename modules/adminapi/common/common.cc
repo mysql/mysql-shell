@@ -24,46 +24,38 @@
 #include "modules/adminapi/common/common.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <iterator>
 #include <map>
-#include <set>
 #include <string>
 #include <utility>
 
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
-#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/script.h"
-#include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/textui/progress.h"
-#include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -368,7 +360,6 @@ void resolve_ssl_mode_option(const std::string &option,
  * - The instance having SSL available
  * - The instance having require_secure_transport ON
  * - The cluster SSL configuration
- * - The memberSslMode option given by the user
  *
  * Assigned to:
  *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or
@@ -387,63 +378,16 @@ void resolve_ssl_mode_option(const std::string &option,
  *     VERIFY_IDENTITY
  *   - Cluster has SSL disabled and the instance has require_secure_transport ON
  */
-void resolve_instance_ssl_mode_option(
+Cluster_ssl_mode resolve_instance_ssl_mode_option(
     const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::mysql::IInstance &pinstance,
-    Cluster_ssl_mode *member_ssl_mode) {
-  assert(member_ssl_mode);
-
-  Cluster_ssl_mode gr_ssl_mode = to_cluster_ssl_mode(
+    const mysqlshdk::mysql::IInstance &pinstance) {
+  auto ssl_mode = to_cluster_ssl_mode(
       pinstance.get_sysvar_string("group_replication_ssl_mode", ""));
 
-  // check for conflicts between the (deprecated) per-instance memberSslMode
-  // and the group setting
-  switch (gr_ssl_mode) {
-    case Cluster_ssl_mode::REQUIRED:
-    case Cluster_ssl_mode::VERIFY_CA:
-    case Cluster_ssl_mode::VERIFY_IDENTITY:
-      // memberSslMode is DISABLED
-      if (*member_ssl_mode == Cluster_ssl_mode::DISABLED) {
-        throw shcore::Exception::runtime_error(
-            "The cluster has TLS (encryption) enabled. "
-            "To add the instance '" +
-            instance.descr() +
-            "' to the cluster either disable TLS on the cluster, remove the "
-            "memberSslMode option or use it with any of 'AUTO', 'REQUIRED', "
-            "'VERIFY_CA' or 'VERIFY_IDENTITY'.");
-      }
-      // addInstance() can have a different memberSslMode from the cluster,
-      // although that's deprecated
-      if (*member_ssl_mode == Cluster_ssl_mode::AUTO ||
-          *member_ssl_mode == Cluster_ssl_mode::NONE)
-        *member_ssl_mode = gr_ssl_mode;
-      break;
-
-    case Cluster_ssl_mode::NONE:
-    case Cluster_ssl_mode::DISABLED:
-      if (*member_ssl_mode == Cluster_ssl_mode::REQUIRED ||
-          *member_ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
-          *member_ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
-        throw shcore::Exception::runtime_error(
-            "The cluster has TLS (encryption) disabled. "
-            "To add the instance '" +
-            instance.descr() +
-            "' to the cluster either "
-            "enable TLS on the cluster, remove the memberSslMode option or "
-            "use it with any of 'AUTO' or 'DISABLED'.");
-      }
-      *member_ssl_mode = gr_ssl_mode;
-      break;
-
-    case Cluster_ssl_mode::AUTO:
-      // not possible
-      assert(0);
-      *member_ssl_mode = gr_ssl_mode;
-      break;
-  }
-
   validate_instance_ssl_mode(Cluster_type::GROUP_REPLICATION, instance,
-                             *member_ssl_mode);
+                             ssl_mode);
+
+  return ssl_mode;
 }
 
 void validate_instance_ssl_mode(Cluster_type type,
@@ -952,40 +896,19 @@ bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
  * to the instance and raise an exception if super_read_only is turned on.
  *
  * @param instance
- * @param clear_read_only if true, will clear SRO if false, throws error
  *
  * @returns true if super_read_only was disabled
  */
-bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              std::optional<bool> clear_read_only) {
+bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance) {
   if (auto super_read_only = instance.get_sysvar_bool("super_read_only", false);
       !super_read_only)
     return false;
 
-  auto console = mysqlsh::current_console();
+  log_info("Disabling super_read_only on the instance '%s'",
+           instance.descr().c_str());
+  instance.set_sysvar("super_read_only", false);
 
-  const std::string error_message =
-      "The MySQL instance at '" + instance.descr() +
-      "' currently has the super_read_only system variable set to "
-      "protect it from inadvertent updates from applications.\nYou must "
-      "first unset it to be able to perform any changes to this "
-      "instance.\n"
-      "For more information see: https://dev.mysql.com/doc/refman/en/"
-      "server-system-variables.html#sysvar_super_read_only.";
-
-  bool super_read_only_changed = false;
-  if (clear_read_only.value_or(true)) {
-    log_info("Disabling super_read_only on the instance '%s'",
-             instance.descr().c_str());
-    instance.set_sysvar("super_read_only", false);
-    super_read_only_changed = true;
-  } else {
-    console->print_error(error_message);
-
-    throw shcore::Exception::runtime_error("Server in SUPER_READ_ONLY mode");
-  }
-
-  return super_read_only_changed;
+  return true;
 }
 
 /*
@@ -1517,28 +1440,20 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
   if (!silent) {
     if (!can_set_persist.has_value()) {
       auto console = mysqlsh::current_console();
-
-      std::string warn_msg =
-          "Instance '" + instance->descr() +
-          "' cannot persist Group Replication configuration since MySQL "
-          "version " +
-          instance->get_version().get_base() +
-          " does not support the SET PERSIST command (MySQL version >= 8.0.11 "
-          "required). Please use the dba.<<<configureLocalInstance>>>"
-          "() command locally to persist the changes.";
-      console->print_warning(warn_msg);
+      console->print_warning(shcore::str_format(
+          "Instance '%s' cannot persist Group Replication configuration since "
+          "MySQL version %s does not support the SET PERSIST command (MySQL "
+          "version >= 8.0.11 required). Please use the "
+          "dba.<<<configureInstance>>>() command to persist the changes.",
+          instance->descr().c_str(),
+          instance->get_version().get_base().c_str()));
     } else if (*can_set_persist == false) {
       auto console = mysqlsh::current_console();
-
-      std::string warn_msg =
-          "Instance '" + instance->descr() +
-          "' will not load the persisted cluster configuration upon reboot "
-          "since "
-          "'persisted-globals-load' is set to 'OFF'. Please use the dba."
-          "<<<configureLocalInstance>>>() command locally to persist the "
-          "changes "
-          "or set 'persisted-globals-load' to 'ON' on the configuration file.";
-      console->print_warning(warn_msg);
+      console->print_warning(shcore::str_format(
+          "Instance '%s' will not load the persisted cluster configuration "
+          "upon reboot since 'persisted-globals-load' is set to 'OFF'. Please "
+          "set 'persisted-globals-load' to 'ON' on the configuration file.",
+          instance->descr().c_str()));
     }
   }
 
@@ -2367,7 +2282,7 @@ void validate_add_rejoin_options(Group_replication_options options,
     throw shcore::Exception::argument_error(shcore::str_format(
         "Cannot use '%s' when the Cluster's communication stack is "
         "'%s'",
-        options.ip_allowlist_option_name.c_str(), kCommunicationStackMySQL));
+        kIpAllowlist, kCommunicationStackMySQL));
   }
 }
 

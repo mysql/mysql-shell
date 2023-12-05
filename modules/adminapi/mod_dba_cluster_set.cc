@@ -22,14 +22,9 @@
  */
 
 #include "modules/adminapi/mod_dba_cluster_set.h"
-#include "modules/adminapi/common/accounts.h"
-#include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/mod_utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
+
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_json.h"
 
 DEBUG_OBJ_ENABLE(ClusterSet);
 
@@ -214,7 +209,6 @@ For the detailed list of requirements to create an InnoDB Cluster, please use
 
 The options dictionary can contain the following values:
 
-${OPT_INTERACTIVE}
 @li dryRun: boolean if true, all validations and steps for creating a
 Replica Cluster are executed, but no changes are actually made. An
 exception will be thrown when finished.
@@ -315,8 +309,6 @@ ${CLUSTER_OPT_COMM_STACK_EXTRA}
 ${CLUSTER_OPT_TRANSACTION_SIZE_LIMIT_EXTRA}
 
 ${CLUSTER_OPT_PAXOS_SINGLE_LEADER_EXTRA}
-
-@attention The interactive option will be removed in a future release.
 )*");
 /**
  * $(CLUSTERSET_CREATEREPLICACLUSTER_BRIEF)

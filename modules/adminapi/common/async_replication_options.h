@@ -45,7 +45,7 @@ struct Async_replication_options {
     CREATE  // all options OK
   };
 
-  Async_replication_options() = default;
+  Async_replication_options() noexcept = default;
   explicit Async_replication_options(Unpack_target t) noexcept : target(t) {}
 
   Unpack_target target = NONE;

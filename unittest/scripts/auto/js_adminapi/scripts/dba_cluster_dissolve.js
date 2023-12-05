@@ -38,9 +38,13 @@ var c = dba.createCluster('c', {gtidSetIsComplete: true});
 // WL11889 FR2_01: prompt to confirm dissolve in interactive mode.
 // WL11889 FR2_02: force option no longer required.
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
-testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 
-c.dissolve({interactive: true});
+shell.options.useWizards=1;
+
+testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
+c.dissolve();
+
+shell.options.useWizards=0;
 
 if (__version_num >= 80011) {
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
@@ -113,7 +117,7 @@ Replication was disabled but user data was left intact.
 CHECK_DISSOLVED_CLUSTER(session, session);
 
 //@<> Create single-primary cluster
-var single = dba.createCluster('single', {clearReadOnly: true, gtidSetIsComplete: true});
+var single = dba.createCluster('single', {gtidSetIsComplete: true});
 
 //@<> Success adding instance 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -168,7 +172,7 @@ CHECK_DISSOLVED_CLUSTER(session, session3);
 shell.connect(__sandbox_uri1);
 
 //@<> Create multi-primary cluster
-var multi = dba.createCluster('multi', {multiPrimary: true, clearReadOnly: true, force: true, gtidSetIsComplete: true});
+var multi = dba.createCluster('multi', {multiPrimary: true, force: true, gtidSetIsComplete: true});
 
 //@<> Success adding instance 2 mp
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -222,7 +226,7 @@ session3.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks =
 //@<> Create single-primary cluster 2
 shell.connect(__sandbox_uri1);
 
-var single2 = dba.createCluster('single2', {clearReadOnly: true, gtidSetIsComplete: true});
+var single2 = dba.createCluster('single2', {gtidSetIsComplete: true});
 
 //@<> Success adding instance 2 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -279,7 +283,7 @@ testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitForDelayedGRStart(__mysql_sandbox_port3, 'root', 0);
 
 //@<> Create multi-primary cluster 2
-var multi2 = dba.createCluster('multi2', {clearReadOnly: true, multiPrimary: true, force: true, gtidSetIsComplete: true});
+var multi2 = dba.createCluster('multi2', {multiPrimary: true, force: true, gtidSetIsComplete: true});
 
 //@<> Success adding instance 2 mp 2
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -345,7 +349,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_enforce_upd
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@<> Create cluster, instance with replication errors.
-var c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
+var c = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@<> Add instance on port2, again.
 c.addInstance(__sandbox_uri2);

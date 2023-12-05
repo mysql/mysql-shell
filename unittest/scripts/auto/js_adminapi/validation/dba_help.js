@@ -55,14 +55,6 @@ FUNCTIONS
             Validates and configures an instance for MySQL InnoDB Cluster
             usage.
 
-      configureLocalInstance([instance][, options])
-            Validates and configures a local instance for MySQL InnoDB Cluster
-            usage.
-
-            ATTENTION: This function is deprecated and will be removed in a
-                       future release of MySQL Shell, use
-                       dba.configureInstance() instead.
-
       configureReplicaSetInstance([instance][, options])
             Validates and configures an instance for use in an InnoDB
             ReplicaSet.
@@ -82,7 +74,7 @@ FUNCTIONS
       dropMetadataSchema(options)
             Drops the Metadata Schema.
 
-      getCluster([name][, options])
+      getCluster([name])
             Returns an object representing a Cluster.
 
       getClusterSet()
@@ -167,14 +159,6 @@ DESCRIPTION
         instance. If this option is given, the configuration file will be
         verified for the expected option values, in addition to the global
         MySQL system variables.
-      - password: The password to get connected to the instance. Deprecated.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
-
-      The connection password may be contained on the instance definition,
-      however, it can be overwritten if it is specified on the options.
 
       The returned descriptive text of the operation result indicates whether
       the instance is valid for InnoDB Cluster usage or not. If not, a table
@@ -193,10 +177,6 @@ DESCRIPTION
       - Update the config file.
       - Update the server variable.
       - Restart the server.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Configure Instance
 NAME
@@ -226,7 +206,6 @@ DESCRIPTION
       - mycnfPath: The path to the MySQL configuration file of the instance.
       - outputMycnfPath: Alternative output path to write the MySQL
         configuration file of the instance.
-      - password: The password to be used on the connection. Deprecated.
       - clusterAdmin: The name of the "cluster administrator" account.
       - clusterAdminPassword: The password for the "cluster administrator"
         account.
@@ -237,22 +216,13 @@ DESCRIPTION
         account.
       - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled. Deprecated and default value is true.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - applierWorkerThreads: Number of threads used for applying replicated
         transactions. The default value is 4.
 
       If the outputMycnfPath option is used, only that file is updated and
       mycnfPath is treated as read-only.
-
-      The connection password may be contained on the instance definition,
-      however, it can be overwritten if it is specified on the options.
 
       The clusterAdmin must be a standard MySQL account name. It could be
       either an existing account or an account to be created.
@@ -272,99 +242,6 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
-
-      ATTENTION: The clearReadOnly option will be removed in a future release
-                 and it's no longer needed, super_read_only is automatically
-                 cleared.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
-
-//@<OUT> Configure Local Instance
-NAME
-      configureLocalInstance - Validates and configures a local instance for
-                               MySQL InnoDB Cluster usage.
-
-SYNTAX
-      dba.configureLocalInstance([instance][, options])
-
-WHERE
-      instance: An instance definition.
-      options: Additional options for the operation.
-
-RETURNS
-      Nothing
-
-DESCRIPTION
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell, use dba.configureInstance() instead.
-
-      This function reviews the instance configuration to identify if it is
-      valid for usage in an InnoDB cluster, making configuration changes if
-      necessary.
-
-      The instance definition is the connection data for the instance.
-
-      For additional information on connection data use \? connection.
-
-      The options dictionary may contain the following options:
-
-      - mycnfPath: The path to the MySQL configuration file of the instance.
-      - outputMycnfPath: Alternative output path to write the MySQL
-        configuration file of the instance.
-      - password: The password to be used on the connection. Deprecated.
-      - clusterAdmin: The name of the "cluster administrator" account.
-      - clusterAdminPassword: The password for the "cluster administrator"
-        account.
-      - clusterAdminPasswordExpiration: Password expiration setting for the
-        account. May be set to the number of days for expiration, 'NEVER' to
-        disable expiration and 'DEFAULT' to use the system default.
-      - clusterAdminCertIssuer: Optional SSL certificate issuer for the
-        account.
-      - clusterAdminCertSubject: Optional SSL certificate subject for the
-        account.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled. Deprecated and default value is true.
-      - restart: boolean value used to indicate that a remote restart of the
-        target instance should be performed to finalize the operation.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
-
-      If the outputMycnfPath option is used, only that file is updated and
-      mycnfPath is treated as read-only.
-
-      The connection password may be contained on the instance definition,
-      however, it can be overwritten if it is specified on the options.
-
-      The clusterAdmin must be a standard MySQL account name. It could be
-      either an existing account or an account to be created.
-
-      The clusterAdminPassword must be specified only if the clusterAdmin
-      account will be created.
-
-      The returned descriptive text of the operation result indicates whether
-      the instance was successfully configured for InnoDB Cluster usage or if
-      it was already valid for InnoDB Cluster usage.
-
-      If the instance was not valid for InnoDB Cluster and interaction is
-      enabled, before configuring the instance a prompt to confirm the changes
-      is presented and a table with the following information:
-
-      - Variable: the invalid configuration variable.
-      - Current Value: the current value for the invalid configuration
-        variable.
-      - Required Value: the required value for the configuration variable.
-
-      ATTENTION: The clearReadOnly option will be removed in a future release
-                 and it's no longer needed, super_read_only is automatically
-                 cleared.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Configure ReplicaSet Instance
 NAME
@@ -401,7 +278,6 @@ DESCRIPTION
 
       The options dictionary may contain the following options:
 
-      - password: The password to be used on the connection. Deprecated.
       - clusterAdmin: The name of a "cluster administrator" user to be created.
         The supported format is the standard MySQL account name format.
       - clusterAdminPassword: The password for the "cluster administrator"
@@ -413,17 +289,10 @@ DESCRIPTION
         account.
       - clusterAdminCertSubject: Optional SSL certificate subject for the
         account.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
       - applierWorkerThreads: Number of threads used for applying replicated
         transactions. The default value is 4.
-
-      The connection password may be contained on the instance definition,
-      however, it can be overwritten if it is specified on the options.
 
       This function reviews the instance configuration to identify if it is
       valid for usage in replicasets. An exception is thrown if not.
@@ -436,10 +305,6 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
 
 //@<OUT> Create Cluster
 NAME
@@ -471,10 +336,6 @@ DESCRIPTION
       - force: boolean, confirms that the multiPrimary option must be applied
         and/or the operation must proceed even if unmanaged replication
         channels were detected.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - adoptFromGR: boolean value used to create the InnoDB Cluster based on
         existing replication group.
       - memberSslMode: SSL mode for communication channels opened by Group
@@ -485,17 +346,12 @@ DESCRIPTION
         contains either "CERT_ISSUER" or "CERT_SUBJECT".
       - certSubject: instance's certificate subject to use when
         'memberAuthType' contains "CERT_SUBJECT".
-      - ipWhitelist: The list of hosts allowed to connect to the instance for
-        group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - groupName: string value with the Group Replication group name UUID to
         be used instead of the automatically generated one.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
-      - groupSeeds: string value with a comma-separated list of the Group
-        Replication peer addresses to be used instead of the automatically
-        generated one. Deprecated and ignored.
       - manualStartOnBoot: boolean (default false). If false, Group Replication
         in Cluster instances will automatically start and rejoin when MySQL
         starts, otherwise it must be started manually.
@@ -510,17 +366,11 @@ DESCRIPTION
         primary election on failover.
       - consistency: string value indicating the consistency guarantees that
         the cluster provides.
-      - failoverConsistency: string value indicating the consistency guarantees
-        that the cluster provides.
       - expelTimeout: integer value to define the time period in seconds that
         cluster members should wait for a non-responding member before evicting
         it from the cluster.
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled. Deprecated.
-      - multiMaster: boolean value used to define an InnoDB Cluster with
-        multiple writable instances. Deprecated.
       - communicationStack: The Group Replication communication stack to be
         used in the Cluster: XCom (legacy) or MySQL.
       - transactionSizeLimit: integer value to configure the maximum
@@ -548,11 +398,6 @@ DESCRIPTION
       (period), or - (hyphen) characters.
 
       Options
-
-      interactive controls whether prompts are shown for MySQL passwords,
-      confirmations and handling of cases where user feedback may be required.
-      Defaults to true, unless the Shell is started with the --no-wizards
-      option.
 
       disableClone should be set to true if built-in clone support should be
       completely disabled, even in instances where that is supported. Built-in
@@ -641,10 +486,6 @@ DESCRIPTION
       the Cluster is 'MYSQL', otherwise, port * 10 + 1  when the communication
       stack is 'XCOM'. In case the automatically determined  default port value
       is invalid (> 65535) then an error is thrown.
-
-      The groupSeeds option is deprecated as of MySQL Shell 8.0.28 and is
-      ignored. 'group_replication_group_seeds' is automatically set based on
-      the current topology.
 
       The exitStateAction option supports the following values:
 
@@ -803,21 +644,6 @@ DESCRIPTION
       The option is available on MySQL 8.0.31 or newer and the default value is
       'OFF'.
 
-      ATTENTION: The clearReadOnly option will be removed in a future release.
-
-      ATTENTION: The multiMaster option will be removed in a future release.
-                 Please use the multiPrimary option instead.
-
-      ATTENTION: The failoverConsistency option will be removed in a future
-                 release. Please use the consistency option instead.
-
-      ATTENTION: The ipWhitelist option will be removed in a future release.
-                 Please use the ipAllowlist option instead.
-
-      ATTENTION: The groupSeeds option will be removed in a future release.
-
-      ATTENTION: The interactive option will be removed in a future release.
-
 //@<OUT> Create ReplicaSet
 NAME
       createReplicaSet - Creates a MySQL InnoDB ReplicaSet.
@@ -916,10 +742,6 @@ DESCRIPTION
         internal replication accounts (i.e. 'mysql_innodb_rs_###'@'hostname').
         Default is %. It must be possible for any member of the ReplicaSet to
         connect to any other member using accounts with this hostname value.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
       - memberAuthType: controls the authentication type to use for the
         internal replication accounts.
       - certIssuer: common certificate issuer to use when 'memberAuthType'
@@ -961,8 +783,6 @@ DESCRIPTION
       channels with peer servers. replicationSslMode must be at least REQUIRED,
       although VERIFY_CA or VERIFY_IDENTITY are recommended for additional
       security.
-
-      ATTENTION: The interactive option will be removed in a future release.
 
 //@<OUT> Delete Sandbox
 NAME
@@ -1057,23 +877,16 @@ DESCRIPTION
       The options dictionary may contain the following options:
 
       - force: boolean, confirms that the drop operation must be executed.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled. Deprecated and default value is true.
-
-      ATTENTION: The clearReadOnly option will be removed in a future release
-                 and it's no longer needed, super_read_only is automatically
-                 cleared.
 
 //@<OUT> Get Cluster
 NAME
       getCluster - Returns an object representing a Cluster.
 
 SYNTAX
-      dba.getCluster([name][, options])
+      dba.getCluster([name])
 
 WHERE
       name: Parameter to specify the name of the Cluster to be returned.
-      options: Dictionary with additional options.
 
 RETURNS
       The Cluster object identified by the given name or the default Cluster.
@@ -1084,13 +897,6 @@ DESCRIPTION
 
       If name is specified, and no Cluster with the indicated name is found, an
       error will be raised.
-
-      The options dictionary may contain the following attributes:
-
-      - connectToPrimary: boolean value used to indicate if Shell should
-        automatically connect to the primary member of the Cluster or not.
-        Deprecated and ignored, Shell will attempt to connect to the primary by
-        default and fallback to a secondary when not possible.
 
 //@<OUT> Get ReplicaSet
 NAME
@@ -1188,11 +994,6 @@ RETURNS
 DESCRIPTION
       The options dictionary can contain the next values:
 
-      - user: The user used for the instances sessions required operations.
-      - password: The password used for the instances sessions required
-        operations. Deprecated.
-      - clearReadOnly: boolean value used to confirm that super_read_only must
-        be disabled.
       - force: boolean value to indicate that the operation must be executed
         even if some members of the Cluster cannot be reached, or the primary
         instance selected has a diverging or lower GTID_SET.
@@ -1265,12 +1066,6 @@ DESCRIPTION
       The option is used to switch the value of paxosSingleLeader previously in
       use by the Cluster, to either enable or disable it.
 
-      ATTENTION: The clearReadOnly option will be removed in a future release.
-
-      ATTENTION: The user option will be removed in a future release.
-
-      ATTENTION: The password option will be removed in a future release.
-
       This function reboots a cluster from complete outage. It obtains the
       Cluster information from the instance MySQL Shell is connected to and
       uses the most up-to-date instance in regards to transactions as new seed
@@ -1283,12 +1078,6 @@ DESCRIPTION
       cluster.
 
       If name is not specified, the default cluster will be returned.
-
-      NOTE: The user and password options are no longer used, the connection
-            data is taken from the active shell session.
-
-      NOTE: The clearReadOnly option is no longer used, super_read_only is
-            automatically cleared.
 
 //@<OUT> Start Sandbox
 NAME
@@ -1368,14 +1157,6 @@ DESCRIPTION
 
       - dryRun: boolean, if true all validations and steps to run the upgrade
         process are executed but no changes are actually made.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode. Deprecated.
-
-      The interactive option can be used to explicitly enable or disable the
-      interactive prompts that help the user through the upgrade process. The
-      default value is equal to MySQL Shell wizard mode.
 
       The Upgrade Process
 
@@ -1398,5 +1179,3 @@ DESCRIPTION
       If the installed metadata is not available because a previous call to
       this function ended unexpectedly, this function will restore the metadata
       to the state it was before the failed upgrade operation.
-
-      ATTENTION: The interactive option will be removed in a future release.

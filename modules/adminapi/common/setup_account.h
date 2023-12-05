@@ -25,16 +25,13 @@
 #define MODULES_ADMINAPI_COMMON_SETUP_ACCOUNT_H_
 
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/api_options.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 class Setup_account : public Command_interface {
  public:
@@ -55,11 +52,10 @@ class Setup_account : public Command_interface {
    * @param purpose the purpose / context with which this account is being
    * setup.
    */
-  Setup_account(const std::string &name, const std::string &host,
-                const Setup_account_options &options,
-                std::vector<std::string> grants,
+  Setup_account(std::string name, std::string host,
+                Setup_account_options options, std::vector<std::string> grants,
                 const mysqlshdk::mysql::IInstance &m_primary_server,
-                Cluster_type purpose);
+                Cluster_type purpose) noexcept;
 
   ~Setup_account() override = default;
 
@@ -105,7 +101,6 @@ class Setup_account : public Command_interface {
   void create_account();
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_COMMON_SETUP_ACCOUNT_H_

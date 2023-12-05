@@ -185,12 +185,15 @@ error_msg = "File '" + mycnf_path + "' does not exist.";
 EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path})}, error_msg);
 EXPECT_OUTPUT_CONTAINS("ERROR: The specified MySQL option file does not exist. A valid path is required for the mycnfPath option.\nPlease provide a valid path for the mycnfPath option or leave it empty if you which to skip the verification of the MySQL option file.");
 
-//@<> File does not exist, interactive: true, fail
+//@<> File does not exist, interactive: fail
 // Regression for BUG#27702439- WRONG MESSAGES DISPLAYED WHEN USING 'MYCNFPATH' AND 'OUTPUTMYCNFPATH' PARAMETERS
+shell.options.useWizards=1;
+
 setup_scenario(SCEN_FILE_MISSING);
-EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path, interactive:true})}, error_msg);
+EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path})}, error_msg);
 EXPECT_OUTPUT_CONTAINS("ERROR: The specified MySQL option file does not exist. A valid path is required for the mycnfPath option.\nPlease provide a valid path for the mycnfPath option or leave it empty if you which to skip the verification of the MySQL option file.");
 
+shell.options.useWizards=0;
 
 //@<> File does not exist, no interactive, fail
 

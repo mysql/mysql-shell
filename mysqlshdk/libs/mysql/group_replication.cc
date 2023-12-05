@@ -37,17 +37,13 @@
 #include <mysqld_error.h>
 
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
-#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace mysqlshdk {
 namespace gr {

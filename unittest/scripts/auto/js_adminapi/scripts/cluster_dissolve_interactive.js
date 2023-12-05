@@ -13,10 +13,12 @@ var c = dba.createCluster('c', {gtidSetIsComplete: true});
 // WL11889 FR1_01: new interactive option to disable interactive mode.
 // WL11889 FR3_01: force option not needed to remove cluster.
 // Regression for BUG#27837231: useless 'force' parameter for dissolve
-c.dissolve({interactive: false});
+shell.options.useWizards=0;
+c.dissolve();
+shell.options.useWizards=1;
 
 //@ Create cluster, with unreachable instances.
-var c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
+var c = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@ Add instance on port2.
 c.addInstance(__sandbox_uri2);
@@ -75,7 +77,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port3, 'group_replication_enforce_upd
 testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Create cluster, instance with replication errors.
-c = dba.createCluster('c', {clearReadOnly: true, gtidSetIsComplete: true});
+c = dba.createCluster('c', {gtidSetIsComplete: true});
 
 //@ Add instance on port2, again.
 c.addInstance(__sandbox_uri2);

@@ -168,20 +168,6 @@ testutil.wait_member_state(__mysql_sandbox_port3, "ONLINE")
 #@<OUT> Verify the output of cluster.status() after the instance rejoined {VER(<8.0.11)}
 c.status()
 
-# Persist settings in 5.7:
-#
-# 1. If we're running the tests with MySQL 5.7, we must use
-# dba.configure_local_instance() to persist the GR settings and achieve automatic rejoin
-
-#@ dba_configure_local_instance() 1: {VER(<8.0.11)}
-dba.configure_local_instance({'host': hostname, 'port': __mysql_sandbox_port1, 'user': 'myAdmin', 'password': 'myPwd'}, {'mycnfPath': __sandbox1_cnf_path})
-
-#@ dba_configure_local_instance() 2: {VER(<8.0.11)}
-dba.configure_local_instance({'host': hostname, 'port': __mysql_sandbox_port2, 'user': 'myAdmin', 'password': 'myPwd'}, {'mycnfPath': __sandbox2_cnf_path})
-
-#@ dba_configure_local_instance() 3: {VER(<8.0.11)}
-dba.configure_local_instance({'host': hostname, 'port': __mysql_sandbox_port3, 'user': 'myAdmin', 'password': 'myPwd'}, {'mycnfPath': __sandbox3_cnf_path})
-
 # Test automatic rejoin
 #
 # 1. Shutdown one of the cluster members and restart it

@@ -1,17 +1,6 @@
 //@<> INCLUDE gr_utils.inc
 
 //@<> Check options
-EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {user:""}); }, "Dba.rebootClusterFromCompleteOutage: The shell must be connected to a member of the InnoDB cluster being managed");
-EXPECT_OUTPUT_CONTAINS("WARNING: The 'user' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
-
-testutil.wipeAllOutput();
-EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {password:""}); }, "Dba.rebootClusterFromCompleteOutage: The shell must be connected to a member of the InnoDB cluster being managed");
-EXPECT_OUTPUT_CONTAINS("WARNING: The 'password' option is no longer used (it's deprecated): the connection data is taken from the active shell session.");
-
-testutil.wipeAllOutput();
-EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {clearReadOnly:false}); }, "Dba.rebootClusterFromCompleteOutage: The shell must be connected to a member of the InnoDB cluster being managed");
-EXPECT_OUTPUT_CONTAINS("WARNING: The 'clearReadOnly' option is no longer used (it's deprecated): super_read_only is automatically cleared.");
-
 testutil.wipeAllOutput();
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:""}); }, "Invalid value '' for 'primary' option: Invalid URI: empty.");
 EXPECT_THROWS(function (){ dba.rebootClusterFromCompleteOutage("", {primary:"host"}); }, "Invalid value 'host' for 'primary' option: port is missing");
@@ -41,7 +30,7 @@ EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(__sandbox_uri3);
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 session.close();
 
 shell.connect(__sandbox_uri1);
@@ -62,8 +51,8 @@ EXPECT_OUTPUT_CONTAINS(`WARNING: The instance '${hostname}:${__mysql_sandbox_por
 EXPECT_OUTPUT_CONTAINS(`Disabling 'offline_mode' on '${hostname}:${__mysql_sandbox_port2}'`);
 
 //@<> make sure that "offline_mode" isn't persisted (BUG#34778797) {VER(<8.0.11)}
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port1, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
 EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port2, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
 session2.close();
@@ -87,9 +76,9 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> FR1 reboot should work even if instances enter recovery automatically
-dba.configureLocalInstance(__sandbox_uri1);
-dba.configureLocalInstance(__sandbox_uri2);
-dba.configureLocalInstance(__sandbox_uri3);
+dba.configureInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri2);
+dba.configureInstance(__sandbox_uri3);
 
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.killSandbox(__mysql_sandbox_port2);

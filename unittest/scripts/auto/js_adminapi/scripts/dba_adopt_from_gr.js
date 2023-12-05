@@ -126,7 +126,7 @@ EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 // cleanup
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 session.close();
 session2.close();
 cluster.disconnect();
@@ -144,8 +144,8 @@ EXPECT_STDOUT_CONTAINS("Resetting distributed recovery credentials across the cl
 EXPECT_STDOUT_CONTAINS("NOTE: User 'mysql_innodb_cluster_1111'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.");
 EXPECT_STDOUT_CONTAINS("NOTE: User 'mysql_innodb_cluster_2222'@'%' already existed at instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. It will be deleted and created again with a new password.");
 if (testutil.versionCheck(__version, "<", "8.0.11")) {
-    EXPECT_STDOUT_CONTAINS("WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.");
-    EXPECT_STDOUT_CONTAINS("WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.");
+    EXPECT_STDOUT_CONTAINS("WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.");
+    EXPECT_STDOUT_CONTAINS("WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.");
 }
 EXPECT_STDOUT_CONTAINS("Cluster successfully created based on existing replication group.");
 
@@ -159,10 +159,6 @@ EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 
 //@<> dissolve the cluster
 EXPECT_NO_THROWS(function(){ cluster.dissolve({force: true}) });
-
-//@<> persist configs in 5.7 {VER(<8.0.0)}
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //@<> ensure SRO stays 1 after server restart (dissolve shouldn't matter) {VER(>=8.0.11)}
 // covers  Bug #30545872	CONFLICTING TRANSACTION SETS FOLLOWING COMPLETE OUTAGE OF INNODB CLUSTER
@@ -183,7 +179,7 @@ shell.options["useWizards"] = true;
 
 shell.connect(__sandbox_uri1);
 dba.createCluster('testCluster');
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 
 testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB Cluster based on this replication group? [Y/n]:", "n");
 EXPECT_THROWS(function(){ dba.createCluster('testCluster'); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
@@ -195,10 +191,12 @@ shell.options["useWizards"] = false;
 
 //@<> Create cluster and drop metadata, then check behaviour of omitted adoptFromGR option vs explicit disabled (Bug #30548447)
 
-dba.dropMetadataSchema({force: true, clearReadOnly: true});
+dba.dropMetadataSchema({force: true});
 
 testutil.expectPrompt("You are connected to an instance that belongs to an unmanaged replication group.\nDo you want to setup an InnoDB Cluster based on this replication group? [Y/n]:", "n");
-EXPECT_THROWS(function(){ dba.createCluster('testCluster', {interactive: true}); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
+shell.options.useWizards=1;
+EXPECT_THROWS(function(){ dba.createCluster('testCluster'); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");
+shell.options.useWizards=0;
 
 testutil.wipeAllOutput();
 EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: false}); }, "Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true");

@@ -45,10 +45,8 @@ shell.connect(__sandbox_uri1);
 //@ FR1-TS-03 {VER(>=8.0.12)}
 WIPE_SHELL_LOG();
 // there should be a warning message asking to use configureInstance locally since persisted_globals_load is OFF
-var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
 cluster = dba.createCluster("C", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
-EXPECT_SHELL_LOG_CONTAINS(msg);
 
 //@ FR1-TS-03 TEARDOWN {VER(>=8.0.12)}
 cluster.disconnect();
@@ -72,7 +70,7 @@ testutil.expectPrompt("Account Host:", "%");
 //accept configuration changes
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureLocalInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -84,18 +82,18 @@ var __local_address_1 = (__mysql_sandbox_port2 * 10 + 1).toString();
 shell.options["dba.connectivityChecks"] = false;
 
 if (__version_num < 80027) {
-    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
 } else {
-    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
+    cluster = dba.createCluster("ClusterName", {localAddress: "localhost:" + __local_address_1, groupName: "62d73bbd-b830-11e7-a7b7-34e6d72fbd80", ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
 }
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 
 var persisted_sysvars = get_persisted_gr_sysvars(__mysql_sandbox_port1);
 
 //@ FR1-TS-04/05 {VER(>=8.0.12)}
-print(persisted_sysvars + "\n\n");
-var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureLocalInstance(__sandbox_uri1, {interactive: true, mycnfPath: sandbox_cnf1});
+print(persisted_sysvars);
+print("\n\n");
+dba.configureInstance(__sandbox_uri1);
 
 shell.options["dba.connectivityChecks"] = true;
 
@@ -112,9 +110,8 @@ shell.connect(__sandbox_uri1);
 
 //@ FR1-TS-06 {VER(<8.0.12)}
 WIPE_SHELL_LOG();
-var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.";
 cluster = dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", gtidSetIsComplete: true});
-EXPECT_SHELL_LOG_CONTAINS(msg);
+EXPECT_SHELL_LOG_CONTAINS(`WARNING: Instance '${hostname}:${__mysql_sandbox_port1}' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please set 'persisted-globals-load' to 'ON' on the configuration file.`);
 
 //@ FR1-TS-06 TEARDOWN {VER(<8.0.12)}
 cluster.disconnect();
@@ -207,10 +204,8 @@ cluster = dba.getCluster("ClusterName");
 
 //@ FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
 WIPE_SHELL_LOG();
-var msg = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port2 + "' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.";
 cluster.addInstance(__sandbox_uri2);
 cluster.status();
-EXPECT_SHELL_LOG_CONTAINS(msg);
 
 //@ FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
 session.close();
@@ -225,9 +220,9 @@ var s1 = mysql.getSession(__sandbox_uri1);
 s2 = mysql.getSession(__sandbox_uri2);
 shell.connect(__sandbox_uri1);
 if (__version_num < 80027) {
-    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true});
 } else {
-    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
+    dba.createCluster("ClusterName", {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc", ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname, gtidSetIsComplete: true, communicationStack: "XCOM"});
 }
 __gr_view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 
@@ -237,7 +232,7 @@ cluster = dba.getCluster("ClusterName");
 shell.options["dba.connectivityChecks"] = false;
 
 var __local_address_2 = "15679";
-cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 var persisted_sysvars1 = get_persisted_gr_sysvars(__mysql_sandbox_port1);
@@ -275,7 +270,7 @@ testutil.expectPrompt("Account Host:", "%");
 //accept configuration changes
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureLocalInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri1);
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
 
@@ -295,7 +290,7 @@ testutil.expectPrompt("Account Host:", "%");
 //accept configuration changes
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "Y");
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
-dba.configureLocalInstance(__sandbox_uri2);
+dba.configureInstance(__sandbox_uri2);
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
@@ -315,7 +310,7 @@ cluster = dba.getCluster("ClusterName");
 shell.options["dba.connectivityChecks"] = false;
 
 var __local_address_3 = (__mysql_sandbox_port3 * 10 + 1).toString();
-cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipWhitelist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
+cluster.addInstance(__hostname_uri2, {localAddress: "localhost:" + __local_address_3, ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 
 session.close();
 shell.connect(__hostname_uri2);
@@ -330,11 +325,11 @@ shell.options["dba.connectivityChecks"] = true;
 //@ FR2-TS-5 {VER(>=8.0.12)}
 print(persisted_sysvars1);
 print("\n");
+
 print(persisted_sysvars2);
-print("\n");
-var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureLocalInstance(__sandbox_uri2, {interactive: true, mycnfPath: sandbox_cnf2, clearReadOnly: true});
-print(persisted_sysvars2);
+print("\n\n");
+
+dba.configureInstance(__sandbox_uri2);
 
 //@ FR2-TS-5 TEARDOWN {VER(>=8.0.12)}
 session.close();
@@ -369,8 +364,8 @@ cluster = dba.getCluster("ClusterName");
 // A warning about server version not supporting set persist syntax and asking
 // to use ConfigureLocalInstance should be displaying in both the seed instance
 // and the added instance.
-var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.";
-var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port2 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.";
+var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.";
+var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port2 + "' cannot persist Group Replication configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.";
 cluster.addInstance(__sandbox_uri2);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);
 EXPECT_SHELL_LOG_CONTAINS(expected_msg2);
@@ -571,8 +566,8 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 WIPE_SHELL_LOG();
 cluster.removeInstance(__sandbox_uri2);
 // there should be a warning message for each of the members staying in the group
-var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.";
-var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port3 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.";
+var expected_msg1 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.";
+var expected_msg2 = "Warning: Instance '" + hostname + ":" + __mysql_sandbox_port3 + "' cannot persist configuration since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally, using the 'mycnfPath' option, to persist the changes.";
 // and a warning for the member that was removed
 var expected_msg3 = "Warning: On instance 'localhost:" + __mysql_sandbox_port2 + "' configuration cannot be persisted since MySQL version " + __version + " does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please set the 'group_replication_start_on_boot' variable to 'OFF' in the server configuration file, otherwise it might rejoin the cluster upon restart.";
 EXPECT_SHELL_LOG_CONTAINS(expected_msg1);

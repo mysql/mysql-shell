@@ -7,12 +7,6 @@ The following operations are available at 'dba':
    configure-instance
       Validates and configures an instance for MySQL InnoDB Cluster usage.
 
-   configure-local-instance
-      Validates and configures a local instance for MySQL InnoDB Cluster usage.
-
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell, use dba.configureInstance() instead.
-
    configure-replica-set-instance
       Validates and configures an instance for use in an InnoDB ReplicaSet.
 
@@ -118,49 +112,6 @@ OPTIONS
 --applierWorkerThreads=<int>
             Number of threads used for applying replicated transactions. The
 
-//@<OUT> CLI dba configure-local-instance --help
-NAME
-      configure-local-instance - Validates and configures a local instance for
-                                 MySQL InnoDB Cluster usage.
-
-SYNTAX
-      dba configure-local-instance [<instance>] [<options>]
-
-WHERE
-      instance: An instance definition.
-
-RETURNS
-      Nothing
-
-OPTIONS
---clusterAdmin=<str>
-            The name of the "cluster administrator" account.
-
---clusterAdminPassword=<str>
-            The password for the "cluster administrator" account.
-
---clusterAdminCertIssuer=<str>
-            Optional SSL certificate issuer for the account.
-
---clusterAdminCertSubject=<str>
-            Optional SSL certificate subject for the account.
-
---clusterAdminPasswordExpiration[:<type>]=<value>
-            Password expiration setting for the account. May be set to the
-            number of days for expiration, 'NEVER' to disable expiration and
-            'DEFAULT' to use the system default.
-
---restart=<bool>
-            Boolean value used to indicate that a remote restart of the target
-            instance should be performed to finalize the operation.
-
---mycnfPath=<str>
-            The path to the MySQL configuration file of the instance.
-
---outputMycnfPath=<str>
-            Alternative output path to write the MySQL configuration file of
-            the instance.
-
 //@<OUT> CLI dba configure-replica-set-instance --help
 NAME
       configure-replica-set-instance - Validates and configures an instance for
@@ -217,10 +168,6 @@ RETURNS
       The created Cluster object.
 
 OPTIONS
---memberSslMode=<str>
-            SSL mode for communication channels opened by Group Replication
-            from one server to another.
-
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
@@ -228,11 +175,6 @@ OPTIONS
 --localAddress=<str>
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
-
---groupSeeds=<str>
-            String value with a comma-separated list of the Group Replication
-            peer addresses to be used instead of the automatically generated
-            one. Deprecated and ignored.
 
 --exitStateAction=<str>
             String value indicating the group replication exit state action.
@@ -244,6 +186,10 @@ OPTIONS
 --autoRejoinTries=<int>
             Integer value to define the number of times an instance will
             attempt to rejoin the cluster after being expelled.
+
+--memberSslMode=<str>
+            SSL mode for communication channels opened by Group Replication
+            from one server to another.
 
 --groupName=<str>
             String value with the Group Replication group name UUID to be used
@@ -302,10 +248,6 @@ OPTIONS
 --adoptFromGR=<bool>
             Boolean value used to create the InnoDB Cluster based on existing
             replication group.
-
---clearReadOnly=<bool>
-            Boolean value used to confirm that super_read_only must be
-            disabled. Deprecated.
 
 --replicationAllowedHost=<str>
             String value to use as the host name part of internal replication

@@ -20,7 +20,7 @@ var mycnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 shell.options.useWizards = false;
 
 //@<> configureLocalInstance
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1), clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
 testutil.restartSandbox(__mysql_sandbox_port1);
 
 //@<> configureInstance
@@ -33,9 +33,6 @@ cluster = dba.createCluster("mycluster");
 
 //@<> status
 status = cluster.status();
-
-//@<> checkInstanceState
-cluster.checkInstanceState(__sandbox_admin_uri2);
 
 //@<> describe
 cluster.describe();
@@ -50,8 +47,8 @@ cluster = dba.getCluster();
 cluster.addInstance(__sandbox_admin_uri2, {recoveryMethod:'incremental'});
 
 // persist configuration after instances were added to cluster
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //NOTE: Required workaround until configureLocalInstance is fixed otherwise the upgrade would fail because of all
 // the group_replication variables persisted without the loose prefix.
@@ -130,8 +127,8 @@ if (__version_num >= 80032) {
 }
 
 //@<> Configure again the instances to include parallel-applier settings @{VER(>=8.0.23)}
-dba.configureInstance(__sandbox_uri1, {clearReadOnly: true});
-dba.configureInstance(__sandbox_uri2, {clearReadOnly: true});
+dba.configureInstance(__sandbox_uri1);
+dba.configureInstance(__sandbox_uri2);
 
 //@<> Add the missing grants to the admin account
 for (i = 1; i <= 2; i++) {
@@ -162,7 +159,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<> Deploy sandbox 3 using base server
 testutil.deploySandbox(__mysql_sandbox_port3, "root", { report_host: hostname });
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
-dba.configureLocalInstance(__sandbox_uri3, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri3, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
 
 //@<> Add Instance 3
 cluster.addInstance(__sandbox_admin_uri3, {recoveryMethod:'incremental'});
@@ -189,7 +186,7 @@ cluster.setOption("disableClone", false);
 //@<> Deploy sandbox 4 using base server
 testutil.deploySandbox(__mysql_sandbox_port4, "root", { report_host: hostname });
 testutil.snapshotSandboxConf(__mysql_sandbox_port4);
-dba.configureLocalInstance(__sandbox_uri4, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+dba.configureInstance(__sandbox_uri4, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
 
 //@<> Add Instance 4
 cluster.addInstance(__sandbox_admin_uri4, {recoveryMethod:'clone'});

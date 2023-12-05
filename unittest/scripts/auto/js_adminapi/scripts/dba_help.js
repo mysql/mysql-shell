@@ -22,12 +22,6 @@ dba.help('configureInstance');
 //@ Configure Instance, \? [USE:Configure Instance]
 \? configureInstance
 
-//@ Configure Local Instance
-dba.help('configureLocalInstance');
-
-//@ Configure Local Instance, \? [USE:Configure Local Instance]
-\? configureLocalInstance
-
 //@ Configure ReplicaSet Instance
 dba.help('configureReplicaSetInstance');
 

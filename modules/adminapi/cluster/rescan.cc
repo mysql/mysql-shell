@@ -26,7 +26,6 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
-#include <utility>
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
@@ -588,7 +587,7 @@ void Rescan::add_metadata_for_instances(
     } else if (m_options.auto_add) {
       instance_cnx_opts =
           shcore::get_connection_options(instance_address, false);
-    } else if (m_options.interactive()) {
+    } else if (current_shell_options()->get().wizards) {
       if (console->confirm("Would you like to add it to the cluster metadata?",
                            Prompt_answer::YES) == Prompt_answer::YES) {
         instance_cnx_opts =
@@ -625,7 +624,7 @@ void Rescan::remove_metadata_for_instances(
     } else if (m_options.auto_remove) {
       // Remove instance automatically if "auto" was used.
       remove_instance_from_metadata(instance_address);
-    } else if (m_options.interactive()) {
+    } else if (current_shell_options()->get().wizards) {
       console->print_info(
           "The instance is either offline or left the HA group. You can try "
           "to add it to the cluster again with the cluster.rejoinInstance('" +
@@ -1070,7 +1069,7 @@ shcore::Value Rescan::execute() {
             "'group_replication_view_change_uuid', which is required "
             "for InnoDB ClusterSet. Configuring it requires a full Cluster "
             "reboot.");
-        if (m_options.interactive()) {
+        if (current_shell_options()->get().wizards) {
           // Prompt the user to update the View Change UUID
           if (console->confirm(
                   "Would you like 'group_replication_view_change_uuid' to be "

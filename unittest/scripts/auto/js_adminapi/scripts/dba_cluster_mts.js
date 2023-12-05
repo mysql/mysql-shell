@@ -46,12 +46,12 @@ EXPECT_THROWS(function() {
 }, "Instance check failed");
 
 //@<> fix config including parallel type {VER(>=8.3.0)}
-EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(__sandbox_uri1); });
+EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1); });
 EXPECT_OUTPUT_CONTAINS("applierWorkerThreads will be set to the default value of 4.");
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' is valid for InnoDB Cluster usage.`);
 
 //@<> fix config including parallel type {VER(<8.3.0)}
-EXPECT_NO_THROWS(function(){ dba.configureLocalInstance(__sandbox_uri1); });
+EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1); });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port1}' was configured to be used in an InnoDB Cluster.`);
 
 //@<> Create cluster (succeed this time).
@@ -72,7 +72,7 @@ dba.checkInstanceConfiguration(__sandbox_uri3);
 var cnfPath3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 testutil.changeSandboxConf(__mysql_sandbox_port3, "gtid_mode", "OFF");
 
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath:cnfPath3});
+dba.configureInstance(__sandbox_uri3, {mycnfPath:cnfPath3});
 
 //@<OUT> check instance, no invalid values after configure.
 dba.checkInstanceConfiguration(__sandbox_uri3);

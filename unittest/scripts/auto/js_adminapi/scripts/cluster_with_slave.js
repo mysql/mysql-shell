@@ -51,7 +51,7 @@ shell.connect("admin:pwd@localhost:"+__mysql_sandbox_port1);
 cluster = dba.createCluster("cluster");
 
 //@<> addInstance using clone {VER(>=8.0.17)}
-cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port2, {recoveryMethod:"clone", waitRecovery:1});
+cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port2, {recoveryMethod:"clone"});
 
 //@<> addInstance without clone {VER(<8.0.17)}
 cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port2, {recoveryMethod:"incremental"});
@@ -66,7 +66,7 @@ shell.dumpRows(session4.runSql("SHOW " + get_replica_keyword() + " STATUS"), "ve
 //@<> addInstance another one using clone {VER(>=8.0.17)}
 shell.connect("admin:pwd@localhost:"+__mysql_sandbox_port1);
 cluster = dba.getCluster();
-cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port3, {recoveryMethod:"clone", waitRecovery:1});
+cluster.addInstance("admin:pwd@localhost:"+__mysql_sandbox_port3, {recoveryMethod:"clone"});
 
 //@<> addInstance another one without clone {VER(<8.0.17)}
 

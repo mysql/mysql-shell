@@ -148,7 +148,6 @@ ${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
 ${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
 ${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
 ${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
 ${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
 If the user account does not exist, either the password, requireCertIssuer or
@@ -158,12 +157,7 @@ If the user account exists, the update option must be enabled.
 
 ${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-The interactive option can be used to explicitly enable or disable the
-interactive prompts that help the user through the account setup process.
-
 ${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-
-@attention The interactive option will be removed in a future release.
 )*"));
 
 REGISTER_HELP_SHARED_TEXT(SETUPROUTERACCOUNT_HELP_TEXT, (R"*(
@@ -192,7 +186,6 @@ ${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
 ${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
 ${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
 ${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_INTERACTIVE}
 ${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
 
 If the user account does not exist, either the password, requireCertIssuer or
@@ -202,11 +195,7 @@ If the user account exists, the update option must be enabled.
 
 ${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
 
-${OPT_SETUP_ACCOUNT_OPTIONS_INTERACTIVE_DETAIL}
-
 ${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
-
-@attention The interactive option will be removed in a future release.
 )*"));
 
 REGISTER_HELP_SHARED_TEXT(ROUTINGOPTIONS_HELP_TEXT, (R"*(

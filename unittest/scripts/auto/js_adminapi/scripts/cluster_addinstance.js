@@ -86,8 +86,8 @@ EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port1, "offline_mode"));
 EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port2, "offline_mode"));
 
 // ensure offline_mode wasn't persisted (BUG#34778797) {VER(<8.0.11)}
-dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
+dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port1, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
 EXPECT_THROWS(function() { testutil.getSandboxConf(__mysql_sandbox_port2, "offline_mode"); }, "Option 'offline_mode' does not exist in group 'mysqld'");
 
@@ -109,7 +109,7 @@ session.close();
 shell.connect(__sandbox_uri1);
 
 //@<> BUG#27084767: Create a cluster in multi-primary mode
-var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {multiPrimary: true, force: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
 // This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
@@ -203,7 +203,7 @@ c.dissolve({force: true})
 shell.connect(__hostname_uri1);
 
 //@<> BUG#27084767: Create a cluster in multi-primary mode non-sandbox
-var c = dba.createCluster('test', {multiPrimary: true, force: true, clearReadOnly: true, gtidSetIsComplete: true});
+var c = dba.createCluster('test', {multiPrimary: true, force: true, gtidSetIsComplete: true});
 
 // Reconnect the session before validating the values of auto_increment_%
 // This must be done because 'SET PERSIST' changes the values globally (GLOBAL) and not per session
@@ -432,10 +432,10 @@ result = session.runSql("SELECT Host FROM mysql.user WHERE User = 'mysql_innodb_
 var user_host = result.fetchOne()[0];
 EXPECT_EQ("%", user_host);
 
-//@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
+//@ WL#12773: FR4 - The ipAllowlist shall not change the behavior defined by FR1
 result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var old_account_number = result.fetchOne()[0];
-c.addInstance(__sandbox_uri3, {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
+c.addInstance(__sandbox_uri3, {ipAllowlist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 print(get_all_gr_recovery_accounts(session));
 
@@ -443,37 +443,35 @@ result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var new_account_number = result.fetchOne()[0];
 EXPECT_EQ(old_account_number + 1, new_account_number);
 
-// Tests for deprecation of ipWhitelist in favor of ipAllowlist
-
-//@<> Remove an instance to add it back using ipWhitelist
+//@<> Remove an instance to add it back using ipAllowlist
 c.removeInstance(__sandbox_uri2);
 
-//@<> Verify that ipWhitelist sets the right sysvars depending on the version
-var ip_white_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
+//@<> Verify that ipAllowlist sets the right sysvars depending on the version
+var ip_allow_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
 
-c.addInstance(__sandbox_uri2, {ipWhitelist: ip_white_list});
+c.addInstance(__sandbox_uri2, {ipAllowlist: ip_allow_list});
 shell.connect(__sandbox_uri2);
 
-//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+//@<> Verify that ipAllowlist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
-//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+//@<> Verify that ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@<> Remove the instance to add it back using ipAllowlist
 c.removeInstance(__sandbox_uri2);
 
 //@<> Verify the new option ipAllowlist sets the right sysvars depending on the version
-ip_white_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
+ip_allow_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
 
-c.addInstance(__sandbox_uri2, {ipAllowlist:ip_white_list});
+c.addInstance(__sandbox_uri2, {ipAllowlist:ip_allow_list});
 shell.connect(__sandbox_uri2);
 
 //@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.23 {VER(>=8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.23 {VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
 //@<> WL#12773: Cleanup
 session.close();
@@ -525,7 +523,9 @@ EXPECT_EQ(num_recovery_users, num_recovery_users_after);
 testutil.changeSandboxConf(__mysql_sandbox_port2, "foo", "bar");
 // Also tests the restartWaitTimeout option
 shell.options["dba.restartWaitTimeout"] = 1;
-c.addInstance(__sandbox_uri2, {interactive:true, recoveryMethod:"clone"});
+shell.options["useWizards"] = 1;
+c.addInstance(__sandbox_uri2, {recoveryMethod:"clone"});
+shell.options["useWizards"] = 0;
 shell.options["dba.restartWaitTimeout"] = 60;
 testutil.waitSandboxDead(__mysql_sandbox_port2);
 
@@ -536,8 +536,10 @@ testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ BUG#30281908: complete the process with .rescan() {VER(>= 8.0.17)}
+shell.options["useWizards"] = 1;
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
-c.rescan({interactive:true});
+c.rescan();
+shell.options["useWizards"] = 0;
 
 //@<> BUG#25503159: clean-up.
 c.disconnect();
@@ -573,20 +575,20 @@ if (__version_num < 80027) {
     cluster = dba.createCluster("cluster", {gtidSetIsComplete: true, communicationStack: "xcom"});
 }
 
-//@<> IPv6 addresses are supported on localAddress and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> IPv6 addresses are supported on localAddress and ipAllowlist WL#12758 {VER(>= 8.0.14)}
 var port = __mysql_sandbox_port2*10+1;
 var local_address = "[::1]:" + port;
-var ip_white_list = "::1, 127.0.0.1";
-cluster.addInstance(__sandbox_uri2, {ipWhitelist:ip_white_list, localAddress:local_address});
+var ip_allow_list = "::1, 127.0.0.1";
+cluster.addInstance(__sandbox_uri2, {ipAllowlist:ip_allow_list, localAddress:local_address});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 shell.connect(__sandbox_uri2);
 EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+//@<> Confirm that ipAllowlist is set {VER(>= 8.0.14) && VER(<8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_whitelist"));
 
-//@<> Confirm that ipWhitelist is set {VER(>= 8.0.23)}
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+//@<> Confirm that ipAllowlist is set {VER(>= 8.0.23)}
+EXPECT_EQ(ip_allow_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Cleanup WL#12758 IPv6 addresses supported {VER(>= 8.0.14)}
 session.close();
@@ -617,8 +619,8 @@ var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 var local_address = "[::1]:" + __mysql_sandbox_gr_port1;
 cluster.addInstance(__sandbox_uri2, {localAddress: local_address});
 
-//@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-cluster.addInstance(__sandbox_uri2, {ipWhitelist: "::1, 127.0.0.1"});
+//@ IPv6 on ipAllowlist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
+cluster.addInstance(__sandbox_uri2, {ipAllowlist: "::1, 127.0.0.1"});
 
 //@<> Cleanup IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 session.close();
@@ -647,7 +649,7 @@ EXPECT_THROWS(function(){
 }, `The instance '${hostname}:${__mysql_sandbox_port2}' is already part of an InnoDB ReplicaSet`);
 
 shell.connect(__sandbox_uri2);
-dba.dropMetadataSchema({force:true, clearReadOnly:true});
+dba.dropMetadataSchema({force:true});
 session.runSql("RESET " + get_reset_binary_logs_keyword());
 
 //@<> BUG#31357039 Make sure that a note show when creating the cluster and adding an instance with local address specified {__os_type == 'windows' && !__replaying && !__recording}

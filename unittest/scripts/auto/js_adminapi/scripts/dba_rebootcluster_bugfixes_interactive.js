@@ -38,9 +38,9 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<OUT> Check cluster status before reboot
 c.status();
@@ -99,7 +99,7 @@ c.dissolve();
 
 //@<> BUG#29305551: Create cluster
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('test', {clearReadOnly: true, memberSslMode: 'DISABLED', gtidSetIsComplete: true});
+var c = dba.createCluster('test', {memberSslMode: 'DISABLED', gtidSetIsComplete: true});
 
 //@<> BUG#29305551: Add instances to the cluster
 c.addInstance(__sandbox_uri2);
@@ -112,9 +112,9 @@ session.close();
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
 
 //@<> BUG#29305551: bring down cluster
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);

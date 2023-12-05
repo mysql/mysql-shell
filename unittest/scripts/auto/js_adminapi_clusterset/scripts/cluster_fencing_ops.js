@@ -180,7 +180,6 @@ EXPECT_NO_THROWS(function() { dba.getClusterSet(); });
 //@<> verify blocked ops primary cluster fenced to writes
 // Cluster ops
 EXPECT_THROWS_TYPE(function(){ cluster.addInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
-EXPECT_THROWS_TYPE(function(){ cluster.checkInstanceState(__sandbox_uri4); }, "Unable to perform the operation on an InnoDB Cluster with status FENCED_WRITES", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cluster.forceQuorumUsingPartitionOf(__sandbox_uri4); }, "Unable to perform the operation on an InnoDB Cluster with status FENCED_WRITES", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cluster.rejoinInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");
 EXPECT_THROWS_TYPE(function(){ cluster.removeInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of OK_FENCED_WRITES within the ClusterSet. Operation is not possible when in that state", "RuntimeError");

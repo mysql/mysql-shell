@@ -23,8 +23,6 @@
 
 #include "modules/adminapi/common/group_replication_options.h"
 
-#include <array>
-#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -32,11 +30,26 @@
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
+
+namespace {
+Cluster_ssl_mode translate_ssl_mode(std::string_view value) {
+  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+    auto valid_values = shcore::str_join(kClusterSSLModeValues, ",");
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s option. Supported values: %s.",
+                           kMemberSslMode, valid_values.c_str()));
+  }
+
+  // Set the ssl-mode
+  return to_cluster_ssl_mode(value);
+}
+
+}  // namespace
 
 /**
  * Validate the value specified for the localAddress option.
@@ -119,10 +132,9 @@ void validate_ip_allow_list(const mysqlshdk::mysql::IInstance &instance,
                             const std::string &local_address,
                             std::string_view communication_stack,
                             bool create_cluster) {
-  // validate that, when ipAllowlist (or ipWhitelist) isn't specified, that
-  // the local_address (generated or user-specified) is part of the range of
-  // addresses that are part of the automatic IP Whitelist Group Replication
-  // sets (see
+  // validate that, when ipAllowlist isn't specified, that the local_address
+  // (generated or user-specified) is part of the range of addresses that are
+  // part of the automatic IP Allowlist Group Replication sets (see
   // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
   if (!shcore::str_caseeq(communication_stack, kCommunicationStackXCom)) return;
 
@@ -278,39 +290,37 @@ void validate_member_weight_supported(
 }
 
 /**
- * Validates the ipWhitelist option
+ * Validates the ipAllowlist option
  *
- * Checks if the given ipWhitelist is valid for use in the AdminAPI.
+ * Checks if the given ipAllowlist is valid for use in the AdminAPI.
  *
  * @param version version of the target instance
- * @param ip_whitelist The ipWhitelist to validate
+ * @param ip_allowlist The ipAllowlist to validate
  * @param ip_allowlist_option_name The allowList option name used
  *
- * @throws argument_error if the ipWhitelist is empty
+ * @throws argument_error if the ipAllowlist is empty
  * @throws argument_error if the subnet in CIDR notation is not valid
  * @throws argument_error if the address if the address is a IPv6 and the server
  * version does not support it.
  * @throws argument_error if the address if the address is an hostname and the
  * server version does not support it.
  */
-void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
-                                  const std::string &ip_whitelist,
-                                  const std::string &ip_allowlist_option_name) {
+void validate_ip_allowlist_option(const mysqlshdk::utils::Version &version,
+                                  std::string_view ip_allowlist) {
   const bool hostnames_supported =
       version >= mysqlshdk::utils::Version(8, 0, 4);
   const bool supports_ipv6 = version >= mysqlshdk::utils::Version(8, 0, 14);
 
-  // Validate if the ipWhiteList value is not empty
-  if (shcore::str_strip(ip_whitelist).empty())
+  // Validate if the ipAllowlist value is not empty
+  if (shcore::str_strip_view(ip_allowlist).empty())
     throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s: string value cannot be empty.",
-        ip_allowlist_option_name.c_str()));
+        "Invalid value for '%s': string value cannot be empty.", kIpAllowlist));
 
-  // Iterate over the ipWhitelist values
-  const std::vector<std::string> ip_whitelist_list =
-      shcore::str_split(ip_whitelist, ",", -1);
+  // Iterate over the ipAllowlist values
+  const std::vector<std::string> ip_allowlist_list =
+      shcore::str_split(ip_allowlist, ",", -1);
 
-  for (const std::string &item : ip_whitelist_list) {
+  for (const std::string &item : ip_allowlist_list) {
     // Strip any blank chars from the ip_whitelist value
     const std::string hostname = shcore::str_strip(item);
 
@@ -335,26 +345,26 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
         throw shcore::Exception::argument_error(shcore::str_format(
             "Invalid value for %s '%s': CIDR notation can only be used with "
             "IPv4 or IPv6 addresses.",
-            ip_allowlist_option_name.c_str(), hostname.c_str()));
+            kIpAllowlist, hostname.c_str()));
 
       if ((*cidr < 1) || (*cidr > 128))
         throw shcore::Exception::argument_error(shcore::str_format(
             "Invalid value for %s '%s': subnet value in CIDR notation is not "
             "valid.",
-            ip_allowlist_option_name.c_str(), hostname.c_str()));
+            kIpAllowlist, hostname.c_str()));
 
       if (*cidr > 32) {
         if (!supports_ipv6)
           throw shcore::Exception::argument_error(shcore::str_format(
               "Invalid value for %s '%s': subnet value in CIDR notation is not "
               "supported (version >= 8.0.14 required for IPv6 support).",
-              ip_allowlist_option_name.c_str(), hostname.c_str()));
+              kIpAllowlist, hostname.c_str()));
 
         if (!is_ipv6)
           throw shcore::Exception::argument_error(shcore::str_format(
               "Invalid value for %s '%s': subnet value in CIDR notation is not "
               "supported for IPv4 addresses.",
-              ip_allowlist_option_name.c_str(), hostname.c_str()));
+              kIpAllowlist, hostname.c_str()));
       }
     }
     // Do not try to resolve the hostname. Even if we can resolve it, there is
@@ -365,13 +375,13 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
       throw shcore::Exception::argument_error(shcore::str_format(
           "Invalid value for %s '%s': hostnames are not supported (version >= "
           "8.0.4 required for hostname support).",
-          ip_allowlist_option_name.c_str(), hostname.c_str()));
+          kIpAllowlist, hostname.c_str()));
     } else {
       if (!supports_ipv6 && is_ipv6) {
         throw shcore::Exception::argument_error(shcore::str_format(
             "Invalid value for %s '%s': IPv6 not supported (version >= 8.0.14 "
             "required for IPv6 support).",
-            ip_allowlist_option_name.c_str(), hostname.c_str()));
+            kIpAllowlist, hostname.c_str()));
       }
     }
     // either an IPv4 address, a supported IPv6 or an hostname
@@ -431,15 +441,10 @@ void Group_replication_options::check_option_values(
     validate_paxos_single_leader_supported(version);
   }
 
-  // Validate ipWhitelist and ipAllowlist
-  {
-    if (ip_allowlist.has_value()) {
-      if (!shcore::str_caseeq(*ip_allowlist, "AUTOMATIC")) {
-        validate_ip_whitelist_option(version, *ip_allowlist,
-                                     ip_allowlist_option_name);
-      }
-    }
-  }
+  // Validate ipAllowlist
+  if (ip_allowlist.has_value() &&
+      !shcore::str_caseeq(*ip_allowlist, "AUTOMATIC"))
+    validate_ip_allowlist_option(version, *ip_allowlist);
 
   if (local_address.has_value()) {
     validate_local_address_option(
@@ -626,11 +631,6 @@ void Group_replication_options::set_consistency(const std::string &option,
         option.c_str()));
   }
 
-  if (option == kFailoverConsistency) {
-    handle_deprecated_option(kFailoverConsistency, kConsistency,
-                             consistency.has_value(), false);
-  }
-
   consistency = stripped_value;
 }
 
@@ -665,14 +665,8 @@ const shcore::Option_pack_def<Rejoin_group_replication_options>
     &Rejoin_group_replication_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Rejoin_group_replication_options>()
-          .optional(kMemberSslMode,
-                    &Rejoin_group_replication_options::set_ssl_mode)
           .optional(kIpAllowlist,
                     &Rejoin_group_replication_options::set_ip_allowlist)
-          .optional(kIpWhitelist,
-                    &Rejoin_group_replication_options::set_ip_allowlist, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
           .optional(kLocalAddress,
                     &Rejoin_group_replication_options::set_local_address);
 
@@ -694,44 +688,14 @@ const shcore::Option_pack_def<Reboot_group_replication_options>
   return opts;
 }
 
-void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
-  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
-                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
-    std::string valid_values = shcore::str_join(kClusterSSLModeValues, ",");
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s option. Supported values: %s.",
-                           kMemberSslMode, valid_values.c_str()));
-  }
-
-  if (target == Unpack_target::JOIN || target == Unpack_target::REJOIN) {
-    auto console = current_console();
-    console->print_warning(shcore::str_format(
-        "Option '%s' is deprecated for this operation and it will "
-        "be removed in a future release. This option is not needed because the "
-        "SSL mode is automatically obtained from the cluster. Please do not "
-        "use it here.",
-        kMemberSslMode));
-    console->print_info();
-  }
-
-  // Set the ssl-mode
-  ssl_mode = to_cluster_ssl_mode(value);
-}
-
 void Rejoin_group_replication_options::set_ip_allowlist(
     const std::string &option, const std::string &value) {
   // Validate if the value is not empty
-  if (shcore::str_strip(value).empty())
+  if (shcore::str_strip_view(value).empty())
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s: string value cannot be empty.", option.c_str()));
 
-  if (option == kIpWhitelist) {
-    handle_deprecated_option(kIpWhitelist, kIpAllowlist,
-                             ip_allowlist.has_value(), true);
-  }
-
   ip_allowlist = value;
-  ip_allowlist_option_name = option;
 }
 
 const shcore::Option_pack_def<Join_group_replication_options>
@@ -739,8 +703,6 @@ const shcore::Option_pack_def<Join_group_replication_options>
   static const auto opts =
       shcore::Option_pack_def<Join_group_replication_options>()
           .include<Rejoin_group_replication_options>()
-          .optional(kGroupSeeds,
-                    &Join_group_replication_options::set_group_seeds)
           .optional(kExitStateAction,
                     &Group_replication_options::set_exit_state_action)
           .optional(kMemberWeight,
@@ -750,10 +712,6 @@ const shcore::Option_pack_def<Join_group_replication_options>
                     &Group_replication_options::set_auto_rejoin_tries);
 
   return opts;
-}
-
-void Join_group_replication_options::set_group_seeds(const std::string &) {
-  handle_deprecated_option(kGroupSeeds, "");
 }
 
 const shcore::Option_pack_def<Cluster_set_group_replication_options>
@@ -789,16 +747,14 @@ const shcore::Option_pack_def<Create_group_replication_options>
   static const auto opts =
       shcore::Option_pack_def<Create_group_replication_options>()
           .include<Join_group_replication_options>()
+          .optional(kMemberSslMode,
+                    &Create_group_replication_options::set_ssl_mode)
           .optional(kGroupName,
                     &Create_group_replication_options::set_group_name)
           .optional(kManualStartOnBoot,
                     &Create_group_replication_options::manual_start_on_boot)
           .optional(kConsistency,
                     &Create_group_replication_options::set_consistency)
-          .optional(kFailoverConsistency,
-                    &Create_group_replication_options::set_consistency, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::DEPRECATED)
           .optional(kExpelTimeout,
                     &Create_group_replication_options::set_expel_timeout, "",
                     shcore::Option_extract_mode::EXACT)
@@ -821,6 +777,10 @@ void Create_group_replication_options::set_group_name(
   if (group_name->empty())
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s, string value cannot be empty.", kGroupName));
+}
+
+void Create_group_replication_options::set_ssl_mode(const std::string &value) {
+  ssl_mode = translate_ssl_mode(value);
 }
 
 }  // namespace dba

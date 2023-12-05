@@ -87,11 +87,11 @@ void Add_replica_instance::validate_instance_is_standalone() {
     }
 
     // Check if the instance's Metadata includes itself as part of this Cluster
-    auto i_metadata = std::make_shared<MetadataStorage>(m_target_instance);
+    MetadataStorage i_metadata(m_target_instance);
 
     Cluster_metadata instance_cluster_md;
-    if (i_metadata->get_cluster_for_server_uuid(m_target_instance->get_uuid(),
-                                                &instance_cluster_md)) {
+    if (i_metadata.get_cluster_for_server_uuid(m_target_instance->get_uuid(),
+                                               &instance_cluster_md)) {
       // The instance's metadata indicates it belongs to this Cluster, so it
       // must have been forcefully removed and should be possible to add it
       // back

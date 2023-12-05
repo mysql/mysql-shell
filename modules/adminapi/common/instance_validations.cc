@@ -59,6 +59,34 @@ namespace mysqlsh {
 namespace dba {
 namespace checks {
 
+namespace {
+/**
+ * Validate if a supported InnoDB page size value is used.
+ *
+ * Currently, innodb_page_size > 4k is required due to the size of some
+ * required information in the Metadata.
+ *
+ * @param instance target instance to check.
+ */
+void validate_innodb_page_size(const mysqlshdk::mysql::IInstance &instance) {
+  log_info("Validating InnoDB page size of instance '%s'.",
+           instance.descr().c_str());
+
+  auto page_size = *instance.get_sysvar_string(
+      "innodb_page_size", mysqlshdk::mysql::Var_qualifier::GLOBAL);
+
+  if (std::stoul(page_size) > 4096) return;
+
+  mysqlsh::current_console()->print_error(shcore::str_format(
+      "Instance '%s' is using a non-supported InnoDB page size "
+      "(innodb_page_size=%s). Only instances with innodb_page_size greater "
+      "than 4k (4096) can be used with InnoDB Cluster.",
+      instance.descr().c_str(), page_size.c_str()));
+  throw shcore::Exception::runtime_error(shcore::str_format(
+      "Unsupported innodb_page_size value: %s", page_size.c_str()));
+}
+}  // namespace
+
 /**
  * Perform validation of schemas for compatibility issues with group
  * replication. If any issues are found, they're printed to the console.
@@ -147,14 +175,12 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
 
   if (!ok) {
     console->print_info(
-        "Group Replication requires tables to use InnoDB and "
-        "have a PRIMARY KEY or PRIMARY KEY Equivalent (non-null "
-        "unique key). Tables that do not follow these "
-        "requirements will be readable but not updateable "
-        "when used with Group Replication. "
-        "If your applications make updates (INSERT, UPDATE or "
-        "DELETE) to these tables, ensure they use the InnoDB "
-        "storage engine and have a PRIMARY KEY or PRIMARY KEY "
+        "Group Replication requires tables to use InnoDB and have a PRIMARY "
+        "KEY or PRIMARY KEY Equivalent (non-null unique key). Tables that do "
+        "not follow these requirements will be readable but not updateable "
+        "when used with Group Replication. If your applications make updates "
+        "(INSERT, UPDATE or DELETE) to these tables, ensure they use the "
+        "InnoDB storage engine and have a PRIMARY KEY or PRIMARY KEY "
         "Equivalent.");
     console->print_info(
         "If you can't change the tables structure to include an extra visible "
@@ -163,37 +189,6 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
         "https://dev.mysql.com/doc/refman/8.0/en/invisible-columns.html");
   }
   return ok;
-}
-
-/**
- * Validate if a supported InnoDB page size value is used.
- *
- * Currently, innodb_page_size > 4k is required due to the size of some
- * required information in the Metadata.
- *
- * @param instance target instance to check.
- */
-void validate_innodb_page_size(mysqlshdk::mysql::IInstance *instance) {
-  log_info("Validating InnoDB page size of instance '%s'.",
-           instance->descr().c_str());
-  std::string page_size = *instance->get_sysvar_string(
-      "innodb_page_size", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
-  auto console = mysqlsh::current_console();
-
-  int page_size_value = std::stoul(page_size);
-  if (page_size_value <= 4096) {
-    console->print_error(
-        "Instance '" + instance->descr() +
-        "' is using a non-supported InnoDB "
-        "page size (innodb_page_size=" +
-        page_size +
-        "). Only instances with "
-        "innodb_page_size greater than 4k (4096) can be used with InnoDB "
-        "Cluster.");
-    throw shcore::Exception::runtime_error(
-        "Unsupported innodb_page_size value: " + page_size);
-  }
 }
 
 /**
@@ -384,7 +379,7 @@ void process_row_action(const mysqlshdk::mysql::Invalid_config &cfg,
  * @return                      [description]
  */
 std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
-    mysqlshdk::mysql::IInstance *instance, const std::string &mycnf_path,
+    const mysqlshdk::mysql::IInstance &instance, const std::string &mycnf_path,
     mysqlshdk::config::Config *const config, Cluster_type cluster_type,
     std::optional<bool> can_persist, bool *restart_needed,
     bool *mycnf_change_needed, bool *sysvar_change_needed,
@@ -394,13 +389,13 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
 
   // Check if performance_schema is enabled
   // BUG#25867733
-  validate_performance_schema_enabled(*instance);
+  validate_performance_schema_enabled(instance);
 
   log_info("Validating configuration of %s (mycnf = %s)",
-           instance->descr().c_str(), mycnf_path.c_str());
+           instance.descr().c_str(), mycnf_path.c_str());
   // Perform check with no update
   std::vector<mysqlshdk::mysql::Invalid_config> invalid_cfs_vec =
-      check_instance_config(*instance, *config, cluster_type);
+      check_instance_config(instance, *config, cluster_type);
 
   // Sort invalid cfs_vec by the name of the variable
   std::sort(invalid_cfs_vec.begin(), invalid_cfs_vec.end());
@@ -526,11 +521,11 @@ void validate_performance_schema_enabled(
 }
 
 void ensure_instance_not_belong_to_cluster(
-    const std::shared_ptr<Instance> &instance,
-    const std::shared_ptr<Instance> &cluster_instance,
-    std::string_view cluster_id, bool omit_missing_instance_warn) {
-  auto metadata = std::make_shared<MetadataStorage>(instance);
-  auto type = mysqlsh::dba::get_instance_type(*metadata, *instance);
+    const mysqlsh::dba::Instance &instance,
+    const mysqlsh::dba::Instance &cluster_instance, std::string_view cluster_id,
+    bool omit_missing_instance_warn) {
+  MetadataStorage metadata{instance};
+  auto type = mysqlsh::dba::get_instance_type(metadata, instance);
 
   switch (type) {
     // these types don't need any more checks
@@ -546,19 +541,18 @@ void ensure_instance_not_belong_to_cluster(
     // Check if the instance is (MISSING)
     try {
       // Double-check that the instance is part of this Cluster
-      auto metadata_cluster =
-          std::make_shared<MetadataStorage>(cluster_instance);
+      MetadataStorage metadata_cluster{cluster_instance};
 
-      metadata_cluster->get_instance_by_uuid(instance->get_uuid());
+      metadata_cluster.get_instance_by_uuid(instance.get_uuid());
 
       if (!omit_missing_instance_warn)
         current_console()->print_error(
             shcore::str_format("Instance '%s' is already part of this InnoDB "
                                "Cluster but is (MISSING). Please use "
                                "<Cluster>.<<<rejoinInstance()>>> to rejoin it.",
-                               instance->descr().c_str()));
+                               instance.descr().c_str()));
 
-      throw shcore::Exception("The instance '" + instance->descr() +
+      throw shcore::Exception("The instance '" + instance.descr() +
                                   "' is already part of this InnoDB Cluster",
                               SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
     } catch (const shcore::Exception &exp) {
@@ -569,11 +563,11 @@ void ensure_instance_not_belong_to_cluster(
     }
   } else if (type != TargetType::InnoDBClusterSetOffline) {
     // Retrieves the new instance UUID
-    std::string uuid = instance->get_uuid();
+    std::string uuid = instance.get_uuid();
 
     // Verifies if this UUID is part of the current replication group
     std::vector<mysqlshdk::gr::Member> members =
-        mysqlshdk::gr::get_members(*cluster_instance);
+        mysqlshdk::gr::get_members(cluster_instance);
 
     if (std::find_if(members.begin(), members.end(),
                      [&uuid](const auto &member) {
@@ -582,28 +576,28 @@ void ensure_instance_not_belong_to_cluster(
       if (type == TargetType::InnoDBCluster ||
           type == TargetType::InnoDBClusterSet) {
         log_debug("Instance '%s' already managed by InnoDB Cluster",
-                  instance->descr().c_str());
+                  instance.descr().c_str());
 
-        throw shcore::Exception("The instance '" + instance->descr() +
+        throw shcore::Exception("The instance '" + instance.descr() +
                                     "' is already part of this InnoDB Cluster",
                                 SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
       }
       current_console()->print_error(
-          "Instance '" + instance->descr() +
+          "Instance '" + instance.descr() +
           "' is part of the Group Replication group but is not in the "
           "metadata. Please use <Cluster>.rescan() to update the "
           "metadata.");
       throw shcore::Exception(
-          "Metadata inconsistent: " + instance->descr() +
+          "Metadata inconsistent: " + instance.descr() +
               " is a group member but is not in the metadata.",
           SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
     }
   } else {
-    auto metadata_cluster = std::make_shared<MetadataStorage>(cluster_instance);
+    MetadataStorage metadata_cluster{cluster_instance};
 
     try {
       // if instance is in the clusters metadata, it's valid
-      metadata_cluster->get_instance_by_uuid(instance->get_uuid());
+      metadata_cluster.get_instance_by_uuid(instance.get_uuid());
       return;
     } catch (const shcore::Exception &exp) {
       if (exp.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
@@ -612,15 +606,15 @@ void ensure_instance_not_belong_to_cluster(
     // check if the instance cluster belongs to the target's cluster set
 
     Cluster_metadata instance_cluster_meta;
-    if (metadata->get_cluster_for_server_uuid(instance->get_uuid(),
-                                              &instance_cluster_meta)) {
+    if (metadata.get_cluster_for_server_uuid(instance.get_uuid(),
+                                             &instance_cluster_meta)) {
       if (instance_cluster_meta.cluster_id == cluster_id) return;
 
-      if (std::string cs_id; metadata_cluster->check_cluster_set(
+      if (std::string cs_id; metadata_cluster.check_cluster_set(
               nullptr, nullptr, nullptr, &cs_id)) {
         std::vector<Cluster_set_member_metadata> cs_members;
-        if (metadata_cluster->get_cluster_set(cs_id, false, nullptr,
-                                              &cs_members)) {
+        if (metadata_cluster.get_cluster_set(cs_id, false, nullptr,
+                                             &cs_members)) {
           auto it = std::find_if(
               cs_members.begin(), cs_members.end(),
               [&cs_id = instance_cluster_meta.cluster_id](const auto &member) {
@@ -641,68 +635,33 @@ void ensure_instance_not_belong_to_cluster(
     case TargetType::InnoDBCluster:
     case TargetType::InnoDBClusterSet:
       // Check if instance is running auto-rejoin and warn user.
-      if (mysqlshdk::gr::is_running_gr_auto_rejoin(*instance)) {
+      if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance)) {
         throw shcore::Exception::runtime_error(
-            "The instance '" + instance->descr() +
+            "The instance '" + instance.descr() +
             "' is currently attempting to rejoin the cluster. Use <cluster>."
             "rejoinInstance() if you want to override the auto-rejoin "
             "process.");
       } else {
         throw shcore::Exception::runtime_error(
-            "The instance '" + instance->descr() +
+            "The instance '" + instance.descr() +
             "' is already part of another InnoDB Cluster");
       }
       break;
     case TargetType::AsyncReplicaSet:
       throw shcore::Exception::runtime_error(
-          "The instance '" + instance->descr() +
+          "The instance '" + instance.descr() +
           "' is already part of an InnoDB ReplicaSet");
       break;
     case TargetType::AsyncReplication:
       throw shcore::Exception::runtime_error(
-          "The instance '" + instance->descr() +
+          "The instance '" + instance.descr() +
           "' is already part of another Asynchronous Replication Topology");
       break;
     default:
       throw shcore::Exception::runtime_error(
-          "The instance '" + instance->descr() +
+          "The instance '" + instance.descr() +
           "' is already part of another Replication Group");
       break;
-  }
-}
-
-void ensure_instance_not_belong_to_metadata(
-    const mysqlshdk::mysql::IInstance &instance,
-    const std::string &address_in_metadata,
-    const mysqlsh::dba::Cluster_impl &cluster) {
-  auto console = mysqlsh::current_console();
-
-  // Check if the instance exists on the cluster
-  log_debug("Checking if the instance belongs to the cluster");
-  Instance_metadata instance_md;
-  try {
-    instance_md = cluster.get_metadata_storage()->get_instance_by_address(
-        address_in_metadata);
-  } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      return;
-    }
-    throw;
-  }
-
-  if (instance_md.cluster_id == cluster.get_id()) {
-    // Check if instance is running auto-rejoin
-    bool is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
-
-    std::string err_msg = "The instance '" + instance.descr() +
-                          "' already belongs to the cluster: '" +
-                          cluster.get_name() + "'";
-    if (is_rejoining) {
-      err_msg += " and is currently trying to auto-rejoin.";
-    } else {
-      err_msg += ".";
-    }
-    throw shcore::Exception::runtime_error(err_msg);
   }
 }
 
