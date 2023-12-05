@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,17 +28,14 @@
 #define MODULES_DEVAPI_CRUD_DEFINITION_H_
 
 #include <memory>
-#include <set>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "db/mysqlx/mysqlx_parser.h"
-#include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/dynamic_object.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "mysqlshdk/libs/utils/nullable.h"
-#include "scripting/common.h"
 
 namespace mysqlsh {
 class DatabaseObject;
@@ -71,7 +68,7 @@ class Crud_definition : public Dynamic_object {
 
  protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> safe_exec(
-      std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func);
+      const std::function<std::shared_ptr<mysqlshdk::db::IResult>()> &func);
 
   std::shared_ptr<Session> session();
   std::shared_ptr<DatabaseObject> _owner;
@@ -82,8 +79,8 @@ class Crud_definition : public Dynamic_object {
  protected:
   Mysqlx::Prepare::Prepare m_prep_stmt;
   uint64_t m_execution_count;
-  mysqlshdk::utils::nullable<uint64_t> m_limit;
-  mysqlshdk::utils::nullable<uint64_t> m_offset;
+  std::optional<uint64_t> m_limit;
+  std::optional<uint64_t> m_offset;
   std::vector<std::string> _placeholders;
   std::unordered_map<std::string, std::unique_ptr<Mysqlx::Datatypes::Scalar>>
       _bound_values;
@@ -124,39 +121,38 @@ class Crud_definition : public Dynamic_object {
 
   template <class T>
   void set_limits_on_message(T *message) {
-    if (!m_limit.is_null()) {
-      if (use_prepared()) {
-        message->clear_limit();
+    if (!m_limit.has_value()) return;
 
-        if (!message->has_limit_expr()) {
-          message->mutable_limit_expr()->set_allocated_row_count(
-              ::mysqlx::parser::parse_collection_filter(K_LIMIT_PLACEHOLDER,
+    if (use_prepared()) {
+      message->clear_limit();
+
+      if (!message->has_limit_expr()) {
+        message->mutable_limit_expr()->set_allocated_row_count(
+            ::mysqlx::parser::parse_collection_filter(K_LIMIT_PLACEHOLDER,
+                                                      &_placeholders));
+        if (m_offset.has_value()) {
+          message->mutable_limit_expr()->set_allocated_offset(
+              ::mysqlx::parser::parse_collection_filter(K_OFFSET_PLACEHOLDER,
                                                         &_placeholders));
-          if (!m_offset.is_null()) {
-            message->mutable_limit_expr()->set_allocated_offset(
-                ::mysqlx::parser::parse_collection_filter(K_OFFSET_PLACEHOLDER,
-                                                          &_placeholders));
-          }
         }
-
-        bind_value(K_LIMIT_BIND_TAG, shcore::Value(*m_limit));
-        if (!m_offset.is_null())
-          bind_value(K_OFFSET_BIND_TAG, shcore::Value(*m_offset));
-      } else {
-        message->clear_limit_expr();
-
-        message->mutable_limit()->set_row_count(*m_limit);
-
-        if (!m_offset.is_null())
-          message->mutable_limit()->set_offset(*m_offset);
-
-        _placeholders.erase(std::remove(_placeholders.begin(),
-                                        _placeholders.end(), K_LIMIT_BIND_TAG),
-                            _placeholders.end());
-        _placeholders.erase(std::remove(_placeholders.begin(),
-                                        _placeholders.end(), K_OFFSET_BIND_TAG),
-                            _placeholders.end());
       }
+
+      bind_value(K_LIMIT_BIND_TAG, shcore::Value(*m_limit));
+      if (m_offset.has_value())
+        bind_value(K_OFFSET_BIND_TAG, shcore::Value(*m_offset));
+    } else {
+      message->clear_limit_expr();
+
+      message->mutable_limit()->set_row_count(*m_limit);
+
+      if (m_offset.has_value()) message->mutable_limit()->set_offset(*m_offset);
+
+      _placeholders.erase(std::remove(_placeholders.begin(),
+                                      _placeholders.end(), K_LIMIT_BIND_TAG),
+                          _placeholders.end());
+      _placeholders.erase(std::remove(_placeholders.begin(),
+                                      _placeholders.end(), K_OFFSET_BIND_TAG),
+                          _placeholders.end());
     }
   }
 

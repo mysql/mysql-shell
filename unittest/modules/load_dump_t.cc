@@ -628,7 +628,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
   std::function<void(const std::string &)> m_on_load_data;
 
   std::string m_version = "8.0.20";
-  mysqlshdk::null_bool m_auto_generate_pk_value;
+  std::optional<bool> m_auto_generate_pk_value;
   bool m_create_invisible_pks = false;
 };
 

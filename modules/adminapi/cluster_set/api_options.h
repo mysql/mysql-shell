@@ -25,14 +25,13 @@
 #define MODULES_ADMINAPI_CLUSTER_SET_API_OPTIONS_H_
 
 #include <chrono>
+#include <optional>
 #include <string>
 
 #include "modules/adminapi/common/api_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace clusterset {
+namespace mysqlsh::dba::clusterset {
 
 struct Create_cluster_set_options {
   static const shcore::Option_pack_def<Create_cluster_set_options> &options();
@@ -72,7 +71,7 @@ struct Remove_cluster_options : public Timeout_option {
   static const shcore::Option_pack_def<Remove_cluster_options> &options();
 
   bool dry_run = false;
-  mysqlshdk::null_bool force;
+  std::optional<bool> force;
 };
 
 struct Status_options {
@@ -117,8 +116,6 @@ struct Rejoin_cluster_options {
   bool dry_run = false;
 };
 
-}  // namespace clusterset
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba::clusterset
 
 #endif  // MODULES_ADMINAPI_CLUSTER_SET_API_OPTIONS_H_

@@ -21,14 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <array>
+#include "modules/adminapi/cluster_set/api_options.h"
+
 #include <string_view>
 
 #include "adminapi/common/api_options.h"
-#include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 
 namespace mysqlsh {
 namespace dba {

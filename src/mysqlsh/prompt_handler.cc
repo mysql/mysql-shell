@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include "src/mysqlsh/prompt_handler.h"
 
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/shexcept.h"
@@ -127,8 +129,6 @@ std::string render_text_prompt(const std::string &prompt,
 std::string render_confirm_prompt(const std::string &prompt,
                                   const shcore::prompt::Prompt_options &options,
                                   std::string *out_valid_answers) {
-  std::string prompt_text;
-
   std::string clean_yes_text, clean_no_text, clean_alt_text;
   std::string yes_display_text, no_display_text, alt_display_text;
   std::string def;
@@ -178,6 +178,7 @@ std::string render_confirm_prompt(const std::string &prompt,
       def_str.append(" (default ").append(clean_alt_text).append("): ");
   }
 
+  std::string prompt_text;
   if (use_json()) {
     prompt_text = json_prompt(prompt, options);
   } else {
@@ -227,9 +228,9 @@ std::string render_select_prompt(
 }
 
 Prompt_handler::Prompt_handler(
-    const std::function<shcore::Prompt_result(bool, const char *,
-                                              std::string *)> &do_prompt_cb)
-    : m_do_prompt_cb{do_prompt_cb} {}
+    std::function<shcore::Prompt_result(bool, const char *, std::string *)>
+        do_prompt_cb) noexcept
+    : m_do_prompt_cb{std::move(do_prompt_cb)} {}
 
 shcore::Prompt_result Prompt_handler::handle_prompt(
     const std::string &prompt, const shcore::prompt::Prompt_options &options,
@@ -292,9 +293,6 @@ shcore::Prompt_result Prompt_handler::handle_select_prompt(
     std::string *response) {
   std::string prompt_text = render_select_prompt(prompt, options);
 
-  mysqlshdk::utils::nullable<std::string> good_answer;
-
-  shcore::Dictionary_t prompt_options;
   while (true) {
     auto res = m_do_prompt_cb(false, prompt_text.c_str(), response);
 

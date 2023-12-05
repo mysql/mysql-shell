@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,7 +105,7 @@ std::string query(const std::string &q, const ::xcl::Argument_array &args) {
 
   try {
     return v.query();
-  } catch (const std::exception &e) {
+  } catch (const std::exception &) {
     throw std::invalid_argument(
         "Insufficient number of values for placeholders in query");
   }

@@ -23,15 +23,11 @@
 
 #include "modules/adminapi/common/clone_options.h"
 
-#include <set>
 #include <string>
-#include <vector>
+
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/server_features.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
@@ -132,7 +128,7 @@ void Clone_options::check_option_values(
   }
 
   // Finally, if recoveryMethod wasn't set, set the default value of AUTO
-  if (recovery_method.is_null()) {
+  if (!recovery_method.has_value()) {
     recovery_method = Member_recovery_method::AUTO;
   }
 }
@@ -158,7 +154,7 @@ void Clone_options::set_clone_donor(const std::string &value) {
 
   // If cloneDonor was set and recoveryMethod not or not set to 'clone',
   // error out
-  if (!recovery_method.is_null()) {
+  if (recovery_method.has_value()) {
     if (*recovery_method != Member_recovery_method::CLONE) {
       throw shcore::Exception::argument_error(shcore::str_format(
           "Option %s only allowed if option %s is set to 'clone'.", kCloneDonor,

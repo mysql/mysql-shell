@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,17 +26,16 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_MYCNF_H_
 #define MYSQLSHDK_LIBS_MYSQL_MYCNF_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace mysql {
 namespace mycnf {
 
-using Option = std::pair<std::string, utils::nullable<std::string>>;
+using Option = std::pair<std::string, std::optional<std::string>>;
 
 void update_options(const std::string &path, const std::string &section,
                     const std::vector<Option> &mycnf_options);

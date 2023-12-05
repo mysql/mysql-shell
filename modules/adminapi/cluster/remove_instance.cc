@@ -23,8 +23,6 @@
 
 #include "modules/adminapi/cluster/remove_instance.h"
 
-#include <algorithm>
-
 #include "adminapi/common/common.h"
 #include "adminapi/common/metadata_storage.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -34,7 +32,6 @@
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -128,7 +125,7 @@ bool Remove_instance::prompt_to_force_remove() const {
 
 void Remove_instance::check_protocol_upgrade_possible() const {
   // Get the instance server_uuid
-  mysqlshdk::utils::nullable<std::string> server_uuid;
+  std::optional<std::string> server_uuid;
   std::shared_ptr<Instance> group_instance =
       m_cluster_impl->get_cluster_server();
 
@@ -161,7 +158,7 @@ void Remove_instance::check_protocol_upgrade_possible() const {
         mysqlshdk::gr::get_group_protocol_version(*group_instance);
 
     if (mysqlshdk::gr::is_protocol_upgrade_possible(
-            *group_instance, server_uuid.get_safe(""), &version)) {
+            *group_instance, server_uuid.value_or(""), &version)) {
       console->print_note(
           "The communication protocol used by Group Replication can be "
           "upgraded to version " +

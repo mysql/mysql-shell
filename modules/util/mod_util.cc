@@ -191,7 +191,7 @@ void Util::check_for_server_upgrade(
     privileges = instance.get_current_user_privileges(true);
   } catch (const std::runtime_error &e) {
     log_error("Unable to check permissions: %s", e.what());
-  } catch (const std::logic_error &e) {
+  } catch (const std::logic_error &) {
     throw std::runtime_error("Unable to get information about a user");
   }
 

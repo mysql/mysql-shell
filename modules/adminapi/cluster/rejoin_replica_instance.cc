@@ -22,17 +22,17 @@
  */
 
 #include "modules/adminapi/cluster/rejoin_replica_instance.h"
+
+#include <cassert>
 #include <string>
-#include <vector>
+
 #include "modules/adminapi/cluster/api_options.h"
-#include "modules/adminapi/cluster/status.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh::dba::cluster {
@@ -140,7 +140,8 @@ Member_recovery_method Rejoin_replica_instance::validate_instance_recovery() {
   return mysqlsh::dba::validate_instance_recovery(
       Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
       *m_donor_instance, *m_target_instance, check_recoverable,
-      m_options.clone_options.recovery_method.get_safe(),
+      m_options.clone_options.recovery_method.value_or(
+          Member_recovery_method::AUTO),
       m_cluster_impl->get_gtid_set_is_complete(), m_options.interactive());
 }
 
@@ -169,26 +170,20 @@ Rejoin_replica_instance::get_default_donor_instance() {
   if (m_replication_sources.source_type == Source_type::PRIMARY ||
       m_replication_sources.source_type == Source_type::SECONDARY) {
     return m_cluster_impl->get_cluster_server();
-  } else {
-    // When replicationSources is set to a list of instances the main source
-    // must be the first member of the list (the one with highest weight)
-    assert(!m_replication_sources.replication_sources.empty());
-    auto first_element = *(m_replication_sources.replication_sources.begin());
+  }
 
-    std::string source_str = first_element.to_string();
+  // When replicationSources is set to a list of instances the main source
+  // must be the first member of the list (the one with highest weight)
+  assert(!m_replication_sources.replication_sources.empty());
+  auto source_str =
+      m_replication_sources.replication_sources.begin()->to_string();
 
-    std::shared_ptr<Instance> source_instance;
-
-    try {
-      source_instance =
-          m_cluster_impl->get_session_to_cluster_instance(source_str);
-    } catch (const shcore::Exception &e) {
-      throw shcore::Exception(
-          "Source is not reachable",
-          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
-    }
-
-    return source_instance;
+  try {
+    return m_cluster_impl->get_session_to_cluster_instance(source_str);
+  } catch (const shcore::Exception &) {
+    throw shcore::Exception(
+        "Source is not reachable",
+        SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
   }
 }
 
@@ -235,15 +230,12 @@ void Rejoin_replica_instance::prepare() {
 }
 
 void Rejoin_replica_instance::do_run() {
-  auto console = mysqlsh::current_console();
-
   m_target_read_replica_address = m_target_instance->get_canonical_address();
 
   // Check if the instance can be rejoined
-  if (!check_rejoinable()) {
-    return;
-  }
+  if (!check_rejoinable()) return;
 
+  auto console = mysqlsh::current_console();
   console->print_info("Rejoining Read-Replica '" + m_target_instance->descr() +
                       "' to Cluster '" + m_cluster_impl->get_name() + "'...");
   console->print_info();

@@ -23,10 +23,8 @@
 #include "modules/mod_extensible_object.h"
 
 #include <algorithm>
-#include <functional>
-#include <memory>
+#include <optional>
 #include <set>
-#include <utility>
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -607,7 +605,7 @@ Function_definition::Parameters Extensible_object::parse_parameters(
       }
     }
 
-    context->levels.back().position = nullptr;
+    context->levels.back().position.reset();
   }
 
   return parameters;
@@ -622,7 +620,7 @@ Extensible_object::start_parsing_parameter(const shcore::Dictionary_t &,
 std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
     const shcore::Dictionary_t &definition, shcore::Parameter_context *context,
     const std::set<std::string> &allowed_types, bool as_parameters) {
-  mysqlshdk::utils::nullable<std::string> type;
+  std::optional<std::string> type;
 
   // By default, parameters are required, unless required=false is specified
   // By default, options are not required, unless required=true is specified
@@ -639,7 +637,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   unpacker.optional("brief", &param_definition->brief);
   unpacker.optional("details", &param_definition->details);
 
-  if (!type.is_null()) {
+  if (type.has_value()) {
     param->set_type(map_type(*type, allowed_types));
   } else {
     param->set_type(shcore::Value_type::Undefined);
@@ -662,21 +660,21 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
 
   if (param->type() == shcore::Value_type::Object) {
     std::string error;
-    mysqlshdk::utils::nullable<std::vector<std::string>> allowed_classes;
+    std::optional<std::vector<std::string>> allowed_classes;
     unpacker.optional("classes", &allowed_classes);
 
-    mysqlshdk::utils::nullable<std::string> allowed;
+    std::optional<std::string> allowed;
     unpacker.optional("class", &allowed);
 
-    if (!allowed.is_null()) {
-      if (allowed_classes.is_null())
+    if (allowed.has_value()) {
+      if (!allowed_classes.has_value())
         allowed_classes = {*allowed};
       else
         allowed_classes->push_back(*allowed);
     }
 
     std::vector<std::string> callowed;
-    if (!allowed_classes.is_null()) {
+    if (allowed_classes.has_value()) {
       if (allowed_classes->empty()) {
         error = "An empty array is not valid for the classes option.";
       } else {
@@ -734,9 +732,10 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   auto ctx_position_backup = context->levels.back().position;
 
   if (shcore::is_valid_identifier(param->name)) {
-    context->levels.back().name = (type.get_safe().empty() ? "" : *type + " ") +
-                                  ctx_name_backup + " '" + param->name + "'";
-    context->levels.back().position = nullptr;
+    context->levels.back().name =
+        (type.value_or("").empty() ? "" : *type + " ") + ctx_name_backup +
+        " '" + param->name + "'";
+    context->levels.back().position.reset();
   }
 
   current_ctx = context->str();
@@ -745,7 +744,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   context->levels.back().name = ctx_name_backup + " '" + param->name + "'";
 
   // If type was specified, it can't be Undefined
-  if (!type.is_null() && param->type() == shcore::Value_type::Undefined) {
+  if (type.has_value() && param->type() == shcore::Value_type::Undefined) {
     const auto error =
         "Unsupported type used at " + context->str() +
         ". Allowed types: " + shcore::str_join(allowed_types, ", ");
@@ -1069,7 +1068,7 @@ void Extensible_object::validate_parameter(const shcore::Parameter &param,
 
   if (valid_identifier) {
     context->levels.back().name += " '" + param.name + "'";
-    context->levels.back().position = nullptr;
+    context->levels.back().position.reset();
   }
 
   current_ctx = context->str();

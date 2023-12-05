@@ -1014,7 +1014,7 @@ bool Shell_script_tester::add_source_chunk(const std::string &path,
   bool enabled = true;
   try {
     enabled = context_enabled(chunk.def->context);
-  } catch (const std::exception &err) {
+  } catch (const std::exception &) {
     // NO OP: If evaluating the context fails, it might be a context that is
     // set with the script execution so we continue considering it enabled.
     // Errors on this validation are ignored

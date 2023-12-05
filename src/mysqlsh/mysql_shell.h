@@ -20,9 +20,11 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #ifndef _MYSQL_SHELL_
 #define _MYSQL_SHELL_
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -33,7 +35,6 @@
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
-#include "scripting/types.h"
 #include "shellcore/base_shell.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_options.h"
@@ -79,7 +80,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   static bool sql_safe_for_logging(const std::string &sql);
 
-  shcore::Shell_command_handler *command_handler() {
+  shcore::Shell_command_handler *command_handler() const {
     return shell_context()->command_handler();
   }
 

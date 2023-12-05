@@ -59,7 +59,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   explicit Connection_options(
       utils::nullable_options::Comparison_mode mode =
           utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);
-  Connection_options(
+  explicit Connection_options(
       const std::string &uri,
       utils::nullable_options::Comparison_mode mode =
           utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);

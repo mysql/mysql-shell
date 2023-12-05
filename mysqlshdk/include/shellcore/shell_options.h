@@ -74,6 +74,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/options.h"
@@ -173,7 +174,7 @@ class Shell_options final : public shcore::Options {
     std::string dbug_options;
 
     // override default plugin search path ; separated in windows, : elsewhere
-    mysqlshdk::null_string plugins_path;
+    std::optional<std::string> plugins_path;
     std::string mysql_plugin_dir;
 
     double connect_timeout = 10.0;

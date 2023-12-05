@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,11 +23,6 @@
 
 #include "modules/devapi/dynamic_object.h"
 
-#include "db/mysqlx/mysqlx_parser.h"
-
-#include "modules/devapi/base_database_object.h"
-#include "modules/devapi/crud_definition.h"
-#include "modules/devapi/mod_mysqlx_expression.h"
 #include "utils/utils_general.h"
 
 #ifdef _WIN32
@@ -134,13 +129,13 @@ void Dynamic_object::update_functions(Allowed_function_mask f) {
   enabled_functions_ &= ~m_on_call_disable[x];
 }
 
-bool Dynamic_object::is_enabled(const std::string &name) const {
-  auto func = lookup_function(name);
-  if (func) {
+bool Dynamic_object::is_enabled(std::string_view name) const {
+  if (auto func = lookup_function(name); func) {
     // filter out disabled functions
     auto f = function_name_to_bitmask(func->name(shcore::LowerCamelCase));
     return bool(f & enabled_functions_);
   }
+
   return false;
 }
 }  // namespace mysqlx

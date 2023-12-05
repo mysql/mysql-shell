@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_CONFIG_CONFIG_FILE_HANDLER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/config/config.h"

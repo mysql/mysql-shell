@@ -33,7 +33,6 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/adminapi/common/undo.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -42,10 +41,8 @@ namespace mysqlsh::dba::cluster {
 
 std::shared_ptr<Instance> Add_replica_instance::get_source_instance(
     const std::string &source) {
-  std::shared_ptr<Instance> source_instance;
-
   try {
-    source_instance = m_cluster_impl->get_session_to_cluster_instance(source);
+    return m_cluster_impl->get_session_to_cluster_instance(source);
   } catch (const shcore::Exception &e) {
     mysqlsh::current_console()->print_error(
         "Unable to use '" + source +
@@ -55,13 +52,11 @@ std::shared_ptr<Instance> Add_replica_instance::get_source_instance(
         "Source is not reachable",
         SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
   }
-
-  return source_instance;
 }
 
 void Add_replica_instance::validate_instance_is_standalone() {
-  TargetType::Type instance_type;
   // Check if the instance's metadata is empty, i.e. the instance is standalone
+  TargetType::Type instance_type;
   if (validate_instance_standalone(*m_target_instance, &instance_type)) return;
 
   if (instance_type == TargetType::InnoDBCluster) {
@@ -77,9 +72,10 @@ void Add_replica_instance::validate_instance_is_standalone() {
       throw shcore::Exception(
           "Target instance already part of this InnoDB Cluster",
           SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
-    } else if (m_cluster_impl->is_cluster_set_member() &&
-               m_cluster_impl->is_instance_cluster_set_member(
-                   *m_target_instance)) {
+    }
+
+    if (m_cluster_impl->is_cluster_set_member() &&
+        m_cluster_impl->is_instance_cluster_set_member(*m_target_instance)) {
       mysqlsh::current_console()->print_error(
           "The instance '" + m_target_instance->descr() +
           "' is already part of a Cluster of the ClusterSet. A new "
@@ -142,7 +138,8 @@ Member_recovery_method Add_replica_instance::validate_instance_recovery() {
   return mysqlsh::dba::validate_instance_recovery(
       Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
       *m_donor_instance, *m_target_instance, check_recoverable,
-      m_options.clone_options.recovery_method.get_safe(),
+      m_options.clone_options.recovery_method.value_or(
+          Member_recovery_method::AUTO),
       m_cluster_impl->get_gtid_set_is_complete(),
       current_shell_options()->get().wizards);
 }
@@ -181,10 +178,7 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
 
   // When replicationSources is set to a list of instances the main source must
   // be the first member of the list (the one with highest weight)
-  auto first_element =
-      m_options.replication_sources_option.replication_sources.begin();
-
-  std::string source_str = first_element->to_string();
+  assert(!m_options.replication_sources_option.replication_sources.empty());
 
   // Validate all sources are reachable, belong to the Cluster, and are
   // ONLINE
@@ -192,8 +186,6 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
 
   for (const auto &source :
        m_options.replication_sources_option.replication_sources) {
-    std::string source_string = source.to_string();
-
     auto source_instance = get_source_instance(source.to_string());
     Instance_metadata instance_md;
 
@@ -214,9 +206,9 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
               source_canononical_address);
     } catch (const shcore::Exception &e) {
       mysqlsh::current_console()->print_error(
-          "Unable to use '" + source_string +
-          "' as a source, instance does not belong to the Cluster: " +
-          e.format());
+          shcore::str_format("Unable to use '%s' as a source, instance does "
+                             "not belong to the Cluster: %s",
+                             source.to_string().c_str(), e.format().c_str()));
 
       throw shcore::Exception(
           "Source does not belong to the Cluster",
@@ -226,8 +218,9 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
     // Check if the instance is a Read-Replica
     if (instance_md.instance_type == Instance_type::READ_REPLICA) {
       mysqlsh::current_console()->print_error(
-          "Unable to use '" + source_string +
-          "' as a source: instance is a Read-Replica of the Cluster");
+          shcore::str_format("Unable to use '%s' as a source: instance is a "
+                             "Read-Replica of the Cluster",
+                             source.to_string().c_str()));
 
       throw shcore::Exception(
           "Invalid source type: Read-Replica",
@@ -238,9 +231,9 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
     auto state = mysqlshdk::gr::get_member_state(*source_instance);
 
     if (state != mysqlshdk::gr::Member_state::ONLINE) {
-      mysqlsh::current_console()->print_error(
-          "Unable to use '" + source_str +
-          "' as a source: instance's state is '" + to_string(state) + "'");
+      mysqlsh::current_console()->print_error(shcore::str_format(
+          "Unable to use '%s' as a source: instance's state is '%s'",
+          source.to_string().c_str(), to_string(state).c_str()));
       throw shcore::Exception(
           "Source is not ONLINE",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
@@ -372,8 +365,7 @@ void Add_replica_instance::do_run() {
     if (*m_options.clone_options.recovery_method ==
             Member_recovery_method::CLONE &&
         m_options.clone_options.clone_donor.has_value()) {
-      std::string donor = *m_options.clone_options.clone_donor;
-
+      const auto &donor = *m_options.clone_options.clone_donor;
       m_donor_instance =
           Scoped_instance(m_cluster_impl->connect_target_instance(donor));
     }
@@ -470,7 +462,7 @@ void Add_replica_instance::do_run() {
     // we need a point in time as close as possible, but still earlier than
     // when recovery starts to monitor the recovery phase. The timestamp
     // resolution is timestamp(3) irrespective of platform
-    std::string join_begin_time =
+    auto join_begin_time =
         m_target_instance->queryf_one_string(0, "", "SELECT NOW(3)");
 
     // Update Metadata
@@ -601,9 +593,9 @@ void Add_replica_instance::do_run() {
   }
 
   console->print_info();
-  console->print_info("'" + m_target_instance->descr() +
-                      "' successfully added as a Read-Replica of Cluster '" +
-                      m_cluster_impl->get_name() + "'.");
+  console->print_info(shcore::str_format(
+      "'%s' successfully added as a Read-Replica of Cluster '%s'.",
+      m_target_instance->descr().c_str(), m_cluster_impl->get_name().c_str()));
   console->print_info();
 
   if (m_options.dry_run) {

@@ -70,7 +70,7 @@ struct Clone_options {
 
   std::optional<bool> disable_clone;
   bool gtid_set_is_complete = false;
-  mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
+  std::optional<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
   std::optional<std::string> clone_donor;
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,10 +24,11 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 #define MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 
+#include <optional>
 #include <string>
 #include <vector>
+
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
 
 namespace shcore {
@@ -63,15 +64,15 @@ enum class Bson_type {
 };
 
 struct Document_reader_options {
-  mysqlshdk::utils::nullable<bool> convert_bson_types;
-  mysqlshdk::utils::nullable<bool> convert_bson_id;
-  mysqlshdk::utils::nullable<bool> ignore_date;
-  mysqlshdk::utils::nullable<bool> ignore_timestamp;
-  mysqlshdk::utils::nullable<bool> ignore_regexp;
-  mysqlshdk::utils::nullable<bool> ignore_regexp_options;
-  mysqlshdk::utils::nullable<bool> ignore_binary;
-  mysqlshdk::utils::nullable<bool> decimal_as_double;
-  mysqlshdk::utils::nullable<std::string> extract_oid_time;
+  std::optional<bool> convert_bson_types;
+  std::optional<bool> convert_bson_id;
+  std::optional<bool> ignore_date;
+  std::optional<bool> ignore_timestamp;
+  std::optional<bool> ignore_regexp;
+  std::optional<bool> ignore_regexp_options;
+  std::optional<bool> ignore_binary;
+  std::optional<bool> decimal_as_double;
+  std::optional<std::string> extract_oid_time;
 
   bool ignore_type(Bson_type type) const;
 

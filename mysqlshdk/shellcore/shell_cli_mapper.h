@@ -24,16 +24,12 @@
 #ifndef MYSQLSHDK_SHELLCORE_SHELL_CLI_MAPPER_H_
 #define MYSQLSHDK_SHELLCORE_SHELL_CLI_MAPPER_H_
 
-#include <functional>
 #include <map>
-#include <memory>
-#include <stdexcept>
+#include <optional>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/shellcore/shell_cli_operation_provider.h"
 
 namespace shcore {
@@ -60,7 +56,7 @@ struct Cmd_line_arg_definition {
   shcore::Value value;
 
   // Type specified by the user (if any)
-  mysqlshdk::utils::nullable<shcore::Value_type> user_type;
+  std::optional<shcore::Value_type> user_type;
 };
 
 /**

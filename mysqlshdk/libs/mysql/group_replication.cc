@@ -665,7 +665,7 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
                         mysqlshdk::mysql::Var_qualifier::GLOBAL);
   try {
     instance.execute("START GROUP_REPLICATION");
-  } catch (const std::exception &err) {
+  } catch (const std::exception &) {
     // Try to set the group_replication_bootstrap_group to OFF if the
     // statement to start GR failed and only then throw the error.
     try {
@@ -1199,7 +1199,7 @@ bool is_endpoint_supported_by_gr(const std::string &endpoint,
     // no guarantee that name resolution is the same across cluster instances
     // and the instance where we are running the ngshell.
     return true;
-  } catch (const std::invalid_argument &error) {
+  } catch (const std::invalid_argument &) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid address format: '%s'", endpoint.c_str()));
   }

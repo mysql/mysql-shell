@@ -21,31 +21,22 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/adminapi/cluster_set/create_replica_cluster.h"
+
 #include <memory>
-#include <set>
-#include <utility>
 #include <vector>
 
 #include "adminapi/common/async_topology.h"
 #include "adminapi/common/instance_validations.h"
-#include "adminapi/common/member_recovery_monitoring.h"
-#include "modules/adminapi/cluster/create_cluster_set.h"
-#include "modules/adminapi/cluster_set/create_replica_cluster.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
-#include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_validations.h"
-#include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
-#include "mysql/clone.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
 #include "shellcore/console.h"
 
 namespace mysqlsh {
@@ -346,7 +337,8 @@ void Create_replica_cluster::prepare() {
   m_options.clone_options.recovery_method =
       m_cluster_set->validate_instance_recovery(
           Member_op_action::ADD_INSTANCE, *m_target_instance,
-          m_options.clone_options.recovery_method.get_safe(),
+          m_options.clone_options.recovery_method.value_or(
+              Member_recovery_method::AUTO),
           m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete(),
           m_options.interactive());
 
@@ -472,8 +464,8 @@ shcore::Value Create_replica_cluster::execute() {
                     { throw std::logic_error("debug"); });
 
     // Create a new InnoDB Cluster and update its Metadata
-    auto repl_user = *ar_options.repl_credentials;
-    auto cluster = create_cluster_object(repl_user, repl_account_host);
+    auto cluster =
+        create_cluster_object(*ar_options.repl_credentials, repl_account_host);
 
     undo_list.push_front([=, this]() {
       log_info("Revert: Dropping Cluster '%s' from Metadata",

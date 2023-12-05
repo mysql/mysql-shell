@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -53,10 +54,10 @@ namespace mysqlsh {
  * - Querying for help on the object containing the member.
  */
 struct Member_definition {
-  Member_definition() {}
-  Member_definition(const std::string &n, const std::string &b,
-                    const std::vector<std::string> &d)
-      : name(n), brief(b), details(d) {}
+  Member_definition() noexcept = default;
+  Member_definition(std::string n, std::string b,
+                    std::vector<std::string> d) noexcept
+      : name(std::move(n)), brief(std::move(b)), details(std::move(d)) {}
 
   std::string name;
   std::string brief;
@@ -115,13 +116,14 @@ struct Parameter_definition {
 struct Function_definition : public Member_definition {
   using Parameters = std::vector<std::shared_ptr<Parameter_definition>>;
   using Examples = std::vector<shcore::Help_registry::Example>;
-  Function_definition() {}
-  Function_definition(const std::string &n, const Parameters &p,
-                      const std::string &b, const std::vector<std::string> &d,
-                      const Examples &e = {})
-      : Member_definition(n, b, d), parameters(p), examples(e) {}
-  Parameters parameters;
+  Function_definition() noexcept = default;
+  Function_definition(std::string n, Parameters p, std::string b,
+                      std::vector<std::string> d, Examples e = {}) noexcept
+      : Member_definition(std::move(n), std::move(b), std::move(d)),
+        parameters(std::move(p)),
+        examples(std::move(e)) {}
 
+  Parameters parameters;
   Examples examples;
   bool cli_enabled = false;
 };
@@ -143,6 +145,7 @@ class Extensible_object
   Extensible_object(const std::string &name = "",
                     const std::string &qualified_name = "");
   virtual ~Extensible_object();
+
   std::string class_name() const override {
     return m_name.empty() ? "ExtensionObject" : m_name;
   }

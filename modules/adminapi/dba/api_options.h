@@ -36,7 +36,6 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -52,13 +51,13 @@ struct Common_sandbox_options {
 
 struct Stop_sandbox_options : public Common_sandbox_options {
   static const shcore::Option_pack_def<Stop_sandbox_options> &options();
-  mysqlshdk::null_string password;
+  std::optional<std::string> password;
 };
 
 struct Deploy_sandbox_options : public Stop_sandbox_options {
   static const shcore::Option_pack_def<Deploy_sandbox_options> &options();
 
-  mysqlshdk::utils::nullable<int> xport;
+  std::optional<int> xport;
   std::string allow_root_from{"%"};
   bool ignore_ssl_error = false;
   shcore::Array_t mysqld_options;

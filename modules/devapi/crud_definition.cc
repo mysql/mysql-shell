@@ -22,12 +22,13 @@
  */
 
 #include "crud_definition.h"
+
 #include <mysqld_error.h>
+
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/mysqlx_parser.h"
-#include "db/mysqlx/util/setter_any.h"
+
 #include "db/session.h"
 #include "modules/devapi/base_database_object.h"
 #include "modules/devapi/crud_definition.h"
@@ -35,10 +36,8 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/protobuf_bridge.h"
 #include "modules/mysqlxtest_utils.h"
-#include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
 #include "utils/utils_string.h"
 
 using std::placeholders::_1;
@@ -51,7 +50,7 @@ Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner)
   try {
     add_method("execute", std::bind(&Crud_definition::execute, this, _1),
                "data");
-  } catch (const shcore::Exception &e) {
+  } catch (const shcore::Exception &) {
     // Invalid typecast exception is the only option
     // The exception is recreated with a more explicit message
     throw shcore::Exception::argument_error(
@@ -88,7 +87,7 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
 }
 
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
-    std::function<std::shared_ptr<mysqlshdk::db::IResult>()> func) {
+    const std::function<std::shared_ptr<mysqlshdk::db::IResult>()> &func) {
   bool interrupted = false;
 
   std::weak_ptr<ShellBaseSession> weak_session(_owner->session());
@@ -355,7 +354,7 @@ shcore::Value Crud_definition::limit(
   args.ensure_count(1, full_name.c_str());
 
   try {
-    if (m_limit.is_null()) reset_prepared_statement();
+    if (!m_limit.has_value()) reset_prepared_statement();
 
     m_limit = args.uint_at(0);
 

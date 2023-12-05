@@ -34,7 +34,6 @@
 
 #include <vector>
 
-#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -50,7 +49,6 @@
 #include "modules/adminapi/dba_utils.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -1095,7 +1093,7 @@ Cluster Dba::getCluster(String name, Dictionary options) {}
 Cluster Dba::get_cluster(str name, dict options) {}
 #endif
 std::shared_ptr<Cluster> Dba::get_cluster(
-    const mysqlshdk::null_string &cluster_name,
+    const std::optional<std::string> &cluster_name,
     const shcore::Dictionary_t &options) const {
   std::shared_ptr<Instance> target_member, group_server;
   std::shared_ptr<MetadataStorage> metadata, metadata_at_target;
@@ -1117,8 +1115,9 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     metadata_at_target = metadata;
 
     // Init the connection pool
-    Scoped_instance_pool ipool(current_shell_options()->get().wizards,
-                               target_member->get_connection_options());
+    Scoped_instance_pool ipool(
+        current_shell_options()->get().wizards,
+        Instance_pool::Auth_options{target_member->get_connection_options()});
 
     check_function_preconditions("Dba.getCluster", metadata, target_member);
 
@@ -1776,7 +1775,7 @@ JSON Dba::checkInstanceConfiguration(InstanceDef instance, Dictionary options) {
 JSON Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_configuration(
-    const mysqlshdk::utils::nullable<Connection_options> &instance_def_,
+    const std::optional<Connection_options> &instance_def_,
     const shcore::Option_pack_ref<Check_instance_configuration_options>
         &options) {
   auto instance_def = instance_def_;
@@ -2053,13 +2052,13 @@ shcore::Value Dba::create_replica_set(
   }
 
   // Init the connection pool
-  Scoped_instance_pool ipool(current_shell_options()->get().wizards,
-                             target_server->get_connection_options());
+  Scoped_instance_pool ipool(
+      current_shell_options()->get().wizards,
+      Instance_pool::Auth_options{target_server->get_connection_options()});
 
-  auto topology_type = Global_topology_type::SINGLE_PRIMARY_TREE;
-
-  auto cluster = Replica_set_impl::create(full_rs_name, topology_type,
-                                          target_server, *options);
+  auto cluster = Replica_set_impl::create(
+      full_rs_name, Global_topology_type::SINGLE_PRIMARY_TREE, target_server,
+      *options);
 
   auto console = mysqlsh::current_console();
   console->print_info("ReplicaSet object successfully created for " +
@@ -2112,8 +2111,9 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   check_function_preconditions("Dba.getClusterSet", metadata, target_server);
 
   // Init the connection pool
-  Scoped_instance_pool ipool(metadata, current_shell_options()->get().wizards,
-                             target_server->get_connection_options());
+  Scoped_instance_pool ipool(
+      metadata, current_shell_options()->get().wizards,
+      Instance_pool::Auth_options{target_server->get_connection_options()});
 
   // Validate if the target instance is a member of an InnoDB Cluster
   Cluster_metadata cluster_md;
@@ -2239,11 +2239,11 @@ void Dba::deploy_sandbox_instance(
 
   const Deploy_sandbox_options &opts = *options;
 
-  if (!opts.xport.is_null()) {
+  if (opts.xport.has_value()) {
     validate_port(*opts.xport, "portx");
   }
 
-  mysqlshdk::null_string password = opts.password;
+  auto password = opts.password;
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
   std::string path =
@@ -2257,7 +2257,7 @@ void Dba::deploy_sandbox_instance(
         "\nrunning on your local machine for testing purposes and are not "
         "\naccessible from external networks.\n");
 
-    if (password.is_null()) {
+    if (!password.has_value()) {
       std::string answer;
       if (console->prompt_password(
               "Please enter a MySQL root password for the new instance: ",
@@ -2269,7 +2269,7 @@ void Dba::deploy_sandbox_instance(
     }
   }
 
-  if (password.is_null()) {
+  if (!password.has_value()) {
     throw shcore::Exception::argument_error(
         "Missing root password for the deployed instance");
   }
@@ -2281,7 +2281,7 @@ void Dba::deploy_sandbox_instance(
 
   shcore::Array_t errors;
   int rc = _provisioning_interface.create_sandbox(
-      port, opts.xport.get_safe(0), options->sandbox_dir, *password,
+      port, opts.xport.value_or(0), options->sandbox_dir, *password,
       shcore::Value(opts.mysqld_options), true, opts.ignore_ssl_error, 0, "",
       &errors);
 
@@ -2473,7 +2473,7 @@ void Dba::stop_sandbox_instance(
 
   validate_port(port, "port");
 
-  mysqlshdk::null_string password = options->password;
+  auto password = options->password;
 
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
@@ -2483,7 +2483,7 @@ void Dba::stop_sandbox_instance(
                         " will be " + sandbox::Operations_text["stop"].past +
                         "\n");
 
-    if (password.is_null()) {
+    if (!password.has_value()) {
       std::string answer;
       if (console->prompt_password(
               "Please enter the MySQL root password for the instance "
@@ -2497,7 +2497,7 @@ void Dba::stop_sandbox_instance(
     }
   }
 
-  if (password.is_null()) {
+  if (!password.has_value()) {
     throw shcore::Exception::argument_error(
         "Missing root password for the instance");
   }
@@ -2561,7 +2561,6 @@ void Dba::start_sandbox_instance(
 void Dba::do_configure_instance(
     const mysqlshdk::db::Connection_options &instance_def_,
     const Configure_instance_options &options, Cluster_type purpose) {
-  shcore::Value ret_val;
   auto instance_def = instance_def_;
 
   if (instance_def.has_data() && options.password.has_value()) {
@@ -2604,19 +2603,23 @@ void Dba::do_configure_instance(
   ipool->set_metadata(metadata);
 
   auto warnings_callback = [instance_descr = target_instance->descr()](
-                               const std::string &sql, int code,
-                               const std::string &level,
-                               const std::string &msg) {
-    log_debug("%s: '%s' on instance '%s'. (Code %d) When executing query: '%s'",
-              level.c_str(), msg.c_str(), instance_descr.c_str(), code,
-              sql.c_str());
+                               std::string_view sql, int code,
+                               std::string_view level, std::string_view msg) {
+    log_debug(
+        "%.*s: '%.*s' on instance '%.*s'. (Code %d) When executing query: "
+        "'%.*s'",
+        static_cast<int>(level.size()), level.data(),                    //
+        static_cast<int>(msg.size()), msg.data(),                        //
+        static_cast<int>(instance_descr.size()), instance_descr.data(),  //
+        code,                                                            //
+        static_cast<int>(sql.size()), sql.data());
 
     if (level != "WARNING") return;
 
     auto console = current_console();
     console->print_info();
-    console->print_warning(
-        shcore::str_format("%s (Code %d).", msg.c_str(), code));
+    console->print_warning(shcore::str_format(
+        "%.*s (Code %d).", static_cast<int>(msg.size()), msg.data(), code));
   };
 
   // Add the warnings callback
@@ -2683,7 +2686,7 @@ Undefined Dba::configureLocalInstance(InstanceDef instance,
 None Dba::configure_local_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_local_instance(
-    const mysqlshdk::utils::nullable<Connection_options> &instance_def,
+    const std::optional<Connection_options> &instance_def,
     const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
         &options) {
   mysqlsh::current_console()->print_warning(
@@ -2785,7 +2788,7 @@ Undefined Dba::configureInstance(InstanceDef instance, Dictionary options) {}
 None Dba::configure_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_instance(
-    const mysqlshdk::utils::nullable<Connection_options> &instance_def,
+    const std::optional<Connection_options> &instance_def,
     const shcore::Option_pack_ref<Configure_cluster_instance_options>
         &options) {
   do_configure_instance(instance_def ? *instance_def : Connection_options{},
@@ -2864,7 +2867,7 @@ Undefined Dba::configureReplicaSetInstance(InstanceDef instance,
 None Dba::configure_replica_set_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_replica_set_instance(
-    const mysqlshdk::utils::nullable<Connection_options> &instance_def,
+    const std::optional<Connection_options> &instance_def,
     const shcore::Option_pack_ref<Configure_replicaset_instance_options>
         &options) {
   return do_configure_instance(
@@ -2970,7 +2973,7 @@ Cluster Dba::reboot_cluster_from_complete_outage(str clusterName,
 #endif
 
 std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
-    const mysqlshdk::null_string &cluster_name,
+    const std::optional<std::string> &cluster_name,
     const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> target_instance;
@@ -3120,7 +3123,7 @@ void Dba::upgrade_metadata(
   // Init the connection pool
   Scoped_instance_pool ipool(
       current_shell_options()->get().wizards,
-      Instance_pool::Auth_options(instance->get_connection_options()));
+      Instance_pool::Auth_options{instance->get_connection_options()});
 
   auto primary = check_preconditions("Dba.upgradeMetadata", instance);
 

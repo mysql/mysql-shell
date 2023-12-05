@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,7 @@
 
 #include <memory>
 #include <string>
-#include "db/mysqlx/mysqlxclient_clean.h"
+
 #include "modules/devapi/dynamic_object.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 
@@ -82,7 +82,7 @@ class SqlExecute : public Dynamic_object,
   };
 
   Allowed_function_mask function_name_to_bitmask(
-      const std::string &s) const override {
+      std::string_view s) const override {
     if ("sql" == s) {
       return F::sql;
     }

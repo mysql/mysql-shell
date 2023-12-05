@@ -20,16 +20,17 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/devapi/mod_mysqlx_collection_find.h"
-#include <algorithm>
+
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_collection.h"
 #include "modules/devapi/mod_mysqlx_expression.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
-#include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
 namespace mysqlsh {
@@ -1409,7 +1410,7 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
   try {
     result = execute();
     update_functions(F::execute);
-    if (!m_limit.is_null()) {
+    if (m_limit.has_value()) {
       enable_function(F::offset);
       enable_function(F::skip);
     }

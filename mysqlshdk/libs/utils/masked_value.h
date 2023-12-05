@@ -25,10 +25,9 @@
 #define MYSQLSHDK_LIBS_UTILS_MASKED_VALUE_H_
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <type_traits>
-
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -93,7 +92,9 @@ class Masked_value final {
 
   Masked_value(const Masked_value &v) : m_real_ref(m_real) { *this = v; }
 
-  Masked_value(Masked_value &&v) : m_real_ref(m_real) { *this = std::move(v); }
+  Masked_value(Masked_value &&v) noexcept : m_real_ref(m_real) {
+    *this = std::move(v);
+  }
 
   Masked_value &operator=(const Masked_value &v) {
     if (&v.m_real == &v.m_real_ref.get()) {
@@ -111,7 +112,7 @@ class Masked_value final {
     return *this;
   }
 
-  Masked_value &operator=(Masked_value &&v) {
+  Masked_value &operator=(Masked_value &&v) noexcept {
     if (&v.m_real == &v.m_real_ref.get()) {
       // reference points to the v.m_real, need to move the value
       m_real = std::move(v.m_real);
@@ -131,7 +132,7 @@ class Masked_value final {
 
   const T &real() const { return m_real_ref; }
 
-  T masked() const { return m_masked.get_safe(real()); }
+  T masked() const { return m_masked.value_or(real()); }
 
   bool operator==(const Masked_value &mv) const {
     // call the other comparison operator
@@ -148,7 +149,7 @@ class Masked_value final {
 
   std::reference_wrapper<const T> m_real_ref;
 
-  nullable<T> m_masked;
+  std::optional<T> m_masked;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Masked_value_test, constructors);

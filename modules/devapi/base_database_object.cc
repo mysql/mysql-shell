@@ -23,26 +23,18 @@
 
 #include "modules/devapi/base_database_object.h"
 
-#include <algorithm>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/scripting/common.h"
-#include "mysqlshdk/include/scripting/lang_base.h"
-#include "mysqlshdk/include/scripting/object_factory.h"
-#include "mysqlshdk/include/scripting/proxy_object.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
-#include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 
-using namespace std::placeholders;
 using namespace mysqlsh;
 using namespace shcore;
 
@@ -57,7 +49,7 @@ DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session,
   init();
 }
 
-DatabaseObject::~DatabaseObject() {}
+DatabaseObject::~DatabaseObject() = default;
 
 void DatabaseObject::init() {
   add_property("name", "getName");
@@ -67,14 +59,20 @@ void DatabaseObject::init() {
   // Hold the number of base properties
   _base_property_count = _properties.size();
 
-  add_method("existsInDatabase",
-             std::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
+  add_method(
+      "existsInDatabase",
+      std::bind(&DatabaseObject::existsInDatabase, this, std::placeholders::_1),
+      "data");
 }
 
 std::string &DatabaseObject::append_descr(std::string &s_out,
                                           int UNUSED(indent),
                                           int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + _name + ">");
+  s_out.append(1, '<')
+      .append(class_name())
+      .append(1, ':')
+      .append(_name)
+      .append(1, '>');
   return s_out;
 }
 
@@ -186,23 +184,25 @@ object DatabaseObject::get_schema() {}
 #endif
 
 Value DatabaseObject::get_member(const std::string &prop) const {
-  Value ret_val = Value::Null();
-
   if (prop == "name") {
-    ret_val = Value(_name);
-  } else if (prop == "session") {
-    if (!_session.expired()) {
-      if (auto session = _session.lock()) ret_val = Value(session);
-    }
-  } else if (prop == "schema") {
-    if (!_schema.expired()) {
-      if (auto schema = _schema.lock()) ret_val = Value(schema);
-    }
-  } else {
-    ret_val = Cpp_object_bridge::get_member(prop);
+    return Value(_name);
   }
 
-  return ret_val;
+  if (prop == "session") {
+    if (!_session.expired()) {
+      if (auto session = _session.lock(); session) return Value(session);
+    }
+    return Value::Null();
+  }
+
+  if (prop == "schema") {
+    if (!_schema.expired()) {
+      if (auto schema = _schema.lock(); schema) return Value(schema);
+    }
+    return Value::Null();
+  }
+
+  return Cpp_object_bridge::get_member(prop);
 }
 
 REGISTER_HELP_FUNCTION(existsInDatabase, DatabaseObject);
@@ -224,47 +224,45 @@ shcore::Value DatabaseObject::existsInDatabase(
     const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("existsInDatabase").c_str());
 
-  shcore::Value ret_val;
-  std::string type(get_object_type());
-
   auto session = _session.lock();
   auto schema = _schema.lock();
 
   try {
-    if (session)
-      ret_val = shcore::Value(
+    if (session) {
+      auto type = get_object_type();
+      return shcore::Value(
           !session
                ->db_object_exists(
                    type, _name,
                    schema ? schema->get_member("name").get_string() : "")
                .empty());
-    else {
-      std::string name = _name;
-      if (schema) name = schema->get_member("name").get_string() + "." + _name;
-
-      throw shcore::Exception::logic_error("Unable to verify existence of '" +
-                                           name + "', no Session available");
     }
+
+    auto name =
+        !schema ? _name
+                : shcore::str_format(
+                      "%s.%s", schema->get_member("name").get_string().c_str(),
+                      _name.c_str());
+
+    throw shcore::Exception::logic_error(shcore::str_format(
+        "Unable to verify existence of '%s', no Session available",
+        name.c_str()));
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("existsInDatabase"));
-
-  return ret_val;
 }
 
 void DatabaseObject::update_cache(
     const std::vector<std::string> &names,
     const std::function<shcore::Value(const std::string &name)> &generator,
     Cache target_cache, DatabaseObject *target) {
-  std::set<std::string> existing;
-
   // Backups the existing items in the collection
-  const auto end = target_cache->end();
-
-  for (auto index = target_cache->begin(); index != end; index++)
-    existing.insert(index->first);
+  std::set<std::string> existing;
+  for (const auto &index : *target_cache) {
+    existing.insert(index.first);
+  }
 
   // Ensures the existing items are on the cache
-  for (auto name : names) {
+  for (const auto &name : names) {
     if (existing.find(name) == existing.end()) {
       (*target_cache)[name] = generator(name);
 
@@ -273,14 +271,12 @@ void DatabaseObject::update_cache(
         // i.e. Name must not change to match the python naming style
         target->add_property(name + "|" + name);
       }
-    }
-
-    else
+    } else
       existing.erase(name);
   }
 
   // Removes no longer existing items
-  for (auto name : existing) {
+  for (const auto &name : existing) {
     target_cache->erase(name);
 
     if (target) target->delete_property(name);
@@ -315,16 +311,15 @@ void DatabaseObject::flush_cache(Cache target_cache, DatabaseObject *target) {
 
 void DatabaseObject::get_object_list(Cache target_cache,
                                      shcore::Value::Array_type_ref list) {
-  for (auto entry : *target_cache) list->push_back(entry.second);
+  for (const auto &entry : *target_cache) list->push_back(entry.second);
 }
 
 shcore::Value DatabaseObject::find_in_cache(const std::string &name,
                                             Cache target_cache) {
-  Value::Map_type::const_iterator iter = target_cache->find(name);
-  if (iter != target_cache->end())
+  if (auto iter = target_cache->find(name); iter != target_cache->end())
     return Value(std::shared_ptr<Object_bridge>(iter->second.as_object()));
-  else
-    return Value();
+
+  return Value();
 }
 
 bool DatabaseObject::is_base_member(const std::string &prop) const {
@@ -339,25 +334,17 @@ bool DatabaseObject::is_base_member(const std::string &prop) const {
 }
 
 uint64_t DatabaseObject::count() {
-  mysqlshdk::utils::nullable<uint64_t> ret_val;
-
   // We make sure count is being called in an object that makes sense
   // ATM only table and collection support this function
   assert(has_count());
 
-  auto session_wrapper = session();
+  if (auto session_wrapper = session(); session_wrapper) {
+    auto query = "select count(*) from !.!"_sql << schema()->name() << name();
 
-  if (session_wrapper) {
     auto session = session_wrapper->get_core_session();
-    shcore::sqlstring query("select count(*) from !.!", 0);
-    query << schema()->name();
-    query << name();
     auto result = session->query(query.str(), true);
-    ret_val = result->fetch_one()->get_uint(0);
+    return result->fetch_one()->get_uint(0);
   }
 
-  if (ret_val.is_null())
-    throw shcore::Exception::logic_error("No session available.");
-  else
-    return *ret_val;
+  throw shcore::Exception::logic_error("No session available.");
 }

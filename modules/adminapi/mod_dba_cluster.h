@@ -194,7 +194,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
       const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
           &options);
 
-  std::shared_ptr<ClusterSet> get_cluster_set();
+  std::shared_ptr<ClusterSet> get_cluster_set() const;
 
  protected:
   // Used shell options

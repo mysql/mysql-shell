@@ -115,7 +115,7 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     try {
       auto instance = Instance::connect_raw(instance_conn_opt);
       is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(*instance);
-    } catch (const std::exception &e) {
+    } catch (const std::exception &) {
       // if you cant connect to the instance then we assume it really is offline
       // or unreachable and it is not auto-rejoining
     }
@@ -243,7 +243,7 @@ void Rescan::check_mismatched_hostnames_addresses(
         bool grendpoint_valid = true;
         try {
           mysqlshdk::utils::split_host_and_port(info.first.grendpoint);
-        } catch (const std::invalid_argument &e) {
+        } catch (const std::invalid_argument &) {
           log_debug("Unable to parse endpoint: %s",
                     info.first.grendpoint.c_str());
           grendpoint_valid = false;

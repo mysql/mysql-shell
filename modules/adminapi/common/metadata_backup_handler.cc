@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,7 +65,7 @@ class Base_backup_handler {
       prepare();
       copy_data();
       finish();
-    } catch (const std::exception &err) {
+    } catch (const std::exception &) {
       rollback();
       throw;
     }

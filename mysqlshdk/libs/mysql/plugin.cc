@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -99,7 +99,7 @@ bool install_plugin(const std::string &plugin,
 
         // Check the plugin state after the attempting to activate it;
         plugin_state = instance.get_plugin_status(plugin);
-      } catch (const std::exception &err) {
+      } catch (const std::exception &) {
         // restore previous value on configuration file
         cfg_file_handler->set_now(plugin, clone_plugin_status);
         throw;

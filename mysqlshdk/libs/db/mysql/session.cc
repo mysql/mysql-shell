@@ -278,7 +278,7 @@ void Session_impl::connect(
     if (auth == kAuthMethodClearPassword) {
       if (!connection_options.has_socket() && !connection_options.has_pipe()) {
         auto final_ssl_mode =
-            used_ssl_mode.get_safe(mysqlshdk::db::Ssl_mode::Disabled);
+            used_ssl_mode.value_or(mysqlshdk::db::Ssl_mode::Disabled);
 
         if (final_ssl_mode == mysqlshdk::db::Ssl_mode::Disabled) {
           throw std::runtime_error(
@@ -455,11 +455,11 @@ void Session_impl::connect(
   }
 }
 
-mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
+std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
     const mysqlshdk::db::Ssl_options &ssl_options) const {
   int value;
 
-  mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> ssl_mode;
+  std::optional<mysqlshdk::db::Ssl_mode> ssl_mode;
   if (ssl_options.has_data()) {
     ssl_options.validate();
 

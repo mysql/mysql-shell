@@ -117,7 +117,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   bool execute(const std::string &sql) {
     try {
       session->execute(sql);
-    } catch (const mysqlshdk::db::Error &e) {
+    } catch (const mysqlshdk::db::Error &) {
       return false;
     }
     return true;

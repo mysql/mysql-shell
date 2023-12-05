@@ -60,20 +60,22 @@ void Add_instance::check_cluster_members_limit() const {
 void Add_instance::resolve_local_address(
     checks::Check_type check_type, Group_replication_options *gr_options,
     const Group_replication_options &user_gr_options) {
-  auto hostname = m_target_instance->get_canonical_hostname();
-  auto communication_stack =
-      get_communication_stack(*m_cluster_impl->get_cluster_server());
+  {
+    auto hostname = m_target_instance->get_canonical_hostname();
+    auto communication_stack =
+        get_communication_stack(*m_cluster_impl->get_cluster_server());
 
-  bool check_if_busy =
-      check_type == checks::Check_type::REJOIN ? false : !m_already_member;
-  bool quiet = (check_type == checks::Check_type::REJOIN);
+    bool check_if_busy =
+        check_type == checks::Check_type::REJOIN ? false : !m_already_member;
+    bool quiet = (check_type == checks::Check_type::REJOIN);
 
-  gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
-      user_gr_options.local_address.value_or("").empty()
-          ? gr_options->local_address
-          : user_gr_options.local_address,
-      communication_stack, hostname, *m_target_instance->get_sysvar_int("port"),
-      check_if_busy, quiet);
+    gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
+        user_gr_options.local_address.value_or("").empty()
+            ? gr_options->local_address
+            : user_gr_options.local_address,
+        communication_stack, hostname,
+        *m_target_instance->get_sysvar_int("port"), check_if_busy, quiet);
+  }
 
   // Validate that the local_address value we want to use as well as the
   // local address values in use on the cluster are compatible with the
@@ -88,10 +90,11 @@ void Add_instance::check_and_resolve_instance_configuration(
     checks::Check_type check_type, bool is_switching_comm_stack) {
   Group_replication_options user_options(m_gr_opts);
 
-  bool using_clone_recovery = !m_clone_opts.recovery_method
-                                  ? false
-                                  : m_clone_opts.recovery_method.get_safe() ==
-                                        Member_recovery_method::CLONE;
+  bool using_clone_recovery =
+      !m_clone_opts.recovery_method
+          ? false
+          : m_clone_opts.recovery_method.value_or(
+                Member_recovery_method::AUTO) == Member_recovery_method::CLONE;
 
   // Check instance version compatibility with cluster.
   m_cluster_impl->check_instance_configuration(
@@ -135,20 +138,19 @@ void Add_instance::refresh_target_connections() const {
   try {
     m_target_instance->reconnect_if_needed("Target");
   } catch (const shcore::Error &err) {
+    if (err.code() != ER_ACCESS_DENIED_ERROR) throw;
+
     auto cluster_coptions =
         m_cluster_impl->get_cluster_server()->get_connection_options();
-
-    if (err.code() == ER_ACCESS_DENIED_ERROR &&
-        m_target_instance->get_connection_options().get_user() !=
-            cluster_coptions.get_user()) {
-      // try again with cluster credentials
-      auto copy = m_target_instance->get_connection_options();
-      copy.set_login_options_from(cluster_coptions);
-      m_target_instance->get_session()->connect(copy);
-      m_target_instance->prepare_session();
-    } else {
+    if (m_target_instance->get_connection_options().get_user() ==
+        cluster_coptions.get_user())
       throw;
-    }
+
+    // try again with cluster credentials
+    auto copy = m_target_instance->get_connection_options();
+    copy.set_login_options_from(cluster_coptions);
+    m_target_instance->get_session()->connect(copy);
+    m_target_instance->prepare_session();
   }
 
   m_cluster_impl->refresh_connections();
@@ -246,8 +248,7 @@ void Add_instance::store_cloned_replication_account() const {
   // Get the "donor" recovery account
   auto md_inst = m_cluster_impl->get_metadata_storage()->get_md_server();
 
-  std::string recovery_user, recovery_user_host;
-  std::tie(recovery_user, recovery_user_host) =
+  auto [recovery_user, recovery_user_host] =
       m_cluster_impl->get_metadata_storage()->get_instance_repl_account(
           md_inst->get_uuid(), Cluster_type::GROUP_REPLICATION,
           Replica_type::GROUP_MEMBER);

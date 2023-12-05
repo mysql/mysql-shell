@@ -41,8 +41,8 @@
 #include "mysqlshdk/libs/utils/version.h"
 
 using Warnings_callback =
-    std::function<void(const std::string &sql, int code,
-                       const std::string &level, const std::string &msg)>;
+    std::function<void(std::string_view sql, int code, std::string_view level,
+                       std::string_view msg)>;
 
 namespace mysqlshdk {
 namespace mysql {
@@ -64,9 +64,11 @@ struct Auth_options {
   db::Ssl_options ssl_options;
 
   Auth_options() = default;
-  Auth_options(const std::string &user_, const std::string &password_)
-      : user(user_), password(password_) {}
-  Auth_options(const mysqlshdk::db::Connection_options &copts) { get(copts); }
+  Auth_options(std::string user_, std::string password_) noexcept
+      : user(std::move(user_)), password(std::move(password_)) {}
+  explicit Auth_options(const mysqlshdk::db::Connection_options &copts) {
+    get(copts);
+  }
   void get(const mysqlshdk::db::Connection_options &copts);
   void set(mysqlshdk::db::Connection_options *copts) const;
 };
@@ -519,7 +521,7 @@ class Instance : public IInstance {
   void execute(const std::string &sql) const override;
 
  private:
-  void process_result_warnings(const std::string &sql,
+  void process_result_warnings(std::string_view sql,
                                mysqlshdk::db::IResult &result) const;
 
  private:
@@ -535,7 +537,7 @@ class Instance : public IInstance {
   mutable std::optional<int> m_xport;
   mutable uint32_t m_server_id = 0;
   int m_sql_binlog_suppress_count = 0;
-  Warnings_callback m_warnings_callback = nullptr;
+  Warnings_callback m_warnings_callback;
 };
 
 }  // namespace mysql

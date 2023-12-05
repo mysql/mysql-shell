@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,9 +20,11 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #ifndef SRC_MYSQLSH_PROMPT_HANDLER_H_
 #define SRC_MYSQLSH_PROMPT_HANDLER_H_
 
+#include <functional>
 #include <string>
 
 #include "mysqlshdk/include/scripting/lang_base.h"
@@ -41,8 +43,9 @@ namespace mysqlsh {
  */
 class Prompt_handler {
  public:
-  Prompt_handler(const std::function<shcore::Prompt_result(
-                     bool, const char *, std::string *)> &do_prompt_cb);
+  Prompt_handler(
+      std::function<shcore::Prompt_result(bool, const char *, std::string *)>
+          do_prompt_cb) noexcept;
 
   shcore::Prompt_result handle_prompt(
       const std::string &prompt, const shcore::prompt::Prompt_options &options,
@@ -65,8 +68,8 @@ class Prompt_handler {
       const std::function<char *(const char *)> &get_text, bool is_password,
       const char *text, std::string *ret);
 
-  const std::function<shcore::Prompt_result(bool, const char *, std::string *)>
-      &m_do_prompt_cb;
+  std::function<shcore::Prompt_result(bool, const char *, std::string *)>
+      m_do_prompt_cb;
 };
 
 std::string render_text_prompt(const std::string &prompt,

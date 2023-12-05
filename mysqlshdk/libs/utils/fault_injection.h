@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,8 +29,9 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
-#include "mysqlshdk/libs/utils/nullable.h"
+
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -90,28 +91,28 @@ class FI {
         : m_trigger_options(trigger_options), m_trap_options(trap_options) {}
 
     int get_int(const std::string &arg,
-                mysqlshdk::utils::nullable<int> default_value = {}) const {
+                std::optional<int> default_value = {}) const {
       auto o = m_trap_options.find(arg);
       if (o != m_trap_options.end()) return std::stoi(o->second);
 
       o = m_trigger_options.find(arg);
       if (o != m_trigger_options.end()) return std::stoi(o->second);
 
-      if (default_value.is_null())
+      if (!default_value.has_value())
         throw std::invalid_argument("Invalid argument name '" + arg + "'");
       return *default_value;
     }
 
     std::string get_string(
         const std::string &arg,
-        mysqlshdk::utils::nullable<std::string> default_value = {}) const {
+        std::optional<std::string> default_value = {}) const {
       auto o = m_trap_options.find(arg);
       if (o != m_trap_options.end()) return o->second;
 
       o = m_trigger_options.find(arg);
       if (o != m_trigger_options.end()) return o->second;
 
-      if (default_value.is_null())
+      if (!default_value.has_value())
         throw std::invalid_argument("Invalid argument name '" + arg + "'");
       return *default_value;
     }

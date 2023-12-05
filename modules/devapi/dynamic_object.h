@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,14 +27,11 @@
 #ifndef MODULES_DEVAPI_DYNAMIC_OBJECT_H_
 #define MODULES_DEVAPI_DYNAMIC_OBJECT_H_
 
-#include <map>
-#include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
-#include "scripting/common.h"
 #include "scripting/types_cpp.h"
-#include "utils/utils_general.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -89,15 +86,13 @@ class Dynamic_object : public shcore::Cpp_object_bridge {
   //! Enable/disable functions based on the received and registered states
   void update_functions(Allowed_function_mask source);
 
-  inline void enable_function(Allowed_function_mask f) {
-    enabled_functions_ |= f;
-  }
+  void enable_function(Allowed_function_mask f) { enabled_functions_ |= f; }
 
-  bool is_enabled(const std::string &name) const;
+  bool is_enabled(std::string_view name) const;
 
  private:
   virtual Allowed_function_mask function_name_to_bitmask(
-      const std::string &s) const = 0;
+      std::string_view s) const = 0;
 };
 }  // namespace mysqlx
 }  // namespace mysqlsh

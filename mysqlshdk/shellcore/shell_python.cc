@@ -84,7 +84,7 @@ void Shell_python::handle_input(std::string &code, bool flush) {
     try {
       WillEnterPython lock;
       result = _py->execute(code, _owner->get_input_source());
-    } catch (Exception &exc) {
+    } catch (Exception &) {
       // This exception was already printed in PY
       // and the correct return_value of undefined is set
     }

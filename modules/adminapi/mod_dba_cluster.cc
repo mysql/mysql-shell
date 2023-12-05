@@ -1723,7 +1723,7 @@ ReplicaSet Cluster::getClusterSet() {}
 #elif DOXYGEN_PY
 ReplicaSet Cluster::get_cluster_set() {}
 #endif
-std::shared_ptr<ClusterSet> Cluster::get_cluster_set() {
+std::shared_ptr<ClusterSet> Cluster::get_cluster_set() const {
   assert_valid("getClusterSet");
 
   // Init the connection pool
@@ -1841,7 +1841,10 @@ void Cluster::add_replica_instance(
   validate_instance_label(options->label, *impl());
 
   return execute_with_pool(
-      [&]() { return impl()->add_replica_instance(instance_def, *options); },
+      [&]() {
+        return impl()->add_replica_instance(Connection_options{instance_def},
+                                            *options);
+      },
       false);
 }
 

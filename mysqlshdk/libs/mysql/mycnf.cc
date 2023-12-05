@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,6 +24,7 @@
  */
 
 #include "mysqlshdk/libs/mysql/mycnf.h"
+
 #include <cstdio>
 #include <fstream>
 
@@ -36,17 +37,19 @@ namespace mycnf {
 
 void update_options(const std::string &path, const std::string &section,
                     const std::vector<Option> &mycnf_options) {
-  std::vector<Option> options(mycnf_options);
   std::ifstream ifs;
-  std::ofstream ofs;
   ifs.open(path);
   if (ifs.fail()) {
     throw std::runtime_error(path + ": " + strerror(errno));
   }
+
+  std::ofstream ofs;
   ofs.open(path + ".tmp");
   if (ofs.fail()) {
     throw std::runtime_error(path + ".tmp: " + strerror(errno));
   }
+
+  std::vector<Option> options(mycnf_options);
 
   try {
     bool found_section = false;
@@ -61,18 +64,17 @@ void update_options(const std::string &path, const std::string &section,
           inside_section = true;
         }
       } else if (inside_section) {
-        std::string key;
-        utils::nullable<std::string> value;
-        std::tie(key, value) = shcore::str_partition(line, "=");
-        for (auto opt = options.begin(); opt != options.end(); ++opt) {
-          if (opt->first == key) {
-            if (!opt->second) {
+        auto [key, value] = shcore::str_partition(line, "=");
+
+        for (auto &opt : options) {
+          if (opt.first == key) {
+            if (!opt.second.has_value()) {
               // option set to NULL means erase the option
               skip = true;
             } else {
-              line = key + "=" + *opt->second;
+              line = key + "=" + *opt.second;
             }
-            opt->first.clear();
+            opt.first.clear();
             break;
           }
         }

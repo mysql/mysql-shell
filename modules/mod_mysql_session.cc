@@ -23,29 +23,22 @@
 
 #include "modules/mod_mysql_session.h"
 
-#include <set>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "modules/mod_mysql_resultset.h"
-#include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
-#include "scripting/lang_base.h"
-#include "scripting/object_factory.h"
-#include "scripting/proxy_object.h"
-#include "shellcore/shell_core.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_sqlstring.h"
 
-using namespace std::placeholders;
 using namespace mysqlsh;
 using namespace mysqlsh::mysql;
 using namespace shcore;
@@ -197,6 +190,8 @@ std::vector<mysqlshdk::db::Query_attribute> ClassicSession::query_attributes()
             // Only the date object is supported
             if (auto date = att.as_object<Date>(); date) {
               MYSQL_TIME time;
+              std::memset(&time, 0, sizeof(time));
+
               time.year = date->get_year();
               time.month = date->get_month();
               time.day = date->get_day();

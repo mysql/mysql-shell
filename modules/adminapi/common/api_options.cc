@@ -23,15 +23,10 @@
 
 #include "modules/adminapi/cluster/api_options.h"
 
-#include "adminapi/common/api_options.h"
-#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "shellcore/shell_options.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 const shcore::Option_pack_def<Timeout_option> &Timeout_option::options() {
   static const auto opts = shcore::Option_pack_def<Timeout_option>().optional(
@@ -336,6 +331,7 @@ void Setup_account_options::set_password_expiration(
     }
 
     case shcore::Integer:
+      [[fallthrough]];
     case shcore::UInteger:
       try {
         password_expiration = value.as_uint();
@@ -356,5 +352,4 @@ void Setup_account_options::set_password_expiration(
   }
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

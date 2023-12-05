@@ -22,29 +22,24 @@
  */
 
 #include "modules/devapi/mod_mysqlx_schema.h"
+
 #include <mysqld_error.h>
+
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "scripting/lang_base.h"
-#include "scripting/object_factory.h"
-#include "shellcore/base_shell.h"
-#include "shellcore/shell_core.h"
-
-#include "scripting/proxy_object.h"
-
 #include "modules/devapi/mod_mysqlx_collection.h"
-#include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/mysqlx/xpl_error.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "shellcore/utils_help.h"
-#include "utils/utils_general.h"
 #include "utils/utils_sqlstring.h"
 #include "utils/utils_string.h"
 
@@ -106,9 +101,9 @@ Schema::Schema(std::shared_ptr<Session> session, const std::string &schema)
   init();
 }
 
-Schema::~Schema() {}
-
 void Schema::init() {
+  using namespace std::placeholders;
+
   add_method("getTables", std::bind(&Schema::get_tables, this, _1));
   add_method("getCollections", std::bind(&Schema::get_collections, this, _1));
   add_method("getTable", std::bind(&Schema::get_table, this, _1), "name",
@@ -607,7 +602,7 @@ shcore::Value Schema::create_collection(const std::string &name,
   options->set("name", Value(name));
   if (opts && !opts->empty()) {
     shcore::Dictionary_t validation;
-    mysqlshdk::utils::nullable<bool> reuse;
+    std::optional<bool> reuse;
     shcore::Option_unpacker{opts}
         .optional("validation", &validation)
         .optional("reuseExistingObject", &reuse)

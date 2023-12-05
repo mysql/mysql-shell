@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,11 +26,13 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
+
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
@@ -132,7 +134,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
  public:  // Exported public methods
   shcore::Value check_instance_configuration(
-      const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
+      const std::optional<Connection_options> &instance_def = {},
       const shcore::Option_pack_ref<Check_instance_configuration_options>
           &options = {});
   // create and start
@@ -153,17 +155,17 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
 
   void configure_local_instance(
-      const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
+      const std::optional<Connection_options> &instance_def = {},
       const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
           &options = {});
 
   void configure_instance(
-      const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
+      const std::optional<Connection_options> &instance_def = {},
       const shcore::Option_pack_ref<Configure_cluster_instance_options>
           &options = {});
 
   void configure_replica_set_instance(
-      const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
+      const std::optional<Connection_options> &instance_def = {},
       const shcore::Option_pack_ref<Configure_replicaset_instance_options>
           &options = {});
 
@@ -174,13 +176,13 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const shcore::Option_pack_ref<Upgrade_metadata_options> &options);
 
   std::shared_ptr<Cluster> get_cluster(
-      const mysqlshdk::null_string &cluster_name = {},
+      const std::optional<std::string> &cluster_name = {},
       const shcore::Dictionary_t &options = {}) const;
   void drop_metadata_schema(
       const shcore::Option_pack_ref<Drop_metadata_schema_options> &options);
 
   std::shared_ptr<Cluster> reboot_cluster_from_complete_outage(
-      const mysqlshdk::null_string &cluster_name = {},
+      const std::optional<std::string> &cluster_name = {},
       const shcore::Option_pack_ref<Reboot_cluster_options> &options = {});
 
   // ReplicaSets

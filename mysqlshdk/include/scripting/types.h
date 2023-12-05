@@ -43,7 +43,6 @@
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/utils/error.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 // For error codes used by the shell
@@ -796,15 +795,6 @@ struct value_type_for_native<Value> {
   static const Value_type type = Undefined;
 
   static Value extract(const Value &value) { return value; }
-};
-
-template <typename T>
-struct value_type_for_native<mysqlshdk::utils::nullable<T>> {
-  static const Value_type type = value_type_for_native<T>::type;
-
-  static T extract(const Value &value) {
-    return value_type_for_native<T>::extract(value);
-  }
 };
 
 template <typename T>

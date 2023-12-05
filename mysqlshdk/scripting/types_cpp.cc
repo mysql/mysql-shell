@@ -342,7 +342,7 @@ std::vector<std::string> Cpp_object_bridge::get_cli_members() const {
   std::vector<std::string> members;
 
   for (const auto &func : _funcs) {
-    if (func.second->get_metadata()->cli_enabled.get_safe(false)) {
+    if (func.second->get_metadata()->cli_enabled.value_or(false)) {
       members.push_back(func.second->name(current_naming_style()));
     }
   }
@@ -363,20 +363,19 @@ std::string Cpp_object_bridge::get_base_name(const std::string &member) const {
   return {};
 }
 
-std::string Cpp_object_bridge::get_function_name(const std::string &member,
+std::string Cpp_object_bridge::get_function_name(std::string_view member,
                                                  bool fully_specified) const {
-  auto m = lookup_function(member);
   std::string name;
-  if (!m) {
+  if (auto m = lookup_function(member); !m) {
     name = get_member_name(member, current_naming_style());
   } else {
     name = m->name(current_naming_style());
   }
-  if (fully_specified) {
-    return class_name() + "." + name;
-  } else {
-    return name;
-  }
+
+  if (fully_specified)
+    return shcore::str_format("%s.%s", class_name().c_str(), name.c_str());
+
+  return name;
 }
 
 shcore::Value Cpp_object_bridge::get_member_method(
@@ -544,7 +543,7 @@ const Cpp_function::Metadata *Cpp_object_bridge::get_function_metadata(
 
   for (auto it = range.first; it != range.second; it++) {
     auto md = it->second->get_metadata();
-    if (!cli_enabled || md->cli_enabled.get_safe(false)) {
+    if (!cli_enabled || md->cli_enabled.value_or(false)) {
       return md;
     }
   }
@@ -685,7 +684,7 @@ Value Cpp_object_bridge::call_function(
 }
 
 std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
-    const std::string &method) const {
+    std::string_view method) const {
   // NOTE this linear lookup is no good, but needed until the naming style
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
@@ -700,7 +699,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
 }
 
 std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
-    const std::string &method, const shcore::Argument_list &args,
+    std::string_view method, const shcore::Argument_list &args,
     const shcore::Dictionary_t &kwds) const {
   // NOTE this linear lookup is no good, but needed until the naming style
   // mechanism is improved
@@ -709,7 +708,9 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
     if (i->second->name(current_naming_style()) == method) break;
   }
   if (i == _funcs.end()) {
-    throw Exception::attrib_error("Invalid object function " + method);
+    throw Exception::attrib_error(
+        shcore::str_format("Invalid object function %.*s",
+                           static_cast<int>(method.size()), method.data()));
   }
 
   std::vector<Value_type> arg_types;
@@ -1055,7 +1056,7 @@ std::string Parameter_context::str() const {
   ctx_data.reserve(levels.size());
 
   for (const auto &level : levels) {
-    if (level.position.is_null()) {
+    if (!level.position.has_value()) {
       ctx_data.push_back(level.name);
     } else {
       ctx_data.push_back(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,9 +160,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 #endif
 
   shcore::Array_t list_credential_helpers();
-  void store_credential(
-      const std::string &url,
-      const mysqlshdk::utils::nullable<std::string> &password);
+  void store_credential(const std::string &url,
+                        std::optional<std::string> password);
   void delete_credential(const std::string &url);
   void delete_all_credentials();
   shcore::Array_t list_credentials();

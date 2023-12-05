@@ -23,9 +23,11 @@
 
 #include "modules/reports/thread.h"
 
-#include <memory>
+#include <cstdint>
+#include <optional>
+#include <stdexcept>
 #include <string>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "modules/reports/native_report.h"
@@ -33,12 +35,8 @@
 #include "modules/reports/utils_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/textui/textui.h"
-#include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-
-using mysqlshdk::utils::nullable;
 
 namespace mysqlsh {
 namespace reports {
@@ -47,9 +45,9 @@ namespace {
 
 #define OPTIONS                                                                \
   XX(tid, Integer, "Lists information for the specified thread ID.", "t", {},  \
-     false, false, nullable<uint64_t>)                                         \
+     false, false, std::optional<uint64_t>)                                    \
   XX(cid, Integer, "Lists information for the specified connection ID.", "c",  \
-     {}, false, false, nullable<uint64_t>)                                     \
+     {}, false, false, std::optional<uint64_t>)                                \
   XX(brief, Bool,                                                              \
      "Causes the report to list just a brief information on the given "        \
      "thread.",                                                                \
@@ -77,11 +75,11 @@ namespace {
   XX(prep_stmts, Bool,                                                         \
      "Lists the prepared statements allocated for the thread.", "P")           \
   XX(status, String, "Lists the session status variables for the thread.",     \
-     "S", {}, false, true, nullable<std::string>)                              \
+     "S", {}, false, true, std::optional<std::string>)                         \
   XX(vars, String, "Lists the session system variables for the thread.", "V",  \
-     {}, false, true, nullable<std::string>)                                   \
+     {}, false, true, std::optional<std::string>)                              \
   XX(user_vars, String, "Lists the user-defined variables for the thread.",    \
-     "U", {}, false, true, nullable<std::string>)                              \
+     "U", {}, false, true, std::optional<std::string>)                         \
   XX(all, Bool, "Provides all available information for the thread.", "A")
 
 class Thread_report : public Native_report {
@@ -347,7 +345,7 @@ class Thread_report : public Native_report {
     return report;
   }
 
-  void set_id(const nullable<uint64_t> &cid, const nullable<uint64_t> &tid) {
+  void set_id(std::optional<uint64_t> cid, std::optional<uint64_t> tid) {
     if (cid && tid) {
       throw shcore::Exception::argument_error(
           "Both 'cid' and 'tid' cannot be used at the same time.");

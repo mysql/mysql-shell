@@ -42,18 +42,14 @@
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/undo.h"
-#include "modules/adminapi/dba/create_cluster.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/types.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 namespace {
 constexpr int k_cluster_set_master_connect_retry = 3;
@@ -318,7 +314,7 @@ Cluster_set_impl::refresh_cluster_replication_user(
         e.what()));
   }
 
-  return {repl_user, repl_password};
+  return mysqlshdk::mysql::Auth_options{repl_user, repl_password};
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
@@ -3459,5 +3455,4 @@ mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(
   return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

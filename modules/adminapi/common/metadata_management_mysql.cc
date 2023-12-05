@@ -31,10 +31,8 @@
 
 #include "modules/adminapi/common/metadata_management_mysql.h"
 
-#include <algorithm>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "modules/adminapi/common/common.h"
@@ -42,7 +40,6 @@
 #include "modules/adminapi/common/metadata_backup_handler.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -235,9 +232,9 @@ Stage save_stage(const std::shared_ptr<Instance> &group_server, Stage stage) {
   return stage;
 }
 
-Stage compute_failed_upgrade_stage(
-    const mysqlshdk::utils::nullable<Stage> &saved_stage,
-    const Version &schema_version, bool backup_exists) {
+Stage compute_failed_upgrade_stage(std::optional<Stage> saved_stage,
+                                   const Version &schema_version,
+                                   bool backup_exists) {
   bool at_target_version = schema_version == current_version();
   bool at_upgrading_version = schema_version == kUpgradingVersion;
   bool at_original_version = !at_upgrading_version &&
@@ -259,7 +256,7 @@ Stage compute_failed_upgrade_stage(
     actual_stage = Stage::SETTING_UPGRADE_VERSION;
   else if (saved_stage == Stage::SETTING_UPGRADE_VERSION && at_original_version)
     actual_stage = Stage::NONE;
-  else if (backup_exists && saved_stage.is_null() && at_original_version)
+  else if (backup_exists && !saved_stage.has_value() && at_original_version)
     actual_stage = Stage::NONE;
   else if (!backup_exists && at_target_version)
     actual_stage = upgrade::Stage::OK;
@@ -274,7 +271,7 @@ Stage compute_failed_upgrade_stage(
       "target_version=%s, backup_exists=%i, saved_stage=%s",
       to_string(actual_stage).c_str(), schema_version.get_base().c_str(),
       current_version().get_base().c_str(), backup_exists,
-      saved_stage.is_null() ? "null" : to_string(*saved_stage).c_str());
+      !saved_stage.has_value() ? "null" : to_string(*saved_stage).c_str());
 
   if (actual_stage != upgrade::Stage::OK) {
     log_info("%s", state_info.c_str());
@@ -289,7 +286,7 @@ Stage compute_failed_upgrade_stage(
  * This function is called knowing that there's a metadata backup schema
  */
 Stage detect_failed_stage(const std::shared_ptr<Instance> &group_server) {
-  mysqlshdk::utils::nullable<Stage> saved_stage;
+  std::optional<Stage> saved_stage;
   bool backup_exists = schema_exists(group_server, kMetadataSchemaBackupName);
   auto schema_version = get_version(group_server);
 
@@ -846,7 +843,7 @@ void do_upgrade_schema(const std::shared_ptr<Instance> &group_server,
 
   if (dry_run) return;
 
-  mysqlshdk::utils::nullable<upgrade::Stage> stage;
+  std::optional<upgrade::Stage> stage;
   Version actual_version = installed_ver;
 
   std::vector<std::string> tables;

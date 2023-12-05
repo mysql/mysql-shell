@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,9 +27,9 @@
 #ifndef MODULES_DEVAPI_MOD_MYSQLX_COLLECTION_REMOVE_H_
 #define MODULES_DEVAPI_MOD_MYSQLX_COLLECTION_REMOVE_H_
 
-#include <algorithm>
 #include <memory>
 #include <string>
+
 #include "modules/devapi/collection_crud_definition.h"
 
 namespace mysqlsh {
@@ -94,7 +94,7 @@ class CollectionRemove : public Collection_crud_definition,
   };
 
   Allowed_function_mask function_name_to_bitmask(
-      const std::string &s) const override {
+      std::string_view s) const override {
     if ("remove" == s) {
       return F::remove;
     }

@@ -21,22 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <mysqld_error.h>
+#include "mysqlshdk/libs/mysql/instance.h"
 
-#include <algorithm>
 #include <array>
 #include <map>
 #include <string_view>
-#include <utility>
 
-#include "mysqlshdk/libs/mysql/instance.h"
+#include <mysqld_error.h>
+
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-
-#include "scripting/types.h"
 
 namespace mysqlshdk {
 namespace mysql {
@@ -794,14 +791,13 @@ void Instance::execute(const std::string &sql) const {
   }
 }
 
-void Instance::process_result_warnings(const std::string &sql,
+void Instance::process_result_warnings(std::string_view sql,
                                        mysqlshdk::db::IResult &result) const {
-  // Call the Warnings_callback if registered
   if (!m_warnings_callback) return;
 
   // Get all the Warnings
   while (auto warning = result.fetch_one_warning()) {
-    std::string warning_level;
+    std::string_view warning_level;
 
     switch (warning->level) {
       case db::Warning::Level::Note:
@@ -816,17 +812,12 @@ void Instance::process_result_warnings(const std::string &sql,
     }
 
     m_warnings_callback(sql, warning->code, warning_level, warning->msg);
-
-    warning = result.fetch_one_warning();
   }
 }
 
 std::string Instance::generate_uuid() const {
-  // Generate a UUID on the MySQL server.
-  std::string get_uuid_stmt = "SELECT UUID()";
-  auto resultset = query(get_uuid_stmt);
+  auto resultset = query("SELECT UUID()");
   auto row = resultset->fetch_one();
-
   return row->get_string(0);
 }
 

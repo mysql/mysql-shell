@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "modules/devapi/base_database_object.h"
 #include "modules/mod_common.h"
 #include "scripting/types.h"
@@ -65,7 +66,7 @@ class SHCORE_PUBLIC Schema : public DatabaseObject,
                              public std::enable_shared_from_this<Schema> {
  public:
   Schema(std::shared_ptr<Session> owner, const std::string &name);
-  ~Schema();
+  ~Schema() noexcept = default;
 
   std::string class_name() const override { return "Schema"; }
 

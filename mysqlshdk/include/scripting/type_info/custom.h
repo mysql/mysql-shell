@@ -32,7 +32,6 @@
 #include "mysqlshdk/include/scripting/type_info.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -119,18 +118,6 @@ struct Type_info<std::shared_ptr<Bridge_class>> {
 };
 
 template <typename T>
-struct Type_info<mysqlshdk::utils::nullable<T>> {
-  static mysqlshdk::utils::nullable<T> to_native(const shcore::Value &in) {
-    if (Value_type::Null == in.get_type()) return {};
-    return {Type_info<T>::to_native(in)};
-  }
-  static Value_type vtype() { return Type_info<T>::vtype(); }
-  static const char *code() { return Type_info<T>::code(); }
-  static mysqlshdk::utils::nullable<T> default_value() { return {}; }
-  static std::string desc() { return Type_info<T>::desc(); }
-};
-
-template <typename T>
 struct Type_info<std::optional<T>> {
   static std::optional<T> to_native(const shcore::Value &in) {
     if (Value_type::Null == in.get_type()) return {};
@@ -143,13 +130,6 @@ struct Type_info<std::optional<T>> {
 };
 
 std::unique_ptr<Parameter_validator> get_nullable_validator();
-
-template <typename T>
-struct Validator_for<mysqlshdk::utils::nullable<T>> {
-  static std::unique_ptr<Parameter_validator> get() {
-    return get_nullable_validator();
-  }
-};
 
 template <typename T>
 struct Validator_for<std::optional<T>> {

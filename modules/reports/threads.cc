@@ -24,21 +24,21 @@
 #include "modules/reports/threads.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <exception>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "modules/mod_shell_reports.h"
 #include "modules/reports/native_report.h"
 #include "modules/reports/utils.h"
 #include "modules/reports/utils_options.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-
-using mysqlshdk::utils::nullable;
 
 namespace mysqlsh {
 namespace reports {
@@ -323,7 +323,7 @@ std::vector<std::string> get_details() {
       "name does not exist, all columns that match the given prefix are "      \
       "selected and alias is ignored. If the format starts with a +, the "     \
       "specified columns are added after the default format."},                \
-     false, false, nullable<std::string>)                                      \
+     false, false, std::optional<std::string>)                                 \
   XX(where, String, "Allows to filter the result.", "",                        \
      std::vector<std::string>(                                                 \
          {"The <b>where</b> option expects a string in the following format: " \
@@ -341,7 +341,7 @@ std::vector<std::string> get_details() {
      {"If the <b>desc</b> option is not provided, output is sorted in "        \
       "ascending order."})                                                     \
   XX(limit, Integer, "Limits the number of returned threads.", "l", {}, false, \
-     false, nullable<uint64_t>)
+     false, std::optional<uint64_t>)
 
 class Threads_report : public Native_report {
  public:
@@ -397,7 +397,7 @@ class Threads_report : public Native_report {
     } else if (o.background) {
       where = "t.TYPE = 'BACKGROUND'";
     } else {
-      const auto co = m_session->get_connection_options();
+      const auto &co = m_session->get_connection_options();
       where = shcore::sqlstring(
                   "t.PROCESSLIST_USER = ? AND t.PROCESSLIST_HOST = ?", 0)
               << co.get_user() << co.get_host();

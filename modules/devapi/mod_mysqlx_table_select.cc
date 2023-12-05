@@ -20,21 +20,22 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/devapi/mod_mysqlx_table_select.h"
+
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "modules/devapi/base_constants.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_table.h"
-#include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
 namespace mysqlsh {
 namespace mysqlx {
 
 using shcore::Value;
-using std::placeholders::_1;
 
 REGISTER_HELP_CLASS(TableSelect, mysqlx);
 REGISTER_HELP(TABLESELECT_BRIEF, "Operation to retrieve rows from a table.");
@@ -44,6 +45,7 @@ REGISTER_HELP(TABLESELECT_DETAIL,
               "<b>Table</b> class.");
 TableSelect::TableSelect(std::shared_ptr<Table> owner)
     : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
+  using namespace std::placeholders;
   message_.mutable_collection()->set_schema(owner->schema()->name());
   message_.mutable_collection()->set_name(owner->name());
   message_.set_data_model(Mysqlx::Crud::TABLE);
@@ -1245,7 +1247,7 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args) {
     }));
 
     update_functions(F::execute);
-    if (!m_limit.is_null()) enable_function(F::offset);
+    if (m_limit.has_value()) enable_function(F::offset);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 

@@ -23,11 +23,7 @@
 
 #include "mysqlshdk/libs/utils/document_parser.h"
 
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <time.h>
-#include <limits>
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -35,8 +31,6 @@
 #endif
 
 #include <deque>
-#include <iterator>
-#include <mutex>
 #include <string>
 #include <string_view>
 
@@ -92,9 +86,9 @@ const shcore::Option_pack_def<Document_reader_options>
 
 void Document_reader_options::on_unpacked_options() {
   // The default value for convert_bson_id is the value of convert_bson_types
-  if (convert_bson_id.is_null()) convert_bson_id = convert_bson_types;
+  if (!convert_bson_id.has_value()) convert_bson_id = convert_bson_types;
 
-  if (!extract_oid_time.is_null() && !convert_bson_id.get_safe(false)) {
+  if (extract_oid_time && !convert_bson_id.value_or(false)) {
     throw shcore::Exception::argument_error(
         "The 'extractOidTime' option can not be used if 'convertBsonOid' is "
         "disabled.");
@@ -102,15 +96,15 @@ void Document_reader_options::on_unpacked_options() {
 
   std::vector<std::string> used_options;
 
-  if (!ignore_date.is_null()) used_options.push_back("ignoreDate");
-  if (!ignore_timestamp.is_null()) used_options.push_back("ignoreTimestamp");
-  if (!ignore_binary.is_null()) used_options.push_back("ignoreBinary");
-  if (!ignore_regexp.is_null()) used_options.push_back("ignoreRegex");
-  if (!ignore_regexp_options.is_null())
+  if (ignore_date.has_value()) used_options.push_back("ignoreDate");
+  if (ignore_timestamp.has_value()) used_options.push_back("ignoreTimestamp");
+  if (ignore_binary.has_value()) used_options.push_back("ignoreBinary");
+  if (ignore_regexp.has_value()) used_options.push_back("ignoreRegex");
+  if (ignore_regexp_options.has_value())
     used_options.push_back("ignoreRegexOptions");
-  if (!decimal_as_double.is_null()) used_options.push_back("decimalAsDouble");
+  if (decimal_as_double.has_value()) used_options.push_back("decimalAsDouble");
 
-  if (!used_options.empty() && !convert_bson_types.get_safe(false)) {
+  if (!used_options.empty() && !convert_bson_types.value_or(false)) {
     throw shcore::Exception::argument_error(shcore::str_format(
         "The following option%s can not be used if 'convertBsonTypes' is "
         "disabled: %s",
@@ -120,31 +114,31 @@ void Document_reader_options::on_unpacked_options() {
         }).c_str()));
   }
 
-  if (ignore_regexp.get_safe(false) && ignore_regexp_options.get_safe(false)) {
+  if (ignore_regexp.value_or(false) && ignore_regexp_options.value_or(false)) {
     throw shcore::Exception::argument_error(
         "The 'ignoreRegex' and 'ignoreRegexOptions' options can't both be "
         "enabled");
   }
 
-  if (!extract_oid_time.is_null() && (*extract_oid_time).empty()) {
+  if (extract_oid_time.has_value() && (*extract_oid_time).empty()) {
     throw shcore::Exception::runtime_error(
         "Option 'extractOidTime' can not be empty.");
   }
 }
 
 bool Document_reader_options::ignore_type(Bson_type type) const {
-  if (convert_bson_types.get_safe(false)) {
+  if (convert_bson_types.value_or(false)) {
     switch (type) {
       case Bson_type::OBJECT_ID:
-        return !convert_bson_id.get_safe(false);
+        return !convert_bson_id.value_or(false);
       case Bson_type::DATE:
-        return ignore_date.get_safe(false);
+        return ignore_date.value_or(false);
       case Bson_type::TIMESTAMP:
-        return ignore_timestamp.get_safe(false);
+        return ignore_timestamp.value_or(false);
       case Bson_type::REGEX:
-        return ignore_regexp.get_safe(false);
+        return ignore_regexp.value_or(false);
       case Bson_type::BINARY:
-        return ignore_binary.get_safe(false);
+        return ignore_binary.value_or(false);
       case Bson_type::LONG:
       case Bson_type::INTEGER:
       case Bson_type::DECIMAL:
@@ -153,7 +147,7 @@ bool Document_reader_options::ignore_type(Bson_type type) const {
         break;
     }
   } else {
-    return type == Bson_type::OBJECT_ID ? !convert_bson_id.get_safe(false)
+    return type == Bson_type::OBJECT_ID ? !convert_bson_id.value_or(false)
                                         : true;
   }
   return true;
@@ -342,8 +336,8 @@ void Json_document_parser::parse(std::string *document) {
       get_string(m_document);
       m_last_attribute_end = m_document->size() - 1;
 
-      if (m_options.convert_bson_types.get_safe(false) ||
-          m_options.convert_bson_id.get_safe(false)) {
+      if (m_options.convert_bson_types.value_or(false) ||
+          m_options.convert_bson_id.value_or(false)) {
         auto type = get_bson_type();
         // If the first field is a mongo special field
         // The original document is translated based on
@@ -648,7 +642,7 @@ void Json_document_parser::parse_bson_oid() {
 
   // Extraction of time from $oid is done for ObjectID value at the _id field
   // Of the first level document, also only if requested
-  if (m_depth == 1 && !m_options.extract_oid_time.is_null() &&
+  if (m_depth == 1 && m_options.extract_oid_time.has_value() &&
       m_context == "_id") {
     size_t pos;
     std::string tstamp_hex =
@@ -688,14 +682,14 @@ void Json_document_parser::parse_bson_decimal() {
 
   std::string decimal_str;
   std::string *custom_target =
-      m_options.decimal_as_double.get_safe(false) ? &decimal_str : m_document;
-  double number;
+      m_options.decimal_as_double.value_or(false) ? &decimal_str : m_document;
+  double number{0.0};
 
   // Gets the associated value
   get_bson_data({{':'}, {'N', "", custom_target, &number}, {'}'}},
                 "processing extended JSON for $numberDecimal");
 
-  if (m_options.decimal_as_double.get_safe(false)) {
+  if (m_options.decimal_as_double.value_or(false)) {
     m_document->append(std::to_string(number));
   }
 }
@@ -748,7 +742,7 @@ void Json_document_parser::parse_bson_timestamp() {
   clear_document();
 
   std::string tstamp_str;
-  double tstamp_n;
+  double tstamp_n{0};
 
   get_bson_data({{':'},
                  {'{'},
@@ -799,7 +793,7 @@ void Json_document_parser::parse_bson_regex() {
   // Unquotes the options
   options = options.substr(1, options.size() - 2);
 
-  if (m_options.ignore_regexp_options.get_safe(true)) {
+  if (m_options.ignore_regexp_options.value_or(true)) {
     m_document->append(regex);
     if (!options.empty()) {
       std::string warning = "The regular expression for " + m_context +

@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -69,7 +70,7 @@ struct Parameter_context {
 
   struct Context_definition {
     std::string name;
-    mysqlshdk::utils::nullable<int> position;
+    std::optional<int> position;
   };
 
   std::vector<Context_definition> levels;
@@ -317,13 +318,10 @@ class Option_pack_def : public IOption_pack_def {
         [name, callback, extract_mode](const Option_pack_def<C> *self,
                                        shcore::Option_unpacker *unpacker,
                                        C *instance) {
-          mysqlshdk::utils::nullable<T> value;
-
+          std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (!value.is_null()) {
-            callback(instance, *value);
-          }
+          if (value.has_value()) callback(instance, *value);
         });
     return *this;
   }
@@ -375,11 +373,10 @@ class Option_pack_def : public IOption_pack_def {
                                            shcore::Option_unpacker *unpacker,
                                            C *instance) {
           // this is where the magic happens
-          mysqlshdk::null_string value;
-
+          std::optional<std::string> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (!value.is_null()) {
+          if (value.has_value()) {
             (*instance).*var = get_enum_value(name, *value, mapping);
           }
         });
@@ -416,13 +413,10 @@ class Option_pack_def : public IOption_pack_def {
         [name, callback, extract_mode](const Option_pack_def<C> *self,
                                        shcore::Option_unpacker *unpacker,
                                        C *instance) {
-          mysqlshdk::utils::nullable<T> value;
-
+          std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (!value.is_null()) {
-            ((*instance).*callback)(name, *value);
-          }
+          if (value.has_value()) ((*instance).*callback)(name, *value);
         });
 
     return *this;
@@ -441,14 +435,11 @@ class Option_pack_def : public IOption_pack_def {
         [name, callback, extract_mode](const Option_pack_def<C> *self,
                                        shcore::Option_unpacker *unpacker,
                                        C *instance) {
-          mysqlshdk::utils::nullable<T> value;
-
+          std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
           unpacker->optional(name.c_str(), &value);
-          if (!value.is_null()) {
-            ((*instance).*callback)(name, *value);
-          }
+          if (value.has_value()) ((*instance).*callback)(name, *value);
         });
 
     return *this;
@@ -483,13 +474,10 @@ class Option_pack_def : public IOption_pack_def {
         [name, callback, extract_mode](const Option_pack_def<C> *self,
                                        shcore::Option_unpacker *unpacker,
                                        C *instance) {
-          mysqlshdk::utils::nullable<T> value;
-
+          std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (!value.is_null()) {
-            ((*instance).*callback)(*value);
-          }
+          if (value.has_value()) ((*instance).*callback)(*value);
         });
 
     return *this;
@@ -507,13 +495,10 @@ class Option_pack_def : public IOption_pack_def {
         [name, callback, extract_mode](const Option_pack_def<C> *self,
                                        shcore::Option_unpacker *unpacker,
                                        C *instance) {
-          mysqlshdk::utils::nullable<T> value;
-
+          std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (!value.is_null()) {
-            ((*instance).*callback)(*value);
-          }
+          if (value.has_value()) ((*instance).*callback)(*value);
         });
 
     return *this;
@@ -551,10 +536,10 @@ class Option_pack_def : public IOption_pack_def {
         [name, var, mapping](const Option_pack_def<C> *,
                              shcore::Option_unpacker *unpacker, C *instance) {
           // this is where the magic happens
-          mysqlshdk::null_string value;
+          std::optional<std::string> value;
           unpacker->required(name.c_str(), &value);
 
-          if (!value.is_null()) {
+          if (value.has_value()) {
             (*instance).*var = get_enum_value(name, *value, mapping);
           }
         });
@@ -575,11 +560,10 @@ class Option_pack_def : public IOption_pack_def {
     m_unpack_callbacks.emplace_back(
         [name, callback](const Option_pack_def<C> *,
                          shcore::Option_unpacker *unpacker, C *instance) {
-          mysqlshdk::utils::nullable<T> value;
+          std::optional<T> value;
           unpacker->required(name.c_str(), &value);
-          if (!value.is_null()) {
-            ((*instance).*callback)(name, *value);
-          }
+
+          if (value.has_value()) ((*instance).*callback)(name, *value);
         });
 
     return *this;
@@ -598,11 +582,10 @@ class Option_pack_def : public IOption_pack_def {
     m_unpack_callbacks.emplace_back(
         [name, callback](const Option_pack_def<C> *,
                          shcore::Option_unpacker *unpacker, C *instance) {
-          mysqlshdk::utils::nullable<T> value;
+          std::optional<T> value;
           unpacker->required(name.c_str(), &value);
-          if (!value.is_null()) {
-            ((*instance).*callback)(*value);
-          }
+
+          if (value.has_value()) ((*instance).*callback)(*value);
         });
 
     return *this;
@@ -947,7 +930,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
 
     std::string name[2];
     Raw_signature signature;
-    mysqlshdk::null_bool cli_enabled;
+    std::optional<bool> cli_enabled;
 
     std::vector<std::pair<std::string, Value_type>> param_types;
     std::string param_codes;
@@ -1578,18 +1561,17 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   // Helper function that retrieves a qualified function name using the active
   // naming style Used mostly for errors in function validations
-  std::string get_function_name(const std::string &member,
+  std::string get_function_name(std::string_view member,
                                 bool fully_specified = true) const;
 
   std::vector<Cpp_property_name> _properties;
 
   // Returns named function which signature that matches the given argument list
   std::shared_ptr<Cpp_function> lookup_function_overload(
-      const std::string &method, const shcore::Argument_list &args,
+      std::string_view method, const shcore::Argument_list &args,
       const shcore::Dictionary_t &kwds = {}) const;
 
-  std::shared_ptr<Cpp_function> lookup_function(
-      const std::string &method) const;
+  std::shared_ptr<Cpp_function> lookup_function(std::string_view method) const;
 
  private:
   template <typename T>

@@ -25,42 +25,32 @@
 
 #include <mysqld_error.h>
 
-#include <algorithm>
 #include <atomic>
 #include <iterator>
-#include <map>
 #include <memory>
-#include <set>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "commands/command_help.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/devapi/mod_mysqlx.h"
-#include "modules/devapi/mod_mysqlx_resultset.h"  // temporary
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql.h"
-#include "modules/mod_mysql_resultset.h"  // temporary
-#include "modules/mod_mysql_session.h"
 #include "modules/mod_mysqlsh.h"
 #include "modules/mod_os.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
 #include "modules/util/mod_util.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
 #include "src/mysqlsh/commands/command_query_attributes.h"
@@ -945,7 +935,7 @@ void Mysql_shell::get_plugins(File_list *file_list) {
   std::vector<std::string> plugin_directories = {
       shcore::path::join_path(shcore::get_library_folder(), "plugins")};
 
-  if (!options().plugins_path.is_null()) {
+  if (options().plugins_path.has_value()) {
     auto additional_plugin_paths = shcore::split_string(
         *options().plugins_path, shcore::path::pathlist_separator_s);
     plugin_directories.insert(plugin_directories.end(),
@@ -1148,14 +1138,17 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
   const auto target = secondary ? "SECONDARY" : "PRIMARY";
 
   const auto dev_session = shell_context()->get_dev_session();
-  const auto session =
-      opts.has_data()
-          ? establish_session(opts, options().wizards)
-          : dev_session && dev_session->is_open()
-                ? dev_session->get_core_session()
-                : throw std::runtime_error(shcore::str_format(
-                      "Redirecting to a %s requires an active session.",
-                      target));
+
+  const auto session = std::invoke([&]() {
+    if (opts.has_data()) return establish_session(opts, options().wizards);
+
+    if (dev_session && dev_session->is_open())
+      return dev_session->get_core_session();
+
+    throw std::runtime_error(shcore::str_format(
+        "Redirecting to a %s requires an active session.", target));
+  });
+
   auto connection = session->get_connection_options();
   const auto uri = connection.as_uri();
 
@@ -1164,14 +1157,14 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
       "ReplicaSet...",
       uri.c_str(), target);
 
-  const auto find = secondary ? &dba::find_secondary_member_uri
-                              : &dba::find_primary_member_uri;
-
   bool single_primary = true;
   std::string redirect_uri;
   dba::Cluster_type cluster_type = dba::Cluster_type::NONE;
 
   try {
+    const auto find = secondary ? &dba::find_secondary_member_uri
+                                : &dba::find_primary_member_uri;
+
     redirect_uri =
         find(std::make_shared<mysqlsh::dba::Instance>(session),
              connection.get_session_type() == mysqlsh::SessionType::X,
@@ -1301,8 +1294,8 @@ Mysql_shell::create_default_cluster_object(bool for_help) {
       m_default_cluster = std::make_shared<mysqlsh::dba::Cluster>(nullptr);
     } else {
       const auto &default_cluster = options().default_cluster;
-      mysqlshdk::utils::nullable<std::string> name;
 
+      std::optional<std::string> name;
       if (!default_cluster.empty()) {
         name = default_cluster;
       }
@@ -1912,7 +1905,7 @@ void Mysql_shell::process_sql_result(
     auto old_format = options().result_format;
     if (info.show_vertical)
       mysqlsh::current_shell_options()->set_result_format("vertical");
-    shcore::Scoped_callback clean([old_format]() {
+    shcore::Scoped_callback clean([old_format = std::move(old_format)]() {
       mysqlsh::current_shell_options()->set_result_format(old_format);
     });
 

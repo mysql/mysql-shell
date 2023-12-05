@@ -25,26 +25,15 @@
 #include <memory>
 #include <vector>
 
-#include "modules/adminapi/common/common.h"
-#include "modules/devapi/base_database_object.h"
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
-#include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
-#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/shexcept.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
-#include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/ssh/ssh_common.h"
 #include "mysqlshdk/libs/utils/strformat.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 
 using namespace std::placeholders;
@@ -1208,7 +1197,7 @@ bool Shell::reconnect() {
       session->reconnect();
       ret_val = true;
     }
-  } catch (const shcore::Exception &e) {
+  } catch (const shcore::Exception &) {
   }
 
   return ret_val;
@@ -1350,20 +1339,19 @@ Undefined Shell::storeCredential(String url, String password) {}
 #elif DOXYGEN_PY
 None Shell::store_credential(str url, str password) {}
 #endif
-void Shell::store_credential(
-    const std::string &url,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+void Shell::store_credential(const std::string &url,
+                             std::optional<std::string> password) {
   std::string pwd_to_store;
-  if (password.is_null()) {
-    const std::string prompt =
-        "Please provide the password for '" + url + "': ";
+  if (!password.has_value()) {
+    auto prompt = shcore::str_format("Please provide the password for '%s': ",
+                                     url.c_str());
     const auto result =
         current_console()->prompt_password(prompt, &pwd_to_store);
     if (result != shcore::Prompt_result::Ok) {
       throw shcore::cancelled("Cancelled");
     }
   } else {
-    pwd_to_store = *password;
+    pwd_to_store = std::move(*password);
   }
 
   shcore::Credential_manager::get().store_credential(url, pwd_to_store);

@@ -23,13 +23,12 @@
 
 #include "mysqlshdk/shellcore/shell_cli_mapper.h"
 
-#include <algorithm>
+#include <array>
 #include <regex>
 #include <stdexcept>
 #include <string_view>
+#include <tuple>
 
-#include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -38,6 +37,7 @@
 namespace shcore {
 namespace cli {
 namespace {
+
 shcore::Value interpret_string_value(const std::string &input,
                                      bool only_json = false) {
   try {
@@ -146,7 +146,7 @@ shcore::Value get_value_of_expected_type(const Cmd_line_arg_definition &arg,
                                          shcore::Value_type type) {
   // If the user defined a value type and the expected type is defined, we must
   // ensure they match
-  if (type != shcore::Undefined && !arg.user_type.is_null() &&
+  if (type != shcore::Undefined && arg.user_type.has_value() &&
       *arg.user_type != type) {
     throw std::invalid_argument("Argument error at '" + arg.definition +
                                 "': " + shcore::type_name(type) +
@@ -266,7 +266,7 @@ Cmd_line_arg_definition parse_named_argument(const std::string &definition) {
 void add_value_to_list(shcore::Array_t *target,
                        const Cmd_line_arg_definition &arg,
                        shcore::Value_type expected_type) {
-  if (arg.value.get_type() != shcore::String || !arg.user_type.is_null()) {
+  if (arg.value.get_type() != shcore::String || arg.user_type.has_value()) {
     (*target)->push_back(get_value_of_expected_type(arg, expected_type));
     return;
   }

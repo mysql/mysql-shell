@@ -33,6 +33,7 @@
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -41,7 +42,6 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -210,7 +210,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
       const char *sql, size_t len, bool lazy_fetch, bool is_udf,
       const std::vector<Query_attribute> &query_attributes = {});
   // Will return the SSL mode set in the connection, if any
-  mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> setup_ssl(
+  std::optional<mysqlshdk::db::Ssl_mode> setup_ssl(
       const mysqlshdk::db::Ssl_options &ssl_options) const;
   void throw_on_connection_fail();
 

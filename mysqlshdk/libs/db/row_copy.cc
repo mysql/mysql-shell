@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -276,7 +276,7 @@ double Mem_row::get_double(uint32_t index) const {
     case Type::Decimal:
       try {
         return std::stod(get<std::string>(index));
-      } catch (const std::exception &e) {
+      } catch (const std::exception &) {
         throw FIELD_ERROR(index, "double value out of the allowed range");
       }
     case Type::Float:
