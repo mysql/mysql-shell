@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,13 +33,13 @@
 namespace mysqlsh {
 namespace dba {
 
-class Clone_progress_test : public Shell_core_test_wrapper {};
+class Admin_api_clone_progress_test : public Shell_core_test_wrapper {};
 
 // It's not guaranteed that P_S will have the information for the 4 stages
 // we want to monitor. If the dataset is very small it's possible that
 // only 1 or 2 stages are displayed in P_S.
 // Test that the function does not segfault in that scenario (BUG#31545728)
-TEST_F(Clone_progress_test, update_transfer) {
+TEST_F(Admin_api_clone_progress_test, update_transfer) {
   reset_shell();
   Recovery_progress_style wait_recovery = Recovery_progress_style::PROGRESSBAR;
   Clone_progress clone_progress(wait_recovery);

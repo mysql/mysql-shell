@@ -1,5 +1,3 @@
-// Assumptions: smart deployment rountines available
-
 //@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -71,7 +69,10 @@ cluster.addInstance(__sandbox_uri2);
 dba.checkInstanceConfiguration(__sandbox_uri3);
 
 //@ configure instance and update type and commit order with valid values.
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath:'mybad.cnf'});
+var cnfPath3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "gtid_mode", "OFF");
+
+dba.configureLocalInstance(__sandbox_uri3, {mycnfPath:cnfPath3});
 
 //@<OUT> check instance, no invalid values after configure.
 dba.checkInstanceConfiguration(__sandbox_uri3);

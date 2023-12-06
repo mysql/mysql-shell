@@ -1,10 +1,16 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 // ensure my.cnf file is saved/restored for replay in recording mode
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+testutil.createFile("mybad.cnf", "[mysqld]\ngtid_mode = OFF\n");
+
+shell.options.useWizards=false;
 
 shell.connect("mysql://root:root@localhost:" + __mysql_sandbox_port1);
 
@@ -118,7 +124,7 @@ dba.configureLocalInstance('root@localhost:' + __mysql_sandbox_port2, {mycnfPath
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
 
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER missingprivileges@localhost");
 session.runSql("GRANT CREATE USER ON *.* TO missingprivileges@localhost");
@@ -134,21 +140,24 @@ session.close();
 //@# Dba: configureLocalInstance not enough privileges
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
+var __sandbox_dir = testutil.getSandboxPath();
+var __cnf_path = os.path.join(__sandbox_dir, __mysql_sandbox_port2.toString(), "my.cnf");
+
 dba.configureLocalInstance('missingprivileges:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "missingprivileges", clusterAdminPassword:"",
-     mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+     mycnfPath:__cnf_path});
 
 //@ Dba: Show list of users to make sure the user missingprivileges@% was not created
 // Regression for BUG#25614855 : CONFIGURELOCALINSTANCE URI USER WITHOUT
 // PERMISSIONS, CREATES A WRONG NEW USER
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 var result = session.runSql("select COUNT(*) from mysql.user where user='missingprivileges' and host='%'");
 var row = result.fetchOne();
 print("Number of accounts: "+ row[0] + "\n");
 session.close();
 
 //@ Dba: Delete created user and reconnect to previous sandbox
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("DROP USER missingprivileges@localhost");
 session.runSql("SET SQL_LOG_BIN=1");
@@ -159,7 +168,7 @@ session.close();
 
 //@ Dba: create an admin user with all needed privileges
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("CREATE USER 'mydba'@'localhost' IDENTIFIED BY ''");
 session.runSql("GRANT ALL ON *.* TO 'mydba'@'localhost' WITH GRANT OPTION");
@@ -173,16 +182,16 @@ session.close();
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test", clusterAdminPassword:"",
-        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__cnf_path});
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test",
-        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__cnf_path});
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("REVOKE REPLICATION SLAVE ON *.* FROM 'dba_test'@'%'");
 session.runSql("SET SQL_LOG_BIN=1");
@@ -192,11 +201,11 @@ session.close();
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
 dba.configureLocalInstance('mydba:@localhost:' + __mysql_sandbox_port2,
     {clusterAdmin: "dba_test",
-        mycnfPath:__sandbox_dir + __mysql_sandbox_port2 + __path_splitter + 'my.cnf'});
+        mycnfPath:__cnf_path});
 
 //@ Dba: Delete previously create an admin user with all needed privileges
 // Regression for BUG#25519190 : CONFIGURELOCALINSTANCE() FAILS UNGRACEFUL IF CALLED TWICE
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 session.runSql("SET SQL_LOG_BIN=0");
 session.runSql("DROP USER 'mydba'@'localhost'");
 session.runSql("DROP USER 'dba_test'@'%'");
@@ -206,7 +215,7 @@ var row = result.fetchOne();
 print("Number of 'mydba'@'localhost' accounts: "+ row[0] + "\n");
 session.close();
 
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 // Create account without global grant option
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'no_global_grant'@'%'");
@@ -224,14 +233,14 @@ dba.createCluster("cluster");
 
 session.close();
 
-connect_to_sandbox([__mysql_sandbox_port2]);
+shell.connect(__sandbox_uri2);
 // Drop user
 session.runSql("SET sql_log_bin = 0");
 session.runSql("DROP user 'no_global_grant'@'%'");
 session.runSql("SET sql_log_bin = 1");
 session.close();
 
-connect_to_sandbox([__mysql_sandbox_port1]);
+shell.connect(__sandbox_uri1);
 
 //@# Dba: getCluster errors
 var c2 = dba.getCluster();
@@ -246,5 +255,6 @@ var c2 = dba.getCluster('devCluster');
 //@ Dba: getCluster
 print(c2);
 
+//@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

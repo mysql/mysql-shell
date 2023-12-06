@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ class Clone_progress {
 
  private:
 #ifdef FRIEND_TEST
-  FRIEND_TEST(Clone_progress_test, update_transfer);
+  FRIEND_TEST(Admin_api_clone_progress_test, update_transfer);
 #endif
 
   void update_stage(const mysqlshdk::mysql::Clone_status &status,

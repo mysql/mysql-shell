@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2023, Oracle and/or its affiliates.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -24,13 +24,10 @@ along with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <memory>
 #include <string>
-#include <vector>
-#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/test_utils.h"
-#include "unittest/test_utils/shell_test_wrapper.h"
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;

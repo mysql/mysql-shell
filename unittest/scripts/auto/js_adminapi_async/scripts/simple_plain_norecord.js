@@ -89,6 +89,14 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
+//@<> getReplicaSet() - no session - useWizards = false
+EXPECT_THROWS(function() { dba.getReplicaSet();}, `An open session is required to perform this operation.`);
+
+//@<> getReplicaSet() - no session - useWizards = true
+shell.options.useWizards = true;
+EXPECT_THROWS(function() { dba.getReplicaSet();}, `An open session is required to perform this operation.`);
+shell.options.useWizards = false;
+
 //@ createReplicaSet
 shell.connect(__sandbox_uri1, __secure_password);
 

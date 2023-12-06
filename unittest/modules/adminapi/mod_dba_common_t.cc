@@ -27,25 +27,32 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/mod_shell.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/types.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 #include "unittest/test_utils/admin_api_test.h"
+#include "unittest/test_utils/command_line_test.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
-#include "unittest/test_utils/mod_testutils.h"
-#include "unittest/test_utils/shell_test_wrapper.h"
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 using mysqlshdk::utils::Version;
 
+namespace mysqlsh {
+namespace dba {
+extern void validate_ip_whitelist_option(
+    const mysqlshdk::utils::Version &version, const std::string &ip_whitelist,
+    const std::string &ip_allowlist_option_name);
+}  // namespace dba
+}  // namespace mysqlsh
+
 namespace testing {
 
-class Dba_common_test : public tests::Admin_api_test {
+class Admin_api_common_test : public tests::Admin_api_test {
  public:
   virtual void SetUp() {
     Admin_api_test::SetUp();
@@ -91,7 +98,9 @@ class Dba_common_test : public tests::Admin_api_test {
   }
 };
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
+class Admin_api_cmdline_test : public tests::Command_line_test {};
+
+TEST_F(Admin_api_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto instance = create_session(_mysql_sandbox_ports[0]);
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
@@ -246,7 +255,8 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
+TEST_F(Admin_api_common_test,
+       resolve_cluster_ssl_mode_on_instance_without_ssl) {
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   disable_ssl_on_instance(_mysql_sandbox_ports[0], "unsecure");
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
@@ -290,7 +300,7 @@ TEST_F(Dba_common_test, resolve_cluster_ssl_mode_on_instance_without_ssl) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
+TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
@@ -548,7 +558,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
 
-TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
+TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
@@ -640,7 +650,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
 }
 
-TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
+TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
   using mysqlsh::dba::check_admin_account_access_restrictions;
   using mysqlshdk::db::Type;
 
@@ -840,21 +850,22 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
       mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 }
 
-class Dba_common_cluster_functions : public Dba_common_test {
+class Admin_api_common_cluster_functions : public Admin_api_common_test {
  public:
   static void SetUpTestCase() {
-    SetUpSampleCluster("Dba_common_cluster_functions/SetUpTestCase");
+    SetUpSampleCluster("Admin_api_common_cluster_functions/SetUpTestCase");
   }
 
   static void TearDownTestCase() {
-    TearDownSampleCluster("Dba_common_cluster_functions/TearDownTestCase");
+    TearDownSampleCluster(
+        "Admin_api_common_cluster_functions/TearDownTestCase");
   }
 };
 
 // If the information on the Metadata and the GR group
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
-TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
+TEST_F(Admin_api_common_cluster_functions, get_newly_discovered_instances) {
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
@@ -875,7 +886,7 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
 // If the information on the Metadata and the GR group
 // P_S info is the same get_unavailable_instances()
 // should return an empty list
-TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
+TEST_F(Admin_api_common_cluster_functions, get_unavailable_instances) {
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
@@ -893,7 +904,7 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
   }
 }
 
-TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
+TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_01) {
   // There are missing instances and the instance we are checking belongs to
   // the metadata list but does not belong to the GR list.
 
@@ -940,7 +951,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
       uuid_3 + "'");
 }
 
-TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
+TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_02) {
   // There are missing instances and the instance we are checking belongs
   // to neither the metadata nor GR lists.
 
@@ -987,7 +998,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
       "555555555555'");
 }
 
-TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
+TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_03) {
   // There are no missing instances and the instance we are checking belongs
   // to both the metadata and GR lists.
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
@@ -1008,7 +1019,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
   }
 }
 
-TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
+TEST_F(Admin_api_common_test, super_read_only_server_on_flag_true) {
   enable_replay();
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -1032,7 +1043,8 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_true) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
+TEST_F(Admin_api_common_test,
+       super_read_only_server_on_flag_false_open_sessions) {
   enable_replay();
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -1060,7 +1072,8 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_open_sessions) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
+TEST_F(Admin_api_common_test,
+       super_read_only_server_on_flag_false_no_open_sessions) {
   enable_replay();
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -1082,7 +1095,7 @@ TEST_F(Dba_common_test, super_read_only_server_on_flag_false_no_open_sessions) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
+TEST_F(Admin_api_common_test, super_read_only_server_off_flag_true) {
   enable_replay();
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -1106,7 +1119,7 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_true) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
 }
 
-TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
+TEST_F(Admin_api_common_test, super_read_only_server_off_flag_false) {
   enable_replay();
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -1742,7 +1755,7 @@ TEST(mod_dba_common, is_valid_identifier) {
           t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
 }
 
-TEST_F(Dba_common_test, resolve_gr_local_address) {
+TEST_F(Admin_api_common_test, resolve_gr_local_address) {
   std::optional<std::string> local_address;
   std::string raw_report_host = "127.0.0.1";
   std::optional<std::string> communication_stack;
@@ -1927,7 +1940,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
 }
 
-TEST_F(Dba_common_test, set_wait_recovery) {
+TEST_F(Admin_api_common_test, set_wait_recovery) {
   mysqlsh::dba::cluster::Add_instance_options options;
 
   options.set_wait_recovery(mysqlsh::dba::kWaitRecovery, 0);
@@ -1958,4 +1971,191 @@ TEST_F(Dba_common_test, set_wait_recovery) {
   EXPECT_EQ(options.get_wait_recovery(),
             mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
 }
+
+TEST_F(Admin_api_common_test, ip_whitelist) {
+  using V = const mysqlshdk::utils::Version;
+  {
+    const std::string ip_whitelist{};
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist: string value cannot be empty.");
+
+    // Verify that the option name is presented as ipAllowlist when used
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.22"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpAllowlist),
+        shcore::Exception,
+        "Invalid value for ipAllowlist: string value cannot be empty.");
+  }
+  {
+    const std::string ip_whitelist{
+        "192.168.0.0/24,::ffff:10.2.0.3/128,::10.3.0.3/128,::ffff:10.2.0.3/16,"
+        "::10.3.0.3/16,10.100.23.1/128"};
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '10.100.23.1/128': subnet value in CIDR "
+        "notation is not supported for IPv4 addresses.");
+  }
+  {
+    const std::string ip_whitelist{
+        "192.168.0.1/8,127.0.0.1, 10.123.4.11, ::1,mysql.cluster.example.com"};
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist '::1': IPv6 not supported");
+  }
+  {
+    const std::string ip_whitelist{
+        "192.168.0.1/8,127.0.0.1,10.123.4.11, mysql.cluster.example.com"};
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
+        "are not supported");
+    EXPECT_THROW_LIKE(
+        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
+                                                   mysqlsh::dba::kIpWhitelist),
+        shcore::Exception,
+        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
+        "are not supported");
+  }
+  {
+    const std::string ip_whitelist{"192.168.0.1/8, 127.0.0.1,10.123.4.11"};
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+    mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
+                                               mysqlsh::dba::kIpWhitelist);
+  }
+}
+
+// This test used to be for ensuring socket connections are rejected for
+// InnoDB cluster, but they are now allowed.
+TEST_F(Admin_api_cmdline_test, bug26970629) {
+  const std::string variable = "socket";
+  const std::string host =
+      "--host="
+#ifdef _WIN32
+      "."
+#else   // !_WIN32
+      "localhost"
+#endif  // !_WIN32
+      ;
+  const std::string pwd = "--password=" + _pwd;
+  std::string socket;
+
+  mysqlshdk::db::Connection_options options;
+  options.set_host(_host);
+  options.set_port(std::stoi(_mysql_port));
+  options.set_user(_user);
+  options.set_password(_pwd);
+
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(options);
+
+  auto result = session->query("show variables like '" + variable + "'");
+  auto row = result->fetch_one();
+
+  if (row) {
+    std::string socket_path = row->get_as_string(1);
+
+#ifdef _WIN32
+    socket = "--socket=" + socket_path;
+#else   // !_WIN32
+    if (shcore::path_exists(socket_path)) {
+      socket = "--socket=" + socket_path;
+    } else {
+      result = session->query("show variables like 'datadir'");
+      row = result->fetch_one();
+      socket_path = shcore::path::normalize(
+          shcore::path::join_path(row->get_as_string(1), socket_path));
+
+      if (shcore::path_exists(socket_path)) {
+        socket = "--socket=" + socket_path;
+      }
+    }
+#endif  // !_WIN32
+  }
+
+#ifdef _WIN32
+  result = session->query("show variables like 'named_pipe'");
+  row = result->fetch_one();
+
+  if (!row || row->get_as_string(1) != "ON") {
+    socket.clear();
+  }
+#endif  // _WIN32
+
+  session->close();
+
+  if (socket.empty()) {
+    SCOPED_TRACE("Socket/Pipe Connections are Disabled, they must be enabled.");
+    FAIL();
+  } else {
+    std::string usr = "--user=" + _user;
+
+#ifdef HAVE_V8
+    Command_line_test::execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(),
+                                host.c_str(), socket.c_str(), "-e",
+                                "dba.createCluster('sample')", NULL});
+#else
+    Command_line_test::execute({_mysqlsh, "--py", usr.c_str(), pwd.c_str(),
+                                host.c_str(), socket.c_str(), "-e",
+                                "dba.create_cluster('sample')", NULL});
+#endif
+    SCOPED_TRACE(socket.c_str());
+    MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
+        "a MySQL session through TCP/IP is required to perform this operation");
+  }
+}
+
 }  // namespace testing

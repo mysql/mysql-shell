@@ -40,7 +40,7 @@ using testing::_;
 
 using testing::Return;
 
-class Preconditions : public Shell_core_test_wrapper {
+class Admin_api_preconditions : public Shell_core_test_wrapper {
  protected:
   void SetUp() {
     Shell_core_test_wrapper::SetUp();
@@ -55,12 +55,8 @@ class Preconditions : public Shell_core_test_wrapper {
          {mysqlshdk::db::Type::String, mysqlshdk::db::Type::Integer},
          {{"mock@localhost", "3306"}}});
 
-    // m_metadata =
-    // std::make_shared<mysqlsh::dba::MetadataStorage>(m_mock_instance);
     m_mock_metadata =
         std::make_shared<testing::Mock_metadata_storage>(m_mock_instance);
-    //    m_preconditions =
-    //        std::make_shared<mysqlsh::dba::Precondition_checker>(*m_metadata);
     m_preconditions = std::make_shared<mysqlsh::dba::Precondition_checker>(
         m_mock_metadata, m_mock_instance, m_primary_available);
   }
@@ -74,7 +70,7 @@ class Preconditions : public Shell_core_test_wrapper {
   std::shared_ptr<testing::Mock_metadata_storage> m_mock_metadata;
 };
 
-TEST_F(Preconditions, check_session) {
+TEST_F(Admin_api_preconditions, check_session) {
   // Test inexistent session
   try {
     EXPECT_CALL(*m_mock_metadata, get_md_server())
@@ -211,7 +207,8 @@ TEST_F(Preconditions, check_session) {
   }
 }
 
-TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
+TEST_F(Admin_api_preconditions,
+       check_instance_configuration_preconditions_errors) {
   struct Invalid_types {
     mysqlsh::dba::TargetType::Type instance_type;
     int allowed_types;
@@ -292,7 +289,7 @@ TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
   }
 }
 
-TEST_F(Preconditions, check_managed_instance_status_preconditions) {
+TEST_F(Admin_api_preconditions, check_managed_instance_status_preconditions) {
   struct Invalid_states {
     mysqlsh::dba::TargetType::Type instance_type;
     mysqlsh::dba::ReplicationQuorum::State instance_quorum_state;
@@ -383,7 +380,7 @@ TEST_F(Preconditions, check_managed_instance_status_preconditions) {
   }
 }
 
-TEST_F(Preconditions, check_quorum_state_preconditions_errors) {
+TEST_F(Admin_api_preconditions, check_quorum_state_preconditions_errors) {
   struct Invalid_states {
     mysqlsh::dba::ReplicationQuorum::State instance_state;
     mysqlsh::dba::ReplicationQuorum::State allowed_states;
@@ -433,7 +430,7 @@ TEST_F(Preconditions, check_quorum_state_preconditions_errors) {
   }
 }
 
-TEST_F(Preconditions, check_quorum_state_preconditions) {
+TEST_F(Admin_api_preconditions, check_quorum_state_preconditions) {
   std::vector<mysqlsh::dba::ReplicationQuorum::State> quorum_states{
       mysqlsh::dba::ReplicationQuorum::State(
           mysqlsh::dba::ReplicationQuorum::States::Normal),
@@ -459,7 +456,7 @@ TEST_F(Preconditions, check_quorum_state_preconditions) {
   }
 }
 
-TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
+TEST_F(Admin_api_preconditions, check_cluster_set_preconditions_errors) {
   struct Invalid_states {
     mysqlsh::dba::Cluster_global_status_mask allowed_states;
     std::string error;
@@ -512,7 +509,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
       mysqlsh::dba::Precondition_checker::kClusterGlobalStateAny));
 }
 
-TEST_F(Preconditions, check_cluster_set_preconditions) {
+TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
   std::vector<std::pair<mysqlsh::dba::Cluster_global_status,
                         mysqlsh::dba::Cluster_availability>>
       global_cluster_states{
@@ -651,7 +648,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
   EXPECT_EQ(cset_sometimes_allowed_expected, cset_sometimes_allowed);
 }
 
-TEST_F(Preconditions, check_cluster_fenced_preconditions) {
+TEST_F(Admin_api_preconditions, check_cluster_fenced_preconditions) {
   struct Invalid_states {
     bool allowed_on_fenced;
     std::string error;

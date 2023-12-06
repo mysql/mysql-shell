@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@ namespace testing {
 
 using MDS = mysqlsh::dba::metadata::State;
 
-class Metadata_management_test : public Shell_core_test_wrapper {
+class Admin_api_metadata_management_test : public Shell_core_test_wrapper {
  public:
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
@@ -105,7 +105,7 @@ class Metadata_management_test : public Shell_core_test_wrapper {
   }
 };
 
-TEST_F(Metadata_management_test, installed_version) {
+TEST_F(Admin_api_metadata_management_test, installed_version) {
   // The version will be -1.-1.-1 if the metadata schema does not exist
   auto installed = mysqlsh::dba::metadata::installed_version(m_instance);
   EXPECT_TRUE(installed == mysqlsh::dba::metadata::kNotInstalled);
@@ -125,7 +125,7 @@ TEST_F(Metadata_management_test, installed_version) {
   EXPECT_TRUE(installed == mysqlshdk::utils::Version(1, 0, 5));
 }
 
-TEST_F(Metadata_management_test, check_installed_schema_version) {
+TEST_F(Admin_api_metadata_management_test, check_installed_schema_version) {
   auto current_version = mysqlsh::dba::metadata::current_version();
   mysqlshdk::utils::Version installed;
   mysqlshdk::utils::Version real_md_version;

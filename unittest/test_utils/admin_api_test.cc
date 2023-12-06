@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2023, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -20,15 +20,9 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/test_utils/admin_api_test.h"
-#include <fstream>
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
-#include "test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
-#include "utils/utils_file.h"
-#include "utils/utils_general.h"
-#include "utils/utils_json.h"
-#include "utils/utils_string.h"
+#include "unittest/test_utils/shell_test_wrapper.h"
 
 namespace tests {
 

@@ -1,6 +1,3 @@
-//@ Initialization
-||
-
 //@# Dba: createCluster errors
 ||Invalid number of arguments, expected 1 to 2 but got 0
 ||Invalid number of arguments, expected 1 to 2 but got 4
@@ -248,7 +245,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 //@<OUT> Dba: configureLocalInstance error 3 {VER(<8.0.11)}
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': <<<(__version_num<80000)?"WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell\n":""\>>>
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
-Sandbox MySQL configuration file at: <<<__output_sandbox_dir>>><<<__mysql_sandbox_port1>>><<<__path_splitter>>>my.cnf
+Sandbox MySQL configuration file at: <<<cnfPath1>>>
 Persisting the cluster settings...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured for use in an InnoDB cluster.
 
@@ -599,6 +596,3 @@ json/raw
 
 //@<OUT> Dba: getCluster with interaction (default null)
 <Cluster:devCluster>
-
-//@ Finalization
-||

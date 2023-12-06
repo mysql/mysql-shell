@@ -114,6 +114,14 @@ if (testutil.versionCheck(__version, ">=", "8.0.0")) {
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
+//@<> getCluster() - no session - useWizards = false
+EXPECT_THROWS(function() { dba.getCluster();}, `An open session is required to perform this operation.`);
+
+//@<> getCluster() - no session - useWizards = true
+shell.options.useWizards = true;
+EXPECT_THROWS(function() { dba.getCluster();}, `An open session is required to perform this operation.`);
+shell.options.useWizards = false;
+
 //@<> createCluster
 shell.connect(__sandbox_uri1, pwd);
 

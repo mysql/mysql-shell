@@ -26,7 +26,6 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
@@ -35,6 +34,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -42,14 +42,6 @@
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/mysql/mock_instance.h"
 #include "unittest/test_utils/shell_base_test.h"
-
-namespace mysqlsh {
-namespace dba {
-extern void validate_ip_whitelist_option(
-    const mysqlshdk::utils::Version &version, const std::string &ip_whitelist,
-    const std::string &ip_allowlist_option_name);
-}  // namespace dba
-}  // namespace mysqlsh
 
 namespace testing {
 
@@ -1711,7 +1703,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_possible) {
 
   // Protocol version 8.0.27
   mock_session = std::make_shared<Mock_session>();
-  instance = mysqlsh::dba::Instance(mock_session);
+  instance = mysqlshdk::mysql::Instance(mock_session);
 
   mock_session
       ->expect_query(
@@ -2228,112 +2220,6 @@ TEST_F(Group_replication_test, is_address_supported_by_gr) {
   test("sample_hostname:3302", Version(8, 0, 14), true);
   test("localhost:8888", Version(8, 0, 13), true);
   test("this_is_home:3393", Version(8, 0, 13), true);
-}
-
-TEST_F(Group_replication_test, ip_whitelist) {
-  using V = const mysqlshdk::utils::Version;
-  {
-    const std::string ip_whitelist{};
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist: string value cannot be empty.");
-
-    // Verify that the option name is presented as ipAllowlist when used
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.22"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpAllowlist),
-        shcore::Exception,
-        "Invalid value for ipAllowlist: string value cannot be empty.");
-  }
-  {
-    const std::string ip_whitelist{
-        "192.168.0.0/24,::ffff:10.2.0.3/128,::10.3.0.3/128,::ffff:10.2.0.3/16,"
-        "::10.3.0.3/16,10.100.23.1/128"};
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '10.100.23.1/128': subnet value in CIDR "
-        "notation is not supported for IPv4 addresses.");
-  }
-  {
-    const std::string ip_whitelist{
-        "192.168.0.1/8,127.0.0.1, 10.123.4.11, ::1,mysql.cluster.example.com"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist '::1': IPv6 not supported");
-  }
-  {
-    const std::string ip_whitelist{
-        "192.168.0.1/8,127.0.0.1,10.123.4.11, mysql.cluster.example.com"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
-        "are not supported");
-    EXPECT_THROW_LIKE(
-        mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                                   mysqlsh::dba::kIpWhitelist),
-        shcore::Exception,
-        "Invalid value for ipWhitelist 'mysql.cluster.example.com': hostnames "
-        "are not supported");
-  }
-  {
-    const std::string ip_whitelist{"192.168.0.1/8, 127.0.0.1,10.123.4.11"};
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.17"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.14"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.13"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.10"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.4"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"8.0.3"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-    mysqlsh::dba::validate_ip_whitelist_option(V{"5.7.27"}, ip_whitelist,
-                                               mysqlsh::dba::kIpWhitelist);
-  }
 }
 
 }  // namespace testing

@@ -23,23 +23,19 @@
 
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/topology_executor.h"
-#include "modules/mod_shell.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "unittest/test_utils/admin_api_test.h"
-#include "unittest/test_utils/mod_testutils.h"
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 
 namespace tests {
 
-class Dba_cluster_test : public Admin_api_test {
+class Admin_api_cluster_test : public Admin_api_test {
  public:
   static std::shared_ptr<mysqlshdk::db::ISession> create_session(
       int port, std::string user = "root") {
@@ -73,11 +69,11 @@ class Dba_cluster_test : public Admin_api_test {
   }
 
   static void SetUpTestCase() {
-    SetUpSampleCluster("Dba_cluster_test/SetUpTestCase");
+    SetUpSampleCluster("Admin_api_cluster_test/SetUpTestCase");
   }
 
   static void TearDownTestCase() {
-    TearDownSampleCluster("Dba_cluster_test/TearDownTestCase");
+    TearDownSampleCluster("Admin_api_cluster_test/TearDownTestCase");
   }
 
  protected:
@@ -109,7 +105,7 @@ class Dba_cluster_test : public Admin_api_test {
 //
 // The issue happens every-time the generated password for the replication-user
 // contains the following sequence of characters: '%s'.
-TEST_F(Dba_cluster_test, bug28219398) {
+TEST_F(Admin_api_cluster_test, bug28219398) {
   std::string replication_user, replication_pwd;
 
   replication_user = "mysql_innodb_cluster_r1711111111";

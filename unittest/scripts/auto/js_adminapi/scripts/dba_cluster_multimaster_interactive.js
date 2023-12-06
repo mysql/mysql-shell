@@ -1,5 +1,4 @@
-// Assumptions: smart deployment rountines available
-
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -7,22 +6,28 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
+shell.options.useWizards=true;
+
 shell.connect(__sandbox_uri1);
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, cancel
+testutil.expectPrompt("Confirm [y/N]", "n");
 dba.createCluster('devCluster', {multiPrimary: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
+testutil.expectPrompt("Confirm [y/N]", "y");
 dba.createCluster('devCluster', {multiPrimary: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 var Cluster = dba.getCluster('devCluster');
 
 //@ Dissolve cluster
+testutil.expectPrompt("Are you sure you want to dissolve the cluster? [y/N]:", "y");
 Cluster.dissolve({force: true});
 Cluster.disconnect();
 
 //@<OUT> Dba: createCluster multiMaster with interaction, regression for BUG#25926603
+testutil.expectPrompt("Confirm [y/N]", "y");
 dba.createCluster('devCluster', {multiMaster: true, gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -31,7 +36,7 @@ Cluster = dba.getCluster('devCluster');
 //@ Cluster: addInstance with interaction, error
 add_instance_options['port'] = __mysql_sandbox_port1;
 add_instance_options['user'] = 'root';
-Cluster.addInstance(add_instance_options, add_instance_extra_opts);
+Cluster.addInstance(add_instance_options, {});
 
 //@<OUT> Cluster: addInstance with interaction, ok
 Cluster.addInstance(__sandbox_uri2);
@@ -72,9 +77,11 @@ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port3});
 Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port1});
 
 //@ Dissolve cluster with success
+testutil.expectPrompt("Are you sure you want to dissolve the cluster? [y/N]:", "y");
 Cluster.dissolve({force: true});
 
 //@<OUT> Dba: createCluster multiPrimary with interaction 2, ok
+testutil.expectPrompt("Confirm [y/N]", "y");
 dba.createCluster('devCluster', {multiPrimary: true, memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -141,6 +148,7 @@ EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
+testutil.expectPrompt("Are you sure you want to dissolve the cluster? [y/N]:", "y");
 Cluster.dissolve({force: true})
 
 // Disable super-read-only (BUG#26422638)

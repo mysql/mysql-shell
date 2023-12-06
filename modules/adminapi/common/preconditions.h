@@ -89,17 +89,20 @@ class Precondition_checker {
 
  private:
 #ifdef FRIEND_TEST
-  FRIEND_TEST(Preconditions, check_session);
-  FRIEND_TEST(Preconditions, check_instance_configuration_preconditions_errors);
-  FRIEND_TEST(Preconditions, check_instance_configuration_preconditions);
-  FRIEND_TEST(Preconditions,
+  FRIEND_TEST(Admin_api_preconditions, check_session);
+  FRIEND_TEST(Admin_api_preconditions,
+              check_instance_configuration_preconditions_errors);
+  FRIEND_TEST(Admin_api_preconditions,
+              check_instance_configuration_preconditions);
+  FRIEND_TEST(Admin_api_preconditions,
               check_managed_instance_status_preconditions_errors);
-  FRIEND_TEST(Preconditions, check_managed_instance_status_preconditions);
-  FRIEND_TEST(Preconditions, check_quorum_state_preconditions_errors);
-  FRIEND_TEST(Preconditions, check_quorum_state_preconditions);
-  FRIEND_TEST(Preconditions, check_cluster_set_preconditions_errors);
-  FRIEND_TEST(Preconditions, check_cluster_set_preconditions);
-  FRIEND_TEST(Preconditions, check_cluster_fenced_preconditions);
+  FRIEND_TEST(Admin_api_preconditions,
+              check_managed_instance_status_preconditions);
+  FRIEND_TEST(Admin_api_preconditions, check_quorum_state_preconditions_errors);
+  FRIEND_TEST(Admin_api_preconditions, check_quorum_state_preconditions);
+  FRIEND_TEST(Admin_api_preconditions, check_cluster_set_preconditions_errors);
+  FRIEND_TEST(Admin_api_preconditions, check_cluster_set_preconditions);
+  FRIEND_TEST(Admin_api_preconditions, check_cluster_fenced_preconditions);
 #endif
 
   void check_session() const;
