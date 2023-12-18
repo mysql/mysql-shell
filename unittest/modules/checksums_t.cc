@@ -63,6 +63,38 @@ std::string to_string(Checksums::Hash hash) {
   throw std::logic_error("to_string(Hash)");
 }
 
+class Lock_5_6 final {
+ public:
+  Lock_5_6() = delete;
+
+  explicit Lock_5_6(std::shared_ptr<mysqlshdk::db::ISession> session)
+      : m_session(std::move(session)) {
+    m_session->execute("CREATE TABLE IF NOT EXISTS mysql.lock56 (a int)");
+
+    while (true) {
+      try {
+        m_session->execute("ALTER TABLE mysql.lock56 ADD COLUMN locked int");
+        break;
+      } catch (...) {
+        shcore::sleep_ms(1000);
+      }
+    }
+  }
+
+  Lock_5_6(const Lock_5_6 &) = delete;
+  Lock_5_6(Lock_5_6 &&) = delete;
+
+  Lock_5_6 &operator=(const Lock_5_6 &) = delete;
+  Lock_5_6 &operator=(Lock_5_6 &&) = delete;
+
+  ~Lock_5_6() {
+    m_session->execute("ALTER TABLE mysql.lock56 DROP COLUMN locked");
+  }
+
+ private:
+  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+};
+
 class Checksums_test : public Shell_core_test_wrapper {
  protected:
   void TearDown() override {
@@ -616,6 +648,7 @@ TEST_F(Checksums_test, sha2_hashes_5_6) {
     SKIP_TEST("Executed only when 8.0+ server is present");
   }
 
+  Lock_5_6 lock{connect_session(uri)};
   run_sha2_test(connect_session(uri));
 }
 

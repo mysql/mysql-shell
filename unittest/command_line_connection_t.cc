@@ -180,6 +180,8 @@ TEST_F(Command_line_connection_test, no_pwd_save_from_stdin) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("HELLO");
 
   shcore::setenv("MYSQLSH_CREDENTIAL_STORE_HELPER", "<disabled>");
+
+  execute_in_session(_mysql_uri_nopasswd, "--mysql", "drop user pwduser@'%'");
 }
 
 TEST_F(Command_line_connection_test, session_cmdline_options) {

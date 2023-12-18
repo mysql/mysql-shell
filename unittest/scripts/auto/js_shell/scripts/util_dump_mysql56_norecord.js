@@ -92,6 +92,19 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root");
 shell.connect(__sandbox_uri1);
 session.runSql("SET @@global.local_infile = ON;");
 
+// lock 5.6 instance, prevent concurrent execution of 5.6 tests
+lock_session = shell.openSession(__mysql56_uri);
+lock_session.runSql("CREATE TABLE IF NOT EXISTS mysql.lock56 (a int)");
+
+while (true) {
+  try {
+    lock_session.runSql("ALTER TABLE mysql.lock56 ADD COLUMN locked int");
+    break;
+  } catch {
+    os.sleep(1);
+  }
+}
+
 // prepare data to be dumped
 shell.connect(__mysql56_uri);
 
@@ -268,6 +281,7 @@ EXPECT_EQ(all_objects, fetch_all_objects());
 EXPECT_CHECKSUMS(all_tables);
 
 //@<> Cleanup
+lock_session.runSql("ALTER TABLE mysql.lock56 DROP COLUMN locked");
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 cleanup_dump_dir();

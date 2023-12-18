@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,7 @@ namespace shcore {
 class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp() {
+  void SetUp() override {
     Shell_py_script_tester::SetUp();
 
     std::string user, host, password;
@@ -60,17 +60,19 @@ class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
     execute("__global_names = set(globals().keys())");
   }
 
-  void TearDown() {
+  void TearDown() override {
     // cleanup globals / restore snapshot
     execute(
         "for k in set(globals().keys()) - __global_names:\n"
         "    del globals()[k]\n");
 
+    create_mysql_session()->execute("DROP USER IF EXISTS mike@'%'");
+
     Shell_py_script_tester::TearDown();
   }
 
-  virtual void pre_process_line(const std::string & /* path */,
-                                std::string *line) {
+  void pre_process_line(const std::string & /* path */,
+                        std::string *line) override {
     // Unit tests work using default ports, if that is not the case
     // We need to update them before being executed
     if (!_port.empty() && _port != "33060") {

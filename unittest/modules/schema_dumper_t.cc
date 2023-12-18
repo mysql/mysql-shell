@@ -206,13 +206,14 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string file_path;
   std::unique_ptr<IFile> file;
-  bool run_directory_tests = false;
+  static bool run_directory_tests;
   static bool initialized;
   static constexpr auto db_name = "mysqldump_test_db";
   static constexpr auto compat_db_name = "mysqlaas_compat";
   static constexpr auto crazy_names_db = "crazy_names_db";
 };
 
+bool Schema_dumper_test::run_directory_tests = false;
 bool Schema_dumper_test::initialized = false;
 
 TEST_F(Schema_dumper_test, dump_table) {
@@ -791,6 +792,7 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
       "CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost' IDENTIFIED BY "
       "'pwd';");
   session->execute("GRANT SELECT ON * . * TO 'dumptestuser'@'localhost';");
+
   std::string partial_revoke = "ON";
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     partial_revoke = session->query("show variables like 'partial_revokes';")
@@ -902,7 +904,10 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   testutil->call_mysqlsh_c({_mysql_uri, "--sql", "-f", file_path});
   EXPECT_TRUE(output_handler.std_err.empty());
 
+  session->execute("drop user 'admin'@'localhost';");
+  session->execute("drop user 'admin2'@'localhost';");
   session->execute("drop user 'dumptestuser'@'localhost';");
+
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     session->execute("DROP ROLE da_dumper");
     session->execute("DROP USER `dave`@`%`");
@@ -1132,8 +1137,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   filters.users().exclude(std::array{"mysql", "root"});
   EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), filters));
 
-  auto expected_issues =
-      _target_server_version < mysqlshdk::utils::Version(8, 0, 0) ?
+  auto expected_issues = run_directory_tests ?
       std::set<std::string>{
       "User 'testusr1'@'localhost' is granted restricted privileges: FILE, "
       "RELOAD, SUPER",
@@ -1301,7 +1305,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                  "  PRIMARY KEY (`pk`)\n"
                  ") ENGINE=InnoDB DEFAULT CHARSET=latin1 /* DATA "
                  "DIRECTORY='" +
-                     shcore::path::tmpdir() + "/'*/ ;");
+                     shcore::path::tmpdir() + "/'*/;");
 
     EXPECT_TABLE("path_tbl2",
                  {"Table `mysqlaas_compat`.`path_tbl2` had {DATA|INDEX} "
@@ -1314,7 +1318,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                  ") ENGINE=InnoDB DEFAULT CHARSET=latin1 /* DATA "
                  "DIRECTORY='" +
                      shcore::path::tmpdir() + "/' INDEX DIRECTORY='" +
-                     shcore::path::tmpdir() + "/'*/ ;");
+                     shcore::path::tmpdir() + "/'*/;");
 
     EXPECT_TABLE("path_tbl3",
                  {"Table `mysqlaas_compat`.`path_tbl3` had {DATA|INDEX} "
@@ -1325,7 +1329,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                  "  `pk` int(11) NOT NULL,\n  PRIMARY KEY (`pk`)\n"
                  ") ENGINE=InnoDB DEFAULT CHARSET=latin1 /* INDEX "
                  "DIRECTORY='" +
-                     shcore::path::tmpdir() + "/'*/ ;");
+                     shcore::path::tmpdir() + "/'*/;");
 
     EXPECT_TABLE("part_tbl2",
                  {"Table `mysqlaas_compat`.`part_tbl2` had {DATA|INDEX} "

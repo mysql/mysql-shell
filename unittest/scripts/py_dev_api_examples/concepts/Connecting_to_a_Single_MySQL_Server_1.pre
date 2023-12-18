@@ -1,1 +1,2 @@
+# Assumptions: test schema exists
 from mysqlsh import mysqlx

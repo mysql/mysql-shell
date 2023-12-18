@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2023, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,7 @@ namespace shcore {
 class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
  protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp() {
+  void SetUp() override {
     Shell_js_script_tester::SetUp();
 
     set_config_folder("js_dev_api_examples");
@@ -47,8 +47,13 @@ class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
     _new_format = true;
   }
 
-  virtual void pre_process_line(const std::string & /* path */,
-                                std::string *line) {
+  void TearDown() override {
+    create_mysql_session()->execute("DROP USER IF EXISTS mike@'%'");
+    Shell_js_script_tester::TearDown();
+  }
+
+  void pre_process_line(const std::string & /* path */,
+                        std::string *line) override {
     // Unit tests work using default ports, if that is not the case
     // We need to update them before being executed
     if (!_port.empty() && _port != "33060") {
