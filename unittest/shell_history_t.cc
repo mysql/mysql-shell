@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -345,6 +345,9 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(5, linenoiseHistorySize());
   shell.process_line("a b c;");
   EXPECT_EQ(5, linenoiseHistorySize());
+
+  // clean up the user
+  shell.process_line("\\sql drop user foo@bar;");
 }
 
 TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
