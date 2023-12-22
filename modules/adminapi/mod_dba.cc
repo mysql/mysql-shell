@@ -392,7 +392,8 @@ its auto-rejoin attempts.
 it leaves the cluster unintentionally or exhausts its auto-rejoin attempts.
 Requires MySQL 8.0.18 or newer.
 
-If exitStateAction is not specified READ_ONLY will be used by default.
+If exitStateAction is not specified, it defaults to OFFLINE_MODE for server
+versions 8.4.0 or newer, and READ_ONLY otherwise.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA, R"*(
@@ -413,7 +414,8 @@ The exitStateAction option accepts case-insensitive string
 values, being the accepted values: OFFLINE_MODE (or 2),
 ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
-The default value is READ_ONLY.
+The default value is OFFLINE_MODE for server versions 8.4.0 or newer,
+and READ_ONLY otherwise.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA, R"*(

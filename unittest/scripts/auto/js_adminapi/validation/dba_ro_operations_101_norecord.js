@@ -1,7 +1,3 @@
-//@ Initialization
-||
-
-
 //@ Get Cluster from master
 |WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
 
@@ -322,7 +318,12 @@ ${*}
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -431,7 +432,12 @@ ${*}
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -533,6 +539,3 @@ ${*}
 
 //@ Get Cluster from slave
 |WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
-
-//@ Finalization
-||

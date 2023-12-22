@@ -80,7 +80,12 @@
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -799,7 +804,12 @@
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -972,10 +982,12 @@
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{}
 ?{VER(>=8.0.18)}
                 {
                     "value": "uncompressed",
@@ -1323,10 +1335,12 @@
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{}
 ?{VER(>=8.0.18)}
                 {
                     "value": "uncompressed",
@@ -1674,10 +1688,12 @@
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
                 },
+?{}
 ?{VER(>=8.0.18)}
                 {
                     "value": "uncompressed",
@@ -2704,7 +2720,12 @@
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -2987,7 +3008,12 @@
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -3151,7 +3177,12 @@
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {

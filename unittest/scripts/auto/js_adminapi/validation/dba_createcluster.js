@@ -417,7 +417,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {
@@ -838,7 +843,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "exitStateAction",
+?{VER(>=8.4.0)}
+                    "value": "OFFLINE_MODE",
+?{}
+?{VER(<8.4.0)}
                     "value": "READ_ONLY",
+?{}
                     "variable": "group_replication_exit_state_action"
                 },
                 {

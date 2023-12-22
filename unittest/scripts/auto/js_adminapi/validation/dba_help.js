@@ -657,7 +657,8 @@ DESCRIPTION
         it leaves the cluster unintentionally or exhausts its auto-rejoin
         attempts. Requires MySQL 8.0.18 or newer.
 
-      If exitStateAction is not specified READ_ONLY will be used by default.
+      If exitStateAction is not specified, it defaults to OFFLINE_MODE for
+      server versions 8.4.0 or newer, and READ_ONLY otherwise.
 
       The consistency option supports the following values:
 
@@ -681,7 +682,8 @@ DESCRIPTION
       option accepts case-insensitive string values, being the accepted values:
       OFFLINE_MODE (or 2), ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
-      The default value is READ_ONLY.
+      The default value is OFFLINE_MODE for server versions 8.4.0 or newer, and
+      READ_ONLY otherwise.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option

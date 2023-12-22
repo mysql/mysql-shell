@@ -171,7 +171,9 @@ EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_force_members': default v
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_group_seeds': default value ('') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_member_weight': default value ('50') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_poll_spin_loops': default value ('0') is the expected.");
-EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_complete_at': default value ('TRANSACTIONS_APPLIED') is the expected.");
+if (__version_num < 80400) {
+    EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_complete_at': default value ('TRANSACTIONS_APPLIED') is the expected.");
+}
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_reconnect_interval': default value ('60') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_retry_count': default value ('10') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_recovery_ssl_ca': default value ('') is the expected.");
@@ -198,7 +200,9 @@ EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_force_members"); }, "Option 'group_replication_force_members' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_member_weight"); }, "Option 'group_replication_member_weight' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_poll_spin_loops"); }, "Option 'group_replication_poll_spin_loops' does not exist in group 'mysqld'");
-EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_complete_at"); }, "Option 'group_replication_recovery_complete_at' does not exist in group 'mysqld'");
+if (__version_num < 80400) {
+    EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_complete_at"); }, "Option 'group_replication_recovery_complete_at' does not exist in group 'mysqld'");
+}
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_reconnect_interval"); }, "Option 'group_replication_recovery_reconnect_interval' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_retry_count"); }, "Option 'group_replication_recovery_retry_count' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_recovery_ssl_ca"); }, "Option 'group_replication_recovery_ssl_ca' does not exist in group 'mysqld'");

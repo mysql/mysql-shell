@@ -2,7 +2,7 @@
 
 //@<> INCLUDE metadata_schema_utils.inc
 
-//@ Initialization
+//@<> Initialization
 metadata_1_0_1_file = "metadata_1_0_1.sql";
 var allowlist = "127.0.0.1," + hostname_ip;
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {ipAllowlist: allowlist, gtidSetIsComplete: true});
@@ -47,12 +47,13 @@ c.describe()
 testutil.wipeAllOutput();
 normalize_cluster_options(c.options());
 
-//@ Get Cluster from slave
+//@<> Get Cluster from slave
 shell.connect(__sandbox_uri2);
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 var c = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.")
 
 //@ Status from slave  [USE:Status from master]
 testutil.wipeAllOutput();
@@ -68,5 +69,5 @@ normalize_cluster_options(c.options());
 
 session.close();
 
-//@ Finalization
+//@<> Finalization
 scene.destroy()
