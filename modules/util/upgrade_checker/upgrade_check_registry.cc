@@ -221,6 +221,12 @@ bool UNUSED_VARIABLE(register_get_deprecated_router_auth_method_check) =
     Upgrade_check_registry::register_check(
         &get_deprecated_router_auth_method_check,
         Target::AUTHENTICATION_PLUGINS, "8.0.0", "8.1.0", "8.2.0");
+
+bool UNUSED_VARIABLE(
+    register_get_deprecated_partition_temporal_delimiter_check) =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_deprecated_partition_temporal_delimiter_check),
+        Target::OBJECT_DEFINITIONS, "8.0.29");
 }  // namespace
 
 std::vector<std::unique_ptr<Upgrade_check>>

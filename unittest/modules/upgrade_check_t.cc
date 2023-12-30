@@ -2534,5 +2534,80 @@ TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_parsing_check) {
             Upgrade_issue::Level::NOTICE);  // WL#15973-TSFR_2_6_1
 }
 
+TEST_F(MySQL_upgrade_check_test,
+       deprecated_partition_temporal_delimiter_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 29));
+  PrepareTestDatabase("test");
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `temporal_date_correct` ( `id` DATE DEFAULT '2012-12-12') "
+      "ENGINE=InnoDB DEFAULT CHARSET=latin1 PARTITION BY RANGE COLUMNS(id) "
+      "(PARTITION px_2023_01 VALUES LESS THAN ('2022-02-01') ENGINE = "
+      "InnoDB);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `temporal_datetime_correct` ( `id` DATETIME DEFAULT "
+      "'2012-12-12 01:01:01') ENGINE=InnoDB DEFAULT CHARSET=latin1 PARTITION "
+      "BY RANGE COLUMNS(id) (PARTITION px_2023_02 VALUES LESS THAN "
+      "('2022-02-01 01:01:01') ENGINE = InnoDB);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `temporal_date_maxvalue` ( `id` DATE DEFAULT '2012-12-12') "
+      "ENGINE=InnoDB DEFAULT CHARSET=latin1 PARTITION BY RANGE COLUMNS(id) "
+      "(PARTITION px_2023_01 VALUES LESS THAN MAXVALUE ENGINE = "
+      "InnoDB);"));
+
+  auto check =
+      upgrade_checker::get_deprecated_partition_temporal_delimiter_check();
+  EXPECT_NO_ISSUES(check.get());
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `temporal_date_incorrect` ( `id` DATE DEFAULT "
+      "'2022_12_12') ENGINE=InnoDB DEFAULT CHARSET=latin1 PARTITION BY RANGE "
+      "COLUMNS(id) (PARTITION px_2024_01 VALUES LESS THAN ('2022_02_01') "
+      "ENGINE = InnoDB);"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE `temporal_datetime_incorrect` ( `id` DATETIME DEFAULT "
+      "'2022_12_12 01/01/01') ENGINE=InnoDB DEFAULT CHARSET=latin1 PARTITION "
+      "BY RANGE COLUMNS(id) (PARTITION px_2024_02 VALUES LESS THAN "
+      "('2022_02_01 04/10/00') ENGINE = InnoDB);"));
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE temporal_date_multi (`joi'ned` DATE NOT NULL,`left,on` "
+      "DATE NOT NULL) PARTITION BY RANGE COLUMNS (`joi'ned`, `left,on`)  "
+      "(PARTITION p0 VALUES LESS THAN ('2000,01,01',\"2010'01'01\"), PARTITION "
+      "p1 VALUES LESS THAN ('2010_01_01','2020-01-01'), PARTITION p2 VALUES "
+      "LESS THAN (MAXVALUE,MAXVALUE));"));
+
+  EXPECT_ISSUES(check.get(), 5);
+
+  EXPECT_EQ(issues[0].schema, "test");
+  EXPECT_EQ(issues[1].schema, "test");
+  EXPECT_EQ(issues[2].schema, "test");
+  EXPECT_EQ(issues[3].schema, "test");
+  EXPECT_EQ(issues[4].schema, "test");
+
+  EXPECT_EQ(issues[0].table, "temporal_date_incorrect");
+  EXPECT_EQ(issues[1].table, "temporal_date_multi");
+  EXPECT_EQ(issues[2].table, "temporal_date_multi");
+  EXPECT_EQ(issues[3].table, "temporal_date_multi");
+  EXPECT_EQ(issues[4].table, "temporal_datetime_incorrect");
+
+  EXPECT_EQ(issues[0].column, "id");
+  EXPECT_EQ(issues[1].column, "joi'ned");
+  EXPECT_EQ(issues[2].column, "left,on");
+  EXPECT_EQ(issues[3].column, "joi'ned");
+  EXPECT_EQ(issues[4].column, "id");
+
+  EXPECT_EQ(issues[0].description,
+            " - partition px_2024_01 uses deprecated temporal delimiters");
+  EXPECT_EQ(issues[1].description,
+            " - partition p0 uses deprecated temporal delimiters");
+  EXPECT_EQ(issues[2].description,
+            " - partition p0 uses deprecated temporal delimiters");
+  EXPECT_EQ(issues[3].description,
+            " - partition p1 uses deprecated temporal delimiters");
+  EXPECT_EQ(issues[4].description,
+            " - partition px_2024_02 uses deprecated temporal delimiters");
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

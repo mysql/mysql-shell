@@ -24,6 +24,7 @@
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
 #include <forward_list>
+#include <regex>
 #include <vector>
 
 #include "modules/util/upgrade_checker/manual_check.h"
@@ -1703,6 +1704,164 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
       "methods are no longer used.\n"
       "Since version 8.0.19 it's also possible to instruct MySQL Router to use "
       "a dedicated account. That account can be created using the AdminAPI.");
+}
+
+namespace deprecated_delimiter_funcs {
+const std::string k_date_regex_str = R"(\'[0-9]{4}\-[0-9]{2}\-[0-9]{2}\')";
+const std::string k_time_regex_str =
+    R"(\'[0-9]{4}\-[0-9]{2}\-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]*)?\')";
+
+// to match 'date','date','date' instances
+const std::string k_date_regex_multi_str =
+    "^" + k_date_regex_str + "(," + k_date_regex_str + ")*$";
+const std::string k_time_regex_multi_str =
+    "^" + k_time_regex_str + "(," + k_time_regex_str + ")*$";
+
+std::vector<std::string> split_string_custom(
+    std::string_view input, const char quote,
+    std::function<size_t(std::string_view, size_t)> span_func) {
+  std::vector<std::string> ret_val;
+
+  constexpr std::string_view separator = ",";
+  const auto to_find = std::string(separator) + quote;
+
+  size_t index = 0, new_find = 0;
+
+  while (new_find != std::string_view::npos) {
+    new_find = input.find_first_of(to_find, index);
+
+    while (new_find != std::string_view::npos && input[new_find] == quote) {
+      // got quote, find its end
+      auto after_quote_pos = span_func(input, new_find);
+      if (after_quote_pos == std::string::npos) {
+        // invalid quote, fallback, try find separator
+        new_find = input.find(separator, index);
+      } else {
+        // quote spanned, find next token
+        new_find = input.find_first_of(to_find, after_quote_pos);
+      }
+    }
+
+    if (new_find != std::string_view::npos) {
+      ret_val.emplace_back(input.substr(index, new_find - index));
+
+      index = new_find + separator.length();
+    } else {
+      ret_val.emplace_back(input.substr(index));
+    }
+  }
+
+  return ret_val;
+}
+
+std::vector<std::string> split_quoted_ids(std::string_view input) {
+  return split_string_custom(input, '`',
+                             mysqlshdk::utils::span_quoted_sql_identifier_bt);
+}
+
+std::vector<std::string> split_quoted(std::string_view input) {
+  return split_string_custom(input, '\'',
+                             mysqlshdk::utils::span_quoted_string_sq);
+}
+}  // namespace deprecated_delimiter_funcs
+
+class Deprecated_partition_temporal_delimiter_check : public Sql_upgrade_check {
+ public:
+  Deprecated_partition_temporal_delimiter_check()
+      : Sql_upgrade_check(
+            "deprecatedTemporalDelimiter",
+            "Check for deprecated temporal delimiters in table partitions.",
+            std::vector<std::string>{
+                R"(select 
+  p.table_schema, 
+  p.table_name, 
+  column_name, 
+  CONCAT(' - partition ', 
+    p.partition_name, ' uses deprecated temporal delimiters') AS message, 
+  p.partition_expression, 
+  p.partition_description 
+from 
+  information_schema.partitions p left join information_schema.columns c on 
+    (p.partition_expression LIKE concat('%`', c.column_name, '`%') and 
+  p.table_name = c.table_name and p.table_schema = c.table_schema) 
+where 
+  (not partition_description REGEXP ')" +
+                    deprecated_delimiter_funcs::k_date_regex_multi_str +
+                    R"(') and c.column_type = 'date';)",
+                R"(select 
+  p.table_schema, 
+  p.table_name, 
+  column_name, 
+  CONCAT(' - partition ', 
+    p.partition_name, ' uses deprecated temporal delimiters') AS message, 
+  p.partition_expression, 
+  p.partition_description 
+from 
+  information_schema.partitions p left join information_schema.columns c on 
+    (partition_expression LIKE concat('%`', c.column_name, '`%') and 
+    p.table_name = c.table_name and p.table_schema = c.table_schema) 
+where 
+  (not p.partition_description REGEXP ')" +
+                    deprecated_delimiter_funcs::k_time_regex_multi_str + R"(') 
+  and (c.column_type = 'datetime' or c.column_type = 'timestamp');)"},
+            Upgrade_issue::ERROR,
+            "The following columns are referenced in partitioning function "
+            "using custom temporal delimiters.\n"
+            "Custom temporal delimiters were deprecated since 8.0.29. "
+            "Partitions using them will make partitioned tables unaccessible "
+            "after upgrade.\n"
+            "These partitions need to be updated to standard temporal "
+            "delimiters before the upgrade.") {}
+
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+    static const auto date_regex =
+        std::regex(deprecated_delimiter_funcs::k_date_regex_str);
+    static const auto time_regex =
+        std::regex(deprecated_delimiter_funcs::k_time_regex_str);
+    constexpr std::string_view max_value_str = "MAXVALUE";
+
+    Upgrade_issue problem;
+    problem.schema = row->get_as_string(0);
+    problem.table = row->get_as_string(1);
+    problem.column = row->get_as_string(2);
+    problem.description = row->get_as_string(3);
+    problem.level = m_level;
+
+    auto part_expr = row->get_as_string(4);
+    auto part_desc = row->get_as_string(5);
+
+    if (auto col_list = deprecated_delimiter_funcs::split_quoted_ids(part_expr);
+        col_list.size() > 1) {
+      auto it = std::ranges::find(col_list, "`" + problem.column + "`");
+
+      // didn't found column - false positive
+      if (it == col_list.end()) return {};
+
+      auto desc_list = deprecated_delimiter_funcs::split_quoted(part_desc);
+
+      // column and description lists don't match - false positive
+      if (col_list.size() != desc_list.size()) return {};
+
+      auto desc = desc_list.at(it - col_list.begin());
+
+      if (desc == max_value_str || std::regex_match(desc, date_regex) ||
+          std::regex_match(desc, time_regex)) {
+        // false positive
+        return {};
+      }
+
+    } else if (part_desc == max_value_str) {
+      // MAXVALUE is valid for partitions - false positive
+      return {};
+    }
+
+    return problem;
+  }
+};
+
+std::unique_ptr<Sql_upgrade_check>
+get_deprecated_partition_temporal_delimiter_check() {
+  return std::make_unique<Deprecated_partition_temporal_delimiter_check>();
 }
 
 }  // namespace upgrade_checker

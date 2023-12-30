@@ -474,3 +474,18 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 https://dev.mysql.com/doc/mysql-shell/en/configuring-router-user.html\n
 https://dev.mysql.com/doc/mysql-router/en/mysqlrouter.html#option_mysqlrouter_account
 
+* deprecatedTemporalDelimiter.title
+Check for deprecated temporal delimiters in table partitions.
+
+* deprecatedTemporalDelimiter.description
+# Error
+Error: The following columns are referenced in partitioning function using custom temporal
+delimiters.\n
+Custom temporal delimiters were deprecated since 8.0.29. Partitions using them will make
+partitioned tables unaccessible after upgrade.\n
+These partitions need to be updated to standard temporal delimiters before the upgrade.
+
+* deprecatedTemporalDelimiter.docLink
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-29.html#mysqld-8-0-29-deprecation-removal
+https://dev.mysql.com/doc/refman/8.2/en/datetime.html
+

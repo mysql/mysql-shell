@@ -83,6 +83,8 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
     const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
     const Upgrade_info &info);
+std::unique_ptr<Sql_upgrade_check>
+get_deprecated_partition_temporal_delimiter_check();
 
 std::unique_ptr<Upgrade_check> get_config_check(
     const char *name, std::map<std::string, const char *> &&vars,
