@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -357,19 +357,16 @@ void Shell_core_test_wrapper::connect_x(const std::string &schema) {
 std::string Shell_core_test_wrapper::context_identifier() {
   std::string ret_val;
 
-  auto test_info = info();
-
-  if (test_info) {
+  if (auto test_info = info(); test_info) {
     ret_val.append(test_info->test_case_name());
     ret_val.append(".");
     ret_val.append(test_info->name());
   }
 
   if (!_custom_context.empty()) {
-    if (ret_val.empty())
-      ret_val = _custom_context;
-    else
-      ret_val.append(": " + _custom_context);
+    if (ret_val.empty()) return _custom_context;
+
+    ret_val.append(": ").append(_custom_context);
   }
 
   return ret_val;
@@ -492,7 +489,7 @@ void Shell_core_test_wrapper::reset_replayable_shell(
   execute_setup();
 
 #ifdef _WIN32
-  mysqlshdk::db::replay::set_replay_query_hook([](const std::string &sql) {
+  mysqlshdk::db::replay::set_replay_query_hook([](std::string_view sql) {
     return shcore::str_replace(sql, ".dll", ".so");
   });
 #endif
@@ -504,8 +501,8 @@ void Shell_core_test_wrapper::reset_replayable_shell(
       std::placeholders::_2, std::placeholders::_3));
 
   // Set up hook to replace (non-deterministic) queries.
-  mysqlshdk::db::replay::set_replay_query_hook(std::bind(
-      &Shell_test_env::query_replace_hook, this, std::placeholders::_1));
+  mysqlshdk::db::replay::set_replay_query_hook(
+      [this](auto sql) { return Shell_test_env::query_replace_hook(sql); });
 }
 
 void Shell_core_test_wrapper::execute(int location, const std::string &code) {

@@ -334,10 +334,6 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
-if (__version_num < 80000) {
-  cluster.rejoinInstance(__sandbox_uri1);
-}
-
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
 cluster.disconnect();

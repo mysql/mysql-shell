@@ -45,9 +45,6 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
-//@ WL#12049: Unsupported server version {VER(<5.7.24)}
-var c = dba.createCluster('test', {exitStateAction: "READ_ONLY"});
-
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 // F1.2 - The exitStateAction option shall be a string value.
 // NOTE: GR validates the value, which is an Enumerator, and accepts the values
@@ -92,9 +89,6 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
-
-//@ WL#11032: Unsupported server version {VER(<5.7.20)}
-var c = dba.createCluster('test', {memberWeight: 25});
 
 //@ WL#11032: Create cluster errors using memberWeight option {VER(>=5.7.20)}
 // F1.2 - The memberWeight option shall be an integer value.

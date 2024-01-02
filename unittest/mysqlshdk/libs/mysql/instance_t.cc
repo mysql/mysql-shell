@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1097,38 +1097,6 @@ TEST_F(Instance_test, create_user_ssl_options) {
   _session->close();
 }
 
-TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
-  EXPECT_CALL(session, do_connect(_connection_options));
-  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
-  _session->connect(_connection_options);
-
-  // Check non existing user.
-  testing::user_privileges::Setup_options options;
-
-  options.user = "notexist_user";
-  options.host = "notexist_host";
-  options.user_exists = false;
-  // Simulate 5.7 version is used (not relevant here, 5.7 used to avoid
-  // executing additional queries to update the ALL privileges list).
-  options.version = mysqlshdk::utils::Version(5, 7, 28);
-
-  testing::user_privileges::setup(options, &session);
-
-  mysqlshdk::mysql::Instance instance(_session);
-
-  auto up = instance.get_user_privileges(options.user, options.host);
-
-  ASSERT_TRUE(nullptr != up);
-
-  EXPECT_FALSE(up->user_exists());
-
-  EXPECT_CALL(session, do_close());
-  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  _session->close();
-}
-
 TEST_F(Instance_test, get_user_privileges_user_exists) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
@@ -1333,16 +1301,6 @@ TEST_F(Instance_test, is_set_persist_supported) {
   res = instance.is_set_persist_supported();
   EXPECT_FALSE(!res.has_value());
   EXPECT_TRUE(*res);
-
-  mysqlshdk::mysql::Instance instance_57(_session);
-
-  // Simulate 5.7 version is used.
-  EXPECT_CALL(session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 24)));
-
-  // Set is not supported.
-  res = instance_57.is_set_persist_supported();
-  EXPECT_TRUE(!res.has_value());
 
   EXPECT_CALL(session, do_close());
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));

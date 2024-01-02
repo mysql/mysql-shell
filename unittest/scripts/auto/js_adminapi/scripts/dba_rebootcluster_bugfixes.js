@@ -37,29 +37,9 @@ if (__version_num < 80027) {
 }
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
-//@ BUG29265869 - Create cluster with custom GR settings for 5.7. {VER(<8.0.0)}
-
-// due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
-shell.options["dba.connectivityChecks"] = false;
-
-shell.connect(__sandbox_uri1);
-
-var c = dba.createCluster("test", {localAddress: local_address1, ipAllowlist: ip_allow_list57, groupName: grp_name, gtidSetIsComplete: true});
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-
 //@ BUG29265869 - Add instance with custom GR settings. {VER(>=8.0.16)}
 c.addInstance(__sandbox_uri2, {exitStateAction: exit_state, localAddress: local_address2, ipAllowlist: ip_allow_list80, memberWeight: member_weight2,  autoRejoinTries: auto_rejoin_tries});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@ BUG29265869 - Add instance with custom GR settings for 5.7. {VER(<8.0.0)}
-c.addInstance(__sandbox_uri2, {localAddress: local_address2, ipAllowlist: ip_allow_list57, memberWeight: member_weight2});
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@ BUG29265869 - Persist GR settings for 5.7. {VER(<8.0.0)}
-var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
-var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 //@<OUT> BUG29265869 - Show initial cluster options.
 normalize_cluster_options(c.options());
@@ -163,13 +143,6 @@ if (__version_num < 80027) {
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
-
-//@<> Update the configuration files again {VER(<8.0.0)}
-var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
-var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
-
 
 //@<> BUG#29305551: Reset gr_start_on_boot on all instances
 disable_auto_rejoin(__mysql_sandbox_port1);
@@ -336,12 +309,6 @@ var c = dba.createCluster("test", {gtidSetIsComplete: true});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@<> BUG30501978 - Persist GR settings for 5.7. {VER(<8.0.0)}
-var sandbox_cnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-dba.configureInstance(__sandbox_uri1, {mycnfPath: sandbox_cnf1});
-var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-dba.configureInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 //@<> BUG30501978 Reset gr_start_on_boot on all instances and kill all cluster members
 disable_auto_rejoin(__mysql_sandbox_port1);

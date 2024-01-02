@@ -2,7 +2,6 @@
 validate_members(dba, [
     'check_instance_configuration',
     'configure_instance',
-    'configure_local_instance',
     'configure_replica_set_instance',
     'create_cluster',
     'create_replica_set',

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -290,7 +290,7 @@ shcore::Array_t Options::get_instance_options(
   // If 'all' is enabled, get all GR configuration options to add to the result
   // array.
   if (m_all) {
-    auto option_supported_by_adminapi = [](const std::string &cfg) {
+    auto option_supported_by_adminapi = [](std::string_view cfg) {
       for (const auto &it : k_instance_options) {
         if (it.second == cfg) return true;
       }

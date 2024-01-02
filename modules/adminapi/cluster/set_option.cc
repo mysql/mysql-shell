@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,8 @@
 #include "modules/adminapi/cluster/set_option.h"
 
 #include "adminapi/common/common.h"
-#include "adminapi/common/server_features.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -288,8 +289,7 @@ void Set_option::check_disable_clone_support() {
     if (member.version.empty() ||
         !is_option_supported(
             mysqlshdk::utils::Version(member.version), m_option,
-            {{kDisableClone,
-              {"", k_mysql_clone_plugin_initial_version, {}}}})) {
+            {{kDisableClone, {"", k_mysql_clone_plugin_initial_version}}})) {
       bad_count++;
     }
   }
@@ -439,7 +439,7 @@ shcore::Value Set_option::execute() {
       m_option != kReplicationAllowedHost) {
     // Update the option values in all Cluster members:
     const std::string &option_gr_variable =
-        k_global_cluster_supported_options.at(m_option).option_variable;
+        k_global_cluster_supported_options.at(m_option).option;
 
     if (std::holds_alternative<std::string>(m_value))
       console->print_info(shcore::str_format(

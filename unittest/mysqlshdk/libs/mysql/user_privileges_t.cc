@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,8 +23,8 @@
 
 #include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 
+#include <array>
 #include <memory>
-#include <optional>
 #include <set>
 
 // required for FRIEND_TEST
@@ -45,69 +45,70 @@ using testing::Return;
 
 namespace {
 
-std::set<std::string> k_all_privileges = {"Alter",
-                                          "Alter routine",
-                                          "Create",
-                                          "Create routine",
-                                          "Create role",
-                                          "Create temporary tables",
-                                          "Create view",
-                                          "Create user",
-                                          "Delete",
-                                          "Drop",
-                                          "Drop role",
-                                          "Event",
-                                          "Execute",
-                                          "File",
-                                          "Grant option",
-                                          "Index",
-                                          "Insert",
-                                          "Lock tables",
-                                          "Process",
-                                          "Proxy",
-                                          "References",
-                                          "Reload",
-                                          "Replication client",
-                                          "Replication slave",
-                                          "Select",
-                                          "Show databases",
-                                          "Show view",
-                                          "Shutdown",
-                                          "Super",
-                                          "Trigger",
-                                          "Create tablespace",
-                                          "Update",
-                                          "Usage",
-                                          "XA_RECOVER_ADMIN",
-                                          "SHOW_ROUTINE",
-                                          "SET_USER_ID",
-                                          "SESSION_VARIABLES_ADMIN",
-                                          "RESOURCE_GROUP_USER",
-                                          "SYSTEM_VARIABLES_ADMIN",
-                                          "REPLICATION_SLAVE_ADMIN",
-                                          "REPLICATION_APPLIER",
-                                          "BINLOG_ENCRYPTION_ADMIN",
-                                          "RESOURCE_GROUP_ADMIN",
-                                          "INNODB_REDO_LOG_ARCHIVE",
-                                          "BINLOG_ADMIN",
-                                          "PERSIST_RO_VARIABLES_ADMIN",
-                                          "TABLE_ENCRYPTION_ADMIN",
-                                          "SERVICE_CONNECTION_ADMIN",
-                                          "AUDIT_ADMIN",
-                                          "SYSTEM_USER",
-                                          "APPLICATION_PASSWORD_ADMIN",
-                                          "ROLE_ADMIN",
-                                          "BACKUP_ADMIN",
-                                          "CONNECTION_ADMIN",
-                                          "ENCRYPTION_KEY_ADMIN",
-                                          "CLONE_ADMIN",
-                                          "FLUSH_OPTIMIZER_COSTS",
-                                          "FLUSH_STATUS",
-                                          "FLUSH_TABLES",
-                                          "FLUSH_USER_RESOURCES",
-                                          "GROUP_REPLICATION_ADMIN",
-                                          "INNODB_REDO_LOG_ENABLE",
-                                          "GROUP_REPLICATION_STREAM"};
+constexpr std::array<std::string_view, 63> k_all_privileges = {
+    "Alter",
+    "Alter routine",
+    "Create",
+    "Create routine",
+    "Create role",
+    "Create temporary tables",
+    "Create view",
+    "Create user",
+    "Delete",
+    "Drop",
+    "Drop role",
+    "Event",
+    "Execute",
+    "File",
+    "Grant option",
+    "Index",
+    "Insert",
+    "Lock tables",
+    "Process",
+    "Proxy",
+    "References",
+    "Reload",
+    "Replication client",
+    "Replication slave",
+    "Select",
+    "Show databases",
+    "Show view",
+    "Shutdown",
+    "Super",
+    "Trigger",
+    "Create tablespace",
+    "Update",
+    "Usage",
+    "XA_RECOVER_ADMIN",
+    "SHOW_ROUTINE",
+    "SET_USER_ID",
+    "SESSION_VARIABLES_ADMIN",
+    "RESOURCE_GROUP_USER",
+    "SYSTEM_VARIABLES_ADMIN",
+    "REPLICATION_SLAVE_ADMIN",
+    "REPLICATION_APPLIER",
+    "BINLOG_ENCRYPTION_ADMIN",
+    "RESOURCE_GROUP_ADMIN",
+    "INNODB_REDO_LOG_ARCHIVE",
+    "BINLOG_ADMIN",
+    "PERSIST_RO_VARIABLES_ADMIN",
+    "TABLE_ENCRYPTION_ADMIN",
+    "SERVICE_CONNECTION_ADMIN",
+    "AUDIT_ADMIN",
+    "SYSTEM_USER",
+    "APPLICATION_PASSWORD_ADMIN",
+    "ROLE_ADMIN",
+    "BACKUP_ADMIN",
+    "CONNECTION_ADMIN",
+    "ENCRYPTION_KEY_ADMIN",
+    "CLONE_ADMIN",
+    "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_STATUS",
+    "FLUSH_TABLES",
+    "FLUSH_USER_RESOURCES",
+    "GROUP_REPLICATION_ADMIN",
+    "INNODB_REDO_LOG_ENABLE",
+    "GROUP_REPLICATION_STREAM"};
 
 }  // namespace
 
@@ -138,11 +139,11 @@ void setup(const Setup_options &options, Mock_session *session) {
 
   {
     std::vector<std::vector<std::string>> all_privileges;
-
     all_privileges.reserve(k_all_privileges.size());
 
-    for (const auto &privilege : k_all_privileges) {
-      all_privileges.emplace_back(std::vector<std::string>{privilege});
+    for (auto privilege : k_all_privileges) {
+      all_privileges.emplace_back(
+          std::vector<std::string>{std::string{privilege}});
     }
 
     session->expect_query("SHOW PRIVILEGES")
@@ -155,23 +156,20 @@ void setup(const Setup_options &options, Mock_session *session) {
 
     std::set<std::string> all_roles;
 
-    if (options.version >= Version(8, 0, 0)) {
-      {
-        auto &r = session
-                      ->expect_query(
-                          "show GLOBAL variables where `variable_name` in "
-                          "('activate_all_roles_on_login')")
-                      .then({"Variable_name", "Value"});
+    {
+      auto &r = session
+                    ->expect_query(
+                        "show GLOBAL variables where `variable_name` in "
+                        "('activate_all_roles_on_login')")
+                    .then({"Variable_name", "Value"});
 
-        if (options.activate_all_roles_on_login.has_value()) {
-          r.add_row({"activate_all_roles_on_login",
-                     *options.activate_all_roles_on_login ? "1" : "0"});
-        }
+      if (options.activate_all_roles_on_login.has_value()) {
+        r.add_row({"activate_all_roles_on_login",
+                   *options.activate_all_roles_on_login ? "1" : "0"});
       }
     }
 
-    if (options.version >= Version(8, 0, 0) &&
-        options.activate_all_roles_on_login.has_value()) {
+    if (options.activate_all_roles_on_login.has_value()) {
       std::string query;
 
       if (*options.activate_all_roles_on_login) {
@@ -307,45 +305,11 @@ class User_privileges_test : public tests::Shell_base_test {
   std::shared_ptr<Mock_session> m_session;
 };
 
-TEST_F(User_privileges_test, validate_user_does_not_exist) {
-  // Check non existing user.
-  Setup_options setup;
-
-  setup.user = "notexist_user";
-  setup.host = "notexist_host";
-  setup.user_exists = false;
-  // Simulate a 5.7 version is used (not relevant for this test).
-  setup.version = Version(5, 7, 28);
-
-  const auto up = setup_test(setup);
-
-  EXPECT_FALSE(up.user_exists());
-
-  auto test = [&up](const std::set<std::string> &tested_privileges,
-                    const std::set<std::string> &expected_privileges) {
-    SCOPED_TRACE(shcore::str_join(tested_privileges, ", "));
-
-    auto sup = up.validate(tested_privileges);
-
-    EXPECT_FALSE(sup.user_exists());
-    EXPECT_EQ(expected_privileges, sup.missing_privileges());
-    EXPECT_TRUE(sup.has_missing_privileges());
-    EXPECT_FALSE(sup.has_grant_option());
-  };
-
-  test({}, {});
-  EXPECT_THROW_LIKE(up.validate({"all"}), std::runtime_error,
-                    "Invalid privilege in the privileges list: ALL.");
-  test({"select", "Insert", "UPDATE"}, {"SELECT", "INSERT", "UPDATE"});
-}
-
 TEST_F(User_privileges_test, validate_invalid_privileges) {
   // user with some privileges
   Setup_options setup;
-
   setup.user = "test_user";
   setup.host = "test_host";
-  // Simulate 8.0.0 version is always used.
   setup.version = Version(8, 0, 0);
 
   setup.grants = {
@@ -487,35 +451,13 @@ TEST_F(User_privileges_test, validate_all_privileges) {
 TEST_F(User_privileges_test, get_user_roles) {
   // Test retrieval of user roles.
 
-  // Server does not support roles.
-  {
-    SCOPED_TRACE("Server does not support roles.");
-
-    Setup_options setup;
-
-    setup.user = "dba_user";
-    setup.host = "dba_host";
-    // 5.7 server, does not support roles
-    setup.version = Version(5, 7, 28);
-
-    setup.grants = {
-        "GRANT USAGE *.* TO u@h",
-    };
-
-    const auto up = setup_test(setup);
-
-    EXPECT_TRUE(up.get_user_roles().empty());
-  }
-
   // User with no roles.
   {
     SCOPED_TRACE("User with no roles.");
 
     Setup_options setup;
-
     setup.user = "dba_user";
     setup.host = "dba_host";
-    // Simulate 8.0.0 version is always used.
     setup.version = Version(8, 0, 0);
 
     setup.grants = {
@@ -532,10 +474,8 @@ TEST_F(User_privileges_test, get_user_roles) {
     SCOPED_TRACE("User with roles but no mandatory roles.");
 
     Setup_options setup;
-
     setup.user = "dba_user";
     setup.host = "dba_host";
-    // Simulate 8.0.0 version is always used.
     setup.version = Version(8, 0, 0);
 
     setup.grants = {
@@ -557,10 +497,8 @@ TEST_F(User_privileges_test, get_user_roles) {
     SCOPED_TRACE("User with both granted and mandatory roles.");
 
     Setup_options setup;
-
     setup.user = "dba_user";
     setup.host = "dba_host";
-    // Simulate 8.0.0 version is always used.
     setup.version = Version(8, 0, 0);
 
     setup.grants = {
@@ -592,10 +530,8 @@ TEST_F(User_privileges_test, get_user_roles) {
         "User only with mandatory roles and activate_all_roles_on_login=ON.");
 
     Setup_options setup;
-
     setup.user = "dba_user";
     setup.host = "dba_host";
-    // Simulate 8.0.0 version is always used.
     setup.version = Version(8, 0, 0);
 
     setup.grants = {
@@ -1013,16 +949,9 @@ TEST_F(User_privileges_test, wildcard_grants) {
       "GRANT TRIGGER ON `%`.* TO u@h",
   };
 
-  for (const auto &partial_revokes :
-       {std::optional<bool>{}, std::optional<bool>{false}}) {
-    setup.partial_revokes = partial_revokes;
-
-    if (partial_revokes.has_value()) {
-      setup.version = Version(8, 0, 16);
-    } else {
-      // 5.7 server, no partial_revokes
-      setup.version = Version(5, 7, 40);
-    }
+  {
+    setup.partial_revokes = false;
+    setup.version = Version(8, 0, 16);
 
     SCOPED_TRACE("Version: " + setup.version.get_full() +
                  ", partial_revokes: " +

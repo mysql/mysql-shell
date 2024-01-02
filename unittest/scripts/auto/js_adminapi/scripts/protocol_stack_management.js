@@ -103,13 +103,6 @@ if (__version_num >= 80027) {
 
 EXPECT_NO_THROWS(function() {cluster.addInstance(__sandbox_uri2) });
 
-if (__version_num < 80000) {
-  var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-  var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-  dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf1});
-  dba.configureInstance(__sandbox_uri2, {mycnfPath: mycnf2});
-}
-
 if (__version_num < 80027) {
   check_gr_settings(cluster, [__endpoint1, __endpoint2], "XCOM");
 } else {

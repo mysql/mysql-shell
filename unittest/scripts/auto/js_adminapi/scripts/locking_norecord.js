@@ -314,11 +314,6 @@ instance_lock_check(session3, __mysql_sandbox_port3, function() {
     dba.configureInstance(__sandbox_uri3);
 });
 
-//@<> exclusive instance lock on dba.configureInstance()
-instance_lock_check(session3, __mysql_sandbox_port3, function() {
-    dba.configureInstance(__sandbox_uri3);
-});
-
 session1.close();
 session3.close();
 session4.close();
@@ -348,7 +343,7 @@ EXPECT_NO_THROWS(function() {
 session1.close();
 session2.close();
 
-//@<> check if, in multi-primary mode, the same primary instance is chosen {VER(>=8.0.0)}
+//@<> check if, in multi-primary mode, the same primary instance is chosen
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
@@ -413,6 +408,8 @@ EXPECT_EQ(`${hostname}:${__mysql_sandbox_port1}`, status["defaultReplicaSet"]["p
 session.runSql("DROP FUNCTION IF EXISTS service_get_read_locks");
 session.runSql("DROP FUNCTION IF EXISTS service_get_write_locks");
 session.runSql("DROP FUNCTION IF EXISTS service_release_locks");
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 session2.runSql("set global super_read_only=0");
 session2.runSql("DROP FUNCTION IF EXISTS service_get_read_locks");

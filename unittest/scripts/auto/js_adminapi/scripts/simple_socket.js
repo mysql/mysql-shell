@@ -81,7 +81,7 @@ cluster.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //cluster.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
-//@<> setPrimaryInstance {VER(>=8.0.0)}
+//@<> setPrimaryInstance
 CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(sockuri2)}' does not belong to the Cluster: 'mycluster'.`, cluster.setPrimaryInstance, sockuri2);
 
 cluster.setPrimaryInstance(sockuri2);
@@ -120,7 +120,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<> setOption
 cluster.setOption("clusterName", "clooster");
 
-//@<> setInstanceOption {VER(>=8.0.0)}
+//@<> setInstanceOption
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, sockuri1, "memberWeight", 20);
 
 cluster.setInstanceOption(sockuri1, "memberWeight", 20);
@@ -128,10 +128,10 @@ cluster.setInstanceOption(sockuri1, "memberWeight", 20);
 //@<> options
 cluster.options();
 
-//@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
+//@<> switchToMultiPrimaryMode
 cluster.switchToMultiPrimaryMode();
 
-//@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
+//@<> switchToSinglePrimaryMode
 cluster.switchToSinglePrimaryMode();
 
 cluster.setPrimaryInstance(__sandbox_uri1);

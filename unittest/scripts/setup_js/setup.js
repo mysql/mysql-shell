@@ -1178,8 +1178,8 @@ function EXPECT_OUTPUT_EMPTY() {
 
 function EXPECT_STDOUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
-  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0) {
+    var err = testutil.fetchCapturedStderr(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
@@ -1187,7 +1187,6 @@ function EXPECT_STDOUT_CONTAINS(text) {
 
 function EXPECT_STDOUT_CONTAINS_ONE_OF(text) {
     var out = testutil.fetchCapturedStdout(false);
-    var err = testutil.fetchCapturedStderr(false);
     var found = false;
     for (i in text) {
         if (out.indexOf(text[i])>= 0) {
@@ -1196,6 +1195,7 @@ function EXPECT_STDOUT_CONTAINS_ONE_OF(text) {
         }
     }
     if (!found) {
+      var err = testutil.fetchCapturedStderr(false);
       var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDOUT output:</red>\n";
       for (i in text) {
           context += text[i] + "\n";
@@ -1206,7 +1206,6 @@ function EXPECT_STDOUT_CONTAINS_ONE_OF(text) {
 }
 
 function EXPECT_STDERR_CONTAINS_ONE_OF(text) {
-    var out = testutil.fetchCapturedStdout(false);
     var err = testutil.fetchCapturedStderr(false);
     var found = false;
     for (i in text) {
@@ -1216,6 +1215,7 @@ function EXPECT_STDERR_CONTAINS_ONE_OF(text) {
         }
     }
     if (!found) {
+      var out = testutil.fetchCapturedStdout(false);
       var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDERR output:</red>\n";
       for (i in text) {
           context += text[i] + "\n";
@@ -1226,9 +1226,9 @@ function EXPECT_STDERR_CONTAINS_ONE_OF(text) {
 }
 
 function EXPECT_STDERR_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (err.indexOf(text) < 0) {
+    var out = testutil.fetchCapturedStdout(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing error output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
@@ -1461,23 +1461,23 @@ function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {
 
 function EXPECT_STDOUT_CONTAINS_MULTILINE(t) {
   const out = __split_trim_join(testutil.fetchCapturedStdout(false));
-  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
   const text = __split_trim_join(t);
   const out_result = __check_multiline_expect(text.array, out.array);
 
   if (!out_result.matches) {
+    const err = __split_trim_join(testutil.fetchCapturedStderr(false));
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + out_result.diff;
     testutil.fail(context);
   }
 }
 
 function EXPECT_STDERR_CONTAINS_MULTILINE(t) {
-  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
   const err = __split_trim_join(testutil.fetchCapturedStderr(false));
   const text = __split_trim_join(t);
   const err_result = __check_multiline_expect(text.array, err.array);
 
   if (!err_result.matches) {
+    const out = __split_trim_join(testutil.fetchCapturedStdout(false));
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
     testutil.fail(context);
   }
@@ -1494,17 +1494,17 @@ function EXPECT_OUTPUT_MATCHES(re) {
 
 function EXPECT_STDOUT_MATCHES(re) {
   var out = testutil.fetchCapturedStdout(false);
-  var err = testutil.fetchCapturedStderr(false);
   if (!re.test(out)) {
+    var err = testutil.fetchCapturedStderr(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }
 
 function EXPECT_STDERR_MATCHES(re) {
-  var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (!re.test(err)) {
+    var out = testutil.fetchCapturedStdout(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
@@ -1582,17 +1582,17 @@ function EXPECT_OUTPUT_NOT_CONTAINS(text) {
 
 function EXPECT_STDOUT_NOT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
-  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) >= 0) {
+    var err = testutil.fetchCapturedStderr(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
 }
 
 function EXPECT_STDERR_NOT_CONTAINS(text) {
-  var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);
   if (err.indexOf(text) >= 0) {
+    var out = testutil.fetchCapturedStdout(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }

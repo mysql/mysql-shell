@@ -71,15 +71,15 @@ OPTIONS
 --recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
 
+--memberSslMode=<str>
+            SSL mode for communication channels opened by Group Replication
+            from one server to another.
+
 --replicationAllowedHost=<str>
             String value to use as the host name part of internal replication
             accounts (i.e. 'mysql_innodb_cluster_###'@'hostname'). Default is
             %. It must be possible for any member of the Cluster to connect to
             any other member using accounts with this hostname value.
-
---memberSslMode=<str>
-            SSL mode for communication channels opened by Group Replication
-            from one server to another.
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group

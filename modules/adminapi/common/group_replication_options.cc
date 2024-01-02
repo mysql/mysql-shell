@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -278,9 +278,8 @@ void validate_auto_rejoin_tries_supported(
  */
 void validate_member_weight_supported(
     const mysqlshdk::utils::Version &version) {
-  // The memberWeight option shall only be allowed if the target MySQL
-  // server version is >= 5.7.20 if 5.0, or >= 8.0.11 if 8.0.
-
+  // The memberWeight option shall only be allowed if the target MySQL server
+  // version is >= 8.0.11
   if (!is_option_supported(version, kMemberWeight,
                            k_global_cluster_supported_options)) {
     throw shcore::Exception::runtime_error(shcore::str_format(

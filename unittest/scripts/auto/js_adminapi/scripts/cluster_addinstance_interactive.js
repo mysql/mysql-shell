@@ -26,10 +26,10 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
-//@ WL#12049: Create cluster 1 {VER(>=5.7.24)}
+//@ WL#12049: Create cluster 1
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
-//@ WL#12049: addInstance() errors using exitStateAction option {VER(>=5.7.24)}
+//@ WL#12049: addInstance() errors using exitStateAction option
 // F1.2 - The exitStateAction option shall be a string value.
 // NOTE: GR validates the value, which is an Enumerator, and accepts the values
 // `ABORT_SERVER` or `READ_ONLY`, or 1 or 0.
@@ -43,10 +43,10 @@ c.addInstance(__sandbox_uri2, {exitStateAction: "AB"});
 
 c.addInstance(__sandbox_uri2, {exitStateAction: "10"});
 
-//@ WL#12049: Add instance using a valid exitStateAction 1 {VER(>=5.7.24)}
+//@ WL#12049: Add instance using a valid exitStateAction 1
 c.addInstance(__sandbox_uri2, {exitStateAction: "ABORT_SERVER"});
 
-//@ WL#12049: Finalization cluster {VER(>=5.7.24)}
+//@ WL#12049: Finalization cluster
 c.disconnect();
 
 //@ WL#12049: Finalization
@@ -79,10 +79,10 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 // Test the option on the addInstance() command
-//@ WL#11032: Create cluster 1 {VER(>=5.7.20)}
+//@ WL#11032: Create cluster 1
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
-//@ WL#11032: addInstance() errors using memberWeight option {VER(>=5.7.20)}
+//@ WL#11032: addInstance() errors using memberWeight option
 // F1.2 - The memberWeight option shall be an integer value.
 c.addInstance(__sandbox_uri2, {memberWeight: ""});
 
@@ -92,7 +92,7 @@ c.addInstance(__sandbox_uri2, {memberWeight: "AB"});
 
 c.addInstance(__sandbox_uri2, {memberWeight: 10.5});
 
-//@ WL#11032: Add instance using a valid memberWeight (integer) {VER(>=5.7.20)}
+//@ WL#11032: Add instance using a valid memberWeight (integer)
 c.addInstance(__sandbox_uri2, {memberWeight: 25});
 
 //@ WL#11032: Finalization

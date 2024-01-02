@@ -1,6 +1,3 @@
-//@# createCluster
-||
-
 //@# status
 |{|
 |    "clusterName": "clus",|
@@ -38,9 +35,6 @@
 |    "groupInformationSourceMember": "127.0.0.1:<<<__mysql_sandbox_port1>>>"|
 |}|
 
-//@# rejoinInstance
-||
-
 //@<OUT> describe
 {
     "clusterName": "clus", 
@@ -73,18 +67,6 @@
     "routers": {}
 }
 
-//@# removeInstance
-||
-
-//@# setPrimaryInstance {VER(>=8.0.0)}
-||
-
-//@# options
-||
-
-//@ setOption {VER(>=8.0.0)}
-||
-
 //@# setInstanceOption
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": [|
 |                {|
@@ -103,15 +85,3 @@
 |        }|
 |    }|
 |}|
-
-//@# forceQuorum
-||
-
-//@# rebootCluster
-||
-
-//@# rescan
-|A new instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was discovered in the cluster.|
-
-//@# dissolve
-||

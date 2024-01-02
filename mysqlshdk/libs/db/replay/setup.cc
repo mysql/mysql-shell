@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -152,9 +152,13 @@ void setup_mysql_session_injector(Mode mode) {
   }
 }
 
-void set_replay_row_hook(Result_row_hook func) { g_replay_row_hook = func; }
+void set_replay_row_hook(Result_row_hook func) noexcept {
+  g_replay_row_hook = std::move(func);
+}
 
-void set_replay_query_hook(Query_hook func) { g_replay_query_hook = func; }
+void set_replay_query_hook(Query_hook func) noexcept {
+  g_replay_query_hook = std::move(func);
+}
 
 No_replay::No_replay() {
   _old_mode = g_active_session_injector_mode;

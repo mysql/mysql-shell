@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -323,8 +323,6 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
 
 void wait_super_read_only_cleared(const mysqlshdk::mysql::IInstance &instance,
                                   uint64_t read_only_timeout = 900) {
-  // Wait for SUPER READ ONLY to be OFF.
-  // Required for MySQL versions < 5.7.20.
   auto read_only = instance.get_sysvar_bool("super_read_only", false);
   if (!read_only) return;
 

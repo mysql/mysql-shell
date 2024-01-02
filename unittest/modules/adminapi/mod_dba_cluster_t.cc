@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,6 +49,9 @@ class Admin_api_cluster_test : public Admin_api_test {
   }
   virtual void SetUp() {
     Admin_api_test::SetUp();
+
+    if (!Shell_test_env::check_min_version_skip_test()) return;
+
     reset_replayable_shell(
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
 
@@ -69,10 +72,12 @@ class Admin_api_cluster_test : public Admin_api_test {
   }
 
   static void SetUpTestCase() {
+    if (!Shell_test_env::check_min_version_skip_test(false)) return;
     SetUpSampleCluster("Admin_api_cluster_test/SetUpTestCase");
   }
 
   static void TearDownTestCase() {
+    if (!Shell_test_env::check_min_version_skip_test(false)) return;
     TearDownSampleCluster("Admin_api_cluster_test/TearDownTestCase");
   }
 
@@ -106,12 +111,12 @@ class Admin_api_cluster_test : public Admin_api_test {
 // The issue happens every-time the generated password for the replication-user
 // contains the following sequence of characters: '%s'.
 TEST_F(Admin_api_cluster_test, bug28219398) {
-  std::string replication_user, replication_pwd;
+  if (!Shell_test_env::check_min_version_skip_test()) return;
 
-  replication_user = "mysql_innodb_cluster_r1711111111";
+  std::string replication_user{"mysql_innodb_cluster_r1711111111"};
 
   // The password must contain the sequence of chars '%s';
-  replication_pwd = "|t+-*2]1@+T?e%&H;*.%s)>)F/U}9,$?";
+  std::string replication_pwd{"|t+-*2]1@+T?e%&H;*.%s)>)F/U}9,$?"};
 
   // Create the replication_user on the cluster
   auto md_session = create_session(_mysql_sandbox_ports[0]);

@@ -25,16 +25,20 @@ def set_metadata_1_0_1():
     session.run_sql("UPDATE mysql_innodb_cluster_metadata.instances SET mysql_server_uuid = @@server_uuid")
 
 #@ Upgrades the metadata, no registered routers
+shell.options.useWizards = True
+
 set_metadata_1_0_1()
 session.run_sql("delete from mysql_innodb_cluster_metadata.routers")
-dba.upgrade_metadata({'interactive':True})
+dba.upgrade_metadata()
 
 #@ Upgrades the metadata, up to date
-dba.upgrade_metadata({'interactive':True})
+dba.upgrade_metadata()
+
+shell.options.useWizards = False
 
 #@ Upgrades the metadata, interactive off, error
 set_metadata_1_0_1()
-EXPECT_THROWS(lambda: dba.upgrade_metadata({'interactive':False}),
+EXPECT_THROWS(lambda: dba.upgrade_metadata(),
     "Dba.upgrade_metadata: Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema")
 
 #@ Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
@@ -49,10 +53,13 @@ session.run_sql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (9, 'n
 session.run_sql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (10, 'tenth', 2, NULL)")
 
 # Chooses to unregister the existing routers
+shell.options.useWizards = True
+
 testutil.expect_prompt("Please select an option: ", "2")
 testutil.expect_prompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgrade_metadata({'interactive':True})
+dba.upgrade_metadata()
 
+shell.options.useWizards = False
 
 #@ Upgrades the metadata, upgrade done by unregistering more than 10 routers with router accounts
 # Fake router account to get the account upgrade tested
@@ -71,9 +78,13 @@ session.run_sql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (10, '
 session.run_sql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (11, 'eleventh', 2, NULL)")
 
 # Chooses to unregister the existing routers
+shell.options.useWizards = True
+
 testutil.expect_prompt("Please select an option: ", "2")
 testutil.expect_prompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgrade_metadata({'interactive':True})
+dba.upgrade_metadata()
+
+shell.options.useWizards = False
 
 #@<> Verifying grants for mysql_router_test
 session.run_sql("SHOW GRANTS FOR mysql_router_test@`%`")
@@ -100,9 +111,13 @@ set_metadata_1_0_1()
 test_session = mysql.get_session(__sandbox_uri1)
 
 # Chooses to unregister the existing router
+shell.options.useWizards = True
+
 testutil.expect_prompt("Please select an option: ", "2")
 testutil.expect_prompt("Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]:", "y")
-dba.upgrade_metadata({'interactive':True})
+dba.upgrade_metadata()
+
+shell.options.useWizards = False
 
 #@<> Cleanup
 session.close()

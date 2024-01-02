@@ -328,7 +328,7 @@ EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${host
 var stat = cluster.status();
 println(stat);
 
-//@<> Check replicationLag values {VER(>=8.0.0)}
+//@<> Check replicationLag values
 function get_lags(lags) {
   var stat = cluster.status();
   println(stat);

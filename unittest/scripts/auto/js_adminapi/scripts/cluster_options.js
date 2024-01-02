@@ -21,7 +21,7 @@
 //
 //     - <Cluster.>options([options])
 
-//@ WL#11465: Initialization
+//@<> WL#11465: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -31,7 +31,7 @@ shell.options["dba.connectivityChecks"] = false;
 
 shell.connect(__sandbox_uri1);
 
-//@ WL#11465: Create single-primary cluster with specific options
+//@<> WL#11465: Create single-primary cluster with specific options
 var __local_port1 = __mysql_sandbox_port4;
 var __local_port2 = __mysql_sandbox_port5;
 var __local_port3 = __mysql_sandbox_port6;
@@ -51,10 +51,10 @@ if (__version_num < 80027) {
 }
 var __gr_view_change_uuid = session.runSql("SELECT NULLIF(CONCAT(''/*!80026, @@group_replication_view_change_uuid*/), '')").fetchOne()[0];
 
-//@ WL#11465: Add instance 2 with specific options
+//@<> WL#11465: Add instance 2 with specific options
 cluster.addInstance(__sandbox_uri2, {localAddress: __cfg_local_address2, memberWeight: 75, exitStateAction: "ABORT_SERVER"});
 
-//@ WL#11465: Add instance 3 with specific options
+//@<> WL#11465: Add instance 3 with specific options
 cluster.addInstance(__sandbox_uri3, {localAddress: __cfg_local_address3, memberWeight: 25, exitStateAction: "READ_ONLY"});
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -90,7 +90,7 @@ EXPECT_EQ(10, get_sysvar(__mysql_sandbox_port2, "slave_parallel_workers"));
 //@<OUT> Check the output of options after changing applierWorkerThreads {VER(>=8.0.23)}
 normalize_cluster_options(cluster.options());
 
-//@ Kill instances 2 and 3
+//@<> Kill instances 2 and 3
 shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
@@ -100,7 +100,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 //@<OUT> WL#11465: Get the cluster options with 2 members down
 normalize_cluster_options(cluster.options());
 
-//@ WL#11465: Finalization
+//@<> WL#11465: Finalization
 cluster.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

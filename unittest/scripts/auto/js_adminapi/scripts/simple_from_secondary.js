@@ -53,7 +53,7 @@ cluster = dba.getCluster();
 
 cluster.removeInstance(__sandbox_uri3);
 
-//@<> setPrimaryInstance {VER(>=8.0.0)}
+//@<> setPrimaryInstance
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
 
@@ -82,7 +82,7 @@ cluster.setOption("clusterName", "clooster");
 
 custom_weigth=50;
 
-//@<> setInstanceOption {VER(>=8.0.0)}
+//@<> setInstanceOption
 custom_weigth=20;
 
 shell.connect(__sandbox_uri2);
@@ -96,13 +96,13 @@ cluster = dba.getCluster();
 
 cluster.options();
 
-//@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
+//@<> switchToMultiPrimaryMode
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
 
 cluster.switchToMultiPrimaryMode();
 
-//@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
+//@<> switchToSinglePrimaryMode
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
 
@@ -192,7 +192,7 @@ EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri2)}, "Access denied
 EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to instance '127.0.0.1:"+__mysql_sandbox_port1+"'. Please verify connection credentials and make sure the instance is available.");
 EXPECT_OUTPUT_CONTAINS("ERROR: Could not update remaining cluster members after removing '"+__sandbox2+"': Access denied for user 'root'@'localhost'. Account is locked.");
 
-//@<> setPrimaryInstance (no primary, should fail) {VER(>=8.0.0)}
+//@<> setPrimaryInstance (no primary, should fail)
 EXPECT_THROWS(function(){cluster.setPrimaryInstance(__sandbox_uri2)}, "This operation requires all the cluster members to be ONLINE");
 
 //@<> rejoinInstance (no primary, should fail)
@@ -210,7 +210,7 @@ EXPECT_THROWS(function(){cluster.setOption("clusterName", "clooster")}, "This op
 
 custom_weigth=50;
 
-//@<> setInstanceOption (no primary, should fail) {VER(>=8.0.0)}
+//@<> setInstanceOption (no primary, should fail)
 custom_weigth=20;
 
 EXPECT_THROWS(function(){cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth)}, "Access denied for user 'root'@'localhost'. Account is locked.");
@@ -219,10 +219,10 @@ EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to the target instance '"+__san
 //@<> options (no primary, should pass)
 cluster.options();
 
-//@<> switchToMultiPrimaryMode (no primary, should fail) {VER(>=8.0.0)}
+//@<> switchToMultiPrimaryMode (no primary, should fail)
 EXPECT_THROWS(function(){cluster.switchToMultiPrimaryMode()}, "This operation requires all the cluster members to be ONLINE");
 
-//@<> switchToSinglePrimaryMode (no primary, should fail) {VER(>=8.0.0)}
+//@<> switchToSinglePrimaryMode (no primary, should fail)
 EXPECT_THROWS(function(){cluster.switchToSinglePrimaryMode()}, "This operation requires all the cluster members to be ONLINE");
 
 //@<> rescan (no primary, should fail)

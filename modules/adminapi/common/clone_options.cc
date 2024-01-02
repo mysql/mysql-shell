@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,8 +58,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
     case Clone_options::CREATE_CLUSTER:
       if (!is_option_supported(
               version, option,
-              {{kDisableClone,
-                {"", k_mysql_clone_plugin_initial_version, {}}}})) {
+              {{kDisableClone, {"", k_mysql_clone_plugin_initial_version}}})) {
         throw shcore::Exception::runtime_error(shcore::str_format(
             "Option '%s' not supported on target server version: '%s'",
             option.c_str(), version.get_full().c_str()));

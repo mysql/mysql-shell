@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,10 +23,8 @@
 
 #include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -38,7 +36,6 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/mysql/mock_instance.h"
 #include "unittest/test_utils/shell_base_test.h"
@@ -163,6 +160,8 @@ TEST_F(Group_replication_test, plugin_installation) {
 }
 
 TEST_F(Group_replication_test, create_recovery_user) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   // Confirm that there is no replication user.
   auto res =
       mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
@@ -1652,7 +1651,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_possible) {
       .then_return({{"",
                      {"group_replication_get_communication_protocol()"},
                      {Type::String},
-                     {{"5.7.14"}}}});
+                     {{"8.0.16"}}}});
 
   EXPECT_FALSE(mysqlshdk::gr::is_protocol_upgrade_possible(
       instance, "", &out_protocol_version));
@@ -1685,7 +1684,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_possible) {
       .then_return({{"",
                      {"group_replication_get_communication_protocol()"},
                      {Type::String},
-                     {{"5.7.14"}}}});
+                     {{"8.0.15"}}}});
 
   mock_session
       ->expect_query(
@@ -1793,7 +1792,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
       .then_return({{"",
                      {"group_replication_get_communication_protocol()"},
                      {Type::String},
-                     {{"5.7.14"}}}});
+                     {{"8.0.15"}}}});
 
   mock_session
       ->expect_query(
@@ -1925,9 +1924,7 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
   // - Version compatible, independently of the cluster lowest
   // version.
   ALLOWED(std::optional<bool>(true), Version(8, 0, 1), Version(8, 0, 20));
-  ALLOWED(std::optional<bool>(true), Version(5, 7, 0), Version(5, 7, 50));
   ALLOWED(std::optional<bool>(true), Version(8, 0, 21), Version(8, 0, 20));
-  ALLOWED(std::optional<bool>(true), Version(5, 7, 51), Version(5, 7, 50));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version <= 8.0.16
@@ -2187,33 +2184,29 @@ TEST_F(Group_replication_test, is_address_supported_by_gr) {
           address, instance_version));
     }
   };
+
   // ipv6 must have square brackets around them
   EXPECT_THROW(
-      mysqlshdk::gr::is_endpoint_supported_by_gr("::1:3301", Version(5, 0, 18)),
+      mysqlshdk::gr::is_endpoint_supported_by_gr("::1:3301", Version(8, 0, 14)),
       shcore::Exception);
   // Must provide a port number
   EXPECT_THROW(
-      mysqlshdk::gr::is_endpoint_supported_by_gr("[::1]", Version(5, 0, 18)),
+      mysqlshdk::gr::is_endpoint_supported_by_gr("[::1]", Version(8, 0, 14)),
       shcore::Exception);
 
   // IPv6 are only supported from 8.0.14 onwards
   test("[::1]:3301", Version(8, 0, 14), true);
   test("[::1]:3301", Version(8, 0, 13), false);
-  test("[::1]:3301", Version(5, 0, 18), false);
 
   test("[fe80::929b:542:427e:4db4]:3306", Version(8, 0, 14), true);
   test("[fe80::929b:542:427e:4db4]:3306", Version(8, 0, 13), false);
-  test("[fe80::929b:542:427e:4db4]:3306", Version(5, 0, 18), false);
   test("[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:3306", Version(8, 0, 14),
        true);
   test("[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:3306", Version(8, 0, 13),
        false);
-  test("[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:3306", Version(5, 0, 18),
-       false);
 
   // IPv4 are always supported
   test("192.168.4.4:3301", Version(8, 0, 14), true);
-  test("192.168.4.4:3301", Version(8, 0, 13), true);
   test("192.168.4.4:3301", Version(8, 0, 13), true);
 
   // hostnames are not resolved and assumed to be true

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,7 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   }
   MOCK_CONST_METHOD0(is_set_persist_supported, std::optional<bool>());
   MOCK_CONST_METHOD1(get_persisted_value,
-                     std::optional<std::string>(const std::string &));
+                     std::optional<std::string>(std::string_view));
 
   MOCK_CONST_METHOD0(get_fence_sysvars, std::vector<std::string>());
 

@@ -190,22 +190,18 @@ session2.runSql("SET sql_log_bin=0");
 session2.runSql("SET global super_read_only=0");
 session2.runSql("CREATE USER IF NOT EXISTS foo@'%' IDENTIFIED BY 'password'");
 session2.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
-if (__version_num >= 80000) {
-    session2.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
-    session2.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
-    session2.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
-}
+session2.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
+session2.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
+session2.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
 session2.runSql("FLUSH PRIVILEGES");
 session2.runSql("SET sql_log_bin=1");
 session2.runSql("CHANGE MASTER TO MASTER_USER='foo', MASTER_PASSWORD='password' FOR CHANNEL 'group_replication_recovery'");
 
 session.runSql("CREATE USER IF NOT EXISTS foo@'%' IDENTIFIED BY 'password'");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
-if (__version_num >= 80000) {
-    session.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
-    session.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
-    session.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
-}
+session.runSql("GRANT CONNECTION_ADMIN ON *.* TO foo@'%'");
+session.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
+session.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
 session.runSql("FLUSH PRIVILEGES");
 
 session2.runSql("START group_replication");

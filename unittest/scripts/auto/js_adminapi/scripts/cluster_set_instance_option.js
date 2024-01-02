@@ -95,15 +95,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 scene.make_no_quorum([__mysql_sandbox_port1])
 cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 
-//@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-testutil.startSandbox(__mysql_sandbox_port3);
-cluster.rejoinInstance(__sandbox_uri3);
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-
-scene.make_no_quorum([__mysql_sandbox_port1])
-cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
-
-//@ WL#11465: Re-create the cluster
+//@<> WL#11465: Re-create the cluster
 scene.destroy();
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
 var cluster = scene.cluster
@@ -132,10 +124,7 @@ shell.connect(__sandbox_uri2);
 var __address2 = hostname + ":" + __mysql_sandbox_port2;
 print_metadata_instance_label(session, __address2);
 
-//@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}
-cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
-
-//@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: setInstanceOption memberWeight
 cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 
 //@<OUT> WL#11465: memberWeight label changed correctly
@@ -144,10 +133,7 @@ print(get_sysvar(session, "group_replication_member_weight"));
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT");
 
-//@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
-cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
-
-//@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
+//@<OUT> WL#11465: setInstanceOption exitStateAction
 cluster.setInstanceOption(__sandbox_uri2, "exitStateAction", "ABORT_SERVER");
 
 //@<OUT> WL#11465: exitStateAction label changed correctly

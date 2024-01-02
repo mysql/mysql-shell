@@ -431,11 +431,7 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[3]);
-if (__version_num < 80000) {
-    EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
-} else {
-    EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
-}
+EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
 //@<> WL#13294: add another instance (dba.logSql = 1).
@@ -666,11 +662,7 @@ EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[2]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[3]);
-if (__version_num < 80000) {
-    EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[4]);
-} else {
-    EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
-}
+EXPECT_SHELL_LOG_NOT_CONTAINS(add_instance_sql[4]);
 EXPECT_SHELL_LOG_CONTAINS(add_instance_sql[5]);
 
 //@<> WL#13294: add another instance (dba.logSql = 2).

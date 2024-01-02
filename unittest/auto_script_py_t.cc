@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -194,6 +194,13 @@ TEST_P(Auto_script_py, run_and_check) {
   // Enable interactive/wizard mode if the test file ends with _interactive.py
   _options->wizards =
       strstr(GetParam().c_str(), "_interactive.") ? true : false;
+
+  // if the test concerns the AdminAPI (without the "record" suffix) and the
+  // current server version is not supported, we might as well skip it
+  if (shcore::str_beginswith(GetParam(), "py_adminapi") &&
+      !shcore::str_endswith(GetParam(), "_norecord")) {
+    if (!Shell_test_env::check_min_version_skip_test()) return;
+  }
 
   SCOPED_TRACE(GetParam());
 

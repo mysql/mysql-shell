@@ -296,10 +296,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
-//@ WL#12049: Unsupported server version {VER(<5.7.24)}
-var c = dba.createCluster('test', {exitStateAction: "READ_ONLY", gtidSetIsComplete: true});
-
-//@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
+//@ WL#12049: Create cluster errors using exitStateAction option
 // F1.2 - The exitStateAction option shall be a string value.
 // NOTE: GR validates the value, which is an Enumerator, and accepts the values
 // `ABORT_SERVER` or `READ_ONLY`, or 1 or 0.
@@ -313,10 +310,10 @@ var c = dba.createCluster('test', {exitStateAction: "AB"});
 
 var c = dba.createCluster('test', {exitStateAction: "10"});
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER)
 var c = dba.createCluster('test', {exitStateAction: "ABORT_SERVER"});
 
-//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (ABORT_SERVER) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (ABORT_SERVER)
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
@@ -326,49 +323,49 @@ EXPECT_EQ("ABORT_SERVER", get_sysvar(session, "group_replication_exit_state_acti
 var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='newcluster'").fetchOne();
 EXPECT_EQ(null, view_change_uuid_md);
 
-//@ WL#12049: Dissolve cluster 1 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 1
 c.dissolve({force: true});
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY)
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
 var c = dba.createCluster('test', {exitStateAction: "READ_ONLY"});
 
-//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (READ_ONLY)
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
 EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
 
-//@ WL#12049: Dissolve cluster 2 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 2
 c.dissolve({force: true});
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (1) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (1)
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
 var c = dba.createCluster('test', {exitStateAction: "1"});
 
-//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (1) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (1)
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
 EXPECT_EQ("ABORT_SERVER", get_sysvar(session, "group_replication_exit_state_action"));
 
-//@ WL#12049: Dissolve cluster 3 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 3
 c.dissolve({force: true});
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (0) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (0)
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
 var c = dba.createCluster('test', {exitStateAction: "0"});
 
-//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (0) {VER(>=5.7.24)}
+//@<> WL#12049: Confirm group_replication_exit_state_action is set correctly (0)
 // F1.1 - If the exitStateAction option is given, the
 // group_replication_exit_state_action variable is set to the value given by the
 // user.
 EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
 
-//@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 4
 c.dissolve({force: true});
 
 // Verify if exitStateAction is persisted on >= 8.0.12
@@ -434,10 +431,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 
-//@ WL#11032: Unsupported server version {VER(<5.7.20)}
-var c = dba.createCluster('test', {memberWeight: 25});
-
-//@ WL#11032: Create cluster errors using memberWeight option {VER(>=5.7.20)}
+//@ WL#11032: Create cluster errors using memberWeight option
 // F1.2 - The memberWeight option shall be an integer value.
 var c = dba.createCluster('test', {memberWeight: ""});
 
@@ -447,44 +441,44 @@ var c = dba.createCluster('test', {memberWeight: "AB"});
 
 var c = dba.createCluster('test', {memberWeight: 10.5});
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (25) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (25)
 var c = dba.createCluster('test', {memberWeight: 25});
 
-//@<> WL#11032: Confirm group_replication_member_weight is set correctly (25) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (25)
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
 EXPECT_EQ(25, get_sysvar(session, "group_replication_member_weight"));
 
-//@ WL#11032: Dissolve cluster 1 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 1
 c.dissolve({force: true});
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (100) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (100)
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
 var c = dba.createCluster('test', {memberWeight: 100});
 
-//@<> WL#11032: Confirm group_replication_member_weight is set correctly (100) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (100)
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
 EXPECT_EQ(100, get_sysvar(session, "group_replication_member_weight"));
 
-//@ WL#11032: Dissolve cluster 2 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 2
 c.dissolve({force: true});
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (-50) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (-50)
 // NOTE: the server is in super-read-only since it was dissolved so we must
 // disable it
 var c = dba.createCluster('test', {memberWeight: -50});
 
-//@<> WL#11032: Confirm group_replication_member_weight is set correctly (0) {VER(>=5.7.20)}
+//@<> WL#11032: Confirm group_replication_member_weight is set correctly (0)
 // F1.1 - If the memberWeight option is given, the
 // group_replication_member_weight variable is set to the value given by the
 // user.
 EXPECT_EQ(0, get_sysvar(session, "group_replication_member_weight"));
 
-//@ WL#11032: Dissolve cluster 3 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 3
 c.dissolve({force: true});
 
 // Verify if memberWeight is persisted on >= 8.0.11

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2024, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -20,16 +20,15 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/test_utils/shell_test_env.h"
-#include <fstream>
+
 #include <random>
-#include <tuple>
+
+#include "modules/adminapi/common/preconditions.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
-#include "mysqlshdk/libs/db/replay/trace.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/textui/textui.h"
-#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -45,16 +44,6 @@ extern "C" const char *g_test_home;
 
 namespace tests {
 namespace {
-
-class My_random : public mysqlshdk::utils::Random {
- public:
-  virtual std::string get_time_string() {
-    return "000000000" + std::to_string(++ts);
-  }
-
- private:
-  int ts = 0;
-};
 
 Test_net_utilities test_net_utilities;
 
@@ -209,8 +198,6 @@ void Shell_test_env::TearDown() {
     }
 
     teardown_recorder();
-
-    mysqlshdk::utils::Random::set(nullptr);
   }
 }
 
@@ -288,8 +275,9 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
         &Shell_test_env::on_session_close, this, std::placeholders::_1);
 
     // Set up hook to replace (non-deterministic) queries.
-    mysqlshdk::db::replay::on_recorder_query_replace_hook = std::bind(
-        &Shell_test_env::query_replace_hook, this, std::placeholders::_1);
+    mysqlshdk::db::replay::on_recorder_query_replace_hook = [this](auto sql) {
+      return Shell_test_env::query_replace_hook(sql);
+    };
   }
 
   m_port = _port;
@@ -352,12 +340,6 @@ std::string Shell_test_env::setup_recorder(const char *sub_test_name) {
                               mysqlshdk::db::replay::Mode::Record);
 
     mysqlshdk::db::replay::save_test_case_info(info);
-  }
-
-  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-    // Ensure randomly generated strings are not so random when
-    // recording/replaying
-    mysqlshdk::utils::Random::set(new My_random());
   }
 
   return tracedir;
@@ -461,16 +443,14 @@ size_t find_token(const std::string &source, const std::string &find,
  *
  * And the resolved string can then be used as the final expectation.
  */
-std::string Shell_test_env::resolve_string(const std::string &source) {
-  std::string updated(source);
-
-  size_t start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
+std::string Shell_test_env::resolve_string(std::string source) {
+  size_t start = find_token(source, "<<<", "<<<< RECEIVE", 0);
   size_t end;
 
   while (start != std::string::npos) {
-    end = find_token(updated, ">>>", ">>>> SEND", start);
+    end = find_token(source, ">>>", ">>>> SEND", start);
 
-    std::string token = updated.substr(start + 3, end - start - 3);
+    std::string token = source.substr(start + 3, end - start - 3);
 
     std::string value;
     // If the token was registered in C++ uses it
@@ -478,12 +458,12 @@ std::string Shell_test_env::resolve_string(const std::string &source) {
       value = _output_tokens[token];
     }
 
-    updated.replace(start, end - start + 3, value);
+    source.replace(start, end - start + 3, value);
 
-    start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
+    start = find_token(source, "<<<", "<<<< RECEIVE", 0);
   }
 
-  return updated;
+  return source;
 }
 
 bool Shell_test_env::check_open_sessions() {
@@ -531,17 +511,38 @@ void Shell_test_env::on_session_close(
   assert(0);
 }
 
-std::string Shell_test_env::query_replace_hook(const std::string &sql) {
+std::string Shell_test_env::query_replace_hook(std::string_view sql) {
   // Replace query to set the server_id in order to ignore its (random) value.
   // Otherwise, it will fail during replay because the random value will not
   // match the one recorded.
-  if (shcore::str_beginswith(sql, "SET PERSIST_ONLY `server_id` = ")) {
-    return "SET PERSIST_ONLY `server_id` = /*(*/" + sql.substr(31) + "/*)*/";
-  } else if (shcore::str_beginswith(sql, "/*NOTRACE")) {
-    return "";
-  } else {
-    return sql;
+  constexpr std::string_view server_id_query("SET PERSIST_ONLY `server_id` = ");
+
+  if (shcore::str_beginswith(sql, server_id_query)) {
+    sql = sql.substr(server_id_query.size());
+    return shcore::str_format("SET PERSIST_ONLY `server_id` = /*(*/%.*s/*)*/",
+                              static_cast<int>(sql.size()), sql.data());
   }
+
+  if (shcore::str_beginswith(sql, "/*NOTRACE")) return "";
+
+  return std::string{sql};
+}
+
+bool Shell_test_env::check_min_version_skip_test(bool skip_test) {
+  auto server_version = tests::Shell_test_env::get_target_server_version();
+  auto adminapi_min_version =
+      mysqlsh::dba::Precondition_checker::k_min_adminapi_server_version;
+
+  if (server_version >= adminapi_min_version) return true;
+
+  if (skip_test)
+    ADD_SKIPPED_TEST(shcore::str_format(
+        "Skipping the AdminAPI test because the server minimum version "
+        "(%s) is less that the minimum required one (%s)",
+        server_version.get_base().c_str(),
+        adminapi_min_version.get_base().c_str()));
+
+  return false;
 }
 
 static int find_column_in_select_stmt(const std::string &sql,
@@ -658,8 +659,8 @@ Shell_test_env::create_mysqlx_session(const std::string &uri) {
 }  // namespace tests
 
 std::string random_string(std::string::size_type length) {
-  std::string alphanum =
-      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  std::string_view alphanum{
+      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"};
   std::random_device seed;
   std::mt19937 rng{seed()};
   std::uniform_int_distribution<std::string::size_type> dist(

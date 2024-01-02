@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -468,36 +468,39 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
 
   log_debug("Check command returned: %s", check_result.descr().c_str());
 
-  if (!invalid_cfs_vec.empty()) {
-    auto console = mysqlsh::current_console();
+  if (invalid_cfs_vec.empty()) return {};  // nothing else to do
 
-    console->print_info();
-    print_validation_results(check_result.as_map(), true);
-    if (*restart_needed) {
-      // if we have to change some read only variables, print a message to the
-      // user.
-      std::string base_msg =
-          "Some variables need to be changed, but cannot be done dynamically "
-          "on the server";
-      if (log_bin_present && *mycnf_change_needed) {
+  auto console = mysqlsh::current_console();
+  console->print_info();
+
+  print_validation_results(check_result.as_map(), true);
+
+  if (!(*restart_needed)) return invalid_cfs_vec;
+
+  // if we have to change some read only variables, print a message to the
+  // user.
+  {
+    std::string base_msg(
+        "Some variables need to be changed, but cannot be done dynamically on "
+        "the server");
+    if (log_bin_present && *mycnf_change_needed) {
+      base_msg += ": an option file is required";
+    } else if (*mycnf_change_needed) {
+      if (!can_persist.has_value()) {
+        // set persist is not supported
         base_msg += ": an option file is required";
-      } else {
-        if (*mycnf_change_needed) {
-          if (!can_persist.has_value()) {
-            // 5.7 server, set persist is not supported
-            base_msg += ": an option file is required";
-          } else if (!*can_persist) {
-            // 8.0 server with set persist support disabled
-            base_msg +=
-                ": set persist support is disabled. Enable it or provide an "
-                "option file";
-          }
-        }
+      } else if (!*can_persist) {
+        // set persist support disabled
+        base_msg +=
+            ": set persist support is disabled. Enable it or provide an "
+            "option file";
       }
-      base_msg += ".";
-      console->print_info(base_msg);
     }
+
+    base_msg += ".";
+    console->print_info(base_msg);
   }
+
   return invalid_cfs_vec;
 }
 
@@ -710,8 +713,6 @@ void validate_async_channels(
       "replication configured.",
       instance.descr().c_str());
 
-  auto console = mysqlsh::current_console();
-
   size_t illegal_channels =
       check_illegal_async_channels(instance, allowed_channels);
 
@@ -770,9 +771,9 @@ void validate_async_channels(
     }
 
     if (type == Check_type::CHECK) {
-      console->print_warning(error_msg);
+      mysqlsh::current_console()->print_warning(error_msg);
     } else {
-      console->print_error(error_msg);
+      mysqlsh::current_console()->print_error(error_msg);
 
       throw shcore::Exception::runtime_error(
           "The instance '" + instance.descr() +

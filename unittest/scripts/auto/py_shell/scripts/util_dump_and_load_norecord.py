@@ -2719,7 +2719,7 @@ compare_schema(session1, session2, tested_schema, check_rows=True)
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
-#@<> BUG#34566034 - load failed if "deferTableIndexes": "all", "ignoreExistingObjects": True options were set and instance contained existing tables with indexes
+#@<> BUG#34566034 - load failed if "deferTableIndexes": "all", "ignoreExistingObjects": True options were set and instance contained existing tables with indexes {VER(>=8.0.0)}
 # constants
 dump_dir = os.path.join(outdir, "bug_34566034")
 
@@ -2734,7 +2734,7 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False })
 # load
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "ignoreExistingObjects": True, "showProgress": False }), "Load should not fail")
 
-#@<> BUG#34566034 - cleanup
+#@<> BUG#34566034 - cleanup {VER(>=8.0.0)}
 shell.connect(__sandbox_uri2)
 c.dissolve({ 'force': True })
 session.run_sql("SET GLOBAL super_read_only = 0")

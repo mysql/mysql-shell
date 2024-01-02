@@ -548,7 +548,7 @@ var recovery_account_generated = "mysql_innodb_cluster_" + server_id3;
 testutil.killSandbox(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 // Force remove instance 3
 EXPECT_NO_THROWS(function() { c.removeInstance(__endpoint3, {force: true}); });

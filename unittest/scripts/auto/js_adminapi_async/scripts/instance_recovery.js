@@ -95,7 +95,7 @@ function mark_gtid_set_complete(flag) {
         session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.opt_gtidSetIsComplete')");
 }
 
-//@<> Setup {VER(>= 8.0.0)}
+//@<> Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_ip});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {"report_host": hostname_ip});
@@ -104,7 +104,7 @@ session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
-//@ prepare {VER(>= 8.0.0)}
+//@ prepare
 shell.connect(__sandbox_uri1);
 rs = dba.createReplicaSet("myrs");
 rs.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
@@ -117,7 +117,7 @@ var gtid_executed = session.runSql("SELECT @@global.gtid_executed").fetchOne()[0
 testutil.dbugSet("+d,dba_abort_async_add_replica");
 testutil.dbugSet("+d,dba_abort_async_rejoin_replica");
 
-//@ invalid recoveryMethod (should fail) {VER(>= 8.0.0)}
+//@ invalid recoveryMethod (should fail)
 rs.addInstance(__sandbox_uri2, {recoveryMethod: "foobar"});
 rs.addInstance(__sandbox_uri2, {recoveryMethod: 1});
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "foobar"});
@@ -137,7 +137,7 @@ rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: ""});
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: "localhost:"});
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: ":3306"});
 
-//@ invalid recoveryMethod (should fail if target instance does not support it) {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ invalid recoveryMethod (should fail if target instance does not support it) {VER(< 8.0.17)}
 rs.addInstance(__sandbox_uri2, {recoveryMethod: "clone"});
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone"});
 
@@ -210,7 +210,7 @@ rs.rejoinInstance(__sandbox_uri3 , {recoveryMethod: "clone"});
 //     ELSE
 //         ERROR "Incremental Recovery is not possible (GTID state not compatible)"
 
-//@ addInstance: recoveryMethod:incremental, interactive, make sure no prompts {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, interactive, make sure no prompts
 shell.options.useWizards=1;
 
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -221,7 +221,7 @@ EXPECT_FALSE(clone_installed(session2));
 
 shell.options.useWizards=0;
 
-//@ rejoinInstance: recoveryMethod:incremental, interactive, error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, interactive, error
 shell.options.useWizards=1;
 
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -230,27 +230,27 @@ rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"incremental"});
 
 shell.options.useWizards=0;
 
-//@ addInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 rs.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"});
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 
-//@ rejoinInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 mark_gtid_set_complete(true);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 EXPECT_FALSE(clone_installed(session3));
 
-//@ addInstance: recoveryMethod:incremental, subset GTIDs -> incr {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, subset GTIDs -> incr
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 rs.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 
-//@ rejoinInstance: recoveryMethod:incremental, subset GTIDs -> incr {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, subset GTIDs -> incr
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"incremental"});
@@ -258,14 +258,14 @@ EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 EXPECT_FALSE(clone_installed(session3));
 
-//@ addInstance: recoveryMethod:incremental, errant GTIDs -> error {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, errant GTIDs -> error
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 rs.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 
-//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs -> error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs -> error
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod:"incremental"});
@@ -292,7 +292,7 @@ EXPECT_FALSE(clone_installed(session3));
 
 shell.connect(__sandbox_uri1);
 
-//@ addInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> prompt i/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> prompt i/a {VER(< 8.0.17)}
 shell.options.useWizards=1;
 
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "a");
@@ -304,7 +304,7 @@ EXPECT_FALSE(clone_installed(session2));
 
 shell.options.useWizards=0;
 
-//@ rejoinInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> error {VER(< 8.0.17)}
 shell.options.useWizards=1;
 
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -388,7 +388,7 @@ EXPECT_FALSE(clone_installed(session3));
 
 shell.options.useWizards=0;
 
-//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(< 8.0.17)}
 shell.options.useWizards=1;
 
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -399,7 +399,7 @@ EXPECT_FALSE(clone_installed(session2));
 
 shell.options.useWizards=0;
 
-//@ rejoinInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(< 8.0.17)}
 shell.options.useWizards=1;
 
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
@@ -428,14 +428,14 @@ EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 EXPECT_FALSE(clone_installed(session3));
 
-//@ addInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(< 8.0.17)}
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 rs.addInstance(__sandbox_uri2);
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(< 8.0.17)}
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 rs.rejoinInstance(__sandbox_uri3);
@@ -473,14 +473,14 @@ EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 EXPECT_FALSE(clone_installed(session3));
 
-//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 rs.addInstance(__sandbox_uri2);
 EXPECT_FALSE(clone_installed(session1));
 EXPECT_FALSE(clone_installed(session2));
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
 rs.rejoinInstance(__sandbox_uri3);
@@ -494,7 +494,7 @@ EXPECT_FALSE(clone_installed(session3));
 // Tests with purged GTIDs
 // -----------------------
 
-//@<> purge GTIDs from replicaset {VER(>= 8.0.0)}
+//@<> purge GTIDs from replicaset
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 
@@ -581,22 +581,22 @@ rs.rejoinInstance(__sandbox_uri3);
 
 shell.options.useWizards=0;
 
-//@ addInstance: recoveryMethod:incremental, purged GTID -> error {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, purged GTID -> error
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 rs.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"});
 
-//@ rejoinInstance: recoveryMethod:incremental, purged GTID -> error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, purged GTID -> error
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 mark_gtid_set_complete(false);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
 
-//@ addInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
 session2.runSql("RESET " + get_reset_binary_logs_keyword());
 session2.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 rs.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"});
 
-//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
 session3.runSql("RESET " + get_reset_binary_logs_keyword());
 session3.runSql("SET GLOBAL gtid_purged=?", ["00025721-1111-1111-1111-111111111111:1"]);
 rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
@@ -643,7 +643,7 @@ testutil.dbugSet("");
 
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); });
 
-//@<> Cleanup {VER(>= 8.0.0)}
+//@<> Cleanup
 session.close();
 session1.close();
 session2.close();

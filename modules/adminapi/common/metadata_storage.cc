@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,7 +23,6 @@
 
 #include "modules/adminapi/common/metadata_storage.h"
 
-#include <mysql.h>
 #include <mysqld_error.h>
 
 #include <list>
@@ -309,9 +308,6 @@ std::string get_topology_mode_query(const Version &md_version) {
   else
     return k_base_topology_mode_query;
 }
-
-// Version where JSON_merge was deprecated
-const Version k_json_merge_deprecated_version(5, 7, 22);
 
 }  // namespace
 
@@ -1215,45 +1211,32 @@ void MetadataStorage::set_router_tag(Cluster_type type,
   }
 }
 
-void MetadataStorage::set_table_tag(const std::string &tablename,
-                                    const std::string &uuid_column_name,
-                                    const std::string &uuid,
-                                    const std::string &tagname,
+void MetadataStorage::set_table_tag(std::string_view tablename,
+                                    std::string_view uuid_column_name,
+                                    std::string_view uuid,
+                                    std::string_view tagname,
                                     const shcore::Value &value) {
   if (value) {
-    // If md server version supports JSON_MERGE_PATCH use it since
-    // JSON_MERGE will be deprecated
-    shcore::sqlstring query;
-    if (m_md_server->get_version() < k_json_merge_deprecated_version) {
-      query = shcore::sqlstring(
-          shcore::str_replace(
-              "UPDATE mysql_innodb_cluster_metadata.@table@"
-              " SET attributes = JSON_SET(IF(JSON_CONTAINS_PATH("
-              "attributes, 'all', '$.tags'), attributes,"
-              " JSON_MERGE(attributes, '{\"tags\":{}}')), '$.tags.@tag@',"
-              " CAST(? as JSON)) WHERE @idcolumn@ = ?",
-              "@table@", tablename, "@tag@", tagname, "@idcolumn@",
-              uuid_column_name),
-          0);
-      query << value.repr() << uuid;
-    } else {
-      query = shcore::sqlstring(
-          shcore::str_replace(
-              "UPDATE mysql_innodb_cluster_metadata.@table@"
-              " SET attributes = JSON_MERGE_PATCH(attributes,"
-              " JSON_OBJECT('tags', JSON_OBJECT(?, CAST(? as JSON))))"
-              " WHERE @idcolumn@ = ?",
-              "@table@", tablename, "@idcolumn@", uuid_column_name),
-          0);
-      query << tagname << value.repr() << uuid;
-    }
+    shcore::sqlstring query(
+        shcore::str_format(
+            "UPDATE mysql_innodb_cluster_metadata.%.*s"
+            " SET attributes = JSON_MERGE_PATCH(attributes,"
+            " JSON_OBJECT('tags', JSON_OBJECT(?, CAST(? as JSON))))"
+            " WHERE %.*s = ?",
+            static_cast<int>(tablename.size()), tablename.data(),
+            static_cast<int>(uuid_column_name.size()), uuid_column_name.data()),
+        0);
+    query << tagname << value.repr() << uuid;
+
     query.done();
     execute_sql(query);
   } else {
-    std::string query = shcore::str_replace(
-        "UPDATE mysql_innodb_cluster_metadata.@table@ SET attributes"
-        " = JSON_REMOVE(attributes, '$.tags.@tag@')  WHERE @idcolumn@ = ?",
-        "@table@", tablename, "@tag@", tagname, "@idcolumn@", uuid_column_name);
+    auto query = shcore::str_format(
+        "UPDATE mysql_innodb_cluster_metadata.%.*s SET attributes"
+        " = JSON_REMOVE(attributes, '$.tags.%.*s')  WHERE %.*s = ?",
+        static_cast<int>(tablename.size()), tablename.data(),
+        static_cast<int>(tagname.size()), tagname.data(),
+        static_cast<int>(uuid_column_name.size()), uuid_column_name.data());
     execute_sqlf(query, uuid);
   }
 }

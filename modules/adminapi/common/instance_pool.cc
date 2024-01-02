@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,6 +133,9 @@ void Instance::prepare_session() {
   // (i.e.: the server was configured with skip-character-set-client-handshake
   // options). This in turn would create problems like "Illegal mix of
   // collations". To prevent this, we explicitly set the session collation.
+  // NOTE: although AdminAPI doesn't support versions older than 8.0.0
+  // (e.g.: 5.7) we still need this here to establish a connection to the
+  // instance, and only after that, check its version.
   if (version >= mysqlshdk::utils::Version(8, 0, 0))
     set_sysvar("collation_connection", std::string("utf8mb4_0900_ai_ci"),
                mysqlshdk::mysql::Var_qualifier::SESSION);

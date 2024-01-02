@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -141,7 +142,7 @@ class Row_hook : public db::IRow {
   std::unique_ptr<db::IRow> _source;
 };
 
-using Query_hook = std::function<std::string(const std::string &)>;
+using Query_hook = std::function<std::string(std::string_view)>;
 
 using Result_row_hook = std::function<std::unique_ptr<db::IRow>(
     const mysqlshdk::db::Connection_options &, const std::string &,

@@ -56,7 +56,6 @@ EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
 session.close();
 scene.destroy();
 
-
 //@<> InnoDB Cluster: drop metadata on read only master, no prompts
 scene = new ClusterScenario([__mysql_sandbox_port1]);
 shell.connect(__sandbox_uri1);
@@ -65,7 +64,6 @@ dba.dropMetadataSchema({force:true});
 EXPECT_STDOUT_CONTAINS("Metadata Schema successfully removed.")
 session.close();
 scene.destroy();
-
 
 //@<> Setup for Replica Set Tests {VER(>8.0.0)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root");
@@ -78,7 +76,7 @@ testutil.expectPrompt("Please select a recovery method [C]lone/[I]ncremental rec
 rset.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY()
 
-//@<> Add instance to RS {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@<> Add instance to RS {VER(<8.0.17)}
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery):", "i")
 rset.addInstance(__sandbox_uri2);
 EXPECT_STDERR_EMPTY()

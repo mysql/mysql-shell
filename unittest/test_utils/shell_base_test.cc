@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2024, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -20,11 +20,12 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/test_utils/shell_base_test.h"
+
 #include <fstream>
+
 #include "mysqlshdk/include/scripting/types.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
-#include "utils/utils_json.h"
 #include "utils/utils_string.h"
 
 namespace tests {
@@ -138,32 +139,32 @@ void Shell_base_test::check_string_list_expectation(
  * - If end is provided, the position of the last character of the match will be
  * set.
  */
-bool Shell_base_test::check_wildcard_match(const std::string &expected,
-                                           const std::string &actual,
+bool Shell_base_test::check_wildcard_match(std::string_view expected,
+                                           std::string_view actual,
                                            bool full_match, size_t start,
                                            size_t *out_start, size_t *out_end) {
-  size_t all_start = std::string::npos;
-  size_t all_end = std::string::npos;
+  size_t all_start = std::string_view::npos;
+  size_t all_end = std::string_view::npos;
 
   if (expected.empty()) {
     if (full_match && expected != actual) {
       return false;
-    } else {
-      all_start = start;
-      all_end = start;
     }
+    all_start = start;
+    all_end = start;
+
   } else {
     static constexpr auto k_wildcard = "[[*]]";
 
-    std::vector<std::string> strings;
+    std::vector<std::string_view> strings;
 
     // Split the string by the wildcard construct until no split is done (second
     // is empty)
-    auto tokens = std::make_pair(std::string(), expected);
+    auto tokens = std::make_pair(std::string_view(), expected);
     bool ends_in_wildcard = false;
     do {
-      tokens =
-          shcore::str_partition(tokens.second, k_wildcard, &ends_in_wildcard);
+      tokens = shcore::str_partition<std::string_view>(
+          tokens.second, k_wildcard, &ends_in_wildcard);
       if (tokens.first.find(k_wildcard) == 0) {
         throw std::runtime_error(
             "Consecutive wildcard match tokens are not allowed: [[*]][[*]]");
@@ -174,24 +175,19 @@ bool Shell_base_test::check_wildcard_match(const std::string &expected,
 
     all_start = actual.find(strings[0], start);
 
-    if (all_start == std::string::npos) {
-      return false;
-    } else {
-      all_end = all_start + strings[0].length();
+    if (all_start == std::string_view::npos) return false;
 
-      strings.erase(strings.begin());
+    all_end = all_start + strings[0].length();
 
-      for (const auto &str : strings) {
-        size_t tmp = actual.find(str, all_end);
-        if (tmp != std::string::npos) {
-          all_end = tmp + str.length();
-        } else {
-          return false;
-        }
-      }
+    strings.erase(strings.begin());
 
-      if (ends_in_wildcard) all_end = actual.length();
+    for (const auto str : strings) {
+      size_t tmp = actual.find(str, all_end);
+      if (tmp == std::string_view::npos) return false;
+      all_end = tmp + str.length();
     }
+
+    if (ends_in_wildcard) all_end = actual.length();
   }
 
   if (full_match && (all_start != start || all_end != actual.length()))
@@ -232,50 +228,49 @@ bool Shell_base_test::check_wildcard_match(const std::string &expected,
  * - If end is provided, the position of the last character of the match will
  * be set.
  */
-bool Shell_base_test::multi_value_compare(const std::string &expected,
-                                          const std::string &actual,
+bool Shell_base_test::multi_value_compare(std::string_view expected,
+                                          std::string_view actual,
                                           bool full_match, size_t start,
                                           size_t *out_start, size_t *out_end) {
-  bool ret_val = false;
-
   // ignoring spaces
   const auto local_start = expected.find("{{");
 
-  if (local_start != std::string::npos) {
-    const auto local_end = expected.find("}}");
+  if (local_start == std::string_view::npos)
+    return check_wildcard_match(expected, actual, full_match, start, out_start,
+                                out_end);
 
-    std::string pre = expected.substr(0, local_start);
-    std::string post = expected.substr(local_end + 2);
-    std::string opts =
-        expected.substr(local_start + 2, local_end - (local_start + 2));
-    auto options = shcore::split_string(opts, "|");
+  const auto local_end = expected.find("}}");
 
-    for (auto item : options) {
-      std::string exp = pre + item + post;
-      if ((ret_val = check_wildcard_match(exp, actual, full_match, start,
-                                          out_start, out_end)))
-        break;
-    }
-  } else {
-    ret_val = check_wildcard_match(expected, actual, full_match, start,
-                                   out_start, out_end);
-  }
+  auto pre = expected.substr(0, local_start);
+  auto post = expected.substr(local_end + 2);
+  auto opts = expected.substr(local_start + 2, local_end - (local_start + 2));
+
+  bool ret_val = false;
+  shcore::split_string(opts, "|", false, [&](auto token) {
+    auto exp = shcore::str_format("%.*s%.*s%.*s",  //
+                                  static_cast<int>(pre.size()), pre.data(),
+                                  static_cast<int>(token.size()), token.data(),
+                                  static_cast<int>(post.size()), post.data());
+
+    if (!check_wildcard_match(exp, actual, full_match, start, out_start,
+                              out_end))
+      return true;  // next token
+
+    ret_val = true;
+    return false;  // stop splitting
+  });
 
   return ret_val;
 }
 
 size_t Shell_base_test::find_line_matching(
-    const std::string &expected, const std::vector<std::string> &actual_lines,
+    std::string_view expected, const std::vector<std::string> &actual_lines,
     size_t start_at) {
   size_t actual_index = start_at;
-  while (actual_index < actual_lines.size()) {
+  for (; actual_index < actual_lines.size(); actual_index++) {
     // Ignore whitespace at the end of the actual and expected lines
-    std::string r_trimmed_actual =
-        shcore::str_rstrip(actual_lines[actual_index]);
-    if (multi_value_compare(expected, r_trimmed_actual))
-      break;
-    else
-      actual_index++;
+    auto r_trimmed_actual = shcore::str_rstrip_view(actual_lines[actual_index]);
+    if (multi_value_compare(expected, r_trimmed_actual)) break;
   }
 
   return actual_index;
@@ -424,7 +419,7 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
 /**
  * Joins all the lines on the vector using the new line character
  */
-std::string Shell_base_test::multiline(const std::vector<std::string> input) {
+std::string Shell_base_test::multiline(const std::vector<std::string> &input) {
   return shcore::str_join(input, "\n");
 }
 

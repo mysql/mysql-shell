@@ -7,12 +7,6 @@ The following operations are available at 'cluster':
    add-replica-instance
       Adds a Read Replica Instance to the Cluster.
 
-   check-instance-state
-      Verifies the instance gtid state in relation to the cluster.
-
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell.
-
    create-cluster-set
       Creates a MySQL InnoDB ClusterSet from an existing standalone InnoDB
       Cluster.
@@ -95,8 +89,6 @@ RETURNS
       nothing
 
 OPTIONS
---memberSslMode=<str>
-
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
@@ -130,20 +122,6 @@ OPTIONS
             Instance's certificate subject to use when 'memberAuthType'
             contains "CERT_SUBJECT".
 
-//@<OUT> CLI cluster check-instance-state --help
-NAME
-      check-instance-state - Verifies the instance gtid state in relation to
-                             the cluster.
-
-SYNTAX
-      cluster check-instance-state <instance>
-
-WHERE
-      instance: An instance definition.
-
-RETURNS
-      resultset A JSON object with the status.
-
 //@<OUT> CLI cluster describe --help
 NAME
       describe - Describe the structure of the Cluster.
@@ -176,11 +154,10 @@ NAME
       force-quorum-using-partition-of - Restores the cluster from quorum loss.
 
 SYNTAX
-      cluster force-quorum-using-partition-of <instance> [<password>]
+      cluster force-quorum-using-partition-of <instance>
 
 WHERE
       instance: An instance definition to derive the forced group from.
-      password: String with the password for the connection. Deprecated.
 
 RETURNS
       Nothing.
@@ -230,8 +207,6 @@ RETURNS
       A JSON object with the result of the operation.
 
 OPTIONS
---memberSslMode=<str>
-
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
@@ -421,6 +396,9 @@ RETURNS
       Nothing.
 
 OPTIONS
+--password=<str>
+            The password for the InnoDB Cluster administrator account.
+
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
@@ -455,6 +433,9 @@ RETURNS
       Nothing.
 
 OPTIONS
+--password=<str>
+            The password for the MySQL Router account.
+
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.

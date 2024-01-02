@@ -19,7 +19,7 @@ session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
-//@ rebootCluster on an auto-rejoining instance {VER(>=8.0.0)}
+//@<> rebootCluster on an auto-rejoining instance
 // Bug #30501590 REBOOTCLUSTER(), STATUS() ETC FAIL IF TARGET IS AUTO-REJOINING
 // rebootCluster() used to fail if the instance being rebooted is auto-rejoining
 // A restart of the only member of the cluster would cause it to be stuck
@@ -39,12 +39,14 @@ testutil.startSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri1);
 cluster = dba.rebootClusterFromCompleteOutage();
 
-//@<> complete the 3 member cluster {VER(>=8.0.0)}
+EXPECT_OUTPUT_CONTAINS(`Cancelling active GR auto-initialization at 127.0.0.1:${__mysql_sandbox_port1}`);
+
+//@<> complete the 3 member cluster
 cluster.rejoinInstance(__sandbox_uri2);
 
 cluster.addInstance(__sandbox_uri3);
 
-//@ status while the target is autorejoining (should pass)
+//@<> status while the target is autorejoining (should pass)
 
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -57,12 +59,13 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: Error connecting to Cluster: MYSQLSH 51004: Unable to connect to the primary member of the Cluster: 'Group PRIMARY is not ONLINE'");
+EXPECT_OUTPUT_CONTAINS("Retrying getCluster() using a secondary member");
 
-EXPECT_NO_THROWS(function(){status = cluster.status();});
+EXPECT_NO_THROWS(function(){ status = cluster.status(); });
 println(status);
 
 EXPECT_EQ("127.0.0.1:"+__mysql_sandbox_port2, status.groupInformationSourceMember);
-
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

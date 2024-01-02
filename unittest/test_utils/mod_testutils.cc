@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,9 @@
 #include "unittest/test_utils/mod_testutils.h"
 
 #include <cassert>
-#include <condition_variable>
 #include <cstdio>
 #include <iostream>
-#include <list>
-#include <map>
-#include <mutex>
+#include <regex>
 #include <system_error>
 #include <utility>
 
@@ -3879,32 +3876,61 @@ bool Testutils::version_check(str v1, str op, str v2);
 ///@}
 bool Testutils::version_check(const std::string &v1, const std::string &op,
                               const std::string &v2) {
-  bool ret_val = true;
+  if (shcore::str_caseeq(op, "between")) {
+    /*
+     * Notes regarding the format of "v2" (math intervals syntax):
+     *  - must start with either '[' or '('
+     *  - must end with either ']' or ')'
+     *  - between the brackets / parenthesis there are two versions separated by
+     *      a comma ','
+     *  - each of the two versions must follow the regular version format
+     *  - the first version must be less than or equal to the second
+     */
+    const std::regex re(R"(^(\[|\()(.+),(.+)(\]|\))$)");
 
-  mysqlshdk::utils::Version ver1, ver2;
+    std::smatch match;
+    if (!std::regex_match(v2, match, re) || match.size() != 5)
+      throw std::logic_error(
+          shcore::str_format("%s: invalid format for operator 'between'",
+                             get_function_name("versionCheck").c_str()));
 
-  ver1 = mysqlshdk::utils::Version(v1);
-  ver2 = mysqlshdk::utils::Version(v2);
+    mysqlshdk::utils::Version ver1(v1);
+    mysqlshdk::utils::Version ver2_start(
+        shcore::str_strip_view(match[2].str()));
+    mysqlshdk::utils::Version ver2_end(shcore::str_strip_view(match[3].str()));
 
-  if (ret_val) {
-    if (op.empty() || op == "==")
-      ret_val = ver1 == ver2;
-    else if (op == "!=")
-      ret_val = ver1 != ver2;
-    else if (op == ">=")
-      ret_val = ver1 >= ver2;
-    else if (op == "<=")
-      ret_val = ver1 <= ver2;
-    else if (op == ">")
-      ret_val = ver1 > ver2;
-    else if (op == "<")
-      ret_val = ver1 < ver2;
-    else
-      throw std::logic_error(get_function_name("versionCheck") +
-                             ": Invalid operator: " + op);
+    if (ver2_start > ver2_end)
+      throw std::logic_error(shcore::str_format(
+          "%s: invalid order of versions in the specified interval",
+          get_function_name("versionCheck").c_str()));
+
+    if (match[1] == "[") {
+      if (ver1 < ver2_start) return false;
+    } else {
+      if (ver1 <= ver2_start) return false;
+    }
+
+    if (match[4] == "]") {
+      if (ver1 > ver2_end) return false;
+    } else {
+      if (ver1 >= ver2_end) return false;
+    }
+
+    return true;
   }
 
-  return ret_val;
+  mysqlshdk::utils::Version ver1(v1);
+  mysqlshdk::utils::Version ver2(v2);
+
+  if (op.empty() || op == "==") return ver1 == ver2;
+  if (op == "!=") return ver1 != ver2;
+  if (op == ">=") return ver1 >= ver2;
+  if (op == "<=") return ver1 <= ver2;
+  if (op == ">") return ver1 > ver2;
+  if (op == "<") return ver1 < ver2;
+
+  throw std::logic_error(get_function_name("versionCheck") +
+                         ": Invalid operator: " + op);
 }
 
 //!<  @name Testing Utilities

@@ -69,7 +69,7 @@ session1 = mysql.getSession(ssl_sandbox_uri1);
 session2 = mysql.getSession(ssl_sandbox_uri2);
 session3 = mysql.getSession(ssl_sandbox_uri3);
 
-//@ createCluster
+//@<> createCluster
 shell.connect(ssl_sandbox_uri1);
 var cluster = dba.createCluster("clus", { gtidSetIsComplete: 1 });
 
@@ -107,7 +107,7 @@ cluster.addInstance("127.0.0.1:"+__mysql_sandbox_port3);
 //@ status
 cluster.status();
 
-//@ rejoinInstance
+//@<> rejoinInstance
 session1.runSql("stop group_replication");
 
 shell.connect(ssl_sandbox_uri2);
@@ -121,17 +121,17 @@ cluster.describe();
 //@ listRouters
 cluster.listRouters();
 
-//@ removeInstance
+//@<> removeInstance
 cluster.removeInstance(ssl_sandbox_uri3);
 
-//@ setPrimaryInstance {VER(>=8.0.0)}
+//@<> setPrimaryInstance
 cluster.setPrimaryInstance(ssl_sandbox_uri1);
 cluster.setPrimaryInstance(ssl_sandbox_uri2);
 
-//@ options
+//@<> options
 cluster.options();
 
-//@ setOption {VER(>=8.0.0)}
+//@<> setOption
 cluster.setOption("expelTimeout", 5);
 
 //@ setInstanceOption
@@ -139,7 +139,7 @@ cluster.setInstanceOption(ssl_sandbox_uri1, "memberWeight", 42);
 
 cluster.options();
 
-//@ forceQuorum
+//@<> forceQuorum
 // TODO these 2 lines shouldn't be needed, but without them the addInstance
 // fails with Cluster.addInstance: This function is not available through a session to a read only instance (RuntimeError)
 // everything should be fixed to always work through the PRIMARY
@@ -164,23 +164,22 @@ cluster.rejoinInstance(ssl_sandbox_uri1);
 testutil.startSandbox(__mysql_sandbox_port3);
 session3 = mysql.getSession(ssl_sandbox_uri3);
 
-//@<> forceQuorum (rejoin restarted sandbox without persisted start_on_boot) {VER(<8.0.0)}
-cluster.rejoinInstance(ssl_sandbox_uri3);
-
-//@ rebootCluster
+//@<> rebootCluster
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
 
 shell.connect(ssl_sandbox_uri1);
 cluster = dba.rebootClusterFromCompleteOutage("clus");
 cluster.status();
 
-//@ rescan
+//@<> rescan
 // remove an instance from the MD
 session.runSql("delete from mysql_innodb_cluster_metadata.instances where instance_name=?", ["127.0.0.1:" + __mysql_sandbox_port2]);
 
 cluster.rescan();
 
-//@ dissolve
+EXPECT_OUTPUT_CONTAINS(`A new instance '127.0.0.1:${__mysql_sandbox_port2}' was discovered in the cluster.`)
+
+//@<> dissolve
 cluster.dissolve();
 
 //@<> Cleanup

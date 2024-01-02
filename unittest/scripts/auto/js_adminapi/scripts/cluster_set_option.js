@@ -82,15 +82,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 scene.make_no_quorum([__mysql_sandbox_port1])
 cluster.setOption("memberWeight", 25);
 
-//@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-testutil.startSandbox(__mysql_sandbox_port3);
-cluster.rejoinInstance(__sandbox_uri3);
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-
-scene.make_no_quorum([__mysql_sandbox_port1])
-cluster.setOption("memberWeight", 25);
-
-//@ WL#11465: Re-create the cluster
+//@<> WL#11465: Re-create the cluster
 scene.destroy();
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
 var cluster = scene.cluster
@@ -114,12 +106,9 @@ cluster.setOption("clusterName", "newName");
 //@<OUT> WL#11465: Verify clusterName changed correctly
 print_metadata_clusters_cluster_name(session);
 
-//@<OUT> WL#11465: setOption memberWeight {VER(>=8.0.0)}
+//@<OUT> WL#11465: setOption memberWeight
 // BUG#31186637 - SETOPTION TAKES INT VALUES AS STRINGS
 callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "memberWeight", "25"])
-
-//@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-cluster.setOption("memberWeight", 25);
 
 //@<> WL#11465: Verify memberWeight changed correctly in instance 1
 EXPECT_EQ(25, get_sysvar(session, "group_replication_member_weight"));
@@ -133,11 +122,8 @@ EXPECT_EQ(25, get_sysvar(__mysql_sandbox_port3, "group_replication_member_weight
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
 cluster.setOption("exitStateAction", "ABORT");
 
-//@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
+//@<OUT> WL#11465: setOption exitStateAction
 callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "exitStateAction", "ABORT_SERVER"])
-
-//@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-cluster.setOption("exitStateAction", "ABORT_SERVER");
 
 //@<> WL#11465: Verify exitStateAction changed correctly in instance 1
 EXPECT_EQ("ABORT_SERVER", get_sysvar(__mysql_sandbox_port1, "group_replication_exit_state_action"));
@@ -192,12 +178,6 @@ EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoi
 //@<> WL#12066: TSF2_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
 EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
 EXPECT_EQ("2016", get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
-
-//@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to false in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
-cluster.setOption("disableClone", false);
-
-//@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to true in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
-cluster.setOption("disableClone", true);
 
 //@ WL#13208: TS_FR2_1 verify disableClone can be set with setOption() to false. {VER(>=8.0.17)}
 cluster.setOption("disableClone", false);

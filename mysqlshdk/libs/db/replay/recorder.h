@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
@@ -40,7 +41,7 @@ extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_connect_hook;
 extern std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_close_hook;
-extern std::function<std::string(const std::string &sql)>
+extern std::function<std::string(std::string_view sql)>
     on_recorder_query_replace_hook;
 
 extern std::function<std::string(const std::string &value)>

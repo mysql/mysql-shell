@@ -284,59 +284,6 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
-
-//@<> Initialization (BUG#30174191). {VER(<8.0.0)}
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-
-//@<> Create cluster (BUG#30174191). {VER(<8.0.0)}
-shell.connect(__sandbox_uri1);
-var c = dba.createCluster("cluster", {gtidSetIsComplete: true});
-c.addInstance(__sandbox_uri2);
-
-//NOTE: Changes not persisted on purpose (BUG#30174191).
-//@<> Shutdown the primary for a new one to be elected (BUG#30174191). {VER(<8.0.0)}
-testutil.stopSandbox(__mysql_sandbox_port1);
-shell.connect(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING)");
-var c = dba.getCluster();
-
-//@<> Restart the previous instance (BUG#30174191). {VER(<8.0.0)}
-testutil.startSandbox(__mysql_sandbox_port1);
-
-//@<> Rejoin instance to cluster (BUG#30174191). {VER(<8.0.0)}
-
-//localAddress supported on rejoinInstance WL#14765 {VER(>= 8.0.14)}
-var local_address = localhost + ":" + __mysql_sandbox_port4;
-
-c.rejoinInstance(__sandbox_uri1, {localAddress: local_address});
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-session.close();
-shell.connect(__sandbox_uri1);
-// Confirm that localAddress is set
-EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
-
-//@<> Check auto increment settings (BUG#30174191). {VER(<8.0.0)}
-var s1 = mysql.getSession(__sandbox_uri1);
-var s2 = mysql.getSession(__sandbox_uri2);
-
-var s1_aii = get_sysvar(s1, 'auto_increment_increment');
-var s1_aio = get_sysvar(s1, 'auto_increment_offset');
-EXPECT_EQ(1, s1_aii);
-EXPECT_EQ(2, s1_aio);
-
-var s2_aii = get_sysvar(s2, 'auto_increment_increment');
-var s2_aio = get_sysvar(s2, 'auto_increment_offset');
-EXPECT_EQ(1, s2_aii);
-EXPECT_EQ(2, s2_aio);
-
-//@<> Clean-up (BUG#30174191). {VER(<8.0.0)}
-session.close();
-testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.destroySandbox(__mysql_sandbox_port2);
-
 // BUG#29953812 : ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED, REJOIN_INSTANCE() NOT: DATA NOT COPIED
 // Verify that rejoinInstance fails when:
 //   - Instance data has diverged

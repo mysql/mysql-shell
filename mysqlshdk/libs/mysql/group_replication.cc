@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -242,18 +242,16 @@ Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
   // replication_group_members will have a single row with member_id = '' and
   // member_state = OFFLINE in 5.7 if the server is started and GR doesn't
   // auto-start.
-  static const char *member_state_stmt =
+  const char *member_state_stmt =
       "SELECT member_state "
       "FROM performance_schema.replication_group_members "
       "WHERE member_id = @@server_uuid OR"
       " (member_id = '' AND member_state = 'OFFLINE')";
   auto resultset = instance.query(member_state_stmt);
   auto row = resultset->fetch_one();
-  if (row) {
-    return to_member_state(row->get_string(0));
-  } else {
-    return Member_state::MISSING;
-  }
+
+  if (row) return to_member_state(row->get_string(0));
+  return Member_state::MISSING;
 }
 
 /**
@@ -483,45 +481,43 @@ std::string get_group_primary_uuid(const mysqlshdk::mysql::IInstance &instance,
 
 mysqlshdk::utils::Version get_group_protocol_version(
     const mysqlshdk::mysql::IInstance &instance) {
-  // MySQL versions in the domain [5.7.14, 8.0.15] map to GCS protocol version
-  // 1 (5.7.14) so we can return it immediately and avoid an error when
-  // executing the UDF to obtain the protocol version since the UDF is only
-  // available for versions >= 8.0.16
-  if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 16)) {
-    return mysqlshdk::utils::Version(5, 7, 14);
-  } else {
-    try {
-      const char *get_gr_protocol_version =
-          "SELECT group_replication_get_communication_protocol()";
+  // MySQL versions in the domain <= 8.0.15 map to GCS protocol version 1 so
+  // we can return it immediately and avoid an error when executing the UDF to
+  // obtain the protocol version since the UDF is only available for versions
+  // >= 8.0.16
+  if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 16))
+    return mysqlshdk::utils::Version(8, 0, 15);
 
-      log_debug("Executing UDF: %s",
-                get_gr_protocol_version + sizeof("SELECT"));  // hide "SELECT "
+  try {
+    const char *get_gr_protocol_version =
+        "SELECT group_replication_get_communication_protocol()";
 
-      auto resultset = instance.query_udf(get_gr_protocol_version);
-      auto row = resultset->fetch_one();
+    log_debug("Executing UDF: %s",
+              get_gr_protocol_version + sizeof("SELECT "));  // hide "SELECT "
 
-      if (row) {
-        return (mysqlshdk::utils::Version(row->get_string(0)));
-      } else {
-        throw std::logic_error(
-            "No rows returned when querying the version of Group Replication "
-            "communication protocol.");
-      }
-    } catch (const mysqlshdk::db::Error &error) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          error.what(), error.code(), error.sqlstate());
-    }
+    auto resultset = instance.query_udf(get_gr_protocol_version);
+    auto row = resultset->fetch_one();
+    if (!row)
+      throw std::logic_error(
+          "No rows returned when querying the version of Group Replication "
+          "communication protocol.");
+
+    return (mysqlshdk::utils::Version(row->get_string(0)));
+
+  } catch (const mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
   }
 }
 
 mysqlshdk::utils::Version get_max_supported_group_protocol_version(
     const mysqlshdk::utils::Version &server_version) {
-  if (server_version < mysqlshdk::utils::Version(8, 0, 16)) {
-    return mysqlshdk::utils::Version(5, 7, 14);
-  } else if (server_version < mysqlshdk::utils::Version(8, 0, 27)) {
-    // Protocol version for any server >= 8.0.16 && < 8.0.27 is 8.0.16
+  if (server_version < mysqlshdk::utils::Version(8, 0, 16))
+    return mysqlshdk::utils::Version(8, 0, 15);
+
+  // Protocol version for any server >= 8.0.16 && < 8.0.27 is 8.0.16
+  if (server_version < mysqlshdk::utils::Version(8, 0, 27))
     return mysqlshdk::utils::Version(8, 0, 16);
-  }
 
   // we have to assume protocol version for any server >= 8.0.27 is 8.0.27
   return mysqlshdk::utils::Version(8, 0, 27);
@@ -530,16 +526,18 @@ mysqlshdk::utils::Version get_max_supported_group_protocol_version(
 void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
                                 mysqlshdk::utils::Version version) {
   std::string query;
+  {
+    auto query_fmt =
+        "SELECT group_replication_set_communication_protocol(?)"_sql
+        << version.get_full();
+    query_fmt.done();
 
-  shcore::sqlstring query_fmt(
-      "SELECT group_replication_set_communication_protocol(?)", 0);
-  query_fmt << version.get_full();
-  query_fmt.done();
-  query = query_fmt.str();
+    query = query_fmt.str();
+  }
 
   try {
     log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.c_str() + sizeof("SELECT "));  // hide "SELECT "
 
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
@@ -731,13 +729,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
   if (options.mysql_comm_stack_supported)
     user_options.grants.push_back({"GROUP_REPLICATION_STREAM", "*.*", false});
 
-  if (primary.get_version() >= utils::Version(8, 0, 0)) {
-    // Recovery accounts must have CONNECTION_ADMIN too, otherwise, if a group
-    // members has offline_mode enabled the member is evicted from the group
-    // since the recovery account connections are disconnected and blocked.
-    // This has greater impact when using "MySQL" communication stack
-    user_options.grants.push_back({"CONNECTION_ADMIN", "*.*", false});
-  }
+  user_options.grants.push_back({"CONNECTION_ADMIN", "*.*", false});
 
   mysqlshdk::mysql::Auth_options creds;
 
@@ -791,8 +783,7 @@ bool is_group_replication_delayed_starting(
     return instance
                .query(
                    "SELECT COUNT(*) FROM performance_schema.threads WHERE NAME "
-                   "= "
-                   "'thread/group_rpl/THD_delayed_initialization'")
+                   "= 'thread/group_rpl/THD_delayed_initialization'")
                ->fetch_one()
                ->get_uint(0) != 0;
   } catch (const std::exception &e) {
@@ -807,27 +798,22 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
   shcore::sqlstring is_active_member_stmt;
 
   if (!host.empty() && port != 0) {
-    std::string is_active_member_stmt_fmt =
+    is_active_member_stmt =
         "SELECT count(*) "
         "FROM performance_schema.replication_group_members "
         "WHERE MEMBER_HOST = ? AND MEMBER_PORT = ? "
-        "AND MEMBER_STATE NOT IN ('OFFLINE', 'UNREACHABLE')";
-    is_active_member_stmt =
-        shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
-    is_active_member_stmt << host;
-    is_active_member_stmt << port;
-    is_active_member_stmt.done();
+        "AND MEMBER_STATE NOT IN ('OFFLINE', 'UNREACHABLE')"_sql;
+    is_active_member_stmt << host << port;
 
   } else {
-    std::string is_active_member_stmt_fmt =
+    is_active_member_stmt =
         "select count(*) "
         "FROM performance_schema.replication_group_members "
         "WHERE MEMBER_ID = @@server_uuid AND MEMBER_STATE NOT "
-        "IN ('OFFLINE', 'UNREACHABLE')";
-    is_active_member_stmt =
-        shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
-    is_active_member_stmt.done();
+        "IN ('OFFLINE', 'UNREACHABLE')"_sql;
   }
+
+  is_active_member_stmt.done();
 
   try {
     auto result = instance.query(is_active_member_stmt);
@@ -1229,7 +1215,7 @@ void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
   try {
     assert(shcore::str_ibeginswith(query, "select "));
     log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.c_str() + sizeof("SELECT "));  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(

@@ -885,13 +885,14 @@ void Dba::connect_to_target_group(
 
   if (connect_to_primary) {
     std::string primary_uri = find_primary_member_uri(target_member, false);
-
     if (primary_uri.empty()) {
       throw shcore::Exception("Unable to find a primary member in the Cluster",
                               SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
-    } else if (!mysqlshdk::utils::are_endpoints_equal(
-                   primary_uri,
-                   target_member->get_connection_options().uri_endpoint())) {
+    }
+
+    if (!mysqlshdk::utils::are_endpoints_equal(
+            primary_uri,
+            target_member->get_connection_options().uri_endpoint())) {
       log_info("%s is not a primary, will try to find one and reconnect",
                target_member->get_connection_options().as_uri().c_str());
 
@@ -1077,7 +1078,7 @@ Cluster Dba::get_cluster(str name) {}
 std::shared_ptr<Cluster> Dba::get_cluster(
     const std::optional<std::string> &cluster_name) const {
   std::shared_ptr<Instance> target_member, group_server;
-  std::shared_ptr<MetadataStorage> metadata, metadata_at_target;
+  std::shared_ptr<MetadataStorage> metadata_at_target;
 
   auto console = mysqlsh::current_console();
 
@@ -1090,7 +1091,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           "An open session is required to perform this operation.");
     }
 
-    metadata = std::make_shared<MetadataStorage>(
+    auto metadata = std::make_shared<MetadataStorage>(
         Instance::connect(target_member->get_connection_options()));
 
     metadata_at_target = metadata;
@@ -1117,17 +1118,18 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       }
 
       ipool->set_metadata(metadata);
+
       auto cluster_members =
           ipool->get_metadata()->get_all_instances(cluster_md.cluster_id);
 
-      for (const auto &member : cluster_members) {
-        auto instance = ipool->connect_unchecked_uuid(member.uuid);
+      if (!cluster_members.empty()) {
+        auto instance =
+            ipool->connect_unchecked_uuid(cluster_members.front().uuid);
 
         // Reset the metadata and the target_member to the group member
         metadata = std::make_shared<MetadataStorage>(instance);
         ipool->set_metadata(metadata);
         target_member = instance;
-        break;
       }
     }
 
@@ -1185,6 +1187,16 @@ std::shared_ptr<Cluster> Dba::get_cluster(
             "Write operations on the InnoDB cluster will not be allowed.\n"
             "Output from describe() and status() may be outdated.\n");
       }
+    }
+
+    // check if primary as the minimum accepted version
+    if (group_server->get_version() <
+        Precondition_checker::k_min_adminapi_server_version) {
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Unsupported cluster PRIMARY version: AdminAPI operations in this "
+          "version of MySQL Shell require MySQL Server %s or above",
+          Precondition_checker::k_min_adminapi_server_version.get_short()
+              .c_str()));
     }
 
     auto cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
@@ -2509,7 +2521,7 @@ void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
                                          target_instance);
   }
 
-  ipool->set_metadata(metadata);
+  ipool->set_metadata(std::exchange(metadata, nullptr));
 
   auto warnings_callback = [instance_descr = target_instance->descr()](
                                std::string_view sql, int code,

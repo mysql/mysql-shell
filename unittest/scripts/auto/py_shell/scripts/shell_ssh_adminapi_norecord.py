@@ -25,7 +25,7 @@ EXPECT_TRUE(session.is_open(), "Unable to open connection using shell.connect th
 
 
 #@<>  WL#14246-TSFR_5_1 Check if dba functions are properly protected from using ssh connection
-funcs = ["check_instance_configuration","configure_instance","configure_local_instance","configure_replica_set_instance","drop_metadata_schema","get_cluster","get_replica_set","reboot_cluster_from_complete_outage","upgrade_metadata"]
+funcs = ["check_instance_configuration","configure_instance","configure_replica_set_instance","drop_metadata_schema","get_cluster","get_replica_set","reboot_cluster_from_complete_outage","upgrade_metadata"]
 for f in funcs:
     EXPECT_THROWS(lambda: dba[f](), "InnoDB cluster functionality is not available through SSH tunneling")
 
@@ -63,7 +63,7 @@ WIPE_STDOUT()
 
 #@<> WL#14246 TSFR_5_3 Call the AdminAPI functions from the command line using the API command line integration while creating a SSH connection.
 shell.store_credential("ssh://{}".format(SSH_URI_NOPASS), SSH_PASS)
-funcs = ["check-instance-configuration", "configure-instance", "configure-local-instance", "configure-replica-set-instance", "drop-metadata-schema", "reboot-cluster-from-complete-outage", "upgrade-metadata"]
+funcs = ["check-instance-configuration", "configure-instance", "configure-replica-set-instance", "drop-metadata-schema", "reboot-cluster-from-complete-outage", "upgrade-metadata"]
 for f in funcs:
     testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--", "dba", f], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
@@ -75,7 +75,7 @@ dba_test = os.path.join(__tmp_dir, "dba_test.js")
 if os.path.exists(dba_test):
     os.remove(dba_test)
 
-funcs = ["checkInstanceConfiguration","configureInstance","configureLocalInstance","configureReplicaSetInstance","dropMetadataSchema","getCluster","getReplicaSet","rebootClusterFromCompleteOutage","upgradeMetadata"]
+funcs = ["checkInstanceConfiguration","configureInstance","configureReplicaSetInstance","dropMetadataSchema","getCluster","getReplicaSet","rebootClusterFromCompleteOutage","upgradeMetadata"]
 for fun in funcs:
     with open(dba_test, "w") as file:
         file.write("dba.{}();".format(fun))
@@ -95,7 +95,7 @@ if os.path.exists(dba_test):
     os.remove(dba_test)
 
 #@<> WL#14246 TSFR_5_5 Call the AdminAPI functions from the command line using the execute option (-e) while creating a SSH connection.
-funcs = ["checkInstanceConfiguration","configureInstance","configureLocalInstance","configureReplicaSetInstance","dropMetadataSchema","getCluster","getReplicaSet","rebootClusterFromCompleteOutage","upgradeMetadata"]
+funcs = ["checkInstanceConfiguration","configureInstance","configureReplicaSetInstance","dropMetadataSchema","getCluster","getReplicaSet","rebootClusterFromCompleteOutage","upgradeMetadata"]
 for fun in funcs:
     testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-e", "dba.{}();".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")

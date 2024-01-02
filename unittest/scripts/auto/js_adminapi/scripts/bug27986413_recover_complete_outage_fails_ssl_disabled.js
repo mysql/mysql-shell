@@ -7,7 +7,7 @@ disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 disable_auto_rejoin(__mysql_sandbox_port3);
 
-//@ Kill all cluster members
+//@<> Kill all cluster members
 c.disconnect();
 shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port3);
@@ -17,12 +17,12 @@ testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 session.close();
 testutil.killSandbox(__mysql_sandbox_port1);
 
-//@ Start the members again
+//@<> Start the members again
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 
-//@ Reboot cluster from complete outage
+//@<> Reboot cluster from complete outage
 shell.connect(__sandbox_uri1);
 var uri2 = localhost + ":" + __mysql_sandbox_port2;
 var uri3 = localhost + ":" + __mysql_sandbox_port3;
@@ -47,7 +47,7 @@ disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 disable_auto_rejoin(__mysql_sandbox_port3);
 
-//@ Kill all cluster members again
+//@<> Kill all cluster members again
 c.disconnect();
 shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port3);
@@ -57,12 +57,12 @@ testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 session.close();
 testutil.killSandbox(__mysql_sandbox_port1);
 
-//@ Restart the members
+//@<> Restart the members
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port3);
 
-//@ Reboot cluster from complete outage using another member
+//@<> Reboot cluster from complete outage using another member
 shell.connect(__sandbox_uri2);
 c = dba.rebootClusterFromCompleteOutage("cluster");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
@@ -78,7 +78,7 @@ EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__
 EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
 EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["memberRole"])
 
-//@ Destroy sandboxes
+//@<> Destroy sandboxes
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

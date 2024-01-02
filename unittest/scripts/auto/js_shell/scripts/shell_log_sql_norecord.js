@@ -58,7 +58,7 @@ WIPE_SHELL_LOG();
 session.runSql("select 1");
 EXPECT_SHELL_LOG_MATCHES(/Info: ClassicSession.runSql: tid=\d+: SQL: select 1/);
 
-//@<> Testing unfiltered sql logging from dba object
+//@<> Testing unfiltered sql logging from dba object {VER(>=8.0.0)}
 WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
@@ -134,7 +134,7 @@ WIPE_SHELL_LOG();
 session.runSql("select 1");
 EXPECT_SHELL_LOG_NOT_CONTAINS("SQL: select 1");
 
-//@<> Testing on sql logging from dba object
+//@<> Testing on sql logging from dba object {VER(>=8.0.0)}
 WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
@@ -221,7 +221,7 @@ WIPE_SHELL_LOG();
 session.runSql("select 1");
 EXPECT_SHELL_LOG_CONTAINS("SQL: select 1");
 
-//@<> Testing all sql logging from dba object
+//@<> Testing all sql logging from dba object {VER(>=8.0.0)}
 WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()
@@ -296,7 +296,7 @@ WIPE_SHELL_LOG();
 session.runSql("select 1");
 EXPECT_SHELL_LOG_NOT_CONTAINS("SQL: select 1");
 
-//@<> Testing off sql logging from dba object
+//@<> Testing off sql logging from dba object {VER(>=8.0.0)}
 WIPE_SHELL_LOG();
 try {
     cluster = dba.getCluster()

@@ -28,12 +28,6 @@ Cluster.setInstanceOption: Could not open connection to 'localhost:<<<__mysql_sa
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)
 
-//@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)
-
-//@ WL#11465: Re-create the cluster
-||
-
 //@<OUT> WL#11465: setInstanceOption label
 Setting the value of 'label' to 'newLabel' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
@@ -42,13 +36,7 @@ Successfully set the value of 'label' to 'newLabel' in the cluster member: 'loca
 //@<OUT> WL#11465: Verify label changed correctly
 newLabel
 
-//@<OUT> WL#11465: setInstanceOption memberWeight {VER(>=8.0.0)}
-Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
-
-Successfully set the value of 'memberWeight' to '25' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
-
-//@<OUT> WL#11465: setInstanceOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.
+//@<OUT> WL#11465: setInstanceOption memberWeight
 Setting the value of 'memberWeight' to '25' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
 Successfully set the value of 'memberWeight' to '25' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
@@ -59,13 +47,7 @@ Successfully set the value of 'memberWeight' to '25' in the cluster member: 'loc
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
 Cluster.setInstanceOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
-//@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
-Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
-
-Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.
-
-//@<OUT> WL#11465: setInstanceOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.
+//@<OUT> WL#11465: setInstanceOption exitStateAction
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
 
 Successfully set the value of 'exitStateAction' to 'ABORT_SERVER' in the cluster member: 'localhost:<<<__mysql_sandbox_port2>>>'.

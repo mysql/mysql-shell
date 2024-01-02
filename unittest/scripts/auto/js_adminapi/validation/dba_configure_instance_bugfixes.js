@@ -1,6 +1,5 @@
 // Tests for configure instance (and check instance) bugs
 
-
 //@<OUT> BUG#28727505: configure instance 5.7. {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB Cluster...
 NOTE: Instance detected as a sandbox.

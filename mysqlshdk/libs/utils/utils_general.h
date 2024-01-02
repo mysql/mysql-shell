@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -185,6 +185,26 @@ std::string SHCORE_PUBLIC get_system_user();
 std::string SHCORE_PUBLIC strip_password(std::string_view connstring);
 
 char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
+
+void SHCORE_PUBLIC split_string(std::string_view input,
+                                std::string_view separator, bool compress,
+                                auto &&cb) {
+  size_t index = 0, new_find = 0;
+  while (new_find != std::string_view::npos) {
+    new_find = input.find(separator, index);
+
+    if (new_find != std::string_view::npos) {
+      // When compress is enabled, consecutive separators
+      // do not generate new elements
+      if (new_find > index || !compress || new_find == 0)
+        if (!cb(input.substr(index, new_find - index))) return;
+
+      index = new_find + separator.length();
+    } else {
+      if (!cb(input.substr(index))) return;
+    }
+  }
+}
 
 std::vector<std::string> SHCORE_PUBLIC split_string(std::string_view input,
                                                     std::string_view separator,

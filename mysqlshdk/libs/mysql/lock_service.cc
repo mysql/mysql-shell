@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,24 +77,20 @@ bool has_lock_service(const mysqlshdk::mysql::IInstance &instance) {
   std::string plugin_lib =
       "locking_service" + instance.get_plugin_library_extension();
 
-  // Check existence of lock service functions from mysql.func.
-  // NOTE: Not using performance_schema.user_defined_functions because it does
-  //       not exist for 5.7 servers.
-  int64_t func_count = instance
-                           .query(
-                               "SELECT COUNT(*) "
-                               "FROM mysql.func "
-                               "WHERE dl = /*(*/ '" +
-                               plugin_lib +
-                               "' /*(*/ "
-                               "AND name IN ('service_get_read_locks', "
-                               "'service_get_write_locks', "
-                               "'service_release_locks')")
-                           ->fetch_one()
-                           ->get_int(0);
+  auto stmt =
+      "SELECT count(*) FROM performance_schema.user_defined_functions "
+      "WHERE (udf_library = ?) AND (udf_name IN ('service_get_read_locks', "
+      "'service_get_write_locks', 'service_release_locks'))"_sql
+      << plugin_lib;
 
-  // Return true only if the 3 lock service functions are available.
-  return (func_count == 3);
+  auto res = instance.query(stmt);
+  if (!res) return false;
+
+  auto row = res->fetch_one();
+  if (!row) return false;
+
+  // return true only if the 3 lock service functions are available.
+  return (row->get_int(0) == 3);
 }
 
 void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,7 @@ TEST_F(Admin_api_preconditions, check_session) {
     } catch (const shcore::Exception &e) {
       EXPECT_STREQ(
           "Unsupported server version: AdminAPI operations in this version of "
-          "MySQL Shell are supported on MySQL Server 5.7 and above",
+          "MySQL Shell are supported on MySQL Server 8.0 and above",
           e.what());
     }
   }
@@ -157,7 +157,7 @@ TEST_F(Admin_api_preconditions, check_session) {
     }
   }
 
-  std::vector<std::string> valid_versions = {"5.7", "5.7.22"};
+  std::vector<std::string> valid_versions;
 
   valid_versions.push_back(shcore::str_format(
       "%d.%d.%d", mysqlshdk::utils::k_shell_version.get_major(),
@@ -189,14 +189,6 @@ TEST_F(Admin_api_preconditions, check_session) {
 
     try {
       m_preconditions->check_session();
-
-      if (version == "5.7" || version == "5.7.22") {
-        MY_EXPECT_STDOUT_CONTAINS(
-            "WARNING: Support for AdminAPI operations in MySQL version 5.7 is "
-            "deprecated and will be removed in a future release of MySQL "
-            "Shell");
-        output_handler.wipe_all();
-      }
     } catch (const shcore::Exception &e) {
       std::string error = "Unexpected failure calling validate_session: ";
       error += e.what();
@@ -537,30 +529,27 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
       "ClusterSet.setupAdminAccount", "ClusterSet.setupRouterAccount"};
 
   std::set<std::string> cset_offline_expected = {
-      "ClusterSet.describe",      "ClusterSet.forcePrimaryCluster",
-      "ClusterSet.rejoinCluster", "ClusterSet.setPrimaryCluster",
-      "ClusterSet.status",        "Dba.checkInstanceConfiguration",
-      "Dba.configureInstance",    "Dba.configureLocalInstance",
-      "Dba.getClusterSet",        "Dba.rebootClusterFromCompleteOutage"};
+      "ClusterSet.describe",
+      "ClusterSet.forcePrimaryCluster",
+      "ClusterSet.rejoinCluster",
+      "ClusterSet.setPrimaryCluster",
+      "ClusterSet.status",
+      "Dba.checkInstanceConfiguration",
+      "Dba.configureInstance",
+      "Dba.getClusterSet",
+      "Dba.rebootClusterFromCompleteOutage"};
 
   std::set<std::string> standalone_cluster_exclusive_expected = {
       "Cluster.createClusterSet", "Cluster.switchToMultiPrimaryMode",
       "Cluster.switchToSinglePrimaryMode"};
 
   std::set<std::string> cset_always_allowed_expected = {
-      "Cluster.checkInstanceState",
-      "Cluster.describe",
-      "Cluster.forceQuorumUsingPartitionOf",
-      "Cluster.listRouters",
-      "Cluster.setPrimaryInstance",
-      "Cluster.options",
-      "Cluster.routingOptions",
-      "Cluster.status",
-      "Cluster.dissolve",
-      "Dba.getCluster",
-      "Dba.upgradeMetadata",
-      "Dba.dropMetadataSchema",
-      "Cluster.fenceAllTraffic"};
+      "Cluster.describe",       "Cluster.forceQuorumUsingPartitionOf",
+      "Cluster.listRouters",    "Cluster.setPrimaryInstance",
+      "Cluster.options",        "Cluster.routingOptions",
+      "Cluster.status",         "Cluster.dissolve",
+      "Dba.getCluster",         "Dba.upgradeMetadata",
+      "Dba.dropMetadataSchema", "Cluster.fenceAllTraffic"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {
       "Cluster.addInstance",

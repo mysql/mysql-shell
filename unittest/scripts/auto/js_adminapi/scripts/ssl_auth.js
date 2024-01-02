@@ -453,7 +453,7 @@ EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostn
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"].length, 1);
 EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][0], "WARNING: memberAuthType is set to 'CERT_SUBJECT_PASSWORD' but there's no 'certSubject' configured for this instance, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.")
 
-//@<> FR12 check exception if SSL settings are incorrect {VER(>=8.0.0)}
+//@<> FR12 check exception if SSL settings are incorrect
 
 ca2_path = testutil.sslCreateCa("myca2", "/CN=Test_CA2");
 cert2_ca2_path = testutil.sslCreateCert("server2", "myca2", `/CN=${hostname}`, __mysql_sandbox_port2);

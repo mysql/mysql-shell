@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -311,30 +311,42 @@ inline size_t str_span(const std::string &s1, const std::string &s2) {
 }
 
 /** Partition a string in 2 at a separator, if present */
-inline std::pair<std::string, std::string> str_partition(
-    const std::string &s, const std::string &sep, bool *found_sep = nullptr) {
+template <class TOutput = std::string>
+inline std::pair<TOutput, TOutput> str_partition(std::string_view s,
+                                                 std::string_view sep,
+                                                 bool *found_sep = nullptr) {
+  static_assert(std::is_same_v<TOutput, std::string> ||
+                    std::is_same_v<TOutput, std::string_view>,
+                "Type must either be std::string or std::string_view");
+
   auto p = s.find(sep);
 
   if (found_sep) {
-    *found_sep = p != std::string::npos;
+    *found_sep = p != std::string_view::npos;
   }
 
-  if (p == std::string::npos)
-    return std::make_pair(s, "");
-  else
-    return std::make_pair(s.substr(0, p), s.substr(p + sep.length()));
+  if (p == std::string_view::npos)
+    return std::make_pair(TOutput{s}, TOutput{""});
+
+  return std::make_pair(TOutput{s.substr(0, p)},
+                        TOutput{s.substr(p + sep.length())});
 }
 
 /** Partition a string in 2 after separator, in place, if present */
-inline std::pair<std::string, std::string> str_partition_after(
-    const std::string &s, const std::string &sep) {
+template <class TOutput = std::string>
+inline std::pair<TOutput, TOutput> str_partition_after(std::string_view s,
+                                                       std::string_view sep) {
+  static_assert(std::is_same_v<TOutput, std::string> ||
+                    std::is_same_v<TOutput, std::string_view>,
+                "Type must either be std::string or std::string_view");
+
   auto p = s.find(sep);
-  if (p == std::string::npos) {
-    return std::make_pair(s, "");
-  } else {
-    p += sep.length();
-    return std::make_pair(s.substr(0, p), s.substr(p));
+  if (p == std::string_view::npos) {
+    return std::make_pair(TOutput{s}, TOutput{""});
   }
+
+  p += sep.length();
+  return std::make_pair(TOutput{s.substr(0, p)}, TOutput{s.substr(p)});
 }
 
 /** Partition a string in 2 after separator, in place, if present */

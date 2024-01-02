@@ -7,7 +7,7 @@
 //@ session x -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
 ||
 
-//@ shell connect classic -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
+//@ shell connect classic -- user:local_pass / password:pass (SUCCESS) {VER(>=8.0.4)}
 ||
 
 //@ shell connect x -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}

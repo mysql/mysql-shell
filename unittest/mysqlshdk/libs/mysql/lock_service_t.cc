@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,8 @@ class Lock_service_test : public tests::Shell_base_test {
 };
 
 TEST_F(Lock_service_test, install_udfs) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   if (mysqlshdk::mysql::has_lock_service(*instance)) {
     // NOTE: Error issued when trying to install UDFs that already exist.
     SKIP_TEST("Lock service UDFs already installed on test server.");
@@ -101,6 +103,8 @@ TEST_F(Lock_service_test, install_udfs) {
 }
 
 TEST_F(Lock_service_test, lock_erros) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   using mysqlshdk::mysql::Lock_mode;
 
   // Name space and lock name cannot be empty.
@@ -143,6 +147,8 @@ TEST_F(Lock_service_test, lock_erros) {
 }
 
 TEST_F(Lock_service_test, locks_usage) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   using mysqlshdk::mysql::Lock_mode;
 
   // Enable metadata lock instruments to allow lock monitoring.
@@ -233,11 +239,15 @@ TEST_F(Lock_service_test, locks_usage) {
 }
 
 TEST_F(Lock_service_test, uninstall_udfs) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   EXPECT_NO_THROW(mysqlshdk::mysql::uninstall_lock_service(instance));
   EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(*instance));
 }
 
 TEST_F(Lock_service_test, has_lock_service_udfs) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   using mysqlshdk::db::Type;
 
   // Test to ensure exact plugin name is used in query to check UDFs existence.
@@ -263,17 +273,16 @@ TEST_F(Lock_service_test, has_lock_service_udfs) {
 
     // Set the lib extension according to the OS.
     std::string instance_os = shcore::str_upper(os);
-    std::string ext =
-        (instance_os.find("WIN") != std::string::npos) ? ".dll" : ".so";
+    auto ext = (instance_os.find("WIN") != std::string::npos) ? "dll" : "so";
 
     // Query to verify existence of lock service UDFs.
-    std::string str_query =
-        "SELECT COUNT(*) FROM mysql.func "
-        "WHERE dl = /*(*/ 'locking_service" +
-        ext +
-        "' /*(*/ "
-        "AND name IN ('service_get_read_locks', 'service_get_write_locks', "
-        "'service_release_locks')";
+    auto str_query = shcore::str_format(
+        "SELECT count(*) FROM performance_schema.user_defined_functions WHERE "
+        "(udf_library = 'locking_service.%s') AND (udf_name IN "
+        "('service_get_read_locks', 'service_get_write_locks', "
+        "'service_release_locks'))",
+        ext);
+
     mock_session->expect_query(str_query).then_return(
         {{"",
           {"COUNT(*)"},

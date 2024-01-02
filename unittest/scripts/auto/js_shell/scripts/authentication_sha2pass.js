@@ -74,7 +74,7 @@ var s = mysqlx.getSession(uri_nossl);
 EXPECT_TRUE(s.isOpen());
 s.close();
 
-//@ shell connect classic -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
+//@ shell connect classic -- user:local_pass / password:pass (SUCCESS) {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 var uri_nossl = 'mysql://local_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED';
 var uri_ssl = 'mysql://local_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED';

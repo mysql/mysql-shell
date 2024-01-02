@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,16 +142,19 @@ std::string str_format(const char *formats, ...) {
 std::string str_replace(std::string_view s, std::string_view from,
                         std::string_view to) {
   std::string str;
-  int offs = from.length();
-  str.reserve(s.length());
 
   if (from.empty()) {
+    str.reserve(to.length() * (s.size() + 1));
+
     str.append(to);
     for (char c : s) {
       str.push_back(c);
       str.append(to);
     }
   } else {
+    str.reserve(s.length());
+
+    int offs = from.length();
     std::string::size_type start = 0, p = s.find(from);
     while (p != std::string::npos) {
       if (p > start) str.append(s, start, p - start);

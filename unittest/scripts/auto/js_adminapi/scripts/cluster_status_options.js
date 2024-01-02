@@ -829,9 +829,6 @@ json_check(stat, extended_1_status_templ_8026);
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0.31 {VER(>=8.0.31)}
 json_check(stat, extended_1_status_templ_8031);
 
-//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 5.7 {VER(<8.0)}
-json_check(stat, extended_1_status_templ_57);
-
 //@<> WL#13084 - TSF4_2: extended: 1 is the same as extended: true
 var stat_ext_true = cluster.status({extended: true});
 EXPECT_EQ(stat, stat_ext_true);
@@ -855,9 +852,6 @@ json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0.31 {VER(>=8.0.31)}
 json_check(stat, extended_2_status_templ_8031, [], ["replicationLag"]);
 
-//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
-json_check(stat, extended_2_status_templ_57);
-
 //@<> WL#13084 - TSF4_3: extended: 2 also includes the transaction information.
 var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
 EXPECT_NE(undefined, gr_protocol_version);
@@ -879,10 +873,6 @@ EXPECT_NE(undefined, transactions);
 var stat = cluster.status();
 json_check(stat, base_status_templ_80);
 
-//@<> F2- default 5.7 {VER(<8.0)}
-var stat = cluster.status();
-json_check(stat, base_status_templ_57);
-
 // TS1_5    Verify that information about additional transactions stats is printed by each member of the group when using cluster.status() and the option queryMembers is set to true.
 // TS4_1    Verify that the I/O thread and applied workers information is added to the status of a member when calling cluster.status().
 // TS7_1    Verify that information about the regular transaction processed is added to the status of a member that is Online when calling cluster.status().
@@ -899,10 +889,6 @@ json_check(stat, full_status_templ_8023);
 //@<> F3- Verify output with extended: 3 for 8.0 {VER(>=8.0.26)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_8026);
-
-//@<> F3- Verify output with extended: 3 for 5.7 {VER(<8.0)}
-var stat = cluster.status({extended: 3});
-json_check(stat, full_status_templ_57);
 
 // WL#13084 - TSF4_4: extended: 3 includes additional replication information.
 var gr_protocol_version = json_find_key(stat, "GRProtocolVersion");
@@ -928,12 +914,6 @@ EXPECT_NE(undefined, workers);
 cluster.addInstance(__sandbox_uri2);
 
 // TS6_1	Verify that information about the recovery process is added to the status of a member that is on Recovery status when calling cluster.status().
-
-//@<> F7- Check that recovery stats are there 5.7 - extended 2 {VER(<8.0)}
-var stat = cluster.status({extended:2});
-var allowed_missing = ["transactions"];
-var allowed_unexpected = ["recovery", "recoveryStatusText", ["replicationLag"], "instanceErrors"];
-json_check(stat, extended_2_status_templ_57, allowed_missing, allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 - extended 2 {VER(>=8.0) && VER(<8.0.23)}
 var stat = cluster.status({extended:2});
@@ -1002,18 +982,6 @@ EXPECT_NE(undefined, tx["coordinator"]);
 EXPECT_NE(undefined, tx["workers"]);
 EXPECT_EQ(2, tx["workers"].length);
 json_check(tx["coordinator"], coordinator_status_templ_80);
-
-//@<> F6- With parallel appliers for 5.7 {VER(<8.0)}
-// TS5_1    Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
-cluster.addInstance(__sandbox_uri3);
-
-var stat = cluster.status({extended:3});
-var tx = stat["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["transactions"];
-EXPECT_NE(undefined, tx["connection"]);
-EXPECT_NE(undefined, tx["coordinator"]);
-EXPECT_NE(undefined, tx["workers"]);
-EXPECT_EQ(2, tx["workers"].length);
-json_check(tx["coordinator"], coordinator_status_templ_57);
 
 //@<> F9- Rejoin member2 but trigger a failed recovery so we get a recovery error
 shell.connect(__sandbox_uri1);

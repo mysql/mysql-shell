@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -210,35 +210,16 @@ bool is_option_supported(
     const mysqlshdk::utils::Version &version, const std::string &option,
     const std::map<std::string, Option_availability> &options_map) {
   assert(options_map.find(option) != options_map.end());
-  auto &opt_avail = options_map.at(option);
+  const auto &opt_avail = options_map.at(option);
 
   // if no version was supplied, options can be used regardless of version
-  if (opt_avail.support_in_80.get_major() == 0 &&
-      opt_avail.support_in_57.get_major() == 0)
-    return true;
+  if (!opt_avail.support) return true;
 
-  if (version.get_major() == 8) {
-    // 8.0 server
-    // if only the 5.7 version was provided to the Option_availability struct,
-    // then assume variable will also be supported in 8.0. This check is enough
-    // since the default Version constructor sets the major version to 0.
-    return version >= opt_avail.support_in_80;
-  }
+  if (version.get_major() == 8) return version >= opt_avail.support;
 
-  if (version.get_major() == 5 && version.get_minor() == 7) {
-    // 5.7 server
-    if (opt_avail.support_in_57.get_major() == 0) {
-      // if the default constructor for version was used, no 5.7 version was
-      // used on the Option_availability struct, meaning 5.7 is not supported
-      return false;
-    }
-
-    return version >= opt_avail.support_in_57;
-  }
-
-  throw std::runtime_error(
-      "Unexpected version found for option support check: '" +
-      version.get_full() + "'.");
+  throw std::runtime_error(shcore::str_format(
+      "Unexpected version found for option support check: '%s'.",
+      version.get_full().c_str()));
 }
 
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
@@ -1059,20 +1040,16 @@ bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
  * @return the target instance resolved .cnf file path
  */
 std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
-  // Path is not given, let's try to autodetect it
-  std::string cnfPath;
-  // Try to locate the .cnf file path
-  // based on the OS and the default my.cnf path as configured
-  // by our official MySQL packages
+  // Path is not given, let's try to autodetect it.
+  // Try to locate the .cnf file path based on the OS and the default my.cnf
+  // path as configured by our official MySQL packages
 
-  // Detect the OS
   auto console = mysqlsh::current_console();
-
   console->print_info();
   console->print_info("Detecting the configuration file...");
   std::vector<std::string> config_paths, default_paths;
 
-  if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+  {
     // use the performance schema table to try and find the existing
     // configuration files
     auto result = instance.query(
@@ -1084,11 +1061,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
       row = result->fetch_one();
     }
   }
-  // if no config files were found, try to look in the default paths
-  if (config_paths.empty()) {
-    shcore::OperatingSystem os = shcore::get_os_type();
-    default_paths = mysqlshdk::config::get_default_config_paths(os);
-  }
+
   // Iterate the config_paths found in the instance checking if the user wants
   // to modify any of them
   for (const auto &value : config_paths) {
@@ -1096,56 +1069,49 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
     console->print_info("Found configuration file being used by instance '" +
                         instance.get_connection_options().uri_endpoint() +
                         "' at location: " + value);
+    if (console->confirm("Do you want to modify this file?") !=
+        Prompt_answer::YES)
+      continue;
 
-    if (console->confirm("Do you want to modify this file?") ==
-        Prompt_answer::YES) {
-      cnfPath = value;
-      break;
-    }
-  }
-  if (cnfPath.empty()) {
-    // Iterate the default_paths to check if the files exist and if so,
-    // set cnfPath
-    for (const auto &value : default_paths) {
-      if (shcore::is_file(value)) {
-        // Prompt the user to validate if shall use it or not
-        console->print_info("Found configuration file at standard location: " +
-                            value);
-
-        if (console->confirm("Do you want to modify this file?") ==
-            Prompt_answer::YES) {
-          cnfPath = value;
-          break;
-        }
-      }
-    }
+    return value;
   }
 
-  if (cnfPath.empty()) {
-    console->print_info("Default file not found at the standard locations.");
-
-    bool done = false;
-    std::string tmpPath;
-
-    while (!done && console->prompt("Please specify the path to the MySQL "
-                                    "configuration file: ",
-                                    &tmpPath) == shcore::Prompt_result::Ok) {
-      if (tmpPath.empty()) {
-        done = true;
-      } else {
-        if (shcore::is_file(tmpPath)) {
-          cnfPath = tmpPath;
-          done = true;
-        } else {
-          console->print_info(
-              "The given path to the MySQL configuration file is invalid.");
-          console->print_info();
-        }
-      }
-    }
+  // if no config files were found, try to look in the default paths
+  {
+    shcore::OperatingSystem os = shcore::get_os_type();
+    default_paths = mysqlshdk::config::get_default_config_paths(os);
   }
 
-  return cnfPath;
+  // Iterate the default_paths to check if the files exist and if so,
+  // set cnfPath
+  for (const auto &value : default_paths) {
+    if (!shcore::is_file(value)) continue;
+
+    // Prompt the user to validate if shall use it or not
+    console->print_info("Found configuration file at standard location: " +
+                        value);
+    if (console->confirm("Do you want to modify this file?") !=
+        Prompt_answer::YES)
+      continue;
+
+    return value;
+  }
+
+  console->print_info("Default file not found at the standard locations.");
+
+  std::string tmpPath;
+  while (console->prompt("Please specify the path to the MySQL "
+                         "configuration file: ",
+                         &tmpPath) == shcore::Prompt_result::Ok) {
+    if (tmpPath.empty()) break;
+    if (shcore::is_file(tmpPath)) return tmpPath;
+
+    console->print_info(
+        "The given path to the MySQL configuration file is invalid.");
+    console->print_info();
+  }
+
+  return {};  // user canceled or returned an empty string on the prompt
 }
 
 /*

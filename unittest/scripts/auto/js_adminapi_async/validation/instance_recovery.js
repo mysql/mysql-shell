@@ -1,13 +1,13 @@
-//@# prepare {VER(>= 8.0.0)}
+//@# prepare
 ||
 
-//@# invalid recoveryMethod (should fail) {VER(>= 8.0.0)}
+//@# invalid recoveryMethod (should fail)
 ||Invalid value for option recoveryMethod: foobar (ArgumentError)
 ||Option 'recoveryMethod' is expected to be of type String, but is Integer (TypeError)
 ||Invalid value for option recoveryMethod: foobar (ArgumentError)
 ||Option 'recoveryMethod' is expected to be of type String, but is Integer (TypeError)
 
-//@ invalid cloneDonor (should fail) {VER(>= 8.0.0)}
+//@ invalid cloneDonor (should fail)
 ||Option cloneDonor only allowed if option recoveryMethod is used and set to 'clone'. (ArgumentError)
 ||Option cloneDonor only allowed if option recoveryMethod is set to 'clone'. (ArgumentError)
 ||Invalid value for cloneDonor: Invalid address format in ':'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
@@ -21,7 +21,7 @@
 ||Invalid value for cloneDonor: Invalid address format in 'localhost:'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
 ||Invalid value for cloneDonor: Invalid address format in ':3306'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses (ArgumentError)
 
-//@ invalid recoveryMethod (should fail if target instance does not support it) {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ invalid recoveryMethod (should fail if target instance does not support it) {VER(< 8.0.17)}
 ||Option 'recoveryMethod=clone' not supported on target server version: '<<<__version>>>' (RuntimeError)
 ||Option 'recoveryMethod=clone' not supported on target server version: '<<<__version>>>' (RuntimeError)
 
@@ -56,7 +56,7 @@
 |Clone based recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
-//@ addInstance: recoveryMethod:incremental, interactive, make sure no prompts {VER(>=8.0.0)}
+//@ addInstance: recoveryMethod:incremental, interactive, make sure no prompts
 |Adding instance to the replicaset...|
 ||
 |* Performing validation checks|
@@ -75,10 +75,10 @@
 
 ||debug (LogicError)
 
-//@ rejoinInstance: recoveryMethod:incremental, interactive, error {VER(>=8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, interactive, error
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
-//@ addInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 |Adding instance to the replicaset...|
 ||
 |* Performing validation checks|
@@ -93,7 +93,7 @@
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
-//@ rejoinInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 |* Validating instance...|
 |** Checking transaction state of the instance...|
 ||
@@ -102,28 +102,28 @@
 |* Rejoining instance to replicaset...|
 ||debug (LogicError)
 
-//@ addInstance: recoveryMethod:incremental, subset GTIDs -> incr {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, subset GTIDs -> incr
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
-//@ rejoinInstance: recoveryMethod:incremental, subset GTIDs -> incr {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, subset GTIDs -> incr
 |Incremental state recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
-//@ addInstance: recoveryMethod:incremental, errant GTIDs -> error {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, errant GTIDs -> error
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
-//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs -> error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs -> error
 |WARNING: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |contains transactions that do not originate from the replicaset, which must be|
 |discarded before it can join the replicaset.|
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 
-//@ addInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> prompt i/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> prompt i/a {VER(< 8.0.17)}
 |Adding instance to the replicaset...|
 ||
 |* Performing validation checks|
@@ -154,7 +154,7 @@
 
 ||Cancelled (RuntimeError)
 
-//@ rejoinInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, clone unavailable, empty GTID -> error {VER(< 8.0.17)}
 |* Validating instance...|
 |** Checking transaction state of the instance...|
 ||
@@ -291,7 +291,7 @@
 |clone recovery method.|
 ||Instance provisioning required (MYSQLSH 51153)
 
-//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(< 8.0.17)}
 |Adding instance to the replicaset...|
 ||
 |* Performing validation checks|
@@ -323,7 +323,7 @@
 
 ||Instance provisioning required (MYSQLSH 51153)
 
-//@ rejoinInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, errant GTIDs -> error clone not supported {VER(< 8.0.17)}
 ||Instance provisioning required (MYSQLSH 51153)
 
 //@ addInstance: recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>= 8.0.19)}
@@ -338,7 +338,7 @@
 //@ rejoinInstance: recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>= 8.0.19)}
 ||'recoveryMethod' option must be set to 'clone' or 'incremental' (MYSQLSH 51167)
 
-//@ addInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(< 8.0.17)}
 |WARNING: It should be safe to rely on replication to incrementally recover the state of|
 |the new instance if you are sure all updates ever executed in the replicaset|
 |were done with GTIDs enabled, there are no purged transactions and the new|
@@ -347,7 +347,7 @@
 
 ||'recoveryMethod' option must be set to 'incremental' (MYSQLSH 51168)
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, clone not supported, empty GTID -> error {VER(< 8.0.17)}
 ||Instance provisioning required (MYSQLSH 51153)
 
 //@ addInstance: recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr {VER(>=8.0.17)}
@@ -390,7 +390,7 @@
 ||
 ||debug (LogicError)
 
-//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 |Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
@@ -404,13 +404,13 @@
 |clone recovery method.|
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target replicaset.|
 
-//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0) && VER(<8.0.17)}
+//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(<8.0.17)}
 |Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 
-//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ addInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 ||Instance provisioning required (MYSQLSH 51153)
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 |Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has the following errant GTIDs that do not exist in the replicaset:|
 |00025721-1111-1111-1111-111111111111:1|
 ||
@@ -424,20 +424,20 @@
 |clone recovery method.|
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target replicaset.|
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0) && VER(<8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(<8.0.17)}
 |Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
 
-//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.0)}
+//@ rejoinInstance: recoveryMethod:auto, non-interactive, errant GTIDs -> error
 ||Instance provisioning required (MYSQLSH 51153)
 
-//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to determine whether the instance has pre-existing data that would be overwritten with clone based recovery.|
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||Cancelled (RuntimeError)
-//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ addInstance: recoveryMethod:auto, no-interactive, purged GTID -> error {VER(>=8.0.17)}
@@ -453,7 +453,7 @@
 |Clone based recovery was selected because it seems to be safely usable.|
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
 ||debug (LogicError)
-//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -462,15 +462,15 @@
 |Clone based recovery was selected because it seems to be safely usable.|
 //@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
 ||debug (LogicError)
-//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(< 8.0.17)}
 ||Instance provisioning required
 
-//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||Cancelled (RuntimeError)
-//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -479,7 +479,7 @@
 |Clone based recovery was selected because it seems to be safely usable.|
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
 ||debug (LogicError)
-//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
@@ -488,7 +488,7 @@
 |Clone based recovery was selected because it seems to be safely usable.|
 //@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
 ||debug (LogicError)
-//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(<8.0.17)}
@@ -497,7 +497,7 @@
 |discarded before it can join the replicaset.|
 //@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(>=8.0.17)}
 ||Cancelled (RuntimeError)
-//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+//@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(< 8.0.17)}
 ||Instance provisioning required
 
 //@ rejoinInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> error {VER(<8.0.17)}
@@ -517,10 +517,10 @@
 |is missing transactions that were purged from all replicaset members.|
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
-//@ addInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
+//@ addInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
-//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error {VER(>= 8.0.0)}
+//@ rejoinInstance: recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
 ||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (MYSQLSH 51166)
 
 //@ addInstance: recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}

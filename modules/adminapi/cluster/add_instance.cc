@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -466,9 +466,7 @@ void Add_instance::prepare(checks::Check_type check_type,
       get_transaction_size_limit(*m_primary_instance);
 
   // Set the paxos_single_leader option
-  // Verify whether the primary supports it, meaning it's in use. Checking if
-  // the target supports it is not valid since the target might be 8.0 and the
-  // primary 5.7
+  // Verify whether the primary supports it, meaning it's in use.
   if (supports_paxos_single_leader(m_primary_instance->get_version())) {
     m_gr_opts.paxos_single_leader =
         get_paxos_single_leader_enabled(*m_primary_instance).value_or(false);

@@ -17,9 +17,6 @@ NOTE: When adding more instances to the Cluster, be aware that the subnet masks 
 ?{}
 * Checking connectivity and SSL configuration...
 
-?{VER(<8.0.0)}
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureInstance() command locally to persist the changes.
-?{}
 Creating InnoDB Cluster 'sample' on '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'...
 
 Adding Seed Instance...

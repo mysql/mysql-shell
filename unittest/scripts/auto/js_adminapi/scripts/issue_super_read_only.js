@@ -15,10 +15,6 @@ c = dba.createCluster("cluster", {gtidSetIsComplete:1});
 
 c.addInstance(__sandbox_uri2);
 
-//@<> persist settings in 5.7 {VER(<8.0.0)}
-dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
-
 //@<> check configs while servers are online
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
@@ -90,25 +86,14 @@ c.addInstance(__sandbox_uri2);
 
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 
-//@<> clear SRO {VER(>=8.0.0)}
+//@<> clear SRO
 session1.runSql("SET PERSIST super_read_only=0");
 session2.runSql("SET PERSIST super_read_only=0");
-
-//@<> clear SRO {VER(<8.0.0)}
-testutil.changeSandboxConf(__mysql_sandbox_port1, "super_read_only", "0");
-testutil.changeSandboxConf(__mysql_sandbox_port2, "super_read_only", "0");
-
-session1.runSql("SET GLOBAL super_read_only=0");
-session2.runSql("SET GLOBAL super_read_only=0");
 
 //@<> adopt and check if everything is SRO again
 shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"));
 
 c = dba.createCluster("newcluster", {adoptFromGR:1});
-
-//@<> persist settings in 5.7 after adopt {VER(<8.0.0)}
-dba.configureInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port2)});
 
 //@<> restart and check
 testutil.restartSandbox(__mysql_sandbox_port1);

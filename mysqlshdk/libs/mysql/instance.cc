@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,9 +60,6 @@ void Auth_options::set(mysqlshdk::db::Connection_options *copts) const {
     copts->set_password(*password);
   copts->set_ssl_options(ssl_options);
 }
-
-Instance::Instance(const std::shared_ptr<db::ISession> &session)
-    : _session(session) {}
 
 void Instance::register_warnings_callback(const Warnings_callback &callback) {
   m_warnings_callback = callback;
@@ -621,8 +618,8 @@ bool Instance::is_read_only(bool super) const {
 }
 
 utils::Version Instance::get_version() const {
-  if (_version == utils::Version()) _version = _session->get_server_version();
-  return _version;
+  if (!m_version) m_version = m_session->get_server_version();
+  return m_version;
 }
 
 /**
@@ -715,7 +712,7 @@ std::optional<bool> Instance::is_set_persist_supported() const {
 }
 
 std::optional<std::string> Instance::get_persisted_value(
-    const std::string &variable_name) const {
+    std::string_view variable_name) const {
   auto result = queryf(
       "SELECT variable_value "
       "FROM performance_schema.persisted_variables "
@@ -729,8 +726,6 @@ std::optional<std::string> Instance::get_persisted_value(
 }
 
 std::vector<std::string> Instance::get_fence_sysvars() const {
-  std::vector<std::string> result;
-
   // Create the query to get the fence sysvars.
   std::string str_query = "SELECT";
   for (auto it = k_fence_sysvars.cbegin(); it != k_fence_sysvars.cend(); ++it) {
@@ -739,19 +734,22 @@ std::vector<std::string> Instance::get_fence_sysvars() const {
   }
 
   // Execute the query and add all the enabled sysvars to the result list.
-  auto resultset = _session->query(str_query);
+  auto resultset = m_session->query(str_query);
   auto row = resultset->fetch_one();
-  if (row) {
-    for (size_t i = 0; i < k_fence_sysvars.size(); ++i) {
-      if (row->get_int(i) != 0) {
-        result.push_back(std::string{k_fence_sysvars.at(i)});
-      }
-    }
-    return result;
-  } else {
+  if (!row)
     throw std::logic_error(
         "No result return from query for get_fence_sysvars()");
+
+  std::vector<std::string> result;
+
+  result.reserve(k_fence_sysvars.size());
+  for (size_t i = 0; i < k_fence_sysvars.size(); ++i) {
+    if (row->get_int(i) != 0) {
+      result.push_back(std::string{k_fence_sysvars.at(i)});
+    }
   }
+
+  return result;
 }
 
 void Instance::suppress_binary_log(bool flag) {

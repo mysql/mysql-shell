@@ -1,36 +1,32 @@
-
-//@ WL#12049: Unsupported server version {VER(<5.7.24)}
-||Option 'exitStateAction' not supported on target server version: '<<<__version>>>'
-
-//@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
+//@ WL#12049: Create cluster errors using exitStateAction option
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
 ||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
 ||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER)
 ||
 
-//@ WL#12049: Dissolve cluster 1 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 1
 ||
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (READ_ONLY)
 ||
 
-//@ WL#12049: Dissolve cluster 2 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 2
 ||
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (1) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (1)
 ||
 
-//@ WL#12049: Dissolve cluster 3 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 3
 ||
 
-//@ WL#12049: Create cluster specifying a valid value for exitStateAction (0) {VER(>=5.7.24)}
+//@ WL#12049: Create cluster specifying a valid value for exitStateAction (0)
 ||
 
-//@ WL#12049: Dissolve cluster 4 {VER(>=5.7.24)}
+//@ WL#12049: Dissolve cluster 4
 ||
 
 //@ WL#12049: Create cluster {VER(>=8.0.12)}
@@ -91,31 +87,28 @@ group_replication_start_on_boot = ON
 //@ WL#11032: Initialization
 ||
 
-//@ WL#11032: Unsupported server version {VER(<5.7.20)}
-||Option 'memberWeight' not available for target server version.
-
-//@ WL#11032: Create cluster errors using memberWeight option {VER(>=5.7.20)}
+//@ WL#11032: Create cluster errors using memberWeight option
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (25) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (25)
 ||
 
-//@ WL#11032: Dissolve cluster 1 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 1
 ||
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (100) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (100)
 ||
 
-//@ WL#11032: Dissolve cluster 2 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 2
 ||
 
-//@ WL#11032: Create cluster specifying a valid value for memberWeight (-50) {VER(>=5.7.20)}
+//@ WL#11032: Create cluster specifying a valid value for memberWeight (-50)
 ||
 
-//@ WL#11032: Dissolve cluster 3 {VER(>=5.7.20)}
+//@ WL#11032: Dissolve cluster 3
 ||
 
 //@ WL#11032: Create cluster {VER(>=8.0.11)}
@@ -625,154 +618,6 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-                }
-            ]
-        }
-    }
-}
-
-//@<OUT> WL#13208: TS_FR1_3 verify disableClone is false. {VER(>=5.7.24) && VER(<8.0.0)}
-{
-    "clusterName": "test",
-    "defaultReplicaSet": {
-        "globalOptions": [
-            {
-                "option": "groupName",
-                "value": "[[*]]",
-                "variable": "group_replication_group_name"
-            },
-            {
-                "option": "memberSslMode",
-                "value": "REQUIRED",
-                "variable": "group_replication_ssl_mode"
-            },
-            {
-                "option": "transactionSizeLimit",
-                "value": "[[*]]",
-                "variable": "group_replication_transaction_size_limit"
-            },
-            {
-                "option": "disableClone",
-                "value": true
-            },
-            {
-                "option": "replicationAllowedHost", 
-                "value": "%"
-            },
-            {
-                "option": "memberAuthType",
-                "value": "PASSWORD"
-            },
-            {
-                "option": "certIssuer",
-                "value": ""
-?{VER(>=8.0.27)}
-            },
-            {
-                "option": "communicationStack",
-                "value": "MYSQL",
-                "variable": "group_replication_communication_stack"
-?{}
-            }
-        ],
-        "tags": {
-            ".global": [],
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
-        },
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
-                {
-                    "option": "autoRejoinTries",
-                    "value": null,
-                    "variable": "group_replication_autorejoin_tries"
-                },
-                {
-                    "option": "consistency",
-                    "value": null,
-                    "variable": "group_replication_consistency"
-                },
-                {
-                    "option": "exitStateAction",
-                    "value": "READ_ONLY",
-                    "variable": "group_replication_exit_state_action"
-                },
-                {
-                    "option": "expelTimeout",
-                    "value": null,
-                    "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "groupSeeds",
-                    "value": "",
-                    "variable": "group_replication_group_seeds"
-                },
-                {
-                    "option": "ipAllowlist",
-                    "value": null,
-                    "variable": "group_replication_ip_allowlist"
-                },
-?{VER(<8.3.0)}
-                {
-                    "option": "ipAllowlist",
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_whitelist"
-                },
-?{}
-                {
-                    "option": "localAddress",
-                    "value": "[[*]]",
-                    "variable": "group_replication_local_address"
-                },
-                {
-                    "option": "memberWeight",
-                    "value": "50",
-                    "variable": "group_replication_member_weight"
-                },
-                {
-                    "option": "certSubject",
-                    "value": ""
-                },
-                {
-?{VER(>=8.0.23)}
-                    "value": "WRITESET",
-?{}
-?{VER(<8.0.23)}
-                    "value": "COMMIT_ORDER",
-?{}
-                    "variable": "binlog_transaction_dependency_tracking"
-                },
-                {
-?{VER(>=8.0.23)}
-                    "value": "LOGICAL_CLOCK",
-?{}
-?{VER(<8.0.23)}
-                    "value": "DATABASE",
-?{}
-                    "variable": "<<<__replica_keyword>>>_parallel_type"
-                },
-                {
-?{VER(>=8.0.23)}
-                    "value": "4",
-?{}
-?{VER(<8.0.23)}
-                    "value": "0",
-?{}
-                    "variable": "<<<__replica_keyword>>>_parallel_workers"
-                },
-                {
-?{VER(>=8.0.23)}
-                    "value": "ON",
-?{}
-?{VER(<8.0.23)}
-                    "value": "OFF",
-?{}
-                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
-?{VER(<8.3.0)}
-                },
-                {
-                    "value": "XXHASH64",
-                    "variable": "transaction_write_set_extraction"
-?{}
                 }
             ]
         }

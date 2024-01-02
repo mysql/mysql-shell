@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,22 +263,10 @@ std::vector<std::string> split_string(std::string_view input,
                                       bool compress) {
   std::vector<std::string> ret_val;
 
-  size_t index = 0, new_find = 0;
-
-  while (new_find != std::string_view::npos) {
-    new_find = input.find(separator, index);
-
-    if (new_find != std::string_view::npos) {
-      // When compress is enabled, consecutive separators
-      // do not generate new elements
-      if (new_find > index || !compress || new_find == 0)
-        ret_val.emplace_back(input.substr(index, new_find - index));
-
-      index = new_find + separator.length();
-    } else {
-      ret_val.emplace_back(input.substr(index));
-    }
-  }
+  split_string(input, separator, compress, [&ret_val](auto token) {
+    ret_val.push_back(std::string{token});
+    return true;
+  });
 
   return ret_val;
 }

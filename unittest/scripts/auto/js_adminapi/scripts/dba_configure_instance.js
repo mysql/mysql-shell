@@ -174,11 +174,11 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ create cluster admin
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
 shell.connect({scheme:'mysql', user:'root', password: 'root', host:'localhost', port:__mysql_sandbox_port1});
 
-shell.options.useWizards=1;
 dba.configureInstance("root:root@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca", clusterAdminPassword: "ca", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-shell.options.useWizards=0;
 
 //@<OUT> check global privileges of cluster admin
 session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = \"'ca'@'%'\" ORDER BY PRIVILEGE_TYPE");
@@ -190,9 +190,7 @@ session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA FROM INFORMATI
 session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES WHERE GRANTEE = \"'ca'@'%'\" ORDER BY TABLE_SCHEMA, TABLE_NAME, PRIVILEGE_TYPE");
 
 //@ cluster admin should be able to create another cluster admin
-shell.options.useWizards=1;
 dba.configureInstance("ca:ca@localhost:" + __mysql_sandbox_port1, {clusterAdmin: "ca2", clusterAdminPassword: "ca2", mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
-shell.options.useWizards=0;
 
 // Smart deployment cleanup
 session.close();
@@ -201,6 +199,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ Deploy instances (with invalid server_id).
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"server_id": "0", "report_host": hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
 //@ Deploy instances (with invalid server_id in 8.0). {VER(>=8.0.3)}
@@ -208,6 +207,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname})
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "server_id");
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port2);
+
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 
 //@<OUT> checkInstanceConfiguration with server_id error.

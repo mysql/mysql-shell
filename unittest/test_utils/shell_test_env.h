@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -135,8 +136,11 @@ class Shell_test_env : public ::testing::Test {
   void teardown_recorder();
 
   static void setup_env();
+  static mysqlshdk::utils::Version get_target_server_version() {
+    return _target_server_version;
+  }
 
-  std::string query_replace_hook(const std::string &sql);
+  std::string query_replace_hook(std::string_view sql);
   std::unique_ptr<mysqlshdk::db::IRow> set_replay_row_hook(
       const mysqlshdk::db::Connection_options &target, const std::string &sql,
       std::unique_ptr<mysqlshdk::db::IRow> source);
@@ -144,6 +148,8 @@ class Shell_test_env : public ::testing::Test {
   virtual void debug_print(const std::string &s) {
     fprintf(stderr, "%s\n", s.c_str());
   }
+
+  static bool check_min_version_skip_test(bool skip_test = true);
 
  protected:
   static std::string _host;  //!< localhost
@@ -195,7 +201,7 @@ class Shell_test_env : public ::testing::Test {
 
   std::map<std::string, std::string>
       _output_tokens;  //!< Tokens for string resolution
-  std::string resolve_string(const std::string &source);
+  std::string resolve_string(std::string source);
 
   void SetUp() override;
   void TearDown() override;

@@ -187,7 +187,7 @@ check_open_sessions(session2, expected_pids2);
 
 EXPECT_NO_THROWS(function(){ cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'}); });
 
-//@<> setPrimaryInstance {VER(>=8.0.0)}
+//@<> setPrimaryInstance
 CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(get_uri(__mysql_sandbox_port2))}' does not belong to the Cluster: 'mycluster'.`, cluster.setPrimaryInstance, get_uri(__mysql_sandbox_port2));
 
 EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port2)); });
@@ -248,7 +248,7 @@ check_open_sessions(session2, expected_pids2);
 
 custom_weigth=50;
 
-//@<> setInstanceOption {VER(>=8.0.0)}
+//@<> setInstanceOption
 custom_weigth=20;
 
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
@@ -264,13 +264,13 @@ cluster.options();
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-//@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
+//@<> switchToMultiPrimaryMode
 EXPECT_NO_THROWS(function(){ cluster.switchToMultiPrimaryMode(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
-//@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
+//@<> switchToSinglePrimaryMode
 EXPECT_NO_THROWS(function(){ cluster.switchToSinglePrimaryMode(); });
 
 check_open_sessions(session1, expected_pids1);

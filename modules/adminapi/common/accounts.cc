@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,16 +115,13 @@ struct Privilege_versions {
 // Global privs needed for managing cluster instances
 // BUG#29743910: clusterAdmin needs SELECT on *.* for tables compliance check.
 // BUG#30339460: SYSTEM_VARIABLES_ADMIN and PERSIST_RO_VARIABLES_ADMIN
-//               privileges needed to change Global system variables for 8.0
-//               servers (not for 5.7).
+//               privileges needed to change Global system variables.
 const std::vector<Privilege_versions> k_admin_global_privileges{
     {"RELOAD", Version(), Version()},
     {"SHUTDOWN", Version(), Version()},
     {"PROCESS", Version(), Version()},
     {"FILE", Version(), Version()},
     {"SELECT", Version(), Version()},
-    {"SUPER", Version(5, 7, 0),
-     Version(5, 7, 9999)},  // SUPER is exclusive of 5.7
     {"REPLICATION SLAVE", Version(), Version()},
     {"REPLICATION CLIENT", Version(), Version()},
     {"CREATE USER", Version(), Version()},

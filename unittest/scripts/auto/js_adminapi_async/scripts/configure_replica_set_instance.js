@@ -14,15 +14,7 @@ EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri3)},
     `Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port3)}'`);
 
-//@<> configure raw 5.7 server (should fail) {VER(<8.0.0)}
-EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri1)},
-    "Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
-
-//@<> configure 5.7 server (should fail) {VER(<8.0.0)}
-EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2)},
-    "Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
-
-//@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(>=8.0.0) && VER(<8.0.23)}
+//@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(<8.0.23)}
 EXPECT_THROWS(function(){
     dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 5});
 }, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");

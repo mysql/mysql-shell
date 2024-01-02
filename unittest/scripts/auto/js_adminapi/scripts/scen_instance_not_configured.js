@@ -273,7 +273,7 @@ function prepare_instance(sandbox, server_flags) {
   deployed = true;
 }
 
-//@ Initialization
+//@<> Initialization
 // Deploy test cluster with seed instance only
 cluster = prepare_cluster_seed(1, SCEN_ROOT_FROM_ANY);
 
@@ -281,7 +281,7 @@ cluster = prepare_cluster_seed(1, SCEN_ROOT_FROM_ANY);
 shell.options["useWizards"] = true;
 
 //------------------------------------------------------------------------------------------
-//@ Prepare raw, nothing configured, no schema issues
+//@<> Prepare raw, nothing configured, no schema issues
 prepare_instance(2, SCEN_RAW|SCEN_ROOT_FROM_ANY);
 
 shell.connect(__hostname_uri2);
@@ -375,7 +375,7 @@ shell.options["useWizards"] = true;
 session.close();
 
 //------------------------------------------------------------------------------------------
-//@ Prepare raw, nothing configured, with schema issues
+//@<> Prepare raw, nothing configured, with schema issues
 prepare_instance(2, SCEN_RAW|SCEN_ROOT_FROM_ANY|SCEN_BAD_SCHEMA);
 
 shell.connect(__hostname_uri2);
@@ -432,7 +432,7 @@ EXPECT_END();
 session.close();
 
 //------------------------------------------------------------------------------------------
-//@ Prepare raw, config OK but schema issues
+//@<> Prepare raw, config OK but schema issues
 //prepare_instance(2, SCEN_ROOT_FROM_ANY|SCEN_BAD_SCHEMA);
 
 
@@ -442,7 +442,7 @@ session.close();
 // TODO - more test scenarios: remote instance with 5.7 (no access to config file), user without privs to run the checks, hostname that resolves to a loopback
 
 //------------------------------------------------------------------------------------------
-//@ Cleanup
+//@<> Cleanup
 cluster.disconnect();
 
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -215,14 +215,6 @@ CHECK_DISSOLVED_CLUSTER(session, session2);
 var session3 = mysql.getSession(__sandbox_uri3);
 CHECK_DISSOLVED_CLUSTER(session, session3);
 
-//@<> Disable group_replication_enforce_update_everywhere_checks for 5.7 {VER(<8.0.0)}
-// NOTE: Disable of enforce_update_everywhere_checks must be done manually for
-//       5.7 servers in order to reuse them (in single-primary clusters).
-//       since they don't support SET PERSIST.
-session1.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
-session2.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
-session3.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
-
 //@<> Create single-primary cluster 2
 shell.connect(__sandbox_uri1);
 
@@ -326,13 +318,6 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 //@<> Success dissolving multi-primary cluster 2
 // WL11889 FR6_01: force: true to dissovle cluster with unreachable instances.
 EXPECT_NO_THROWS(function() { multi2.dissolve({force: true}); });
-
-//@<> Disable enforce_update_everywhere_checks for 5.7 {VER(<8.0.0)}
-// NOTE: Disable of enforce_update_everywhere_checks must be done manually for
-//       5.7 servers in order to reuse them (in single-primary clusters).
-//       since they don't support SET PERSIST.
-session1.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
-session2.runSql("SET GLOBAL group_replication_enforce_update_everywhere_checks = 'OFF'");
 
 //@<> Dissolve post action on unreachable instance (ensure GR is not started)
 // NOTE: This is not enough for server version >= 8.0.11 because persisted

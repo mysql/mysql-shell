@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,17 +23,14 @@
 
 #include "modules/adminapi/common/preconditions.h"
 
-#include <mysqld_error.h>
 #include <map>
 
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/sql.h"
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/libs/db/utils_error.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "modules/adminapi/common/metadata_storage.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -208,13 +205,13 @@ const mysqlshdk::utils::Version
 
 // The AdminAPI minimum supported MySQL Server version
 const mysqlshdk::utils::Version
-    Precondition_checker::k_min_adminapi_server_version(5, 7, 0);
+    Precondition_checker::k_min_adminapi_server_version(8, 0, 0);
 
-// The AdminAPI deprecated version
+// The AdminAPI deprecated version (currently disabled)
 const mysqlshdk::utils::Version
-    Precondition_checker::k_deprecated_adminapi_server_version(5, 7, 9999);
+    Precondition_checker::k_deprecated_adminapi_server_version{};
 
-const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version(5, 7);
+const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version(8, 0);
 const mysqlshdk::utils::Version Precondition_checker::k_min_ar_version(8, 0);
 const mysqlshdk::utils::Version Precondition_checker::k_min_cs_version(8, 0,
                                                                        27);
@@ -803,8 +800,9 @@ void Precondition_checker::check_session() const {
   }
 
   // Print a warning for deprecated version
-  if (server_version <=
-      Precondition_checker::k_deprecated_adminapi_server_version) {
+  if (Precondition_checker::k_deprecated_adminapi_server_version &&
+      (server_version <=
+       Precondition_checker::k_deprecated_adminapi_server_version)) {
     mysqlsh::current_console()->print_warning(
         "Support for AdminAPI operations in MySQL version " +
         Precondition_checker::k_deprecated_adminapi_server_version.get_short() +

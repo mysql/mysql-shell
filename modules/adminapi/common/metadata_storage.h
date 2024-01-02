@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -686,10 +686,9 @@ class MetadataStorage {
                                const char *operation, uint32_t *out_aclvid,
                                uint32_t *last_aclvid);
 
-  void set_table_tag(const std::string &tablename,
-                     const std::string &uuid_column_name,
-                     const std::string &uuid, const std::string &tagname,
-                     const shcore::Value &value);
+  void set_table_tag(std::string_view tablename,
+                     std::string_view uuid_column_name, std::string_view uuid,
+                     std::string_view tagname, const shcore::Value &value);
 
   bool cluster_sets_supported() const;
 

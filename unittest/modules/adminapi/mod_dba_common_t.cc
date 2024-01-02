@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,6 +100,8 @@ class Admin_api_common_test : public tests::Admin_api_test {
 class Admin_api_cmdline_test : public tests::Command_line_test {};
 
 TEST_F(Admin_api_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   auto instance = create_session(_mysql_sandbox_ports[0]);
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
@@ -256,6 +258,8 @@ TEST_F(Admin_api_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
 
 TEST_F(Admin_api_common_test,
        resolve_cluster_ssl_mode_on_instance_without_ssl) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   disable_ssl_on_instance(_mysql_sandbox_ports[0], "unsecure");
   mysqlsh::dba::Cluster_ssl_mode member_ssl_mode;
@@ -300,6 +304,8 @@ TEST_F(Admin_api_common_test,
 }
 
 TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
 
@@ -390,6 +396,8 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 }
 
 TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());
 
@@ -462,10 +470,12 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
 }
 
 TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   using mysqlsh::dba::check_admin_account_access_restrictions;
   using mysqlshdk::db::Type;
 
-  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
+  auto mock_session = std::make_shared<Mock_session>();
   mysqlshdk::mysql::Instance instance{mock_session};
 
   // TEST: More than one account available for the user:
@@ -616,9 +626,6 @@ TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
 
         options.user = "admin";
         options.host = "%";
-        // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles
-        // data.
-        options.version = Version(5, 7, 28);
 
         options.grants = {
             "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, "
@@ -626,6 +633,9 @@ TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
             "DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, "
             "REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, "
             "CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, "
+            "CLONE_ADMIN, CONNECTION_ADMIN, GROUP_REPLICATION_ADMIN, "
+            "PERSIST_RO_VARIABLES_ADMIN, REPLICATION_APPLIER, "
+            "REPLICATION_SLAVE_ADMIN, ROLE_ADMIN, SYSTEM_VARIABLES_ADMIN, "
             "CREATE TABLESPACE ON *.* TO 'admin'@'%' WITH GRANT OPTION",
         };
 
@@ -664,10 +674,14 @@ TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
 class Admin_api_common_cluster_functions : public Admin_api_common_test {
  public:
   static void SetUpTestCase() {
+    if (!Shell_test_env::check_min_version_skip_test(false)) return;
+
     SetUpSampleCluster("Admin_api_common_cluster_functions/SetUpTestCase");
   }
 
   static void TearDownTestCase() {
+    if (!Shell_test_env::check_min_version_skip_test(false)) return;
+
     TearDownSampleCluster(
         "Admin_api_common_cluster_functions/TearDownTestCase");
   }
@@ -677,6 +691,8 @@ class Admin_api_common_cluster_functions : public Admin_api_common_test {
 // P_S info is the same get_newly_discovered_instances()
 // result return an empty list
 TEST_F(Admin_api_common_cluster_functions, get_newly_discovered_instances) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
@@ -698,6 +714,8 @@ TEST_F(Admin_api_common_cluster_functions, get_newly_discovered_instances) {
 // P_S info is the same get_unavailable_instances()
 // should return an empty list
 TEST_F(Admin_api_common_cluster_functions, get_unavailable_instances) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
 
   std::shared_ptr<mysqlsh::dba::MetadataStorage> metadata;
@@ -716,6 +734,8 @@ TEST_F(Admin_api_common_cluster_functions, get_unavailable_instances) {
 }
 
 TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_01) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   // There are missing instances and the instance we are checking belongs to
   // the metadata list but does not belong to the GR list.
 
@@ -763,6 +783,8 @@ TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_01) {
 }
 
 TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_02) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   // There are missing instances and the instance we are checking belongs
   // to neither the metadata nor GR lists.
 
@@ -810,6 +832,8 @@ TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_02) {
 }
 
 TEST_F(Admin_api_common_cluster_functions, validate_instance_rejoinable_03) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   // There are no missing instances and the instance we are checking belongs
   // to both the metadata and GR lists.
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
@@ -907,9 +931,6 @@ TEST(mod_dba_common, validate_ipallowlist_option) {
 
   Group_replication_options options;
   // NOTE: hostnames_supported = true if version >= 8.0.4, otherwise false.
-  auto ver_8014 = mysqlshdk::utils::Version(8, 0, 14);
-  auto ver_804 = mysqlshdk::utils::Version(8, 0, 4);
-  auto ver_800 = mysqlshdk::utils::Version(8, 0, 0);
   int canonical_port = 3306;
 
   // Error if the ipAllowlist is empty.
@@ -919,8 +940,9 @@ TEST(mod_dba_common, validate_ipallowlist_option) {
     SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Invalid value for ipAllowlist: string value cannot be empty.",
-                 e.what());
+    EXPECT_STREQ(
+        "Invalid value for 'ipAllowlist': string value cannot be empty.",
+        e.what());
   }
 
   // Error if the ipAllowlist string is empty (only whitespace).
@@ -930,8 +952,9 @@ TEST(mod_dba_common, validate_ipallowlist_option) {
     SCOPED_TRACE("Unexpected success calling validate_ip_allowlist_option");
     ADD_FAILURE();
   } catch (const shcore::Exception &e) {
-    EXPECT_STREQ("Invalid value for ipAllowlist: string value cannot be empty.",
-                 e.what());
+    EXPECT_STREQ(
+        "Invalid value for 'ipAllowlist': string value cannot be empty.",
+        e.what());
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
@@ -1146,17 +1169,7 @@ TEST(mod_dba_common, validate_exit_state_action_supported) {
   options.exit_state_action = "1";
   int canonical_port = 3306;
 
-  // Error only if the target server version is >= 5.7.24 if 5.0, or >= 8.0.12
-  // if 8.0.
-
-  EXPECT_THROW_LIKE(
-      options.check_option_values(Version(5, 7, 23), canonical_port),
-      shcore::Exception,
-      "Option 'exitStateAction' not supported on target server "
-      "version:");
-
-  EXPECT_NO_THROW(
-      options.check_option_values(Version(5, 7, 24), canonical_port));
+  // Error only if the target server version is >= 8.0.12 if 8.0.
 
   EXPECT_THROW_LIKE(
       options.check_option_values(Version(8, 0, 11), canonical_port),
@@ -1175,17 +1188,7 @@ TEST(mod_dba_common, validate_member_weight_supported) {
   options.member_weight = 1;
   int canonical_port = 3306;
 
-  // Error only if the target server version is < 5.7.20 if 5.0, or < 8.0.11
-  // if 8.0.
-
-  EXPECT_THROW_LIKE(
-      options.check_option_values(Version(5, 7, 19), canonical_port),
-      shcore::Exception,
-      "Option 'memberWeight' not supported on target server "
-      "version:");
-
-  EXPECT_NO_THROW(
-      options.check_option_values(Version(5, 7, 20), canonical_port));
+  // Error only if the target server version is < 8.0.11 if 8.0.
 
   EXPECT_THROW_LIKE(
       options.check_option_values(Version(8, 0, 10), canonical_port),
@@ -1241,12 +1244,6 @@ TEST(mod_dba_common, validate_auto_rejoin_tries_supported) {
   int canonical_port = 3306;
 
   // Error only if the target server version is < 8.0.16
-
-  EXPECT_THROW_LIKE(
-      options.check_option_values(Version(5, 7, 19), canonical_port),
-      shcore::Exception,
-      "Option 'autoRejoinTries' not supported on target server "
-      "version:");
 
   EXPECT_THROW_LIKE(
       options.check_option_values(Version(8, 0, 15), canonical_port),
@@ -1311,20 +1308,20 @@ TEST(mod_dba_common, is_option_supported) {
       std::runtime_error,
       "Unexpected version found for option support check: '9.0.0'.");
 
-  // testing the result of exit-state action case since it has requirements for
-  // both 5.7 and the 8.0 MySQL versions.
+  // testing the result of exit-state action case since it has requirements
+  // for 8.0 MySQL versions.
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 11), mysqlsh::dba::kExitStateAction,
       mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_TRUE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 12), mysqlsh::dba::kExitStateAction,
       mysqlsh::dba::k_global_cluster_supported_options));
-  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
-      Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_cluster_supported_options));
-  EXPECT_TRUE(mysqlsh::dba::is_option_supported(
-      Version(5, 7, 24), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_cluster_supported_options));
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::is_option_supported(
+          Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
+          mysqlsh::dba::k_global_cluster_supported_options),
+      std::runtime_error,
+      "Unexpected version found for option support check: '5.7.23'.");
 
   // testing the result of autoRejoinRetries which is only supported on 8.0.16
   // onwards (BUG#29246657)
@@ -1334,9 +1331,12 @@ TEST(mod_dba_common, is_option_supported) {
   EXPECT_TRUE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 16), mysqlsh::dba::kAutoRejoinTries,
       mysqlsh::dba::k_global_cluster_supported_options));
-  EXPECT_FALSE(mysqlsh::dba::is_option_supported(
-      Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries,
-      mysqlsh::dba::k_global_cluster_supported_options));
+  EXPECT_THROW_LIKE(
+      mysqlsh::dba::is_option_supported(
+          Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
+          mysqlsh::dba::k_global_cluster_supported_options),
+      std::runtime_error,
+      "Unexpected version found for option support check: '5.7.23'.");
 }
 
 TEST(mod_dba_common, validate_local_address_option) {
@@ -1424,7 +1424,7 @@ TEST(mod_dba_common, validate_local_address_option_mysql_comm_stack) {
 }
 
 TEST(mod_dba_common, validate_label) {
-  std::string t{};
+  std::string t;
 
   EXPECT_NO_THROW(
       // Valid label, begins with valid synbols (alpha)
@@ -1471,7 +1471,7 @@ TEST(mod_dba_common, validate_label) {
 }
 
 TEST(mod_dba_common, is_valid_identifier) {
-  std::string t{};
+  std::string t;
 
   EXPECT_NO_THROW(
       // Valid identifier, begins with valid characters (alpha)
@@ -1514,6 +1514,8 @@ TEST(mod_dba_common, is_valid_identifier) {
 }
 
 TEST_F(Admin_api_common_test, resolve_gr_local_address) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   std::optional<std::string> local_address;
   std::string raw_report_host = "127.0.0.1";
   std::optional<std::string> communication_stack;
@@ -1699,6 +1701,8 @@ TEST_F(Admin_api_common_test, resolve_gr_local_address) {
 }
 
 TEST_F(Admin_api_common_test, set_recovery_progress) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   mysqlsh::dba::cluster::Add_instance_options options;
 
   options.set_recovery_progress(0);
@@ -1715,6 +1719,8 @@ TEST_F(Admin_api_common_test, set_recovery_progress) {
 }
 
 TEST_F(Admin_api_common_test, ip_allowlist) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   using V = const mysqlshdk::utils::Version;
   {
     std::string_view ip_allowlist{};
@@ -1799,6 +1805,8 @@ TEST_F(Admin_api_common_test, ip_allowlist) {
 // This test used to be for ensuring socket connections are rejected for
 // InnoDB cluster, but they are now allowed.
 TEST_F(Admin_api_cmdline_test, bug26970629) {
+  if (!Shell_test_env::check_min_version_skip_test()) return;
+
   const std::string variable = "socket";
   const std::string host =
       "--host="

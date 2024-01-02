@@ -81,12 +81,12 @@ var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 session1.runSql("set global super_read_only=0");
 session1.runSql("set sql_log_bin=0");
-session1.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
+session1.runSql("set persist group_replication_start_on_boot=0");
 session1.runSql("uninstall plugin group_replication");
 
 session2.runSql("set global super_read_only=0");
 session2.runSql("set sql_log_bin=0");
-session2.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
+session2.runSql("set persist group_replication_start_on_boot=0");
 session2.runSql("uninstall plugin group_replication");
 
 disable_auto_rejoin(__mysql_sandbox_port1);
@@ -99,7 +99,7 @@ session.runSql("SET GLOBAL offline_mode=1");
 
 cluster = dba.rebootClusterFromCompleteOutage("dev");
 
-session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
+session2.runSql("set persist group_replication_start_on_boot=1");
 
 // ensure configs after reboot are the same as before
 EXPECT_EQ(vars1, session1.runSql("show variables like 'group_replication%'").fetchAll());
@@ -116,13 +116,41 @@ shell.connect(__sandbox_uri2);
 cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
+//@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
+
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
+The instance '${hostname}:${__mysql_sandbox_port1}' belongs to an InnoDB cluster.
+Persisting the cluster settings...
+The instance '${hostname}:${__mysql_sandbox_port1}' was configured for use in an InnoDB cluster.
+
+The instance cluster settings were successfully persisted.`);
+
+WIPE_OUTPUT();
+
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
+The instance '${hostname}:${__mysql_sandbox_port2}' belongs to an InnoDB cluster.
+Persisting the cluster settings...
+The instance '${hostname}:${__mysql_sandbox_port2}' was configured for use in an InnoDB cluster.
+
+The instance cluster settings were successfully persisted.`);
+
+WIPE_OUTPUT();
+
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
+The instance '${hostname}:${__mysql_sandbox_port3}' belongs to an InnoDB cluster.
+Persisting the cluster settings...
+The instance '${hostname}:${__mysql_sandbox_port3}' was configured for use in an InnoDB cluster.
+
+The instance cluster settings were successfully persisted.`);
 
 //@<> check group_seeds correctly persisted {VER(<8.0.11)}
 EXPECT_EQ(`${hostname}:${__mysql_sandbox_gr_port2},${hostname}:${__mysql_sandbox_gr_port3}`, testutil.getSandboxConf(__mysql_sandbox_port1, "loose_group_replication_group_seeds"));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
@@ -46,13 +47,12 @@ std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
 std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
     on_recorder_close_hook;
 
-std::function<std::string(const std::string &sql)>
-    on_recorder_query_replace_hook;
+std::function<std::string(std::string_view sql)> on_recorder_query_replace_hook;
 
 std::function<std::string(const std::string &value)>
     on_recorder_result_value_replace_hook;
 
-Recorder_mysql::Recorder_mysql() {}
+Recorder_mysql::Recorder_mysql() = default;
 
 void Recorder_mysql::do_connect(const mysqlshdk::db::Connection_options &data) {
   _trace = Trace_writer::create(new_recording_path("mysql_trace"));
@@ -87,8 +87,7 @@ std::shared_ptr<IResult> Recorder_mysql::querys(
   // assuming that error log contents change when a query is executed
   // if (set_log_save_point) set_log_save_point(_port);
   if (on_recorder_query_replace_hook) {
-    _trace->serialize_query(
-        on_recorder_query_replace_hook(std::string(sql, length)));
+    _trace->serialize_query(on_recorder_query_replace_hook({sql, length}));
   } else {
     _trace->serialize_query(std::string(sql, length));
   }
@@ -111,7 +110,7 @@ std::shared_ptr<IResult> Recorder_mysql::query_udf(std::string_view sql, bool) {
   // assuming that error log contents change when a query is executed
   // if (set_log_save_point) set_log_save_point(_port);
   if (on_recorder_query_replace_hook) {
-    _trace->serialize_query(on_recorder_query_replace_hook(std::string(sql)));
+    _trace->serialize_query(on_recorder_query_replace_hook(sql));
   } else {
     _trace->serialize_query(std::string(sql));
   }
@@ -191,10 +190,10 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(
     // assuming that error log contents change when a query is executed
     // if (set_log_save_point) set_log_save_point(_port);
 
-    const auto query = std::string(sql, length);
-    _trace->serialize_query(on_recorder_query_replace_hook
-                                ? on_recorder_query_replace_hook(query)
-                                : query);
+    _trace->serialize_query(
+        on_recorder_query_replace_hook
+            ? on_recorder_query_replace_hook(std::string_view{sql, length})
+            : std::string{sql, length});
     // Always buffer to make row serialization easier
     std::shared_ptr<IResult> result(
         super::querys(sql, length, true, query_attributes));

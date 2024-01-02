@@ -61,10 +61,10 @@ idc.test_cluster_status(cluster, [primary_port, secondary_port], ["PRIMARY", "SE
 //@<> Set Instance Option
 idc.test_cluster_set_instance_option(cluster, secondary_port, "memberWeight", 20)
 
-//@<> switchToMultiPrimaryMode {VER(>=8.0.0)}
+//@<> switchToMultiPrimaryMode
 idc.test_cluster_switch_to_multi_primary_mode(cluster);
 
-//@<> switchToSinglePrimaryMode {VER(>=8.0.0)}
+//@<> switchToSinglePrimaryMode
 idc.test_cluster_switch_to_single_primary_mode(cluster);
 
 //@<> rescan

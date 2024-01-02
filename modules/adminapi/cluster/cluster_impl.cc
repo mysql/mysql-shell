@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,9 +26,7 @@
 #include <cstdint>
 #include <exception>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -59,7 +57,6 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"

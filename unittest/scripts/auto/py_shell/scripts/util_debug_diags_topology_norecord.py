@@ -4,6 +4,8 @@ import os
 import re
 import shutil
 
+#@ {VER(>=8.0.0)}
+
 #@<> INCLUDE diags_common.inc
 
 #@<> Init

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -418,24 +418,25 @@ void create_cluster_admin_user(mysqlshdk::mysql::IInstance *instance,
  * - Create the clusterAdmin account.
  */
 void Configure_instance::create_admin_user() {
-  if (m_create_cluster_admin) {
-    try {
-      assert(!m_current_user.empty());
+  if (!m_create_cluster_admin) return;
 
-      log_info("Creating new cluster admin account %s",
-               m_options.cluster_admin.c_str());
-      create_cluster_admin_user(
-          m_target_instance.get(), m_purpose, m_options.cluster_admin,
-          m_options.cluster_admin_password.value_or(""),
-          m_options.cluster_admin_cert_issuer.value_or(""),
-          m_options.cluster_admin_cert_subject.value_or(""),
-          m_options.cluster_admin_password_expiration);
-    } catch (const shcore::Exception &err) {
-      std::string error_msg = "Error creating clusterAdmin account: '" +
-                              m_options.cluster_admin +
-                              "', with error: " + err.what();
-      throw shcore::Exception::runtime_error(error_msg);
-    }
+  try {
+    assert(!m_current_user.empty());
+
+    log_info("Creating new cluster admin account %s",
+             m_options.cluster_admin.c_str());
+
+    create_cluster_admin_user(m_target_instance.get(), m_purpose,
+                              m_options.cluster_admin,
+                              m_options.cluster_admin_password.value_or(""),
+                              m_options.cluster_admin_cert_issuer.value_or(""),
+                              m_options.cluster_admin_cert_subject.value_or(""),
+                              m_options.cluster_admin_password_expiration);
+
+  } catch (const shcore::Exception &err) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Error creating clusterAdmin account: '%s', with error: %s",
+        m_options.cluster_admin.c_str(), err.what()));
   }
 }
 
@@ -552,18 +553,20 @@ void Configure_instance::ensure_configuration_change_possible(
 void Configure_instance::validate_config_path() {
   // If the configuration file was provided but doesn't exist, then issue an
   // error (BUG#27702439).
-  if (!m_options.mycnf_path.empty() && !shcore::is_file(m_options.mycnf_path)) {
-    auto console = mysqlsh::current_console();
-    console->print_error(
-        "The specified MySQL option file does not exist. A valid path is "
-        "required for the mycnfPath option.");
-    console->print_info(
-        "Please provide a valid path for the mycnfPath option or leave it "
-        "empty if you which to skip the verification of the MySQL option "
-        "file.");
-    throw std::runtime_error("File '" + m_options.mycnf_path +
-                             "' does not exist.");
-  }
+  if (m_options.mycnf_path.empty() || shcore::is_file(m_options.mycnf_path))
+    return;
+
+  auto console = mysqlsh::current_console();
+  console->print_error(
+      "The specified MySQL option file does not exist. A valid path is "
+      "required for the mycnfPath option.");
+  console->print_info(
+      "Please provide a valid path for the mycnfPath option or leave it "
+      "empty if you which to skip the verification of the MySQL option "
+      "file.");
+
+  throw std::runtime_error("File '" + m_options.mycnf_path +
+                           "' does not exist.");
 }
 
 void Configure_instance::validate_applier_worker_threads() {

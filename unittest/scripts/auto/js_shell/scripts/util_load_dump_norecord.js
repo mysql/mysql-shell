@@ -1273,7 +1273,7 @@ check_worker_distribution(16, ntables, __tmp_dir+"/ldtest/dump2/load-progress."+
 testutil.rmfile(__tmp_dir+"/ldtest/dump2/load-progress*");
 wipe_instance(session);
 
-//@<> Load dump with GR running
+//@<> Load dump with GR running {VER(>=8.0.0)}
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -1309,6 +1309,8 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
 //@<> Try to load via xproto (should auto-switch to classic and work)
+
+testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 
 shell.connect("mysqlx://root:root@127.0.0.1:"+__mysql_sandbox_x_port1);
 

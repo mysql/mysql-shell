@@ -1,4 +1,4 @@
-//@ {DEF(MYSQLD_SECONDARY_SERVER_A) && VER(>=8.3.0) && testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, "<", "8.3.0")}
+//@ {DEF(MYSQLD_SECONDARY_SERVER_A) && VER(>=8.3.0) && testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, "between", "[8.0.0,8.3.0)")}
 
 // Deploy sandboxes with secondary version (< 8.3)
 testutil.deploySandbox(__mysql_sandbox_port1, "root", { report_host: localhost }, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -225,7 +225,7 @@ class IInstance {
       bool allow_skip_grants_user = false) const = 0;
   virtual std::optional<bool> is_set_persist_supported() const = 0;
   virtual std::optional<std::string> get_persisted_value(
-      const std::string &variable_name) const = 0;
+      std::string_view variable_name) const = 0;
 
   virtual std::vector<std::string> get_fence_sysvars() const = 0;
 
@@ -371,8 +371,9 @@ class Set_variable final {
  */
 class Instance : public IInstance {
  public:
-  Instance() = default;
-  explicit Instance(const std::shared_ptr<db::ISession> &session);
+  explicit Instance() = default;
+  explicit Instance(std::shared_ptr<db::ISession> session) noexcept
+      : m_session{std::move(session)} {}
 
   void register_warnings_callback(const Warnings_callback &callback) override;
 
@@ -423,10 +424,10 @@ class Instance : public IInstance {
   bool is_ssl_enabled() const override;
 
   std::shared_ptr<db::ISession> get_session() const override {
-    return _session;
+    return m_session;
   }
 
-  void close_session() const override { _session->close(); }
+  void close_session() const override { m_session->close(); }
 
   std::optional<std::string> get_system_variable(
       std::string_view name,
@@ -444,7 +445,7 @@ class Instance : public IInstance {
   void drop_user(const std::string &user, const std::string &host,
                  bool if_exists = false) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {
-    auto co = _session->get_connection_options();
+    auto co = m_session->get_connection_options();
 
     // we don't want to be using cached value of connect-timeout option
     co.clear_connect_timeout();
@@ -493,7 +494,7 @@ class Instance : public IInstance {
    *         variable, or null if no persisted value was found.
    */
   std::optional<std::string> get_persisted_value(
-      const std::string &variable_name) const override;
+      std::string_view variable_name) const override;
 
   std::vector<std::string> get_fence_sysvars() const override;
 
@@ -525,8 +526,8 @@ class Instance : public IInstance {
                                mysqlshdk::db::IResult &result) const;
 
  private:
-  std::shared_ptr<db::ISession> _session;
-  mutable mysqlshdk::utils::Version _version;
+  std::shared_ptr<db::ISession> m_session;
+  mutable mysqlshdk::utils::Version m_version;
   mutable std::string m_version_compile_os;
   mutable std::string m_version_compile_machine;
   mutable std::string m_uuid;

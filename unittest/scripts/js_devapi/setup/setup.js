@@ -176,8 +176,8 @@ function EXPECT_EQ(expected, actual, note) {
 
 function EXPECT_STDOUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
-  var err = testutil.fetchCapturedStderr(false);
   if (out.indexOf(text) < 0) {
+    var err = testutil.fetchCapturedStderr(false);
     var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
     testutil.fail(context);
   }
@@ -395,23 +395,23 @@ function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {
 
 function EXPECT_STDOUT_CONTAINS_MULTILINE(t) {
   const out = __split_trim_join(testutil.fetchCapturedStdout(false));
-  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
   const text = __split_trim_join(t);
   const out_result = __check_multiline_expect(text.array, out.array);
 
   if (!out_result.matches) {
+    const err = __split_trim_join(testutil.fetchCapturedStderr(false));
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + out_result.diff;
     testutil.fail(context);
   }
 }
 
 function EXPECT_STDERR_CONTAINS_MULTILINE(t) {
-  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
   const err = __split_trim_join(testutil.fetchCapturedStderr(false));
   const text = __split_trim_join(t);
   const err_result = __check_multiline_expect(text.array, err.array);
 
   if (!err_result.matches) {
+    const out = __split_trim_join(testutil.fetchCapturedStdout(false));
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
     testutil.fail(context);
   }

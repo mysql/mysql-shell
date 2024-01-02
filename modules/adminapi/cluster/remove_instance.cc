@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -386,14 +386,7 @@ void Remove_instance::prepare() {
 
       // If the error isn't a client side error, then it means we are able to
       // connect to it, so we just bubble it up to the user (unless force:1).
-      // NOTE: we also have to check against the CR_SERVER_LOST code because of
-      // a difference in protocol between 5.7 and 8.0. In 5.7, the server
-      // doesn't send "protocol-version=11" (while in 8.0 it does), causing
-      // libmysqlclient to interpret the wrong protocol, returning
-      // CR_SERVER_LOST.
-      if (((err.code() == CR_SERVER_LOST) ||
-           !mysqlshdk::db::is_mysql_client_error(err.code())) &&
-          !force) {
+      if (!force && !mysqlshdk::db::is_mysql_client_error(err.code())) {
         try {
           throw;
         }

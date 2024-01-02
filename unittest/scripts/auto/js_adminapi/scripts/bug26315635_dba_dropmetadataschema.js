@@ -11,10 +11,12 @@ dba.createCluster("tempCluster", {gtidSetIsComplete: true});
 // stop GR manually
 session.runSql("stop group_replication;")
 
-//@# drop metadata: standalone instance with metadata, force false
-dba.dropMetadataSchema()
+//@<> drop metadata: standalone instance with metadata, force false
+EXPECT_THROWS(function(){
+    dba.dropMetadataSchema();
+}, "No operation executed, use the 'force' option");
 
-//@# drop metadata: standalone instance with metadata, force true
+//@<> drop metadata: standalone instance with metadata, force true
 dba.dropMetadataSchema({force: true})
 
 // create new cluster

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -274,16 +274,16 @@ size_t iterate_users(const IInstance &instance, const std::string &user_filter,
 Privilege_list get_global_grants(const IInstance &instance,
                                  const std::string &user,
                                  const std::string &host) {
-  Privilege_list grants;
-  // TODO(alfredo) in 5.7, grantee may have truncated values if username is
-  // long
   auto res = instance.queryf(
       "SELECT privilege_type FROM information_schema.user_privileges"
       " WHERE grantee=concat(quote(?), '@', quote(?))",
       user, host);
+
+  Privilege_list grants;
   while (const auto row = res->fetch_one()) {
     grants.emplace_back(row->get_string(0));
   }
+
   return grants;
 }
 
@@ -380,19 +380,20 @@ std::vector<std::string> get_all_hostnames_for_user(const IInstance &instance,
  */
 std::string generate_password(size_t password_length) {
   std::random_device rd;
-  static const char *alpha_lower = "abcdefghijklmnopqrstuvwxyz";
-  static const char *alpha_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  static const char *special_chars = "~@#%$^&*()-_=+]}[{|;:.>,</?";
-  static const char *numeric = "1234567890";
+  constexpr std::string_view alpha_lower{"abcdefghijklmnopqrstuvwxyz"};
+  constexpr std::string_view alpha_upper{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
+  constexpr std::string_view special_chars{"~@#%$^&*()-_=+]}[{|;:.>,</?"};
+  constexpr std::string_view numeric{"1234567890"};
 
-  assert(kPASSWORD_LENGTH >= 20);
+  static_assert(kPASSWORD_LENGTH >= 20);
 
   if (password_length < kPASSWORD_LENGTH) password_length = kPASSWORD_LENGTH;
 
-  auto get_random = [&rd](size_t size, const char *source) {
-    std::string data;
+  auto get_random = [&rd](size_t size, std::string_view source) {
+    std::uniform_int_distribution<int> dist_num(0, source.size() - 1);
 
-    std::uniform_int_distribution<int> dist_num(0, strlen(source) - 1);
+    std::string data;
+    data.reserve(size);
 
     for (size_t i = 0; i < size; i++) {
       char random = source[dist_num(rd)];

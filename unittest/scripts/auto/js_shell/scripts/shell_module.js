@@ -15,7 +15,7 @@ if (session) {
 EXPECT_EQ(false, shell.reconnect());
 
 
-//@<> BUG#34362541	Allow duplicating active shell session without re-inputting password
+//@<> BUG#34362541 Allow duplicating active shell session without re-inputting password
 shell.connect(__mysql_uri)
 
 session.runSql("create user if not exists dropme@'%' identified by '12345'")

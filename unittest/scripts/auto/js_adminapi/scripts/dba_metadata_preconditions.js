@@ -86,14 +86,8 @@ function call_and_validate(callback, expect_tag) {
     EXPECT_NO_THROWS(callback);
 
     if (expect_tag.endsWith('WARNING')) {
-        if (__version_num < 80000) {
-            EXPECT_NEXT_OUTPUT('WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell');
-        }
         EXPECT_NEXT_OUTPUT('WARNING: ' + messages[expect_tag]);
     } else if (expect_tag.endsWith('NOTE')) {
-        if (__version_num < 80000) {
-            EXPECT_NEXT_OUTPUT('WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell');
-        }
         EXPECT_NEXT_OUTPUT('NOTE: ' + messages[expect_tag]);
     }
 }

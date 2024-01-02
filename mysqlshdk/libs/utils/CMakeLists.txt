@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,6 @@ set(utils_SOURCE
     syslog_level.cc
     thread_pool.cc
     threads.cc
-    trandom.cc
     utils_buffered_input.cc
     utils_encoding.cc
     utils_file.cc

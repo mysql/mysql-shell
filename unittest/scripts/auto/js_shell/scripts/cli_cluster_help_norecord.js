@@ -9,9 +9,6 @@ callMysqlsh(["--", "cluster", "--help"])
 //@ CLI cluster add-instance --help
 callMysqlsh(["--", "cluster", "add-instance", "--help"])
 
-//@ CLI cluster check-instance-state --help
-callMysqlsh(["--", "cluster", "check-instance-state", "--help"])
-
 //@ CLI cluster describe --help
 callMysqlsh(["--", "cluster", "describe", "--help"])
 

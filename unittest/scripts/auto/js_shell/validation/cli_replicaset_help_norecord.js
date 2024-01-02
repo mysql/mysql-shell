@@ -337,6 +337,9 @@ RETURNS
       Nothing.
 
 OPTIONS
+--password=<str>
+            The password for the InnoDB ReplicaSet administrator account.
+
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
@@ -371,6 +374,9 @@ RETURNS
       Nothing.
 
 OPTIONS
+--password=<str>
+            The password for the MySQL Router account.
+
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.

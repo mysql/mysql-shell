@@ -93,7 +93,7 @@ session.runSql("SET sql_log_bin = 1");
 
 session.close();
 
-//@ Create a user with the root role {VER(>=8.0.0)}
+//@ Create a user with the root role
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET sql_log_bin = 0");
@@ -103,20 +103,20 @@ session.runSql("GRANT SELECT ON `performance_schema`.`replication_group_members`
 session.runSql("SET DEFAULT ROLE 'root'@'%' to 'admin_test'@'%'");
 session.runSql("SET sql_log_bin = 1");
 
-//@ Check instance using user with a root role as parameter {VER(>=8.0.0)}
+//@ Check instance using user with a root role as parameter
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user: 'admin_test', password:'adminpass'});
 
-//@ Connect using admin user {VER(>=8.0.0)}
+//@ Connect using admin user
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'admin_test', password: 'adminpass'});
 
-//@ Check instance using session user with a root role {VER(>=8.0.0)}
+//@ Check instance using session user with a root role
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 dba.checkInstanceConfiguration();
 
-//@ Create role with missing privileges and grant to admin user {VER(>=8.0.0)}
+//@ Create role with missing privileges and grant to admin user
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
@@ -139,20 +139,20 @@ session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status
 session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO 'admin_test'@'%'");
 session.runSql("GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO 'admin_test'@'%'");
 
-//@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0)}
+//@ Check instance using user with admin role as parameter, missing privileges
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user: 'admin_test', password:'adminpass'});
 
-//@ Connect using admin user again {VER(>=8.0.0)}
+//@ Connect using admin user again
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'admin_test', password: 'adminpass'});
 
-//@ Check instance using session user with admin role, missing privileges {VER(>=8.0.0)}
+//@ Check instance using session user with admin role, missing privileges
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 dba.checkInstanceConfiguration();
 
-//@ Drop user with role {VER(>=8.0.0)}
+//@ Drop user with role
 // Regression for BUG#28236922: AdminAPI does not recognize privileges if assigned with a role.
 session.close();
 shell.connect({host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});

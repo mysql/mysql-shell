@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,7 +45,6 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -431,7 +430,7 @@ void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
   auto initial_invalid_configs = out_invalid_vec->size();
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_file_handler)) {
     // On MySQL 8.0.3 the binary log is enabled by default, so there is no need
-    // to add the log_bin option to the config file. However on 5.7 there is.
+    // to add the log_bin option to the config file.
     if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
       Invalid_config change("log_bin", k_no_value);
       std::vector<std::string> forbidden_values{k_value_not_set};

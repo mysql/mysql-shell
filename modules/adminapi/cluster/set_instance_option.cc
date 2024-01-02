@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,18 +22,14 @@
  */
 
 #include "modules/adminapi/cluster/set_instance_option.h"
+
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/errors.h"
-#include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/types.h"
 
 namespace mysqlsh::dba::cluster {
@@ -46,15 +42,12 @@ namespace {
  */
 const std::map<std::string, Option_availability> k_instance_supported_options{
     {kExitStateAction,
-     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
-      mysqlshdk::utils::Version("5.7.24")}},
-    {kMemberWeight,
-     {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
-      mysqlshdk::utils::Version("5.7.20")}},
+     {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12")}},
+    {kMemberWeight, {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11")}},
     {kAutoRejoinTries,
-     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
-    {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}},
-    {kReplicationSources, {"", Precondition_checker::k_min_rr_version, {}}}};
+     {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}},
+    {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24")}},
+    {kReplicationSources, {"", Precondition_checker::k_min_rr_version}}};
 
 constexpr std::array<std::string_view, 2> k_read_replica_supported_options = {
     kLabel, kReplicationSources};
@@ -365,8 +358,8 @@ shcore::Value Set_instance_option::execute() {
         "must be reconfigured using Cluster.<<<rejoinInstance>>>().");
   } else {
     // Update the option value in the target instance:
-    std::string option_gr_variable =
-        k_instance_supported_options.at(m_option).option_variable;
+    const std::string &option_gr_variable =
+        k_instance_supported_options.at(m_option).option;
 
     if (m_value_str.has_value()) {
       m_cfg->set(option_gr_variable, m_value_str);

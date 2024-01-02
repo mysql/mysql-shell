@@ -3,7 +3,7 @@
 //@<> Skip tests in 8.0.4 to not trigger GR plugin deadlock {VER(==8.0.4)}
 testutil.skip("Reboot tests freeze in 8.0.4 because of bug in GR");
 
-//@ Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, 'root', {report_host: hostname, log_error_verbosity:3});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, 'root', {report_host: hostname, log_error_verbosity:3});
@@ -30,23 +30,40 @@ var status = cluster.status();
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
 
-//@ Add instance 2
+//@<> Add instance 2
 cluster.addInstance(__sandbox_uri2);
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ Add instance 3
+//@<> Add instance 3
 cluster.addInstance(__sandbox_uri3);
 
 // Waiting for the third added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
+//@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
+The instance '${hostname}:${__mysql_sandbox_port1}' belongs to an InnoDB cluster.
+Persisting the cluster settings...
+The instance '${hostname}:${__mysql_sandbox_port1}' was configured for use in an InnoDB cluster.
+
+The instance cluster settings were successfully persisted.`)
+
+WIPE_OUTPUT();
+
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
+The instance '${hostname}:${__mysql_sandbox_port2}' belongs to an InnoDB cluster.
+Persisting the cluster settings...
+The instance '${hostname}:${__mysql_sandbox_port2}' was configured for use in an InnoDB cluster.
+
+The instance cluster settings were successfully persisted.`);
 
 //@<> Dba.rebootClusterFromCompleteOutage errors
 // Regression for BUG#27508627: rebootClusterFromCompleteOutage should not point to use forceQuorumUsingPartitionOf
@@ -135,7 +152,7 @@ var status = cluster.status();
 status_instance_3 = status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"];
 EXPECT_EQ(true, (status_instance_3 == "RECOVERING") ||  (status_instance_3 == "ONLINE"));
 
-//@ Add instance 3 back to the cluster {VER(<8.0.11)}
+//@<> Add instance 3 back to the cluster {VER(<8.0.11)}
 // if server version is smaller than 8.0.11 then no GR settings will be persisted
 // on instance 3, such as gr_start_on_boot and gr_group_seeds so it will not
 // automatically rejoin the cluster. We need to manually add it back.
@@ -162,11 +179,13 @@ shell.connect(__sandbox_uri1);
 
 cluster.disconnect();
 
-//@ Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
+//@<> Dba.rebootClusterFromCompleteOutage regression test for BUG#25516390
 // enable super-read-only to make sure it is automatically disabled by rebootCluster
 // also checking that clearReadOnly flag has been deprecated.
 set_sysvar(session, "super_read_only", 1);
 cluster = dba.rebootClusterFromCompleteOutage("dev");
+
+EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
 
 // TODO(alfredo) - reboot should internally wait for sro to be cleared, but it doesn't right now, so we keep checking for up to 3s
 // i = 30;
@@ -179,7 +198,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev");
 EXPECT_EQ(0, get_sysvar(session, "super_read_only"));
 session.close();
 
-//@ Finalization
+//@<> Finalization
 clusterSession.close();
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

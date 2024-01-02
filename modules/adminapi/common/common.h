@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -307,9 +307,8 @@ inline constexpr const int k_group_replication_members_limit = 9;
 // Group Replication configuration option availability regarding MySQL Server
 // version
 struct Option_availability {
-  std::string option_variable;
-  mysqlshdk::utils::Version support_in_80;
-  mysqlshdk::utils::Version support_in_57;
+  std::string option;
+  mysqlshdk::utils::Version support;
 };
 
 /**
@@ -320,20 +319,14 @@ struct Option_availability {
 inline const std::map<std::string, Option_availability>
     k_global_cluster_supported_options{
         {kExitStateAction,
-         {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
-          mysqlshdk::utils::Version("5.7.24")}},
-        {kMemberWeight,
-         {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11"),
-          mysqlshdk::utils::Version("5.7.20")}},
-        {kExpelTimeout,
-         {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13"), {}}},
-        {kConsistency,
-         {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
+         {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12")}},
+        {kMemberWeight, {kGrMemberWeight, mysqlshdk::utils::Version("8.0.11")}},
+        {kExpelTimeout, {kGrExpelTimeout, mysqlshdk::utils::Version("8.0.13")}},
+        {kConsistency, {kGrConsistency, mysqlshdk::utils::Version("8.0.14")}},
         {kAutoRejoinTries,
-         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}},
-        {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}, {}}},
-        {kIpAllowlist,
-         {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24"), {}}}};
+         {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16")}},
+        {kTransactionSizeLimit, {kGrTransactionSizeLimit, {}}},
+        {kIpAllowlist, {kGrIpAllowlist, mysqlshdk::utils::Version("8.0.24")}}};
 
 /**
  * List with the supported build-in tags for setOption and setInstanceOption

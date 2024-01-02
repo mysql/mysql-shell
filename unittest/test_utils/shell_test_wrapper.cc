@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -20,18 +20,16 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "unittest/test_utils/shell_test_wrapper.h"
 
 #include <map>
 #include <memory>
 #include <vector>
 
-#include "mysqlshdk/libs/utils/trandom.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-#include "shellcore/interrupt_handler.h"
 #include "unittest/test_utils/shell_test_env.h"
 #include "unittest/test_utils/test_net_utilities.h"
 
@@ -43,16 +41,6 @@ using TestingMode = mysqlshdk::db::replay::Mode;
 namespace tests {
 
 namespace {
-
-class My_random : public mysqlshdk::utils::Random {
- public:
-  virtual std::string get_time_string() {
-    return "000000000" + std::to_string(++ts);
-  }
-
- private:
-  int ts = 0;
-};
 
 Test_net_utilities test_net_utilities;
 
@@ -325,12 +313,6 @@ std::string Shell_test_wrapper::setup_recorder(const char *sub_test_name) {
     mysqlshdk::db::replay::save_test_case_info(info);
   }
 
-  if (g_test_recording_mode != mysqlshdk::db::replay::Mode::Direct) {
-    // Ensure randomly generated strings are not so random when
-    // recording/replaying
-    mysqlshdk::utils::Random::set(new My_random());
-  }
-
   return tracedir;
 }
 
@@ -399,7 +381,7 @@ void Shell_test_wrapper::reset_replayable_shell(const char *sub_test_name) {
   reset();
 
 #ifdef _WIN32
-  mysqlshdk::db::replay::set_replay_query_hook([](const std::string &sql) {
+  mysqlshdk::db::replay::set_replay_query_hook([](std::string_view sql) {
     return shcore::str_replace(sql, ".dll", ".so");
   });
 #endif

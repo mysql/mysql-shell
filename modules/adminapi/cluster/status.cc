@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -473,63 +473,47 @@ LIMIT
 void Status::collect_basic_local_status(shcore::Dictionary_t dict,
                                         const mysqlsh::dba::Instance &instance,
                                         bool is_primary) {
-  using mysqlshdk::utils::Version;
+  if (m_cluster->is_cluster_set_member()) {
+    // PRIMARY of PC has no relevant replication lag info
+    // PRIMARY of RC shows lag from clusterset_replication channel
+    // SECONDARY members show replication from gr_applier channel
+    std::string_view channel_name;
 
-  auto version = instance.get_version();
-
-  shcore::Dictionary_t applier_node = shcore::make_dict();
-  shcore::Array_t applier_workers = shcore::make_array();
-
-#define TSDIFF(prefix, start, end) \
-  "TIMEDIFF(" prefix "_" end ", " prefix "_" start ")"
-
-  std::string sql;
-
-  if (version >= Version(8, 0, 0)) {
-    if (m_cluster->is_cluster_set_member()) {
-      // PRIMARY of PC has no relevant replication lag info
-      // PRIMARY of RC shows lag from clusterset_replication channel
-      // SECONDARY members show replication from gr_applier channel
-      std::string channel_name;
-
-      if (is_primary) {
-        if (!m_cluster->is_primary_cluster()) {
-          channel_name = k_clusterset_async_channel_name;
-        }
-      } else {
-        channel_name = mysqlshdk::gr::k_gr_applier_channel;
-      }
-
-      if (!channel_name.empty()) {
-        mysqlshdk::mysql::Replication_channel channel;
-
-        if (mysqlshdk::mysql::get_channel_status(instance, channel_name,
-                                                 &channel)) {
-          dict->set("replicationLagFromOriginalSource",
-                    shcore::Value(channel.repl_lag_from_original));
-          dict->set("replicationLagFromImmediateSource",
-                    shcore::Value(channel.repl_lag_from_immediate));
-        } else {
-          dict->set("replicationLagFromOriginalSource", shcore::Value::Null());
-          dict->set("replicationLagFromImmediateSource", shcore::Value::Null());
-        }
+    if (is_primary) {
+      if (!m_cluster->is_primary_cluster()) {
+        channel_name = k_clusterset_async_channel_name;
       }
     } else {
-      auto result = instance.query(k_calculate_lag_query);
-      auto row = result->fetch_one_named();
-      if (row) {
-        std::string lag = row.get_string("cluster_member_lag", "");
+      channel_name = mysqlshdk::gr::k_gr_applier_channel;
+    }
 
-        if (lag == "null" || lag.empty()) {
-          (*dict)["replicationLag"] = shcore::Value::Null();
-        } else {
-          (*dict)["replicationLag"] = shcore::Value(lag);
-        }
+    if (channel_name.empty()) return;
+
+    mysqlshdk::mysql::Replication_channel channel;
+    if (mysqlshdk::mysql::get_channel_status(instance, channel_name,
+                                             &channel)) {
+      dict->set("replicationLagFromOriginalSource",
+                shcore::Value(channel.repl_lag_from_original));
+      dict->set("replicationLagFromImmediateSource",
+                shcore::Value(channel.repl_lag_from_immediate));
+    } else {
+      dict->set("replicationLagFromOriginalSource", shcore::Value::Null());
+      dict->set("replicationLagFromImmediateSource", shcore::Value::Null());
+    }
+
+  } else {
+    auto result = instance.query(k_calculate_lag_query);
+    auto row = result->fetch_one_named();
+    if (row) {
+      auto lag = row.get_string("cluster_member_lag", "");
+
+      if (lag == "null" || lag.empty()) {
+        (*dict)["replicationLag"] = shcore::Value::Null();
+      } else {
+        (*dict)["replicationLag"] = shcore::Value(std::move(lag));
       }
     }
   }
-
-#undef TSDIFF
 }
 
 /**
@@ -556,26 +540,23 @@ void Status::collect_local_status(shcore::Dictionary_t dict,
 
   std::string sql;
 
-  sql = "SELECT *";
+  sql = "SELECT *, ";
 
-  if (version >= Version(8, 0, 0)) {
-    sql += ",";
+  sql += TSDIFF("LAST_APPLIED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
+                "END_APPLY_TIMESTAMP");
+  sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME,";
+  sql += TSDIFF("LAST_APPLIED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
+                "END_APPLY_TIMESTAMP");
+  sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_APPLY_TIME,";
+  sql += TSDIFF("LAST_APPLIED_TRANSACTION", "START_APPLY_TIMESTAMP",
+                "END_APPLY_TIMESTAMP");
+  sql += " AS LAST_APPLY_TIME,";
 
-    sql += TSDIFF("LAST_APPLIED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
-                  "END_APPLY_TIMESTAMP");
-    sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME,";
-    sql += TSDIFF("LAST_APPLIED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
-                  "END_APPLY_TIMESTAMP");
-    sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_APPLY_TIME,";
-    sql += TSDIFF("LAST_APPLIED_TRANSACTION", "START_APPLY_TIMESTAMP",
-                  "END_APPLY_TIMESTAMP");
-    sql += " AS LAST_APPLY_TIME,";
+  sql += TSDIFF_NOW("APPLYING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
+  sql += TSDIFF_NOW("APPLYING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
 
-    sql += TSDIFF_NOW("APPLYING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
-    sql += TSDIFF_NOW("APPLYING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
-  }
   sql += " FROM performance_schema.replication_applier_status_by_worker";
 
   // this can return multiple rows per channel for
@@ -595,24 +576,23 @@ void Status::collect_local_status(shcore::Dictionary_t dict,
     row = result->fetch_one_named();
   }
 
-  sql = "SELECT *";
-  if (version >= Version(8, 0, 0)) {
-    sql += ",";
-    sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
-                  "END_BUFFER_TIMESTAMP");
-    sql += " AS LAST_ORIGINAL_COMMIT_TO_END_BUFFER_TIME,";
-    sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
-                  "END_BUFFER_TIMESTAMP");
-    sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_BUFFER_TIME,";
-    sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "START_BUFFER_TIMESTAMP",
-                  "END_BUFFER_TIMESTAMP");
-    sql += " AS LAST_BUFFER_TIME,";
+  sql = "SELECT *, ";
 
-    sql += TSDIFF_NOW("PROCESSING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
-    sql += TSDIFF_NOW("PROCESSING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
-  }
+  sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
+                "END_BUFFER_TIMESTAMP");
+  sql += " AS LAST_ORIGINAL_COMMIT_TO_END_BUFFER_TIME,";
+  sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
+                "END_BUFFER_TIMESTAMP");
+  sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_BUFFER_TIME,";
+  sql += TSDIFF("LAST_PROCESSED_TRANSACTION", "START_BUFFER_TIMESTAMP",
+                "END_BUFFER_TIMESTAMP");
+  sql += " AS LAST_BUFFER_TIME,";
+
+  sql += TSDIFF_NOW("PROCESSING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
+  sql += TSDIFF_NOW("PROCESSING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
+
   sql += " FROM performance_schema.replication_applier_status_by_coordinator";
   result = instance.query(sql);
   row = result->fetch_one_named();
@@ -628,24 +608,23 @@ void Status::collect_local_status(shcore::Dictionary_t dict,
     row = result->fetch_one_named();
   }
 
-  sql = "SELECT *";
-  if (version >= Version(8, 0, 0)) {
-    sql += ",";
-    sql += TSDIFF("LAST_QUEUED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
-                  "END_QUEUE_TIMESTAMP");
-    sql += " AS LAST_ORIGINAL_COMMIT_TO_END_QUEUE_TIME,";
-    sql += TSDIFF("LAST_QUEUED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
-                  "END_QUEUE_TIMESTAMP");
-    sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_QUEUE_TIME,";
-    sql += TSDIFF("LAST_QUEUED_TRANSACTION", "START_QUEUE_TIMESTAMP",
-                  "END_QUEUE_TIMESTAMP");
-    sql += " AS LAST_QUEUE_TIME,";
+  sql = "SELECT *, ";
 
-    sql += TSDIFF_NOW("QUEUEING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
-    sql += TSDIFF_NOW("QUEUEING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
-    sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
-  }
+  sql += TSDIFF("LAST_QUEUED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
+                "END_QUEUE_TIMESTAMP");
+  sql += " AS LAST_ORIGINAL_COMMIT_TO_END_QUEUE_TIME,";
+  sql += TSDIFF("LAST_QUEUED_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP",
+                "END_QUEUE_TIMESTAMP");
+  sql += " AS LAST_IMMEDIATE_COMMIT_TO_END_QUEUE_TIME,";
+  sql += TSDIFF("LAST_QUEUED_TRANSACTION", "START_QUEUE_TIMESTAMP",
+                "END_QUEUE_TIMESTAMP");
+  sql += " AS LAST_QUEUE_TIME,";
+
+  sql += TSDIFF_NOW("QUEUEING_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_ORIGINAL_COMMIT_TO_NOW_TIME,";
+  sql += TSDIFF_NOW("QUEUEING_TRANSACTION", "IMMEDIATE_COMMIT_TIMESTAMP");
+  sql += " AS CURRENT_IMMEDIATE_COMMIT_TO_NOW_TIME";
+
   sql += " FROM performance_schema.replication_connection_status";
   result = instance.query(sql);
   row = result->fetch_one_named();
