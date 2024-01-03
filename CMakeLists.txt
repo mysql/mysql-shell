@@ -112,7 +112,9 @@ ELSEIF(UNIX)
 ENDIF()
 
 # CMake 3.5 is needed for TARGET_SOURCES(... $<TARGET_OBJECTS:${LIB}_objlib>)
-CMAKE_MINIMUM_REQUIRED(VERSION 3.5.1)
+# CMake 3.7 is needeed for VERSION_GREATER_EQUAL
+# For the set of currently supported platforms, we can bump up to:
+CMAKE_MINIMUM_REQUIRED(VERSION 3.14.6)
 INCLUDE(CMakePushCheckState)
 
 # On Linux el6/el7/el8/el9 the default gcc is too old,
@@ -538,6 +540,11 @@ FUNCTION(MY_CHECK_CXX_COMPILER_WARNING WARNING_OPTION RETURN_VALUE)
   ENDIF()
 ENDFUNCTION()
 
+FUNCTION(GET_MAJOR_MINOR input_ver output_var)
+  STRING(REGEX REPLACE "^([0-9]+)\\.([0-9]+).*" "\\1.\\2" input_ver "${input_ver}")
+  SET(${output_var} ${input_ver} PARENT_SCOPE)
+ENDFUNCTION()
+
 # Use lld for Clang if available and not explicitly disabled.
 # Also works for gcc on Debian/Ubuntu. Do 'apt install lld'.
 # LTO build fails with lld, so turn it off by default.
@@ -682,6 +689,8 @@ MYSQL_CHECK_SSL()
 SET(OPENSSL_VERSION_ID "${OPENSSL_VERSION_MAJOR}${OPENSSL_VERSION_MINOR}${OPENSSL_FIX_VERSION}")
 ADD_DEFINITIONS(-DOPENSSL_VERSION_ID=${OPENSSL_VERSION_ID})
 
+INCLUDE(bison)
+
 if(NOT BUILD_SOURCE_PACKAGE)
   if(BUNDLED_ANTLR_DIR)
     set(ANTLR4_INCLUDE_DIRS "${BUNDLED_ANTLR_DIR}/include")
@@ -729,11 +738,6 @@ if(HAVE_PYTHON)
     ELSE()
       MESSAGE(FATAL_ERROR "Couldn't find patchlevel.h in ${python_dir}")
     ENDIF()
-  ENDFUNCTION()
-
-  FUNCTION(GET_MAJOR_MINOR python_ver output_var)
-    STRING(REGEX REPLACE "^([0-9]+)\\.([0-9]+).*" "\\1.\\2" python_ver "${python_ver}")
-    SET(${output_var} ${python_ver} PARENT_SCOPE)
   ENDFUNCTION()
 
   # On windows stores the path to the python libraries since they will be bundled

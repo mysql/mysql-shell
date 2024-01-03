@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -44,6 +44,7 @@ ADD_SUBDIRECTORY(libs/oci)
 ADD_SUBDIRECTORY(libs/azure)
 ADD_SUBDIRECTORY(libs/ssh)
 ADD_SUBDIRECTORY(libs/aws)
+ADD_SUBDIRECTORY(libs/yparser)
 ADD_SUBDIRECTORY(scripting)
 ADD_SUBDIRECTORY(shellcore)
 
@@ -71,7 +72,9 @@ merge_convenience_libraries(mysqlshdk-static
     oci
     azure
     aws
-    tinyxml2 SKIP_INSTALL)
+    tinyxml2
+    yparser
+    SKIP_INSTALL)
 
   #target_link_libraries(mysqlshdk
   #        ${V8_LINK_LIST}

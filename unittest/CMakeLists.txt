@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/innodbcluster/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/ssh/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/parser/mysql_parser_utils_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/yparser/parser_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/scripting/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"

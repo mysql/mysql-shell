@@ -256,6 +256,7 @@ usr/share/mysqlsh/adminapi-metadata/* usr/share/mysqlsh/adminapi-metadata
 usr/share/mysqlsh/upgrade_checker.msg
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages
+usr/lib/mysqlsh/yparser
 usr/share/man/man1/mysqlsh.1
 ")
 
