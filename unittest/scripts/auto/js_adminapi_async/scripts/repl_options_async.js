@@ -129,7 +129,7 @@ WIPE_SHELL_LOG();
 begin_dba_log_sql();
 EXPECT_THROWS(function() {
     rs.addInstance(__sandbox_uri2, {replicationConnectRetry: 10, replicationRetryCount: 11, replicationHeartbeatPeriod: 33.3, replicationCompressionAlgorithms: "zlib", replicationZstdCompressionLevel: "4", replicationBind: "foo", replicationNetworkNamespace: "bar"});
-}, "Replication thread not in expected state");
+}, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
 end_dba_log_sql();
 
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_CONNECT_RETRY=10");

@@ -159,7 +159,7 @@ WIPE_SHELL_LOG();
 begin_dba_log_sql();
 EXPECT_THROWS(function() {
  cset.createReplicaCluster(__sandbox_uri2, "c2", {clusterSetReplicationConnectRetry: 10, clusterSetReplicationRetryCount: 11, clusterSetReplicationHeartbeatPeriod: 33.3, clusterSetReplicationCompressionAlgorithms: "zlib", clusterSetReplicationZstdCompressionLevel: "4", clusterSetReplicationBind: "foo", clusterSetReplicationNetworkNamespace: "bar"});
-}, "Replication thread not in expected state");
+}, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
 end_dba_log_sql();
 
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_CONNECT_RETRY=10");
