@@ -940,19 +940,12 @@ void Replica_set_impl::add_instance(
 
   // Connect to the target Instance.
   const Scoped_instance target_instance(connect_target_instance(instance_def));
-  const auto target_uuid = target_instance->get_uuid();
 
-  // Acquire required locks on target instance (acquired on primary after).
-  // No "write" operation allowed to be executed concurrently on the target
-  // instance, but the primary can be "shared" by other operations on different
-  // target instances.
+  // put an exclusive lock on the replica set
+  auto rs_lock = get_lock_exclusive();
+
+  // put an exclusive lock on the target instance
   auto i_lock = target_instance->get_lock_exclusive();
-
-  // NOTE: Acquire a shared lock on the primary only if the UUID is different
-  // from the target instance.
-  mysqlshdk::mysql::Lock_scoped plock;
-  if (target_uuid.empty() || target_uuid != get_primary_master()->get_uuid())
-    plock = get_primary_master()->get_lock_shared();
 
   auto topology = get_topology_manager();
 
@@ -1229,23 +1222,16 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   const auto target_instance =
       Scoped_instance(connect_target_instance(instance_def));
 
-  // Acquire required locks on target instance (already acquired on primary).
-  // No "write" operation allowed to be executed concurrently on the target
-  // instance, but the primary can be "shared" by other operations on different
-  // target instances.
+  // put a shared lock on the replica set
+  auto rs_lock = get_lock_shared();
+
+  // put an exclusive lock on the target instance
   auto i_lock = target_instance->get_lock_exclusive();
 
   log_debug("Setting up topology manager.");
   auto topology_mng = get_topology_manager(nullptr, true);
 
   log_debug("Get current PRIMARY and ensure it is healthy (updatable).");
-
-  // NOTE: Acquire a shared lock on the primary only if the UUID is different
-  // from the target instance.
-  mysqlshdk::mysql::Lock_scoped plock;
-  if (const auto target_uuid = target_instance->get_uuid();
-      target_uuid.empty() || target_uuid != get_primary_master()->get_uuid())
-    plock = get_primary_master()->get_lock_shared();
 
   auto console = current_console();
   console->print_info("* Validating instance...");
@@ -1602,25 +1588,12 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
     }
   }
 
-  // Acquire required locks on target instance and primary.
-  // No "write" operation allowed to be executed concurrently on the target
-  // instance, but the primary can be "shared" by other operations on different
-  // target instances.
-  // NOTE: Do not lock target instance if unreachable, and skip primary if the
-  //       same as the target instance.
-  mysqlshdk::mysql::Lock_scoped slock, plock;
-  {
-    std::string target_uuid;
-    if (target_server) {
-      slock = target_server->get_lock_exclusive();
-      target_uuid = target_server->get_uuid();
-    }
+  // put an exclusive lock on the replica set
+  auto rs_lock = get_lock_exclusive();
 
-    // NOTE: Acquire a shared lock on the primary only if the UUID is different
-    // from the target instance.
-    if (target_uuid.empty() || target_uuid != get_primary_master()->get_uuid())
-      plock = get_primary_master()->get_lock_shared();
-  }
+  // put an exclusive lock on the target instance
+  mysqlshdk::mysql::Lock_scoped i_lock;
+  if (target_server) i_lock = target_server->get_lock_exclusive();
 
   Instance_metadata md;
   bool repl_working = false;
@@ -1735,8 +1708,8 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
 
   check_preconditions_and_primary_availability("setPrimaryInstance");
 
-  // NOTE: Acquire an exclusive lock on the primary.
-  auto plock = get_primary_master()->get_lock_exclusive();
+  // put an exclusive lock on the replica set
+  auto rs_lock = get_lock_exclusive();
 
   topology::Server_global_topology *srv_topology = nullptr;
   auto topology = get_topology_manager(&srv_topology);
@@ -1772,13 +1745,6 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
     throw shcore::Exception("One or more instances are unreachable",
                             SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
   }
-
-  // Acquire required locks on all (alive) replica set instances (except the
-  // primary, already acquired). No "write" operation allowed to be executed
-  // concurrently on the instances.
-  auto i_locks = get_instance_lock_exclusive(instances.list(),
-                                             std::chrono::seconds::zero(),
-                                             get_primary_master()->get_uuid());
 
   // another set of connections for locks
   // Note: give extra margin for the connection read timeout, so that it doesn't
@@ -1939,22 +1905,21 @@ void Replica_set_impl::do_set_primary_instance(
 
     // NOTE: Skip old master, already setup previously by async_swap_primary().
     auto consume_instances =
-        [this, instances_list = instances](
-            mysqlshdk::mysql::IInstance **instance,
-            Async_replication_options *instance_repl_options) mutable -> bool {
-      assert(instance && instance_repl_options);
-      if (instances_list.empty()) return false;  // no more instances
+        [this, instances_list =
+                   instances]() mutable -> std::optional<Instance_AR_options> {
+      if (instances_list.empty()) return std::nullopt;  // no more instances
 
-      *instance = instances_list.front().get();
+      Instance_AR_options instance_options;
+      instance_options.instance = std::move(instances_list.front());
       instances_list.pop_front();
 
-      *instance_repl_options = Async_replication_options{};
+      instance_options.options = Async_replication_options{};
 
       bool reset_async_channel{false};
-      read_replication_options(*instance, instance_repl_options,
-                               &reset_async_channel);
+      read_replication_options(instance_options.instance.get(),
+                               &instance_options.options, &reset_async_channel);
 
-      return true;
+      return instance_options;
     };
 
     async_change_primary(new_master, master, consume_instances,
@@ -2057,9 +2022,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     console->print_info();
   }
 
-  // Acquire required locks on all (alive) replica set instances.
-  // No "write" operation allowed to be executed concurrently on the instances.
-  auto i_locks = get_instance_lock_exclusive(instances);
+  // put an exclusive lock on the replica set
+  auto rs_lock = get_lock_exclusive();
 
   // Check for replication applier errors on all (online) instances, in order
   // to anticipate issues when applying retrieved transaction and try to
@@ -2224,21 +2188,21 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
     shcore::Scoped_callback_list undo_list;
     try {
       auto consume_instances =
-          [this, &instances](
-              mysqlshdk::mysql::IInstance **instance,
-              Async_replication_options *instance_repl_options) -> bool {
-        assert(instance && instance_repl_options);
-        if (instances.empty()) return false;  // no more instances
+          [this, &instances]() -> std::optional<Instance_AR_options> {
+        if (instances.empty()) return std::nullopt;  // no more instances
 
-        *instance = instances.front().get();
+        Instance_AR_options instance_options;
+        instance_options.instance = std::move(instances.front());
         instances.pop_front();
 
-        *instance_repl_options = Async_replication_options{};
+        instance_options.options = Async_replication_options{};
 
         bool reset_async_channel{false};
-        read_replication_options(*instance, instance_repl_options,
+        read_replication_options(instance_options.instance.get(),
+                                 &instance_options.options,
                                  &reset_async_channel);
-        return true;
+
+        return instance_options;
       };
 
       async_change_primary(new_master.get(), nullptr, consume_instances,
@@ -2277,15 +2241,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
 void Replica_set_impl::dissolve(const replicaset::Dissolve_options &options) {
   check_preconditions("dissolve");
 
+  // put an exclusive lock on the replica set
   auto rs_lock = get_lock_exclusive();
-
-  // TODO: remove these when BUG#35913824 is implemented and all other commands
-  // in ReplicaSet implements replicaset-wide locks (otherwise, the previously
-  // acquired replicaset lock doesn't work).
-  Scoped_instance_list current_members(
-      connect_all_members(0, false, nullptr, true));
-  auto i_locks = get_instance_lock_exclusive(current_members.list(),
-                                             std::chrono::seconds::zero());
 
   Topology_executor<replicaset::Dissolve>{*this}.run(options.force,
                                                      options.timeout());
@@ -2294,15 +2251,8 @@ void Replica_set_impl::dissolve(const replicaset::Dissolve_options &options) {
 void Replica_set_impl::rescan(const replicaset::Rescan_options &options) {
   check_preconditions_and_primary_availability("rescan");
 
+  // put an exclusive lock on the replica set
   auto rs_lock = get_lock_exclusive();
-
-  // TODO: remove these when BUG#35913824 is implemented and all other commands
-  // in ReplicaSet implements replicaset-wide locks (otherwise, the previously
-  // acquired replicaset lock doesn't work).
-  Scoped_instance_list current_members(
-      connect_all_members(0, false, nullptr, true));
-  auto i_locks = get_instance_lock_exclusive(current_members.list(),
-                                             std::chrono::seconds::zero());
 
   Topology_executor<replicaset::Rescan>{*this}.run(options.add_unmanaged,
                                                    options.remove_obsolete);
@@ -2375,7 +2325,7 @@ std::vector<Instance_metadata> Replica_set_impl::get_instances_from_metadata()
 std::tuple<mysqlsh::dba::Instance *, mysqlshdk::mysql::Lock_scoped>
 Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
                                          std::string_view skip_lock_uuid) {
-  auto check_not_invalidated = [this](Instance *primary,
+  auto check_not_invalidated = [this](const Instance &primary,
                                       Instance_metadata *out_new_primary) {
     uint64_t view_id;
     auto members =
@@ -2396,7 +2346,7 @@ Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
         if (alt_view_id <= view_id) continue;
 
         log_info("view_id at %s is %s, target %s is %s", m.endpoint.c_str(),
-                 std::to_string(alt_view_id).c_str(), primary->descr().c_str(),
+                 std::to_string(alt_view_id).c_str(), primary.descr().c_str(),
                  std::to_string(view_id).c_str());
 
         for (const auto &am : alt_members) {
@@ -2419,13 +2369,14 @@ Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
   };
 
   // Auxiliary lambda function to find the primary.
-  auto find_primary = [&]() {
+  auto find_primary = [this]() {
     auto ipool = current_ipool();
     try {
       std::shared_ptr<Instance> primary =
           ipool->connect_async_cluster_primary(get_id());
 
       primary->steal();
+      m_cluster_server = primary;
       m_primary_master = primary;
       m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
       ipool->set_metadata(m_metadata_storage);
@@ -2484,7 +2435,7 @@ Replica_set_impl::acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,
 
   // ensure that the primary isn't invalidated
   Instance_metadata new_primary;
-  if (!check_not_invalidated(m_primary_master.get(), &new_primary)) {
+  if (!check_not_invalidated(*m_primary_master, &new_primary)) {
     // Throw an exception so that the error can bubble up all the way up to the
     // top of the stack. All assumptions made by the code path up to this point
     // were based on an invalidated members view of the replicaset, which
@@ -2978,12 +2929,6 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
 void Replica_set_impl::remove_router_metadata(const std::string &router) {
   check_preconditions_and_primary_availability("removeRouterMetadata");
 
-  // Acquire a shared lock on the primary. The metadata instance (primary)
-  // can be "shared" by other operations executing concurrently on other
-  // instances.
-  auto primary = get_primary_master();
-  auto plock = primary->get_lock_shared();
-
   Base_cluster_impl::remove_router_metadata(router);
 }
 
@@ -2992,6 +2937,9 @@ void Replica_set_impl::setup_admin_account(
     const Setup_account_options &options) {
   check_preconditions_and_primary_availability("setupAdminAccount");
 
+  // put a shared lock on the replica set
+  auto rs_lock = get_lock_shared();
+
   Base_cluster_impl::setup_admin_account(username, host, options);
 }
 
@@ -2999,6 +2947,9 @@ void Replica_set_impl::setup_router_account(
     const std::string &username, const std::string &host,
     const Setup_account_options &options) {
   check_preconditions_and_primary_availability("setupRouterAccount");
+
+  // put a shared lock on the replica set
+  auto rs_lock = get_lock_shared();
 
   Base_cluster_impl::setup_router_account(username, host, options);
 }
@@ -3022,8 +2973,6 @@ Replica_set_impl::refresh_replication_user(mysqlshdk::mysql::IInstance *slave,
   try {
     // Create replication accounts for this instance at the master
     // replicaset unless the user provided one.
-
-    auto console = mysqlsh::current_console();
 
     log_info("Resetting password for %s@%s at %s", creds.user.c_str(),
              account.second.c_str(), m_primary_master->descr().c_str());
@@ -3371,17 +3320,15 @@ shcore::Value Replica_set_impl::options() {
 void Replica_set_impl::_set_instance_option(const std::string &instance_def,
                                             const std::string &option,
                                             const shcore::Value &value) {
-  std::string target_uuid;
-  std::string target_descr;
-  mysqlshdk::utils::Version target_version;
-  {
-    const auto target_instance =
-        Scoped_instance(connect_target_instance(instance_def));
+  const auto target_instance =
+      Scoped_instance(connect_target_instance(instance_def));
 
-    target_uuid = target_instance->get_uuid();
-    target_descr = target_instance->descr();
-    target_version = target_instance->get_version();
-  }
+  // put an exclusive lock on the target instance
+  auto i_lock = target_instance->get_lock_exclusive();
+
+  const auto &target_uuid = target_instance->get_uuid();
+  const auto &target_descr = target_instance->descr();
+  const auto &target_version = target_instance->get_version();
 
   constexpr std::string_view ReplicationPrefix{"replication"};
   if (shcore::str_beginswith(option, ReplicationPrefix)) {
@@ -3586,52 +3533,59 @@ void Replica_set_impl::update_replication_allowed_host(
                account.second.c_str(), account.first.c_str(), host.c_str());
     }
 
-    if (maybe_adopted) {
-      auto ipool = current_ipool();
+    if (!maybe_adopted) continue;
 
-      Scoped_instance target(
-          ipool->connect_unchecked_endpoint(instance.endpoint));
+    auto ipool = current_ipool();
 
-      // If the replicaset could have been adopted, then also ensure the channel
-      // is using the right account
-      std::string repl_user = mysqlshdk::mysql::get_replication_user(
+    Scoped_instance target(
+        ipool->connect_unchecked_endpoint(instance.endpoint));
+
+    // If the replicaset could have been adopted, then also ensure the channel
+    // is using the right account
+    {
+      auto repl_user = mysqlshdk::mysql::get_replication_user(
           *target, k_replicaset_channel_name);
-      if (repl_user != account.first && !instance.primary_master) {
-        current_console()->print_info(shcore::str_format(
-            "Changing replication user at %s to %s", instance.endpoint.c_str(),
-            account.first.c_str()));
-
-        std::string password;
-        mysqlshdk::mysql::set_random_password(*get_primary_master(),
-                                              account.first, {host}, &password);
-
-        mysqlshdk::mysql::stop_replication_receiver(*target,
-                                                    k_replicaset_channel_name);
-
-        mysqlshdk::mysql::Replication_credentials_options options;
-        options.password = password;
-
-        mysqlshdk::mysql::change_replication_credentials(
-            *target, k_replicaset_channel_name, account.first, options);
-
-        mysqlshdk::mysql::start_replication_receiver(*target,
-                                                     k_replicaset_channel_name);
+      if (repl_user == account.first && !instance.primary_master) {
+        continue;
       }
     }
+
+    current_console()->print_info(
+        shcore::str_format("Changing replication user at %s to %s",
+                           instance.endpoint.c_str(), account.first.c_str()));
+
+    std::string password;
+    mysqlshdk::mysql::set_random_password(*get_primary_master(), account.first,
+                                          {host}, &password);
+
+    mysqlshdk::mysql::stop_replication_receiver(*target,
+                                                k_replicaset_channel_name);
+
+    mysqlshdk::mysql::Replication_credentials_options options;
+    options.password = password;
+
+    mysqlshdk::mysql::change_replication_credentials(
+        *target, k_replicaset_channel_name, account.first, options);
+
+    mysqlshdk::mysql::start_replication_receiver(*target,
+                                                 k_replicaset_channel_name);
   }
 }
 
 void Replica_set_impl::_set_option(const std::string &option,
                                    const shcore::Value &value) {
   if (option != kReplicationAllowedHost)
-    throw shcore::Exception::argument_error("Option '" + option +
-                                            "' not supported.");
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Option '%s' not supported.", option.c_str()));
 
   if (value.get_type() != shcore::String || value.as_string().empty())
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for '%s': Argument #2 is expected "
                            "to be a string.",
                            option.c_str()));
+
+  // put an exclusive lock on the replica set
+  auto rs_lock = get_lock_exclusive();
 
   update_replication_allowed_host(value.as_string());
 

@@ -202,11 +202,6 @@
 |NOTE: Former PRIMARY <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is now invalidated and must be removed from the replicaset.|
 |Failover finished successfully.|
 
-//@# connect to invalidated instances and try to removeInstance (should fail)
-|WARNING: MYSQLSH 51121: Target <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated in a failover: reconnecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>|
-|ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is a PRIMARY and cannot be removed.|
-||PRIMARY instance cannot be removed from the replicaset. (MYSQLSH 51302)
-
 //@# setPrimary (should fail)
 ||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 

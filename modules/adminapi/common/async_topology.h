@@ -251,11 +251,14 @@ std::optional<Async_replication_options> async_merge_repl_options(
  *
  * Reuses the same credentials as currently in use, unless given in repl_options
  */
+struct Instance_AR_options {
+  std::shared_ptr<Instance> instance;
+  Async_replication_options options;
+};
 void async_change_primary(
     mysqlshdk::mysql::IInstance *new_primary,
     mysqlshdk::mysql::IInstance *old_primary,
-    const std::function<bool(mysqlshdk::mysql::IInstance **,
-                             Async_replication_options *)>
+    const std::function<std::optional<Instance_AR_options>()>
         &cb_consume_secondaries,
     const std::string &channel_name, shcore::Scoped_callback_list *undo_list,
     bool dry_run);

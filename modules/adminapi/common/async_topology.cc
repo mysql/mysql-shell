@@ -409,27 +409,28 @@ std::optional<Async_replication_options> async_merge_repl_options(
 void async_change_primary(
     mysqlshdk::mysql::IInstance *primary,
     mysqlshdk::mysql::IInstance *old_primary,
-    const std::function<bool(mysqlshdk::mysql::IInstance **,
-                             Async_replication_options *)>
+    const std::function<std::optional<Instance_AR_options>()>
         &cb_consume_secondaries,
     const std::string &channel_name, shcore::Scoped_callback_list *undo_list,
     bool dry_run) {
-  mysqlshdk::mysql::IInstance *slave;
-  Async_replication_options slave_repl_options;
-  while (cb_consume_secondaries(&slave, &slave_repl_options)) {
-    if (slave->get_uuid() == primary->get_uuid()) continue;
-    if (old_primary && (slave->get_uuid() == old_primary->get_uuid())) continue;
+  while (auto slave = cb_consume_secondaries()) {
+    if (!slave) break;
+
+    if (slave->instance->get_uuid() == primary->get_uuid()) continue;
+    if (old_primary && (slave->instance->get_uuid() == old_primary->get_uuid()))
+      continue;
 
     undo_list->push_front([=]() {
       if (old_primary)
-        async_change_primary(slave, old_primary, channel_name, {}, true,
-                             dry_run);
+        async_change_primary(slave->instance.get(), old_primary, channel_name,
+                             {}, true, dry_run);
     });
 
-    async_change_primary(slave, primary, channel_name, slave_repl_options, true,
-                         dry_run);
+    async_change_primary(slave->instance.get(), primary, channel_name,
+                         slave->options, true, dry_run);
 
-    log_info("PRIMARY changed for instance %s", slave->descr().c_str());
+    log_info("PRIMARY changed for instance %s",
+             slave->instance->descr().c_str());
   }
 }
 

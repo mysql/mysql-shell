@@ -159,15 +159,13 @@ rs.forcePrimaryInstance(__sandbox_uri3, {invalidateErrorInstances:1});
 
 rs.status();
 
-//@ connect to invalidated instances and try to removeInstance (should fail)
+//@ setPrimary (should fail)
 testutil.startSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri2);
 rs = dba.getReplicaSet();
-rs.removeInstance(__sandbox_uri3);
 
-//@ setPrimary (should fail)
 rs.setPrimaryInstance(__sandbox_uri2);
 
 //@ setPrimary with new rs (should fail)

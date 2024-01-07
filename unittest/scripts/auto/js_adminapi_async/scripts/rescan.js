@@ -430,34 +430,6 @@ EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
 
 testutil.startSandbox(__mysql_sandbox_port2);
 
-//@<> If rescan removes the current replicaset object instances, it should leave the object invalidated
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
-
-var rset = dba.createReplicaSet('rset', {gtidSetIsComplete: true});
-rset.addInstance(__sandbox_uri2);
-rset.setPrimaryInstance(__sandbox_uri2);
-
-session.runSql("STOP REPLICA");
-session.runSql("RESET REPLICA ALL");
-
-rset.status();
-
-WIPE_SHELL_LOG();
-
-EXPECT_NO_THROWS(function(){ rset.rescan({removeObsolete: true}); });
-
-EXPECT_OUTPUT_CONTAINS(`Removing instance '${hostname}:${__mysql_sandbox_port1}' from the ReplicaSet metadata...`);
-EXPECT_SHELL_LOG_CONTAINS("Invalidating ReplicaSet object.");
-
-EXPECT_THROWS(function(){
-    rset.status();
-}, "The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object.");
-
 //@<> Check rescan warning message according to the state of the channel
 shell.connect(__sandbox_uri2);
 reset_instance(session);

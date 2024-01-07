@@ -1988,6 +1988,9 @@ shcore::Value Dba::create_replica_set(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options{target_server->get_connection_options()});
 
+  // put an exclusive lock on the target instance
+  auto i_lock = target_server->get_lock_exclusive();
+
   auto cluster = Replica_set_impl::create(
       full_rs_name, Global_topology_type::SINGLE_PRIMARY_TREE, target_server,
       *options);

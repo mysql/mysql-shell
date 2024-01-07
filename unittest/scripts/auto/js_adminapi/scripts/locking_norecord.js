@@ -192,8 +192,6 @@ cluster_lock_check(function() {
 
 cluster.addInstance(__sandbox_uri3, {ipAllowlist: allowlist});
 
-cluster.status();
-
 var session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP group_replication;");
 session3.close();
