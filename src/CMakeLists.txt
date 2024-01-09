@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -318,9 +318,8 @@ IF(HAVE_PYTHON)
     GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
     INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" USE_SOURCE_PERMISSIONS COMPONENT main
               PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
-    INSTALL(PROGRAMS "${PYTHON_EXECUTABLE}" DESTINATION "${INSTALL_LIBDIR}/bin" COMPONENT main)
-    INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
-            DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
+    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}"
+            DESTINATION "${INSTALL_LIBDIR}/include" COMPONENT main)
     IF(PYTHON_DEPS)
       INSTALL(DIRECTORY "${PYTHON_DEPS_PATH}/"
         DESTINATION "${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages" USE_SOURCE_PERMISSIONS COMPONENT main)
@@ -335,10 +334,11 @@ IF(HAVE_PYTHON)
     add_custom_command(TARGET mysqlsh POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                       "${BUNDLED_PYTHON_DIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin"
+                      "${CMAKE_BINARY_DIR}/bin/mysqlsh-python${PYTHONLIBS_MAJOR_MINOR}"
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}")
+                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
+    )
     IF(PYTHON_DEPS)
       add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -346,10 +346,19 @@ IF(HAVE_PYTHON)
                         "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
     ENDIF()
 
+    set(_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
 
     if(BUNDLED_SHARED_PYTHON)
       if(APPLE)
         set(_PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}")
+        get_filename_component(_PYTHON_SHARED_LIB_NAME "${_PYTHON_SHARED_LIB}" NAME)
+
+        add_custom_command(TARGET mysqlsh POST_BUILD
+          COMMAND install_name_tool -change
+                  "@rpath/${_PYTHON_SHARED_LIB_NAME}" "@executable_path/../lib/mysqlsh/${_PYTHON_SHARED_LIB_NAME}"
+                  "${CMAKE_BINARY_DIR}/bin/mysqlsh-python${PYTHONLIBS_MAJOR_MINOR}"
+        )
+        set(_PYTHON_EXECUTABLE "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}")
       else()
         file(GLOB _PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}.*")
       endif()
@@ -370,6 +379,8 @@ IF(HAVE_PYTHON)
         COMMAND ${CMAKE_COMMAND} -E copy "${_PYTHON_SHARED_LIB}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
     endif()
+
+    INSTALL(PROGRAMS "${_PYTHON_EXECUTABLE}" DESTINATION "${INSTALL_LIBDIR}/bin" COMPONENT main)
   else()
     IF(PYTHON_DEPS)
       INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib
