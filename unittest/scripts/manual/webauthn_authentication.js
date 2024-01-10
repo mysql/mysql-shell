@@ -15,7 +15,7 @@ shell.connect(`root:root@localhost:${port}`);
 session.runSql("create user webauthntest identified by 'mypwd' and identified with authentication_webauthn");
 
 // Attempt to execute a query
-// EXPECTED FAILURE: Authentication plugin requires registration. Please refer ALTER USER syntax or set --fido-register-factor command line option to do registration.
+// EXPECTED FAILURE: Authentication plugin requires registration. Please refer ALTER USER syntax or set --register-factor command line option to do registration.
 testutil.callMysqlsh([`webauthntest:mypwd@localhost:${port}`, "--sql", "-e", 'select user()'])
 
 // Registers the FIDO device and executes the query.
@@ -36,26 +36,6 @@ testutil.callMysqlsh([`webauthntest:mypwd@localhost:${port}`, "--register-factor
 // user()
 // webauthntest@localhost
 testutil.callMysqlsh([`webauthntest:mypwd@localhost:${port}`, "--sql", "-e", 'select user()'])
-
-// Recreate the account to verify simultaneous usage of --fido-register-factor and --register-factor
-// EXPECT: WARNING: The --fido-register-factor option was deprecated, please use --register-factor instead. (Option has been processed as --register-factor=3).
-// EXPECT: Please insert FIDO device and follow the instruction.Depending on the device, you may have to perform gesture action multiple times.
-//         1. Perform gesture action (Skip this step if you are prompted to enter device PIN).
-// EXPECTED OUTPUT:
-// user()
-// webauthntest@localhost
-shell.connect(`root:root@localhost:${port}`);
-session.runSql("drop user webauthntest@'%'")
-session.runSql("create user webauthntest identified by 'mypwd' and identified with authentication_webauthn");
-testutil.callMysqlsh([`webauthntest:mypwd@localhost:${port}`, "--fido-register-factor=3", "--register-factor=2", "--sql", "-e", 'select user()'])
-
-// Recreate the account to verify simultaneous usage of -register-factor and --fido-register-factor
-// The deprecation warning will be shown, but the last value provided is used
-shell.connect(`root:root@localhost:${port}`);
-session.runSql("drop user webauthntest@'%'")
-session.runSql("create user webauthntest identified by 'mypwd' and identified with authentication_webauthn");
-testutil.callMysqlsh([`webauthntest:mypwd@localhost:${port}`, "--register-factor=3", "--fido-register-factor=2", "--sql", "-e", 'select user()'])
-
 
 // Verify the --plugin-authentication-webauthn-client-preserve-privacy is properly set to 1
 // EXPECT: The following should be added to the shell log: Debug3: Using authentication_webauthn_client_preserve_privacy =  1

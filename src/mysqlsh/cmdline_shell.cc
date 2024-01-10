@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -505,7 +505,7 @@ void Command_line_shell::quiet_print() {
  * Used to temporarily enable printing when a global session is being created
  * from command line arguments.
  *
- * This is required because when using the FIDO
+ * This is required because when using the webauthn
  * authentication plugin, the instructions to use the FIDO device will be
  * printed by the authentication plugin, but at the connection time the printing
  * is disabled (or delayed), using this function it can be enabled properly so

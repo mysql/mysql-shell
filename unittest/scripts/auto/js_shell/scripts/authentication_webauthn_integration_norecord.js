@@ -10,8 +10,8 @@
 //
 
 //@<> Setup
-var fido_available = isAuthMethodSupported('WEBAUTHN');
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root", getAuthServerConfig('WEBAUTHN'));
+var fido_available = isAuthMethodSupported('WEBAUTHN', __sandbox_uri1);
 
 // Create a user with the authentication plugin
 try {
@@ -33,7 +33,7 @@ try {
 // Attempt to use the user without the device being registered, this test ensures:
 // The authentication plugin is used as expected, and the corresponding error message is generated.
 testutil.callMysqlsh([`webauthn_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--sql", "-e", 'select user()']);
-EXPECT_OUTPUT_CONTAINS('{"error":{"code":4055,"line":1,"message":"Authentication plugin requires registration. Please refer ALTER USER syntax or set --fido-register-factor command line option to do registration.","state":"HY000","type":"MySQL Error"}}');
+EXPECT_OUTPUT_CONTAINS('{"error":{"code":4055,"line":1,"message":"Authentication plugin requires registration. Please refer ALTER USER syntax or set --register-factor command line option to do registration.","state":"HY000","type":"MySQL Error"}}');
 
 //@<> Test registration using X protocol {fido_available && __os_type != 'windows'}
 testutil.callMysqlsh([`webauthn_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--mysqlx", "--json=raw", "--register-factor=2", "--sql", "-e", 'select user()']);

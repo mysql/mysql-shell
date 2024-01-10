@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -473,10 +473,6 @@ Shell_options::Shell_options(
       [this](const std::string&, const char* value) {
           storage.connection_data.set_schema(value);
         })
-    (cmdline("--fido-register-factor=<name>"),deprecated(m_on_warning, "--register-factor",
-      [this](const std::string& , const char* value){
-          storage.register_factor.assign(value);
-        }))
     (&storage.register_factor, "",
         cmdline("--register-factor=<name>"),
         "Specifies authentication factor, for which registration needs to be "

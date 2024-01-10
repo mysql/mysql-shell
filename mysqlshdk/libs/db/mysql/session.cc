@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -204,9 +204,9 @@ void Session_impl::connect(
   _mysql = mysql_init(nullptr);
 
   // A tracer plugin needs to be enabled as soon as the first instance of MYSQL
-  // is created in order to properly support FIDO authentication as it is the
-  // tracer who can identify when authentication_fido_plugin is being used so
-  // the print callback can be set.
+  // is created in order to properly support pluggable authentication as it is
+  // the tracer who can identify the authentication plugin is being used so
+  // plugin options can be defined.
   std::call_once(trace_register_flag, register_tracer_plugin, _mysql);
 
   _connection_options = connection_options;

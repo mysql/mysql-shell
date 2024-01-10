@@ -1,4 +1,4 @@
-//@ {hasAuthEnvironment('FIDO') && __version_num >= 80027}
+//@ {hasAuthEnvironment('FIDO') && __version_num >= 80027 && __version_num < 80400}
 
 // This test is focused on testing ONLY the integration points of the MySQL Shell with the
 // FIDO Authentication, not the FIDO authentication itself.
@@ -10,9 +10,10 @@
 //
 
 //@<> Setup
-var fido_available = isAuthMethodSupported('FIDO');
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root", getAuthServerConfig('FIDO'));
+var fido_available = isAuthMethodSupported('FIDO', __sandbox_uri1);
 
+var plugin_dir = ""
 // Create a user with the authentication plugin
 try {
   shell.connect(__sandbox_uri1);
@@ -23,6 +24,10 @@ try {
     session.runSql("create user fido_test identified by 'mypwd'");
   }
 
+  let result = session.runSql("show variables like 'plugin_dir'")
+  let row = result.fetchOne()
+  plugin_dir = row[1]
+
   session.close();
 } catch (error) {
   println(testutil.catFile(testutil.getSandboxLogPath(__mysql_sandbox_port1)));
@@ -32,7 +37,7 @@ try {
 //@<> Test registration {fido_available}
 // Attempt to use the user without the device being registered, this test ensures:
 // The authentication plugin is used as expected, and the corresponding error message is generated.
-testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--sql", "-e", 'select user()']);
+testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--mysql-plugin-dir", plugin_dir, "--json=raw", "--sql", "-e", 'select user()']);
 EXPECT_OUTPUT_CONTAINS('{"error":{"code":4055,"line":1,"message":"Authentication plugin requires registration. Please refer ALTER USER syntax or set --fido-register-factor command line option to do registration.","state":"HY000","type":"MySQL Error"}}');
 
 //@<> Test authentication {fido_available && __os_type != 'windows'}
@@ -40,8 +45,7 @@ EXPECT_OUTPUT_CONTAINS('{"error":{"code":4055,"line":1,"message":"Authentication
 // Attempt registering the FIDO device (assuming there's none)
 // This test confirms the print callback is properly set on the FIDO authentication client plugin as
 // a JSON document is generated for the error coming from the plugin, instead of raw text in stderr
-testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--fido-register-factor=2", "--sql", "-e", 'select user()']);
-EXPECT_OUTPUT_CONTAINS('WARNING: The --fido-register-factor option was deprecated, please use --register-factor instead. (Option has been processed as --register-factor=2).')
+testutil.callMysqlsh([`fido_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--mysql-plugin-dir", plugin_dir, "--json=raw", "--register-factor=2", "--sql", "-e", 'select user()']);
 // Commented because of BUG#35786798
 // EXPECT_OUTPUT_CONTAINS('{"info":"Failed to open FIDO device.\\n"}');
 

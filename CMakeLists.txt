@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -1057,8 +1057,6 @@ IF(MYSQL_BUILD_DIR)
     ENDIF()
 
     IF(${OPENSSL_MAJOR_MINOR_FIX_VERSION} VERSION_GREATER_EQUAL "1.1.1")
-      LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_fido_client")
-
       IF(${MYSQL_VERSION} VERSION_GREATER_EQUAL "8.2.0")
         LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_webauthn_client")
       ENDIF()
@@ -1070,7 +1068,7 @@ IF(MYSQL_BUILD_DIR)
           LIST(REMOVE_ITEM EXPECTED_AUTH_CLIENT_PLUGINS "${_expected_plugin}")
           LIST(REMOVE_ITEM AUTH_CLIENT_PLUGINS_COPY "${_plugin}")
 
-          IF(_expected_plugin STREQUAL "authentication_fido_client")
+          IF(_expected_plugin STREQUAL "authentication_webauthn_client")
             SET(_library_subdirs "${MYSQL_BUILD_DIR}/library_output_directory")
 
             IF(WIN32)
@@ -1083,7 +1081,7 @@ IF(MYSQL_BUILD_DIR)
             ENDIF()
 
             IF(NOT AUTH_CLIENT_PLUGINS_DEPS)
-              MESSAGE(FATAL_ERROR "Couldn't find libfido2, a dependency of authentication_fido_client")
+              MESSAGE(FATAL_ERROR "Couldn't find libfido2, a dependency of authentication_webauthn_client")
             ENDIF()
           ENDIF()
           BREAK()

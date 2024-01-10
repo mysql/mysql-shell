@@ -5,8 +5,8 @@ if (debugAuthPlugins()) {
   testutil.setenv("AUTHENTICATION_LDAP_CLIENT_LOG", "5");
 }
 
-var ldap_kerberos_available = isAuthMethodSupported('LDAP_KERBEROS');
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_KERBEROS'));
+var ldap_kerberos_available = isAuthMethodSupported('LDAP_KERBEROS', __sandbox_uri1);
 
 try {
     shell.connect(__sandbox_uri1);

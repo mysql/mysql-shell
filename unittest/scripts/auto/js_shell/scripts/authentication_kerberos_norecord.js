@@ -6,9 +6,9 @@ if (debugAuthPlugins()) {
   testutil.setenv("AUTHENTICATION_KERBEROS_CLIENT_LOG", "5");
 }
 
-var kerberos_available = isAuthMethodSupported('KERBEROS');
 var server_conf = getAuthServerConfig('KERBEROS');
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', server_conf, { "timeout": 120 });
+var kerberos_available = isAuthMethodSupported('KERBEROS', __sandbox_uri1);
 
 try {
     shell.connect(__sandbox_uri1);

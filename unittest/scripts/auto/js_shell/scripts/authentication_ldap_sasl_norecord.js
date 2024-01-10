@@ -5,8 +5,8 @@ if (debugAuthPlugins()) {
   testutil.setenv("AUTHENTICATION_LDAP_CLIENT_LOG", "5");
 }
 
-var ldap_sasl_available = isAuthMethodSupported('LDAP_SASL');
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_SASL'));
+var ldap_sasl_available = isAuthMethodSupported('LDAP_SASL', __sandbox_uri1);
 
 try {
     shell.connect(__sandbox_uri1);

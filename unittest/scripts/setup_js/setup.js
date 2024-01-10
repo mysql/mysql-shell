@@ -283,10 +283,6 @@ function debugAuthPlugins() {
 
 
 function getAuthServerConfig(context) {
-  if (!isAuthMethodSupported(context)) {
-    return {};
-  }
-
   const ext = __os_type == "windows" ? "dll" : "so";
 
   if (context == 'LDAP_SIMPLE') {
@@ -356,7 +352,7 @@ function getAuthServerConfig(context) {
 }
 
 
-function isAuthMethodSupported(context) {
+function isAuthMethodSupported(context, uri=__mysqluripwd) {
   if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH'].indexOf(context) == -1) {
     return false;
   }
@@ -381,7 +377,7 @@ function isAuthMethodSupported(context) {
   }
 
   var plugin_supported = true;
-  const s = shell.openSession(__mysqluripwd);
+  const s = shell.openSession(uri);
 
   try {
     ensure_plugin_enabled(plugin, s);
@@ -399,12 +395,6 @@ function isAuthMethodSupported(context) {
       } catch (error) {
         plugin_supported = false;
       }
-    }
-
-    try {
-      ensure_plugin_disabled(plugin, s);
-    } catch (error) {
-      // ignore any errors
     }
   }
 
