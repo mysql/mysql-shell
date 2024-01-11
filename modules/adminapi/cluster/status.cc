@@ -975,6 +975,7 @@ void check_transaction_size_limit(shcore::Array_t issues, Instance *instance,
 
 void check_auth_type_instance_ssl(shcore::Array_t issues,
                                   const Instance &instance,
+                                  Replica_type instance_type,
                                   const Cluster_impl &cluster) {
   auto auth_type = cluster.query_cluster_auth_type();
   if (auth_type == Replication_auth_type::PASSWORD) return;
@@ -1004,7 +1005,7 @@ void check_auth_type_instance_ssl(shcore::Array_t issues,
     auto instance_repl_account_user =
         cluster.get_metadata_storage()->get_instance_repl_account_user(
             instance.get_uuid(), Cluster_type::GROUP_REPLICATION,
-            Replica_type::GROUP_MEMBER);
+            instance_type);
 
     if (instance_repl_account_user.empty()) {
       // if this happens, a warning is already shown to the user in
@@ -1164,7 +1165,9 @@ shcore::Array_t instance_diagnostics(
   }
 
   // check if instance (if secondary) has a seemingly correct SSL settings
-  if (instance) check_auth_type_instance_ssl(issues, *instance, *cluster);
+  if (instance)
+    check_auth_type_instance_ssl(issues, *instance, Replica_type::GROUP_MEMBER,
+                                 *cluster);
 
   return issues;
 }
@@ -1964,12 +1967,8 @@ shcore::Array_t Status::read_replica_diagnostics(
   using mysqlshdk::mysql::Replication_channel;
 
   shcore::Array_t instance_errors = shcore::make_array();
-
-  auto append_error = [&instance_errors](const std::string &msg) {
-    if (!instance_errors) {
-      instance_errors = shcore::make_array();
-    }
-    instance_errors->push_back(shcore::Value(msg));
+  auto append_error = [&instance_errors](std::string msg) {
+    instance_errors->push_back(shcore::Value(std::move(msg)));
   };
 
   if (!instance) {
@@ -1986,6 +1985,10 @@ shcore::Array_t Status::read_replica_diagnostics(
         "WARNING: Instance is a Read-Replica but super_read_only option is "
         "OFF. Use Cluster.rejoinInstance() to fix it.");
   }
+
+  // check if instance (if secondary) has a seemingly correct SSL settings
+  check_auth_type_instance_ssl(instance_errors, *instance,
+                               Replica_type::READ_REPLICA, *m_cluster);
 
   // Check if the read-replica doesn't have any configured
   // replicationSources

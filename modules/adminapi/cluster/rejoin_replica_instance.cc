@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -189,8 +189,6 @@ Rejoin_replica_instance::get_default_donor_instance() {
 }
 
 void Rejoin_replica_instance::prepare() {
-  auto console = current_console();
-
   // Validate the Clone options.
   m_options.clone_options.check_option_values(m_target_instance->get_version());
 
@@ -206,11 +204,42 @@ void Rejoin_replica_instance::prepare() {
   if (*m_options.clone_options.recovery_method ==
       Member_recovery_method::CLONE) {
     if (m_options.clone_options.clone_donor.has_value()) {
-      std::string donor = *m_options.clone_options.clone_donor;
+      const std::string &donor = *m_options.clone_options.clone_donor;
 
       m_donor_instance =
           Scoped_instance(m_cluster_impl->connect_target_instance(donor));
     }
+  }
+
+  // get the cert subject to use (we're in a rejoin, so it should be there, but
+  // check it anyway)
+  m_auth_cert_subject =
+      m_cluster_impl->query_cluster_instance_auth_cert_subject(
+          *m_target_instance);
+
+  switch (auto auth_type = m_cluster_impl->query_cluster_auth_type();
+          auth_type) {
+    case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT:
+    case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
+      if (m_auth_cert_subject.empty()) {
+        current_console()->print_error(shcore::str_format(
+            "The Cluster's SSL mode is set to '%s' but the instance being "
+            "rejoined doesn't have the 'certSubject' option set. Please remove "
+            "the instance with Cluster.<<<removeInstance>>>() and then add it "
+            "back using Cluster.<<<addReplicaInstance>>>() with the "
+            "appropriate authentication options.",
+            to_string(auth_type).c_str()));
+
+        throw shcore::Exception(
+            shcore::str_format(
+                "The Cluster's SSL mode is set to '%s' but the 'certSubject' "
+                "option for the instance isn't valid.",
+                to_string(auth_type).c_str()),
+            SHERR_DBA_MISSING_CERT_OPTION);
+      }
+      break;
+    default:
+      break;
   }
 
   // Validate instance configuration and state
@@ -222,7 +251,8 @@ void Rejoin_replica_instance::prepare() {
   // Ensure no pre-existing replication channels are configured
   validate_replication_channels();
 
-  console->print_info("* Checking transaction state of the instance...");
+  current_console()->print_info(
+      "* Checking transaction state of the instance...");
   m_options.clone_options.recovery_method = validate_instance_recovery();
 
   // Check if the donor is valid
@@ -250,7 +280,8 @@ void Rejoin_replica_instance::do_run() {
 
   std::tie(ar_options, repl_account_host) =
       m_cluster_impl->create_read_replica_replication_user(
-          m_target_instance.get(), "", m_options.timeout, m_options.dry_run);
+          m_target_instance.get(), m_auth_cert_subject, m_options.timeout,
+          m_options.dry_run);
 
   m_undo_tracker.add("Dropping replication account", [=, this]() {
     log_info("Dropping replication account '%s'",
@@ -262,8 +293,9 @@ void Rejoin_replica_instance::do_run() {
   if (*m_options.clone_options.recovery_method ==
       Member_recovery_method::CLONE) {
     m_cluster_impl->handle_clone_provisioning(
-        m_target_instance, m_donor_instance, ar_options, repl_account_host, "",
-        "", m_options.get_recovery_progress(), m_options.timeout,
+        m_target_instance, m_donor_instance, ar_options, repl_account_host,
+        m_cluster_impl->query_cluster_auth_cert_issuer(), m_auth_cert_subject,
+        m_options.get_recovery_progress(), m_options.timeout,
         m_options.dry_run);
 
     // Clone will copy all tables, including the replication settings stored

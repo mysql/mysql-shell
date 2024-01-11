@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,7 +62,6 @@ class Add_replica_instance {
   Member_recovery_method validate_instance_recovery();
   void validate_source_list();
   std::shared_ptr<Instance> get_default_source_instance();
-  void check_ssl_mode();
 
  private:
   Cluster_impl *m_cluster_impl = nullptr;
@@ -70,6 +69,7 @@ class Add_replica_instance {
   std::shared_ptr<mysqlsh::dba::Instance> m_donor_instance;
   cluster::Add_replica_instance_options m_options;
   Undo_tracker m_undo_tracker;
+  Cluster_ssl_mode m_ssl_mode{Cluster_ssl_mode::NONE};
 };
 
 }  // namespace mysqlsh::dba::cluster

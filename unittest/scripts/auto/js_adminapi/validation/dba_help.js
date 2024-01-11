@@ -343,9 +343,9 @@ DESCRIPTION
       - memberAuthType: controls the authentication type to use for the
         internal replication accounts.
       - certIssuer: common certificate issuer to use when 'memberAuthType'
-        contains either "CERT_ISSUER" or "CERT_SUBJECT".
+        contains one of the four "CERT_*" values
       - certSubject: instance's certificate subject to use when
-        'memberAuthType' contains "CERT_SUBJECT".
+        'memberAuthType' contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
       - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication. Only valid if communicationStack=XCOM.
       - groupName: string value with the Group Replication group name UUID to
@@ -453,6 +453,8 @@ DESCRIPTION
         values.
       - CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD"
         values.
+
+      If memberAuthType is not specified, "PASSWORD" will be used by default.
 
       When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate
       is used as its client certificate when authenticating replication
@@ -745,9 +747,9 @@ DESCRIPTION
       - memberAuthType: controls the authentication type to use for the
         internal replication accounts.
       - certIssuer: common certificate issuer to use when 'memberAuthType'
-        contains either "CERT_ISSUER" or "CERT_SUBJECT".
+        contains one of the four "CERT_*" values
       - certSubject: instance's certificate subject to use when
-        'memberAuthType' contains "CERT_SUBJECT".
+        'memberAuthType' contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
       - replicationSslMode: SSL mode to use to configure the asynchronous
         replication channels of the ReplicaSet.
 
@@ -777,6 +779,8 @@ DESCRIPTION
         values.
       - CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD"
         values.
+
+      If memberAuthType is not specified, "PASSWORD" will be used by default.
 
       When CERT_ISSUER or CERT_SUBJECT are used, the server's own certificate
       is used as its client certificate when authenticating replication

@@ -7,11 +7,18 @@ ca_path = testutil.sslCreateCa("myca", "/CN=Test_CA");
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_id:11});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_id:22});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_id:33});
+if (__version_num >= 80023) {
+    testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname, server_id:44});
+}
 
 // create server certificates
 cert1_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}/L=machine1`, __mysql_sandbox_port1);
 cert2_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}/L=machine2`, __mysql_sandbox_port2);
 cert3_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}/L=machine3`, __mysql_sandbox_port3);
+cert4_path = undefined;
+if (__version_num >= 80023) {
+    cert4_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}/L=machine4`, __mysql_sandbox_port4);
+}
 
 function update_conf(port, ca_path, cert_path) {
     testutil.changeSandboxConf(port, "ssl_ca", ca_path);
@@ -39,8 +46,14 @@ function test_add_instance(commStack, recoverMethod) {
     }
 
     EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: recoverMethod, certSubject: `/CN=${hostname}/L=machine2` }); });
+    if (__version_num >= 80023) {
+        EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: recoverMethod, certSubject: `/CN=${hostname}/L=machine4` }); });
+    }
 
     testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+    if (__version_num >= 80023) {
+        testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+    }
 
     if (commStack.toLowerCase() == "xcom" && (__version_num >= 80027)) {
 
@@ -54,10 +67,37 @@ function test_add_instance(commStack, recoverMethod) {
     cluster.dissolve();
 }
 
+function reset_instances() {
+    if (__version_num >= 80023) {
+        shell.connect(__sandbox_uri4);
+        reset_instance(session);
+    }
+    shell.connect(__sandbox_uri3);
+    reset_instance(session);
+    shell.connect(__sandbox_uri2);
+    reset_instance(session);
+    shell.connect(__sandbox_uri1);
+    reset_instance(session);
+
+    /*
+    * GR has a 5 second hardcoded timeout to update the information of group membership of managed channels. When
+    *   dealing with read-replicas, after the AR channel is configured, there's a call to the
+    *   asynchronous_connection_failover_delete_managed() UDF with information read from
+    *   performance_schema.replication_asynchronous_connection_failover_managed, which, because of the 5 second
+    *   timeout, might return a false positive. To avoid this, we wait 5 seconds after reseting the instances.
+    */
+    if (__version_num >= 80023) {
+        os.sleep(5);
+    }
+}
+
 //restart the servers with proper SSL support
 update_conf(__mysql_sandbox_port1, ca_path, cert1_path);
 update_conf(__mysql_sandbox_port2, ca_path, cert2_path);
 update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
+if (__version_num >= 80023) {
+    update_conf(__mysql_sandbox_port4, ca_path, cert4_path);
+}
 
 //@<> create cluster comm stack mysql and no clone {VER(>= 8.0.27)}
 test_add_instance("mysql", "incremental");
@@ -72,12 +112,7 @@ test_add_instance("xcom", "incremental");
 test_add_instance("xcom", "clone");
 
 //@<> mid cleanup
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> create cluster comm stack xcom with primary offline
 shell.connect(__sandbox_uri1);
@@ -88,8 +123,14 @@ if (__version_num < 80027) {
 } else {
     EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { communicationStack: "xcom", memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}/L=machine1` }); });
 }
+
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: "incremental", certSubject: `/CN=${hostname}/L=machine2` }); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: "incremental", certSubject: `/CN=${hostname}/L=machine4` }); });
+    testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+}
 
 session.runSql("STOP GROUP_REPLICATION;")
 
@@ -101,20 +142,21 @@ EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, { recoveryMeth
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> create cluster comm stack mysql with primary offline {VER(>= 8.0.27)}
 shell.connect(__sandbox_uri1);
 
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { communicationStack: "mysql", memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}/L=machine1` }); });
+
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: "incremental", certSubject: `/CN=${hostname}/L=machine2` }); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: "incremental", certSubject: `/CN=${hostname}/L=machine4` }); });
+    testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+}
 
 session.runSql("STOP GROUP_REPLICATION;")
 
@@ -126,18 +168,14 @@ EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, { recoveryMeth
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> create cluster comm stack mysql with primary offline with clone {VER(>= 8.0.27)}
 shell.connect(__sandbox_uri1);
 
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { communicationStack: "mysql", memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}/L=machine1` }); });
+
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine2` }); });
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
@@ -150,13 +188,13 @@ cluster = dba.getCluster();
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine3` }); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine4` }); });
+    testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+}
+
 testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> create cluster comm stack mysql and clone and check if accounts aren't recreated {VER(>= 8.0.17)}
 shell.connect(__sandbox_uri1);
@@ -165,19 +203,20 @@ var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { communicationStack: "xcom", memberAuthType: "CERT_SUBJECT", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}/L=machine1` }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine2` }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine3` }); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: "clone", certSubject: `/CN=${hostname}/L=machine4` }); });
+}
 
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+if (__version_num >= 80023) {
+    testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
+}
 
 EXPECT_SHELL_LOG_CONTAINS("Restoring recovery accounts with certificates only.");
 
 testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
-shell.connect(__sandbox_uri3);
-reset_instance(session);
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> Make sure that variables are reverted in case the command fails (createCluster) {VER(>= 8.0.17)}
 
@@ -240,3 +279,6 @@ EXPECT_EQ(old_group_replication_communication_stack, get_sysvar(session, "group_
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+if (__version_num >= 80023) {
+    testutil.destroySandbox(__mysql_sandbox_port4);
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,10 +119,13 @@ struct Replication_sources {
 struct Add_replica_instance_options : public Timeout_option,
                                       public Recovery_progress_option {
   static const shcore::Option_pack_def<Add_replica_instance_options> &options();
+
   void set_replication_sources(const shcore::Value &value);
+  void set_cert_subject(const std::string &value);
 
   bool dry_run = false;
   std::optional<std::string> label;
+  std::string cert_subject;
   Replication_sources replication_sources_option;
   Join_read_replica_clone_options clone_options;
 };

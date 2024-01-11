@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,6 +90,8 @@ class Options final : public Command_interface {
   shcore::Array_t collect_global_options();
 
   shcore::Array_t get_instance_options(const mysqlsh::dba::Instance &instance);
+  shcore::Array_t get_rr_instance_options(
+      const mysqlsh::dba::Instance &instance);
 
   shcore::Dictionary_t collect_default_replicaset_options();
 };

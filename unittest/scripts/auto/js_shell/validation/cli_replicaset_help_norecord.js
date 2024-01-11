@@ -92,7 +92,7 @@ OPTIONS
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT".
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 --replicationConnectRetry=<int>
             Integer that specifies the interval in seconds between the

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,6 +70,7 @@ class Rejoin_replica_instance {
   Rejoin_instance_options m_options;
   std::string m_account_host;
   std::string m_target_read_replica_address;
+  std::string m_auth_cert_subject;
   Replication_sources m_replication_sources;
   Undo_tracker m_undo_tracker;
 };

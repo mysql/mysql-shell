@@ -230,10 +230,11 @@ REGISTER_HELP(OPT_MEMBER_AUTH_TYPE,
 REGISTER_HELP(
     OPT_CERT_ISSUER,
     "@li certIssuer: common certificate issuer to use when 'memberAuthType' "
-    "contains either \"CERT_ISSUER\" or \"CERT_SUBJECT\".");
-REGISTER_HELP(OPT_CERT_SUBJECT,
-              "@li certSubject: instance's certificate subject to use when "
-              "'memberAuthType' contains \"CERT_SUBJECT\".");
+    "contains one of the four \"CERT_*\" values");
+REGISTER_HELP(
+    OPT_CERT_SUBJECT,
+    "@li certSubject: instance's certificate subject to use when "
+    "'memberAuthType' contains \"CERT_SUBJECT\" or \"CERT_SUBJECT_PASSWORD\".");
 
 REGISTER_HELP_DETAIL_TEXT(OPT_MEMBER_AUTH_TYPE_EXTRA, R"*(
 The memberAuthType option supports the following values:
@@ -243,6 +244,8 @@ The memberAuthType option supports the following values:
 @li CERT_SUBJECT: account authenticates with client certificate, which must match the expected issuer and subject (see 'certSubject' option).
 @li CERT_ISSUER_PASSWORD: combines both "CERT_ISSUER" and "PASSWORD" values.
 @li CERT_SUBJECT_PASSWORD: combines both "CERT_SUBJECT" and "PASSWORD" values.
+
+If memberAuthType is not specified, "PASSWORD" will be used by default.
 )*");
 
 /*

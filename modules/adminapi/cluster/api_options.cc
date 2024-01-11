@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -262,6 +262,15 @@ void Add_replica_instance_options::set_replication_sources(
   }
 }
 
+void Add_replica_instance_options::set_cert_subject(const std::string &value) {
+  if (value.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s' option. Value cannot be an empty string.",
+        kCertSubject));
+
+  cert_subject = value;
+}
+
 const shcore::Option_pack_def<Add_replica_instance_options>
     &Add_replica_instance_options::options() {
   static const auto opts =
@@ -269,6 +278,8 @@ const shcore::Option_pack_def<Add_replica_instance_options>
           .include<Timeout_option>()
           .optional(kDryRun, &Add_replica_instance_options::dry_run)
           .optional(kLabel, &Add_replica_instance_options::label)
+          .optional(kCertSubject,
+                    &Add_replica_instance_options::set_cert_subject)
           .optional(kReplicationSources,
                     &Add_replica_instance_options::set_replication_sources)
           .include<Recovery_progress_option>()

@@ -371,6 +371,25 @@ shcore::Array_t Options::get_instance_options(
   return array;
 }
 
+shcore::Array_t Options::get_rr_instance_options(
+    const mysqlsh::dba::Instance &instance) {
+  auto array = shcore::make_array();
+
+  // cert_subject
+  {
+    auto cert_subject =
+        m_cluster.query_cluster_instance_auth_cert_subject(instance);
+
+    shcore::Dictionary_t option = shcore::make_dict();
+    (*option)["option"] = shcore::Value(kCertSubject);
+    (*option)["value"] = shcore::Value(std::move(cert_subject));
+
+    array->push_back(shcore::Value(std::move(option)));
+  }
+
+  return array;
+}
+
 /**
  * Get the full Cluster Options information
  *
@@ -402,9 +421,13 @@ shcore::Dictionary_t Options::collect_default_replicaset_options() {
       (*option)["shellConnectError"] =
           shcore::Value(m_member_connect_errors[inst.endpoint]);
       (*tmp)[inst.label] = shcore::Value(std::move(option));
-    } else {
-      (*tmp)[inst.label] = shcore::Value(get_instance_options(*instance));
+      continue;
     }
+
+    if (inst.instance_type == Instance_type::READ_REPLICA)
+      (*tmp)[inst.label] = shcore::Value(get_rr_instance_options(*instance));
+    else
+      (*tmp)[inst.label] = shcore::Value(get_instance_options(*instance));
   }
 
   (*ret)["topology"] = shcore::Value(std::move(tmp));
@@ -417,7 +440,7 @@ void Options::prepare() {
   // itself
 
   // Get the current members list
-  m_instances = m_cluster.get_instances();
+  m_instances = m_cluster.get_all_instances();
 
   // Connect to every Cluster member and populate:
   //   - m_member_sessions

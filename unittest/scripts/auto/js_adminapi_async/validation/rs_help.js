@@ -158,7 +158,7 @@ DESCRIPTION
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
       - certSubject: instance's certificate subject to use when
-        'memberAuthType' contains "CERT_SUBJECT".
+        'memberAuthType' contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
       - replicationConnectRetry: integer that specifies the interval in seconds
         between the reconnection attempts that the replica makes after the
         connection to the source times out.

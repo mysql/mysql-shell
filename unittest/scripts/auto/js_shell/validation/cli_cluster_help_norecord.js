@@ -120,7 +120,7 @@ OPTIONS
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT".
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 //@<OUT> CLI cluster describe --help
 NAME
@@ -541,6 +541,10 @@ OPTIONS
 --label=<str>
             An identifier for the Read Replica Instance being added, used in
             the output of status() and describe().
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 --replicationSources[:<type>]=<value>
             The list of sources for the Read Replica Instance. By default, the

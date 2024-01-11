@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1592,6 +1592,7 @@ with the PRIMARY after it's provisioned and the replication channel is
 established. If reached, the operation is rolled-back. Default is 0 (no
 timeout).
 ${CLUSTER_OPT_CLONE_DONOR}
+${OPT_CERT_SUBJECT}
 
 The label must be non-empty and no greater than 256 characters long. It must be
 unique within the Cluster and can only contain alphanumeric, _ (underscore),

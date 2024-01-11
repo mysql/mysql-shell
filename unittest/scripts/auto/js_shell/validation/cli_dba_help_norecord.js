@@ -234,12 +234,12 @@ OPTIONS
             replication accounts.
 
 --certIssuer=<str>
-            Common certificate issuer to use when 'memberAuthType' contains
-            either "CERT_ISSUER" or "CERT_SUBJECT".
+            Common certificate issuer to use when 'memberAuthType' contains one
+            of the four "CERT_*" values
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT".
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 --multiPrimary=<bool>
             Boolean value used to define an InnoDB Cluster with multiple
@@ -307,12 +307,12 @@ OPTIONS
             replication accounts.
 
 --certIssuer=<str>
-            Common certificate issuer to use when 'memberAuthType' contains
-            either "CERT_ISSUER" or "CERT_SUBJECT".
+            Common certificate issuer to use when 'memberAuthType' contains one
+            of the four "CERT_*" values
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT".
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 //@<OUT> CLI dba delete-sandbox-instance --help
 NAME

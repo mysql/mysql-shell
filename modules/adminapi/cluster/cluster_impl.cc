@@ -3125,14 +3125,14 @@ Cluster_impl::create_read_replica_replication_user(
   // Enable SOURCE_CONNECTION_AUTO_FAILOVER
   ar_options.auto_failover = true;
 
-  // Get the Cluster's SSL mode
+  // Get the Cluster's SSL mode and auth type
   ar_options.ssl_mode =
       to_cluster_ssl_mode(get_cluster_server()->get_sysvar_string(
           "group_replication_ssl_mode", ""));
+  ar_options.auth_type = query_cluster_auth_type();
 
   // Create replication account
   std::string repl_account_host;
-
   std::tie(ar_options.repl_credentials, repl_account_host) =
       create_replication_user(target, auth_cert_subject,
                               Replication_account_type::READ_REPLICA, false, {},

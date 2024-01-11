@@ -372,16 +372,16 @@ void Add_instance::prepare(checks::Check_type check_type,
       case mysqlsh::dba::Replication_auth_type::CERT_SUBJECT_PASSWORD:
         if (m_auth_cert_subject.empty()) {
           current_console()->print_error(shcore::str_format(
-              "The cluster's SSL mode is set to '%s' but the instance being "
-              "rejoined doesn't have a valid 'certSubject' option. Please stop "
-              "GR on that instance and then add it back using "
-              "Cluster.<<<addInstance>>>() with the appropriate authentication "
-              "options.",
+              "The Cluster's SSL mode is set to '%s' but the instance being "
+              "rejoined doesn't have the 'certSubject' option set. Please "
+              "remove the instance with Cluster.<<<removeInstance>>>() and "
+              "then add it back using Cluster.<<<addInstance>>>() with the "
+              "appropriate authentication options.",
               to_string(auth_type).c_str()));
 
           throw shcore::Exception(
               shcore::str_format(
-                  "The cluster's SSL mode is set to '%s' but the 'certSubject' "
+                  "The Cluster's SSL mode is set to '%s' but the 'certSubject' "
                   "option for the instance isn't valid.",
                   to_string(auth_type).c_str()),
               SHERR_DBA_MISSING_CERT_OPTION);

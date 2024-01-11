@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -251,41 +252,6 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
   return main_source;
 }
 
-void Add_replica_instance::check_ssl_mode() {
-  Cluster_ssl_mode ssl_mode = to_cluster_ssl_mode(
-      m_cluster_impl->get_cluster_server()->get_sysvar_string(
-          "group_replication_ssl_mode", ""));
-
-  switch (ssl_mode) {
-    case Cluster_ssl_mode::AUTO:
-      // Not possible
-      assert(0);
-      break;
-
-    case Cluster_ssl_mode::VERIFY_CA:
-      mysqlsh::current_console()->print_error(
-          "The Cluster has TLS (encryption) enabled with SSL certificate "
-          "issuer verification (VERIFY_CA) which is currently not supported in "
-          "Read-Replicas.");
-      throw shcore::Exception::runtime_error(
-          "Unsupported Cluster's sslMode: VERIFY_CA");
-
-    case Cluster_ssl_mode::VERIFY_IDENTITY:
-      mysqlsh::current_console()->print_error(
-          "The Cluster has TLS (encryption) enabled with SSL certificate "
-          "subject verification (VERIFY_IDENTITY) which is not supported in "
-          "Read-Replicas.");
-      throw shcore::Exception::runtime_error(
-          "Unsupported Cluster's sslMode: VERIFY_IDENTITY");
-
-    case Cluster_ssl_mode::NONE:
-    case Cluster_ssl_mode::DISABLED:
-    case Cluster_ssl_mode::REQUIRED:
-      log_info("SSL mode used to configure the Read-Replica: '%s'",
-               to_string(ssl_mode).c_str());
-  }
-}
-
 void Add_replica_instance::do_run() {
   auto console = mysqlsh::current_console();
 
@@ -333,20 +299,17 @@ void Add_replica_instance::do_run() {
     m_options.clone_options.check_option_values(
         m_target_instance->get_version());
 
-    // Validate and resolve the SSL mode
-    check_ssl_mode();
+    // Resolve the SSL Mode to use to configure the instance.
+    m_ssl_mode = resolve_instance_ssl_mode_option(
+        *m_target_instance, *m_cluster_impl->get_cluster_server());
+    log_info("SSL mode used to configure the instance: '%s'",
+             to_string(m_ssl_mode).c_str());
 
-    // Check if the Cluster's memberAuthType is different than password
-    if (auto auth_type = m_cluster_impl->query_cluster_auth_type();
-        auth_type != Replication_auth_type::PASSWORD) {
-      mysqlsh::current_console()->print_error(
-          "The Cluster is configured to use an authentication type different "
-          "than '" +
-          to_string(Replication_auth_type::PASSWORD) +
-          "' which is not supported in Read-Replicas.");
-      throw shcore::Exception::runtime_error(
-          "Unsupported Cluster's memberAuthType: '" + to_string(auth_type) +
-          "'");
+    // check if certSubject was correctly supplied
+    {
+      auto auth_type = m_cluster_impl->query_cluster_auth_type();
+      validate_instance_member_auth_options("cluster", false, auth_type,
+                                            m_options.cert_subject);
     }
 
     // Check the replicationSources option
@@ -378,6 +341,27 @@ void Add_replica_instance::do_run() {
     m_options.clone_options.recovery_method = validate_instance_recovery();
   }
 
+  // Check connectivity and SSL
+  if (current_shell_options()->get().dba_connectivity_checks) {
+    console->print_info("* Checking connectivity and SSL configuration...");
+
+    auto cert_issuer = m_cluster_impl->query_cluster_auth_cert_issuer();
+    auto instance_cert_subject =
+        m_cluster_impl->query_cluster_instance_auth_cert_subject(
+            m_donor_instance->get_uuid());
+
+    mysqlshdk::mysql::Set_variable disable_sro(*m_target_instance,
+                                               "super_read_only", false, true);
+
+    auto auth_type = m_cluster_impl->query_cluster_auth_type();
+
+    test_peer_connection(*m_target_instance, "", m_options.cert_subject,
+                         *m_donor_instance, "", instance_cert_subject,
+                         m_ssl_mode, auth_type, cert_issuer, "");
+
+    console->print_info();
+  }
+
   // Create the Read-Replica:
   //
   //  - Create the replication account
@@ -391,7 +375,8 @@ void Add_replica_instance::do_run() {
 
     std::tie(ar_options, repl_account_host) =
         m_cluster_impl->create_read_replica_replication_user(
-            m_target_instance.get(), "", m_options.timeout, m_options.dry_run);
+            m_target_instance.get(), m_options.cert_subject, m_options.timeout,
+            m_options.dry_run);
 
     m_undo_tracker.add("Dropping replication account", [=, this]() {
       log_info("Dropping replication account '%s'",
@@ -436,8 +421,9 @@ void Add_replica_instance::do_run() {
 
       m_cluster_impl->handle_clone_provisioning(
           m_target_instance, m_donor_instance, ar_options, repl_account_host,
-          "", "", m_options.get_recovery_progress(), m_options.timeout,
-          m_options.dry_run);
+          m_cluster_impl->query_cluster_auth_cert_issuer(),
+          m_options.cert_subject, m_options.get_recovery_progress(),
+          m_options.timeout, m_options.dry_run);
 
       // Cancel this step from the undo_list since it's only necessary if clone
       // is cancelled/fails
@@ -480,6 +466,10 @@ void Add_replica_instance::do_run() {
           m_target_instance->get_uuid(), k_instance_attribute_join_time,
           shcore::Value(join_begin_time), false,
           add_read_replica_trx_undo.get());
+
+      m_cluster_impl->get_metadata_storage()->update_instance_attribute(
+          m_target_instance->get_uuid(), k_instance_attribute_cert_subject,
+          shcore::Value(m_options.cert_subject));
 
       // Store the replication account
       m_cluster_impl->get_metadata_storage()->update_read_replica_repl_account(

@@ -159,7 +159,7 @@ DESCRIPTION
       - autoRejoinTries: integer value to define the number of times an
         instance will attempt to rejoin the cluster after being expelled.
       - certSubject: instance's certificate subject to use when
-        'memberAuthType' contains "CERT_SUBJECT".
+        'memberAuthType' contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
       The label must be non-empty and no greater than 256 characters long. It
       must be unique within the Cluster and can only contain alphanumeric, _
@@ -1493,6 +1493,8 @@ DESCRIPTION
         timeout).
       - cloneDonor: The Cluster member to be used as donor when performing
         clone-based recovery.
+      - certSubject: instance's certificate subject to use when
+        'memberAuthType' contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
       The label must be non-empty and no greater than 256 characters long. It
       must be unique within the Cluster and can only contain alphanumeric, _

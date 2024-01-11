@@ -6,16 +6,66 @@ ca_path = testutil.sslCreateCa("myca", "/CN=Test_CA");
 // needed to create sandbox folders
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+if (__version_num >= 80023) {
+    testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+}
 
 // create server certificates
 cert1_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port1);
 cert2_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port2);
+cert3_path = undefined;
+if (__version_num >= 80023) {
+    cert3_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port3);
+}
 
 function update_conf(port, ca_path, cert_path) {
     testutil.changeSandboxConf(port, "ssl_ca", ca_path);
     testutil.changeSandboxConf(port, "ssl_cert", cert_path);
     testutil.changeSandboxConf(port, "ssl_key", cert_path.replace("-cert.pem", "-key.pem"));
     testutil.restartSandbox(port);
+}
+
+function check_instance_error(status, include_primary, expected_error) {
+    if (include_primary) {
+        EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+        rr_error = status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"];
+        EXPECT_EQ(rr_error.length, 1);
+        EXPECT_EQ(rr_error[0], expected_error);
+    }
+
+    EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+    rr_error = status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"];
+    EXPECT_EQ(rr_error.length, 1);
+    EXPECT_EQ(rr_error[0], expected_error);
+
+    if (__version_num >= 80023) {
+        EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["readReplicas"][`${hostname}:${__mysql_sandbox_port3}`]);
+        rr_error = status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["readReplicas"][`${hostname}:${__mysql_sandbox_port3}`]["instanceErrors"];
+        EXPECT_EQ(rr_error.length, 1);
+        EXPECT_EQ(rr_error[0], expected_error);
+    }
+};
+
+function reset_instances() {
+    if (__version_num >= 80023) {
+        shell.connect(__sandbox_uri3);
+        reset_instance(session);
+    }
+    shell.connect(__sandbox_uri2);
+    reset_instance(session);
+    shell.connect(__sandbox_uri1);
+    reset_instance(session);
+
+    /*
+    * GR has a 5 second hardcoded timeout to update the information of group membership of managed channels. When
+    *   dealing with read-replicas, after the AR channel is configured, there's a call to the
+    *   asynchronous_connection_failover_delete_managed() UDF with information read from
+    *   performance_schema.replication_asynchronous_connection_failover_managed, which, because of the 5 second
+    *   timeout, might return a false positive. To avoid this, we wait 5 seconds after reseting the instances.
+    */
+    if (__version_num >= 80023) {
+        os.sleep(5);
+    }
 }
 
 function check_users(session, has_pwd, has_issuer, has_subject) {
@@ -56,23 +106,29 @@ function check_option(options, option_name, option_value) {
 
 function check_apis(sslMode, authType) {
 
-    shell.connect(__sandbox_uri2);
-    reset_instance(session);
-    shell.connect(__sandbox_uri1);
-    reset_instance(session);
+    reset_instances();
 
     var cluster;
     if (authType.includes("_SUBJECT")) {
         EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: sslMode, memberAuthType: authType, certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
         EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: `/CN=${hostname}` }); });
+        if (__version_num >= 80023) {
+            EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+        }
     }
     else if (authType.includes("_ISSUER")) {
         EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: sslMode, memberAuthType: authType, certIssuer: "/CN=Test_CA" }); });
         EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+        if (__version_num >= 80023) {
+            EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+        }
     }
     else {
         EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: sslMode, memberAuthType: authType }); });
         EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+        if (__version_num >= 80023) {
+            EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+        }
     }
 
     // reboot
@@ -94,6 +150,17 @@ function check_apis(sslMode, authType) {
     testutil.startSandbox(__mysql_sandbox_port2);
     EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(__sandbox_uri2); });
 
+    // rejoin read-replica
+    if (__version_num >= 80023) {
+        shell.connect(__sandbox_uri3);
+        session.runSql("STOP replica");
+
+        shell.connect(__sandbox_uri1);
+        testutil.waitReplicationChannelState(__mysql_sandbox_port3, "read_replica_replication", "OFF");
+
+        EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(__sandbox_uri3); });
+    }
+
     // setPrimaryInstance
     if (testutil.versionCheck(__version, ">=", "8.0.13")) {
         EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(__sandbox_uri2); });
@@ -107,6 +174,17 @@ function check_apis(sslMode, authType) {
     }
     else {
         EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+    }
+
+    // remove read-replica instance
+    if (__version_num >= 80023) {
+        EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri3); });
+        if (authType.includes("_SUBJECT")) {
+            EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+        }
+        else {
+            EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+        }
     }
 
     // rejoin error out
@@ -125,14 +203,32 @@ function check_apis(sslMode, authType) {
 
         EXPECT_THROWS(function() {
             cluster.rejoinInstance(__sandbox_uri2);
-        }, `The cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the 'certSubject' option for the instance isn't valid.`);
-        EXPECT_OUTPUT_CONTAINS("The cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the instance being rejoined doesn't have a valid 'certSubject' option. Please stop GR on that instance and then add it back using Cluster.addInstance() with the appropriate authentication options.");
+        }, `The Cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the 'certSubject' option for the instance isn't valid.`);
+        EXPECT_OUTPUT_CONTAINS("The Cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the instance being rejoined doesn't have the 'certSubject' option set. Please remove the instance with Cluster.removeInstance() and then add it back using Cluster.addInstance() with the appropriate authentication options.");
+
+        if (__version_num >= 80023) {
+            shell.connect(__sandbox_uri3);
+            session.runSql("STOP replica");
+
+            shell.connect(__sandbox_uri1);
+            testutil.waitReplicationChannelState(__mysql_sandbox_port3, "read_replica_replication", "OFF");
+
+            session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.opt_certSubject') WHERE (address = '${hostname}:${__mysql_sandbox_port3}');`);
+
+            EXPECT_THROWS(function() {
+                cluster.rejoinInstance(__sandbox_uri3);
+            }, `The Cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the 'certSubject' option for the instance isn't valid.`);
+            EXPECT_OUTPUT_CONTAINS("The Cluster's SSL mode is set to 'CERT_SUBJECT_PASSWORD' but the instance being rejoined doesn't have the 'certSubject' option set. Please remove the instance with Cluster.removeInstance() and then add it back using Cluster.addReplicaInstance() with the appropriate authentication options.");
+        }
     }
 }
 
 //restart the servers with proper SSL support
 update_conf(__mysql_sandbox_port1, ca_path, cert1_path);
 update_conf(__mysql_sandbox_port2, ca_path, cert2_path);
+if (__version_num >= 80023) {
+    update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
+}
 
 //@<> FR1 create cluster (just password)
 shell.connect(__sandbox_uri1);
@@ -159,15 +255,22 @@ EXPECT_EQ("", session.runSql("SELECT ssl_type FROM mysql.user WHERE (user LIKE '
 EXPECT_NE("", session.runSql("SELECT authentication_string FROM mysql.user WHERE (user LIKE 'mysql_innodb_cluster_%');").fetchOne()[0]);
 
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+}
 
 check_users(session, true, false, false);
 
 // FR14
 options = cluster.options();
+options;
 check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "PASSWORD");
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", "");
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", "");
+}
 
 WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { cluster.resetRecoveryAccountsPassword(); });
@@ -191,6 +294,13 @@ EXPECT_NE("", session.runSql("SELECT authentication_string FROM mysql.user WHERE
 
 WIPE_STDOUT();
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: "/CN=bar" }); });
+EXPECT_OUTPUT_CONTAINS("NOTE: The cluster's SSL mode is set to PASSWORD, which makes the 'certSubject' option not required. The option will be ignored.");
+
+if (__version_num >= 80023) {
+    WIPE_STDOUT();
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: "/CN=bar" }); });
+    EXPECT_OUTPUT_CONTAINS("NOTE: The cluster's SSL mode is set to PASSWORD, which makes the 'certSubject' option not required. The option will be ignored.");
+}
 
 check_users(session, true, false, false);
 
@@ -199,6 +309,9 @@ check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "PASSWOR
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "/CN=fooIssuer");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "/CN=fooSubject");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", "/CN=bar");
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", "/CN=bar");
+}
 
 // cleanup cluster
 cluster.dissolve();
@@ -225,12 +338,27 @@ EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
 check_users(session, false, true, false);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
+// add read-replica instance
+if (__version_num >= 80023) {
+    EXPECT_THROWS(function() {
+        cluster.addReplicaInstance(__sandbox_uri3, { certSubject: "" });
+    }, "Invalid value for 'certSubject' option. Value cannot be an empty string.");
+
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+
+    check_users(session, false, true, false);
+    EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+}
+
 // FR14
 options = cluster.options();
 check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "CERT_ISSUER");
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", "");
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", "");
+}
 
 WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { cluster.resetRecoveryAccountsPassword(); });
@@ -252,6 +380,9 @@ for (i = 0; i < 50; i++) {
 }
 
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: "clone"} ); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { recoveryMethod: "clone"}); });
+}
 
 // cleanup cluster
 cluster.dissolve();
@@ -275,9 +406,23 @@ WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: "/CN=bar" }); });
 EXPECT_OUTPUT_CONTAINS("The cluster's SSL mode is set to CERT_ISSUER_PASSWORD, which makes the 'certSubject' option not required. The option will be ignored.");
 EXPECT_EQ("/CN=foo", session.runSql(`SELECT attributes->>'$.opt_certSubject' FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port1}')`).fetchOne()[0]);
+EXPECT_EQ("/CN=bar", session.runSql(`SELECT attributes->>'$.opt_certSubject' FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port2}')`).fetchOne()[0]);
 
 check_users(session, true, true, false);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+// add read-replica instance
+if (__version_num >= 80023) {
+
+    WIPE_OUTPUT();
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: "/CN=bar2" }); });
+    EXPECT_OUTPUT_CONTAINS("The cluster's SSL mode is set to CERT_ISSUER_PASSWORD, which makes the 'certSubject' option not required. The option will be ignored.");
+    EXPECT_EQ("/CN=foo", session.runSql(`SELECT attributes->>'$.opt_certSubject' FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port1}')`).fetchOne()[0]);
+    EXPECT_EQ("/CN=bar2", session.runSql(`SELECT attributes->>'$.opt_certSubject' FROM mysql_innodb_cluster_metadata.instances WHERE (address = '${hostname}:${__mysql_sandbox_port3}')`).fetchOne()[0]);
+
+    check_users(session, true, true, false);
+    EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+}
 
 // FR14
 options = cluster.options();
@@ -285,6 +430,9 @@ check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "CERT_IS
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "/CN=foo");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", "/CN=bar");
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", "/CN=bar2");
+}
 
 WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { cluster.resetRecoveryAccountsPassword(); });
@@ -308,15 +456,26 @@ EXPECT_NE("", session.runSql("SELECT authentication_string FROM mysql.user WHERE
 
 WIPE_STDOUT();
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: "/CN=bar" }); });
+EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
 check_users(session, true, true, false);
-EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+if (__version_num >= 80023) {
+    WIPE_STDOUT();
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: "/CN=bar" }); });
+    EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+
+    check_users(session, true, true, false);
+}
 
 options = cluster.options();
 check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "CERT_ISSUER_PASSWORD");
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", "/CN=foo");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", "/CN=bar");
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", "/CN=bar");
+}
 
 // cleanup cluster
 cluster.dissolve();
@@ -343,12 +502,28 @@ EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject:
 check_users(session, true, true, true);
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 
+// add read-replica instance
+if (__version_num >= 80023) {
+
+    EXPECT_THROWS(function() {
+        cluster.addReplicaInstance(__sandbox_uri3);
+    }, "The cluster's SSL mode is set to CERT_SUBJECT_PASSWORD but the 'certSubject' option for the instance wasn't supplied.");
+
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+
+    check_users(session, true, true, true);
+    EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+}
+
 // FR14
 options = cluster.options();
 check_option(options.defaultReplicaSet.globalOptions, "memberAuthType", "CERT_SUBJECT_PASSWORD");
 check_option(options.defaultReplicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", `/CN=${hostname}`);
 check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", `/CN=${hostname}`);
+if (__version_num >= 80023) {
+    check_option(options.defaultReplicaSet.topology[`${hostname}:${__mysql_sandbox_port3}`], "certSubject", `/CN=${hostname}`);
+}
 
 WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { cluster.resetRecoveryAccountsPassword(); });
@@ -364,6 +539,9 @@ shell.connect(__sandbox_uri1);
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}`, communicationStack: "XCOM" }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: `/CN=${hostname}` }); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+}
 
 //@<> FR17 test if rescan with addInstances errors out
 EXPECT_THROWS(function() {
@@ -401,10 +579,7 @@ check_apis("REQUIRED", "CERT_ISSUER");
 check_apis("VERIFY_CA", "CERT_SUBJECT_PASSWORD");
 check_apis("VERIFY_IDENTITY", "CERT_SUBJECT_PASSWORD");
 
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 //@<> FR1.2 cannot mix 'memberAuthType' (with value other than "password") with 'adoptFromGR'
 shell.connect(__sandbox_uri1);
@@ -430,6 +605,9 @@ shell.connect(__sandbox_uri1);
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberSslMode: "VERIFY_IDENTITY" }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+}
 
 options = cluster.options();
 check_option(options.defaultReplicaSet.globalOptions, "memberSslMode", "VERIFY_IDENTITY");
@@ -444,26 +622,30 @@ var cluster;
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: `/CN=${hostname}` }); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+}
 
 session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.opt_certSubject') WHERE (address = '${hostname}:${__mysql_sandbox_port2}');`);
+session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.opt_certSubject') WHERE (address = '${hostname}:${__mysql_sandbox_port3}');`);
 
 var status = cluster.status();
-status
-EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"].length, 1);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][0], "WARNING: memberAuthType is set to 'CERT_SUBJECT_PASSWORD' but there's no 'certSubject' configured for this instance, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.")
+
+check_instance_error(status, false, "WARNING: memberAuthType is set to 'CERT_SUBJECT_PASSWORD' but there's no 'certSubject' configured for this instance, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.");
 
 //@<> FR12 check exception if SSL settings are incorrect
+
+if (__version_num >= 80023) {
+    ca3_path = testutil.sslCreateCa("myca3", "/CN=Test_CA3");
+    cert3_ca3_path = testutil.sslCreateCert("server3", "myca3", `/CN=${hostname}`, __mysql_sandbox_port3);
+    update_conf(__mysql_sandbox_port3, ca3_path, cert3_ca3_path);
+}
 
 ca2_path = testutil.sslCreateCa("myca2", "/CN=Test_CA2");
 cert2_ca2_path = testutil.sslCreateCert("server2", "myca2", `/CN=${hostname}`, __mysql_sandbox_port2);
 update_conf(__mysql_sandbox_port2, ca2_path, cert2_ca2_path);
 
-var session1 = mysql.getSession(__sandbox_uri1);
-var session2 = mysql.getSession(__sandbox_uri2);
-
-reset_instance(session1);
-reset_instance(session2);
+reset_instances();
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
 
@@ -471,43 +653,50 @@ EXPECT_THROWS(function() {cluster.addInstance(__sandbox_uri2, { certSubject: `/C
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Authentication error during connection check. Please ensure that the SSL certificate (@@ssl_cert) configured for '${hostname}:${__mysql_sandbox_port2}' was issued by '/CN=Test_CA' (certIssuer), is recognized at '${hostname}:${__mysql_sandbox_port2}' and that the value specified for certIssuer itself is correct.`);
 
-session1.close();
-session2.close();
+if (__version_num >= 80023) {
+    EXPECT_THROWS(function() {cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` });}, "Authentication error during connection check");
+    EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");
+    EXPECT_OUTPUT_CONTAINS(`ERROR: Authentication error during connection check. Please ensure that the SSL certificate (@@ssl_cert) configured for '${hostname}:${__mysql_sandbox_port3}' was issued by '/CN=Test_CA' (certIssuer), is recognized at '${hostname}:${__mysql_sandbox_port3}' and that the value specified for certIssuer itself is correct.`);
+}
 
 //@<> check if status recognizes mix of different client versions (remove ssl_ variables) {!__dbug_off}
+if (__version_num >= 80023) {
+    update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
+}
 update_conf(__mysql_sandbox_port2, ca_path, cert2_path);
 
-shell.connect(__sandbox_uri2);
-reset_instance(session);
-shell.connect(__sandbox_uri1);
-reset_instance(session);
+reset_instances();
 
 var cluster;
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: `/CN=${hostname}` }); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+}
 
 testutil.dbugSet("+d,fail_recovery_user_status_check_subject");
 var status = cluster.status();
 testutil.dbugSet("");
 
-EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"].length, 1);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0], "WARNING: memberAuthType is set to 'CERT_SUBJECT_PASSWORD' but there's no 'certIssuer' and/or 'certSubject' configured for this instance recovery user, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.");
+status
+check_instance_error(status, true, "WARNING: memberAuthType is set to 'CERT_SUBJECT_PASSWORD' but there's no 'certIssuer' and/or 'certSubject' configured for this instance recovery user, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.");
 
 // just issuer
 
 cluster.dissolve();
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER", certIssuer: "/CN=Test_CA" }); });
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2); });
+if (__version_num >= 80023) {
+    EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3); });
+}
 
 testutil.dbugSet("+d,fail_recovery_user_status_check_issuer");
 var status = cluster.status();
 testutil.dbugSet("");
 
-EXPECT_TRUE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"].length, 1);
-EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0], "WARNING: memberAuthType is set to 'CERT_ISSUER' but there's no 'certIssuer' configured for this instance recovery user, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.")
+status
+check_instance_error(status, true, "WARNING: memberAuthType is set to 'CERT_ISSUER' but there's no 'certIssuer' configured for this instance recovery user, which prevents all other instances from reaching it, compromising the Cluster. Please remove the instance from the Cluster and use the most recent version of the shell to re-add it back.");
 
 // cleanup cluster
 cluster.dissolve();
@@ -515,3 +704,6 @@ cluster.dissolve();
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+if (__version_num >= 80023) {
+    testutil.destroySandbox(__mysql_sandbox_port3);
+}
