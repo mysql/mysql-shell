@@ -334,10 +334,12 @@ IF(HAVE_PYTHON)
     add_custom_command(TARGET mysqlsh POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
                       "${BUNDLED_PYTHON_DIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/bin/mysqlsh-python${PYTHONLIBS_MAJOR_MINOR}"
+                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
                       "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
+                        COMMAND ${CMAKE_COMMAND} -E create_symlink # symlink to allow python executable to import dylibs
+                      ".." "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/mysqlsh"
     )
     IF(PYTHON_DEPS)
       add_custom_command(TARGET mysqlsh PRE_BUILD
@@ -355,9 +357,10 @@ IF(HAVE_PYTHON)
 
         add_custom_command(TARGET mysqlsh POST_BUILD
           COMMAND install_name_tool -change
-                  "@rpath/${_PYTHON_SHARED_LIB_NAME}" "@executable_path/../lib/mysqlsh/${_PYTHON_SHARED_LIB_NAME}"
-                  "${CMAKE_BINARY_DIR}/bin/mysqlsh-python${PYTHONLIBS_MAJOR_MINOR}"
+                  "@rpath/${_PYTHON_SHARED_LIB_NAME}" "@loader_path/../${_PYTHON_SHARED_LIB_NAME}"
+                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
         )
+        INSTALL(PROGRAMS "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/mysqlsh" DESTINATION ${INSTALL_LIBDIR}/lib COMPONENT main)
         set(_PYTHON_EXECUTABLE "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}")
       else()
         file(GLOB _PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}.*")
