@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -158,9 +158,10 @@ class Expr_unparser {
   static std::string order_to_string(const Mysqlx::Crud::Order &c);
   static std::string array_to_string(const Mysqlx::Expr::Expr &e);
   static std::string column_list_to_string(
-      google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Projection> columns);
+      const google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Projection>
+          &columns);
   static std::string order_list_to_string(
-      google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> columns);
+      const google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> &columns);
 
   static void replace(std::string &target, const std::string &old_val,
                       const std::string &new_val);

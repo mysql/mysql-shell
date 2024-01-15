@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1281,7 +1281,8 @@ std::string Expr_unparser::order_to_string(const Mysqlx::Crud::Order &c) {
 }
 
 std::string Expr_unparser::column_list_to_string(
-    google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Projection> columns) {
+    const google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Projection>
+        &columns) {
   std::string result("projection (");
   for (int i = 0; i < columns.size(); i++) {
     std::string strcol = Expr_unparser::column_to_string(columns.Get(i));
@@ -1293,7 +1294,7 @@ std::string Expr_unparser::column_list_to_string(
 }
 
 std::string Expr_unparser::order_list_to_string(
-    google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> columns) {
+    const google::protobuf::RepeatedPtrField<::Mysqlx::Crud::Order> &columns) {
   std::string result("orderby (");
   for (int i = 0; i < columns.size(); i++) {
     std::string strcol = Expr_unparser::order_to_string(columns.Get(i));
