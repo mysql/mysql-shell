@@ -1,5 +1,5 @@
 
-# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -217,9 +217,8 @@ cmake .. \
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
     %if 0%{!?with_protobuf:1}
-      -DPROTOBUF_INCLUDE_DIR="%{?with_mysql_source}/extra/protobuf/protobuf-@PROTOBUF_VERSION@/src" \
-      -DPROTOBUF_LIBRARY="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a" \
-      -DPROTOBUF_LIBRARY_DEBUG="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_VERSION@/cmake/libprotobuf.a"\
+      -DPROTOBUF_INCLUDE_DIR="%{?with_mysql_source}/extra/protobuf/protobuf-@PROTOBUF_BUNDLED_VERSION@/src" \
+      -DPROTOBUF_LIBRARY="%{?with_mysql_source}/bld/extra/protobuf/protobuf-@PROTOBUF_BUNDLED_VERSION@/libprotobuf.a" \
     %endif
 %endif
 %if 0%{?bundled_openssl:1}

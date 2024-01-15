@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -167,9 +167,8 @@ if(WITH_PROTOBUF)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_PROTOBUF=${WITH_PROTOBUF}")
 else()
   if (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_INCLUDE_DIR=${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
-    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY_DEBUG=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/cmake/libprotobuf.a")
+    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_INCLUDE_DIR=${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_BUNDLED_VERSION}/src")
+    list(APPEND EXTRA_CMAKE_OPTS "-DPROTOBUF_LIBRARY=${MYSQL_BUILD_DIR}/extra/protobuf/protobuf-${PROTOBUF_BUNDLED_VERSION}/libprotobuf.a")
   else()
     list(APPEND DEB_BUILD_DEPS "libprotobuf-dev")
     list(APPEND DEB_BUILD_DEPS "protobuf-compiler")

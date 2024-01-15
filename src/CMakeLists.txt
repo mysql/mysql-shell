@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -478,4 +478,8 @@ IF(AUTH_CLIENT_PLUGINS)
   install_bundled_binaries(BINARIES ${AUTH_CLIENT_PLUGINS} DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}" TARGET mysqlsh)
 ELSE()
   MESSAGE(WARNING "Could not find Authentication Client Plugins!")
+ENDIF()
+
+IF(BUNDLED_ABSEIL_LIBRARY)
+  install_bundled_binaries(BINARIES ${BUNDLED_ABSEIL_LIBRARY} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
 ENDIF()
