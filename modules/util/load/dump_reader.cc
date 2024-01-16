@@ -35,6 +35,7 @@
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -86,6 +87,57 @@ auto to_vector_of_strings(const shcore::Array_t &arr) {
 
   return res;
 }
+
+class Index_file {
+ public:
+  explicit Index_file(mysqlshdk::storage::IDirectory *dir,
+                      const std::string &data_filename) {
+    m_idx_file = dir->file(data_filename + ".idx");
+  }
+
+  uint64_t data_size() {
+    load_metadata();
+    return m_data_size;
+  }
+
+ private:
+  void load_metadata() {
+    if (m_metadata_loaded) {
+      return;
+    }
+
+    m_file_size = m_idx_file->file_size();
+    if ((m_file_size % k_entry_size) != 0 || m_file_size < k_entry_size) {
+      log_warning(
+          "idx file %s has unexpected size %s, which is not a multiple of %s",
+          m_idx_file->filename().c_str(), std::to_string(m_file_size).c_str(),
+          std::to_string(k_entry_size).c_str());
+      return;
+    }
+    m_entries = m_file_size / k_entry_size;
+
+    m_idx_file->open(mysqlshdk::storage::Mode::READ);
+    m_idx_file->seek(m_file_size - k_entry_size);
+    m_idx_file->read(&m_data_size, k_entry_size);
+    m_idx_file->close();
+
+    m_data_size = mysqlshdk::utils::network_to_host(m_data_size);
+
+    m_metadata_loaded = true;
+  }
+
+  static constexpr uint64_t k_entry_size = sizeof(uint64_t);
+
+  std::unique_ptr<mysqlshdk::storage::IFile> m_idx_file;
+
+  std::size_t m_file_size = 0;
+
+  uint64_t m_entries = 0;
+
+  uint64_t m_data_size = 0;
+
+  bool m_metadata_loaded = false;
+};
 
 }  // namespace
 
@@ -518,38 +570,42 @@ Dump_reader::Candidate Dump_reader::schedule_chunk_proportionally(
 
 bool Dump_reader::next_table_chunk(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-    std::string *out_schema, std::string *out_table, std::string *out_partition,
-    bool *out_chunked, size_t *out_chunk_index, size_t *out_chunks_total,
-    std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
-    size_t *out_chunk_size, shcore::Dictionary_t *out_options) {
+    Table_chunk *out_chunk) {
   auto iter = schedule_chunk_proportionally(
       tables_being_loaded, &m_tables_with_data, m_options.threads_count());
 
   if (iter != m_tables_with_data.end()) {
-    *out_schema = (*iter)->owner->schema;
-    *out_table = (*iter)->owner->name;
-    *out_partition = (*iter)->partition;
-    *out_chunked = (*iter)->chunked;
-    *out_chunk_index = (*iter)->chunks_consumed;
+    out_chunk->schema = (*iter)->owner->schema;
+    out_chunk->table = (*iter)->owner->name;
+    out_chunk->partition = (*iter)->partition;
+    out_chunk->chunked = (*iter)->chunked;
+    out_chunk->index = (*iter)->chunks_consumed;
 
     if ((*iter)->last_chunk_seen) {
-      *out_chunks_total = (*iter)->available_chunks.size();
+      out_chunk->chunks_total = (*iter)->available_chunks.size();
     } else {
-      *out_chunks_total = 0;
+      out_chunk->chunks_total = 0;
     }
 
-    const auto &info = (*iter)->available_chunks[*out_chunk_index];
+    const auto &info = (*iter)->available_chunks[out_chunk->index];
 
     if (!info.has_value()) {
       throw std::logic_error(
-          "Trying to use chunk " + std::to_string(*out_chunk_index) + " of " +
-          schema_table_object_key(*out_schema, *out_table, *out_partition) +
+          "Trying to use chunk " + std::to_string(out_chunk->index) + " of " +
+          schema_table_object_key(out_chunk->schema, out_chunk->table,
+                                  out_chunk->partition) +
           " which is not yet available");
     }
 
-    *out_file = m_dir->file(info->name());
-    *out_chunk_size = info->size();
-    *out_options = (*iter)->owner->options;
+    out_chunk->compression = (*iter)->owner->compression;
+    out_chunk->file = mysqlshdk::storage::make_file(m_dir->file(info->name()),
+                                                    out_chunk->compression);
+    out_chunk->file_size = info->size();
+    out_chunk->data_size = data_size_in_file(info->name());
+    out_chunk->options = (*iter)->owner->options;
+    out_chunk->dump_complete = (*iter)->data_dumped();
+    out_chunk->basename = (*iter)->basename;
+    out_chunk->extension = (*iter)->extension;
 
     (*iter)->consume_chunk();
     if (!(*iter)->has_data_available()) m_tables_with_data.erase(iter);
@@ -902,12 +958,18 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
 
   options = md->get_map("options");
 
+  std::string compression_type;
+
   if (options) {
     // "compression" and "primaryIndex" are not used by the chunk importer
     // and need to be removed
     // these were misplaced in the options dictionary, code is kept for
     // backward compatibility
-    options->erase("compression");
+
+    if (options->has_key("compression")) {
+      compression_type = options->get_string("compression");
+      options->erase("compression");
+    }
 
     if (options->has_key("primaryIndex")) {
       auto index = options->get_string("primaryIndex");
@@ -941,6 +1003,23 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
 
   di.extension = md->get_string("extension", "tsv");
   di.chunked = md->get_bool("chunking", false);
+
+  if (md->has_key("compression")) {
+    compression_type = md->get_string("compression");
+  }
+
+  if (compression_type.empty()) {
+    try {
+      // extension is either like 'tsv', where split_extension() will return an
+      // empty string, or 'tsv.zst' where it will return '.zst'
+      compression = mysqlshdk::storage::from_extension(
+          std::get<1>(shcore::path::split_extension(di.extension)));
+    } catch (...) {
+      compression = mysqlshdk::storage::Compression::NONE;
+    }
+  } else {
+    compression = mysqlshdk::storage::to_compression(compression_type);
+  }
 
   if (md->has_key("primaryIndex")) {
     primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
@@ -1079,7 +1158,7 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
     }
 
     available_chunks[idx] = *it;
-    reader->m_contents.dump_size += it->size();
+    reader->m_contents.total_file_size += it->size();
     ++chunks_seen;
     found_data = true;
 
@@ -1510,7 +1589,7 @@ void Dump_reader::Dump_info::parse_done_metadata(
 
   if (const auto metadata = fetch_metadata(dir, "@.done.json")) {
     if (metadata->has_key("dataBytes")) {
-      data_size = metadata->get_uint("dataBytes");
+      total_data_size = metadata->get_uint("dataBytes");
     } else {
       log_warning(
           "Dump metadata file @.done.json does not contain dataBytes "
@@ -1532,7 +1611,7 @@ void Dump_reader::Dump_info::parse_done_metadata(
     // only exists in 1.0.1+
     if (metadata->has_key("chunkFileBytes")) {
       for (const auto &file : *metadata->get_map("chunkFileBytes")) {
-        chunk_sizes[file.first] = file.second.as_uint();
+        chunk_data_sizes[file.first] = file.second.as_uint();
       }
     }
   } else {
@@ -1652,10 +1731,17 @@ const std::string &Dump_reader::override_schema(const std::string &s) const {
   return value.first == s ? value.second : s;
 }
 
-void Dump_reader::on_chunk_loaded(const std::string &schema,
-                                  const std::string &table,
-                                  const std::string &partition) {
-  ++find_partition(schema, table, partition, "chunk was loaded")->chunks_loaded;
+void Dump_reader::on_chunk_loaded(const Table_chunk &chunk) {
+  ++find_partition(chunk.schema, chunk.table, chunk.partition,
+                   "chunk was loaded")
+        ->chunks_loaded;
+}
+
+void Dump_reader::on_table_loaded(const Table_chunk &chunk) {
+  const auto tdi = find_partition(chunk.schema, chunk.table, chunk.partition,
+                                  "table data was loaded");
+  assert(tdi->data_dumped());
+  tdi->chunks_loaded = tdi->available_chunks.size();
 }
 
 void Dump_reader::on_index_end(const std::string &schema,
@@ -1816,6 +1902,71 @@ void Dump_reader::set_table_exists(std::string_view schema,
 void Dump_reader::set_view_exists(std::string_view schema,
                                   std::string_view view) {
   find_view(schema, view, "existence is being set")->exists = true;
+}
+
+void Dump_reader::consume_table(const Table_chunk &chunk) {
+  const auto tdi = find_partition(chunk.schema, chunk.table, chunk.partition,
+                                  "table data will be loaded");
+  assert(tdi->data_dumped());
+  tdi->consume_table();
+  m_tables_with_data.erase(tdi);
+}
+
+size_t Dump_reader::partition_file_size(const std::string &schema,
+                                        const std::string &table,
+                                        const std::string &partition) const {
+  const auto tdi = find_partition(schema, table, partition,
+                                  "total file size will be calculated");
+  assert(tdi->data_dumped());
+  size_t size = 0;
+
+  for (const auto &file : tdi->available_chunks) {
+    if (!file.has_value()) {
+      throw std::logic_error("Trying to use chunk of " +
+                             schema_table_object_key(schema, table, partition) +
+                             " which is not yet available");
+    }
+
+    size += file->size();
+  }
+
+  return size;
+}
+
+size_t Dump_reader::partition_data_size(const std::string &schema,
+                                        const std::string &table,
+                                        const std::string &partition) const {
+  const auto tdi = find_partition(schema, table, partition,
+                                  "total data size will be calculated");
+  assert(tdi->data_dumped());
+  size_t size = 0;
+
+  for (const auto &file : tdi->available_chunks) {
+    if (!file.has_value()) {
+      throw std::logic_error("Trying to use chunk of " +
+                             schema_table_object_key(schema, table, partition) +
+                             " which is not yet available");
+    }
+
+    size += data_size_in_file(file->name());
+  }
+
+  return size;
+}
+
+uint64_t Dump_reader::data_size_in_file(const std::string &filename) const {
+  if (const auto it = m_contents.chunk_data_sizes.find(filename);
+      m_contents.chunk_data_sizes.end() != it) {
+    return it->second;
+  }
+
+  try {
+    // @.done.json not there yet, use the idx file
+    return Index_file{m_dir.get(), filename}.data_size();
+  } catch (const std::exception &) {
+    // index file is not present when doing a copy
+    return 0;
+  }
 }
 
 }  // namespace mysqlsh

@@ -451,7 +451,7 @@ help_text="""
         M (Megabytes), G (Gigabytes). Minimum value: 4096. If this option is
         not specified explicitly, the value of the bytesPerChunk dump option is
         used, but only in case of the files with data size greater than 1.5 *
-        bytesPerChunk.
+        bytesPerChunk. Not used if table is BULK LOADED.
 """
 
 \h util.load_dump
@@ -460,7 +460,7 @@ EXPECT_STDOUT_CONTAINS(help_text)
 
 #@<> WL14577-TSFR_1_1 - 2
 util.help('load_dump')
-EXPECT_STDOUT_CONTAINS(help_text)
+EXPECT_TRUE(help_text in util.help('load_dump'))
 
 #@<> WL14577-TSFR_1_2
 TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : "128k" })

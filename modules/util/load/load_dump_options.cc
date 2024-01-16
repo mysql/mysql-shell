@@ -39,6 +39,7 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/aws/s3_bucket_config.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
@@ -46,6 +47,7 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -54,6 +56,19 @@ namespace {
 using Version = mysqlshdk::utils::Version;
 
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
+
+std::string bulk_load_s3_prefix(
+    const std::shared_ptr<mysqlshdk::aws::S3_bucket_config> &config) {
+  // 's3-region://bucket-name/file-name-or-prefix'
+  std::string prefix = "s3-";
+
+  prefix += config->region();
+  prefix += "://";
+  prefix += config->bucket_name();
+  prefix += '/';
+
+  return prefix;
+}
 
 }  // namespace
 
@@ -118,6 +133,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("handleGrantErrors",
                     &Load_dump_options::set_handle_grant_errors)
           .optional("checksum", &Load_dump_options::m_checksum)
+          .optional("disableBulkLoad", &Load_dump_options::m_disable_bulk_load)
           .include(&Load_dump_options::m_oci_bucket_options)
           .include(&Load_dump_options::m_s3_bucket_options)
           .include(&Load_dump_options::m_blob_storage_options)
@@ -198,6 +214,8 @@ void Load_dump_options::set_session(
 
   m_target_server_version =
       Version(query("SELECT @@version")->fetch_one()->get_string(0));
+  DBUG_EXECUTE_IF("dump_loader_bulk_unsupported_version",
+                  { m_target_server_version = Version(8, 3, 0); });
 
   m_is_mds = m_target_server_version.is_mds();
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
@@ -295,7 +313,15 @@ void Load_dump_options::validate() {
         current_console()->print_warning("The given URL is not a prefix PAR.");
       }
 
+      if (mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
+        // prefix PAR is supported by the bulk loader
+        m_bulk_load_info.fs = Bulk_load_fs::URL;
+      }
+
       set_storage_config(std::move(config));
+    } else {
+      // no configuration, we're loading from the local FS
+      m_bulk_load_info.fs = Bulk_load_fs::INFILE;
     }
   }
 
@@ -315,6 +341,8 @@ void Load_dump_options::validate() {
   if (!m_progress_file.has_value()) {
     m_default_progress_file = "load-progress." + m_server_uuid + ".json";
   }
+
+  configure_bulk_load();
 }
 
 std::string Load_dump_options::target_import_info(
@@ -397,11 +425,19 @@ void Load_dump_options::on_unpacked_options() {
   }
 
   if (m_s3_bucket_options) {
-    set_storage_config(m_s3_bucket_options.config());
+    auto config = m_s3_bucket_options.s3_config();
+
+    if (config->valid() && m_s3_bucket_options.endpoint_override().empty()) {
+      // S3 is supported by the bulk loader
+      m_bulk_load_info.fs = Bulk_load_fs::S3;
+      m_bulk_load_info.file_prefix = bulk_load_s3_prefix(config);
+    }
+
+    set_storage_config(std::move(config));
   }
 
   if (m_blob_storage_options) {
-    m_storage_config = m_blob_storage_options.config();
+    set_storage_config(m_blob_storage_options.config());
   }
 
   if (!m_load_data && !m_load_ddl && !m_load_users &&
@@ -516,6 +552,136 @@ void Load_dump_options::set_handle_grant_errors(const std::string &action) {
 void Load_dump_options::set_storage_config(
     std::shared_ptr<mysqlshdk::storage::Config> storage_config) {
   m_storage_config = std::move(storage_config);
+}
+
+void Load_dump_options::configure_bulk_load() {
+  if (m_disable_bulk_load) {
+    log_info("BULK LOAD is explicitly disabled");
+    return;
+  }
+
+  if (Bulk_load_fs::UNSUPPORTED == m_bulk_load_info.fs) {
+    log_info("BULK LOAD: unsupported FS");
+    return;
+  }
+
+  if (m_target_server_version < Version(8, 4, 0)) {
+    // minimum version which supports required syntax is 8.4.0
+    log_info("BULK LOAD: unsupported version");
+    return;
+  }
+
+  const auto instance = mysqlshdk::mysql::Instance(m_base_session);
+
+  // this is actually an unsigned integer, but allowed values are within int64_t
+  // range
+  m_bulk_load_info.threads =
+      instance.get_sysvar_int("bulk_loader.concurrency").value_or(0);
+
+  if (!m_bulk_load_info.threads) {
+    log_info("BULK LOAD: component is not loaded");
+    return;
+  }
+
+  if (!m_skip_binlog && instance.get_sysvar_bool("log_bin").value_or(false)) {
+    // BULK LOAD statement is not replicated
+    log_info("BULK LOAD: binlog is enabled and 'skipBinlog' option is false");
+    return;
+  }
+
+  const auto has_privilege = [&instance](const char *privilege) {
+    return !instance.get_current_user_privileges()
+                ->validate({privilege})
+                .has_missing_privileges();
+  };
+
+  switch (m_bulk_load_info.fs) {
+    case Bulk_load_fs::UNSUPPORTED:
+      log_info("BULK LOAD: unsupported FS");
+      return;
+
+    case Bulk_load_fs::INFILE:
+      // NOTE: this is for testing purposes only, validation is superficial
+      {
+        const auto &co = m_base_session->get_connection_options();
+
+        if (mysqlshdk::db::Transport_type::Tcp == co.get_transport_type() &&
+            !mysqlshdk::utils::Net::is_local_address(co.get_host())) {
+          // in order to use INFILE we need to be connected to the local host
+          log_info("BULK LOAD: local FS and a remote host");
+          return;
+        }  // else we're connected via socket, pipe or to a local TCP address
+      }
+
+      if (const auto path = instance.get_sysvar_string("secure_file_priv");
+          path.has_value()) {
+        if (!path->empty()) {
+          // path is not empty, only files in that directory can be loaded
+          if (!shcore::str_beginswith(
+                  mysqlshdk::storage::make_directory(m_url, storage_config())
+                      ->full_path()
+                      .real(),
+                  mysqlshdk::storage::make_directory(*path, storage_config())
+                      ->full_path()
+                      .real())) {
+            log_info(
+                "BULK LOAD: local FS and dump is not a subdirectory of "
+                "'secure_file_priv'");
+            return;
+          }
+        }  // else path is empty, files can be loaded from anywhere
+      } else {
+        // variable is set to NULL, LOAD DATA INFILE is disabled
+        log_info("BULK LOAD: local FS and 'secure_file_priv' is NULL");
+        return;
+      }
+
+      break;
+
+    case Bulk_load_fs::URL:
+      if (!has_privilege("LOAD_FROM_URL")) {
+        log_info(
+            "BULK LOAD: OCI prefix PAR and 'LOAD_FROM_URL' privilege is "
+            "missing");
+        return;
+      }
+
+      break;
+
+    case Bulk_load_fs::S3:
+      if (!has_privilege("LOAD_FROM_S3")) {
+        log_info("BULK LOAD: AWS S3 and 'LOAD_FROM_S3' privilege is missing");
+        return;
+      }
+
+      break;
+  }
+
+  // BULK LOAD is supported
+  log_info("BULK LOAD is supported");
+  m_bulk_load_info.enabled = true;
+
+  // check if monitoring is enabled
+  auto result = instance.query(
+      "SELECT 1 FROM performance_schema.setup_consumers WHERE ENABLED='YES' "
+      "AND NAME='events_stages_current'");
+
+  if (!result->fetch_one()) {
+    log_info("BULK LOAD monitoring: consumer is disabled");
+    return;
+  }
+
+  result = instance.query(
+      "SELECT 1 FROM performance_schema.setup_instruments WHERE ENABLED='YES' "
+      "AND NAME='stage/bulk_load_sorted/loading'");
+
+  if (!result->fetch_one()) {
+    log_info("BULK LOAD monitoring: instrumentation is disabled");
+    return;
+  }
+
+  log_info("BULK LOAD monitoring is enabled");
+  m_bulk_load_info.monitoring = true;
 }
 
 }  // namespace mysqlsh

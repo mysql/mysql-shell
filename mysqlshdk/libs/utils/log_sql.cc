@@ -24,11 +24,13 @@
  */
 
 #include "mysqlshdk/libs/utils/log_sql.h"
+
 #include <cassert>
 #include <string_view>
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace shcore {
@@ -45,8 +47,8 @@ Log_sql::Log_level get_level_by_name(std::string_view name) {
 }
 
 std::string mask_sql_query(std::string_view sql) {
-  return shcore::str_subvars(
-      sql, [](std::string_view) { return "****"; }, "/*((*/", "/*))*/");
+  return mysqlshdk::oci::mask_any_par(shcore::str_subvars(
+      sql, [](std::string_view) { return "****"; }, "/*((*/", "/*))*/"));
 }
 
 // We need to know when we are in Dba.* context to be (backward) compatible
@@ -149,7 +151,7 @@ void Log_sql::log(uint64_t thread_id, std::string_view sql,
   log_msg.append("tid=");
   log_msg.append(std::to_string(thread_id));
   log_msg.append(": ");
-  log_msg.append(error.format());
+  log_msg.append(mysqlshdk::oci::mask_any_par(error.format()));
 
   if (m_log_sql_level == Log_level::ERROR) {
     // SQL query string isn't logged when Log_level is error. Therefore we need

@@ -26,7 +26,6 @@
 #ifndef MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_H_
 #define MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_H_
 
-#include <array>
 #include <atomic>
 #include <exception>
 #include <memory>
@@ -38,10 +37,9 @@
 #include "modules/util/dump/progress_thread.h"
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table_options.h"
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/libs/textui/text_progress.h"
-#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
+
+#include "modules/util/import_table/import_stats.h"
 
 namespace mysqlshdk::storage::in_memory {
 
@@ -51,35 +49,6 @@ class Allocator;
 
 namespace mysqlsh {
 namespace import_table {
-
-enum Thread_state {
-  IDLE = 0,
-  READING = 1,
-  COMMITTING = 2,
-  ERROR = 3,
-  LAST = 4,
-};
-
-struct Stats {
-  std::atomic<size_t> total_records{0};
-  std::atomic<size_t> total_deleted{0};
-  std::atomic<size_t> total_skipped{0};
-  std::atomic<size_t> total_warnings{0};
-  // total number of uncompressed bytes processed
-  std::atomic<size_t> total_data_bytes{0};
-  // total number of physical bytes processed
-  std::atomic<size_t> total_file_bytes{0};
-  std::atomic<size_t> total_files_processed{0};
-
-  std::array<std::atomic<size_t>, Thread_state::LAST> thread_states{};
-
-  std::string to_string() const {
-    return std::string{"Records: " + std::to_string(total_records) +
-                       "  Deleted: " + std::to_string(total_deleted) +
-                       "  Skipped: " + std::to_string(total_skipped) +
-                       "  Warnings: " + std::to_string(total_warnings)};
-  }
-};
 
 class Import_table final {
  public:
@@ -103,7 +72,7 @@ class Import_table final {
   std::string rows_affected_info();
 
  private:
-  void spawn_workers();
+  void spawn_workers(bool skip_rows);
   void join_workers();
   void chunk_file();
   void build_queue();
@@ -126,6 +95,10 @@ class Import_table final {
   shcore::Synchronized_queue<File_import_info> m_range_queue;
 
   const Import_table_options &m_opt;
+  // when loading a single file in chunks, we skip the rows while chunking;
+  // in such case we don't want the worker to do this, hence we clear this
+  // option and use a cached value locally
+  uint64_t m_skip_rows_count;
   Stats m_stats;
 
   volatile bool *m_interrupt;

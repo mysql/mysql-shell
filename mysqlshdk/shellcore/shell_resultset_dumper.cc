@@ -644,7 +644,7 @@ void dump_json_row(shcore::JSON_dumper *dumper,
         dumper->append_string(encoded);
       } else {
         auto data = row->get_as_string(col_index);
-        dumper->append_string(data.c_str(), data.length());
+        dumper->append_string(data);
       }
     } else if (type == mysqlshdk::db::Type::Integer) {
       dumper->append_int64(row->get_int(col_index));

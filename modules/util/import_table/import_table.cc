@@ -54,6 +54,7 @@ namespace import_table {
 
 Import_table::Import_table(const Import_table_options &options)
     : m_opt(options),
+      m_skip_rows_count(m_opt.skip_rows_count()),
       m_interrupt(nullptr),
       m_progress_thread("Import table", options.show_progress()) {
   m_thread_exception.resize(options.threads_size(), nullptr);
@@ -138,11 +139,15 @@ void Import_table::progress_shutdown() {
   }
 }
 
-void Import_table::spawn_workers() {
+void Import_table::spawn_workers(bool skip_rows) {
+  if (!skip_rows) {
+    m_opt.clear_skip_rows_count();
+  }
+
   const int64_t num_workers = m_opt.threads_size();
   for (int64_t i = 0; i < num_workers; i++) {
     Load_data_worker worker(m_opt, i, &m_prog_sent_bytes, &m_prog_file_bytes,
-                            m_interrupt, &m_range_queue, &m_thread_exception,
+                            m_interrupt, &m_range_queue, &m_thread_exception[i],
                             &m_stats);
     std::thread t = mysqlsh::spawn_scoped_thread(&Load_data_worker::operator(),
                                                  std::move(worker));
@@ -156,7 +161,7 @@ void Import_table::chunk_file() {
   chunk.set_handle_creator(
       [this]() { return m_opt.create_file_handle(m_opt.single_file()); });
   chunk.set_dialect(m_opt.dialect());
-  chunk.set_rows_to_skip(m_opt.skip_rows_count());
+  chunk.set_rows_to_skip(m_skip_rows_count);
   chunk.set_output_queue(&m_range_queue);
   chunk.start();
 
@@ -218,19 +223,20 @@ void Import_table::build_queue() {
 void Import_table::import() {
   progress_setup();
   shcore::on_leave_scope cleanup_progress([this]() { progress_shutdown(); });
-  spawn_workers();
 
-  if (m_opt.is_multifile()) {
-    build_queue();
-  } else {
-    // NOTE: m_total_file_size needs to be set below
+  bool load_in_chunks = false;
+
+  if (!m_opt.is_multifile()) {
     m_has_compressed_files = m_opt.is_compressed(m_opt.single_file());
+    load_in_chunks = m_opt.dialect_supports_chunking();
+  }
 
-    if (m_opt.dialect_supports_chunking()) {
-      scan_file();
-    } else {
-      build_queue();
-    }
+  spawn_workers(!load_in_chunks);
+
+  if (load_in_chunks) {
+    scan_file();
+  } else {
+    build_queue();
   }
 
   join_workers();
@@ -317,7 +323,7 @@ void Import_table::scan_file() {
     }
   });
 
-  Scanner scanner{m_opt.dialect(), m_opt.skip_rows_count()};
+  Scanner scanner{m_opt.dialect(), m_skip_rows_count};
   const auto make_chunk = [this]() {
     return std::make_unique<Allocated_file>(m_opt.single_file(),
                                             m_allocator.get(), true);

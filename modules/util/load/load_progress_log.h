@@ -23,13 +23,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
-#define MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
+#ifndef MODULES_UTIL_LOAD_LOAD_PROGRESS_LOG_H_
+#define MODULES_UTIL_LOAD_LOAD_PROGRESS_LOG_H_
 
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
@@ -41,14 +43,440 @@
 
 namespace mysqlsh {
 
+namespace progress {
+
+namespace entry {
+
+namespace detail {
+
+template <typename U, typename T>
+concept Value_type = std::is_convertible_v<U, T>;
+
+template <typename T>
+struct Value {
+  constexpr Value() = default;
+
+  template <Value_type<T> U>
+  constexpr Value(U &&v) : value{std::forward<U>(v)} {}
+
+  // not initialized on purpose - compiler will warn if an initializer is
+  // missing
+  T value;
+};
+
+}  // namespace detail
+
+struct Worker_id : detail::Value<std::size_t> {
+  static constexpr std::string_view key = "_worker";
+  using Value::Value;
+};
+
+struct Weight : detail::Value<uint64_t> {
+  static constexpr std::string_view key = "_srvthreads";
+  using Value::Value;
+};
+
+struct Indexes : detail::Value<uint64_t> {
+  static constexpr std::string_view key = "_nindexes";
+  using Value::Value;
+};
+
+struct Task {
+  entry::Worker_id worker_id{};
+  entry::Weight weight{};
+};
+
+struct Operation : detail::Value<std::string_view> {
+  static constexpr std::string_view key = "op";
+  using Value::Value;
+};
+
+struct Schema : detail::Value<std::string_view> {
+  static constexpr std::string_view key = "schema";
+  using Value::Value;
+};
+
+struct Table : detail::Value<std::string_view> {
+  static constexpr std::string_view key = "table";
+  using Value::Value;
+};
+
+struct Partition : detail::Value<std::string_view> {
+  static constexpr std::string_view key = "partition";
+  using Value::Value;
+};
+
+struct Chunk : detail::Value<ssize_t> {
+  static constexpr std::string_view key = "chunk";
+  using Value::Value;
+};
+
+struct Subchunk : detail::Value<uint64_t> {
+  static constexpr std::string_view key = "subchunk";
+  using Value::Value;
+};
+
+struct Data_bytes : detail::Value<std::size_t> {
+  static constexpr std::string_view key = "bytes";
+  using Value::Value;
+};
+
+struct File_bytes : detail::Value<std::size_t> {
+  static constexpr std::string_view key = "raw_bytes";
+  using Value::Value;
+};
+
+struct Rows : detail::Value<std::size_t> {
+  static constexpr std::string_view key = "rows";
+  using Value::Value;
+};
+
+struct Transaction_bytes : detail::Value<uint64_t> {
+  static constexpr std::string_view key = "transaction_bytes";
+  using Value::Value;
+};
+
+}  // namespace entry
+
+// status entries
+
+struct Gtid_update {
+  static constexpr entry::Operation op{"GTID-UPDATE"};
+
+  std::string key() const { return std::string{op.value}; }
+};
+
+struct Schema_ddl {
+  static constexpr entry::Operation op{"SCHEMA-DDL"};
+
+  entry::Schema schema;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += '`';
+
+    return k;
+  }
+};
+
+struct Table_ddl {
+  static constexpr entry::Operation op{"TABLE-DDL"};
+
+  entry::Schema schema;
+  entry::Table table;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+    k += '`';
+
+    return k;
+  }
+};
+
+struct Triggers_ddl {
+  static constexpr entry::Operation op{"TRIGGERS-DDL"};
+
+  entry::Schema schema;
+  entry::Table table;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+    k += '`';
+
+    return k;
+  }
+};
+
+struct Table_indexes {
+  static constexpr entry::Operation op{"TABLE-INDEX"};
+
+  entry::Schema schema;
+  entry::Table table;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+    k += '`';
+
+    return k;
+  }
+};
+
+struct Analyze_table {
+  static constexpr entry::Operation op{"TABLE-ANALYZE"};
+
+  entry::Schema schema;
+  entry::Table table;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+    k += '`';
+
+    return k;
+  }
+};
+
+struct Table_chunk {
+  static constexpr entry::Operation op{"TABLE-DATA"};
+
+  entry::Schema schema;
+  entry::Table table;
+  entry::Partition partition;
+  entry::Chunk chunk;
+
+  std::string key() const {
+    std::string k;
+    const auto c = std::to_string(chunk.value);
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() +
+              (partition.value.empty() ? 0 : 3 + partition.value.length()) + 2 +
+              c.length());
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+
+    if (!partition.value.empty()) {
+      k += "`:`";
+      k += partition.value;
+    }
+
+    k += "`:";
+    k += c;
+
+    return k;
+  }
+};
+
+struct Table_subchunk {
+  static constexpr entry::Operation op{"TABLE-SUB-DATA"};
+
+  entry::Schema schema;
+  entry::Table table;
+  entry::Partition partition;
+  entry::Chunk chunk;
+  entry::Subchunk subchunk;
+
+  std::string key() const {
+    std::string k;
+    const auto c = std::to_string(chunk.value);
+    const auto s = std::to_string(subchunk.value);
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() +
+              (partition.value.empty() ? 0 : 3 + partition.value.length()) + 2 +
+              c.length() + 1 + s.length());
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+
+    if (!partition.value.empty()) {
+      k += "`:`";
+      k += partition.value;
+    }
+
+    k += "`:";
+    k += c;
+    k += ':';
+    k += s;
+
+    return k;
+  }
+};
+
+struct Bulk_load {
+  static constexpr entry::Operation op{"TABLE-DATA-BULK"};
+
+  entry::Schema schema;
+  entry::Table table;
+  entry::Partition partition;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() +
+              (partition.value.empty() ? 0 : 3 + partition.value.length()) + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+
+    if (!partition.value.empty()) {
+      k += "`:`";
+      k += partition.value;
+    }
+
+    k += '`';
+
+    return k;
+  }
+};
+
+template <typename T>
+concept Status_entry =
+    std::is_base_of_v<Gtid_update, T> || std::is_base_of_v<Schema_ddl, T> ||
+    std::is_base_of_v<Table_ddl, T> || std::is_base_of_v<Triggers_ddl, T> ||
+    std::is_base_of_v<Table_indexes, T> ||
+    std::is_base_of_v<Analyze_table, T> || std::is_base_of_v<Table_chunk, T> ||
+    std::is_base_of_v<Table_subchunk, T> || std::is_base_of_v<Bulk_load, T>;
+
+namespace start {
+
+struct Gtid_update : public progress::Gtid_update {};
+
+struct Schema_ddl : public progress::Schema_ddl {};
+
+struct Table_ddl : public progress::Table_ddl {
+  entry::Task task;
+};
+
+struct Triggers_ddl : public progress::Triggers_ddl {};
+
+struct Table_indexes : public progress::Table_indexes {
+  entry::Task task;
+  entry::Indexes indexes;
+};
+
+struct Analyze_table : public progress::Analyze_table {
+  entry::Task task;
+};
+
+struct Table_chunk : public progress::Table_chunk {
+  entry::Task task;
+};
+
+struct Table_subchunk : public progress::Table_subchunk {
+  entry::Task task;
+};
+
+struct Bulk_load : public progress::Bulk_load {
+  entry::Task task;
+};
+
+template <typename T>
+concept Entry =
+    std::is_same_v<T, Gtid_update> || std::is_same_v<T, Schema_ddl> ||
+    std::is_same_v<T, Table_ddl> || std::is_same_v<T, Triggers_ddl> ||
+    std::is_same_v<T, Table_indexes> || std::is_same_v<T, Analyze_table> ||
+    std::is_same_v<T, Table_chunk> || std::is_same_v<T, Table_subchunk> ||
+    std::is_same_v<T, Bulk_load>;
+
+}  // namespace start
+
+namespace update {
+
+struct Bulk_load : public progress::Bulk_load {
+  entry::Data_bytes data_bytes;
+};
+
+template <typename T>
+concept Entry = std::is_same_v<T, Bulk_load>;
+
+}  // namespace update
+
+namespace end {
+
+struct Gtid_update : public progress::Gtid_update {};
+
+struct Schema_ddl : public progress::Schema_ddl {};
+
+struct Table_ddl : public progress::Table_ddl {};
+
+struct Triggers_ddl : public progress::Triggers_ddl {};
+
+struct Table_indexes : public progress::Table_indexes {};
+
+struct Analyze_table : public progress::Analyze_table {};
+
+struct Table_chunk : public progress::Table_chunk {
+  entry::Data_bytes data_bytes;
+  entry::File_bytes file_bytes;
+  entry::Rows rows;
+};
+
+struct Table_subchunk : public progress::Table_subchunk {
+  entry::Transaction_bytes bytes;
+};
+
+struct Bulk_load : public progress::Bulk_load {
+  entry::Data_bytes data_bytes;
+  entry::File_bytes file_bytes;
+  entry::Rows rows;
+};
+
+template <typename T>
+concept Entry =
+    std::is_same_v<T, Gtid_update> || std::is_same_v<T, Schema_ddl> ||
+    std::is_same_v<T, Table_ddl> || std::is_same_v<T, Triggers_ddl> ||
+    std::is_same_v<T, Table_indexes> || std::is_same_v<T, Analyze_table> ||
+    std::is_same_v<T, Table_chunk> || std::is_same_v<T, Table_subchunk> ||
+    std::is_same_v<T, Bulk_load>;
+
+}  // namespace end
+
+template <typename T>
+concept Log_entry = start::Entry<T> || update::Entry<T> || end::Entry<T>;
+
+}  // namespace progress
+
 class Load_progress_log final {
  public:
   enum Status { PENDING, INTERRUPTED, DONE };
 
   struct Progress_status {
     Status status;
-    uint64_t bytes_completed;
-    uint64_t raw_bytes_completed;
+    uint64_t data_bytes_completed;
+    uint64_t file_bytes_completed;
   };
 
   Progress_status init(std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -71,8 +499,8 @@ class Load_progress_log final {
 
     Status status;
     std::string data;
-    uint64_t bytes_completed = 0;
-    uint64_t raw_bytes_completed = 0;
+    uint64_t data_bytes_completed = 0;
+    uint64_t file_bytes_completed = 0;
 
     if (existing_file && existing_file->exists()) {
       existing_file->open(mysqlshdk::storage::Mode::READ);
@@ -80,10 +508,19 @@ class Load_progress_log final {
       existing_file->close();
 
       try {
+        const std::string done_key{"done"};
+        const std::string op{progress::entry::Operation::key};
+        const std::string schema{progress::entry::Schema::key};
+        const std::string table{progress::entry::Table::key};
+        const std::string partition{progress::entry::Partition::key};
+        const std::string chunk{progress::entry::Chunk::key};
+        const std::string subchunk{progress::entry::Subchunk::key};
+        const std::string bytes{progress::entry::Data_bytes::key};
+        const std::string raw_bytes{progress::entry::File_bytes::key};
+
         shcore::str_itersplit(
             data,
-            [this, &bytes_completed,
-             &raw_bytes_completed](std::string_view line) -> bool {
+            [&, this](std::string_view line) -> bool {
               if (shcore::str_strip_view(line).empty()) {
                 return true;
               }
@@ -91,38 +528,51 @@ class Load_progress_log final {
               shcore::Value doc = shcore::Value::parse(line);
               shcore::Dictionary_t entry = doc.as_map();
 
-              bool done = entry->get_int("done") != 0;
+              bool done = entry->get_int(done_key) != 0;
 
-              std::string key = entry->get_string("op");
+              std::string key = entry->get_string(op);
 
-              if (entry->has_key("schema"))
-                key += ":`" + entry->get_string("schema") + "`";
+              if (const auto it = entry->find(schema); entry->end() != it) {
+                key += ":`";
+                key += it->second.get_string();
+                key += '`';
+              }
 
-              if (entry->has_key("table"))
-                key += ":`" + entry->get_string("table") + "`";
+              if (const auto it = entry->find(table); entry->end() != it) {
+                key += ":`";
+                key += it->second.get_string();
+                key += '`';
+              }
 
-              if (entry->has_key("partition"))
-                key += ":`" + entry->get_string("partition") + "`";
+              if (const auto it = entry->find(partition); entry->end() != it) {
+                key += ":`";
+                key += it->second.get_string();
+                key += '`';
+              }
 
-              if (entry->has_key("chunk"))
-                key += ":" + std::to_string(entry->get_int("chunk"));
+              if (const auto it = entry->find(chunk); entry->end() != it) {
+                key += ':';
+                key += std::to_string(it->second.as_int());
+              }
 
-              if (entry->has_key("subchunk"))
-                key += ":" + std::to_string(entry->get_int("subchunk"));
+              if (const auto it = entry->find(subchunk); entry->end() != it) {
+                key += ':';
+                key += std::to_string(it->second.as_uint());
+              }
 
-              auto iter = m_last_state.find(key);
-              if (iter == m_last_state.end() || !done) {
-                m_last_state.emplace(
-                    key, Status_details{Status::INTERRUPTED, std::move(entry)});
-              } else {
-                if (entry->has_key("bytes"))
-                  bytes_completed += entry->get_uint("bytes");
+              const auto result = m_last_state.try_emplace(
+                  std::move(key), Status_details{Status::INTERRUPTED});
 
-                if (entry->has_key("raw_bytes"))
-                  raw_bytes_completed += entry->get_uint("raw_bytes");
+              if (done) {
+                result.first->second.status = Status::DONE;
 
-                iter->second.status = Status::DONE;
-                iter->second.details = std::move(entry);
+                data_bytes_completed += entry->get_uint(bytes);
+                file_bytes_completed += entry->get_uint(raw_bytes);
+              }
+
+              if (result.second || done) {
+                // store entry if this is a new status, or an end status
+                result.first->second.details = std::move(entry);
               }
 
               return true;
@@ -147,7 +597,7 @@ class Load_progress_log final {
         flush();
       }
     }
-    return {status, bytes_completed, raw_bytes_completed};
+    return {status, data_bytes_completed, file_bytes_completed};
   }
 
   void reset_progress() {
@@ -179,308 +629,248 @@ class Load_progress_log final {
     }
   }
 
-  Status schema_ddl_status(const std::string &schema) const {
-    auto it = m_last_state.find("SCHEMA-DDL:`" + schema + "`");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
+  inline Status status(const progress::Status_entry auto &entry) const {
+    const auto it = this->find(entry);
+    return m_last_state.end() == it ? Status::PENDING : it->second.status;
   }
 
-  Status triggers_ddl_status(const std::string &schema,
-                             const std::string &table) const {
-    auto it =
-        m_last_state.find("TRIGGERS-DDL:`" + schema + "`:`" + table + "`");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
-  }
-
-  Status table_ddl_status(const std::string &schema,
-                          const std::string &table) const {
-    auto it = m_last_state.find("TABLE-DDL:`" + schema + "`:`" + table + "`");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
-  }
-
-  Status table_chunk_status(const std::string &schema, const std::string &table,
-                            const std::string &partition, ssize_t chunk) const {
-    auto it = m_last_state.find("TABLE-DATA:`" + schema + "`:`" + table +
-                                (partition.empty() ? "" : "`:`" + partition) +
-                                "`:" + std::to_string(chunk));
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
-  }
-
-  Status table_subchunk_status(const std::string &schema,
-                               const std::string &table,
-                               const std::string &partition, ssize_t chunk,
-                               uint64_t subchunk) const {
-    auto it = m_last_state.find(
-        encode_subchunk(schema, table, partition, chunk, subchunk));
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
-  }
-
-  uint64_t table_subchunk_size(const std::string &schema,
-                               const std::string &table,
-                               const std::string &partition, ssize_t chunk,
-                               uint64_t subchunk) const {
-    auto it = m_last_state.find(
-        encode_subchunk(schema, table, partition, chunk, subchunk));
-    if (it == m_last_state.end()) return 0;
-    return it->second.details->get_uint("transaction_bytes");
-  }
-
-  Status gtid_update_status() const {
-    auto it = m_last_state.find("GTID-UPDATE");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
+  uint64_t table_subchunk_size(const progress::Table_subchunk &entry) const {
+    const auto it = this->find(entry);
+    return m_last_state.end() == it
+               ? 0
+               : it->second.details->get_uint(
+                     std::string{progress::entry::Transaction_bytes::key});
   }
 
   std::string server_uuid() const {
-    auto it = m_last_state.find("SERVER-UUID");
-    if (it == m_last_state.end()) return {};
-    return it->second.details->get_string("uuid");
-  }
-
-  Status table_index_status(const std::string &schema,
-                            const std::string &table) const {
-    auto it = m_last_state.find("TABLE-INDEX:`" + schema + "`:`" + table + "`");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
-  }
-
-  Status analyze_table_status(const std::string &schema,
-                              const std::string &table) const {
-    auto it =
-        m_last_state.find("TABLE-ANALYZE:`" + schema + "`:`" + table + "`");
-    if (it == m_last_state.end()) return Status::PENDING;
-    return it->second.status;
+    const auto it = this->find(Server_uuid{});
+    return m_last_state.end() == it
+               ? std::string{}
+               : it->second.details->get_string(std::string{Uuid::key});
   }
 
   void set_server_uuid(const std::string &uuid) {
     const auto saved_uuid = server_uuid();
 
     if (saved_uuid.empty()) {
-      log(true, "SERVER-UUID", {}, {}, {},
-          [&](Dumper *json) { json->append_string("uuid", uuid); });
+      write_log(true, Set_server_uuid{{}, uuid});
     } else if (!shcore::str_caseeq(uuid, saved_uuid)) {
       THROW_ERROR(SHERR_LOAD_PROGRESS_FILE_UUID_MISMATCH, saved_uuid.c_str(),
                   uuid.c_str());
     }
   }
 
-  // schema DDL includes the schema script and views
-  void start_schema_ddl(const std::string &schema) {
-    if (schema_ddl_status(schema) != Status::DONE)
-      log(false, "SCHEMA-DDL", schema);
-  }
+  void log(const progress::start::Entry auto &entry) { do_log(false, entry); }
 
-  void end_schema_ddl(const std::string &schema) {
-    if (schema_ddl_status(schema) != Status::DONE)
-      log(true, "SCHEMA-DDL", schema);
-  }
+  void log(const progress::update::Entry auto &entry) { do_log(false, entry); }
 
-  void start_table_ddl(const std::string &schema, const std::string &table) {
-    if (table_ddl_status(schema, table) != Status::DONE)
-      log(false, "TABLE-DDL", schema, table);
-  }
-
-  void end_table_ddl(const std::string &schema, const std::string &table) {
-    if (table_ddl_status(schema, table) != Status::DONE)
-      log(true, "TABLE-DDL", schema, table);
-  }
-
-  void start_triggers_ddl(const std::string &schema, const std::string &table) {
-    if (triggers_ddl_status(schema, table) != Status::DONE)
-      log(false, "TRIGGERS-DDL", schema, table);
-  }
-
-  void end_triggers_ddl(const std::string &schema, const std::string &table) {
-    if (triggers_ddl_status(schema, table) != Status::DONE)
-      log(true, "TRIGGERS-DDL", schema, table);
-  }
-
-  void start_table_chunk(int32_t worker_id, const std::string &schema,
-                         const std::string &table, const std::string &partition,
-                         ssize_t index) {
-    if (table_chunk_status(schema, table, partition, index) != Status::DONE)
-      log_chunk_started(worker_id, schema, table, partition, index);
-  }
-
-  void end_table_chunk(const std::string &schema, const std::string &table,
-                       const std::string &partition, ssize_t index,
-                       size_t bytes_loaded, size_t raw_bytes_loaded,
-                       size_t rows_loaded) {
-    if (table_chunk_status(schema, table, partition, index) != Status::DONE)
-      log_chunk_finished(schema, table, partition, index, bytes_loaded,
-                         raw_bytes_loaded, rows_loaded);
-  }
-
-  void start_table_subchunk(int32_t worker_id, const std::string &schema,
-                            const std::string &table,
-                            const std::string &partition, ssize_t index,
-                            uint64_t subchunk) {
-    if (table_subchunk_status(schema, table, partition, index, subchunk) !=
-        Status::DONE) {
-      log_subchunk_started(worker_id, schema, table, partition, index,
-                           subchunk);
-    }
-  }
-
-  void end_table_subchunk(const std::string &schema, const std::string &table,
-                          const std::string &partition, ssize_t index,
-                          uint64_t subchunk, uint64_t bytes) {
-    if (table_subchunk_status(schema, table, partition, index, subchunk) !=
-        Status::DONE) {
-      log_subchunk_finished(schema, table, partition, index, subchunk, bytes);
-    }
-  }
-
-  void start_gtid_update() {
-    if (gtid_update_status() != Status::DONE) log(false, "GTID-UPDATE");
-  }
-
-  void end_gtid_update() {
-    if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE");
-  }
-
-  void start_table_indexes(int32_t worker_id, const std::string &schema,
-                           const std::string &table, size_t num_indexes) {
-    if (table_index_status(schema, table) != Status::DONE) {
-      log(false, "TABLE-INDEX", schema, table, "", [&](Dumper *json) {
-        json->append_int("_worker", worker_id);
-        json->append_int64("_nindexes", num_indexes);
-      });
-    }
-  }
-
-  void end_table_indexes(const std::string &schema, const std::string &table) {
-    if (table_index_status(schema, table) != Status::DONE)
-      log(true, "TABLE-INDEX", schema, table);
-  }
-
-  void start_analyze_table(const std::string &schema,
-                           const std::string &table) {
-    if (analyze_table_status(schema, table) != Status::DONE)
-      log(false, "TABLE-ANALYZE", schema, table);
-  }
-
-  void end_analyze_table(const std::string &schema, const std::string &table) {
-    if (analyze_table_status(schema, table) != Status::DONE)
-      log(true, "TABLE-ANALYZE", schema, table);
-  }
+  void log(const progress::end::Entry auto &entry) { do_log(true, entry); }
 
  private:
   using Dumper = shcore::JSON_dumper;
-  using Callback = std::function<void(Dumper *)>;
 
   struct Status_details {
     Status status;
-    shcore::Dictionary_t details;
+    shcore::Dictionary_t details{};
   };
 
-  std::unique_ptr<mysqlshdk::storage::IFile> m_file;
-  std::unique_ptr<mysqlshdk::storage::IFile> m_real_file;
-  const std::string *m_memfile_contents = nullptr;
+  using Last_state = std::unordered_map<std::string, Status_details>;
 
-  std::unordered_map<std::string, Status_details> m_last_state;
+  struct Uuid : progress::entry::detail::Value<std::string_view> {
+    static constexpr std::string_view key = "uuid";
+    using Value::Value;
+  };
 
-  void log(bool end, const std::string &op, const std::string &schema = "",
-           const std::string &table = "", const std::string &partition = "",
-           const Callback &more = {}) {
-    if (m_file) {
-      Dumper json;
+  struct Server_uuid {
+    static constexpr progress::entry::Operation op{"SERVER-UUID"};
 
-      json.start_object();
-      json.append_string("op", op);
-      json.append_bool("done", end);
-      json.append_int64("timestamp",
-                        std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count());
-      if (!schema.empty()) {
-        json.append_string("schema", schema);
-        if (!table.empty()) {
-          json.append_string("table", table);
-          if (!partition.empty()) {
-            json.append_string("partition", partition);
-          }
-        }
-      }
-      if (more) {
-        more(&json);
-      }
-      json.end_object();
+    std::string key() const { return std::string{op.value}; }
+  };
 
-      mysqlshdk::storage::fputs(json.str() + "\n", m_file.get());
-      flush();
+  struct Set_server_uuid : public Server_uuid {
+    Uuid uuid;
+  };
+
+  template <typename T>
+  inline static void append(Dumper *json,
+                            const T &entry) requires(!progress::Log_entry<T>) {
+    json->append(entry.key, entry.value);
+  }
+
+  static void append(Dumper *json, const progress::entry::Task &entry) {
+    append(json, entry.worker_id);
+    append(json, entry.weight);
+  }
+
+  static void append(Dumper *, const progress::Gtid_update &) {}
+
+  static void append(Dumper *json, const progress::Schema_ddl &entry) {
+    append(json, entry.schema);
+  }
+
+  static void append(Dumper *json, const progress::Table_ddl &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+  }
+
+  static void append(Dumper *json, const progress::start::Table_ddl &entry) {
+    append(json, static_cast<const progress::Table_ddl &>(entry));
+    append(json, entry.task);
+  }
+
+  static void append(Dumper *json, const progress::Triggers_ddl &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+  }
+
+  static void append(Dumper *json, const progress::Table_indexes &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+  }
+
+  static void append(Dumper *json,
+                     const progress::start::Table_indexes &entry) {
+    append(json, static_cast<const progress::Table_indexes &>(entry));
+    append(json, entry.task);
+    append(json, entry.indexes);
+  }
+
+  static void append(Dumper *json, const progress::Analyze_table &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+  }
+
+  static void append(Dumper *json,
+                     const progress::start::Analyze_table &entry) {
+    append(json, static_cast<const progress::Analyze_table &>(entry));
+    append(json, entry.task);
+  }
+
+  static void append(Dumper *json, const progress::Table_chunk &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+
+    if (!entry.partition.value.empty()) {
+      append(json, entry.partition);
+    }
+
+    append(json, entry.chunk);
+  }
+
+  static void append(Dumper *json, const progress::start::Table_chunk &entry) {
+    append(json, static_cast<const progress::Table_chunk &>(entry));
+    append(json, entry.task);
+  }
+
+  static void append(Dumper *json, const progress::end::Table_chunk &entry) {
+    append(json, static_cast<const progress::Table_chunk &>(entry));
+    append(json, entry.data_bytes);
+    append(json, entry.file_bytes);
+    append(json, entry.rows);
+  }
+
+  static void append(Dumper *json, const progress::Table_subchunk &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+
+    if (!entry.partition.value.empty()) {
+      append(json, entry.partition);
+    }
+
+    append(json, entry.chunk);
+    append(json, entry.subchunk);
+  }
+
+  static void append(Dumper *json,
+                     const progress::start::Table_subchunk &entry) {
+    append(json, static_cast<const progress::Table_subchunk &>(entry));
+    append(json, entry.task);
+  }
+
+  static void append(Dumper *json, const progress::end::Table_subchunk &entry) {
+    append(json, static_cast<const progress::Table_subchunk &>(entry));
+    append(json, entry.bytes);
+  }
+
+  static void append(Dumper *json, const progress::Bulk_load &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+
+    if (!entry.partition.value.empty()) {
+      append(json, entry.partition);
     }
   }
 
-  void log(bool end, const std::string &op, const std::string &schema,
-           const std::string &table, const std::string &partition,
-           ssize_t chunk_index, const Callback &more = {}) {
-    log(end, op, schema, table, partition, [&](Dumper *json) {
-      json->append_int("chunk", chunk_index);
-
-      if (more) {
-        more(json);
-      }
-    });
+  static void append(Dumper *json, const progress::start::Bulk_load &entry) {
+    append(json, static_cast<const progress::Bulk_load &>(entry));
+    append(json, entry.task);
   }
 
-  void log_chunk(bool end, const std::string &schema, const std::string &table,
-                 const std::string &partition, ssize_t chunk_index,
-                 const Callback &more = {}) {
-    log(end, "TABLE-DATA", schema, table, partition, chunk_index, more);
+  static void append(Dumper *json, const progress::update::Bulk_load &entry) {
+    append(json, static_cast<const progress::Bulk_load &>(entry));
+    append(json, entry.data_bytes);
   }
 
-  void log_chunk_started(int32_t worker_id, const std::string &schema,
-                         const std::string &table, const std::string &partition,
-                         ssize_t chunk_index) {
-    log_chunk(false, schema, table, partition, chunk_index,
-              [&](Dumper *json) { json->append_int("_worker", worker_id); });
+  static void append(Dumper *json, const progress::end::Bulk_load &entry) {
+    append(json, static_cast<const progress::Bulk_load &>(entry));
+    append(json, entry.data_bytes);
+    append(json, entry.file_bytes);
+    append(json, entry.rows);
   }
 
-  void log_chunk_finished(const std::string &schema, const std::string &table,
-                          const std::string &partition, ssize_t chunk_index,
-                          size_t bytes_loaded, size_t raw_bytes_loaded,
-                          size_t rows_loaded) {
-    log_chunk(true, schema, table, partition, chunk_index, [&](Dumper *json) {
-      json->append_uint64("bytes", bytes_loaded);
-      json->append_uint64("raw_bytes", raw_bytes_loaded);
-      json->append_uint64("rows", rows_loaded);
-    });
+  static void append(Dumper *, const Server_uuid &) {}
+
+  static void append(Dumper *json, const Set_server_uuid &entry) {
+    append(json, static_cast<const Server_uuid &>(entry));
+    append(json, entry.uuid);
   }
 
-  void log_subchunk(bool end, const std::string &schema,
-                    const std::string &table, const std::string &partition,
-                    ssize_t chunk_index, uint64_t subchunk,
-                    const Callback &more = {}) {
-    log(end, "TABLE-SUB-DATA", schema, table, partition, chunk_index,
-        [&](Dumper *json) {
-          json->append_int("subchunk", subchunk);
+  static void begin_log(Dumper *json, bool done,
+                        const progress::entry::Operation &op) {
+    assert(json);
 
-          if (more) {
-            more(json);
-          }
-        });
+    json->start_object();
+    append(json, op);
+    json->append_bool("done", done);
+    json->append_int64("timestamp",
+                       std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count());
   }
 
-  void log_subchunk_started(int32_t worker_id, const std::string &schema,
-                            const std::string &table,
-                            const std::string &partition, ssize_t chunk_index,
-                            uint64_t subchunk) {
-    log_subchunk(false, schema, table, partition, chunk_index, subchunk,
-                 [&](Dumper *json) { json->append_int("_worker", worker_id); });
+  static void end_log(Dumper *json) {
+    assert(json);
+
+    json->end_object();
   }
 
-  void log_subchunk_finished(const std::string &schema,
-                             const std::string &table,
-                             const std::string &partition, ssize_t chunk_index,
-                             uint64_t subchunk, uint64_t bytes) {
-    log_subchunk(
-        true, schema, table, partition, chunk_index, subchunk,
-        [&](Dumper *json) { json->append_uint64("transaction_bytes", bytes); });
+  void write_log(const Dumper &json) {
+    mysqlshdk::storage::fputs(json.str(), m_file.get());
+    mysqlshdk::storage::fputs("\n", m_file.get());
+    flush();
+  }
+
+  inline void do_log(bool done, const progress::Log_entry auto &entry) {
+    if (status(entry) == Status::DONE) {
+      return;
+    }
+
+    write_log(done, entry);
+  }
+
+  template <typename T>
+  inline void write_log(bool done, const T &entry) requires(
+      progress::Log_entry<T> || std::is_same_v<T, Set_server_uuid>) {
+    if (!m_file) {
+      return;
+    }
+
+    Dumper json;
+
+    begin_log(&json, done, entry.op);
+    append(&json, entry);
+    end_log(&json);
+    write_log(json);
   }
 
   void flush() {
@@ -495,14 +885,21 @@ class Load_progress_log final {
     }
   }
 
-  std::string encode_subchunk(const std::string &schema,
-                              const std::string &table,
-                              const std::string &partition, ssize_t chunk,
-                              uint64_t subchunk) const {
-    return "TABLE-SUB-DATA:`" + schema + "`:`" + table +
-           (partition.empty() ? "" : "`:`" + partition) +
-           "`:" + std::to_string(chunk) + ":" + std::to_string(subchunk);
+  template <typename T>
+  Last_state::const_iterator find(const T &entry) const
+      requires(progress::Status_entry<T> || std::is_base_of_v<Server_uuid, T>) {
+    if (m_last_state.empty()) {
+      return m_last_state.end();
+    }
+
+    return m_last_state.find(entry.key());
   }
+
+  std::unique_ptr<mysqlshdk::storage::IFile> m_file;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_real_file;
+  const std::string *m_memfile_contents = nullptr;
+
+  Last_state m_last_state;
 };
 
 inline std::string to_string(Load_progress_log::Status status) {
@@ -519,4 +916,4 @@ inline std::string to_string(Load_progress_log::Status status) {
 
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
+#endif  // MODULES_UTIL_LOAD_LOAD_PROGRESS_LOG_H_

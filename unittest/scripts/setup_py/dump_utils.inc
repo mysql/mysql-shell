@@ -2,6 +2,7 @@ from contextlib import ExitStack
 import json
 import os
 import os.path
+import random
 import re
 import urllib.parse
 
@@ -514,6 +515,76 @@ def backup_file(path):
         os.rename(path, backup)
         stack.callback(lambda: os.rename(backup, path))
     return stack
+
+def create_test_table(sess, schema, table, create_definition, nrows = 1000):
+    sess.run_sql("CREATE SCHEMA IF NOT EXISTS !", [ schema ])
+    sess.run_sql(f"DROP TABLE IF EXISTS !.!", [ schema, table ])
+    sess.run_sql(f"CREATE TABLE !.! {create_definition}", [ schema, table ])
+    columns = {}
+    next_int = 0
+    def pk():
+        nonlocal next_int
+        next_int = next_int + 1
+        return str(next_int)
+    def random_int_string(n):
+        return ''.join(random.choices("123456789", k = n))
+    for c in sess.run_sql("SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY='PRI' FROM information_schema.columns WHERE TABLE_SCHEMA=? AND TABLE_NAME=?", [ schema, table ]).fetch_all():
+        fun = None
+        if c[2]:
+            if c[1].endswith("int"):
+                fun = pk
+            else:
+                raise Exception("Only integer PKs are supported")
+        else:
+            if c[1].endswith("int"):
+                fun = lambda: str(random.randint(-100, 100))
+            elif c[1].startswith("varchar(") or c[1].startswith("char(") or c[1].startswith("varbinary(") or c[1].startswith("binary("):
+                count = int(re.findall(r'\d+', c[1])[0])
+                if c[1][0] == "v":
+                    fun = lambda n=count: f"'{random_string(1, n)}'"
+                else:
+                    fun = lambda n=count: f"'{random_string(n)}'"
+            elif c[1] == "double" or c[1] == "float":
+                fun = lambda: str(random.random())
+            elif c[1].startswith("decimal("):
+                count = re.findall(r'(\d+),(\d+)', c[1])[0]
+                fun = lambda x=int(count[0]),y=int(count[1]): f"'{random_int_string(x - y)}.{random_int_string(y)}'"
+            elif c[1] == "datetime":
+                fun = lambda: "now()"
+            elif c[1] == "date":
+                fun = lambda: "date(now())"
+            elif c[1] == "time":
+                fun = lambda: "time(now())"
+            elif c[1].endswith("blob") or c[1].endswith("text"):
+                fun = lambda: f"'{random_string(100)}'"
+            elif c[1] == "json":
+                fun = lambda: f'\'{{"key": "{random_string(20)}", "value": "{random_string(100)}"}}\''
+            else:
+                raise Exception(f"Unsupported column type: {c[1]}")
+        columns[c[0]] = fun
+    sql = f"INSERT INTO !.! ({','.join(columns.keys())}) VALUES {','.join([f'''({','.join([f() for f in columns.values()])})''' for i in range(nrows)])}"
+    sess.run_sql(sql, [ schema, table ])
+    sess.run_sql("ANALYZE TABLE !.!", [ schema, table ])
+
+def grant_privilege(sess, privilege, level, user = f"`{__user}`@`{__host}`"):
+    sess.run_sql(f"GRANT {privilege} ON {level} TO {user}")
+
+def revoke_privilege(sess, privilege, level, user = f"`{__user}`@`{__host}`"):
+    sess.run_sql(f"REVOKE {privilege} ON {level} FROM {user}")
+
+def enable_bulk_load(sess):
+    try:
+        sess.run_sql("INSTALL COMPONENT 'file://component_bulk_loader'")
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def disable_bulk_load(sess):
+    try:
+        sess.run_sql("UNINSTALL COMPONENT 'file://component_bulk_loader'")
+    except:
+        pass
 
 # constants
 test_user = "sample_user"

@@ -95,6 +95,16 @@ class Load_dump_options {
 
   enum class Handle_grant_errors { ABORT, DROP_ACCOUNT, IGNORE };
 
+  enum class Bulk_load_fs { UNSUPPORTED, INFILE, URL, S3 };
+
+  struct Bulk_load_info {
+    bool enabled = false;
+    bool monitoring = false;
+    uint64_t threads = 0;
+    Bulk_load_fs fs = Bulk_load_fs::UNSUPPORTED;
+    std::string file_prefix;
+  };
+
   Load_dump_options();
 
   explicit Load_dump_options(const std::string &url);
@@ -254,6 +264,10 @@ class Load_dump_options {
 
   inline bool checksum() const noexcept { return m_checksum; }
 
+  inline const Bulk_load_info &bulk_load_info() const noexcept {
+    return m_bulk_load_info;
+  }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
 
@@ -270,9 +284,7 @@ class Load_dump_options {
                       const std::unordered_set<std::string> &included,
                       const std::unordered_set<std::string> &excluded) const;
 
-  bool include_object_ci(std::string_view schema, std::string_view object,
-                         const std::unordered_set<std::string> &included,
-                         const std::unordered_set<std::string> &excluded) const;
+  void configure_bulk_load();
 
   std::string m_url;
   uint64_t m_threads_count = 4;
@@ -307,6 +319,7 @@ class Load_dump_options {
   bool m_load_indexes = true;
   Update_gtid_set m_update_gtid_set = Update_gtid_set::OFF;
   std::string m_target_schema;
+  bool m_disable_bulk_load = false;
 
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
@@ -331,6 +344,8 @@ class Load_dump_options {
   bool m_partial_revokes = false;
 
   bool m_use_fast_sub_chunking = false;
+
+  Bulk_load_info m_bulk_load_info;
 };
 
 }  // namespace mysqlsh

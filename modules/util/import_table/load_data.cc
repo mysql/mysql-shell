@@ -42,6 +42,7 @@ using off64_t = off_t;
 #include <mysql.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cinttypes>
 #include <memory>
 #include <utility>
@@ -611,7 +612,7 @@ int local_infile_error(void *userdata, char *error_msg,
     } catch (...) {
       snprintf(error_msg, error_msg_len, "Unknown exception during LOAD DATA");
     }
-  } else if (file_info->user_interrupt && *file_info->user_interrupt) {
+  } else if (*file_info->user_interrupt) {
     snprintf(error_msg, error_msg_len, "Interrupted");
   } else {
     snprintf(error_msg, error_msg_len, "Unknown error during LOAD DATA");
@@ -621,22 +622,28 @@ int local_infile_error(void *userdata, char *error_msg,
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    std::atomic<size_t> *prog_sent_bytes, std::atomic<size_t> *prog_file_bytes,
+    std::atomic<size_t> *prog_data_bytes, std::atomic<size_t> *prog_file_bytes,
     volatile bool *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
-    std::vector<std::exception_ptr> *thread_exception, Stats *stats,
+    std::exception_ptr *thread_exception, Stats *stats,
     const std::string &query_comment)
     : m_opt(options),
       m_thread_id(thread_id),
-      m_prog_sent_bytes(prog_sent_bytes),
+      m_prog_data_bytes(prog_data_bytes),
       m_prog_file_bytes(prog_file_bytes),
-      m_interrupt(*interrupt),
+      m_interrupt(interrupt),
       m_range_queue(range_queue),
-      m_thread_exception(*thread_exception),
-      m_stats(*stats),
+      m_thread_exception(thread_exception),
+      m_stats(stats),
       m_query_comment(query_comment) {
+  assert(m_prog_data_bytes);
+  assert(m_prog_file_bytes);
+  assert(m_interrupt);
+  assert(m_thread_exception);
+  assert(m_stats);
+
   m_state = Thread_state::IDLE;
-  ++m_stats.thread_states[m_state];
+  ++m_stats->thread_states[m_state];
 }
 
 void Load_data_worker::operator()() {
@@ -664,6 +671,172 @@ void Load_data_worker::operator()() {
   execute(session, nullptr);
 }
 
+void Load_data_worker::init_session(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    const Import_table_options &options) {
+  const auto execute = [&session](const auto &sql) { session->execute(sql); };
+  const auto executef = [&session](const auto &sql, auto &&... args) {
+    session->executef(sql, std::forward<decltype(args)>(args)...);
+  };
+
+  // this sets the character_set_database and collation_database server
+  // variables to the values the schema has
+  executef("USE !;", options.schema());
+
+  // SQL mode:
+  //  - no_auto_value_on_zero - normally, 0 generates the next sequence
+  //    number, use this mode to prevent this behaviour (solves problems if
+  //    dump has 0 stored in an AUTO_INCREMENT column)
+  execute("SET SQL_MODE = 'no_auto_value_on_zero';");
+
+  // if user has specified the character set, set the session variables
+  // related to the client connection
+  if (!options.character_set().empty()) {
+    executef("SET NAMES ?;", options.character_set());
+  }
+
+  // BUG#34173126, BUG#33360787 - loading when global auto-commit is OFF fails
+  execute("SET autocommit = 1");
+  // set session variables
+  execute("SET unique_checks = 0");
+  execute("SET foreign_key_checks = 0");
+  execute("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+
+  try {
+    for (const auto &s : options.session_init_sql()) {
+      log_info("Executing custom session init SQL: %s", s.c_str());
+      execute(s);
+    }
+  } catch (const shcore::Error &e) {
+    throw shcore::Exception::runtime_error(
+        "Error while executing sessionInitSql: " + e.format());
+  }
+}
+
+std::string Load_data_worker::load_data_body(
+    const Import_table_options &options) {
+  const std::string on_duplicate_rows = [&options]() {
+    switch (options.duplicate_handling()) {
+      case Duplicate_handling::Default:
+        return "";
+
+      case Duplicate_handling::Replace:
+        return "REPLACE ";
+
+      case Duplicate_handling::Ignore:
+        return "IGNORE ";
+    }
+
+    throw std::logic_error("Unhandled Duplicate_handling value.");
+  }();
+
+  const std::string partition =
+      options.partition().empty()
+          ? ""
+          : "PARTITION (" + shcore::quote_identifier(options.partition()) +
+                ") ";
+
+  const std::string character_set =
+      options.character_set().empty()
+          ? ""
+          : "CHARACTER SET " +
+                shcore::quote_sql_string(options.character_set()) + " ";
+
+  const std::string compression = [&options]() {
+    using mysqlshdk::storage::Compression;
+
+    switch (options.compression()) {
+      case Compression::NONE:
+        return "";
+
+      case Compression::ZSTD:
+        return "COMPRESSION='ZSTD' ";
+
+      case Compression::GZIP:
+        throw std::logic_error("Unsupported LOAD DATA compression: gzip");
+    }
+
+    throw std::logic_error("Unhandled Compression value.");
+  }();
+
+  std::string query_body = on_duplicate_rows + "INTO TABLE " +
+                           shcore::quote_identifier(options.schema()) + '.' +
+                           shcore::quote_identifier(options.table()) + ' ' +
+                           partition + character_set + compression +
+                           options.dialect().build_sql();
+
+  const auto &decode_columns = options.decode_columns();
+
+  std::string query_columns;
+  const auto columns = options.columns().get();
+
+  if (columns && !columns->empty()) {
+    const std::vector<std::string> x(columns->size(), "!");
+    const auto placeholders = shcore::str_join(
+        *columns, ", ",
+        [&decode_columns](const shcore::Value &c) -> std::string {
+          if (c.get_type() == shcore::Value_type::UInteger) {
+            // user defined variable
+            return "@" + c.as_string();
+          } else if (c.get_type() == shcore::Value_type::Integer) {
+            // We do not want user variable to be negative: `@-1`
+            if (c.as_int() < 0) {
+              throw shcore::Exception::value_error(
+                  "User variable binding in 'columns' option must be "
+                  "non-negative integer value");
+            }
+            // user defined variable
+            return "@" + c.as_string();
+          } else if (c.get_type() == shcore::Value_type::String) {
+            const auto column_name = c.as_string();
+            std::string prefix;
+
+            if (decode_columns.find(column_name) != decode_columns.end()) {
+              prefix = "@";
+            }
+
+            return prefix + shcore::quote_identifier(column_name);
+          } else {
+            throw shcore::Exception::type_error(
+                "Option 'columns' " + type_name(shcore::Value_type::String) +
+                " (column name) or non-negative " +
+                type_name(shcore::Value_type::Integer) +
+                " (user variable binding) expected, but value is " +
+                type_name(c.get_type()));
+          }
+        });
+
+    query_columns = " (" + placeholders + ")";
+  }
+
+  if (!decode_columns.empty()) {
+    query_columns += " SET ";
+
+    for (const auto &it : decode_columns) {
+      if (it.second == "UNHEX" || it.second == "FROM_BASE64") {
+        query_columns +=
+            shcore::sqlformat("! = " + it.second + "(@!),", it.first, it.first);
+      } else if (!it.second.empty()) {
+        query_columns += shcore::sqlformat("! = ", it.first);
+        // Append "as is".
+        query_columns += "(" + it.second + "),";
+      }
+    }
+
+    query_columns.pop_back();  // strip the last ,
+  }
+
+  if (options.skip_rows_count()) {
+    query_body += " IGNORE ";
+    query_body += std::to_string(options.skip_rows_count());
+    query_body += " LINES";
+  }
+
+  query_body += query_columns;
+
+  return query_body;
+}
+
 void Load_data_worker::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -674,141 +847,24 @@ void Load_data_worker::execute(
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
-    fi.prog_data_bytes = m_prog_sent_bytes;
+    fi.prog_data_bytes = m_prog_data_bytes;
     fi.prog_file_bytes = m_prog_file_bytes;
-    fi.user_interrupt = &m_interrupt;
+    fi.user_interrupt = m_interrupt;
     fi.max_rate = m_opt.max_rate();
     fi.on_infile_read_end = [this]() { set_state(Thread_state::COMMITTING); };
     uint64_t max_trx_size = 0;
     const auto query = [&session](const auto &sql) {
       return session->query(sql);
     };
-    const auto execute = [&session](const auto &sql) { session->execute(sql); };
-    const auto executef = [&session](const auto &sql, auto &&... args) {
-      session->executef(sql, std::forward<decltype(args)>(args)...);
-    };
 
-    // this sets the character_set_database and collation_database server
-    // variables to the values the schema has
-    executef("USE !;", m_opt.schema());
-
-    // SQL mode:
-    //  - no_auto_value_on_zero - normally, 0 generates the next sequence
-    //    number, use this mode to prevent this behaviour (solves problems if
-    //    dump has 0 stored in an AUTO_INCREMENT column)
-    execute("SET SQL_MODE = 'no_auto_value_on_zero';");
-
-    // if user has specified the character set, set the session variables
-    // related to the client connection
-    if (!m_opt.character_set().empty()) {
-      executef("SET NAMES ?;", m_opt.character_set());
-    }
-
-    // BUG#34173126, BUG#33360787 - loading when global auto-commit is OFF fails
-    execute("SET autocommit = 1");
-    // set session variables
-    execute("SET unique_checks = 0");
-    execute("SET foreign_key_checks = 0");
-    execute("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-
+    init_session(session, m_opt);
     session->set_local_infile_userdata(static_cast<void *>(&fi));
     session->set_local_infile_init(local_infile_init);
     session->set_local_infile_read(local_infile_read);
     session->set_local_infile_end(local_infile_end);
     session->set_local_infile_error(local_infile_error);
 
-    const std::string on_duplicate_rows =
-        m_opt.replace_duplicates() ? std::string{"REPLACE "} : std::string{};
-
-    const std::string character_set =
-        m_opt.character_set().empty()
-            ? ""
-            : "CHARACTER SET " +
-                  shcore::quote_sql_string(m_opt.character_set()) + " ";
-
-    const std::string partition =
-        m_opt.partition().empty()
-            ? ""
-            : "PARTITION (" + shcore::quote_identifier(m_opt.partition()) +
-                  ") ";
-
-    try {
-      for (const auto &s : m_opt.session_init_sql()) {
-        log_info("Executing custom session init SQL: %s", s.c_str());
-        session->execute(s);
-      }
-    } catch (const shcore::Error &e) {
-      throw shcore::Exception::runtime_error(
-          "Error while executing sessionInitSql: " + e.format());
-    }
-
-    const std::string query_body =
-        on_duplicate_rows + "INTO TABLE " +
-        shcore::quote_identifier(m_opt.schema()) + '.' +
-        shcore::quote_identifier(m_opt.table()) + ' ' + partition +
-        character_set + m_opt.dialect().build_sql();
-
-    const auto &decode_columns = m_opt.decode_columns();
-
-    std::string query_ignore_lines;
-    std::string query_columns;
-    const auto columns = m_opt.columns().get();
-
-    if (columns && !columns->empty()) {
-      const std::vector<std::string> x(columns->size(), "!");
-      const auto placeholders = shcore::str_join(
-          *columns, ", ",
-          [&decode_columns](const shcore::Value &c) -> std::string {
-            if (c.get_type() == shcore::Value_type::UInteger) {
-              // user defined variable
-              return "@" + c.as_string();
-            } else if (c.get_type() == shcore::Value_type::Integer) {
-              // We do not want user variable to be negative: `@-1`
-              if (c.as_int() < 0) {
-                throw shcore::Exception::value_error(
-                    "User variable binding in 'columns' option must be "
-                    "non-negative integer value");
-              }
-              // user defined variable
-              return "@" + c.as_string();
-            } else if (c.get_type() == shcore::Value_type::String) {
-              const auto column_name = c.as_string();
-              std::string prefix;
-
-              if (decode_columns.find(column_name) != decode_columns.end()) {
-                prefix = "@";
-              }
-
-              return prefix + shcore::quote_identifier(column_name);
-            } else {
-              throw shcore::Exception::type_error(
-                  "Option 'columns' " + type_name(shcore::Value_type::String) +
-                  " (column name) or non-negative " +
-                  type_name(shcore::Value_type::Integer) +
-                  " (user variable binding) expected, but value is " +
-                  type_name(c.get_type()));
-            }
-          });
-
-      query_columns = " (" + placeholders + ")";
-    }
-
-    if (!decode_columns.empty()) {
-      query_columns += " SET ";
-
-      for (const auto &it : decode_columns) {
-        if (it.second == "UNHEX" || it.second == "FROM_BASE64") {
-          query_columns += shcore::sqlformat("! = " + it.second + "(@!),",
-                                             it.first, it.first);
-        } else if (!it.second.empty()) {
-          query_columns += shcore::sqlformat("! = ", it.first);
-          // Append "as is".
-          query_columns += "(" + it.second + "),";
-        }
-      }
-
-      query_columns.pop_back();  // strip the last ,
-    }
+    const auto query_body = load_data_body(m_opt);
 
     uint64_t subchunk = 0;
     while (true) {
@@ -856,21 +912,9 @@ void Load_data_worker::execute(
               // chunks, because we assume that in this case bytesPerChunk ==
               // maxBytesPerTransaction
               max_trx_size = 0;
-
-              // if fi.range_read == true, we're importing in chunks from a
-              // single file, rows were already skipped
-              query_ignore_lines.clear();
             } else {
               fi.bytes_left = 0;
               max_trx_size = m_opt.max_transaction_size();
-
-              if (m_opt.skip_rows_count() > 0) {
-                // this handles the case when multiple files are being imported
-                // and skipRows is set
-                query_ignore_lines = " IGNORE " +
-                                     std::to_string(m_opt.skip_rows_count()) +
-                                     " LINES";
-              }
             }
 
             fi.buffer =
@@ -897,8 +941,7 @@ void Load_data_worker::execute(
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
       const std::string query_prefix = shcore::sqlformat(
           "LOAD DATA LOCAL INFILE ? ", fi.filehandler->full_path().masked());
-      const std::string full_query =
-          query_prefix + query_body + query_ignore_lines + query_columns;
+      const std::string full_query = query_prefix + query_body;
 
 #ifndef NDEBUG
       log_debug("%s %s %i", worker_name.c_str(), full_query.c_str(),
@@ -919,12 +962,12 @@ void Load_data_worker::execute(
         load_result = query(m_query_comment + full_query);
         set_state(Thread_state::IDLE);
         fi.buffer.flush_done(&fi.continuation);
-        m_stats.total_data_bytes += fi.data_bytes;
-        m_stats.total_file_bytes += fi.file_bytes;
+        m_stats->total_data_bytes += fi.data_bytes;
+        m_stats->total_file_bytes += fi.file_bytes;
 
         if (!fi.continuation) {
           // increase the counter only when there are no more subchunks
-          ++m_stats.total_files_processed;
+          ++m_stats->total_files_processed;
         }
       } catch (const mysqlshdk::db::Error &e) {
         handle_exception();
@@ -980,10 +1023,10 @@ void Load_data_worker::execute(
           sscanf(mysql_info,
                  "Records: %zu  Deleted: %zu  Skipped: %zu  Warnings: %zu\n",
                  &records, &deleted, &skipped, &warnings);
-          m_stats.total_records += records;
-          m_stats.total_deleted += deleted;
-          m_stats.total_skipped += skipped;
-          m_stats.total_warnings += warnings;
+          m_stats->total_records += records;
+          m_stats->total_deleted += deleted;
+          m_stats->total_skipped += skipped;
+          m_stats->total_warnings += warnings;
         }
 
         if (warnings_num > 0) {
@@ -1041,7 +1084,7 @@ void Load_data_worker::execute(
       if (!m_range_queue && !fi.continuation) break;
     }
   } catch (const std::exception &e) {
-    if (!m_thread_exception[m_thread_id]) {
+    if (!*m_thread_exception) {
       mysqlsh::current_console()->print_error(worker_name + e.what());
       handle_exception();
     }
@@ -1052,14 +1095,14 @@ void Load_data_worker::execute(
 
 void Load_data_worker::handle_exception() {
   set_state(Thread_state::ERROR);
-  m_thread_exception[m_thread_id] = std::current_exception();
+  *m_thread_exception = std::current_exception();
 }
 
 void Load_data_worker::set_state(Thread_state new_state) {
   if (m_state != new_state) {
-    --m_stats.thread_states[m_state];
+    --m_stats->thread_states[m_state];
     m_state = new_state;
-    ++m_stats.thread_states[m_state];
+    ++m_stats->thread_states[m_state];
   }
 }
 

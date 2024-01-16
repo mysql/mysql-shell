@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "mysqlshdk/libs/utils/masked_value.h"
@@ -100,8 +101,7 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const Config_ptr &config);
 
 int fprintf(IFile *, const char *format, ...);
-int fputs(const char *s, IFile *file);
-int fputs(const std::string &s, IFile *file);
+int fputs(std::string_view s, IFile *file);
 
 std::string read_file(IFile *file);
 

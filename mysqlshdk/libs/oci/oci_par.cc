@@ -38,8 +38,14 @@ namespace oci {
 
 namespace {
 
-const std::regex k_full_par_parser(
-    R"(^(https:\/\/(?:[^\.]+\.)?objectstorage\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*)$)");
+#define PAR_REGEX \
+  R"((https:\/\/(?:[^\.]+\.)?objectstorage\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*))"
+
+const std::regex k_par_parser(PAR_REGEX);
+const std::regex k_full_par_parser("^" PAR_REGEX "$");
+constexpr auto k_par_secret = "<secret>";
+
+#undef PAR_REGEX
 
 namespace par_tokens {
 
@@ -119,7 +125,26 @@ std::string hide_par_secret(const std::string &par, std::size_t start_at) {
     throw std::logic_error("This is not a PAR: " + par);
   }
 
-  return par.substr(0, p + 3) + "<secret>" + par.substr(n);
+  return par.substr(0, p + 3) + k_par_secret + par.substr(n);
+}
+
+std::string mask_any_par(const std::string &input) {
+  const auto end = std::sregex_iterator();
+  std::string result;
+  std::size_t pos = 0, new_pos;
+
+  for (auto it = std::sregex_iterator(input.begin(), input.end(), k_par_parser);
+       end != it; ++it) {
+    new_pos = it->position(par_tokens::PAR_ID);
+    result += input.substr(pos, new_pos - pos);
+    result += k_par_secret;
+    pos = new_pos + it->length(par_tokens::PAR_ID);
+  }
+
+  // copy the rest of string
+  result += input.substr(pos);
+
+  return result;
 }
 
 PAR_type parse_par(const std::string &url, PAR_structure *data) {
