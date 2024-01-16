@@ -161,7 +161,6 @@ WIPE_SHELL_LOG();
 EXPECT_NO_THROWS(function(){ dba.configureInstance(); });
 
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_disjoint_gtids_join': default value ('OFF') is the expected.");
-EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_allow_local_lower_version_join': default value ('OFF') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_bootstrap_group': default value ('OFF') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_components_stop_timeout': default value ('31536000') is the expected.");
 EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_exit_state_action': default value ('READ_ONLY') is the expected.");
@@ -191,7 +190,6 @@ EXPECT_SHELL_LOG_CONTAINS("Ignoring 'group_replication_unreachable_majority_time
 
 // some vars (group_replication_group_seeds) are persisted in other places, by different reasons, so we can't check them
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_allow_local_disjoint_gtids_join"); }, "Option 'group_replication_allow_local_disjoint_gtids_join' does not exist in group 'mysqld'");
-EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_allow_local_lower_version_join"); }, "Option 'group_replication_allow_local_lower_version_join' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_bootstrap_group"); }, "Option 'group_replication_bootstrap_group' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_components_stop_timeout"); }, "Option 'group_replication_components_stop_timeout' does not exist in group 'mysqld'");
 EXPECT_THROWS(function(){ testutil.getSandboxConf(__mysql_sandbox_port1, "group_replication_exit_state_action"); }, "Option 'group_replication_exit_state_action' does not exist in group 'mysqld'");
