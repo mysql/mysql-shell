@@ -1817,7 +1817,7 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
   using mysqlshdk::db::Type;
   using mysqlshdk::utils::Version;
 
-  auto test = [](const std::optional<bool> &gr_allow_lower_version_join,
+  auto test = [](std::optional<bool> gr_allow_lower_version_join,
                  const Version &instance_version,
                  const Version &lowest_cluster_version, bool is_compatible) {
     std::string compatible = (is_compatible) ? "COMPATIBLE" : "NOT COMPATIBLE";
@@ -1846,18 +1846,19 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
                  "', gr_allow_lower_version_join '" +
                  str_gr_allow_lower_version_join + "'");
 
-    std::shared_ptr<Mock_session> mock_session =
-        std::make_shared<Mock_session>();
+    auto mock_session = std::make_shared<Mock_session>();
     mysqlshdk::mysql::Instance instance{mock_session};
 
-    mock_session
-        ->expect_query(
-            "show GLOBAL variables where `variable_name` in "
-            "('group_replication_allow_local_lower_version_join')")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String, Type::String},
-                       rows_gr_allow_lower_version_join}});
+    if (lowest_cluster_version < mysqlshdk::utils::Version(8, 4, 0)) {
+      mock_session
+          ->expect_query(
+              "show GLOBAL variables where `variable_name` in "
+              "('group_replication_allow_local_lower_version_join')")
+          .then_return({{"",
+                         {"Variable_name", "Value"},
+                         {Type::String, Type::String},
+                         rows_gr_allow_lower_version_join}});
+    }
 
     if (!gr_allow_lower_version_join.has_value() ||
         !*gr_allow_lower_version_join) {
@@ -1909,20 +1910,20 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
   } while (0);
 
   // major upgrades
-  ALLOWED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 0, 40));
-  ALLOWED(std::optional<bool>(false), Version(8, 2, 0), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(false), Version(8, 4, 0), Version(8, 1, 0));
+  ALLOWED(false, Version(8, 1, 0), Version(8, 0, 40));
+  ALLOWED(false, Version(8, 2, 0), Version(8, 1, 0));
+  ALLOWED(false, Version(8, 4, 0), Version(8, 1, 0));
 
   // upgrades that are not not supported but we don't check for
-  ALLOWED(std::optional<bool>(false), Version(8, 3, 0), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(false), Version(12, 0, 0), Version(8, 1, 0));
+  ALLOWED(false, Version(8, 3, 0), Version(8, 1, 0));
+  ALLOWED(false, Version(12, 0, 0), Version(8, 1, 0));
 
   // basic downgrade
-  ALLOWED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 1, 2));
-  ALLOWED(std::optional<bool>(false), Version(8, 4, 0), Version(8, 4, 1));
+  ALLOWED(false, Version(8, 1, 0), Version(8, 1, 2));
+  ALLOWED(false, Version(8, 4, 0), Version(8, 4, 1));
 
-  BLOCKED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 2, 0));
-  BLOCKED(std::optional<bool>(false), Version(8, 3, 0), Version(8, 4, 0));
+  BLOCKED(false, Version(8, 1, 0), Version(8, 2, 0));
+  BLOCKED(false, Version(8, 3, 0), Version(8, 4, 0));
 
   // Test: group_replication_allow_local_lower_version_join = ON
   // - Version compatible, independently of the cluster lowest
@@ -1934,91 +1935,91 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
   //       instance_version <= 8.0.16
   // Version compatible, if MAJOR(version) >=
   // MAJOR(lowest_cluster_version)
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 16), Version(8, 0, 16));
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 15), Version(8, 0, 16));
+  ALLOWED(false, Version(8, 0, 16), Version(8, 0, 16));
+  ALLOWED(false, Version(8, 0, 15), Version(8, 0, 16));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version <= 8.0.16
   // Version incompatible, if MAJOR(version) <
   // MAJOR(lowest_cluster_version)
-  BLOCKED(std::optional<bool>(false), Version(5, 7, 26), Version(8, 0, 16));
+  BLOCKED(false, Version(5, 7, 26), Version(8, 0, 16));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version > 8.0.16
   // Version compatible, if version >= lowest_cluster_version
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 17), Version(8, 0, 17));
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 18), Version(8, 0, 17));
+  ALLOWED(false, Version(8, 0, 17), Version(8, 0, 17));
+  ALLOWED(false, Version(8, 0, 18), Version(8, 0, 17));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version > 8.0.16
   // Version incompatible, if version < lowest_cluster_version
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 17), Version(8, 0, 18));
+  BLOCKED(false, Version(8, 0, 17), Version(8, 0, 18));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 35), Version(8, 0, 35));
-  ALLOWED(std::optional<bool>(false), Version(8, 4, 35), Version(8, 4, 35));
+  ALLOWED(false, Version(8, 0, 35), Version(8, 0, 35));
+  ALLOWED(false, Version(8, 4, 35), Version(8, 4, 35));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version non-LTS
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(false), Version(8, 2, 0), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 0, 35));
-  ALLOWED(std::optional<bool>(false), Version(8, 1, 1), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 1, 1));
+  ALLOWED(false, Version(8, 2, 0), Version(8, 1, 0));
+  ALLOWED(false, Version(8, 1, 0), Version(8, 0, 35));
+  ALLOWED(false, Version(8, 1, 1), Version(8, 1, 0));
+  ALLOWED(false, Version(8, 1, 0), Version(8, 1, 1));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version &&
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 36), Version(8, 0, 35));
-  ALLOWED(std::optional<bool>(false), Version(8, 4, 36), Version(8, 4, 35));
+  ALLOWED(false, Version(8, 0, 36), Version(8, 0, 35));
+  ALLOWED(false, Version(8, 4, 36), Version(8, 4, 35));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 38), Version(8, 0, 37));
-  ALLOWED(std::optional<bool>(false), Version(8, 4, 38), Version(8, 4, 37));
+  ALLOWED(false, Version(8, 0, 38), Version(8, 0, 37));
+  ALLOWED(false, Version(8, 4, 38), Version(8, 4, 37));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 34), Version(8, 0, 35));
-  BLOCKED(std::optional<bool>(false), Version(8, 3, 1), Version(8, 4, 0));
-  ALLOWED(std::optional<bool>(false), Version(8, 0, 35), Version(8, 0, 36));
+  BLOCKED(false, Version(8, 0, 34), Version(8, 0, 35));
+  BLOCKED(false, Version(8, 3, 1), Version(8, 4, 0));
+  ALLOWED(false, Version(8, 0, 35), Version(8, 0, 36));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version non-LTS
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(false), Version(8, 1, 0), Version(8, 2, 18));
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 35), Version(8, 1, 0));
+  BLOCKED(false, Version(8, 1, 0), Version(8, 2, 18));
+  BLOCKED(false, Version(8, 0, 35), Version(8, 1, 0));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 33), Version(8, 0, 34));
-  ALLOWED(std::optional<bool>(false), Version(8, 3, 2), Version(8, 3, 34));
+  BLOCKED(false, Version(8, 0, 33), Version(8, 0, 34));
+  ALLOWED(false, Version(8, 3, 2), Version(8, 3, 34));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 35), Version(8, 1, 0));
-  BLOCKED(std::optional<bool>(false), Version(8, 4, 2), Version(9, 0, 0));
+  BLOCKED(false, Version(8, 0, 35), Version(8, 1, 0));
+  BLOCKED(false, Version(8, 4, 2), Version(9, 0, 0));
 
   // Test: group_replication_allow_local_lower_version_join = OFF
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(false), Version(8, 0, 36), Version(8, 2, 0));
-  BLOCKED(std::optional<bool>(false), Version(8, 4, 36), Version(9, 2, 0));
+  BLOCKED(false, Version(8, 0, 36), Version(8, 2, 0));
+  BLOCKED(false, Version(8, 4, 36), Version(9, 2, 0));
 
   //
 
@@ -2027,62 +2028,67 @@ TEST_F(Group_replication_test, check_instance_version_compatibility) {
   //       instance_version <= 8.0.16
   // Version compatible, if MAJOR(version) >=
   // MAJOR(lowest_cluster_version)
-  ALLOWED(std::optional<bool>(), Version(8, 0, 16), Version(8, 0, 16));
-  ALLOWED(std::optional<bool>(), Version(8, 0, 15), Version(8, 0, 16));
+  ALLOWED(std::nullopt, Version(8, 0, 16), Version(8, 0, 16));
+  ALLOWED(std::nullopt, Version(8, 0, 15), Version(8, 0, 16));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined
   //       instance_version <= 8.0.16
   // Version incompatible, if MAJOR(version) <
   // MAJOR(lowest_cluster_version)
-  BLOCKED(std::optional<bool>(), Version(5, 7, 26), Version(8, 0, 16));
+  BLOCKED(std::nullopt, Version(5, 7, 26), Version(8, 0, 16));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined
   //       instance_version > 8.0.16
   // Version compatible, if version >= lowest_cluster_version
-  ALLOWED(std::optional<bool>(), Version(8, 0, 17), Version(8, 0, 17));
-  ALLOWED(std::optional<bool>(), Version(8, 0, 18), Version(8, 0, 17));
+  ALLOWED(std::nullopt, Version(8, 0, 17), Version(8, 0, 17));
+  ALLOWED(std::nullopt, Version(8, 0, 18), Version(8, 0, 17));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined.
   //       instance_version > 8.0.16
   // Version incompatible, if version < lowest_cluster_version
-  BLOCKED(std::optional<bool>(), Version(8, 0, 17), Version(8, 0, 18));
+  BLOCKED(std::nullopt, Version(8, 0, 17), Version(8, 0, 18));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined.
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(), Version(8, 0, 35), Version(8, 0, 36));
-  ALLOWED(std::optional<bool>(), Version(8, 4, 35), Version(8, 4, 36));
+  ALLOWED(std::nullopt, Version(8, 0, 35), Version(8, 0, 36));
+  ALLOWED(std::nullopt, Version(8, 4, 35), Version(8, 4, 36));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined.
   //       instance_version >= 8.0.35
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(), Version(8, 0, 36), Version(8, 2, 0));
-  BLOCKED(std::optional<bool>(), Version(8, 4, 36), Version(9, 2, 0));
+  BLOCKED(std::nullopt, Version(8, 0, 36), Version(8, 2, 0));
+  BLOCKED(std::nullopt, Version(8, 4, 36), Version(9, 2, 0));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined.
   //       instance_version non-LTS
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  BLOCKED(std::optional<bool>(), Version(8, 1, 0), Version(8, 2, 18));
-  BLOCKED(std::optional<bool>(), Version(8, 0, 35), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(), Version(8, 1, 0), Version(8, 1, 1));
+  BLOCKED(std::nullopt, Version(8, 1, 0), Version(8, 2, 18));
+  BLOCKED(std::nullopt, Version(8, 0, 35), Version(8, 1, 0));
+  ALLOWED(std::nullopt, Version(8, 1, 0), Version(8, 1, 1));
 
   // Test: group_replication_allow_local_lower_version_join is not
   // defined.
   //       instance_version non-LTS
   // Version compatible, if version < lowest_cluster_version
   // && lowest_cluster_version.series() == version.series()
-  ALLOWED(std::optional<bool>(), Version(8, 2, 0), Version(8, 1, 0));
-  ALLOWED(std::optional<bool>(), Version(8, 1, 0), Version(8, 0, 35));
-  ALLOWED(std::optional<bool>(), Version(8, 1, 1), Version(8, 1, 0));
+  ALLOWED(std::nullopt, Version(8, 2, 0), Version(8, 1, 0));
+  ALLOWED(std::nullopt, Version(8, 1, 0), Version(8, 0, 35));
+  ALLOWED(std::nullopt, Version(8, 1, 1), Version(8, 1, 0));
+
+  // Test: group_replication_allow_local_lower_version_join is meaningless for
+  // cluster versions >= 8.4.0
+  ALLOWED(std::nullopt, Version(8, 4, 35), Version(8, 4, 36));
+  ALLOWED(false, Version(8, 5, 0), Version(8, 4, 36));
 
 #undef ALLOWED
 #undef BLOCKED
