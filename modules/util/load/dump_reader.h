@@ -45,6 +45,7 @@
 
 #include "modules/util/load/load_dump_options.h"
 
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/thread_pool.h"
@@ -155,13 +156,27 @@ class Dump_reader {
   bool has_primary_key(const std::string &schema,
                        const std::string &table) const;
 
+  struct Table_chunk {
+    std::string schema;
+    std::string table;
+    std::string partition;
+    bool chunked = false;
+    std::unique_ptr<mysqlshdk::storage::IFile> file;
+    ssize_t index = 0;
+    size_t file_size = 0;
+    size_t data_size = 0;
+    size_t chunks_total = 0;
+    shcore::Dictionary_t options;
+    bool dump_complete = false;
+    std::string basename;
+    std::string extension;
+    mysqlshdk::storage::Compression compression =
+        mysqlshdk::storage::Compression::NONE;
+  };
+
   bool next_table_chunk(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-      std::string *out_schema, std::string *out_table,
-      std::string *out_partition, bool *out_chunked, size_t *out_chunk_index,
-      size_t *out_chunks_total,
-      std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
-      size_t *out_chunk_size, shcore::Dictionary_t *out_options);
+      Table_chunk *out_chunk);
 
   struct Histogram {
     std::string column;
@@ -186,28 +201,34 @@ class Dump_reader {
 
   bool all_data_verification_scheduled() const;
 
-  size_t dump_size() const { return m_contents.dump_size; }
-  size_t total_data_size() const { return m_contents.data_size; }
+  size_t total_file_size() const { return m_contents.total_file_size; }
+  size_t total_data_size() const { return m_contents.total_data_size; }
+
   size_t filtered_data_size() const;
-  size_t table_data_size(const std::string &schema,
-                         const std::string &table) const;
   void compute_filtered_data_size();
 
+  /**
+   * Total data size of all chunks in a table, if table is partitioned, this
+   * is sum of all partitions.
+   */
+  size_t table_data_size(const std::string &schema,
+                         const std::string &table) const;
+
+  /**
+   * Total file size of all chunks in a partition.
+   */
+  size_t partition_file_size(const std::string &schema,
+                             const std::string &table,
+                             const std::string &partition) const;
+
+  /**
+   * Total data size of all chunks in a partition.
+   */
+  size_t partition_data_size(const std::string &schema,
+                             const std::string &table,
+                             const std::string &partition) const;
+
   uint64_t bytes_per_chunk() const { return m_contents.bytes_per_chunk; }
-
-  uint64_t chunk_size(const std::string &name, bool *valid) const {
-    assert(valid);
-
-    const auto it = m_contents.chunk_sizes.find(name);
-
-    if (it == m_contents.chunk_sizes.end()) {
-      *valid = false;
-      return 0;
-    } else {
-      *valid = true;
-      return it->second;
-    }
-  }
 
   void rescan(dump::Progress_thread *progress_thread = nullptr);
 
@@ -260,8 +281,9 @@ class Dump_reader {
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
-  void on_chunk_loaded(const std::string &schema, const std::string &table,
-                       const std::string &partition);
+  void on_chunk_loaded(const Table_chunk &chunk);
+
+  void on_table_loaded(const Table_chunk &chunk);
 
   void on_index_end(const std::string &schema, const std::string &table);
 
@@ -277,6 +299,8 @@ class Dump_reader {
   void set_table_exists(std::string_view schema, std::string_view table);
 
   void set_view_exists(std::string_view schema, std::string_view view);
+
+  void consume_table(const Table_chunk &chunk);
 
   struct Capability_info {
     std::string id;
@@ -335,6 +359,11 @@ class Dump_reader {
 
     void consume_chunk() { ++chunks_consumed; }
 
+    void consume_table() {
+      assert(data_dumped());
+      chunks_consumed = available_chunks.size();
+    }
+
     bool has_data_available() const {
       return chunks_consumed < available_chunks.size() &&
              available_chunks[chunks_consumed].has_value();
@@ -386,6 +415,8 @@ class Dump_reader {
     std::string schema;
     std::string basename;
 
+    mysqlshdk::storage::Compression compression =
+        mysqlshdk::storage::Compression::NONE;
     std::vector<std::string> primary_index;
 
     bool has_sql = true;
@@ -491,17 +522,17 @@ class Dump_reader {
     std::optional<mysqlshdk::utils::Version> target_version;
     std::string origin;
     uint64_t bytes_per_chunk = 0;
-    std::unordered_map<std::string, uint64_t> chunk_sizes;
+    std::unordered_map<std::string, uint64_t> chunk_data_sizes;
 
     volatile bool md_done = false;
 
     // total uncompressed bytes of table data the dump contains
-    size_t data_size = 0;
+    size_t total_data_size = 0;
     // uncompressed bytes per table
     std::unordered_map<std::string, std::unordered_map<std::string, size_t>>
         table_data_size;
     // total file sizes available in the dump location
-    size_t dump_size = 0;
+    size_t total_file_size = 0;
 
     std::vector<Capability_info> capabilities;
 
@@ -556,6 +587,8 @@ class Dump_reader {
 
   View_info *find_view(std::string_view schema, std::string_view view,
                        const char *context);
+
+  uint64_t data_size_in_file(const std::string &filename) const;
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 

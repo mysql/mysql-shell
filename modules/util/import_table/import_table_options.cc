@@ -33,6 +33,8 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -130,7 +132,7 @@ const shcore::Option_pack_def<Import_table_option_pack>
                     &Import_table_option_pack::set_max_transaction_size)
           .optional("columns", &Import_table_option_pack::m_columns)
           .optional("replaceDuplicates",
-                    &Import_table_option_pack::m_replace_duplicates)
+                    &Import_table_option_pack::set_replace_duplicates)
           .optional("maxRate", &Import_table_option_pack::set_max_rate)
           .optional("showProgress", &Import_table_option_pack::m_show_progress)
           .optional("skipRows", &Import_table_option_pack::m_skip_rows_count)
@@ -238,7 +240,7 @@ bool Import_table_option_pack::check_if_multifile() {
   return true;
 }
 
-bool Import_table_option_pack::is_compressed(const std::string &path) const {
+bool Import_table_option_pack::is_compressed(const std::string &path) {
   using mysqlshdk::storage::Compression;
   using mysqlshdk::storage::get_extension;
 
@@ -248,11 +250,26 @@ bool Import_table_option_pack::is_compressed(const std::string &path) const {
          extension == get_extension(Compression::ZSTD);
 }
 
+void Import_table_option_pack::set_replace_duplicates(bool flag) {
+  if (flag) {
+    set_duplicate_handling(Duplicate_handling::Replace);
+  } else {
+    set_duplicate_handling(Duplicate_handling::Ignore);
+  }
+}
+
 Import_table_options::Import_table_options(
     const Import_table_option_pack &pack) {
   // Copies the options defined in pack into this object
   Import_table_option_pack &this_pack(*this);
   this_pack = pack;
+}
+
+Import_table_options Import_table_options::unpack(
+    const shcore::Dictionary_t &options) {
+  Import_table_options ret;
+  Import_table_options::options().unpack(options, &ret);
+  return ret;
 }
 
 void Import_table_options::validate() {

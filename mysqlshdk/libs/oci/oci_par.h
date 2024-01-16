@@ -105,6 +105,8 @@ std::string to_string(PAR_type type);
 
 std::string hide_par_secret(const std::string &par, std::size_t start_at = 0);
 
+std::string mask_any_par(const std::string &input);
+
 template <typename T>
 Masked_string anonymize_par(T &&par) {
   return {std::forward<T>(par), hide_par_secret(par)};

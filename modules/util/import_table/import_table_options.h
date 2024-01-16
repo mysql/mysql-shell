@@ -40,14 +40,13 @@
 #include <vector>
 
 #include "modules/util/import_table/dialect.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
@@ -55,6 +54,12 @@ namespace mysqlsh {
 namespace import_table {
 
 using Connection_options = mysqlshdk::db::Connection_options;
+
+enum class Duplicate_handling {
+  Default,
+  Ignore,
+  Replace,
+};
 
 class Import_table_option_pack {
  public:
@@ -77,7 +82,7 @@ class Import_table_option_pack {
 
   bool is_multifile() const noexcept { return m_is_multifile; }
 
-  bool is_compressed(const std::string &path) const;
+  static bool is_compressed(const std::string &path);
 
   void set_filenames(const std::vector<std::string> &filenames);
 
@@ -92,11 +97,15 @@ class Import_table_option_pack {
 
   uint64_t max_rate() const;
 
-  bool replace_duplicates() const { return m_replace_duplicates; }
+  Duplicate_handling duplicate_handling() const { return m_duplicate_handling; }
 
-  void set_replace_duplicates(bool flag) { m_replace_duplicates = flag; }
+  void set_duplicate_handling(Duplicate_handling flag) {
+    m_duplicate_handling = flag;
+  }
 
   const shcore::Array_t &columns() const { return m_columns; }
+
+  void clear_columns() { m_columns->clear(); }
 
   const std::map<std::string, std::string> &decode_columns() const {
     return m_decode_columns;
@@ -106,9 +115,13 @@ class Import_table_option_pack {
 
   uint64_t skip_rows_count() const { return m_skip_rows_count; }
 
+  void clear_skip_rows_count() const { m_skip_rows_count = 0; }
+
   int64_t threads_size() const { return m_threads_size; }
 
   const std::string &table() const { return m_table; }
+
+  void set_table(const std::string &table) { m_table = table; }
 
   const std::string &schema() const { return m_schema; }
 
@@ -149,6 +162,7 @@ class Import_table_option_pack {
   void set_max_rate(const std::string &value);
   void on_unpacked_options();
   bool check_if_multifile();
+  void set_replace_duplicates(bool flag);
 
  protected:
   std::vector<std::string> m_filelist_from_user;
@@ -162,10 +176,10 @@ class Import_table_option_pack {
   size_t m_max_bytes_per_transaction = 0;
   shcore::Array_t m_columns;
   std::map<std::string, std::string> m_decode_columns;
-  bool m_replace_duplicates = false;
+  Duplicate_handling m_duplicate_handling = Duplicate_handling::Ignore;
   uint64_t m_max_rate = 0;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
-  uint64_t m_skip_rows_count = 0;
+  mutable uint64_t m_skip_rows_count = 0;
   Dialect m_dialect;
   mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
   mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
@@ -180,6 +194,9 @@ class Import_table_options : public Import_table_option_pack {
  public:
   Import_table_options() = default;
   explicit Import_table_options(const Import_table_option_pack &pack);
+
+  static Import_table_options unpack(const shcore::Dictionary_t &options);
+
   void set_base_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) {
     m_base_session = session;
@@ -203,12 +220,23 @@ class Import_table_options : public Import_table_option_pack {
 
   bool dialect_supports_chunking() const;
 
+  mysqlshdk::storage::Compression compression() const noexcept {
+    return m_compression;
+  }
+
+  // Compression is only supported by the BULK LOAD
+  void set_compression(mysqlshdk::storage::Compression compression) noexcept {
+    m_compression = compression;
+  }
+
  private:
   size_t calc_thread_size();
 
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
   size_t m_file_size;
   std::string m_full_path;
+  mysqlshdk::storage::Compression m_compression =
+      mysqlshdk::storage::Compression::NONE;
 };
 
 }  // namespace import_table

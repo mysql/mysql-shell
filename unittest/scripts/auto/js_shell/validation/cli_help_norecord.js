@@ -1966,8 +1966,8 @@ OPTIONS
             suffixes: k (kilobytes), M (Megabytes), G (Gigabytes). Minimum
             value: 4096. If this option is not specified explicitly, the value
             of the bytesPerChunk dump option is used, but only in case of the
-            files with data size greater than 1.5 * bytesPerChunk. Default:
-            taken from dump.
+            files with data size greater than 1.5 * bytesPerChunk. Not used if
+            table is BULK LOADED. Default: taken from dump.
 
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to
@@ -1983,6 +1983,10 @@ OPTIONS
 
 --checksum=<bool>
             Verify tables against checksums that were computed during dump.
+            Default: false.
+
+--disableBulkLoad=<bool>
+            Do not use BULK LOAD feature to load the data, even when available.
             Default: false.
 
 --osBucketName=<str>

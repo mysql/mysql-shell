@@ -60,11 +60,7 @@ def cleanup_tests(load_tests = False):
     testutil.destroy_sandbox(__mysql_sandbox_port1)
     if load_tests:
         testutil.destroy_sandbox(__mysql_sandbox_port2)
-    del_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE")
-    del_global_variable("MYSQLSH_AWS_CONFIG_FILE")
-    del_global_variable("MYSQLSH_AWS_PROFILE")
-    del_global_variable("MYSQLSH_AWS_REGION")
-    del_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE")
+    cleanup_variables()
 
 def remove_local_progress_file():
     remove_file(local_progress_file)
@@ -142,6 +138,13 @@ def del_global_variable(name):
     value = globals().get(name)
     if value is not None:
         del globals()[name]
+
+def cleanup_variables():
+    del_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE")
+    del_global_variable("MYSQLSH_AWS_CONFIG_FILE")
+    del_global_variable("MYSQLSH_AWS_PROFILE")
+    del_global_variable("MYSQLSH_AWS_REGION")
+    del_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE")
 
 # call it to initialize the AWS options
 get_options()

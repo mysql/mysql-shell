@@ -92,13 +92,8 @@ int fprintf(IFile *file, const char *format, ...) {
   return ret;
 }
 
-int fputs(const char *s, IFile *file) {
-  int ret = file->write(s, strlen(s));
-  return ret >= 0 ? ret : EOF;
-}
-
-int fputs(const std::string &s, IFile *file) {
-  int ret = file->write(s.c_str(), s.length());
+int fputs(std::string_view s, IFile *file) {
+  int ret = file->write(s.data(), s.length());
   return ret >= 0 ? ret : EOF;
 }
 

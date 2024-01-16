@@ -164,12 +164,12 @@ class Load_data_worker final {
  public:
   Load_data_worker() = delete;
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
-                   std::atomic<size_t> *prog_sent_bytes,
+                   std::atomic<size_t> *prog_data_bytes,
                    std::atomic<size_t> *prog_file_bytes,
                    volatile bool *interrupt,
                    shcore::Synchronized_queue<File_import_info> *range_queue,
-                   std::vector<std::exception_ptr> *thread_exception,
-                   Stats *stats, const std::string &query_comment = "");
+                   std::exception_ptr *thread_exception, Stats *stats,
+                   const std::string &query_comment = "");
   Load_data_worker(const Load_data_worker &other) = default;
   Load_data_worker(Load_data_worker &&other) = default;
 
@@ -183,6 +183,12 @@ class Load_data_worker final {
                std::unique_ptr<mysqlshdk::storage::IFile> file,
                const Transaction_options &options = {});
 
+  static void init_session(
+      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+      const Import_table_options &options);
+
+  static std::string load_data_body(const Import_table_options &options);
+
  private:
   void handle_exception();
 
@@ -190,12 +196,12 @@ class Load_data_worker final {
 
   const Import_table_options &m_opt;
   int64_t m_thread_id;
-  std::atomic<size_t> *m_prog_sent_bytes;
+  std::atomic<size_t> *m_prog_data_bytes;
   std::atomic<size_t> *m_prog_file_bytes;
-  volatile bool &m_interrupt;
+  volatile bool *m_interrupt;
   shcore::Synchronized_queue<File_import_info> *m_range_queue;
-  std::vector<std::exception_ptr> &m_thread_exception;
-  Stats &m_stats;
+  std::exception_ptr *m_thread_exception;
+  Stats *m_stats;
   std::string m_query_comment;
   Thread_state m_state;
 };

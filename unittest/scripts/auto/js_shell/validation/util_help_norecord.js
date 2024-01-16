@@ -3138,6 +3138,10 @@ DESCRIPTION
       LOAD DATA LOCAL INFILE is used to load table data and thus, the
       'local_infile' MySQL global setting must be enabled.
 
+      If target MySQL server supports BULK LOAD, the load operation of
+      compatible tables can be offloaded to the target server, which
+      parallelizes and loads data directly from the Cloud storage.
+
       Resuming
 
       The load command will store progress information into a file for each
@@ -3194,6 +3198,8 @@ DESCRIPTION
         "all", creation of "all" indexes except PRIMARY is deferred until after
         table data is loaded, which in many cases can reduce load times. If
         "fulltext", only full-text indexes will be deferred.
+      - disableBulkLoad: bool (default: false) - Do not use BULK LOAD feature
+        to load the data, even when available.
       - dryRun: bool (default: false) - Scans the dump and prints everything
         that would be performed, without actually doing so.
       - excludeEvents: array of strings (default not set) - Skip loading
@@ -3267,7 +3273,7 @@ DESCRIPTION
         M (Megabytes), G (Gigabytes). Minimum value: 4096. If this option is
         not specified explicitly, the value of the bytesPerChunk dump option is
         used, but only in case of the files with data size greater than 1.5 *
-        bytesPerChunk.
+        bytesPerChunk. Not used if table is BULK LOADED.
       - progressFile: path (default: load-progress.<server_uuid>.progress) -
         Stores load progress information in the given local file path.
       - resetProgress: bool (default: false) - Discards progress information of
@@ -3293,8 +3299,6 @@ DESCRIPTION
         being created. Once all uploaded tables are processed the command will
         either wait for more data, the dump is marked as completed or the given
         timeout (in seconds) passes. <= 0 disables waiting.
-      - sessionInitSql: list of strings (default: []) - execute the given list
-        of SQL statements in each session about to load data.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where

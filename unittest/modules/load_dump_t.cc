@@ -614,7 +614,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         loader.m_progress_thread.finish();
       });
 
-      loader.execute_tasks();
+      loader.execute_tasks(true);
     }
   }
 
