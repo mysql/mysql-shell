@@ -2224,7 +2224,12 @@ session.run_sql("SET @@global.log_bin_trust_function_creators = ON")
 # extract the dump
 source_archive = os.path.join(__data_path, "load", "dump_instance_8.0.21.tar.gz")
 dump_dir = os.path.join(outdir, "dump_instance_8.0.21")
-shutil.unpack_archive(source_archive, outdir)
+
+try:
+    # extraction filters were added recently, using a default value if they are available may result in a warning, which causes this test to fail
+    shutil.unpack_archive(source_archive, outdir, filter="data")
+except:
+    shutil.unpack_archive(source_archive, outdir)
 
 # run the test
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "'root'@'%'" ], "ignoreVersion": True, "showProgress": False }), "Loading should not throw")
