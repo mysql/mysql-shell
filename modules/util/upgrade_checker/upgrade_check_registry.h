@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,10 +26,12 @@
 
 #include <forward_list>
 #include <functional>
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -45,7 +47,7 @@ class Upgrade_check_registry {
       std::function<std::unique_ptr<Upgrade_check>(const Upgrade_info &)>;
 
   struct Creator_info {
-    std::forward_list<mysqlshdk::utils::Version> versions;
+    std::unique_ptr<Condition> condition;
     Creator creator;
     Target target;
   };
@@ -54,18 +56,31 @@ class Upgrade_check_registry {
 
   template <class... Ts>
   static bool register_check(Creator creator, Target target, Ts... params) {
-    std::forward_list<std::string> vs{params...};
-    std::forward_list<mysqlshdk::utils::Version> vers;
-    for (const auto &v : vs) vers.emplace_front(mysqlshdk::utils::Version(v));
-    s_available_checks.emplace_back(
-        Creator_info{std::move(vers), creator, target});
-    return true;
+    std::forward_list<Version> vs{Version(params)...};
+
+    std::unique_ptr<Condition> condition =
+        std::make_unique<Version_condition>(std::move(vs));
+
+    return register_check(std::move(creator), target, std::move(condition));
+  }
+
+  static bool register_check(Creator creator, Target target, Version ver) {
+    std::unique_ptr<Condition> condition =
+        std::make_unique<Version_condition>(std::move(ver));
+    return register_check(std::move(creator), target, std::move(condition));
   }
 
   static bool register_check(Creator creator, Target target,
-                             const mysqlshdk::utils::Version &ver) {
-    s_available_checks.emplace_back(Creator_info{
-        std::forward_list<mysqlshdk::utils::Version>{ver}, creator, target});
+                             std::unique_ptr<Condition> condition) {
+    s_available_checks.emplace_back(
+        Creator_info{std::move(condition), creator, target});
+
+    return true;
+  }
+
+  static bool register_check(Creator creator, Target target) {
+    register_check(std::move(creator), target, std::unique_ptr<Condition>{});
+
     return true;
   }
 

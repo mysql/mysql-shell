@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,8 +51,8 @@ mysqlshdk::utils::Version Upgrade_check_options::get_target_version() const {
 
 void Upgrade_check_options::set_target_version(const std::string &value) {
   if (!value.empty()) {
-    if (latest_versions.contains(value)) {
-      target_version = latest_versions.at(value);
+    if (k_latest_versions.contains(value)) {
+      target_version = k_latest_versions.at(value);
     } else {
       target_version = Version(value);
     }

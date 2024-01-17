@@ -37,16 +37,11 @@ namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
 
-static Version ALL_VERSIONS("777.777.777");
-
 // This map should be updated with the latest version of each series to enable
 // gatting the latest version available in case a partial version is provided
 // as the taget value, so for example, not needed when patch version is 0 in
 // the last version of a series
-static std::unordered_map<std::string, Version> latest_versions = {
-    {"8", Version(MYSH_VERSION)},  // If 8 is given, latest version
-                                   // is the current shell version
-    {"8.0", Version(LATEST_MYSH_80_VERSION)}};
+extern std::unordered_map<std::string, Version> k_latest_versions;
 
 enum class Config_mode { DEFINED, UNDEFINED };
 

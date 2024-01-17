@@ -153,8 +153,7 @@ bool UNUSED_VARIABLE(register_old_geometry_check) =
 
 bool UNUSED_VARIABLE(register_check_table) =
     Upgrade_check_registry::register_check(std::bind(&get_table_command_check),
-                                           Target::INNODB_INTERNALS,
-                                           ALL_VERSIONS);
+                                           Target::INNODB_INTERNALS);
 
 bool register_manual_checks() {
   Upgrade_check_registry::register_manual_check(
@@ -260,13 +259,10 @@ Upgrade_check_registry::create_checklist(const Upgrade_info &info,
   std::vector<std::unique_ptr<Upgrade_check>> result;
   for (const auto &c : s_available_checks) {
     if (flags.is_set(c.target)) {
-      for (const auto &ver : c.versions) {
-        if (ver == ALL_VERSIONS || (ver > src_version && ver <= dst_version)) {
-          try {
-            result.emplace_back(c.creator(info));
-          } catch (const Check_not_needed &) {
-          }
-          break;
+      if (!c.condition || c.condition->evaluate(info)) {
+        try {
+          result.emplace_back(c.creator(info));
+        } catch (const Check_not_needed &) {
         }
       }
     }
@@ -325,13 +321,11 @@ void Upgrade_check_registry::register_manual_check(const char *ver,
                                                    const char *name,
                                                    Upgrade_issue::Level level,
                                                    Target target) {
-  s_available_checks.emplace_back(
-      Creator_info{std::forward_list<mysqlshdk::utils::Version>{
-                       mysqlshdk::utils::Version(ver)},
-                   [name, level](const Upgrade_info &) {
-                     return std::make_unique<Manual_check>(name, level);
-                   },
-                   target});
+  register_check(
+      [name, level](const Upgrade_info &) {
+        return std::make_unique<Manual_check>(name, level);
+      },
+      target, Version(ver));
 }
 
 }  // namespace upgrade_checker

@@ -105,6 +105,7 @@ file(GLOB api_module_SOURCES
       "util/upgrade_checker/upgrade_check.cc"
       "util/upgrade_checker/upgrade_check_registry.cc"
       "util/upgrade_checker/upgrade_check_creators.cc"
+      "util/upgrade_checker/upgrade_check_condition.cc"
 )
 
 IF(CMAKE_COMPILER_IS_GNUCXX)
