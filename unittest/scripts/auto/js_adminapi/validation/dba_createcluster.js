@@ -412,7 +412,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "consistency",
+?{VER(>=8.4.0)}
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+?{}
+?{VER(<8.4.0)}
                     "value": "EVENTUAL",
+?{}
                     "variable": "group_replication_consistency"
                 },
                 {
@@ -838,7 +843,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                 },
                 {
                     "option": "consistency",
+?{VER(>=8.4.0)}
+                    "value": "BEFORE_ON_PRIMARY_FAILOVER",
+?{}
+?{VER(<8.4.0)}
                     "value": "EVENTUAL",
+?{}
                     "variable": "group_replication_consistency"
                 },
                 {

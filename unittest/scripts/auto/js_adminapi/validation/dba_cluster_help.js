@@ -981,7 +981,9 @@ DESCRIPTION
       - EVENTUAL: if used, read queries to the new primary are allowed even if
         the backlog isn't applied.
 
-      If consistency is not specified, EVENTUAL will be used by default.
+      If consistency is not specified, it defaults to
+      BEFORE_ON_PRIMARY_FAILOVER for server versions 8.4.0 or newer, and
+      EVENTUAL otherwise.
 
       The value for exitStateAction is used to configure how Group Replication
       behaves when a server instance leaves the group unintentionally (for
@@ -1012,10 +1014,20 @@ DESCRIPTION
       When set to BEFORE_ON_PRIMARY_FAILOVER, whenever a primary failover
       happens in single-primary mode (default), new queries (read or write) to
       the newly elected primary that is applying backlog from the old primary,
-      will be hold before execution until the backlog is applied. When set to
-      EVENTUAL, read queries to the new primary are allowed even if the backlog
-      isn't applied but writes will fail (if the backlog isn't applied) due to
-      super-read-only mode being enabled. The client may return old values.
+      will be hold before execution until the backlog is applied. Special care
+      is needed if LOCK / UNLOCK queries are used in a secondary, because the
+      UNLOCK statement can be held. This means that, if the secondary is
+      promoted, and transactions from the primary are being applied that target
+      locked tables, they won't be applied and an explicit UNLOCK will also
+      hold because the secondary needs to finish applying the transactions from
+      the previous primary. See
+      https://dev.mysql.com/doc/refman/en/group-replication-system-variables.html#sysvar_group_replication_consistency
+      for more details.
+
+      When set to EVENTUAL, read queries to the new primary are allowed even if
+      the backlog isn't applied but writes will fail (if the backlog isn't
+      applied) due to super-read-only mode being enabled. The client may return
+      old values.
 
       When set to BEFORE, each transaction (RW or RO) waits until all preceding
       transactions are complete before starting its execution. This ensures
@@ -1046,7 +1058,8 @@ DESCRIPTION
       accepted values: EVENTUAL (or 0), BEFORE_ON_PRIMARY_FAILOVER (or 1),
       BEFORE (or 2), AFTER (or 3), and BEFORE_AND_AFTER (or 4).
 
-      The default value is EVENTUAL.
+      It defaults to BEFORE_ON_PRIMARY_FAILOVER for server versions 8.4.0 or
+      newer, and EVENTUAL otherwise.
 
       The value for expelTimeout is used to set the Group Replication system
       variable 'group_replication_member_expel_timeout' and configure how long

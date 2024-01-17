@@ -28,7 +28,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.31)}
@@ -193,7 +198,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_enforce_update_everywhere_checks = ON
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -237,7 +247,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ||
 
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -408,7 +423,12 @@ group_replication_ssl_mode = REQUIRED
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1_xcom>>>
 ?{VER(>=8.0.23)}
@@ -447,7 +467,12 @@ group_replication_ssl_mode = REQUIRED
 group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{}
 
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
@@ -473,7 +498,12 @@ WARNING: This function is deprecated and will be removed in a future release of 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
@@ -535,7 +565,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_enforce_update_everywhere_checks = ON
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -621,7 +656,12 @@ ONLINE
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -638,7 +678,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -651,7 +696,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -773,7 +823,12 @@ group_replication_bootstrap_group = OFF
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -810,7 +865,12 @@ group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -832,7 +892,12 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -846,7 +911,12 @@ group_replication_bootstrap_group = OFF
 ?{VER(>=8.0.27)}
 group_replication_communication_stack = MYSQL
 ?{}
+?{VER(>=8.4.0)}
+group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+?{}
+?{VER(<8.4.0)}
 group_replication_consistency = EVENTUAL
+?{}
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
