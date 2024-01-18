@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -175,6 +175,11 @@ void initialize_python() {
   config.install_signal_handlers = 1;
 
   if (const auto home = python_home(); !home.empty()) {
+    // home will contain the correct value wether python is bundled or not, the
+    // PYTHONHOME variable must be set so child processes (i.e. python) have the
+    // same context as the python in the shell
+    shcore::setenv("PYTHONHOME", shcore::wide_to_utf8(home));
+
     check_status(PyConfig_SetString(&config, &config.home, home.c_str()),
                  "set Python home");
 
