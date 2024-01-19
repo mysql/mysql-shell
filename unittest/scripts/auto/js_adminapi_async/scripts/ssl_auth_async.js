@@ -8,10 +8,12 @@ ca_path = testutil.sslCreateCa("myca", "/CN=Test_CA");
 // needed to create sandbox folders
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 // create server certificates
 cert1_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port1);
 cert2_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port2);
+cert3_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port3);
 
 function update_conf(port, ca_path, cert_path) {
     testutil.changeSandboxConf(port, "ssl_ca", ca_path);
@@ -109,9 +111,11 @@ function check_apis(sslMode, authType) {
 //restart the servers with proper SSL support
 update_conf(__mysql_sandbox_port1, ca_path, cert1_path);
 update_conf(__mysql_sandbox_port2, ca_path, cert2_path);
+update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
 
 var session1 = mysql.getSession(__sandbox_uri1);
 var session2 = mysql.getSession(__sandbox_uri2);
+var session3 = mysql.getSession(__sandbox_uri3);
 
 //@<> FR2 create replica set (just password)
 shell.connect(__sandbox_uri1);
@@ -193,7 +197,7 @@ shell.connect(__sandbox_uri1);
 
 // FR2.1 cannot mix 'memberAuthType' (with value other than "password") with 'adoptFromAR'
 EXPECT_THROWS(function() {
-    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER", certIssuer: "/CN=Test_CA", adoptFromAR: true });
+    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER", adoptFromAR: true });
 }, "Cannot set 'memberAuthType' to a value other than 'PASSWORD' if 'adoptFromAR' is set to true.");
 
 var rset;
@@ -288,7 +292,7 @@ shell.connect(__sandbox_uri1);
 
 // FR2.1 cannot mix 'memberAuthType' (with value other than "password") with 'adoptFromAR'
 EXPECT_THROWS(function() {
-    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER_PASSWORD", certIssuer: "/CN=Test_CA", adoptFromAR: true });
+    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER_PASSWORD", adoptFromAR: true });
 }, "Cannot set 'memberAuthType' to a value other than 'PASSWORD' if 'adoptFromAR' is set to true.");
 
 var rset;
@@ -328,7 +332,7 @@ shell.connect(__sandbox_uri1);
 
 // FR2.1 cannot mix 'memberAuthType' (with value other than "password") with 'adoptFromAR'
 EXPECT_THROWS(function() {
-    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}`, adoptFromAR: true });
+    dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", adoptFromAR: true });
 }, "Cannot set 'memberAuthType' to a value other than 'PASSWORD' if 'adoptFromAR' is set to true.");
 
 var rset;
@@ -364,9 +368,32 @@ check_option(options.replicaSet.globalOptions, "certIssuer", "/CN=Test_CA");
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port1}`], "certSubject", `/CN=${hostname}`);
 check_option(options.replicaSet.topology[`${hostname}:${__mysql_sandbox_port2}`], "certSubject", `/CN=${hostname}`);
 
+//@<> Check options when adopting an existing replica set
+
+dba.dropMetadataSchema({force: true});
+
+EXPECT_THROWS(function() {
+    dba.createReplicaSet("rset", { replicationSslMode: "REQUIRED", adoptFromAR: true });
+}, "Cannot use the options 'replicationSslMode', 'certIssuer', or 'certSubject' if 'adoptFromAR' is set to true.");
+EXPECT_THROWS(function() {
+    dba.createReplicaSet("rset", { certIssuer: "foo", adoptFromAR: true });
+}, "Cannot use the options 'replicationSslMode', 'certIssuer', or 'certSubject' if 'adoptFromAR' is set to true.");
+EXPECT_THROWS(function() {
+    dba.createReplicaSet("rset", { certSubject: "bar", adoptFromAR: true });
+}, "Cannot use the options 'replicationSslMode', 'certIssuer', or 'certSubject' if 'adoptFromAR' is set to true.");
+EXPECT_THROWS(function() {
+    dba.createReplicaSet("rset", { certIssuer: "foo", certSubject: "bar", adoptFromAR: true });
+}, "Cannot use the options 'replicationSslMode', 'certIssuer', or 'certSubject' if 'adoptFromAR' is set to true.");
+
+var rset;
+EXPECT_NO_THROWS(function() { rset = dba.createReplicaSet("rset", { gtidSetIsComplete: 1, memberAuthType: "PASSWORD", adoptFromAR: true }); });
+
+EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
+
 // cleanup replica set
 reset_instance(session1);
 reset_instance(session2);
+reset_instance(session3);
 
 //@<> FR2 create replica set (issuer + subject) with clone
 shell.connect(__sandbox_uri1);
@@ -497,6 +524,8 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Authentication error during connection check. Ple
 //@<> Cleanup
 session1.close();
 session2.close();
+session3.close();
 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);

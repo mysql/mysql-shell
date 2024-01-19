@@ -6,17 +6,12 @@ ca_path = testutil.sslCreateCa("myca", "/CN=Test_CA");
 // needed to create sandbox folders
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-if (__version_num >= 80023) {
-    testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-}
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
 // create server certificates
 cert1_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port1);
 cert2_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port2);
-cert3_path = undefined;
-if (__version_num >= 80023) {
-    cert3_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port3);
-}
+cert3_path = testutil.sslCreateCert("server", "myca", `/CN=${hostname}`, __mysql_sandbox_port3);
 
 function update_conf(port, ca_path, cert_path) {
     testutil.changeSandboxConf(port, "ssl_ca", ca_path);
@@ -226,9 +221,7 @@ function check_apis(sslMode, authType) {
 //restart the servers with proper SSL support
 update_conf(__mysql_sandbox_port1, ca_path, cert1_path);
 update_conf(__mysql_sandbox_port2, ca_path, cert2_path);
-if (__version_num >= 80023) {
-    update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
-}
+update_conf(__mysql_sandbox_port3, ca_path, cert3_path);
 
 //@<> FR1 create cluster (just password)
 shell.connect(__sandbox_uri1);
@@ -581,20 +574,33 @@ check_apis("VERIFY_IDENTITY", "CERT_SUBJECT_PASSWORD");
 
 reset_instances();
 
-//@<> FR1.2 cannot mix 'memberAuthType' (with value other than "password") with 'adoptFromGR'
+//@<> FR1.2 cannot mix either 'certIssuer', 'certSubject' or 'memberAuthType' (with value other than "password") with 'adoptFromGR'
 shell.connect(__sandbox_uri1);
 
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_SUBJECT_PASSWORD", certIssuer: "/CN=Test_CA", certSubject: `/CN=${hostname}` }); });
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { certSubject: `/CN=${hostname}` }); });
 
 dba.dropMetadataSchema({force: true});
 
 EXPECT_THROWS(function() {
-    dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "CERT_ISSUER_PASSWORD", certIssuer: "/CN=Test_CA", adoptFromGR: true });
+    dba.createCluster("cluster", { certIssuer: "foo", certSubject: "bar", adoptFromGR: true });
+}, "Cannot use the options 'certIssuer' or 'certSubject' if 'adoptFromGR' is set to true.");
+EXPECT_THROWS(function() {
+    dba.createCluster("cluster", { certSubject: "bar", adoptFromGR: true });
+}, "Cannot use the options 'certIssuer' or 'certSubject' if 'adoptFromGR' is set to true.");
+EXPECT_THROWS(function() {
+    dba.createCluster("cluster", { certIssuer: "foo", certSubject: "bar", adoptFromGR: true });
+}, "Cannot use the options 'certIssuer' or 'certSubject' if 'adoptFromGR' is set to true.");
+
+EXPECT_THROWS(function() {
+    dba.createCluster("cluster", { memberAuthType: "CERT_ISSUER_PASSWORD", adoptFromGR: true });
 }, "Cannot set 'memberAuthType' to a value other than 'PASSWORD' if 'adoptFromGR' is set to true.");
 
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", { gtidSetIsComplete: 1, memberAuthType: "PASSWORD", adoptFromGR: true }); });
 EXPECT_EQ("PASSWORD", session.runSql("SELECT attributes->>'$.opt_memberAuthType' FROM mysql_innodb_cluster_metadata.clusters WHERE (cluster_name = 'cluster')").fetchOne()[0]);
+
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
 
 // cleanup cluster
 cluster.dissolve();
@@ -704,6 +710,4 @@ cluster.dissolve();
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-if (__version_num >= 80023) {
-    testutil.destroySandbox(__mysql_sandbox_port3);
-}
+testutil.destroySandbox(__mysql_sandbox_port3);
