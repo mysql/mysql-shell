@@ -249,12 +249,21 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
                                       Cluster_type::ASYNC_REPLICATION);
 
   // if adopting, memberAuth only support "password"
-  if (options.adopt && (options.member_auth_options.member_auth_type !=
-                        Replication_auth_type::PASSWORD))
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Cannot set '%s' to a value other than 'PASSWORD' "
-                           "if '%s' is set to true.",
-                           kMemberAuthType, kAdoptFromAR));
+  if (options.adopt) {
+    if ((options.ssl_mode != Cluster_ssl_mode::NONE) ||
+        !options.member_auth_options.cert_issuer.empty() ||
+        !options.member_auth_options.cert_subject.empty())
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Cannot use the options '%s', '%s', or '%s' if '%s' is set to true.",
+          kReplicationSslMode, kCertIssuer, kCertSubject, kAdoptFromAR));
+
+    if (options.member_auth_options.member_auth_type !=
+        Replication_auth_type::PASSWORD)
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Cannot set '%s' to a value other than 'PASSWORD' "
+                             "if '%s' is set to true.",
+                             kMemberAuthType, kAdoptFromAR));
+  }
 
   std::string domain_name;
   std::string cluster_name;
