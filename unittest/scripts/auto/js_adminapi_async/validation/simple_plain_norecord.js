@@ -334,10 +334,10 @@ A new replicaset with the topology visible from '<<<__address1>>>' will be creat
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=yes
-    - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+    - replicates from '127.0.0.1:<<<__mysql_sandbox_port1>>>'
 <<<(__version_num<80023)?'	source="127.0.0.1:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="127.0.0.1:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=yes
-    - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+    - replicates from '127.0.0.1:<<<__mysql_sandbox_port1>>>'
 <<<(__version_num<80023)?'	source="127.0.0.1:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="127.0.0.1:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 * Checking configuration of discovered instances...

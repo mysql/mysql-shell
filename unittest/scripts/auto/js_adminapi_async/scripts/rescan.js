@@ -43,9 +43,9 @@ function validate_status(status, instance_data) {
 //@<> INCLUDE async_utils.inc
 
 //@<> Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, server_uuid: "cd93e780-b558-11ea-b3de-0242ac130005"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, server_uuid: "cd93e780-b558-11ea-b3de-0242ac130006"});
 
 //@<> Create replica set
 shell.connect(__sandbox_uri1);
@@ -522,6 +522,42 @@ rset = dba.getReplicaSet();
 WIPE_SHELL_LOG();
 EXPECT_NO_THROWS(function(){ rset.rescan(); });
 EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
+
+//@<> Rescan must ignore instances that don't have report-host or report-port set
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+var rset;
+EXPECT_NO_THROWS(function(){
+    rset = dba.createReplicaSet('rset', {gtidSetIsComplete: true});
+
+    rset.addInstance(__sandbox_uri2);
+    testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+});
+
+shell.connect(__sandbox_uri2);
+var sandbox_2_report_host = session.runSql("SELECT @@report_host").fetchOne()[0];
+
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "report_host");
+testutil.restartSandbox(__mysql_sandbox_port2);
+
+shell.connect(__sandbox_uri1);
+session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE (address = ?)", [`${hostname}:${__mysql_sandbox_port2}`]);
+
+WIPE_SHELL_LOG();
+EXPECT_NO_THROWS(function(){ rset.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS(`Ignoring instance 'cd93e780-b558-11ea-b3de-0242ac130005', currently connected to '${hostname}:${__mysql_sandbox_port1}', because its address can't be resolved: ':${__mysql_sandbox_port2}'`);
+
+//although __sandbox_uri2 is missing from the MD, nothing was changed because it was ignored due to its missing host
+EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
+
+testutil.changeSandboxConf(__mysql_sandbox_port2, "report_host", sandbox_2_report_host);
+testutil.restartSandbox(__mysql_sandbox_port2);
 
 //@<> Rescan cannot add new instances if the ReplicaSet auth type uses certificates
 ca_path = testutil.sslCreateCa("myca", "/CN=Test_CA");

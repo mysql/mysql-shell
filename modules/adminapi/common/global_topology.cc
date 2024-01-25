@@ -283,7 +283,7 @@ void Server::scan(const mysqlshdk::mysql::IInstance *conn,
     // record all slaves as unmanaged for a start, since we don't know their
     // corresponding channel name before we scan them. The unmanaged list is
     // updated after determining that a slave is a managed replica.
-    auto slaves = mysqlshdk::mysql::get_slaves(*conn);
+    auto slaves = mysqlshdk::mysql::get_replicas(*conn);
     std::copy(slaves.begin(), slaves.end(),
               std::back_inserter(instance.unmanaged_replicas));
     if (!instance.unmanaged_replicas.empty()) {
@@ -346,24 +346,23 @@ void Global_topology::load_instance_state(Instance *instance,
 
 void Global_topology::load_instance_slaves(Instance *instance,
                                            mysqlsh::dba::Instance *conn) {
-  std::vector<mysqlshdk::mysql::Slave_host> slaves(
-      mysqlshdk::mysql::get_slaves(*conn));
-  if (!slaves.empty()) {
-    log_info("%s has %zi instances replicating from it",
-             instance->label.c_str(), slaves.size());
+  auto slaves = mysqlshdk::mysql::get_replicas(*conn);
+  if (slaves.empty()) return;
 
-    for (const auto &slave : slaves) {
-      try {
-        find_member(slave.uuid);
-        // if member is already known, ignore it
-      } catch (...) {
-        // if member is not known, log and include it in the instance's info
-        log_info("%s has an unmanaged replica instance %s:%i (%s)",
-                 instance->label.c_str(), slave.host.c_str(), slave.port,
-                 slave.uuid.c_str());
+  log_info("%s has %zi instances replicating from it", instance->label.c_str(),
+           slaves.size());
 
-        instance->unmanaged_replicas.push_back(slave);
-      }
+  for (const auto &slave : slaves) {
+    try {
+      find_member(slave.uuid);
+      // if member is already known, ignore it
+    } catch (...) {
+      // if member is not known, log and include it in the instance's info
+      log_info("%s has an unmanaged replica instance %s:%i (%s)",
+               instance->label.c_str(), slave.host.c_str(), slave.port,
+               slave.uuid.c_str());
+
+      instance->unmanaged_replicas.push_back(slave);
     }
   }
 }
@@ -751,13 +750,32 @@ Server *Server_global_topology::scan_instance_recursive(
   }
 
   // Run discovery on slaves
-  std::list<mysqlshdk::mysql::Slave_host>::iterator next_it =
-      member->unmanaged_replicas.begin();
-  while (next_it != member->unmanaged_replicas.end()) {
+  for (auto next_it = member->unmanaged_replicas.begin();
+       next_it != member->unmanaged_replicas.end();) {
     auto slave_it = next_it++;
     const auto &slave = *slave_it;
 
-    std::string endpoint =
+    if (!slave.has_valid_endpoint()) {
+      console->print_warning(shcore::str_format(
+          "Instance '%s' (a replica of '%s') doesn't have the 'report_host' "
+          "variable properly configured: '%s'",
+          slave.uuid.c_str(), instance->descr().c_str(),
+          mysqlshdk::utils::make_host_and_port(slave.host, slave.port)
+              .c_str()));
+
+      console->print_info(shcore::str_format(
+          "In order to discover all available replicas, each one must have the "
+          "'report_host' variable set, otherwise they can't be uniquely "
+          "identified and reached from '%s'. Please configure the "
+          "'report_host' variable of instance '%s'.",
+          instance->descr().c_str(), slave.uuid.c_str()));
+
+      member->invalid_replicas.push_back(slave);
+      member->unmanaged_replicas.erase(slave_it);
+      continue;
+    }
+
+    auto endpoint =
         mysqlshdk::utils::make_host_and_port(slave.host, slave.port);
 
     // Connect to the slave and scan it
@@ -828,9 +846,10 @@ void Server_global_topology::show_raw() const {
       console->print_info("    - Unreachable: " + instance->connect_error);
       continue;
     }
+
     if (instance->master_channel) {
       console->print_info(shcore::str_format(
-          "    - replicates from %s",
+          "    - replicates from '%s'",
           instance->master_channel->master_ptr->label.c_str()));
       console->print_info(
           "\t" + shcore::str_join(shcore::str_split(
@@ -842,14 +861,18 @@ void Server_global_topology::show_raw() const {
 
     for (const auto &channel : instance->unmanaged_channels) {
       console->print_info(shcore::str_format(
-          "    - replicates from %s:%i through unsupported channel '%s'",
-          channel.host.c_str(), channel.port, channel.channel_name.c_str()));
+          "    - replicates from '%s' through unsupported channel '%s'",
+          mysqlshdk::utils::make_host_and_port(channel.host, channel.port)
+              .c_str(),
+          channel.channel_name.c_str()));
     }
+
     for (const auto &slave : instance->unmanaged_replicas) {
-      console->print_info(
-          shcore::str_format("    - has a replica %s:%i through an unsupported "
-                             "replication channel",
-                             slave.host.c_str(), slave.port));
+      console->print_info(shcore::str_format(
+          "    - has a replica '%s' through an unsupported replication "
+          "channel",
+          mysqlshdk::utils::make_host_and_port(slave.host, slave.port)
+              .c_str()));
     }
   }
 }
