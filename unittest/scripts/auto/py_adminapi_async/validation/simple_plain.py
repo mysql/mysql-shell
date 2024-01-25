@@ -406,7 +406,7 @@ A new replicaset with the topology visible from '127.0.0.1:<<<__mysql_sandbox_po
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=yes
-    - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+    - replicates from '127.0.0.1:<<<__mysql_sandbox_port1>>>'
 ?{VER(<8.0.23)}
 	source="127.0.0.1:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
 ?{}

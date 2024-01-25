@@ -103,6 +103,7 @@ class Instance final {
 
   std::list<mysqlshdk::mysql::Replication_channel> unmanaged_channels;
   std::list<mysqlshdk::mysql::Slave_host> unmanaged_replicas;
+  std::list<mysqlshdk::mysql::Slave_host> invalid_replicas;
 
  public:
   Instance_status status() const;
