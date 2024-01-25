@@ -73,13 +73,32 @@ class Upgrade_check_config final {
 
   Target_flags targets() const { return m_target_flags; }
 
+  const Check_id_set &include_list() const noexcept { return m_include; }
+  const Check_id_set &exclude_list() const noexcept { return m_exclude; }
+
+  bool list_checks() const noexcept { return m_list_checks; }
+
+  void set_warn_on_excludes(bool value) { m_warn_on_excludes = value; }
+
+  bool warn_on_excludes() const { return m_warn_on_excludes; }
+
  private:
+  Upgrade_check_config();
+
   Upgrade_info m_upgrade_info;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::string m_output_format;
-  const mysqlshdk::mysql::User_privileges *m_privileges;
+  const mysqlshdk::mysql::User_privileges *m_privileges = nullptr;
   Include_issue m_filter;
   Target_flags m_target_flags = Target_flags::all().unset(Target::MDS_SPECIFIC);
+  Check_id_set m_include;
+  Check_id_set m_exclude;
+  bool m_list_checks;
+  bool m_warn_on_excludes = true;
+
+  friend Upgrade_check_config create_config(
+      std::optional<Version> server_version,
+      std::optional<Version> target_version, const std::string &server_os);
 };
 
 }  // namespace upgrade_checker

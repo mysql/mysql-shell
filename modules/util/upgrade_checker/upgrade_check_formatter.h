@@ -26,6 +26,7 @@
 #ifndef MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_FORMATTER_H_
 #define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_FORMATTER_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -42,7 +43,7 @@ class Upgrade_check_output_formatter {
 
   virtual ~Upgrade_check_output_formatter() = default;
 
-  virtual void check_info(const std::string &server_addres,
+  virtual void check_info(const std::string &server_address,
                           const std::string &server_version,
                           const std::string &target_version,
                           bool explicit_target_version) = 0;
@@ -52,8 +53,18 @@ class Upgrade_check_output_formatter {
   virtual void check_error(const Upgrade_check &check, const char *description,
                            bool runtime_error = true) = 0;
   virtual void manual_check(const Upgrade_check &check) = 0;
-  virtual void summarize(int error, int warning, int notice,
-                         const std::string &text) = 0;
+  virtual void summarize(
+      int error, int warning, int notice, const std::string &text,
+      const std::map<std::string, std::string> &excluded) = 0;
+
+  virtual void list_info(const std::string &server_address = "",
+                         const std::string &server_version = "",
+                         const std::string &target_version = "",
+                         bool explicit_target_version = false) = 0;
+  virtual void list_item_infos(
+      const std::string &section,
+      const std::vector<std::unique_ptr<Upgrade_check>> &checks) = 0;
+  virtual void list_summarize(size_t included, size_t excluded) = 0;
 };
 
 }  // namespace upgrade_checker

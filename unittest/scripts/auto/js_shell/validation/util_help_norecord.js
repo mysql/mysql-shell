@@ -82,6 +82,11 @@ DESCRIPTION
       - targetVersion - version to which upgrade will be checked
         (default=<<<__mysh_version>>>)
       - password - password for connection.
+      - include - comma separated list containing the check identifiers to be
+        included in the operation
+      - exclude - comma separated list containing the check identifiers to be
+        excluded from the operation
+      - list - bool value to indicate the operation should only list the checks
 
       The connection data may be specified in the following formats:
 

@@ -95,18 +95,22 @@ std::unordered_map<std::string, Version> k_latest_versions = {
                                    // is the current shell version
     {"8.0", Version(LATEST_MYSH_80_VERSION)}};
 
-void Upgrade_info::validate() const {
-  if (server_version < Version(5, 7, 0))
-    throw std::invalid_argument(
-        shcore::str_format("Detected MySQL server version is %s, but this tool "
-                           "requires server to be at least at version 5.7",
-                           server_version.get_base().c_str()));
+void Upgrade_info::validate(bool listing) const {
+  if (!listing || server_version) {
+    if (server_version < Version(5, 7, 0))
+      throw std::invalid_argument(shcore::str_format(
+          "Detected MySQL server version is %s, but this tool "
+          "requires server to be at least at version 5.7",
+          server_version.get_base().c_str()));
 
-  if (server_version >= mysqlshdk::utils::k_shell_version)
-    throw std::invalid_argument(
-        "Detected MySQL Server version is " + server_version.get_base() +
-        ". MySQL Shell cannot check MySQL server instances for upgrade if they "
-        "are at a version the same as or higher than the MySQL Shell version.");
+    if (server_version >= mysqlshdk::utils::k_shell_version)
+      throw std::invalid_argument("Detected MySQL Server version is " +
+                                  server_version.get_base() +
+                                  ". MySQL Shell cannot check MySQL server "
+                                  "instances for upgrade if they "
+                                  "are at a version the same as or higher than "
+                                  "the MySQL Shell version.");
+  }
 
   auto major_minor = [](const Version &version) {
     return Version(version.get_major(), version.get_minor(), 0);
@@ -121,9 +125,11 @@ void Upgrade_info::validate() const {
                            mysqlshdk::utils::k_shell_version.get_major(),
                            mysqlshdk::utils::k_shell_version.get_minor()));
 
-  if (server_version >= target_version)
-    throw std::invalid_argument(
-        "Target version must be greater than current version of the server");
+  if (!listing || server_version) {
+    if (server_version >= target_version)
+      throw std::invalid_argument(
+          "Target version must be greater than current version of the server");
+  }
 }
 
 std::string upgrade_issue_to_string(const Upgrade_issue &problem) {

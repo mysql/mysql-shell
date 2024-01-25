@@ -31,6 +31,7 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/utils/utils_filtering.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -44,86 +45,19 @@ namespace {
 
 using Argument = std::unordered_set<std::string>;
 
-template <typename T, typename R = T>
-const R &key(const T &t) {
-  return t;
-}
-
-template <typename T, typename R = T>
-const R &value(const T &t) {
-  return t;
-}
-
-template <typename T1, typename T2>
-const T1 &key(const std::pair<T1, T2> &t) {
-  return t.first;
-}
-
-template <typename T1, typename T2>
-const T2 &value(const std::pair<T1, T2> &t) {
-  return t.second;
-}
-
-template <typename T, typename U = T>
-void find_matches(const T &included, const T &excluded,
-                  const std::string &prefix,
-                  const std::function<void(const U &, const U &,
-                                           const std::string &)> &callback) {
-  const auto included_is_smaller = included.size() < excluded.size();
-  const auto &needle = included_is_smaller ? included : excluded;
-  const auto &haystack = !included_is_smaller ? included : excluded;
-
-  for (const auto &object : needle) {
-    const auto &k = key(object);
-    const auto found = haystack.find(k);
-
-    if (haystack.end() != found) {
-      auto full_name = prefix;
-
-      if (!full_name.empty()) {
-        full_name += ".";
-      }
-
-      full_name += shcore::quote_identifier(k);
-
-      callback(value(included_is_smaller ? object : *found),
-               value(!included_is_smaller ? object : *found), full_name);
-    }
-  }
-}
-
-bool error_on_object_filters_conflicts(
-    const Filtering_options::Schema_filters::Filter &included,
-    const Filtering_options::Schema_filters::Filter &excluded,
-    const std::string &object_label, const std::string &option_suffix,
-    const std::string &schema_name) {
-  bool has_conflicts = false;
-
-  find_matches<Filtering_options::Schema_filters::Filter, std::string>(
-      included, excluded, schema_name,
-      [&object_label, &option_suffix, &has_conflicts](
-          const auto &, auto &, const std::string &full_name) {
-        has_conflicts = true;
-        current_console()->print_error(
-            "Both include" + option_suffix + " and exclude" + option_suffix +
-            " options contain " + object_label + " " + full_name + ".");
-      });
-
-  return has_conflicts;
-}
-
 bool error_on_object_filters_conflicts(
     const Filtering_options::Object_filters::Filter &included,
     const Filtering_options::Object_filters::Filter &excluded,
     const std::string &object_label, const std::string &option_suffix) {
   bool has_conflicts = false;
 
-  find_matches<Filtering_options::Object_filters::Filter,
-               Filtering_options::Schema_filters::Filter>(
+  mysqlshdk::utils::find_matches<Filtering_options::Object_filters::Filter,
+                                 Filtering_options::Schema_filters::Filter>(
       included, excluded, {},
       [&object_label, &option_suffix, &has_conflicts](
           const auto &i, const auto &e, const std::string &schema_name) {
-        has_conflicts |= error_on_object_filters_conflicts(
+        has_conflicts |= mysqlshdk::utils::error_on_conflicts<
+            Filtering_options::Schema_filters::Filter, std::string>(
             i, e, object_label, option_suffix, schema_name);
       });
 
@@ -303,8 +237,9 @@ void Filtering_options::Schema_filters::include(const char *schema) {
 }
 
 bool Filtering_options::Schema_filters::error_on_conflicts() const {
-  return error_on_object_filters_conflicts(included(), excluded(), "a schema",
-                                           "Schemas", {});
+  return mysqlshdk::utils::error_on_conflicts<
+      Filtering_options::Schema_filters::Filter, std::string>(
+      included(), excluded(), "a schema", "Schemas", {});
 }
 
 std::string Filtering_options::Schema_filters::parse_schema(
@@ -631,18 +566,22 @@ void Filtering_options::Trigger_filters::include(std::string schema,
 bool Filtering_options::Trigger_filters::error_on_conflicts() const {
   bool has_conflicts = false;
 
-  find_matches<Trigger_filters::Filter, Object_filters::Filter>(
+  mysqlshdk::utils::find_matches<Trigger_filters::Filter,
+                                 Object_filters::Filter>(
       included(), excluded(), {},
       [&has_conflicts](const auto &included, const auto &excluded,
                        const std::string &schema_name) {
-        find_matches<Object_filters::Filter, Schema_filters::Filter>(
+        mysqlshdk::utils::find_matches<Object_filters::Filter,
+                                       Schema_filters::Filter>(
             included, excluded, schema_name,
             [&has_conflicts](const auto &i, const auto &e,
                              const std::string &table_name) {
               if (!i.empty() && !e.empty()) {
                 // both trigger-level filters are not empty, check for conflicts
-                has_conflicts |= error_on_object_filters_conflicts(
-                    i, e, "a trigger", "Triggers", table_name);
+                has_conflicts |=
+                    mysqlshdk::utils::error_on_conflicts<Schema_filters::Filter,
+                                                         std::string>(
+                        i, e, "a trigger", "Triggers", table_name);
               } else if (i.empty() != e.empty()) {
                 // one of the trigger-level filters is empty, if it's the
                 // excluded one, it's a conflict

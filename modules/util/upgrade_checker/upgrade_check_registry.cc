@@ -25,21 +25,47 @@
 
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 
+#include <algorithm>
+#include <set>
 #include <sstream>
 
 #include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_condition.h"
+#include "modules/util/upgrade_checker/upgrade_check_config.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
+namespace {
+void cross_compare_checks(const std::set<std::string> &check_list,
+                          const std::set<std::string_view> &all_checks,
+                          const std::string option_name) {
+  std::set<std::string_view> unknown_list;
+  std::ranges::set_difference(
+      check_list, all_checks, std::inserter(unknown_list, unknown_list.begin()),
+      [](const auto &l, const auto &r) { return l < r; });
+
+  if (!unknown_list.empty()) {
+    throw std::invalid_argument(
+        "Option " + option_name + " contains unknown values " +
+        shcore::str_join(unknown_list, ", ", [](const std::string_view &value) {
+          return shcore::quote_string(std::string(value), '\'');
+        }));
+  }
+}
+}  // namespace
+
 using mysqlshdk::utils::Version;
 
 Upgrade_check_registry::Collection Upgrade_check_registry::s_available_checks;
+
+const Target_flags Upgrade_check_registry::k_target_flags_default =
+    Target_flags::all().unset(Target::MDS_SPECIFIC);
 
 namespace {
 
@@ -146,7 +172,9 @@ bool UNUSED_VARIABLE(register_fts_tablename_check) =
           return Version_condition(Version(8, 0, 11)).evaluate(info) &&
                  info.target_version < Version(8, 0, 18) &&
                  !shcore::str_beginswith(info.server_os, "WIN");
-        });
+        },
+        "When upgrading to a version between 8.0.11 and 8.0.17 on non Windows "
+        "platforms.");
 
 // clang-format on
 
@@ -160,7 +188,8 @@ bool UNUSED_VARIABLE(register_old_geometry_check) =
         [](const Upgrade_info &info) {
           return Version_condition(Version(8, 0, 11)).evaluate(info) &&
                  info.target_version < Version(8, 0, 24);
-        });
+        },
+        "When upgrading to a version between 8.0.11 and 8.0.23");
 
 bool UNUSED_VARIABLE(register_check_table) =
     Upgrade_check_registry::register_check(std::bind(&get_table_command_check),
@@ -257,17 +286,37 @@ bool UNUSED_VARIABLE(register_invalid_privileges_check) =
 
 }  // namespace
 
-std::vector<std::unique_ptr<Upgrade_check>>
-Upgrade_check_registry::create_checklist(const Upgrade_info &info,
-                                         Target_flags flags, bool include_all) {
-  std::vector<std::unique_ptr<Upgrade_check>> result;
+Upgrade_check_registry::Upgrade_check_vec
+Upgrade_check_registry::create_checklist(const Upgrade_check_config &config,
+                                         bool include_all,
+                                         Upgrade_check_vec *rejected) {
+  cross_compare_checks(config.include_list(), ids::all, "include");
+  cross_compare_checks(config.exclude_list(), ids::all, "exclude");
+
+  auto cond_accepted = [&](const Creator_info &c) {
+    return !c.condition || c.condition->evaluate(config.upgrade_info());
+  };
+
+  auto list_accepted = [&](const std::string &name) {
+    if (config.exclude_list().contains(name)) return false;
+
+    if (!config.include_list().empty() && !config.include_list().contains(name))
+      return false;
+
+    return true;
+  };
+
+  Upgrade_check_vec result;
   for (const auto &c : s_available_checks) {
-    if (include_all || flags.is_set(c.target)) {
-      if (include_all || !c.condition || c.condition->evaluate(info)) {
-        auto check = c.creator(info);
-        // New checks have the condition in the check itself...
-        if (!check->enabled()) continue;
+    if (include_all || config.targets().is_set(c.target)) {
+      auto check = c.creator(config.upgrade_info());
+      check->set_condition(c.condition.get());
+
+      if ((include_all || cond_accepted(c)) &&
+          list_accepted(check->get_name())) {
         result.emplace_back(std::move(check));
+      } else if (rejected) {
+        rejected->emplace_back(std::move(check));
       }
     }
   }

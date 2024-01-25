@@ -47,6 +47,18 @@ Upgrade_info upgrade_info(const std::string &server,
   return upgrade_info(Version(server), Version(target));
 }
 
+Upgrade_check_config create_config(std::optional<Version> server_version,
+                                   std::optional<Version> target_version,
+                                   const std::string &server_os) {
+  Upgrade_check_config config;
+  if (server_version.has_value())
+    config.m_upgrade_info.server_version = std::move(*server_version);
+  if (target_version.has_value())
+    config.m_upgrade_info.target_version = std::move(*target_version);
+  if (!server_os.empty()) config.m_upgrade_info.server_os = server_os;
+  return config;
+}
+
 Version before_version(const Version &version) {
   auto major = version.get_major();
   auto minor = version.get_minor();
