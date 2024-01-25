@@ -25,6 +25,7 @@
 
 #include "modules/util/upgrade_check.h"
 
+#include <algorithm>
 #include <exception>
 #include <string>
 
@@ -38,32 +39,18 @@ namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
 
-bool check_for_upgrade(const Upgrade_check_config &config) {
-  if (config.user_privileges()) {
-    if (config.user_privileges()
-            ->validate({"PROCESS", "RELOAD", "SELECT"})
-            .has_missing_privileges()) {
-      throw std::runtime_error(
-          "The upgrade check needs to be performed by user with RELOAD, "
-          "PROCESS, and SELECT privileges.");
-    }
-  } else {
-    log_warning("User privileges were not validated, upgrade check may fail.");
-  }
-
-  const auto print = config.formatter();
-  assert(print);
+bool run_checks_for_upgrade(const Upgrade_check_config &config,
+                            Upgrade_check_output_formatter &print) {
   assert(config.session());
-
-  print->check_info(config.session()->get_connection_options().uri_endpoint(),
-                    config.upgrade_info().server_version_long,
-                    config.upgrade_info().target_version.get_base(),
-                    config.upgrade_info().explicit_target_version);
-
+  print.check_info(config.session()->get_connection_options().uri_endpoint(),
+                   config.upgrade_info().server_version_long,
+                   config.upgrade_info().target_version.get_base(),
+                   config.upgrade_info().explicit_target_version);
   config.upgrade_info().validate();
 
+  Upgrade_check_registry::Upgrade_check_vec rejected;
   const auto checklist = Upgrade_check_registry::create_checklist(
-      config.upgrade_info(), config.targets());
+      config, false, config.warn_on_excludes() ? &rejected : nullptr);
 
   int errors = 0, warnings = 0, notices = 0;
   const auto update_counts = [&errors, &warnings,
@@ -90,20 +77,20 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
   for (const auto &check : checklist)
     if (check->is_runnable()) {
       try {
-        print->check_title(*check);
+        print.check_title(*check);
 
         const auto issues = config.filter_issues(
             check->run(config.session(), config.upgrade_info(), &cache));
         for (const auto &issue : issues) update_counts(issue.level);
-        print->check_results(*check, issues);
+        print.check_results(*check, issues);
       } catch (const Check_configuration_error &e) {
-        print->check_error(*check, e.what(), false);
+        print.check_error(*check, e.what(), false);
       } catch (const std::exception &e) {
-        print->check_error(*check, e.what());
+        print.check_error(*check, e.what());
       }
     } else {
       update_counts(dynamic_cast<Manual_check *>(check.get())->get_level());
-      print->manual_check(*check);
+      print.manual_check(*check);
     }
 
   std::string summary;
@@ -120,9 +107,70 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
   } else {
     summary = "No known compatibility errors or issues were found.";
   }
-  print->summarize(errors, warnings, notices, summary);
+
+  std::map<std::string, std::string> excluded;
+  if (config.warn_on_excludes() && !config.exclude_list().empty()) {
+    for (const auto &check : rejected) {
+      if (!config.exclude_list().contains(check->get_name())) continue;
+
+      excluded[check->get_name()] = check->get_title();
+    }
+  }
+
+  print.summarize(errors, warnings, notices, summary, excluded);
 
   return 0 == errors;
+}
+
+bool list_checks_for_upgrade(const Upgrade_check_config &config,
+                             Upgrade_check_output_formatter &print) {
+  if (config.session()) {
+    print.list_info(config.session()->get_connection_options().uri_endpoint(),
+                    config.upgrade_info().server_version_long,
+                    config.upgrade_info().target_version.get_base(),
+                    config.upgrade_info().explicit_target_version);
+  } else {
+    print.list_info();
+  }
+
+  config.upgrade_info().validate(true);
+
+  Upgrade_check_registry::Upgrade_check_vec rejected;
+
+  const auto accepted = Upgrade_check_registry::create_checklist(
+      config, config.session() == nullptr, &rejected);
+
+  print.list_item_infos("Included", accepted);
+  print.list_item_infos("Excluded", rejected);
+
+  print.list_summarize(accepted.size(), rejected.size());
+
+  return true;
+}
+
+bool check_for_upgrade(const Upgrade_check_config &config) {
+  if (!config.list_checks()) {
+    if (config.user_privileges()) {
+      if (config.user_privileges()
+              ->validate({"PROCESS", "RELOAD", "SELECT"})
+              .has_missing_privileges()) {
+        throw std::runtime_error(
+            "The upgrade check needs to be performed by user with RELOAD, "
+            "PROCESS, and SELECT privileges.");
+      }
+    } else {
+      log_warning(
+          "User privileges were not validated, upgrade check may fail.");
+    }
+  }
+
+  const auto print = config.formatter();
+  assert(print);
+
+  if (config.list_checks()) {
+    return list_checks_for_upgrade(config, *print);
+  }
+  return run_checks_for_upgrade(config, *print);
 }
 
 }  // namespace upgrade_checker

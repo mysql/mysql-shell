@@ -1,9 +1,9 @@
 #@<OUT> Sandbox Deployment
-[[*]]) Check for invalid table names and schema names used in 5.7
+[[*]]) Check for invalid table names and schema names used in 5.7 (invalid57Names)
   No issues found
 
 #@<OUT> Invalid Name Check
-[[*]]) Check for invalid table names and schema names used in 5.7
+[[*]]) Check for invalid table names and schema names used in 5.7 (invalid57Names)
   The following tables and/or schemas have invalid names. In order to fix them
     use the mysqlcheck utility as follows:
     

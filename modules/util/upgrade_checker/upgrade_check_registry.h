@@ -29,6 +29,7 @@
 #include <forward_list>
 #include <functional>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -44,6 +45,7 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 class Upgrade_check;
+class Upgrade_check_config;
 
 template <typename T>
 concept Version_source = std::is_constructible_v<Version, T>;
@@ -51,6 +53,7 @@ class Upgrade_check_registry {
  public:
   using Creator =
       std::function<std::unique_ptr<Upgrade_check>(const Upgrade_info &)>;
+  using Upgrade_check_vec = std::vector<std::unique_ptr<Upgrade_check>>;
 
   struct Creator_info {
     std::unique_ptr<Condition> condition;
@@ -59,6 +62,8 @@ class Upgrade_check_registry {
   };
 
   using Collection = std::vector<Creator_info>;
+
+  static const Target_flags k_target_flags_default;
 
   template <Version_source... Ts>
   static bool register_check(Creator creator, Target target, Ts... params) {
@@ -90,9 +95,10 @@ class Upgrade_check_registry {
   }
 
   static bool register_check(Creator creator, Target target,
-                             Custom_condition::Callback cb) {
-    std::unique_ptr<Condition> condition =
-        std::make_unique<Custom_condition>(std::move(cb));
+                             Custom_condition::Callback cb,
+                             std::string description) {
+    std::unique_ptr<Condition> condition = std::make_unique<Custom_condition>(
+        std::move(cb), std::move(description));
     return register_check(std::move(creator), target, std::move(condition));
   }
 
@@ -100,9 +106,8 @@ class Upgrade_check_registry {
                                     Upgrade_issue::Level level, Target target);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
-      const Upgrade_info &info,
-      Target_flags flags = Target_flags::all().unset(Target::MDS_SPECIFIC),
-      bool include_all = false);
+      const Upgrade_check_config &config, bool include_all = false,
+      Upgrade_check_vec *rejected = nullptr);
 
  private:
   static Collection s_available_checks;

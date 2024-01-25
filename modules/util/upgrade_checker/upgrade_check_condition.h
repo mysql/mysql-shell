@@ -28,6 +28,7 @@
 
 #include <forward_list>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "modules/util/upgrade_checker/common.h"
@@ -43,6 +44,8 @@ class Condition {
  public:
   virtual bool evaluate(const Upgrade_info &info) = 0;
   virtual ~Condition() = default;
+
+  virtual std::string description() const = 0;
 };
 
 /**
@@ -64,6 +67,8 @@ class Version_condition : public Condition {
 
   bool evaluate(const Upgrade_info &info) override;
 
+  std::string description() const override;
+
  private:
   std::forward_list<Version> m_versions;
 };
@@ -73,11 +78,15 @@ class Custom_condition : public Condition {
  public:
   using Callback = std::function<bool(const Upgrade_info &)>;
 
-  explicit Custom_condition(Callback cb) : m_condition{std::move(cb)} {}
+  explicit Custom_condition(Callback cb, std::string description)
+      : m_condition{std::move(cb)}, m_description(std::move(description)) {}
   bool evaluate(const Upgrade_info &info) override { return m_condition(info); }
+
+  std::string description() const override { return m_description; }
 
  private:
   Callback m_condition;
+  std::string m_description;
 };
 /**
  * This condition can be used to track the different states of a feature and
@@ -90,6 +99,8 @@ class Life_cycle_condition : public Condition {
                        std::optional<Version> removal);
 
   bool evaluate(const Upgrade_info &info) override;
+
+  std::string description() const override;
 
  private:
   std::optional<Version> m_start_version;

@@ -126,7 +126,19 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4,
 REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5,
               "@li password - password for connection.");
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6, "${TOPIC_CONNECTION_DATA}");
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6,
+              "@li include - comma separated list containing the check "
+              "identifiers to be included in the operation");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL7,
+              "@li exclude - comma separated list containing the check "
+              "identifiers to be excluded from the operation");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL8,
+              "@li list - bool value to indicate the operation should only "
+              "list the checks");
+
+REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL9, "${TOPIC_CONNECTION_DATA}");
 
 /**
  * \ingroup util
@@ -144,6 +156,9 @@ REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6, "${TOPIC_CONNECTION_DATA}");
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL3)
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL4)
  * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL5)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL6)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL7)
+ * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL8)
  *
  * \copydoc connection_options
  *
@@ -177,29 +192,36 @@ void Util::check_for_server_upgrade(
       connection.set_password(*options->password);
     }
   } else {
-    if (!_shell_core.get_dev_session())
-      throw shcore::Exception::argument_error(
-          "Please connect the shell to the MySQL server to be checked or "
-          "specify the server URI as a parameter.");
-    connection = _shell_core.get_dev_session()->get_connection_options();
-  }
-
-  const auto session =
-      establish_session(connection, current_shell_options()->get().wizards);
-  mysqlshdk::mysql::Instance instance(session);
-  std::unique_ptr<mysqlshdk::mysql::User_privileges> privileges;
-
-  try {
-    privileges = instance.get_current_user_privileges(true);
-  } catch (const std::runtime_error &e) {
-    log_error("Unable to check permissions: %s", e.what());
-  } catch (const std::logic_error &) {
-    throw std::runtime_error("Unable to get information about a user");
+    if (!_shell_core.get_dev_session()) {
+      if (!options->list_checks) {
+        throw shcore::Exception::argument_error(
+            "Please connect the shell to the MySQL server to be checked or "
+            "specify the server URI as a parameter.");
+      }
+    } else {
+      connection = _shell_core.get_dev_session()->get_connection_options();
+    }
   }
 
   upgrade_checker::Upgrade_check_config config{*options};
-  config.set_session(session);
-  config.set_user_privileges(privileges.get());
+  std::unique_ptr<mysqlshdk::mysql::User_privileges> privileges;
+
+  if (connection.has_data()) {
+    const auto session =
+        establish_session(connection, current_shell_options()->get().wizards);
+    mysqlshdk::mysql::Instance instance(session);
+
+    try {
+      privileges = instance.get_current_user_privileges(true);
+    } catch (const std::runtime_error &e) {
+      log_error("Unable to check permissions: %s", e.what());
+    } catch (const std::logic_error &) {
+      throw std::runtime_error("Unable to get information about a user");
+    }
+
+    config.set_session(session);
+    config.set_user_privileges(privileges.get());
+  }
 
   check_for_upgrade(config);
 }
