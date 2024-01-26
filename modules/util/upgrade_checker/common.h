@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -97,6 +98,22 @@ class Check_configuration_error : public std::runtime_error {
 };
 
 class Check_not_needed : public std::exception {};
+
+class Checker_cache {
+ public:
+  struct Table_info {
+    std::string schema_name;
+    std::string name;
+    std::string engine;
+  };
+
+  const Table_info *get_table(const std::string &schema_table);
+
+  void cache_tables(mysqlshdk::db::ISession *session);
+
+ private:
+  std::unordered_map<std::string, Table_info> tables_;
+};
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

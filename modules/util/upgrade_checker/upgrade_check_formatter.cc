@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,10 +85,12 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         0, 0);
   }
 
+  void check_title(const Upgrade_check &check) override {
+    print_title(check.get_title());
+  }
+
   void check_results(const Upgrade_check &check,
                      const std::vector<Upgrade_issue> &results) override {
-    print_title(check.get_title());
-
     std::function<std::string(const Upgrade_issue &)> issue_formater(
         upgrade_issue_to_string);
     if (results.empty()) {
@@ -190,6 +192,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     tvr.SetString(target_version.c_str(), target_version.length(), m_allocator);
     m_json_document.AddMember("targetVersion", tvr, m_allocator);
   }
+
+  void check_title(const Upgrade_check &) override {}
 
   void check_results(const Upgrade_check &check,
                      const std::vector<Upgrade_issue> &results) override {

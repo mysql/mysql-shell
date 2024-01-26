@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -433,12 +433,12 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 * mysqlEmptyDotTableSyntaxCheck.docLink
 
 * mysqlInvalidEngineForeignKeyCheck.title
-# Check for columns that have foreign keys pointing to tables from a diffrent database engine.
+Check for columns that have foreign keys pointing to tables from a different database engine.
 
 * mysqlInvalidEngineForeignKeyCheck.description
-# Error: The following columns have foreign keys pointing to tables from diffrent database engines
-# than originating table. This is invalid and probably a mistake done when FOREIGN_KEY_CHECKS was
-# turned OFF:\n
+Error: The following columns have foreign keys pointing to tables from different database engines
+than originating table. This is invalid and probably a mistake done when FOREIGN_KEY_CHECKS was
+turned OFF:\n
 
 * mysqlInvalidEngineForeignKeyCheck.docLink
 

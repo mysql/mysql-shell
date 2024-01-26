@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,40 +21,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_FORMATTER_H_
-#define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_FORMATTER_H_
+#ifndef MODULES_UTIL_UPGRADE_CHECKER_CUSTOM_CHECK_H_
+#define MODULES_UTIL_UPGRADE_CHECKER_CUSTOM_CHECK_H_
 
 #include <memory>
-#include <string>
-#include <vector>
 
 #include "modules/util/upgrade_checker/upgrade_check.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
-class Upgrade_check_output_formatter {
- public:
-  static std::unique_ptr<Upgrade_check_output_formatter> get_formatter(
-      const std::string &format);
-
-  virtual ~Upgrade_check_output_formatter() = default;
-
-  virtual void check_info(const std::string &server_addres,
-                          const std::string &server_version,
-                          const std::string &target_version,
-                          bool explicit_target_version) = 0;
-  virtual void check_title(const Upgrade_check &check) = 0;
-  virtual void check_results(const Upgrade_check &check,
-                             const std::vector<Upgrade_issue> &results) = 0;
-  virtual void check_error(const Upgrade_check &check, const char *description,
-                           bool runtime_error = true) = 0;
-  virtual void manual_check(const Upgrade_check &check) = 0;
-  virtual void summarize(int error, int warning, int notice,
-                         const std::string &text) = 0;
-};
+std::unique_ptr<Upgrade_check> get_invalid_engine_foreign_key_check();
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_FORMATTER_H_
+#endif  // MODULES_UTIL_UPGRADE_CHECKER_CUSTOM_CHECK_H_

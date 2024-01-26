@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include <sstream>
 
+#include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "mysqlshdk/libs/utils/utils_file.h"

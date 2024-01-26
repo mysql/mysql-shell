@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "modules/util/upgrade_checker/common.h"
 
 #include <sstream>
+#include <utility>
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -53,6 +54,30 @@ std::string Upgrade_issue::get_db_object() const {
   if (!table.empty()) ss << "." << table;
   if (!column.empty()) ss << "." << column;
   return ss.str();
+}
+
+const Checker_cache::Table_info *Checker_cache::get_table(
+    const std::string &schema_table) {
+  auto t = tables_.find(schema_table);
+  if (t != tables_.end()) return &t->second;
+  return nullptr;
+}
+
+void Checker_cache::cache_tables(mysqlshdk::db::ISession *session) {
+  if (!tables_.empty()) return;
+
+  auto res = session->query(
+      R"*(SELECT table_schema, table_name, engine
+FROM information_schema.tables
+WHERE engine is not null and
+  table_schema not in ('sys', 'mysql', 'information_schema', 'performance_schema'))*");
+  while (auto row = res->fetch_one()) {
+    Table_info table{row->get_string(0), row->get_string(1),
+                     row->get_string(2)};
+
+    tables_.emplace(row->get_string(0) + "/" + row->get_string(1),
+                    std::move(table));
+  }
 }
 
 }  // namespace upgrade_checker

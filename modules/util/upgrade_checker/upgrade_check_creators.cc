@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1432,65 +1432,6 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
       Upgrade_issue::ERROR,
       "The following routines contain identifiers in deprecated identifier "
       "syntax (\".<table>\"), and should be corrected before upgrade:\n");
-}
-
-std::unique_ptr<Sql_upgrade_check> get_invalid_engine_foreign_key_check() {
-  return std::make_unique<Sql_upgrade_check>(
-      "mysqlInvalidEngineForeignKeyCheck",
-      "Check for columns that have foreign keys pointing to tables from a "
-      "diffrent database engine.",
-      std::vector<std::string>{
-          R"(select
-  info.TABLE_SCHEMA,
-  info.TABLE_NAME,
-  info.COLUMN_NAME,
-  CONCAT('column has invalid foreign key to column \'',
-    info.REF_COL_NAME,
-    '\' from table \'',
-    info.REF_NAME,
-    '\' that is from a different database engine (',
-    info.REF_ENGINE,
-    ').'
-  ) as DESCRIPTION
-from
-  (
-    select
-      info_t.TABLE_SCHEMA,
-      info_t.TABLE_NAME,
-      inno_c.FOR_COL_NAME as COLUMN_NAME,
-      info_t.ENGINE,
-      inno_t.REF_NAME,
-      inno_c.REF_COL_NAME,
-      (
-        select
-          ENGINE
-        from
-          information_schema.tables
-        where
-          CONCAT(
-            TABLE_SCHEMA,
-            '/',
-            TABLE_NAME
-          ) = inno_t.REF_NAME) as REF_ENGINE
-    from
-      information_schema.innodb_sys_foreign_cols inno_c,
-      information_schema.innodb_sys_foreign inno_t,
-      information_schema.tables info_t
-    where
-      inno_c.ID = inno_t.ID and
-      inno_t.FOR_NAME = CONCAT(
-        info_t.TABLE_SCHEMA,
-        '/',
-        info_t.TABLE_NAME
-      ) and
-      info_t.TABLE_SCHEMA not in ('sys', 'mysql', 'information_schema', 'performance_schema')
-  ) info
-where
-  info.ENGINE != info.REF_ENGINE;)"},
-      Upgrade_issue::ERROR,
-      "The following columns have foreign keys pointing to tables from "
-      "diffrent database engines than originating table. This is invalid and "
-      "probably a mistake done when FOREIGN_KEY_CHECKS was turned OFF:\n");
 }
 
 namespace deprecated_auth_funcs {

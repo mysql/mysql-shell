@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,7 +49,19 @@ class Upgrade_check {
 
   virtual std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info) = 0;
+      const Upgrade_info &server_info) {
+    (void)session;
+    (void)server_info;
+    throw std::logic_error("not implemented");
+  }
+
+  virtual std::vector<Upgrade_issue> run(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info, Checker_cache *cache) {
+    // override this method if cache is used by the check
+    (void)cache;
+    return run(session, server_info);
+  }
 
   virtual const char *get_description_internal() const { return nullptr; }
   virtual const char *get_doc_link_internal() const { return nullptr; }

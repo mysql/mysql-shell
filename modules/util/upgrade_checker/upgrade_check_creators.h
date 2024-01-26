@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,7 +76,6 @@ std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check();
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check();
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check();
 std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check();
-std::unique_ptr<Sql_upgrade_check> get_invalid_engine_foreign_key_check();
 std::unique_ptr<Sql_upgrade_check> get_deprecated_auth_method_check(
     const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(

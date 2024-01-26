@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include "modules/util/mod_util.h"
 #include "modules/util/upgrade_check.h"
 #include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
@@ -153,7 +154,9 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       Upgrade_check *check, const int no = -1,
       std::function<void()> after_run_callback = std::function<void()>()) {
     try {
-      issues = check->run(session, info);
+      mysqlsh::upgrade_checker::Checker_cache cache;
+
+      issues = check->run(session, info, &cache);
       if (after_run_callback) after_run_callback();
     } catch (const std::exception &e) {
       puts("Exception runing check:");

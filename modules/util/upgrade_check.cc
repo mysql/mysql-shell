@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,6 +76,8 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
     }
   };
 
+  Checker_cache cache;
+
   // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present
   // up to 5.7.39
   config.session()->execute("USE mysql;");
@@ -83,8 +85,10 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
   for (const auto &check : checklist)
     if (check->is_runnable()) {
       try {
+        print->check_title(*check);
+
         const auto issues = config.filter_issues(
-            check->run(config.session(), config.upgrade_info()));
+            check->run(config.session(), config.upgrade_info(), &cache));
         for (const auto &issue : issues) update_counts(issue.level);
         print->check_results(*check, issues);
       } catch (const Check_configuration_error &e) {

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -97,6 +97,7 @@ file(GLOB api_module_SOURCES
       "reports/threads.cc"
       "reports/utils.cc"
       "util/upgrade_checker/common.cc"
+      "util/upgrade_checker/custom_check.cc"
       "util/upgrade_checker/sql_upgrade_check.cc"
       "util/upgrade_checker/upgrade_check_config.cc"
       "util/upgrade_checker/upgrade_check_formatter.cc"
