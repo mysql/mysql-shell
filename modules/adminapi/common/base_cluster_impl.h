@@ -287,6 +287,14 @@ class Base_cluster_impl {
 
   virtual void ensure_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient) const = 0;
+
+  static bool verify_compatible_clone_versions(
+      const mysqlshdk::utils::Version &donor,
+      const mysqlshdk::utils::Version &recipient);
+
+  static void check_compatible_clone_donor(
+      const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient);
 
  protected:

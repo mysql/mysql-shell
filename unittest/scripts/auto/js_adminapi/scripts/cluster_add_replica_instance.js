@@ -525,10 +525,10 @@ EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Cance
 //@<> addReplicaInstance: recoveryMethod: clone, automatic donor not valid {!__dbug_off}
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
 
 //@<> addReplicaInstance: recoveryMethod: clone, cloneDonor not valid {!__dbug_off}
-EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance " + __endpoint2 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance '" + __endpoint2 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
 
 testutil.dbugSet("");
 

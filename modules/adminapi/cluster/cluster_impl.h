@@ -605,7 +605,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void ensure_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
-      const mysqlshdk::mysql::IInstance &recipient) override;
+      const mysqlshdk::mysql::IInstance &recipient) const override;
 
   // Lock methods
 

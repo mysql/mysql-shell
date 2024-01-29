@@ -24,10 +24,12 @@
  */
 
 #include <string>
+
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/clone_progress.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -35,13 +37,25 @@
 namespace mysqlsh {
 namespace dba {
 
-class Admin_api_clone_progress_test : public Shell_core_test_wrapper {};
+class Admin_api_clone_test : public Shell_core_test_wrapper {
+ public:
+  static std::shared_ptr<mysqlshdk::db::ISession> create_session(
+      int port, std::string user = "root") {
+    auto session = mysqlshdk::db::mysql::Session::create();
+
+    auto connection_options = shcore::get_connection_options(
+        user + ":root@localhost:" + std::to_string(port), false);
+    session->connect(connection_options);
+
+    return session;
+  }
+};
 
 // It's not guaranteed that P_S will have the information for the 4 stages
 // we want to monitor. If the dataset is very small it's possible that
 // only 1 or 2 stages are displayed in P_S.
 // Test that the function does not segfault in that scenario (BUG#31545728)
-TEST_F(Admin_api_clone_progress_test, update_transfer) {
+TEST_F(Admin_api_clone_test, update_transfer) {
   reset_shell();
   Recovery_progress_style wait_recovery = Recovery_progress_style::PROGRESSBAR;
   Clone_progress clone_progress(wait_recovery);
@@ -69,6 +83,73 @@ TEST_F(Admin_api_clone_progress_test, update_transfer) {
 
     ASSERT_NO_FATAL_FAILURE(clone_progress.update_transfer(status));
   }
+}
+
+TEST_F(Admin_api_clone_test, check_clone_version_compatibility) {
+  using namespace mysqlshdk::utils;
+
+  // anything below 8.0.16 can't be used
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 16), Version(8, 0, 17)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 17), Version(8, 0, 16)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 16), Version(8, 0, 16)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 17), Version(8, 0, 17)));
+
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(9, 1, 4), Version(9, 1, 4)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version("8.0.28-debug"), Version("8.0.28-debug")));
+
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(10, 7, 3), Version(9, 7, 4)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(9, 7, 4), Version(9, 6, 4)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(9, 6, 4), Version(10, 7, 3)));
+
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(9, 6, 4), Version("9.6.53-release")));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(10, 7, 36), Version(10, 7, 16)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version("8.4.1-release"), Version(8, 4, 0)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(9, 0, 0), Version(9, 0, 2)));
+
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 31), Version(8, 0, 31)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version("8.0.35-release"), Version(8, 0, 35)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version("8.0.37-release"), Version(8, 0, 37)));
+
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 33), Version(8, 0, 35)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 35), Version(8, 0, 30)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 35), Version(8, 0, 37)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 37), Version(8, 0, 34)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 0), Version(8, 0, 37)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 0), Version(8, 0, 34)));
+
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 37), Version(8, 0, 38)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 0, 38), Version(8, 0, 37)));
+
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 3, 1), Version(8, 3, 0)));
+  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version(8, 4, 1), Version(8, 4, 1)));
+  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+      Version("8.0.37-release"), Version("8.0.36-release")));
 }
 
 }  // namespace dba
