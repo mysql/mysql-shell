@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -264,6 +264,10 @@ class Dump_loader {
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
 
+      const compatibility::Deferred_statements::Index_info *indexes() const {
+        return m_indexes;
+      }
+
      private:
       compatibility::Deferred_statements::Index_info *m_indexes;
     };
@@ -432,7 +436,8 @@ class Dump_loader {
       std::unique_ptr<compatibility::Deferred_statements> deferred_indexes);
 
   void on_chunk_load_start(const std::string &schema, const std::string &table,
-                           const std::string &partition, ssize_t index);
+                           const std::string &partition, ssize_t index,
+                           int32_t worker_id);
   void on_chunk_load_end(const std::string &schema, const std::string &table,
                          const std::string &partition, ssize_t index,
                          size_t bytes_loaded, size_t raw_bytes_loaded,
@@ -441,12 +446,13 @@ class Dump_loader {
   void on_subchunk_load_start(const std::string &schema,
                               const std::string &table,
                               const std::string &partition, ssize_t index,
-                              uint64_t subchunk);
+                              uint64_t subchunk, int32_t worker_id);
   void on_subchunk_load_end(const std::string &schema, const std::string &table,
                             const std::string &partition, ssize_t index,
                             uint64_t subchunk, uint64_t bytes);
 
-  void on_index_start(const std::string &schema, const std::string &table);
+  void on_index_start(const std::string &schema, const std::string &table,
+                      size_t num_indexes, int32_t worker_id);
   void on_index_end(const std::string &schema, const std::string &table);
 
   void on_analyze_start(const std::string &schema, const std::string &table);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -297,10 +297,11 @@ class Load_progress_log final {
       log(true, "TRIGGERS-DDL", schema, table);
   }
 
-  void start_table_chunk(const std::string &schema, const std::string &table,
-                         const std::string &partition, ssize_t index) {
+  void start_table_chunk(int32_t worker_id, const std::string &schema,
+                         const std::string &table, const std::string &partition,
+                         ssize_t index) {
     if (table_chunk_status(schema, table, partition, index) != Status::DONE)
-      log_chunk_started(schema, table, partition, index);
+      log_chunk_started(worker_id, schema, table, partition, index);
   }
 
   void end_table_chunk(const std::string &schema, const std::string &table,
@@ -312,12 +313,14 @@ class Load_progress_log final {
                          raw_bytes_loaded, rows_loaded);
   }
 
-  void start_table_subchunk(const std::string &schema, const std::string &table,
+  void start_table_subchunk(int32_t worker_id, const std::string &schema,
+                            const std::string &table,
                             const std::string &partition, ssize_t index,
                             uint64_t subchunk) {
     if (table_subchunk_status(schema, table, partition, index, subchunk) !=
         Status::DONE) {
-      log_subchunk_started(schema, table, partition, index, subchunk);
+      log_subchunk_started(worker_id, schema, table, partition, index,
+                           subchunk);
     }
   }
 
@@ -338,10 +341,14 @@ class Load_progress_log final {
     if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE");
   }
 
-  void start_table_indexes(const std::string &schema,
-                           const std::string &table) {
-    if (table_index_status(schema, table) != Status::DONE)
-      log(false, "TABLE-INDEX", schema, table);
+  void start_table_indexes(int32_t worker_id, const std::string &schema,
+                           const std::string &table, size_t num_indexes) {
+    if (table_index_status(schema, table) != Status::DONE) {
+      log(false, "TABLE-INDEX", schema, table, "", [&](Dumper *json) {
+        json->append_int("_worker", worker_id);
+        json->append_int64("_nindexes", num_indexes);
+      });
+    }
   }
 
   void end_table_indexes(const std::string &schema, const std::string &table) {
@@ -425,9 +432,11 @@ class Load_progress_log final {
     log(end, "TABLE-DATA", schema, table, partition, chunk_index, more);
   }
 
-  void log_chunk_started(const std::string &schema, const std::string &table,
-                         const std::string &partition, ssize_t chunk_index) {
-    log_chunk(false, schema, table, partition, chunk_index);
+  void log_chunk_started(int32_t worker_id, const std::string &schema,
+                         const std::string &table, const std::string &partition,
+                         ssize_t chunk_index) {
+    log_chunk(false, schema, table, partition, chunk_index,
+              [&](Dumper *json) { json->append_int("_worker", worker_id); });
   }
 
   void log_chunk_finished(const std::string &schema, const std::string &table,
@@ -455,10 +464,12 @@ class Load_progress_log final {
         });
   }
 
-  void log_subchunk_started(const std::string &schema, const std::string &table,
+  void log_subchunk_started(int32_t worker_id, const std::string &schema,
+                            const std::string &table,
                             const std::string &partition, ssize_t chunk_index,
                             uint64_t subchunk) {
-    log_subchunk(false, schema, table, partition, chunk_index, subchunk);
+    log_subchunk(false, schema, table, partition, chunk_index, subchunk,
+                 [&](Dumper *json) { json->append_int("_worker", worker_id); });
   }
 
   void log_subchunk_finished(const std::string &schema,

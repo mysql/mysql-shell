@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1668,7 +1668,7 @@ size_t Dump_loader::handle_worker_events(
             event.worker->current_task());
 
         on_chunk_load_start(task->schema(), task->table(), task->partition(),
-                            task->chunk_index());
+                            task->chunk_index(), event.worker->id());
         break;
       }
 
@@ -1688,7 +1688,8 @@ size_t Dump_loader::handle_worker_events(
 
         on_subchunk_load_start(task->schema(), task->table(), task->partition(),
                                task->chunk_index(),
-                               event.details->get_uint("subchunk"));
+                               event.details->get_uint("subchunk"),
+                               event.worker->id());
         break;
       }
 
@@ -1737,8 +1738,12 @@ size_t Dump_loader::handle_worker_events(
       }
 
       case Worker_event::INDEX_START: {
-        const auto task = event.worker->current_task();
-        on_index_start(task->schema(), task->table());
+        auto task = static_cast<Worker::Index_recreation_task *>(
+            event.worker->current_task());
+
+        on_index_start(task->schema(), task->table(),
+                       task->indexes() ? task->indexes()->size() : 0,
+                       event.worker->id());
         break;
       }
 
@@ -3277,8 +3282,8 @@ void Dump_loader::on_table_ddl_end(
 void Dump_loader::on_chunk_load_start(const std::string &schema,
                                       const std::string &table,
                                       const std::string &partition,
-                                      ssize_t index) {
-  m_load_log->start_table_chunk(schema, table, partition, index);
+                                      ssize_t index, int32_t worker_id) {
+  m_load_log->start_table_chunk(worker_id, schema, table, partition, index);
 }
 
 void Dump_loader::on_chunk_load_end(const std::string &schema,
@@ -3304,8 +3309,10 @@ void Dump_loader::on_chunk_load_end(const std::string &schema,
 void Dump_loader::on_subchunk_load_start(const std::string &schema,
                                          const std::string &table,
                                          const std::string &partition,
-                                         ssize_t index, uint64_t subchunk) {
-  m_load_log->start_table_subchunk(schema, table, partition, index, subchunk);
+                                         ssize_t index, uint64_t subchunk,
+                                         int32_t worker_id) {
+  m_load_log->start_table_subchunk(worker_id, schema, table, partition, index,
+                                   subchunk);
 }
 
 void Dump_loader::on_subchunk_load_end(const std::string &schema,
@@ -3318,8 +3325,9 @@ void Dump_loader::on_subchunk_load_end(const std::string &schema,
 }
 
 void Dump_loader::on_index_start(const std::string &schema,
-                                 const std::string &table) {
-  m_load_log->start_table_indexes(schema, table);
+                                 const std::string &table, size_t num_indexes,
+                                 int32_t worker_id) {
+  m_load_log->start_table_indexes(worker_id, schema, table, num_indexes);
 }
 
 void Dump_loader::on_index_end(const std::string &schema,
