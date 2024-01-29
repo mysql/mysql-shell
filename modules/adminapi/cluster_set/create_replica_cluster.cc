@@ -449,8 +449,8 @@ shcore::Value Create_replica_cluster::execute() {
       //   - It's an ONLINE member of the Primary Cluster
       //   - It has the same version of the recipient
       //   - It has the same operating system as the recipient
-      m_cluster_set->get_primary_cluster()->ensure_compatible_clone_donor(
-          donor_instance, *m_target_instance);
+      m_cluster_set->ensure_compatible_clone_donor(donor_instance,
+                                                   *m_target_instance);
 
       m_cluster_set->handle_clone_provisioning(
           m_target_instance, donor_instance, ar_options, repl_account_host,

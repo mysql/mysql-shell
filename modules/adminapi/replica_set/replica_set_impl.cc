@@ -2302,7 +2302,7 @@ shcore::Value Replica_set_impl::status(int extended) {
 }
 
 std::shared_ptr<Global_topology_manager> Replica_set_impl::get_topology_manager(
-    topology::Server_global_topology **out_topology, bool deep) {
+    topology::Server_global_topology **out_topology, bool deep) const {
   Cluster_metadata cmd;
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd))
     throw shcore::Exception("Metadata not found for replicaset " + get_name(),
@@ -2543,28 +2543,18 @@ void Replica_set_impl::ensure_metadata_has_server_uuid(
 
 void Replica_set_impl::ensure_compatible_clone_donor(
     const mysqlshdk::mysql::IInstance &donor,
-    const mysqlshdk::mysql::IInstance &recipient) {
-  /*
-   * A donor is compatible if:
-   *
-   *   - It's an ONLINE ReplicaSet member
-   *   - The target (recipient) and donor instances support clone (version
-   *     >= 8.0.17)
-   *   - It has the same version of the recipient
-   *   - It has the same operating system as the recipient
-   */
-
+    const mysqlshdk::mysql::IInstance &recipient) const {
   // Check if the target belongs to the ReplicaSet (MD)
   std::string target_address = donor.get_canonical_address();
   try {
     m_metadata_storage->get_instance_by_address(target_address);
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-      throw shcore::Exception(
-          "Instance " + target_address + " does not belong to the replicaset",
-          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
-    }
-    throw;
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+
+    throw shcore::Exception(
+        shcore::str_format("Instance '%s' does not belong to the replicaset",
+                           target_address.c_str()),
+        SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
   }
 
   // Check if the instance is ONLINE
@@ -2574,23 +2564,27 @@ void Replica_set_impl::ensure_compatible_clone_donor(
     auto topology_node =
         topology_mng->topology()->try_get_node_for_uuid(donor.get_uuid());
     if (!topology_node) {
-      topology_node = topology_mng->topology()->try_get_node_for_endpoint(
-          donor.get_canonical_address());
+      topology_node =
+          topology_mng->topology()->try_get_node_for_endpoint(target_address);
     }
     if (!topology_node) {
       throw shcore::Exception(
-          "Unable to find instance '" + donor.descr() + "' in the topology.",
+          shcore::str_format("Unable to find instance '%s' in the topology.",
+                             donor.descr().c_str()),
           SHERR_DBA_ASYNC_MEMBER_TOPOLOGY_MISSING);
     }
 
     if (topology_node->status() != topology::Node_status::ONLINE) {
-      throw shcore::Exception("Instance " + target_address +
-                                  " is not an ONLINE member of the ReplicaSet.",
-                              SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+      throw shcore::Exception(
+          shcore::str_format(
+              "Instance '%s' is not an ONLINE member of the ReplicaSet.",
+              target_address.c_str()),
+          SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
     }
   }
 
-  Base_cluster_impl::ensure_compatible_clone_donor(donor, recipient);
+  // further checks (related to the instances and unrelated to the cluster)
+  Base_cluster_impl::check_compatible_clone_donor(donor, recipient);
 }
 
 std::string Replica_set_impl::pick_clone_donor(

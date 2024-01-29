@@ -935,6 +935,41 @@ std::vector<Instance_metadata> Cluster_set_impl::get_instances_from_metadata()
   return get_metadata_storage()->get_all_instances();
 }
 
+void Cluster_set_impl::ensure_compatible_clone_donor(
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient) const {
+  {
+    auto donor_address = donor.get_canonical_address();
+
+    // check if the donor belongs to the primary cluster (MD)
+    auto primary = get_primary_cluster();
+    try {
+      primary->get_metadata_storage()->get_instance_by_address(donor_address);
+    } catch (const shcore::Exception &e) {
+      if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+
+      throw shcore::Exception(
+          shcore::str_format(
+              "Instance '%s' does not belong to the PRIMARY Cluster",
+              donor_address.c_str()),
+          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
+    }
+
+    // check donor state
+    if (mysqlshdk::gr::get_member_state(donor) !=
+        mysqlshdk::gr::Member_state::ONLINE) {
+      throw shcore::Exception(
+          shcore::str_format(
+              "Instance '%s' is not an ONLINE member of the PRIMARY Cluster.",
+              donor_address.c_str()),
+          SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+    }
+  }
+
+  // further checks (related to the instances and unrelated to the cluster)
+  Base_cluster_impl::check_compatible_clone_donor(donor, recipient);
+}
+
 shcore::Value Cluster_set_impl::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
     Recovery_progress_style progress_style,
