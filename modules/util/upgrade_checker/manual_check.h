@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 #include "modules/util/upgrade_checker/common.h"
@@ -36,7 +37,7 @@ namespace mysqlsh {
 namespace upgrade_checker {
 class Manual_check : public Upgrade_check {
  public:
-  Manual_check(const char *name, Upgrade_issue::Level level)
+  Manual_check(const std::string_view name, Upgrade_issue::Level level)
       : Upgrade_check(name), m_level(level) {}
 
   Upgrade_issue::Level get_level() const override { return m_level; }
@@ -49,10 +50,6 @@ class Manual_check : public Upgrade_check {
   }
 
  protected:
-  const char *get_description_internal() const override {
-    return Upgrade_issue::level_to_string(m_level);
-  }
-
   Upgrade_issue::Level m_level;
 };
 

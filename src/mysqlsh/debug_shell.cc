@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -234,23 +234,6 @@ void handle_debug_options(int *argc, char ***argv) {
     } else if (strncmp((*argv)[i], "--direct", strlen("--direct")) == 0) {
       mysqlshdk::db::replay::set_mode(Mode::Direct);
       (*argc)--;
-    } else if (strncmp((*argv)[i], "--generate-uc-translation",
-                       strlen("--generate-uc-translation")) == 0) {
-      std::string filename = shcore::path::join_path(shcore::path::tmpdir(),
-                                                     "upgrade_checker.msg");
-      if (strlen((*argv)[i]) > strlen("--generate-uc-translation") + 1) {
-        filename = (*argv)[i] + strlen("--generate-uc-translation") + 1;
-      }
-      try {
-        mysqlsh::upgrade_checker::Upgrade_check_registry::
-            prepare_translation_file(filename.c_str());
-        std::cout << "Upgrade checker translation file written to: " << filename
-                  << std::endl;
-      } catch (const std::exception &e) {
-        std::cerr << "Failed to write upgrade checker translation file: "
-                  << e.what() << std::endl;
-      }
-      exit(0);
     } else {
       (*argv)[j++] = (*argv)[i];
     }

@@ -41,17 +41,13 @@ namespace upgrade_checker {
 
 std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "oldTemporalCheck", "Usage of old temporal type",
+      ids::k_old_temporal_check,
       std::vector<std::string>{
           "SELECT table_schema, table_name,column_name,column_type "
           "FROM information_schema.columns WHERE column_type LIKE "
           "'%5.5 binary format%';"},
-      Upgrade_issue::ERROR,
-      "Following table columns use a deprecated and no longer supported "
-      "temporal disk storage format. They must be converted to the new format "
-      "before upgrading. It can by done by rebuilding the table using 'ALTER "
-      "TABLE <table_name> FORCE' command",
-      nullptr, std::forward_list<std::string>{"SET show_old_temporals = ON;"},
+      Upgrade_issue::ERROR, nullptr,
+      std::forward_list<std::string>{"SET show_old_temporals = ON;"},
       std::forward_list<std::string>{"SET show_old_temporals = OFF;"});
 }
 
@@ -78,8 +74,7 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
 
   keywords = "(" + keywords + ");";
   return std::make_unique<Sql_upgrade_check>(
-      "reservedKeywordsCheck",
-      "Usage of db objects with names conflicting with new reserved keywords",
+      ids::k_reserved_keywords_check,
       std::vector<std::string>{
           "select SCHEMA_NAME, 'Schema name' as WARNING from "
           "INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME in " +
@@ -107,10 +102,7 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
           "SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
           "INFORMATION_SCHEMA.EVENTS WHERE EVENT_NAME in " +
               keywords},
-      Upgrade_issue::WARNING,
-      "The following objects have names that conflict with new reserved "
-      "keywords. Ensure queries sent by your applications use `quotes` when "
-      "referring to them or they will result in errors.");
+      Upgrade_issue::WARNING);
 }
 
 class Routine_syntax_check : public Upgrade_check {
@@ -122,7 +114,7 @@ class Routine_syntax_check : public Upgrade_check {
   // routines, view definitions, event definitions and trigger definitions
 
  public:
-  Routine_syntax_check() : Upgrade_check("routinesSyntaxCheck") {}
+  Routine_syntax_check() : Upgrade_check(ids::k_routine_syntax_check) {}
 
   Upgrade_issue::Level get_level() const override {
     return Upgrade_issue::ERROR;
@@ -173,18 +165,6 @@ class Routine_syntax_check : public Upgrade_check {
   }
 
  protected:
-  const char *get_title_internal() const override {
-    return "MySQL syntax check for routine-like objects";
-  }
-
-  const char *get_description_internal() const override {
-    return "The following objects did not pass a syntax check with the latest "
-           "MySQL grammar. A common reason is that they reference names "
-           "that conflict with new reserved keywords. You must update these "
-           "routine definitions and `quote` any such references before "
-           "upgrading.";
-  }
-
   std::string check_routine_syntax(mysqlshdk::db::ISession *session,
                                    const std::string &show_template,
                                    int show_sql_field,
@@ -241,7 +221,7 @@ std::unique_ptr<Upgrade_check> get_routine_syntax_check() {
 /// In this check we are only interested if any such table/database exists
 std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "utf8mb3Check", "Usage of utf8mb3 charset",
+      ids::k_utf8mb3_check,
       std::vector<std::string>{
           "select SCHEMA_NAME, concat('schema''s default character set: ',  "
           "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
@@ -253,17 +233,12 @@ std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check() {
           "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
           "'utf8mb3') and TABLE_SCHEMA not in ('sys', 'performance_schema', "
           "'information_schema', 'mysql');"},
-      Upgrade_issue::WARNING,
-      "The following objects use the utf8mb3 character set. It is recommended "
-      "to convert them to use utf8mb4 instead, for improved Unicode "
-      "support.");
+      Upgrade_issue::WARNING);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlSchemaCheck",
-      "Table names in the mysql schema conflicting with new tables in the "
-      "latest MySQL.",
+      ids::k_mysql_schema_check,
       std::vector<std::string>{
           "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema.' "
           "as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
@@ -278,27 +253,22 @@ std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check() {
           "'view_routine_usage', 'view_table_usage', 'component', "
           "'default_roles', 'global_grants', 'innodb_ddl_log', "
           "'innodb_dynamic_metadata', 'password_history', 'role_edges');"},
-      Upgrade_issue::ERROR,
-      "The following tables in mysql schema have names that will conflict with "
-      "the ones introduced in the latest version. They must be renamed or "
-      "removed before upgrading (use RENAME TABLE command). This may also "
-      "entail changes to applications that use the affected tables.");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "innodbRowFormatCheck", "InnoDB tables with non-default row format",
+      ids::k_innodb_rowformat_check,
       std::vector<std::string>{
           "select table_schema, table_name, row_format from "
           "information_schema.tables where engine = 'innodb' "
           "and row_format != 'Dynamic';"},
-      Upgrade_issue::WARNING,
-      "The following tables use a non-default InnoDB row format");
+      Upgrade_issue::WARNING);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_zerofill_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "zerofillCheck", "Usage of use ZEROFILL/display length type attributes",
+      ids::k_zerofill_check,
       std::vector<std::string>{
           "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
           "information_schema.columns where TABLE_SCHEMA not in ('sys', "
@@ -313,10 +283,7 @@ std::unique_ptr<Sql_upgrade_check> get_zerofill_check() {
           "COLUMN_TYPE not like 'int(11)%' and COLUMN_TYPE not like 'int(10) "
           "unsigned%') or (COLUMN_TYPE like 'bigint%' and COLUMN_TYPE not like "
           "'bigint(20)%'));"},
-      Upgrade_issue::NOTICE,
-      "The following table columns specify a ZEROFILL/display length "
-      "attributes. "
-      "Please be aware that they will be ignored in the latest MySQL version.");
+      Upgrade_issue::NOTICE);
 }
 
 // Zerofill is still available in 8.0.11
@@ -328,28 +295,18 @@ std::unique_ptr<Sql_upgrade_check> get_zerofill_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "nonNativePartitioningCheck",
-      "Partitioned tables using engines with non native partitioning",
+      ids::k_nonnative_partitioning_check,
       std::vector<std::string>{
           "select table_schema, table_name, concat(engine, ' engine does not "
           "support native partitioning') from information_schema.Tables where "
           "create_options like '%partitioned%' and upper(engine) not in "
           "('INNODB', 'NDB', 'NDBCLUSTER');"},
-      Upgrade_issue::ERROR,
-      "In the latest MySQL storage engine is responsible for providing its own "
-      "partitioning handler, and the MySQL server no longer provides generic "
-      "partitioning support. InnoDB and NDB are the only storage engines that "
-      "provide a native partitioning handler that is supported in the latest "
-      "MySQL. A partitioned table using any other storage engine must be "
-      "altered—either to convert it to InnoDB or NDB, or to remove its "
-      "partitioning—before upgrading the server, else it cannot be used "
-      "afterwards.");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "foreignKeyLengthCheck",
-      "Foreign key constraint names longer than 64 characters",
+      ids::k_foreign_key_length_check,
       std::vector<std::string>{
           "select table_schema, table_name, 'Foreign key longer than 64 "
           "characters' as description from information_schema.tables where "
@@ -357,14 +314,12 @@ std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check() {
           "instr(substr(id,instr(id,'/')+1),'_ibfk_')-1) from "
           "information_schema.innodb_sys_foreign where "
           "length(substr(id,instr(id,'/')+1))>64);"},
-      Upgrade_issue::ERROR,
-      "The following tables must be altered to have constraint names shorter "
-      "than 64 characters (use ALTER TABLE).");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "maxdbFlagCheck", "Usage of obsolete MAXDB sql_mode flag",
+      ids::k_maxdb_sql_mode_flags_check,
       std::vector<std::string>{
           "select routine_schema, routine_name, concat(routine_type, ' uses "
           "obsolete MAXDB sql_mode') from information_schema.routines where "
@@ -380,14 +335,7 @@ std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
           "using obsolete MAXDB option' as reason from "
           "performance_schema.global_variables where variable_name = "
           "'sql_mode' and find_in_set('MAXDB', variable_value);"},
-      Upgrade_issue::WARNING,
-      "The following DB objects have the obsolete MAXDB option persisted for "
-      "sql_mode, which will be cleared during the upgrade. It "
-      "can potentially change the datatype DATETIME into TIMESTAMP if it is "
-      "used inside object's definition, and this in turn can change the "
-      "behavior in case of dates earlier than 1970 or later than 2037. If this "
-      "is a concern, please redefine these objects so that they do not rely on "
-      "the MAXDB flag before running the upgrade.");
+      Upgrade_issue::WARNING);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
@@ -420,29 +368,21 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
   }
 
   return std::make_unique<Sql_upgrade_check>(
-      "sqlModeFlagCheck", "Usage of obsolete sql_mode flags",
-      std::move(queries), Upgrade_issue::NOTICE,
-      "The following DB objects have obsolete options persisted for sql_mode, "
-      "which will be cleared during the upgrade.");
+      ids::k_obsolete_sql_mode_flags_check, std::move(queries),
+      Upgrade_issue::NOTICE);
 }
 
 class Enum_set_element_length_check : public Sql_upgrade_check {
  public:
   Enum_set_element_length_check()
       : Sql_upgrade_check(
-            "enumSetElementLenghtCheck",
-            "ENUM/SET column definitions containing elements longer than 255 "
-            "characters",
+            ids::k_enum_set_element_length_check,
             {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, UPPER(DATA_TYPE), "
              "COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH from "
              "information_schema.columns where data_type in ('enum','set') and "
              "CHARACTER_MAXIMUM_LENGTH > 255 and table_schema not in "
              "('information_schema');"},
-            Upgrade_issue::ERROR,
-            "The following columns are defined as either ENUM or SET and "
-            "contain at least one element longer that 255 characters. They "
-            "need to be altered so that all elements fit into the 255 "
-            "characters limit.") {}
+            Upgrade_issue::ERROR) {}
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue res;
@@ -478,7 +418,7 @@ std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check() {
 
 class Check_table_command : public Upgrade_check {
  public:
-  Check_table_command() : Upgrade_check("checkTableOutput") {}
+  Check_table_command() : Upgrade_check(ids::k_table_command_check) {}
 
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -536,13 +476,6 @@ class Check_table_command : public Upgrade_check {
   Upgrade_issue::Level get_level() const override {
     throw std::runtime_error("Unimplemented");
   }
-
- protected:
-  const char *get_description_internal() const override { return nullptr; }
-
-  const char *get_title_internal() const override {
-    return "Issues reported by 'check table x for upgrade' command";
-  }
 };
 
 std::unique_ptr<Upgrade_check> get_table_command_check() {
@@ -552,8 +485,7 @@ std::unique_ptr<Upgrade_check> get_table_command_check() {
 std::unique_ptr<Sql_upgrade_check>
 get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
-      "partitionedTablesInSharedTablespaceCheck",
-      "Usage of partitioned tables in shared tablespaces",
+      ids::k_partitioned_tables_in_shared_tablespaces_check,
       std::vector<std::string>{
           info.server_version < Version(8, 0, 0)
               ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
@@ -572,32 +504,19 @@ get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
                 "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
                 "itb.space and it.name like '%#P#%' and it.space_type != "
                 "'Single';"},
-      Upgrade_issue::ERROR,
-      "The following tables have partitions in shared tablespaces. They need "
-      "to be moved to file-per-table tablespace before upgrading. "
-      "You can do this by running query like 'ALTER TABLE table_name "
-      "REORGANIZE PARTITION X INTO (PARTITION X VALUES LESS THAN (30) "
-      "TABLESPACE=innodb_file_per_table);'");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_circular_directory_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "circularDirectoryCheck",
-      "Circular directory references in tablespace data file paths",
+      ids::k_circular_directory_check,
       std::vector<std::string>{
           "SELECT tablespace_name, concat('circular reference in datafile "
           "path: "
           R"(\'', file_name, '\'') FROM INFORMATION_SCHEMA.FILES where )"
           R"(file_type='TABLESPACE' and (file_name rlike '[^\\.]/\\.\\./' or )"
           R"(file_name rlike '[^\\.]\\\\\\.\\.\\\\');)"},
-      Upgrade_issue::ERROR,
-      "Following tablespaces contain circular directory references (e.g. the "
-      "reference '/../') in data file paths which as of MySQL 8.0.17 are not "
-      "permitted by the CREATE TABLESPACE ... ADD DATAFILE clause. An "
-      "exception to the restriction exists on Linux, where a circular "
-      "directory reference is permitted if the preceding directory is a "
-      "symbolic link. To avoid upgrade issues, remove any circular directory "
-      "references from tablespace data file paths before upgrading.");
+      Upgrade_issue::ERROR);
 }
 
 class Removed_functions_check : public Sql_upgrade_check {
@@ -679,7 +598,7 @@ class Removed_functions_check : public Sql_upgrade_check {
  public:
   Removed_functions_check()
       : Sql_upgrade_check(
-            "removedFunctionsCheck", "Usage of removed functions",
+            ids::k_removed_functions_check,
             {"select table_schema, table_name, '', 'VIEW', "
              "UPPER(view_definition) from information_schema.views where "
              "table_schema not in "
@@ -701,10 +620,7 @@ class Removed_functions_check : public Sql_upgrade_check {
              "UPPER(EVENT_DEFINITION) from information_schema.events where "
              "event_schema not in "
              "('performance_schema','information_schema','sys','mysql')"},
-            Upgrade_issue::ERROR,
-            "Following DB objects make use of functions that have "
-            "been removed int the latest MySQL version. Please make sure to "
-            "update them to use supported alternatives before upgrade.") {}
+            Upgrade_issue::ERROR) {}
 
  protected:
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
@@ -745,7 +661,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
  public:
   Groupby_asc_syntax_check()
       : Sql_upgrade_check(
-            "groupByAscCheck", "Usage of removed GROUP BY ASC/DESC syntax",
+            ids::k_groupby_asc_syntax_check,
             {"select table_schema, table_name, 'VIEW', "
              "UPPER(view_definition) from information_schema.views where "
              "table_schema not in "
@@ -770,11 +686,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
              "('performance_schema','information_schema','sys','mysql') and "
              "(UPPER(event_definition) like '%ASC%' or UPPER(event_definition) "
              "like '%DESC%');"},
-            Upgrade_issue::ERROR,
-            "The following DB objects use removed GROUP BY ASC/DESC syntax. "
-            "They need to be altered so that ASC/DESC keyword is removed "
-            "from GROUP BY clause and placed in appropriate ORDER BY clause.") {
-  }
+            Upgrade_issue::ERROR) {}
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue res;
@@ -825,17 +737,12 @@ std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check() {
 
 class Removed_sys_var_check : public Sql_upgrade_check {
  public:
-  Removed_sys_var_check(const char *name, const char *title,
+  Removed_sys_var_check(const std::string_view name,
                         std::map<std::string, const char *> &&removed_vars,
-                        const char *problem_description,
-                        const char *advice =
-                            "Following system variables that were detected "
-                            "as being used will be removed",
                         Upgrade_issue::Level level = Upgrade_issue::ERROR,
                         const char *minimal_version = "8.0.11")
-      : Sql_upgrade_check(name, title, {}, level, advice, minimal_version),
-        m_vars(std::move(removed_vars)),
-        m_problem_description(problem_description) {
+      : Sql_upgrade_check(name, {}, level, minimal_version),
+        m_vars(std::move(removed_vars)) {
     assert(!m_vars.empty());
     std::stringstream ss;
     ss << "SELECT VARIABLE_NAME FROM performance_schema.variables_info WHERE "
@@ -850,37 +757,40 @@ class Removed_sys_var_check : public Sql_upgrade_check {
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue out;
     out.schema = row->get_as_string(0);
-    out.description = m_problem_description;
+    Token_definitions tokens = {{"%item%", out.schema}};
+    std::string raw_description = get_text("issue");
 
-    const auto it = m_vars.find(out.schema);
-    if (it != m_vars.end() && it->second != nullptr)
-      out.description +=
-          shcore::str_format(", consider using %s instead", it->second);
+    const auto replacement = m_vars.at(out.schema);
+    if (replacement) {
+      raw_description += ", " + get_text("replacement");
+      tokens.emplace_back("%replacement%", replacement);
+    }
+
+    out.description = resolve_tokens(out.description, tokens);
+
+    out.description += ".";
+
     return out;
   }
 
   const std::map<std::string, const char *> m_vars;
-  std::string m_problem_description;
 };
 
 // This class enables checking server configuration file for defined/undefined
 // system variables that have been removed, deprecated etc.
+
 class Config_check : public Upgrade_check {
  public:
-  Config_check(const char *name, std::map<std::string, const char *> &&vars,
+  Config_check(const std::string_view name,
+               const std::map<std::string, const char *> &vars,
+               const Formatter &formatter,
                Config_mode mode = Config_mode::DEFINED,
-               Upgrade_issue::Level level = Upgrade_issue::ERROR,
-               const char *problem_description = "is set and will be removed",
-               const char *title = "", const char *advice = "")
+               Upgrade_issue::Level level = Upgrade_issue::ERROR)
       : Upgrade_check(name),
         m_vars(std::move(vars)),
         m_mode(mode),
         m_level(level),
-        m_problem_description(problem_description),
-        m_title(title),
-        m_advice(Upgrade_issue::level_to_string(level)) {
-    if (advice && strlen(advice) > 0) m_advice = m_advice + ": " + advice;
-  }
+        m_formatter(formatter) {}
 
   std::vector<Upgrade_issue> run(
       [[maybe_unused]] const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -902,10 +812,7 @@ class Config_check : public Upgrade_check {
         if (m_mode == Config_mode::DEFINED) {
           Upgrade_issue issue;
           issue.schema = option;
-          issue.description = m_problem_description;
-          if (it->second != nullptr)
-            issue.description +=
-                shcore::str_format(", consider using %s instead", it->second);
+          issue.description = m_formatter(this, it->first, it->second);
           issue.level = m_level;
           res.push_back(issue);
         }
@@ -917,11 +824,7 @@ class Config_check : public Upgrade_check {
       for (const auto &var : m_vars) {
         Upgrade_issue issue;
         issue.schema = var.first;
-        issue.description = m_problem_description;
-        if (var.second != nullptr) {
-          issue.description += " ";
-          issue.description += var.second;
-        }
+        issue.description = m_formatter(this, var.first, var.second);
         issue.level = m_level;
         res.push_back(issue);
       }
@@ -931,44 +834,22 @@ class Config_check : public Upgrade_check {
   }
 
  protected:
-  const char *get_description_internal() const override {
-    return m_advice.empty() ? nullptr : m_advice.c_str();
-  }
-  const char *get_title_internal() const override {
-    return m_title.empty() ? nullptr : m_title.c_str();
-  }
   Upgrade_issue::Level get_level() const override { return m_level; }
 
   std::map<std::string, const char *> m_vars;
   Config_mode m_mode;
   const Upgrade_issue::Level m_level;
-  std::string m_problem_description;
-  std::string m_title;
-  std::string m_advice;
+  Formatter m_formatter;
 };
 
 std::unique_ptr<Upgrade_check> get_config_check(
-    const char *name, std::map<std::string, const char *> &&vars,
-    Config_mode mode, Upgrade_issue::Level level,
-    const char *problem_description, const char *title, const char *advice) {
-  return std::make_unique<Config_check>(name, std::move(vars), mode, level,
-                                        problem_description, title, advice);
+    const char *name, const std::map<std::string, const char *> &vars,
+    const Formatter &formatter, Config_mode mode, Upgrade_issue::Level level) {
+  return std::make_unique<Config_check>(name, vars, formatter, mode, level);
 }
 
 std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
     const Upgrade_info &info) {
-  const char *name = "removedSysLogVars";
-  const char *title =
-      "Removed system variables for error logging to the system log "
-      "configuration";
-  const char *advice =
-      "System variables related to logging using OS facilities (the Event Log "
-      "on Windows, and syslog on Unix and Unix-like systems) have been "
-      "removed. Where appropriate, the removed system variables were replaced "
-      "with new system variables managed by the log_sink_syseventlog error log "
-      "component. Installations that used the old system variable names must "
-      "update their configuration to use the new variable names.";
-  const char *problem_description = "is set and will be removed";
   std::map<std::string, const char *> vars{
       {"log_syslog_facility", "syseventlog.facility"},
       {"log_syslog_include_pid", "syseventlog.include_pid"},
@@ -978,12 +859,25 @@ std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
   if (info.server_version < mysqlshdk::utils::Version(8, 0, 0) &&
       info.server_version >= mysqlshdk::utils::Version(5, 7, 0))
     return std::make_unique<Config_check>(
-        name, std::move(vars), Config_mode::DEFINED, Upgrade_issue::ERROR,
-        problem_description, title, advice);
+        ids::k_removed_sys_log_vars_check, std::move(vars),
+        [](const Upgrade_check *check, const std::string &item,
+           const char *replacement) {
+          std::string description = check->get_text("issue");
+          Token_definitions tokens = {
+              {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::ERROR)},
+              {"%item%", item}};
+          if (replacement != nullptr) {
+            description += ", " + check->get_text("replacement");
+            tokens.emplace_back("%replacement%", replacement);
+          }
+          description += ".";
 
-  return std::make_unique<Removed_sys_var_check>(name, title, std::move(vars),
-                                                 problem_description, advice,
-                                                 Upgrade_issue::ERROR);
+          return resolve_tokens(description, tokens);
+        },
+        Config_mode::DEFINED, Upgrade_issue::ERROR);
+
+  return std::make_unique<Removed_sys_var_check>(
+      ids::k_removed_sys_log_vars_check, std::move(vars), Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
@@ -1034,67 +928,84 @@ std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
   if (ver < Version(8, 0, 16) && target >= Version(8, 0, 16))
     vars.insert({{"internal_tmp_disk_storage_engine", nullptr}});
 
-  const char *name = "removedSysVars";
-  const char *title = "Removed system variables";
-  const char *problem_description = "is set and will be removed";
-  const char *advice =
-      "Following system variables that were detected as being used will be "
-      "removed. Please update your system to not rely on them before the "
-      "upgrade.";
-
   if (ver < Version(8, 0, 0))
     return std::make_unique<Config_check>(
-        name, std::move(vars), Config_mode::DEFINED, Upgrade_issue::ERROR,
-        problem_description, title, advice);
-  return std::make_unique<Removed_sys_var_check>(name, title, std::move(vars),
-                                                 problem_description, advice);
+        ids::k_removed_sys_vars_check, std::move(vars),
+        [](const Upgrade_check *check, const std::string &item,
+           const char *replacement) {
+          std::string description = check->get_text("issue");
+          Token_definitions tokens = {
+              {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::ERROR)},
+              {"%item%", item}};
+          if (replacement != nullptr) {
+            description += ", " + check->get_text("replacement");
+            tokens.emplace_back("%replacement%", replacement);
+          }
+          description += ".";
+
+          return resolve_tokens(description, tokens);
+        },
+        Config_mode::DEFINED, Upgrade_issue::ERROR);
+
+  return std::make_unique<Removed_sys_var_check>(ids::k_removed_sys_vars_check,
+                                                 std::move(vars));
 }
 
 std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check() {
+  std::map<std::string, const char *> vars{
+      {"character_set_server", "from latin1 to utf8mb4"},
+      {"collation_server", "from latin1_swedish_ci to utf8mb4_0900_ai_ci"},
+      {"explicit_defaults_for_timestamp", "from OFF to ON"},
+      {"optimizer_trace_max_mem_size", "from 16KB to 1MB"},
+      {"back_log", nullptr},
+      {"max_allowed_packet", "from 4194304 (4MB) to 67108864 (64MB)"},
+      {"max_error_count", "from 64 to 1024"},
+      {"event_scheduler", "from OFF to ON"},
+      {"table_open_cache", "from 2000 to 4000"},
+      {"log_error_verbosity", "from 3 (Notes) to 2 (Warning)"},
+      {"innodb_undo_tablespaces", "from 0 to 2"},
+      {"innodb_undo_log_truncate", "from OFF to ON"},
+      {"innodb_flush_method",
+       "from NULL to fsync (Unix), unbuffered (Windows)"},
+      {"innodb_autoinc_lock_mode", "from 1 (consecutive) to 2 (interleaved)"},
+      {"innodb_flush_neighbors", "from 1 (enable) to 0 (disable)"},
+      {"innodb_max_dirty_pages_pct_lwm", "from_0 (%) to 10 (%)"},
+      {"innodb_max_dirty_pages_pct", "from 75 (%)  90 (%)"},
+      {"performance_schema_consumer_events_transactions_current",
+       "from OFF to ON"},
+      {"performance_schema_consumer_events_transactions_history",
+       "from OFF to ON"},
+      {"log_bin", "from OFF to ON"},
+      {"server_id", "from 0 to 1"},
+      {"log_slave_updates", "from OFF to ON"},
+      {"master_info_repository", "from FILE to TABLE"},
+      {"relay_log_info_repository", "from FILE to TABLE"},
+      {"transaction_write_set_extraction", "from OFF to XXHASH64"},
+      {"slave_rows_search_algorithms",
+       "from 'INDEX_SCAN, TABLE_SCAN' to 'INDEX_SCAN, HASH_SCAN'"}};
   return std::make_unique<Config_check>(
-      "sysVarsNewDefaults",
-      std::map<std::string, const char *>{
-          {"character_set_server", "from latin1 to utf8mb4"},
-          {"collation_server", "from latin1_swedish_ci to utf8mb4_0900_ai_ci"},
-          {"explicit_defaults_for_timestamp", "from OFF to ON"},
-          {"optimizer_trace_max_mem_size", "from 16KB to 1MB"},
-          {"back_log", nullptr},
-          {"max_allowed_packet", "from 4194304 (4MB) to 67108864 (64MB)"},
-          {"max_error_count", "from 64 to 1024"},
-          {"event_scheduler", "from OFF to ON"},
-          {"table_open_cache", "from 2000 to 4000"},
-          {"log_error_verbosity", "from 3 (Notes) to 2 (Warning)"},
-          {"innodb_undo_tablespaces", "from 0 to 2"},
-          {"innodb_undo_log_truncate", "from OFF to ON"},
-          {"innodb_flush_method",
-           "from NULL to fsync (Unix), unbuffered (Windows)"},
-          {"innodb_autoinc_lock_mode",
-           "from 1 (consecutive) to 2 (interleaved)"},
-          {"innodb_flush_neighbors", "from 1 (enable) to 0 (disable)"},
-          {"innodb_max_dirty_pages_pct_lwm", "from_0 (%) to 10 (%)"},
-          {"innodb_max_dirty_pages_pct", "from 75 (%)  90 (%)"},
-          {"performance_schema_consumer_events_transactions_current",
-           "from OFF to ON"},
-          {"performance_schema_consumer_events_transactions_history",
-           "from OFF to ON"},
-          {"log_bin", "from OFF to ON"},
-          {"server_id", "from 0 to 1"},
-          {"log_slave_updates", "from OFF to ON"},
-          {"master_info_repository", "from FILE to TABLE"},
-          {"relay_log_info_repository", "from FILE to TABLE"},
-          {"transaction_write_set_extraction", "from OFF to XXHASH64"},
-          {"slave_rows_search_algorithms",
-           "from 'INDEX_SCAN, TABLE_SCAN' to 'INDEX_SCAN, HASH_SCAN'"}},
-      Config_mode::UNDEFINED, Upgrade_issue::WARNING,
-      "default value will change", "System variables with new default values",
-      "Following system variables that are not defined in your configuration "
-      "file will have new default values. Please review if you rely on their "
-      "current values and if so define them before performing upgrade.");
+      ids::k_sys_vars_new_defaults_check, std::move(vars),
+      [](const Upgrade_check *check, const std::string &item,
+         const char *change) {
+        auto description = check->get_text("issue");
+        Token_definitions tokens = {
+            {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::WARNING)},
+            {"%item%", item}};
+
+        if (change != nullptr) {
+          description.append(" ");
+          description.append(change);
+        }
+        description += ".";
+
+        return resolve_tokens(description, tokens);
+      },
+      Config_mode::UNDEFINED, Upgrade_issue::WARNING);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "zeroDatesCheck", "Zero Date, Datetime, and Timestamp values",
+      ids::k_zero_dates_check,
       std::vector<std::string>{
           "select 'global.sql_mode', 'does not contain either NO_ZERO_DATE or "
           "NO_ZERO_IN_DATE which allows insertion of zero dates' from (SELECT "
@@ -1115,15 +1026,7 @@ std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
           "('performance_schema','information_schema','sys','mysql') and "
           "DATA_TYPE in ('timestamp', 'datetime', 'date') and COLUMN_DEFAULT "
           "like '0000-00-00%';"},
-      Upgrade_issue::WARNING,
-      "By default zero date/datetime/timestamp values are no longer allowed in "
-      "MySQL, as of 5.7.8 NO_ZERO_IN_DATE and NO_ZERO_DATE are included in "
-      "SQL_MODE by default. These modes should be used with strict mode as "
-      "they will be merged with strict mode in a future release. If you do not "
-      "include these modes in your SQL_MODE setting, you are able to insert "
-      "date/datetime/timestamp values that contain zeros. It is strongly "
-      "advised to replace zero values with valid ones, as they may not work "
-      "correctly in the future.");
+      Upgrade_issue::WARNING);
 }
 
 #define replace_in_SQL(string)                                                 \
@@ -1137,8 +1040,7 @@ std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
 std::unique_ptr<Sql_upgrade_check>
 get_schema_inconsistency_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "schemaInconsistencyCheck",
-      "Schema inconsistencies resulting from file removal or corruption",
+      ids::k_schema_inconsistency_check,
       std::vector<std::string>{
        "select A.schema_name, A.table_name, 'present in INFORMATION_SCHEMA''s "
        "INNODB_SYS_TABLES table but missing from TABLES table' from (select "
@@ -1152,10 +1054,7 @@ get_schema_inconsistency_check() {
        "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
        "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
        "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';"},
-      Upgrade_issue::ERROR,
-      "Following tables show signs that either table datadir directory or frm "
-      "file was removed/corrupted. Please check server logs, examine datadir "
-      "to detect the issue and fix it before upgrade");
+      Upgrade_issue::ERROR);
 }
 // clang-format on
 
@@ -1166,24 +1065,18 @@ std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
     throw Check_not_needed();
 
   return std::make_unique<Sql_upgrade_check>(
-      "ftsTablenameCheck", "Table names containing 'FTS'",
+      ids::k_fts_in_tablename_check,
       std::vector<std::string>{
           "select table_schema, table_name , 'table name contains ''FTS''' "
           "from information_schema.tables where table_name like binary "
           "'%FTS%';"},
-      Upgrade_issue::ERROR,
-      "Upgrading from 5.7 to the latest MySQL version does not support tables "
-      "with name containing 'FTS' character string. The workaround is to "
-      "rename the table for the upgrade - e.g. it is enough to change any "
-      "letter of the 'FTS' part to a lower case. It can be renamed back again "
-      "after the upgrade.");
+      Upgrade_issue::ERROR);
 }
 
 // clang-format off
 std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "engineMixupCheck",
-      "Tables recognized by InnoDB that belong to a different engine",
+      ids::k_engine_mixup_check,
       std::vector<std::string>{
           "select a.table_schema, a.table_name, concat('recognized by the "
           "InnoDB engine but belongs to ', a.engine) from "
@@ -1203,7 +1096,7 @@ std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check(
     const Upgrade_info &info) {
   if (info.target_version >= Version(8, 0, 24)) throw Check_not_needed();
   return std::make_unique<Sql_upgrade_check>(
-      "oldGeometryCheck", "Spatial data columns created in MySQL 5.6",
+      ids::k_old_geometry_types_check,
       std::vector<std::string>{
           R"(select t.table_schema, t.table_name, c.column_name,
               concat(c.data_type, " column") as 'advice'
@@ -1232,8 +1125,7 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
  public:
   Changed_functions_in_generated_columns_check()
       : Sql_upgrade_check(
-            "changedFunctionsInGeneratedColumnsCheck",
-            "Indexes on functions with changed semantics",
+            ids::k_changed_functions_generated_columns_check,
             {"SELECT s.table_schema, s.table_name, s.column_name,"
              "    UPPER(c.generation_expression)"
              "  FROM information_schema.columns c"
@@ -1288,8 +1180,7 @@ class Columns_which_cannot_have_defaults_check : public Sql_upgrade_check {
  public:
   Columns_which_cannot_have_defaults_check()
       : Sql_upgrade_check(
-            "columnsWhichCannotHaveDefaultsCheck",
-            "Columns which cannot have default values",
+            ids::k_columns_which_cannot_have_defaults_check,
             {"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM "
              "INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA NOT IN "
              "('information_schema', 'performance_schema', 'sys') AND "
@@ -1308,40 +1199,29 @@ get_columns_which_cannot_have_defaults_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlInvalid57NamesCheck",
-      "Check for invalid table names and schema names used in 5.7",
+      ids::k_invalid_57_names_check,
       std::vector<std::string>{
           "SELECT SCHEMA_NAME, 'Schema name' AS WARNING FROM "
           "INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '#mysql50#%';",
           "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' AS WARNING FROM "
           "INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME LIKE '#mysql50#%';"},
-      Upgrade_issue::ERROR,
-      "The following tables and/or schemas have invalid names. In order to fix "
-      "them use the mysqlcheck utility as follows:\n"
-      "\n  $ mysqlcheck --check-upgrade --all-databases"
-      "\n  $ mysqlcheck --fix-db-names --fix-table-names --all-databases"
-      "\n\nOR via mysql client, for eg:\n"
-      "\n  ALTER DATABASE `#mysql50#lost+found` UPGRADE DATA DIRECTORY NAME;");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlOrphanedRoutinesCheck", "Check for orphaned routines in 5.7",
+      ids::k_orphaned_routines_check,
       std::vector<std::string>{
           "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'is orphaned' AS WARNING "
           "FROM information_schema.routines WHERE NOT EXISTS "
           "(SELECT SCHEMA_NAME FROM information_schema.schemata "
           "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);"},
-      Upgrade_issue::ERROR,
-      "The following routines have been orphaned. Schemas that they are "
-      "referencing no longer exists.\nThey have to be cleaned up or the "
-      "upgrade will fail.");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlDollarSignNameCheck",
-      "Check for deprecated usage of single dollar signs in object names",
+      ids::k_dollar_sign_name_check,
       std::vector<std::string>{
           "SELECT SCHEMA_NAME, 'name starts with a $ sign.' FROM "
           "information_schema.schemata WHERE SCHEMA_NAME LIKE '$_%' AND "
@@ -1369,20 +1249,12 @@ std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
           "ROUTINE_SCHEMA NOT IN ('sys', 'performance_schema', 'mysql', "
           "'information_schema') AND ROUTINE_DEFINITION REGEXP "
           "'[[:blank:],.;\\\\)\\\\(]\\\\$[A-Za-z0-9\\\\_\\\\$]*[A-Za-z0-9\\\\_]"
-          "([[:blank:],;\\\\)]|(\\\\.[^0-9]))';"},
-
-      Upgrade_issue::WARNING,
-      "The following objects have names with deprecated usage of dollar sign "
-      "($) at the begining of the identifier. To correct this warning, ensure, "
-      "that names starting with dollar sign, also end with it, similary "
-      "to quotes ($example$). ");
+          "([[:blank:],;\\\\)]|(\\\\.[^0-9]))';"});
 }
 
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check() {
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlIndexTooLargeCheck",
-      "Check for indexes that are too large to work on higher versions of "
-      "MySQL Server than 5.7",
+      ids::k_index_too_large_check,
       std::vector<std::string>{
           "select s.table_schema, s.table_name, s.index_name, 'index too "
           "large.' as warning from information_schema.statistics s, "
@@ -1392,12 +1264,7 @@ std::unique_ptr<Sql_upgrade_check> get_index_too_large_check() {
           "s.table_name) = i.name and i.row_format in ('Redundant', 'Compact') "
           "and (s.sub_part is null or s.sub_part > 255) and "
           "c.character_octet_length > 767;"},
-      Upgrade_issue::ERROR,
-      "The following indexes ware made too large for their format in an older "
-      "version of MySQL (older than 5.7.34). Normally those indexes within "
-      "tables with compact or redundant row formats shouldn't be larger than "
-      "767 bytes. To fix this problem those indexes should be dropped before "
-      "upgrading or those tables will be inaccessible.");
+      Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
@@ -1411,8 +1278,7 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
   auto regex = "[[:blank:]]\\\\.[\\\\x0001-\\\\xFFFF]+"s;
 
   return std::make_unique<Sql_upgrade_check>(
-      "mysqlEmptyDotTableSyntaxCheck",
-      "Check for deprecated '.<table>' syntax used in routines.",
+      ids::k_empty_dot_table_syntax_check,
       std::vector<std::string>{
           "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' routine body contains "
           "deprecated identifiers.' FROM information_schema.routines WHERE "
@@ -1429,9 +1295,7 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
           "TRIGGER_SCHEMA NOT IN ('sys', 'performance_schema', 'mysql', "
           "'information_schema') AND ACTION_STATEMENT REGEXP '" +
               regex + "';"},
-      Upgrade_issue::ERROR,
-      "The following routines contain identifiers in deprecated identifier "
-      "syntax (\".<table>\"), and should be corrected before upgrade:\n");
+      Upgrade_issue::ERROR);
 }
 
 namespace deprecated_auth_funcs {
@@ -1529,19 +1393,14 @@ Upgrade_issue parse_item(const std::string &item, const std::string &auth,
 class Deprecated_auth_method_check : public Sql_upgrade_check {
  public:
   explicit Deprecated_auth_method_check(mysqlshdk::utils::Version target_ver)
-      : Sql_upgrade_check(
-            "deprecatedAuthMethod",
-            "Check for deprecated or invalid user authentication methods.",
-            std::vector<std::string>{
-                "SELECT CONCAT(user, '@', host), plugin FROM "
-                "mysql.user WHERE plugin IN (" +
-                deprecated_auth_funcs::get_auth_list() +
-                ") AND user NOT LIKE 'mysql_router%';"},
-            Upgrade_issue::WARNING),
-        m_target_version(target_ver) {
-    m_advice =
-        "The following users are using a deprecated authentication method:\n";
-  }
+      : Sql_upgrade_check(ids::k_deprecated_auth_method_check,
+                          std::vector<std::string>{
+                              "SELECT CONCAT(user, '@', host), plugin FROM "
+                              "mysql.user WHERE plugin IN (" +
+                              deprecated_auth_funcs::get_auth_list() +
+                              ") AND user NOT LIKE 'mysql_router%';"},
+                          Upgrade_issue::WARNING),
+        m_target_version(target_ver) {}
 
   ~Deprecated_auth_method_check() = default;
 
@@ -1563,9 +1422,7 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
  public:
   Deprecated_default_auth_check(mysqlshdk::utils::Version target_ver)
       : Sql_upgrade_check(
-            "deprecatedDefaultAuth",
-            "Check for deprecated or invalid default authentication methods in "
-            "system variables.",
+            ids::k_deprecated_default_auth_check,
             std::vector<std::string>{
                 "show variables where variable_name = "
                 "'default_authentication_plugin' AND value IN (" +
@@ -1575,11 +1432,7 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
                     deprecated_auth_funcs::get_auth_or_like_list("value") +
                     ");"},
             Upgrade_issue::WARNING),
-        m_target_version(target_ver) {
-    m_advice =
-        "The following variables have problems with their set "
-        "authentication method:\n";
-  }
+        m_target_version(target_ver) {}
 
   ~Deprecated_default_auth_check() override = default;
 
@@ -1626,9 +1479,7 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
 std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
     const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
-      "deprecatedRouterAuthMethod",
-      "Check for deprecated or invalid authentication methods in use by MySQL "
-      "Router internal accounts.",
+      ids::k_deprecated_router_auth_method_check,
       std::vector<std::string>{
           "SELECT CONCAT(user, '@', host), ' - router user "
           "with deprecated authentication method.' FROM "
@@ -1636,15 +1487,7 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
           deprecated_auth_funcs::get_auth_list() +
           ") AND user LIKE 'mysql_router%';"},
       info.target_version >= Version(8, 4, 0) ? Upgrade_issue::ERROR
-                                              : Upgrade_issue::WARNING,
-      "The following accounts are MySQL Router accounts that use a deprecated "
-      "authentication method.\n"
-      "Those accounts are automatically created at bootstrap time when the "
-      "Router is not instructed to use an existing account. Please upgrade "
-      "MySQL Router to the latest version to ensure deprecated authentication "
-      "methods are no longer used.\n"
-      "Since version 8.0.19 it's also possible to instruct MySQL Router to use "
-      "a dedicated account. That account can be created using the AdminAPI.");
+                                              : Upgrade_issue::WARNING);
 }
 
 namespace deprecated_delimiter_funcs {
@@ -1710,8 +1553,7 @@ class Deprecated_partition_temporal_delimiter_check : public Sql_upgrade_check {
  public:
   Deprecated_partition_temporal_delimiter_check()
       : Sql_upgrade_check(
-            "deprecatedTemporalDelimiter",
-            "Check for deprecated temporal delimiters in table partitions.",
+            ids::k_deprecated_temporal_delimiter_check,
             std::vector<std::string>{
                 R"(select 
   p.table_schema, 
@@ -1745,14 +1587,7 @@ where
   (not p.partition_description REGEXP ')" +
                     deprecated_delimiter_funcs::k_time_regex_multi_str + R"(') 
   and (c.column_type = 'datetime' or c.column_type = 'timestamp');)"},
-            Upgrade_issue::ERROR,
-            "The following columns are referenced in partitioning function "
-            "using custom temporal delimiters.\n"
-            "Custom temporal delimiters were deprecated since 8.0.29. "
-            "Partitions using them will make partitioned tables unaccessible "
-            "after upgrade.\n"
-            "These partitions need to be updated to standard temporal "
-            "delimiters before the upgrade.") {}
+            Upgrade_issue::ERROR) {}
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     static const auto date_regex =

@@ -26,6 +26,11 @@
 #include <sstream>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_translate.h"
+
 namespace mysqlsh {
 namespace upgrade_checker {
 
@@ -41,7 +46,7 @@ std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
   return ss.str();
 }
 
-const char *Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
+std::string Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
   switch (level) {
     case Upgrade_issue::ERROR:
       return "Error";
@@ -83,6 +88,33 @@ WHERE engine is not null and
     tables_.emplace(row->get_string(0) + "/" + row->get_string(1),
                     std::move(table));
   }
+}
+
+const std::string &get_translation(const char *item) {
+  static shcore::Translation translation = []() {
+    std::string path = shcore::get_share_folder();
+    path = shcore::path::join_path(path, "upgrade_checker.msg");
+    if (!shcore::path::exists(path))
+      throw std::runtime_error(
+          path + ": not found, shell installation likely invalid");
+    return shcore::read_translation_from_file(path.c_str());
+  }();
+
+  static const std::string k_empty = "";
+
+  auto it = translation.find(item);
+  if (it == translation.end()) return k_empty;
+  return it->second;
+}
+
+std::string resolve_tokens(const std::string &text,
+                           const Token_definitions &replacements) {
+  auto updated{text};
+  for (const auto &replacement : replacements) {
+    updated =
+        shcore::str_replace(updated, replacement.first, replacement.second);
+  }
+  return updated;
 }
 
 }  // namespace upgrade_checker

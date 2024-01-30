@@ -51,15 +51,16 @@ std::string format_upgrade_issue(const Upgrade_issue &problem) {
     }
   }
 
-  return shcore::str_format("%-8s: %s (%s) - %s",
-                            Upgrade_issue::level_to_string(problem.level), item,
-                            ss.str().c_str(), problem.description.c_str());
+  return shcore::str_format(
+      "%-8s: %s (%s) - %s",
+      Upgrade_issue::level_to_string(problem.level).c_str(), item,
+      ss.str().c_str(), problem.description.c_str());
 }
 
 std::string multi_lvl_format_issue(const Upgrade_issue &problem) {
-  return shcore::str_format("%s: %s",
-                            Upgrade_issue::level_to_string(problem.level),
-                            upgrade_issue_to_string(problem).c_str());
+  return shcore::str_format(
+      "%s: %s", Upgrade_issue::level_to_string(problem.level).c_str(),
+      upgrade_issue_to_string(problem).c_str());
 }
 
 }  // namespace
@@ -95,7 +96,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         upgrade_issue_to_string);
     if (results.empty()) {
       print_paragraph("No issues found");
-    } else if (check.get_description() != nullptr) {
+    } else if (!check.get_description().empty()) {
       print_paragraph(check.get_description());
       print_doc_links(check.get_doc_link());
       m_console->println();
@@ -140,9 +141,10 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
   }
 
  private:
-  void print_title(const char *title) {
+  void print_title(const std::string &title) {
     m_console->println();
-    print_paragraph(shcore::str_format("%d) %s", ++m_check_count, title), 0, 0);
+    print_paragraph(
+        shcore::str_format("%d) %s", ++m_check_count, title.c_str()), 0, 0);
   }
 
   void print_paragraph(const std::string &s, std::size_t base_indent = 2,
@@ -155,10 +157,11 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     }
   }
 
-  void print_doc_links(const char *links) {
-    if (links != nullptr) {
-      std::string docs("More information:\n");
-      print_paragraph(docs + links);
+  void print_doc_links(const std::string &links) {
+    if (!links.empty()) {
+      std::string indent(2, ' ');
+      m_console->println(indent + "More information:");
+      print_paragraph(links, 4, 0);
     }
   }
 
@@ -199,20 +202,20 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                      const std::vector<Upgrade_issue> &results) override {
     rapidjson::Value check_object(rapidjson::kObjectType);
     rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
+    check_object.AddMember("id", rapidjson::StringRef(check.get_name().c_str()),
                            m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
+    check_object.AddMember(
+        "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
     check_object.AddMember("status", rapidjson::StringRef("OK"), m_allocator);
     if (!results.empty()) {
-      if (check.get_description() != nullptr)
-        check_object.AddMember("description",
-                               rapidjson::StringRef(check.get_description()),
-                               m_allocator);
-      if (check.get_doc_link() != nullptr)
-        check_object.AddMember("documentationLink",
-                               rapidjson::StringRef(check.get_doc_link()),
-                               m_allocator);
+      if (!check.get_description().empty())
+        check_object.AddMember(
+            "description",
+            rapidjson::StringRef(check.get_description().c_str()), m_allocator);
+      if (!check.get_doc_link().empty())
+        check_object.AddMember(
+            "documentationLink",
+            rapidjson::StringRef(check.get_doc_link().c_str()), m_allocator);
     }
 
     rapidjson::Value issues(rapidjson::kArrayType);
@@ -221,7 +224,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       rapidjson::Value issue_object(rapidjson::kObjectType);
       issue_object.AddMember(
           "level",
-          rapidjson::StringRef(Upgrade_issue::level_to_string(issue.level)),
+          rapidjson::StringRef(
+              Upgrade_issue::level_to_string(issue.level).c_str()),
           m_allocator);
 
       std::string db_object = issue.get_db_object();
@@ -245,10 +249,10 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                    bool runtime_error = true) override {
     rapidjson::Value check_object(rapidjson::kObjectType);
     rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
+    check_object.AddMember("id", rapidjson::StringRef(check.get_name().c_str()),
                            m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
+    check_object.AddMember(
+        "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
     if (runtime_error)
       check_object.AddMember("status", rapidjson::StringRef("ERROR"),
                              m_allocator);
@@ -259,9 +263,9 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     rapidjson::Value descr;
     descr.SetString(description, strlen(description), m_allocator);
     check_object.AddMember("description", descr, m_allocator);
-    if (check.get_doc_link() != nullptr)
+    if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
-                             rapidjson::StringRef(check.get_doc_link()),
+                             rapidjson::StringRef(check.get_doc_link().c_str()),
                              m_allocator);
 
     rapidjson::Value issues(rapidjson::kArrayType);
@@ -271,17 +275,17 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
   void manual_check(const Upgrade_check &check) override {
     rapidjson::Value check_object(rapidjson::kObjectType);
     rapidjson::Value id;
-    check_object.AddMember("id", rapidjson::StringRef(check.get_name()),
+    check_object.AddMember("id", rapidjson::StringRef(check.get_name().c_str()),
                            m_allocator);
-    check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
-                           m_allocator);
+    check_object.AddMember(
+        "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
 
-    check_object.AddMember("description",
-                           rapidjson::StringRef(check.get_description()),
-                           m_allocator);
-    if (check.get_doc_link() != nullptr)
+    check_object.AddMember(
+        "description", rapidjson::StringRef(check.get_description().c_str()),
+        m_allocator);
+    if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
-                             rapidjson::StringRef(check.get_doc_link()),
+                             rapidjson::StringRef(check.get_doc_link().c_str()),
                              m_allocator);
     m_manual_checks.PushBack(check_object, m_allocator);
   }

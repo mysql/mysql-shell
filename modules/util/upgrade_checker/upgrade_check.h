@@ -25,6 +25,8 @@
 #define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_H_
 
 #include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "modules/util/upgrade_checker/common.h"
@@ -36,13 +38,13 @@ namespace upgrade_checker {
 
 class Upgrade_check {
  public:
-  explicit Upgrade_check(const char *name) : m_name(name) {}
+  explicit Upgrade_check(const std::string_view name) : m_name(name) {}
   virtual ~Upgrade_check() {}
 
-  virtual const char *get_name() const { return m_name; }
-  virtual const char *get_title() const;
-  virtual const char *get_description() const;
-  virtual const char *get_doc_link() const;
+  virtual const std::string &get_name() const { return m_name; }
+  virtual const std::string &get_title() const;
+  virtual const std::string &get_description() const;
+  virtual const std::string &get_doc_link() const;
   virtual Upgrade_issue::Level get_level() const = 0;
   virtual bool is_runnable() const { return true; }
   virtual bool is_multi_lvl_check() const { return false; }
@@ -63,14 +65,10 @@ class Upgrade_check {
     return run(session, server_info);
   }
 
-  virtual const char *get_description_internal() const { return nullptr; }
-  virtual const char *get_doc_link_internal() const { return nullptr; }
-  virtual const char *get_title_internal() const { return nullptr; }
-
-  const char *get_text(const char *field) const;
+  const std::string &get_text(const char *field) const;
 
  private:
-  const char *m_name;
+  std::string m_name;
 };
 
 }  // namespace upgrade_checker

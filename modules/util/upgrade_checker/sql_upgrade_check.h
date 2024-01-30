@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <forward_list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "modules/util/upgrade_checker/common.h"
@@ -38,10 +39,9 @@ namespace upgrade_checker {
 
 class Sql_upgrade_check : public Upgrade_check {
  public:
-  Sql_upgrade_check(const char *name, const char *title,
+  Sql_upgrade_check(const std::string_view name,
                     std::vector<std::string> &&queries,
                     Upgrade_issue::Level level = Upgrade_issue::WARNING,
-                    const char *advice = "",
                     const char *minimal_version = nullptr,
                     std::forward_list<std::string> &&set_up =
                         std::forward_list<std::string>(),
@@ -58,17 +58,12 @@ class Sql_upgrade_check : public Upgrade_check {
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   virtual void add_issue(const mysqlshdk::db::IRow *row,
                          std::vector<Upgrade_issue> *issues);
-  const char *get_description_internal() const override;
-  const char *get_title_internal() const override;
   Upgrade_issue::Level get_level() const override { return m_level; }
 
   std::vector<std::string> m_queries;
   std::forward_list<std::string> m_set_up;
   std::forward_list<std::string> m_clean_up;
   const Upgrade_issue::Level m_level;
-  std::string m_title;
-  std::string m_advice;
-  std::string m_doc_link;
   const char *m_minimal_version;
 };
 

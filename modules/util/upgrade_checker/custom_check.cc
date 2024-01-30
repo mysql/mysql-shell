@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "modules/util/upgrade_checker/custom_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
 #include "mysqlshdk/libs/db/result.h"
 
@@ -52,7 +53,7 @@ class Invalid_engine_foreign_key_check : public Upgrade_check {
 };
 
 Invalid_engine_foreign_key_check::Invalid_engine_foreign_key_check()
-    : Upgrade_check("mysqlInvalidEngineForeignKeyCheck") {}
+    : Upgrade_check(ids::k_invalid_engine_foreign_key_check) {}
 
 std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,

@@ -30,7 +30,6 @@
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_translate.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -157,11 +156,11 @@ bool UNUSED_VARIABLE(register_check_table) =
 
 bool register_manual_checks() {
   Upgrade_check_registry::register_manual_check(
-      "8.0.11", "defaultAuthenticationPlugin", Upgrade_issue::WARNING,
-      Target::AUTHENTICATION_PLUGINS);
+      "8.0.11", ids::k_default_authentication_plugin_check,
+      Upgrade_issue::WARNING, Target::AUTHENTICATION_PLUGINS);
   Upgrade_check_registry::register_manual_check(
-      "8.0.11", "defaultAuthenticationPluginMds", Upgrade_issue::WARNING,
-      Target::MDS_SPECIFIC);
+      "8.0.11", ids::k_default_authentication_plugin_mds_check,
+      Upgrade_issue::WARNING, Target::MDS_SPECIFIC);
   return true;
 }
 
@@ -231,7 +230,7 @@ bool UNUSED_VARIABLE(
 
 std::vector<std::unique_ptr<Upgrade_check>>
 Upgrade_check_registry::create_checklist(const Upgrade_info &info,
-                                         Target_flags flags) {
+                                         Target_flags flags, bool include_all) {
   const Version &src_version(info.server_version);
   const Version &dst_version(info.target_version);
 
@@ -258,8 +257,8 @@ Upgrade_check_registry::create_checklist(const Upgrade_info &info,
 
   std::vector<std::unique_ptr<Upgrade_check>> result;
   for (const auto &c : s_available_checks) {
-    if (flags.is_set(c.target)) {
-      if (!c.condition || c.condition->evaluate(info)) {
+    if (include_all || flags.is_set(c.target)) {
+      if (include_all || !c.condition || c.condition->evaluate(info)) {
         try {
           result.emplace_back(c.creator(info));
         } catch (const Check_not_needed &) {
@@ -271,54 +270,8 @@ Upgrade_check_registry::create_checklist(const Upgrade_info &info,
   return result;
 }
 
-void Upgrade_check_registry::prepare_translation_file(const char *filename) {
-  shcore::Translation_writer writer(filename);
-
-  const char *oracle_copyright =
-      "Copyright (c) 2018, " PACKAGE_YEAR
-      ", Oracle and/or its affiliates.\n\n"
-      "This program is free software; you can redistribute it and/or modify\n"
-      "it under the terms of the GNU General Public License, version 2.0,\n"
-      "as published by the Free Software Foundation.\n\n"
-      "This program is also distributed with certain software (including\n"
-      "but not limited to OpenSSL) that is licensed under separate terms, as\n"
-      "designated in a particular file or component or in included license\n"
-      "documentation.  The authors of MySQL hereby grant you an additional\n"
-      "permission to link the program and your derivative works with the\n"
-      "separately licensed software that they have included with MySQL.\n"
-      "This program is distributed in the hope that it will be useful,  but\n"
-      "WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-      "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See\n"
-      "the GNU General Public License, version 2.0, for more details.\n\n"
-      "You should have received a copy of the GNU General Public License\n"
-      "along with this program; if not, write to the Free Software Foundation, "
-      "Inc.,\n"
-      "51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA";
-
-  writer.write_header(oracle_copyright);
-  writer.write_header();
-  Upgrade_info info;
-
-  for (const auto &it : s_available_checks) {
-    auto check = it.creator(info);
-    std::string prefix(check->get_name());
-    prefix += ".";
-
-    writer.write_entry((prefix + "title").c_str(), check->get_title_internal(),
-                       check->get_text("title"));
-
-    writer.write_entry((prefix + "description").c_str(),
-                       check->get_description_internal(),
-                       check->get_text("description"));
-
-    writer.write_entry((prefix + "docLink").c_str(),
-                       check->get_doc_link_internal(),
-                       check->get_text("docLink"));
-  }
-}
-
 void Upgrade_check_registry::register_manual_check(const char *ver,
-                                                   const char *name,
+                                                   std::string_view name,
                                                    Upgrade_issue::Level level,
                                                    Target target) {
   register_check(

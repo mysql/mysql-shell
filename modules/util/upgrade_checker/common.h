@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
@@ -69,7 +70,7 @@ struct Upgrade_info {
 
 struct Upgrade_issue {
   enum Level { ERROR = 0, WARNING, NOTICE };
-  static const char *level_to_string(const Upgrade_issue::Level level);
+  static std::string level_to_string(const Upgrade_issue::Level level);
 
   std::string schema;
   std::string table;
@@ -109,6 +110,14 @@ class Checker_cache {
  private:
   std::unordered_map<std::string, Table_info> tables_;
 };
+
+const std::string &get_translation(const char *item);
+
+using Token_definitions =
+    std::vector<std::pair<std::string_view, std::string_view>>;
+
+std::string resolve_tokens(const std::string &text,
+                           const Token_definitions &replacements);
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

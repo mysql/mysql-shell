@@ -246,16 +246,16 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   std::vector<std::unique_ptr<Upgrade_check>> checks;
   EXPECT_NO_THROW(checks = Upgrade_check_registry::create_checklist(
                       upgrade_info(prev, current)));
-  // Check for table command is there for every valid version as a last check
-  EXPECT_FALSE(checks.empty());
-  EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   std::unique_ptr<Sql_upgrade_check> check = get_old_temporal_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/blog-archive/"
+      "mysql-8-0-removing-support-for-old-temporal-datatypes/",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
   // No way to create test data in 5.7
 }
@@ -264,7 +264,8 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   std::unique_ptr<Sql_upgrade_check> check = get_reserved_keywords_check(info);
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ("https://dev.mysql.com/doc/refman/en/keywords.html",
+               check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   PrepareTestDatabase("grouping");
@@ -396,7 +397,8 @@ END)*",
      end)*"};
 
   auto check = get_routine_syntax_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ("https://dev.mysql.com/doc/refman/en/keywords.html",
+               check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   PrepareTestDatabase("testdb");
@@ -417,7 +419,9 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check = get_utf8mb3_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html",
+      check->get_doc_link().c_str());
 
   session->execute(
       "create table utf83 (s3 varchar(64) charset 'utf8mb3', s4 varchar(64) "
@@ -435,7 +439,9 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
 
   std::unique_ptr<Sql_upgrade_check> check = get_mysql_schema_check();
   EXPECT_NO_ISSUES(check.get());
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html",
+      check->get_doc_link().c_str());
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
   EXPECT_NO_THROW(session->execute("create table Role_edges (i integer);"));
@@ -500,7 +506,9 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   std::unique_ptr<Sql_upgrade_check> check = get_foreign_key_length_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
   // No way to prepare test data in 5.7
 }
@@ -510,7 +518,10 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
 
   PrepareTestDatabase("aaa_test_maxdb_sql_mode");
   std::unique_ptr<Sql_upgrade_check> check = get_maxdb_sql_mode_flags_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "mysql-nutshell.html#mysql-nutshell-removals",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -548,7 +559,10 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       session->execute("create table Clone(COMPONENT integer, cube int);"));
   std::unique_ptr<Sql_upgrade_check> check =
       get_obsolete_sql_mode_flags_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "mysql-nutshell.html#mysql-nutshell-removals",
+      check->get_doc_link().c_str());
   // NO_AUTO_CREATE_USER is in default sql_mode in 5.7 so its expected that we
   // would get a lot of issues here
   EXPECT_ISSUES(check.get());
@@ -592,11 +606,9 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
   PrepareTestDatabase("aaa_test_enum_set_element_length");
   std::unique_ptr<Sql_upgrade_check> check =
       get_enum_set_element_length_check();
-  EXPECT_EQ(
-      0,
-      strcmp(
-          "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
-          check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
+      check->get_doc_link().c_str());
   ASSERT_NO_THROW(issues = check->run(session, info));
   std::size_t original = issues.size();
 
@@ -641,9 +653,10 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   std::unique_ptr<Sql_upgrade_check> check =
       get_partitioned_tables_in_shared_tablespaces_check(info);
   EXPECT_NO_ISSUES(check.get());
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
-                      "mysql-nutshell.html#mysql-nutshell-removals",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "mysql-nutshell.html#mysql-nutshell-removals",
+      check->get_doc_link().c_str());
 
   EXPECT_NO_THROW(session->execute(
       "CREATE TABLESPACE tpists ADD DATAFILE 'tpists.ibd' ENGINE=INNODB;"));
@@ -661,10 +674,10 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
 
   PrepareTestDatabase("aaa_circular_directory");
   std::unique_ptr<Sql_upgrade_check> check = get_circular_directory_check();
-  EXPECT_EQ(0,
-            strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
-                   "upgrading-from-previous-series.html#upgrade-innodb-changes",
-                   check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "upgrading-from-previous-series.html#upgrade-innodb-changes",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   EXPECT_NO_THROW(
@@ -680,7 +693,10 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
 
   PrepareTestDatabase("aaa_test_removed_functions");
   std::unique_ptr<Sql_upgrade_check> check = get_removed_functions_check();
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "mysql-nutshell.html#mysql-nutshell-removals",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute(
@@ -743,9 +759,10 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
 
   PrepareTestDatabase("aaa_test_group_by_asc");
   std::unique_ptr<Sql_upgrade_check> check = get_groupby_asc_syntax_check();
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
-                      "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+      "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -812,9 +829,10 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
   std::unique_ptr<Upgrade_check> check = get_removed_sys_log_vars_check(info);
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
-                      "news-8-0-13.html#mysqld-8-0-13-logging",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+      "news-8-0-13.html#mysqld-8-0-13-logging",
+      check->get_doc_link().c_str());
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
@@ -829,37 +847,54 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
 extern "C" const char *g_test_home;
 
 TEST_F(MySQL_upgrade_check_test, configuration_check) {
-  auto defined =
-      get_config_check("test",
-                       {{"basedir", "homedir"},
-                        {"option_to_drop_with_no_value", nullptr},
-                        {"not_existing_var", nullptr},
-                        {"again_not_there", "personalized msg"}},
-                       Config_mode::DEFINED, Upgrade_issue::NOTICE, "problem");
+  auto defined = get_config_check(
+      "test",
+      {{"basedir", "homedir"},
+       {"option_to_drop_with_no_value", nullptr},
+       {"not_existing_var", nullptr},
+       {"again_not_there", "personalized msg"}},
+      [](const Upgrade_check *, const std::string &item, const char *extra) {
+        std::string description = "Problem with " + item;
+        if (extra != nullptr) {
+          description.append(" use ").append(extra);
+        }
+        return description;
+      },
+      Config_mode::DEFINED, Upgrade_issue::NOTICE);
   ASSERT_THROW(defined->run(session, info), Check_configuration_error);
 
   info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
   EXPECT_ISSUES(defined.get(), 2);
-  EXPECT_EQ("option_to_drop_with_no_value", issues[0].schema);
+  EXPECT_STREQ("option_to_drop_with_no_value", issues[0].schema.c_str());
   EXPECT_EQ(Upgrade_issue::NOTICE, issues[0].level);
-  EXPECT_EQ("problem", issues[0].description);
-  EXPECT_EQ("basedir", issues[1].schema);
-  EXPECT_NE(std::string::npos, issues[1].description.find("homedir"));
+  EXPECT_STREQ("Problem with option_to_drop_with_no_value",
+               issues[0].description.c_str());
+  EXPECT_STREQ("basedir", issues[1].schema.c_str());
+  EXPECT_STREQ("Problem with basedir use homedir",
+               issues[1].description.c_str());
 
-  auto undefined = get_config_check("test",
-                                    {{"basedir", "homedir"},
-                                     {"option_to_drop_with_no_value", nullptr},
-                                     {"not_existing_var", nullptr},
-                                     {"again_not_there", "personalized msg"}},
-                                    Config_mode::UNDEFINED,
-                                    Upgrade_issue::WARNING, "undefined");
+  auto undefined = get_config_check(
+      "test",
+      {{"basedir", "homedir"},
+       {"option_to_drop_with_no_value", nullptr},
+       {"not_existing_var", nullptr},
+       {"again_not_there", "personalized msg"}},
+      [](const Upgrade_check *, const std::string &item, const char *extra) {
+        std::string description = "Problem with " + item;
+        if (extra != nullptr) {
+          description.append(" use ").append(extra);
+        }
+        return description;
+      },
+      Config_mode::UNDEFINED, Upgrade_issue::WARNING);
   EXPECT_ISSUES(undefined.get(), 2);
-  EXPECT_EQ("again_not_there", issues[0].schema);
-  EXPECT_NE(std::string::npos, issues[0].description.find("personalized msg"));
-  EXPECT_EQ("not_existing_var", issues[1].schema);
+  EXPECT_STREQ("again_not_there", issues[0].schema.c_str());
+  EXPECT_STREQ("Problem with again_not_there use personalized msg",
+               issues[0].description.c_str());
+  EXPECT_STREQ("not_existing_var", issues[1].schema.c_str());
   EXPECT_EQ(Upgrade_issue::WARNING, issues[1].level);
-  EXPECT_EQ("undefined", issues[1].description);
+  EXPECT_STREQ("Problem with not_existing_var", issues[1].description.c_str());
 
   info.config_path.clear();
 }
@@ -868,9 +903,10 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
   std::unique_ptr<Upgrade_check> check = get_removed_sys_vars_check(info);
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
-                      "added-deprecated-removed.html#optvars-removed",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "added-deprecated-removed.html#optvars-removed",
+      check->get_doc_link().c_str());
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
@@ -892,9 +928,8 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   std::unique_ptr<Upgrade_check> check = get_sys_vars_new_defaults_check();
-  EXPECT_EQ(
-      0, strcmp("https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/",
-                check->get_doc_link()));
+  EXPECT_STREQ("https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/",
+               check->get_doc_link().c_str());
 
   EXPECT_THROW_LIKE(
       check->run(session, info), Check_configuration_error,
@@ -994,10 +1029,11 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 
   PrepareTestDatabase("mysql_non_native_partitioning");
   auto check = get_nonnative_partitioning_check();
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
-                      "upgrading-from-previous-series.html#upgrade-"
-                      "configuration-changes",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "upgrading-from-previous-series.html#upgrade-"
+      "configuration-changes",
+      check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -1055,8 +1091,8 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
 
   PrepareTestDatabase("mysql_zero_dates_check_test");
   auto check = get_zero_dates_check();
-  EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
-                      check->get_doc_link()));
+  EXPECT_STREQ("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
+               check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -1078,7 +1114,7 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
   auto check = get_engine_mixup_check();
-  EXPECT_NE(nullptr, strstr(check->get_description(),
+  EXPECT_NE(nullptr, strstr(check->get_description().c_str(),
                             "Rename the MyISAM table to a temporary name"));
   EXPECT_NO_ISSUES(check.get());
 
@@ -1091,7 +1127,7 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
 
   const auto si23 = upgrade_info(_target_server_version, Version(8, 0, 23));
   auto check = get_old_geometry_types_check(si23);
-  EXPECT_NE(nullptr, strstr(check->get_description(),
+  EXPECT_NE(nullptr, strstr(check->get_description().c_str(),
                             "The following columns are spatial data columns "
                             "created in MySQL Server version 5.6"));
 
@@ -1115,16 +1151,19 @@ TEST_F(MySQL_upgrade_check_test, manual_checks) {
 
   auto auth = dynamic_cast<Manual_check *>(manual[0].get());
   ASSERT_NE(nullptr, auth);
-  ASSERT_EQ(0, strcmp(auth->get_name(), "defaultAuthenticationPlugin"));
-  ASSERT_EQ(0, strcmp(auth->get_title(),
-                      "New default authentication plugin considerations"));
+  ASSERT_STREQ("defaultAuthenticationPlugin", auth->get_name().c_str());
+  ASSERT_STREQ("New default authentication plugin considerations",
+               auth->get_title().c_str());
   ASSERT_EQ(Upgrade_issue::WARNING, auth->get_level());
-  ASSERT_NE(nullptr, strstr(auth->get_doc_link(),
-                            "https://dev.mysql.com/doc/refman/8.0/en/"
-                            "upgrading-from-previous-series.html#upgrade-"
-                            "caching-sha2-password-compatibility-issues"));
+  ASSERT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "upgrading-from-previous-series.html#upgrade-caching-sha2-password-"
+      "compatibility-issues\nhttps://dev.mysql.com/doc/refman/8.0/en/"
+      "upgrading-from-previous-series.html#upgrade-caching-sha2-password-"
+      "replication",
+      auth->get_doc_link().c_str());
   ASSERT_NE(nullptr,
-            strstr(auth->get_description(),
+            strstr(auth->get_description().c_str(),
                    "Warning: The new default authentication plugin "
                    "'caching_sha2_password' offers more secure password "
                    "hashing than previously used 'mysql_native_password' (and "
@@ -1422,7 +1461,7 @@ TEST_F(MySQL_upgrade_check_test, convert_usage) {
   std::unique_ptr<Sql_upgrade_check> check =
       get_changed_functions_generated_columns_check(options);
 
-  EXPECT_NE(nullptr, check->get_doc_link());
+  EXPECT_STREQ("", check->get_doc_link().c_str());
 
   PrepareTestDatabase("testdb");
   ASSERT_NO_THROW(session->execute(
@@ -1465,9 +1504,10 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
   PrepareTestDatabase("columns_which_cannot_have_defaults_check_test");
 
   const auto check = get_columns_which_cannot_have_defaults_check();
-  EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
-                      "data-type-defaults.html#data-type-defaults-explicit",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "data-type-defaults.html#data-type-defaults-explicit",
+      check->get_doc_link().c_str());
 
   EXPECT_NO_ISSUES(check.get());
 

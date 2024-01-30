@@ -91,6 +91,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/dump/decimal_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/dump/dump_manifest_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/upgrade_check_condition_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/upgrade_check_registry_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cli_operation_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"

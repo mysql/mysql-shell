@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,10 +49,9 @@ namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
 
-Sql_upgrade_check::Sql_upgrade_check(const char *name, const char *title,
+Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
                                      std::vector<std::string> &&queries,
                                      Upgrade_issue::Level level,
-                                     const char *advice,
                                      const char *minimal_version,
                                      std::forward_list<std::string> &&set_up,
                                      std::forward_list<std::string> &&clean_up)
@@ -61,11 +60,7 @@ Sql_upgrade_check::Sql_upgrade_check(const char *name, const char *title,
       m_set_up(set_up),
       m_clean_up(clean_up),
       m_level(level),
-      m_title(title),
-      m_advice(Upgrade_issue::level_to_string(level)),
-      m_minimal_version(minimal_version) {
-  if (advice && strlen(advice) > 0) m_advice = m_advice + ": " + advice;
-}
+      m_minimal_version(minimal_version) {}
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -96,15 +91,6 @@ void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
                                   std::vector<Upgrade_issue> *issues) {
   Upgrade_issue issue = parse_row(row);
   if (!issue.empty()) issues->emplace_back(std::move(issue));
-}
-
-const char *Sql_upgrade_check::get_description_internal() const {
-  if (m_advice.empty()) return nullptr;
-  return m_advice.c_str();
-}
-
-const char *Sql_upgrade_check::get_title_internal() const {
-  return m_title.c_str();
 }
 
 Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {

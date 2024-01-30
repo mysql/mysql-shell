@@ -27,6 +27,7 @@
 #include <forward_list>
 #include <functional>
 #include <memory>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -84,14 +85,13 @@ class Upgrade_check_registry {
     return true;
   }
 
-  static void register_manual_check(const char *ver, const char *name,
+  static void register_manual_check(const char *ver, std::string_view name,
                                     Upgrade_issue::Level level, Target target);
-
-  static void prepare_translation_file(const char *filename);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(
       const Upgrade_info &info,
-      Target_flags flags = Target_flags::all().unset(Target::MDS_SPECIFIC));
+      Target_flags flags = Target_flags::all().unset(Target::MDS_SPECIFIC),
+      bool include_all = false);
 
  private:
   static Collection s_available_checks;
