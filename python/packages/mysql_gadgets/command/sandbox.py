@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,7 @@ _START_SERVER_CMD_WIN = (
     u"".format(start_server_cmd=_START_SERVER_CMD, code_page=_CURRENT_ANSI_CODE_PAGE))
 _STOP_SERVER_CMD = (u"{mysqladmin_path} --defaults-file={config_file} "
                     u"shutdown -p")
+MAX_SSL_RSA_SETUP_VERSION = (8, 4, 0)  # maximum required version (supported)
 _CREATE_RSA_SSL_FILES_CMD = u"{mysql_ssl_rsa_setup_path} --datadir={datadir}"
 _WIN_SCRIPT = u"@echo off\necho {message}\n{content}\n"
 _UNIX_SCRIPT = u"#!/bin/bash\n\necho '{message}'\n{content}\n"
@@ -466,18 +467,7 @@ def create_sandbox(**kwargs):
         raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
             exec_name="mysqladmin", path_var_name=PATH_ENV_VAR))
 
-    # If no value is provided for mysql_ssl_rsa_setup, by default search value
-    # on PATH
-    mysql_ssl_rsa_setup_path = kwargs.get(
-        "mysql_ssl_rsa_setup_path", tools.get_tool_path(
-            None, "mysql_ssl_rsa_setup", search_path=True, required=False))
-
-    if not mysql_ssl_rsa_setup_path and not ignore_ssl_error:
-        raise exceptions.GadgetError(
-            _ERROR_CANNOT_FIND_TOOL.format(exec_name="mysql_ssl_rsa_setup",
-                                           path_var_name=PATH_ENV_VAR))
-
-    # Checking if mysql, mysqladmin and mysql_ssl_rsa_setup meet requirements
+    # Checking if mysql and mysqladmin meet requirements
     if not tools.is_executable(mysqld_path):
         raise exceptions.GadgetError(
             "Provided mysqld '{0}' is not a valid executable."
@@ -486,12 +476,8 @@ def create_sandbox(**kwargs):
         raise exceptions.GadgetError(
             "Provided mysqladmin '{0}' is not a valid executable."
             "".format(mysqladmin_path))
-    if not ignore_ssl_error and not \
-            tools.is_executable(mysql_ssl_rsa_setup_path):
-        raise exceptions.GadgetError(
-            "Provided mysql_ssl_rsa_setup '{0}' is not a valid executable."
-            "".format(mysql_ssl_rsa_setup_path))
 
+    # Checking version
     mysqld_ver, version_str = server.get_mysqld_version(mysqld_path)
     if not MIN_MYSQL_VERSION <= mysqld_ver < MAX_MYSQL_VERSION:
         raise exceptions.GadgetError(
@@ -499,6 +485,27 @@ def create_sandbox(**kwargs):
                 mysqld_path, version_str,
                 '.'.join(str(i) for i in MIN_MYSQL_VERSION),
                 '.'.join(str(i) for i in MAX_MYSQL_VERSION)))
+
+    if mysqld_ver >= MAX_SSL_RSA_SETUP_VERSION:
+        ignore_ssl_error = True
+    else:
+        # If no value is provided for mysql_ssl_rsa_setup, by default search value
+        # on PATH
+        mysql_ssl_rsa_setup_path = kwargs.get(
+            "mysql_ssl_rsa_setup_path", tools.get_tool_path(
+                None, "mysql_ssl_rsa_setup", search_path=True, required=False))
+
+        if not mysql_ssl_rsa_setup_path and not ignore_ssl_error:
+            raise exceptions.GadgetError(
+                _ERROR_CANNOT_FIND_TOOL.format(exec_name="mysql_ssl_rsa_setup",
+                                               path_var_name=PATH_ENV_VAR))
+
+        # Checking if mysql_ssl_rsa_setup meets requirements
+        if not ignore_ssl_error and not \
+                tools.is_executable(mysql_ssl_rsa_setup_path):
+            raise exceptions.GadgetError(
+                "Provided mysql_ssl_rsa_setup '{0}' is not a valid executable."
+                "".format(mysql_ssl_rsa_setup_path))
 
     basedir = kwargs.get("basedir", None)
     if basedir is None:
