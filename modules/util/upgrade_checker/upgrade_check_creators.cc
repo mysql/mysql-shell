@@ -1058,12 +1058,7 @@ get_schema_inconsistency_check() {
 }
 // clang-format on
 
-std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
-    const Upgrade_info &info) {
-  if (info.target_version >= Version(8, 0, 18) ||
-      shcore::str_beginswith(info.server_os, "WIN"))
-    throw Check_not_needed();
-
+std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_fts_in_tablename_check,
       std::vector<std::string>{
@@ -1092,9 +1087,7 @@ std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
 }
 // clang-format on
 
-std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check(
-    const Upgrade_info &info) {
-  if (info.target_version >= Version(8, 0, 24)) throw Check_not_needed();
+std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_old_geometry_types_check,
       std::vector<std::string>{
@@ -1166,11 +1159,7 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
 }  // namespace
 
 std::unique_ptr<Sql_upgrade_check>
-get_changed_functions_generated_columns_check(const Upgrade_info &info) {
-  if (info.target_version && (info.target_version < Version(8, 0, 28) ||
-                              info.server_version >= Version(8, 0, 28)))
-    throw Check_not_needed();
-
+get_changed_functions_generated_columns_check() {
   return std::make_unique<Changed_functions_in_generated_columns_check>();
 }
 

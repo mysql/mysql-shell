@@ -79,7 +79,7 @@ inline constexpr std::string_view k_engine_mixup_check = "engineMixup";
 inline constexpr std::string_view k_old_geometry_types_check =
     "oldGeometryTypes";
 inline constexpr std::string_view k_changed_functions_generated_columns_check =
-    "changedFunctionsGeneratedColumns";
+    "changedFunctionsInGeneratedColumns";
 inline constexpr std::string_view k_columns_which_cannot_have_defaults_check =
     "columnsWhichCannotHaveDefaults";
 inline constexpr std::string_view k_invalid_57_names_check = "invalid57Names";
@@ -132,13 +132,11 @@ std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
 std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check();
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check();
 std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
-std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check(
-    const Upgrade_info &info);
+std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check();
 std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check();
-std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check(
-    const Upgrade_info &info);
+std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check();
 std::unique_ptr<Sql_upgrade_check>
-get_changed_functions_generated_columns_check(const Upgrade_info &info);
+get_changed_functions_generated_columns_check();
 std::unique_ptr<Sql_upgrade_check>
 get_columns_which_cannot_have_defaults_check();
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();

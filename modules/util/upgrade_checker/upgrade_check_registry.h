@@ -28,6 +28,7 @@
 #include <functional>
 #include <memory>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -39,6 +40,9 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+
+template <typename T>
+concept Version_source = std::is_constructible_v<Version, T>;
 
 class Upgrade_check;
 
@@ -55,7 +59,7 @@ class Upgrade_check_registry {
 
   using Collection = std::vector<Creator_info>;
 
-  template <class... Ts>
+  template <Version_source... Ts>
   static bool register_check(Creator creator, Target target, Ts... params) {
     std::forward_list<Version> vs{Version(params)...};
 
@@ -80,9 +84,15 @@ class Upgrade_check_registry {
   }
 
   static bool register_check(Creator creator, Target target) {
-    register_check(std::move(creator), target, std::unique_ptr<Condition>{});
+    return register_check(std::move(creator), target,
+                          std::unique_ptr<Condition>{});
+  }
 
-    return true;
+  static bool register_check(Creator creator, Target target,
+                             Custom_condition::Callback cb) {
+    std::unique_ptr<Condition> condition =
+        std::make_unique<Custom_condition>(std::move(cb));
+    return register_check(std::move(creator), target, std::move(condition));
   }
 
   static void register_manual_check(const char *ver, std::string_view name,

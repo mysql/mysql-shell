@@ -150,6 +150,14 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     }
   }
 
+  bool is_check_present(const Upgrade_info &upgrade_info,
+                        const std::string_view name) {
+    auto checks = Upgrade_check_registry::create_checklist(upgrade_info);
+    auto it = std::ranges::find_if(
+        checks, [&](const auto &c) { return c->get_name() == name; });
+    return it != checks.end();
+  }
+
   void EXPECT_ISSUES(
       Upgrade_check *check, const int no = -1,
       std::function<void()> after_run_callback = std::function<void()>()) {
@@ -1050,11 +1058,12 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   auto si = upgrade_info(Version(5, 7, 25), Version(8, 0, 17));
   si.server_os = compile_os;
 #if defined(WIN32)
-  EXPECT_THROW(get_fts_in_tablename_check(si), Check_not_needed);
+  EXPECT_FALSE(is_check_present(si, ids::k_fts_in_tablename_check));
 #else
   PrepareTestDatabase("fts_tablename");
-  EXPECT_THROW(get_fts_in_tablename_check(info), Check_not_needed);
-  auto check = get_fts_in_tablename_check(si);
+  auto temp_info = upgrade_info(Version(5, 7, 25), Version(8, 1, 0));
+  EXPECT_FALSE(is_check_present(temp_info, ids::k_fts_in_tablename_check));
+  auto check = get_fts_in_tablename_check();
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
@@ -1125,8 +1134,7 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
 TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  const auto si23 = upgrade_info(_target_server_version, Version(8, 0, 23));
-  auto check = get_old_geometry_types_check(si23);
+  auto check = get_old_geometry_types_check();
   EXPECT_NE(nullptr, strstr(check->get_description().c_str(),
                             "The following columns are spatial data columns "
                             "created in MySQL Server version 5.6"));
@@ -1136,7 +1144,7 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   EXPECT_NO_ISSUES(check.get());
 
   const auto si24 = upgrade_info(_target_server_version, Version(8, 0, 24));
-  EXPECT_THROW(get_old_geometry_types_check(si24), Check_not_needed);
+  EXPECT_FALSE(is_check_present(si24, ids::k_old_geometry_types_check));
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
@@ -1440,28 +1448,31 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
 TEST_F(MySQL_upgrade_check_test, convert_usage) {
   {
     // upgrade to < 8.0.28 needs no check
-    ASSERT_THROW(get_changed_functions_generated_columns_check(
-                     upgrade_info(Version(8, 0, 26), Version(8, 0, 27))),
-                 Check_not_needed);
+    EXPECT_FALSE(
+        is_check_present(upgrade_info(Version(8, 0, 26), Version(8, 0, 27)),
+                         ids::k_changed_functions_generated_columns_check));
 
     // upgrade between >= 8.0.28 needs no check
-    ASSERT_THROW(get_changed_functions_generated_columns_check(
-                     upgrade_info(Version(8, 0, 28), Version(8, 0, 29))),
-                 Check_not_needed);
+    EXPECT_FALSE(
+        is_check_present(upgrade_info(Version(8, 0, 28), Version(8, 0, 29)),
+                         ids::k_changed_functions_generated_columns_check));
 
-    ASSERT_NO_THROW(get_changed_functions_generated_columns_check(
-        upgrade_info(Version(5, 7, 28), Version(8, 0, 28))));
+    EXPECT_TRUE(
+        is_check_present(upgrade_info(Version(5, 7, 28), Version(8, 0, 28)),
+                         ids::k_changed_functions_generated_columns_check));
 
-    ASSERT_NO_THROW(get_changed_functions_generated_columns_check(
-        upgrade_info(Version(8, 0, 27), Version(8, 0, 29))));
+    EXPECT_TRUE(
+        is_check_present(upgrade_info(Version(8, 0, 27), Version(8, 0, 29)),
+                         ids::k_changed_functions_generated_columns_check));
   }
 
-  auto options = upgrade_info(Version(8, 0, 11), Version(8, 0, 28));
-
   std::unique_ptr<Sql_upgrade_check> check =
-      get_changed_functions_generated_columns_check(options);
+      get_changed_functions_generated_columns_check();
 
-  EXPECT_STREQ("", check->get_doc_link().c_str());
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "upgrading-from-previous-series.html#upgrade-sql-changes",
+      check->get_doc_link().c_str());
 
   PrepareTestDatabase("testdb");
   ASSERT_NO_THROW(session->execute(

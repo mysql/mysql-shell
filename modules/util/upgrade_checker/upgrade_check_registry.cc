@@ -136,9 +136,13 @@ bool UNUSED_VARIABLE(register_schema_inconsistency_check) =
         "8.0.11");
 
 bool UNUSED_VARIABLE(register_fts_tablename_check) =
-    Upgrade_check_registry::register_check(&get_fts_in_tablename_check,
-                                           Target::OBJECT_DEFINITIONS,
-                                           "8.0.11");
+    Upgrade_check_registry::register_check(
+        std::bind(&get_fts_in_tablename_check), Target::OBJECT_DEFINITIONS,
+        [](const Upgrade_info &info) {
+          return Version_condition(Version(8, 0, 11)).evaluate(info) &&
+                 info.target_version < Version(8, 0, 18) &&
+                 !shcore::str_beginswith(info.server_os, "WIN");
+        });
 
 // clang-format on
 
@@ -147,8 +151,12 @@ bool UNUSED_VARIABLE(register_engine_mixup_check) =
                                            Target::ENGINES, "8.0.11");
 
 bool UNUSED_VARIABLE(register_old_geometry_check) =
-    Upgrade_check_registry::register_check(&get_old_geometry_types_check,
-                                           Target::INNODB_INTERNALS, "8.0.11");
+    Upgrade_check_registry::register_check(
+        std::bind(&get_old_geometry_types_check), Target::INNODB_INTERNALS,
+        [](const Upgrade_info &info) {
+          return Version_condition(Version(8, 0, 11)).evaluate(info) &&
+                 info.target_version < Version(8, 0, 24);
+        });
 
 bool UNUSED_VARIABLE(register_check_table) =
     Upgrade_check_registry::register_check(std::bind(&get_table_command_check),
@@ -168,8 +176,8 @@ bool UNUSED_VARIABLE(reg_manual_checks) = register_manual_checks();
 
 bool UNUSED_VARIABLE(register_changed_functions_generated_columns) =
     Upgrade_check_registry::register_check(
-        &get_changed_functions_generated_columns_check,
-        Target::OBJECT_DEFINITIONS, "5.7.0");
+        std::bind(&get_changed_functions_generated_columns_check),
+        Target::OBJECT_DEFINITIONS, "5.7.0", "8.0.28");
 
 bool UNUSED_VARIABLE(register_columns_which_cannot_have_defaults) =
     Upgrade_check_registry::register_check(
@@ -259,10 +267,7 @@ Upgrade_check_registry::create_checklist(const Upgrade_info &info,
   for (const auto &c : s_available_checks) {
     if (include_all || flags.is_set(c.target)) {
       if (include_all || !c.condition || c.condition->evaluate(info)) {
-        try {
-          result.emplace_back(c.creator(info));
-        } catch (const Check_not_needed &) {
-        }
+        result.emplace_back(c.creator(info));
       }
     }
   }

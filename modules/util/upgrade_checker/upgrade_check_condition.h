@@ -25,6 +25,8 @@
 #define MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_CONDITION_H_
 
 #include <forward_list>
+#include <memory>
+#include <utility>
 
 #include "modules/util/upgrade_checker/common.h"
 
@@ -64,6 +66,17 @@ class Version_condition : public Condition {
   std::forward_list<Version> m_versions;
 };
 
+// Custom condition for one-off specific conditions
+class Custom_condition : public Condition {
+ public:
+  using Callback = std::function<bool(const Upgrade_info &)>;
+
+  explicit Custom_condition(Callback cb) : m_condition{std::move(cb)} {}
+  bool evaluate(const Upgrade_info &info) override { return m_condition(info); }
+
+ private:
+  Callback m_condition;
+};
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 #endif  // MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_CONDITION_H_

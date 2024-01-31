@@ -142,5 +142,34 @@ TEST(Version_condition, test_multi_version) {
       condition.evaluate(upgrade_info(Version(8, 3, 1), Version(8, 3, 9))));
 }
 
+TEST(Version_condition, test_custom_condition) {
+  Version ver(8, 0, 20);
+
+  {
+    Custom_condition condition(
+        [=](const Upgrade_info &info) { return info.target_version < ver; });
+
+    EXPECT_TRUE(condition.evaluate(upgrade_info(ver, low_version(ver, 1))));
+
+    EXPECT_FALSE(condition.evaluate(upgrade_info(ver, ver)));
+  }
+
+  {
+    auto temp_info = upgrade_info(ver, ver);
+    Custom_condition condition([](const Upgrade_info &info) {
+      return shcore::str_beginswith(info.server_os, "WIN");
+    });
+
+    temp_info.server_os = "WIN32";
+    EXPECT_TRUE(condition.evaluate(temp_info));
+
+    temp_info.server_os = "WIN64";
+    EXPECT_TRUE(condition.evaluate(temp_info));
+
+    temp_info.server_os = "Linux";
+    EXPECT_FALSE(condition.evaluate(temp_info));
+  }
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

@@ -93,8 +93,6 @@ class Check_configuration_error : public std::runtime_error {
       : std::runtime_error(what) {}
 };
 
-class Check_not_needed : public std::exception {};
-
 class Checker_cache {
  public:
   struct Table_info {
