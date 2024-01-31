@@ -46,7 +46,7 @@ std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
   return ss.str();
 }
 
-std::string Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
+const char *Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
   switch (level) {
     case Upgrade_issue::ERROR:
       return "Error";

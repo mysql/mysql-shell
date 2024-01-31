@@ -51,16 +51,15 @@ std::string format_upgrade_issue(const Upgrade_issue &problem) {
     }
   }
 
-  return shcore::str_format(
-      "%-8s: %s (%s) - %s",
-      Upgrade_issue::level_to_string(problem.level).c_str(), item,
-      ss.str().c_str(), problem.description.c_str());
+  return shcore::str_format("%-8s: %s (%s) - %s",
+                            Upgrade_issue::level_to_string(problem.level), item,
+                            ss.str().c_str(), problem.description.c_str());
 }
 
 std::string multi_lvl_format_issue(const Upgrade_issue &problem) {
-  return shcore::str_format(
-      "%s: %s", Upgrade_issue::level_to_string(problem.level).c_str(),
-      upgrade_issue_to_string(problem).c_str());
+  return shcore::str_format("%s: %s",
+                            Upgrade_issue::level_to_string(problem.level),
+                            upgrade_issue_to_string(problem).c_str());
 }
 
 }  // namespace
@@ -224,8 +223,7 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       rapidjson::Value issue_object(rapidjson::kObjectType);
       issue_object.AddMember(
           "level",
-          rapidjson::StringRef(
-              Upgrade_issue::level_to_string(issue.level).c_str()),
+          rapidjson::StringRef(Upgrade_issue::level_to_string(issue.level)),
           m_allocator);
 
       std::string db_object = issue.get_db_object();

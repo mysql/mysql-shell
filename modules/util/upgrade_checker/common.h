@@ -70,7 +70,7 @@ struct Upgrade_info {
 
 struct Upgrade_issue {
   enum Level { ERROR = 0, WARNING, NOTICE };
-  static std::string level_to_string(const Upgrade_issue::Level level);
+  static const char *level_to_string(const Upgrade_issue::Level level);
 
   std::string schema;
   std::string table;
