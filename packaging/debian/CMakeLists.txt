@@ -263,7 +263,6 @@ usr/share/man/man1/mysqlsh.1
 if (BUNDLED_PYTHON_DIR OR PYTHON_DEPS)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "usr/lib/mysqlsh/lib/*   usr/lib/mysqlsh/lib
-usr/lib/mysqlsh/bin/python3.*
 ")
 endif()
 
@@ -272,6 +271,7 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For python bundle
 usr/lib/mysqlsh/include
 usr/lib/mysqlsh/libpython*.so*
+usr/lib/mysqlsh/bin/python3.*
 ")
 endif()
 
