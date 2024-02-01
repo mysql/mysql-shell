@@ -391,23 +391,12 @@ std::string Shell_test_env::get_path_to_test_dir(const std::string &file) {
   return shcore::path::join_path(g_test_home, file);
 }
 
-size_t find_token(const std::string &source, const std::string &find,
-                  const std::string &is_not, size_t start_pos) {
-  size_t ret_val = std::string::npos;
+std::optional<std::string> Shell_test_env::resolve_token(
+    const std::string &token) {
+  if (auto it = _output_tokens.find(token); it != _output_tokens.end())
+    return it->second;
 
-  while (true) {
-    size_t found = source.find(find, start_pos);
-    size_t proto = source.find(is_not, start_pos);
-
-    if (found != std::string::npos && found == proto)
-      start_pos += proto + is_not.size();
-    else {
-      ret_val = found;
-      break;
-    }
-  }
-
-  return ret_val;
+  return {};
 }
 
 /**
@@ -446,23 +435,35 @@ size_t find_token(const std::string &source, const std::string &find,
  * And the resolved string can then be used as the final expectation.
  */
 std::string Shell_test_env::resolve_string(std::string source) {
-  size_t start = find_token(source, "<<<", "<<<< RECEIVE", 0);
-  size_t end;
+  // optimization: almost all source strings don't need a resolve, so catch that
+  // as soon as we can
+  if (source.find('<') == std::string::npos) return source;
 
-  while (start != std::string::npos) {
-    end = find_token(source, ">>>", ">>>> SEND", start);
+  auto find_token = [](std::string_view code, std::string_view find,
+                       std::string_view is_not, size_t start_pos) -> size_t {
+    while (true) {
+      auto found = code.find(find, start_pos);
+      if (found == std::string_view::npos) return found;
 
-    std::string token = source.substr(start + 3, end - start - 3);
+      auto proto = code.find(is_not, start_pos);
+      if (found != proto) return found;
 
-    std::string value;
-    // If the token was registered in C++ uses it
-    if (_output_tokens.count(token)) {
-      value = _output_tokens[token];
+      start_pos += proto + is_not.size();
     }
 
-    source.replace(start, end - start + 3, value);
+    // std::unreachable();
+    return std::string_view::npos;
+  };
 
-    start = find_token(source, "<<<", "<<<< RECEIVE", 0);
+  for (auto start = find_token(source, "<<<", "<<<< RECEIVE", 0);
+       start != std::string::npos;
+       start = find_token(source, "<<<", "<<<< RECEIVE", 0)) {
+    auto end = find_token(source, ">>>", ">>>> SEND", start);
+
+    auto token = source.substr(start + 3, end - start - 3);
+    auto value = Shell_test_env::resolve_token(token).value_or("");
+
+    source.replace(start, end - start + 3, value);
   }
 
   return source;

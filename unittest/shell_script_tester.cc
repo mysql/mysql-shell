@@ -36,7 +36,6 @@
 
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/textui/textui.h"
-#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
@@ -49,6 +48,7 @@
 #include "utils/utils_string.h"
 
 using namespace shcore;
+
 extern "C" const char *g_test_home;
 extern bool g_generate_validation_file;
 extern int g_test_script_timeout;
@@ -115,27 +115,32 @@ class Test_debugger {
   }
 
   Action will_execute(const std::string &source, int lnum,
-                      const std::string &code) {
+                      std::string_view code) {
     if (m_main_source.empty()) m_main_source = source;
 
     // Line containing //BREAK in the script will enter cmd loop
-    if (m_enabled) {
-      if (m_stepping) {
-        if (source != m_main_source && m_skip_include) {
-          // skip over include files
-          return Action::Continue;
-        }
-        m_stepping = false;
-        return interact();
-      } else if (shcore::str_strip(code) == "//BREAK" ||
-                 shcore::str_strip(code) == "#BREAK") {
-        println("//BREAK hit");
-        return interact();
-      } else if (source == m_main_source && g_break.count(lnum) > 0) {
-        println("Breaking at requested line " + std::to_string(lnum));
-        return interact();
+    if (!m_enabled) return Action::Continue;
+
+    if (m_stepping) {
+      if (source != m_main_source && m_skip_include) {
+        // skip over include files
+        return Action::Continue;
       }
+      m_stepping = false;
+      return interact();
     }
+
+    if (auto code_stripped = shcore::str_strip_view(code);
+        (code_stripped == "//BREAK") || (code_stripped == "#BREAK")) {
+      println("//BREAK hit");
+      return interact();
+    }
+
+    if (source == m_main_source && g_break.count(lnum) > 0) {
+      println("Breaking at requested line " + std::to_string(lnum));
+      return interact();
+    }
+
     return Action::Continue;
   }
 
@@ -227,8 +232,8 @@ class Test_debugger {
     else
       println("Aborting...");
 
-    m_test->output_handler.std_err = std_err;
-    m_test->output_handler.std_out = std_out;
+    m_test->output_handler.std_err = std::move(std_err);
+    m_test->output_handler.std_out = std::move(std_out);
 
     return result;
   }
@@ -435,71 +440,77 @@ void Shell_script_tester::set_setup_script(const std::string &name) {
   _setup_script = shcore::path::join_path(_shell_scripts_home, "setup", name);
 }
 
-size_t find_token(const std::string &source, const std::string &find,
-                  const std::string &is_not, size_t start_pos) {
-  size_t ret_val = std::string::npos;
-
-  while (true) {
-    size_t found = source.find(find, start_pos);
-    size_t proto = source.find(is_not, start_pos);
-
-    if (found != std::string::npos && found == proto)
-      start_pos = proto + is_not.size();
-    else {
-      ret_val = found;
-      break;
-    }
+std::optional<std::string> Shell_script_tester::resolve_token(
+    const std::string &token) {
+  if (auto resolve = Shell_test_env::resolve_token(token);
+      resolve.has_value()) {
+    return resolve;
   }
 
-  return ret_val;
+  // we use whatever is defined on the scripting language
+  output_handler.internal_std_out.clear();
+  execute_internal(token);
+  auto value = std::exchange(output_handler.internal_std_out, {});
+
+  // strip the trailing newline added by execute
+  if (str_endswith(value, "\n")) value.pop_back();
+
+  return value;
 }
 
-std::string Shell_script_tester::resolve_string(const std::string &source) {
-  std::string updated(source);
-  auto std_out_backup = std::move(output_handler.std_out);
+std::string Shell_script_tester::resolve_string(std::string source) {
+  // optimization: almost all source strings don't need a resolve, so catch that
+  // as soon as we can
+  if (source.find('<') == std::string::npos) return source;
 
-  size_t start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
+  auto std_out_backup = std::exchange(output_handler.std_out, {});
+
+  auto find_token = [](std::string_view code, std::string_view find,
+                       std::string_view is_not, size_t start_pos) -> size_t {
+    while (true) {
+      auto found = code.find(find, start_pos);
+      if (found == std::string_view::npos) return found;
+
+      auto proto = code.find(is_not, start_pos);
+      if (found != proto) return found;
+
+      start_pos = proto + is_not.size();
+    }
+
+    // std::unreachable();
+    return std::string_view::npos;
+  };
+
+  size_t start = find_token(source, "<<<", "<<<< RECEIVE", 0);
   size_t end;
 
   while (start != std::string::npos) {
     bool strip_trailing_newline = false;
 
-    end = find_token(updated, ">>>", ">>>> SEND", start);
-
+    end = find_token(source, ">>>", ">>>> SEND", start);
     if (end == std::string::npos)
       throw std::logic_error("Unterminated <<< in test");
+
     //<<<"fooo"\>>>\n is stripped into fooo (without the trailing newline)
-    if (updated.compare(end - 1, 5, "\\>>>\n") == 0) {
+    if (source.compare(end - 1, 5, "\\>>>\n") == 0) {
       strip_trailing_newline = true;
       --end;
     }
-    std::string token = updated.substr(start + 3, end - start - 3);
 
-    // This will make the variable to be printed on the stdout
-    output_handler.wipe_out();
+    auto value = resolve_token(source.substr(start + 3, end - start - 3));
+    assert(value.has_value());
 
-    std::string value;
-    // If the token was registered in C++ uses it
-    if (_output_tokens.count(token)) {
-      value = _output_tokens[token];
-    } else {
-      // If not, we use whatever is defined on the scripting language
-      execute_internal(token);
-      value = output_handler.internal_std_out;
-    }
-    // strip the trailing newline added by execute, but not all whitespace
-    if (str_endswith(value, "\n")) value = value.substr(0, value.size() - 1);
     if (strip_trailing_newline) {
-      updated.replace(start, end - start + 5, value);
+      source.replace(start, end - start + 5, *value);
     } else {
-      updated.replace(start, end - start + 3, value);
+      source.replace(start, end - start + 3, *value);
     }
-    start = find_token(updated, "<<<", "<<<< RECEIVE", 0);
+
+    start = find_token(source, "<<<", "<<<< RECEIVE", 0);
   }
 
   output_handler.std_out = std::move(std_out_backup);
-
-  return updated;
+  return source;
 }
 
 bool Shell_script_tester::validate_line_by_line(const std::string &context,
@@ -508,56 +519,53 @@ bool Shell_script_tester::validate_line_by_line(const std::string &context,
                                                 const std::string &expected,
                                                 const std::string &actual,
                                                 int srcline, int valline) {
-  std::string new_expected(expected);
   std::vector<std::string> expected_lines;
   bool changed = false;
   // Takes this as the posibility of the presense of conditional lines.
-  size_t end_pos = expected.find("?{}");
-  if (end_pos != std::string::npos) {
+  if (expected.find("?{}") != std::string::npos) {
     expected_lines = shcore::split_string(expected, "\n");
 
     // Lines in the format of ?{<condition>} might be the start/end of a
     // conditional Section of expectations, the section ends on a equal to ?{}
     for (size_t index = 0; index < expected_lines.size(); index++) {
-      std::string line = expected_lines[index];
-      if (!line.empty() && line[0] == '?') {
-        auto size = line.size();
-        if (size > 2 && line[1] == '{' && line[2] != '*' &&
-            line[size - 1] == '}') {
-          std::string condition = line.substr(2, size - 3);
+      const auto &line = expected_lines[index];
+      if (line.empty() || line[0] != '?') continue;
 
-          // Empty condition is simply ignored
-          if (!condition.empty()) {
-            expected_lines.erase(expected_lines.begin() + index);
+      auto size = line.size();
+      if (!(size > 2 && line[1] == '{' && line[2] != '*' &&
+            line[size - 1] == '}'))
+        continue;
 
-            // If condition not satisfied deletes all the lines in the middle
-            // until the closing tag is found
-            bool erase = !context_enabled(condition);
-            while (expected_lines.size() > index &&
-                   expected_lines[index] != "?{}") {
-              if (erase)
-                expected_lines.erase(expected_lines.begin() + index);
-              else
-                index++;
-            }
+      // Empty condition is simply ignored
+      auto condition = line.substr(2, size - 3);
+      if (condition.empty()) continue;
 
-            expected_lines.erase(expected_lines.begin() + index);
+      expected_lines.erase(expected_lines.begin() + index);
 
-            changed = true;
-
-            // Goes back on the index so the new current line is analyzed as
-            // well
-            index--;
-          }
-        }
+      // If condition not satisfied deletes all the lines in the middle
+      // until the closing tag is found
+      bool erase = !context_enabled(std::move(condition));
+      while (expected_lines.size() > index && expected_lines[index] != "?{}") {
+        if (erase)
+          expected_lines.erase(expected_lines.begin() + index);
+        else
+          index++;
       }
+
+      expected_lines.erase(expected_lines.begin() + index);
+
+      changed = true;
+
+      // Goes back on the index so the new current line is analyzed as
+      // well
+      index--;
     }
   }
 
-  if (changed) new_expected = shcore::str_join(expected_lines, "\n");
-
-  return check_multiline_expect(context + "@" + chunk_id, stream, new_expected,
-                                actual, srcline, valline);
+  return check_multiline_expect(
+      shcore::str_format("%s@%s", context.c_str(), chunk_id.c_str()), stream,
+      changed ? shcore::str_join(expected_lines, "\n") : expected, actual,
+      srcline, valline);
 }
 
 bool Shell_script_tester::validate(const std::string &context,
@@ -568,257 +576,245 @@ bool Shell_script_tester::validate(const std::string &context,
   size_t out_position = 0;
   size_t err_position = 0;
 
-  std::string validation_id = _chunks[chunk_id].def->validation_id;
+  const std::string &validation_id = _chunks[chunk_id].def.validation_id;
 
-  if (_chunk_validations.find(validation_id) != _chunk_validations.end()) {
-    bool expect_failures = false;
-
-    // Identifies the validations to be done based on the context
-    std::vector<std::shared_ptr<Validation>> validations;
-    for (const auto &val : _chunk_validations[validation_id]) {
-      bool enabled = false;
-      try {
-        enabled = context_enabled(val->def->context);
-
-        if (val->def->stream == "PROTOCOL" && !_options->trace_protocol) {
-          ADD_FAILURE_AT("validation file", val->def->linenum)
-              << "ERROR TESTING PROTOCOL: Protocol tracing is disabled."
-              << "\n"
-              << "\tCHUNK: " << val->def->line << "\n";
-        }
-      } catch (const std::invalid_argument &e) {
-        ADD_FAILURE_AT("validation file", val->def->linenum)
-            << "ERROR EVALUATING VALIDATION CONTEXT: " << e.what() << "\n"
-            << "\tCHUNK: " << val->def->line << "\n";
-      }
-
-      if (enabled) {
-        validations.push_back(val);
-
-        if (!val->expected_error.empty()) expect_failures = true;
-      } else {
-        if (output_handler.internal_std_err.empty()) {
-          SKIP_VALIDATION(val->def->line);
-        } else {
-          SKIP_VALIDATION(val->def->line + ": " +
-                          output_handler.internal_std_err);
-        }
-      }
-    }
-
-    std::string full_statement;
-    // The validations will be performed ONLY if the context is enabled
-    for (size_t valindex = 0; valindex < validations.size(); valindex++) {
-      // Validation goes against validation code
-      if (!validations[valindex]->code.empty()) {
-        // Before cleaning up, prints any error found on the script execution
-        if (valindex == 0 && !original_std_err.empty()) {
-          ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                         _chunks[chunk_id].code[0].first)
-              << makered("\tUnexpected Error: " + original_std_err) << "\n";
-          output_handler.wipe_all();
-          return false;
-        }
-
-        output_handler.wipe_all();
-        _cout.str("");
-        _cout.clear();
-
-        std::string backup = _custom_context;
-        full_statement.append(validations[valindex]->code);
-        _custom_context += "[" + full_statement + "]";
-        execute(validations[valindex]->code);
-        _custom_context = backup;
-        if (_interactive_shell->input_state() == shcore::Input_state::Ok)
-          full_statement.clear();
-        else
-          full_statement.append("\n");
-
-        original_std_err = output_handler.std_err;
-        original_std_out = output_handler.std_out;
-
-        out_position = 0;
-        err_position = 0;
-
-        output_handler.wipe_all();
-        _cout.str("");
-        _cout.clear();
-      }
-
-      // Validates unexpected error
-      if (!expect_failures && !original_std_err.empty()) {
-        ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                       _chunks[chunk_id].code[0].first)
-            << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-            << makered("\tUnexpected Error: ") << original_std_err << "\n";
-        output_handler.wipe_all();
-        return false;
-      }
-
-      // Validates expected output if any
-      if (!validations[valindex]->expected_output.empty()) {
-        std::string out = validations[valindex]->expected_output;
-
-        out = resolve_string(out);
-
-        if (out != "*") {
-          if (validations[valindex]->def->validation ==
-              ValidationType::Simple) {
-            auto matched =
-                multi_value_compare(out, original_std_out, false, out_position,
-                                    nullptr, &out_position);
-            if (!matched) {
-              if (out_position == 0) {
-                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                               _chunks[chunk_id].code[0].first)
-                    << "while executing chunk: " + _chunks[chunk_id].def->line
-                    << "\nwith validation at "
-                    << validations[valindex]->def->linenum << "\n"
-                    << makeyellow("\tSTDOUT missing: ") << out << "\n"
-                    << makeyellow("\tSTDOUT actual: ") + original_std_out
-                    << "\n";
-              } else {
-                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                               _chunks[chunk_id].code[0].first)
-                    << "while executing chunk: " + _chunks[chunk_id].def->line
-                    << "\nwith validation at "
-                    << validations[valindex]->def->linenum << "\n"
-                    << makeyellow("\tSTDOUT missing: ") << out << "\n"
-                    << makeyellow("\tSTDOUT actual: ") +
-                           original_std_out.substr(out_position)
-                    << "\n"
-                    << makeyellow("\tSTDOUT original: ") + original_std_out
-                    << "\n";
-              }
-              output_handler.wipe_all();
-              return false;
-            }
-          } else {
-            SCOPED_TRACE(_chunks[chunk_id].source);
-            if (!validate_line_by_line(
-                    context, chunk_id, "STDOUT", out,
-                    validations[valindex]->def->stream == "PROTOCOL"
-                        ? _cout.str()
-                        : original_std_out,
-                    _chunks[chunk_id].code[0].first,
-                    validations[valindex]->def->linenum)) {
-              output_handler.wipe_all();
-              return false;
-            }
-          }
-        }
-      }
-
-      // Validates unexpected output if any
-      if (!validations[valindex]->unexpected_output.empty()) {
-        std::string out = validations[valindex]->unexpected_output;
-
-        out = resolve_string(out);
-        bool matched = false;
-        if (validations[valindex]->def->stream == "PROTOCOL")
-          matched = _cout.str().find(out) != std::string::npos;
-        else
-          matched = multi_value_compare(out, original_std_out, false);
-
-        if (matched) {
-          ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                         _chunks[chunk_id].code[0].first)
-              << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
-              << "with validation at " << validations[valindex]->def->linenum
-              << "\n"
-              << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
-              << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
-          output_handler.wipe_all();
-          return false;
-        }
-      }
-
-      // Validates expected error if any
-      if (!validations[valindex]->expected_error.empty()) {
-        std::string error = validations[valindex]->expected_error;
-
-        error = resolve_string(error);
-
-        if (error != "*") {
-          if (validations[valindex]->def->validation ==
-              ValidationType::Simple) {
-            bool matched =
-                multi_value_compare(error, original_std_err, false,
-                                    err_position, nullptr, &err_position);
-            if (!matched) {
-              if (err_position == 0) {
-                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                               _chunks[chunk_id].code[0].first)
-                    << "while executing chunk: " + _chunks[chunk_id].def->line
-                    << "\n"
-                    << "with validation at "
-                    << validations[valindex]->def->linenum << "\n"
-                    << makeyellow("\tSTDERR missing: ") + error << "\n"
-                    << makeyellow("\tSTDERR actual: ") + original_std_err
-                    << "\n";
-              } else {
-                ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                               _chunks[chunk_id].code[0].first)
-                    << "while executing chunk: " + _chunks[chunk_id].def->line
-                    << "\n"
-                    << "with validation at "
-                    << validations[valindex]->def->linenum << "\n"
-                    << makeyellow("\tSTDERR missing: ") + error << "\n"
-                    << makeyellow("\tSTDERR actual: ") +
-                           original_std_err.substr(err_position)
-                    << "\n"
-                    << makeyellow("\tSTDERR original: ") + original_std_err
-                    << "\n";
-              }
-              output_handler.wipe_all();
-              return false;
-            }
-          } else {
-            SCOPED_TRACE(_chunks[chunk_id].source);
-            if (!validate_line_by_line(context, chunk_id, "STDERR", error,
-                                       original_std_err,
-                                       _chunks[chunk_id].code[0].first,
-                                       validations[valindex]->def->linenum)) {
-              output_handler.wipe_all();
-              return false;
-            }
-          }
-        }
-      }
-    }
-
-    if (!optional && validations.empty()) {
-      ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
-                     _chunks[chunk_id].code[0].first)
-          << makered("MISSING VALIDATIONS FOR CHUNK ")
-          << _chunks[chunk_id].def->line << "\n"
-          << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
-          << makeyellow("\tSTDERR: ") << original_std_err << "\n";
-      return false;
-    }
-    output_handler.wipe_all();
-    _cout.str("");
-    _cout.clear();
-  } else {
+  if (m_chunk_validations.find(validation_id) == m_chunk_validations.end()) {
     // There were errors
     if (!original_std_err.empty()) {
       ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                      _chunks[chunk_id].code[0].first)
-          << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
+          << "while executing chunk: " + _chunks[chunk_id].def.line << "\n"
           << makered("\tUnexpected Error: ") + original_std_err << "\n";
     } else if (!optional && _chunks.find(chunk_id) != _chunks.end()) {
       // The error is that there are no validations
       ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                      _chunks[chunk_id].code[0].first)
           << makered("MISSING VALIDATIONS FOR CHUNK ")
-          << _chunks[chunk_id].def->line << "\n"
+          << _chunks[chunk_id].def.line << "\n"
           << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
           << makeyellow("\tSTDERR: ") << original_std_err << "\n";
     }
     output_handler.wipe_all();
     _cout.str("");
     _cout.clear();
+
+    return true;
   }
+
+  bool expect_failures = false;
+
+  // Identifies the validations to be done based on the context
+  std::vector<std::reference_wrapper<const Validation>> validations;
+  for (const auto &val : m_chunk_validations[validation_id]) {
+    bool enabled = false;
+    try {
+      enabled = context_enabled(val.def.context);
+
+      if (val.def.stream == "PROTOCOL" && !_options->trace_protocol) {
+        ADD_FAILURE_AT("validation file", val.def.linenum)
+            << "ERROR TESTING PROTOCOL: Protocol tracing is disabled."
+            << "\n"
+            << "\tCHUNK: " << val.def.line << "\n";
+      }
+    } catch (const std::invalid_argument &e) {
+      ADD_FAILURE_AT("validation file", val.def.linenum)
+          << "ERROR EVALUATING VALIDATION CONTEXT: " << e.what() << "\n"
+          << "\tCHUNK: " << val.def.line << "\n";
+    }
+
+    if (enabled) {
+      validations.push_back(std::cref(val));
+
+      if (!val.expected_error.empty()) expect_failures = true;
+    } else {
+      if (output_handler.internal_std_err.empty()) {
+        SKIP_VALIDATION(val.def.line);
+      } else {
+        SKIP_VALIDATION(val.def.line + ": " + output_handler.internal_std_err);
+      }
+    }
+  }
+
+  std::string full_statement;
+  bool first_validation{true};
+  // The validations will be performed ONLY if the context is enabled
+  for (const Validation &val : validations) {
+    // Validation goes against validation code
+    if (!val.code.empty()) {
+      // Before cleaning up, prints any error found on the script execution
+      if (first_validation && !original_std_err.empty()) {
+        ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                       _chunks[chunk_id].code[0].first)
+            << makered("\tUnexpected Error: " + original_std_err) << "\n";
+        output_handler.wipe_all();
+        return false;
+      }
+
+      output_handler.wipe_all();
+      _cout.str("");
+      _cout.clear();
+
+      {
+        auto backup = _custom_context;
+        full_statement.append(val.code);
+        _custom_context.append(1, '[').append(full_statement).append(1, ']');
+        execute(val.code);
+        _custom_context = std::move(backup);
+      }
+
+      if (_interactive_shell->input_state() == shcore::Input_state::Ok)
+        full_statement.clear();
+      else
+        full_statement.append("\n");
+
+      original_std_err = output_handler.std_err;
+      original_std_out = output_handler.std_out;
+
+      out_position = 0;
+      err_position = 0;
+
+      output_handler.wipe_all();
+      _cout.str("");
+      _cout.clear();
+    }
+
+    first_validation = false;
+
+    // Validates unexpected error
+    if (!expect_failures && !original_std_err.empty()) {
+      ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                     _chunks[chunk_id].code[0].first)
+          << "while executing chunk: " + _chunks[chunk_id].def.line << "\n"
+          << makered("\tUnexpected Error: ") << original_std_err << "\n";
+      output_handler.wipe_all();
+      return false;
+    }
+
+    // Validates expected output if any
+    if (!val.expected_output.empty()) {
+      auto out = resolve_string(val.expected_output);
+
+      if (out != "*") {
+        if (val.def.validation == ValidationType::Simple) {
+          auto matched =
+              multi_value_compare(out, original_std_out, false, out_position,
+                                  nullptr, &out_position);
+          if (!matched) {
+            if (out_position == 0) {
+              ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                             _chunks[chunk_id].code[0].first)
+                  << "while executing chunk: " + _chunks[chunk_id].def.line
+                  << "\nwith validation at " << val.def.linenum << "\n"
+                  << makeyellow("\tSTDOUT missing: ") << out << "\n"
+                  << makeyellow("\tSTDOUT actual: ") + original_std_out << "\n";
+            } else {
+              ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                             _chunks[chunk_id].code[0].first)
+                  << "while executing chunk: " + _chunks[chunk_id].def.line
+                  << "\nwith validation at " << val.def.linenum << "\n"
+                  << makeyellow("\tSTDOUT missing: ") << out << "\n"
+                  << makeyellow("\tSTDOUT actual: ") +
+                         original_std_out.substr(out_position)
+                  << "\n"
+                  << makeyellow("\tSTDOUT original: ") + original_std_out
+                  << "\n";
+            }
+            output_handler.wipe_all();
+            return false;
+          }
+        } else {
+          SCOPED_TRACE(_chunks[chunk_id].source);
+          if (!validate_line_by_line(
+                  context, chunk_id, "STDOUT", out,
+                  val.def.stream == "PROTOCOL" ? _cout.str() : original_std_out,
+                  _chunks[chunk_id].code[0].first, val.def.linenum)) {
+            output_handler.wipe_all();
+            return false;
+          }
+        }
+      }
+    }
+
+    // Validates unexpected output if any
+    if (!val.unexpected_output.empty()) {
+      auto out = resolve_string(val.unexpected_output);
+      bool matched = false;
+      if (val.def.stream == "PROTOCOL")
+        matched = _cout.str().find(out) != std::string::npos;
+      else
+        matched = multi_value_compare(out, original_std_out, false);
+
+      if (matched) {
+        ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                       _chunks[chunk_id].code[0].first)
+            << "while executing chunk: " + _chunks[chunk_id].def.line << "\n"
+            << "with validation at " << val.def.linenum << "\n"
+            << makeyellow("\tSTDOUT unexpected: ") << out << "\n"
+            << makeyellow("\tSTDOUT actual: ") << original_std_out << "\n";
+        output_handler.wipe_all();
+        return false;
+      }
+    }
+
+    // Validates expected error if any
+    if (!val.expected_error.empty()) {
+      auto error = resolve_string(val.expected_error);
+
+      if (error != "*") {
+        if (val.def.validation == ValidationType::Simple) {
+          bool matched =
+              multi_value_compare(error, original_std_err, false, err_position,
+                                  nullptr, &err_position);
+          if (!matched) {
+            if (err_position == 0) {
+              ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                             _chunks[chunk_id].code[0].first)
+                  << "while executing chunk: " + _chunks[chunk_id].def.line
+                  << "\n"
+                  << "with validation at " << val.def.linenum << "\n"
+                  << makeyellow("\tSTDERR missing: ") + error << "\n"
+                  << makeyellow("\tSTDERR actual: ") + original_std_err << "\n";
+            } else {
+              ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                             _chunks[chunk_id].code[0].first)
+                  << "while executing chunk: " + _chunks[chunk_id].def.line
+                  << "\n"
+                  << "with validation at " << val.def.linenum << "\n"
+                  << makeyellow("\tSTDERR missing: ") + error << "\n"
+                  << makeyellow("\tSTDERR actual: ") +
+                         original_std_err.substr(err_position)
+                  << "\n"
+                  << makeyellow("\tSTDERR original: ") + original_std_err
+                  << "\n";
+            }
+            output_handler.wipe_all();
+            return false;
+          }
+        } else {
+          SCOPED_TRACE(_chunks[chunk_id].source);
+          if (!validate_line_by_line(
+                  context, chunk_id, "STDERR", error, original_std_err,
+                  _chunks[chunk_id].code[0].first, val.def.linenum)) {
+            output_handler.wipe_all();
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  if (!optional && validations.empty()) {
+    ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
+                   _chunks[chunk_id].code[0].first)
+        << makered("MISSING VALIDATIONS FOR CHUNK ")
+        << _chunks[chunk_id].def.line << "\n"
+        << makeyellow("\tSTDOUT: ") << original_std_out << "\n"
+        << makeyellow("\tSTDERR: ") << original_std_err << "\n";
+    return false;
+  }
+  output_handler.wipe_all();
+  _cout.str("");
+  _cout.clear();
 
   return true;
 }
@@ -842,7 +838,7 @@ void Shell_script_tester::validate_interactive(const std::string &script) {
   }
 }
 
-static bool is_identifier_assignment(const std::string &s) {
+static bool is_identifier_assignment(std::string_view s) {
   std::string::size_type p = 0, pp;
   p = mysqlshdk::utils::span_keyword(s, p);
   if (p == 0) return false;
@@ -880,18 +876,21 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
   bool last_chunk_enabled = true;
 
   while (ret_val && !stream.eof()) {
-    std::string line;
-    std::getline(stream, line);
+    std::string line_raw;
+    std::getline(stream, line_raw);
     linenum++;
 
-    line = str_rstrip(line, "\r\n");
+    auto line = str_rstrip_view(line_raw, "\r\n");
 
-    std::shared_ptr<Chunk_definition> chunk_def = load_chunk_definition(line);
-    if (chunk_def) {
+    auto chunk_def = load_chunk_definition(line);
+    if (chunk_def.has_value()) {
       if (!prefix.empty()) {
         chunk_def->id = prefix + chunk_def->id;
         chunk_def->validation_id = prefix + chunk_def->validation_id;
       }
+
+      // NOTE! this allows chunk_def to be moved to chunk further below
+      auto chunk_is_include = str_beginswith(chunk_def->id, "INCLUDE ");
 
       // Full Script Context Validation is supported by defining context
       // validation at the __global__ scope.
@@ -902,9 +901,10 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
         if ((last_id.empty() || last_id == prefix + "__global__") &&
             !context_enabled(chunk_def->context)) {
           if (output_handler.internal_std_err.empty()) {
-            ADD_SKIPPED_TEST(line);
+            ADD_SKIPPED_TEST(std::string{line});
           } else {
-            ADD_SKIPPED_TEST(line + ": " + output_handler.internal_std_err);
+            ADD_SKIPPED_TEST(std::string{line} + ": " +
+                             output_handler.internal_std_err);
           }
           ret_val = false;
         }
@@ -917,7 +917,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
         {
           Chunk_t chunk;
           chunk.source = path;
-          chunk.def = chunk_def;
+          chunk.def = std::exchange(*chunk_def, {});
 
           // Every chunk will now be added depending on the context condition
           last_chunk_enabled = add_source_chunk(path, chunk);
@@ -926,7 +926,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
 
       // Handle include files... we make them look like chunks even if they
       // aren't to make it obvious the previous chunk is over
-      if (str_beginswith(chunk_def->id, "INCLUDE ")) {
+      if (chunk_is_include) {
         // Syntax:
         //@ INCLUDE file.inc
         //@ INCLUDE tag file.inc
@@ -981,10 +981,10 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
           // Add __global__ at the 1st line we find
           Chunk_t chunk;
           chunk.source = path;
-          chunk.def->id = last_id = prefix + "__global__";
-          chunk.def->validation_id = prefix + "__global__";
-          chunk.def->validation = ValidationType::Optional;
-          chunk.code.push_back({linenum, line});
+          chunk.def.id = last_id = prefix + "__global__";
+          chunk.def.validation_id = prefix + "__global__";
+          chunk.def.validation = ValidationType::Optional;
+          chunk.code.push_back({linenum, std::string{line}});
           add_source_chunk(path, chunk);
         } else {
           // To simplify validation error handling and reporting, we limit
@@ -992,7 +992,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
           // - comments
           // - empty space
           // - identifier assignments (x = y)
-          if (str_beginswith(last_chunk()->def->id, "INCLUDE ")) {
+          if (str_beginswith(last_chunk()->def.id, "INCLUDE ")) {
             if (!line.empty() && !str_beginswith(line, "//") &&
                 !is_identifier_assignment(line)) {
               ADD_FAILURE_AT(path.c_str(), linenum - 1)
@@ -1002,7 +1002,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
           }
           // If the chunk was not added because of the context, it's lines
           // are simply ignored
-          last_chunk()->code.push_back({linenum, line});
+          last_chunk()->code.push_back({linenum, std::string{line}});
         }
       }
     }
@@ -1015,7 +1015,7 @@ bool Shell_script_tester::add_source_chunk(const std::string &path,
                                            const Chunk_t &chunk) {
   bool enabled = true;
   try {
-    enabled = context_enabled(chunk.def->context);
+    enabled = context_enabled(chunk.def.context);
   } catch (const std::exception &) {
     // NO OP: If evaluating the context fails, it might be a context that is
     // set with the script execution so we continue considering it enabled.
@@ -1023,47 +1023,45 @@ bool Shell_script_tester::add_source_chunk(const std::string &path,
   }
 
   if (enabled) {
-    if (_chunks.find(chunk.def->id) == _chunks.end()) {
-      _chunks[chunk.def->id] = chunk;
+    if (_chunks.find(chunk.def.id) == _chunks.end()) {
+      _chunks[chunk.def.id] = chunk;
       // normalize Windows paths
-      _chunks[chunk.def->id].source = str_replace(chunk.source, "\\", "/");
-      _chunk_order.push_back(chunk.def->id);
+      _chunks[chunk.def.id].source = str_replace(chunk.source, "\\", "/");
+      _chunk_order.push_back(chunk.def.id);
     } else {
-      ADD_FAILURE_AT(path.c_str(), chunk.def->linenum - 1)
+      ADD_FAILURE_AT(path.c_str(), chunk.def.linenum - 1)
           << makered("REDEFINITION OF CHUNK: \"") + chunk.source << ":"
-          << chunk.def->line << "\"\n"
-          << "\tInitially defined at " << _chunks[chunk.def->id].source << ":"
-          << (_chunks[chunk.def->id].code[0].first - 1) << "\n";
+          << chunk.def.line << "\"\n"
+          << "\tInitially defined at " << _chunks[chunk.def.id].source << ":"
+          << (_chunks[chunk.def.id].code[0].first - 1) << "\n";
     }
   } else {
-    _skipped_chunks.insert(chunk.def->id);
+    _skipped_chunks.insert(chunk.def.id);
     if (output_handler.internal_std_err.empty()) {
-      SKIP_CHUNK(chunk.def->line);
+      SKIP_CHUNK(chunk.def.line);
     } else {
-      SKIP_CHUNK(chunk.def->line + ": " + output_handler.internal_std_err);
+      SKIP_CHUNK(chunk.def.line + ": " + output_handler.internal_std_err);
     }
   }
 
   return enabled;
 }
 
-void Shell_script_tester::add_validation(
-    const std::shared_ptr<Chunk_definition> &chunk_def,
-    const std::vector<std::string> &source, const std::string &sep) {
+void Shell_script_tester::add_validation(Chunk_definition chunk,
+                                         const std::vector<std::string> &source,
+                                         std::string_view sep) {
   if (source.size() == 3) {
-    if (_chunk_validations.find(chunk_def->id) == _chunk_validations.end())
-      _chunk_validations[chunk_def->id] = Chunk_validations();
-
-    auto val = std::shared_ptr<Validation>(new Validation(source, chunk_def));
-
-    _chunk_validations[chunk_def->id].push_back(val);
-  } else {
-    std::string text(makered("WRONG VALIDATION FORMAT FOR CHUNK ") +
-                     chunk_def->line);
-    text += "\nLine: " + shcore::str_join(source, sep);
-    SCOPED_TRACE(text.c_str());
-    ADD_FAILURE();
+    auto &validations = m_chunk_validations[chunk.id];
+    validations.push_back(Validation(source, std::move(chunk)));
+    return;
   }
+
+  auto text = makered("WRONG VALIDATION FORMAT FOR CHUNK ");
+  text += chunk.line;
+  text += "\nLine: ";
+  text += shcore::str_join(source, sep);
+  SCOPED_TRACE(text.c_str());
+  ADD_FAILURE();
 }
 
 /**
@@ -1072,93 +1070,98 @@ void Shell_script_tester::add_validation(
  *
  * @returns The chunk definition if the line is in the right format.
  */
-std::shared_ptr<Chunk_definition> Shell_script_tester::load_chunk_definition(
-    const std::string &line) {
-  std::shared_ptr<Chunk_definition> ret_val;
+std::optional<Chunk_definition> Shell_script_tester::load_chunk_definition(
+    std::string_view line) {
+  if (line.find(get_chunk_token()) != 0) return {};
 
-  if (line.find(get_chunk_token()) == 0) {
-    std::string chunk_id;
-    std::string validation_id;
-    std::string chunk_context;
-    ValidationType val_type = ValidationType::Simple;
-    std::string stream;
-
-    chunk_id = line.substr(get_chunk_token().size());
-    if (chunk_id[0] == '#') {
-      if (chunk_id.size() > 1 && chunk_id[1] == ' ')
-        chunk_id = chunk_id.substr(2);
-      else
-        chunk_id = chunk_id.substr(1);
-    }
-
-    // Identifies the version for the chunk expectations
-    // If no version is specified assigns '*'
-    auto start = chunk_id.find("{");
-    auto end = chunk_id.find_last_of("}");
-
-    if (start != std::string::npos && end != std::string::npos && start < end) {
-      chunk_context = chunk_id.substr(start + 1, end - start - 1);
-      chunk_id = chunk_id.substr(0, start);
-    }
-
-    // Identifies the validation type and the stream if applicable
-    if (chunk_id.find("<OUT>") == 0) {
-      stream = "OUT";
-      chunk_id = chunk_id.substr(5);
-      chunk_id = str_strip(chunk_id);
-      val_type = ValidationType::Multiline;
-    } else if (chunk_id.find("<ERR>") == 0) {
-      stream = "ERR";
-      chunk_id = chunk_id.substr(5);
-      chunk_id = str_strip(chunk_id);
-      val_type = ValidationType::Multiline;
-    } else if (chunk_id.find("<PROTOCOL>") == 0) {
-      stream = "PROTOCOL";
-      chunk_id = chunk_id.substr(10);
-      chunk_id = str_strip(chunk_id);
-      val_type = ValidationType::Multiline;
-    } else if (chunk_id.find("<>") == 0) {
-      stream = "";
+  auto chunk_id = line.substr(get_chunk_token().size());
+  if (chunk_id[0] == '#') {
+    if (chunk_id.size() > 1 && chunk_id[1] == ' ')
       chunk_id = chunk_id.substr(2);
-      chunk_id = str_strip(chunk_id);
-      val_type = ValidationType::Optional;
-    }
-
-    // Identifies the version for the chunk expectations
-    // If no version is specified assigns '*'
-    start = chunk_id.find("[USE:");
-    end = chunk_id.find("]", start);
-
-    if (start != std::string::npos && end != std::string::npos) {
-      validation_id = chunk_id.substr(start + 5, end - start - 5);
-      chunk_id = chunk_id.substr(0, start);
-    } else {
-      validation_id = chunk_id;
-    }
-
-    chunk_id = str_strip(chunk_id);
-    validation_id = str_strip(validation_id);
-
-    ret_val.reset(new Chunk_definition());
-
-    ret_val->line = line;
-    ret_val->id = chunk_id;
-    ret_val->context = chunk_context;
-    ret_val->validation = val_type;
-    ret_val->stream = stream;
-    ret_val->validation_id = validation_id;
+    else
+      chunk_id = chunk_id.substr(1);
   }
+
+  // Identifies the version for the chunk expectations
+  // If no version is specified assigns '*'
+  auto start = chunk_id.find("{");
+  auto end = chunk_id.find_last_of("}");
+
+  std::string_view chunk_context;
+  if (start != std::string::npos && end != std::string::npos && start < end) {
+    chunk_context = chunk_id.substr(start + 1, end - start - 1);
+    chunk_id = chunk_id.substr(0, start);
+  }
+
+  // Identifies the validation type and the stream if applicable
+  std::string_view stream;
+  ValidationType val_type{ValidationType::Simple};
+  if (chunk_id.find("<OUT>") == 0) {
+    stream = "OUT";
+    chunk_id = chunk_id.substr(5);
+    chunk_id = str_strip_view(chunk_id);
+    val_type = ValidationType::Multiline;
+  } else if (chunk_id.find("<ERR>") == 0) {
+    stream = "ERR";
+    chunk_id = chunk_id.substr(5);
+    chunk_id = str_strip_view(chunk_id);
+    val_type = ValidationType::Multiline;
+  } else if (chunk_id.find("<PROTOCOL>") == 0) {
+    stream = "PROTOCOL";
+    chunk_id = chunk_id.substr(10);
+    chunk_id = str_strip_view(chunk_id);
+    val_type = ValidationType::Multiline;
+  } else if (chunk_id.find("<>") == 0) {
+    stream = "";
+    chunk_id = chunk_id.substr(2);
+    chunk_id = str_strip_view(chunk_id);
+    val_type = ValidationType::Optional;
+  }
+
+  // Identifies the version for the chunk expectations
+  // If no version is specified assigns '*'
+  start = chunk_id.find("[USE:");
+  end = chunk_id.find("]", start);
+
+  std::string validation_id;
+  if (start != std::string::npos && end != std::string::npos) {
+    validation_id = chunk_id.substr(start + 5, end - start - 5);
+    chunk_id = chunk_id.substr(0, start);
+  } else {
+    validation_id = chunk_id;
+  }
+
+  chunk_id = str_strip_view(chunk_id);
+  validation_id = str_strip_view(validation_id);
+
+  Chunk_definition ret_val;
+  ret_val.line = line;
+  ret_val.id = std::string{chunk_id};
+  ret_val.context = std::string{chunk_context};
+  ret_val.validation = val_type;
+  ret_val.stream = std::string{stream};
+  ret_val.validation_id = std::string{validation_id};
 
   return ret_val;
 }
 
 void Shell_script_tester::load_validations(const std::string &path) {
+  m_chunk_validations.clear();
+
   std::ifstream file(path.c_str());
+  if (file.fail()) {
+    if (_new_format) {
+      auto text = shcore::str_format("Unable to locate validation script: %s",
+                                     path.c_str());
+      SCOPED_TRACE(text.c_str());
+      ADD_FAILURE();
+    }
+
+    return;
+  }
+
   std::vector<std::string> lines;
   bool skip_chunk = false;
-
-  _chunk_validations.clear();
-
   bool chunk_verification = !_chunk_order.empty();
   size_t chunk_index = 0;
   Chunk_t *current_chunk = &_chunks[_chunk_order[chunk_index]];
@@ -1167,179 +1170,165 @@ void Shell_script_tester::load_validations(const std::string &path) {
 
   int line_no = 0;
 
-  if (!file.fail()) {
-    std::shared_ptr<Chunk_definition> current_val_def;
-    std::shared_ptr<Chunk_definition> new_val_def;
-    while (!file.eof()) {
-      std::string line;
-      std::getline(file, line);
-      line_no++;
+  std::optional<Chunk_definition> current_val_def;
+  while (!file.eof()) {
+    std::string line;
+    std::getline(file, line);
+    line_no++;
 
-      line = shcore::str_rstrip(line);
+    line = shcore::str_rstrip(line);
 
-      // If a new chunk definition is found
-      // Adds the accumulated validations to the previous chunk
-      new_val_def = load_chunk_definition(line);
-
-      if (new_val_def) {
-        new_val_def->linenum = line_no;
-        skip_chunk = false;
-
-        // Adds the previous validations
-        if (current_val_def && lines.size()) {
-          std::string value = multiline(lines);
-
-          value = shcore::str_rstrip(value);
-
-          if (current_val_def->stream == "OUT" ||
-              current_val_def->stream == "PROTOCOL")
-            add_validation(current_val_def, {"", value, ""});
-          else if (current_val_def->stream == "ERR")
-            add_validation(current_val_def, {"", "", value});
-
-          current_val_def = new_val_def;
-
-          lines.clear();
+    // If a new chunk definition is found
+    // Adds the accumulated validations to the previous chunk
+    auto new_val_def = load_chunk_definition(line);
+    if (!new_val_def) {
+      if (!skip_chunk && current_val_def.has_value()) {
+        if (current_val_def->validation != ValidationType::Multiline) {
+          // When processing single line validations, lines as comments are
+          // ignored
+          if (!shcore::str_beginswith(line, get_comment_token())) {
+            line = str_strip(line);
+            if (!line.empty()) {
+              std::vector<std::string> tokens;
+              // parse each line as:
+              // <sep>stdout<sep>stderr<sep>
+              // where <sep> can be any single char, such as |
+              std::string sep = line.substr(0, 1);
+              tokens = split_string(line, sep, false);
+              add_validation(*current_val_def, tokens, sep);
+            }
+          }
         } else {
-          current_val_def = new_val_def;
-        }
-
-        // When the script is loaded in chunks, the validations should come in
-        // the same order the chunks were loaded
-        if (chunk_verification) {
-          // Ensures the found validation is for a valid chunk
-          if (_chunks.find(current_val_def->id) == _chunks.end() &&
-              !g_generate_validation_file) {
-            // The error is ONLY if the script chunk was not skipped
-            if (std::find(_skipped_chunks.begin(), _skipped_chunks.end(),
-                          current_val_def->id) == _skipped_chunks.end()) {
-              ADD_FAILURE_AT(path.c_str(), line_no)
-                  << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
-                  << current_val_def->line << "\n"
-                  << "\tLINE: " << line_no << "\n";
-            }
-            skip_chunk = true;
-            continue;
-          }
-
-          bool match = current_val_def->id == current_chunk->def->id;
-
-          // If the new validation no longer match the current chunk, steps
-          // to the next chunk
-          if (!match) {
-            chunk_index++;
-            current_chunk = &_chunks[_chunk_order[chunk_index]];
-            match = current_val_def->id == current_chunk->def->id;
-          }
-
-          bool optional = current_chunk->is_validation_optional();
-          bool reference =
-              current_chunk->def->id != current_chunk->def->validation_id;
-
-          while ((optional || reference) && !match &&
-                 chunk_index < _chunk_order.size()) {
-            if (reference) {
-              auto index =
-                  _chunk_validations.find(current_chunk->def->validation_id);
-
-              if (index == _chunk_validations.end()) {
-                ADD_FAILURE_AT(path.c_str(), line_no)
-                    << makered("CHUNK REFERENCES AN UNEXISTING VALIDATION")
-                    << current_chunk->source << ":" << current_chunk->def->line
-                    << "\n"
-                    << "\tLINE: " << line_no << "\n";
-              }
-            }
-
-            chunk_index++;
-            current_chunk = &_chunks[_chunk_order[chunk_index]];
-            optional = current_chunk->is_validation_optional();
-            reference =
-                current_chunk->def->id != current_chunk->def->validation_id;
-            match = current_val_def->id == current_chunk->def->id;
-          }
-
-          if (!optional && !match && !g_generate_validation_file) {
-            ADD_FAILURE_AT(path.c_str(), line_no)
-                << makered("EXPECTED VALIDATIONS FOR CHUNK ")
-                << current_chunk->source << ":" << current_chunk->def->line
-                << "\n"
-                << "INSTEAD FOUND FOR CHUNK " << current_val_def->line << "\n"
-                << "\tLINE: " << line_no << "\n";
-            skip_chunk = true;
-            continue;
-          }
-
-          if (chunk_index >= _chunk_order.size() &&
-              !g_generate_validation_file) {
-            ADD_FAILURE_AT(path.c_str(), line_no)
-                << makered("UNEXPECTED VALIDATIONS FOR CHUNK ")
-                << current_val_def->line << "\n"
-                << "\tLINE: " << line_no << "\n";
-            skip_chunk = true;
-          }
-        }
-
-        // If the new chunk is wrong, ignores it
-        // if (!skip_chunk)
-        //  current_chunk = new_val_def;
-      } else {
-        if (!skip_chunk && current_val_def) {
-          if (current_val_def->validation != ValidationType::Multiline) {
-            // When processing single line validations, lines as comments are
-            // ignored
-            if (!shcore::str_beginswith(line.c_str(),
-                                        get_comment_token().c_str())) {
-              line = str_strip(line);
-              if (!line.empty()) {
-                std::vector<std::string> tokens;
-                // parse each line as:
-                // <sep>stdout<sep>stderr<sep>
-                // where <sep> can be any single char, such as |
-                std::string sep = line.substr(0, 1);
-                tokens = split_string(line, sep, false);
-                add_validation(current_val_def, tokens, sep);
-              }
-            }
-          } else {
-            lines.push_back(line);
-          }
+          lines.push_back(line);
         }
       }
+      continue;
     }
 
-    // Adds final formatted value if any
-    if (current_val_def &&
-        current_val_def->validation == ValidationType::Multiline) {
-      std::string value = multiline(lines);
+    new_val_def->linenum = line_no;
+    skip_chunk = false;
 
-      value = str_rstrip(value);
+    // Adds the previous validations
+    if (current_val_def.has_value() && lines.size()) {
+      auto value = shcore::str_rstrip(multiline(lines));
 
       if (current_val_def->stream == "OUT" ||
           current_val_def->stream == "PROTOCOL")
-        add_validation(current_val_def, {"", value, ""});
+        add_validation(std::move(*current_val_def), {"", std::move(value), ""});
       else if (current_val_def->stream == "ERR")
-        add_validation(current_val_def, {"", "", value});
+        add_validation(std::move(*current_val_def), {"", "", std::move(value)});
+
+      current_val_def = std::move(*new_val_def);
+
+      lines.clear();
+    } else {
+      current_val_def = std::move(*new_val_def);
     }
 
-    file.close();
-  } else {
-    if (_new_format) {
-      std::string text("Unable to locate validation script: " + path);
-      SCOPED_TRACE(text.c_str());
-      ADD_FAILURE();
+    // When the script is loaded in chunks, the validations should come in
+    // the same order the chunks were loaded
+    if (chunk_verification) {
+      // Ensures the found validation is for a valid chunk
+      if (_chunks.find(current_val_def->id) == _chunks.end() &&
+          !g_generate_validation_file) {
+        // The error is ONLY if the script chunk was not skipped
+        if (std::find(_skipped_chunks.begin(), _skipped_chunks.end(),
+                      current_val_def->id) == _skipped_chunks.end()) {
+          ADD_FAILURE_AT(path.c_str(), line_no)
+              << makered("FOUND VALIDATION FOR UNEXISTING CHUNK ")
+              << current_val_def->line << "\n"
+              << "\tLINE: " << line_no << "\n";
+        }
+        skip_chunk = true;
+        continue;
+      }
+
+      bool match = current_val_def->id == current_chunk->def.id;
+
+      // If the new validation no longer match the current chunk, steps
+      // to the next chunk
+      if (!match) {
+        chunk_index++;
+        current_chunk = &_chunks[_chunk_order[chunk_index]];
+        match = current_val_def->id == current_chunk->def.id;
+      }
+
+      bool optional = current_chunk->is_validation_optional();
+      bool reference =
+          current_chunk->def.id != current_chunk->def.validation_id;
+
+      while ((optional || reference) && !match &&
+             chunk_index < _chunk_order.size()) {
+        if (reference) {
+          auto index =
+              m_chunk_validations.find(current_chunk->def.validation_id);
+
+          if (index == m_chunk_validations.end()) {
+            ADD_FAILURE_AT(path.c_str(), line_no)
+                << makered("CHUNK REFERENCES AN UNEXISTING VALIDATION")
+                << current_chunk->source << ":" << current_chunk->def.line
+                << "\n"
+                << "\tLINE: " << line_no << "\n";
+          }
+        }
+
+        chunk_index++;
+        current_chunk = &_chunks[_chunk_order[chunk_index]];
+        optional = current_chunk->is_validation_optional();
+        reference = current_chunk->def.id != current_chunk->def.validation_id;
+        match = current_val_def->id == current_chunk->def.id;
+      }
+
+      if (!optional && !match && !g_generate_validation_file) {
+        ADD_FAILURE_AT(path.c_str(), line_no)
+            << makered("EXPECTED VALIDATIONS FOR CHUNK ")
+            << current_chunk->source << ":" << current_chunk->def.line << "\n"
+            << "INSTEAD FOUND FOR CHUNK " << current_val_def->line << "\n"
+            << "\tLINE: " << line_no << "\n";
+        skip_chunk = true;
+        continue;
+      }
+
+      if (chunk_index >= _chunk_order.size() && !g_generate_validation_file) {
+        ADD_FAILURE_AT(path.c_str(), line_no)
+            << makered("UNEXPECTED VALIDATIONS FOR CHUNK ")
+            << current_val_def->line << "\n"
+            << "\tLINE: " << line_no << "\n";
+        skip_chunk = true;
+      }
     }
+
+    // If the new chunk is wrong, ignores it
+    // if (!skip_chunk)
+    //  current_chunk = new_val_def;
   }
+
+  // Adds final formatted value if any
+  if (current_val_def.has_value() &&
+      current_val_def->validation == ValidationType::Multiline) {
+    auto value = str_rstrip(multiline(lines));
+
+    if (current_val_def->stream == "OUT" ||
+        current_val_def->stream == "PROTOCOL")
+      add_validation(std::move(*current_val_def), {"", value, ""});
+    else if (current_val_def->stream == "ERR")
+      add_validation(std::move(*current_val_def), {"", "", value});
+  }
+
+  file.close();
 }
 
 void Shell_script_tester::execute_script(const std::string &path,
                                          bool in_chunks, bool is_pre_script) {
   // If no path is provided then executes the setup script
-  std::string script(path.empty()
-                         ? _setup_script
-                         : is_pre_script ? PRE_SCRIPT(path)
-                                         : _new_format ? NEW_TEST_SCRIPT(path)
-                                                       : TEST_SCRIPT(path));
+  std::string script;
+  if (path.empty())
+    script = _setup_script;
+  else if (is_pre_script)
+    script = PRE_SCRIPT(path);
+  else
+    script = _new_format ? NEW_TEST_SCRIPT(path) : TEST_SCRIPT(path);
+
   std::ifstream stream(script.c_str());
 
   if (!stream.fail()) {
@@ -1408,17 +1397,20 @@ void Shell_script_tester::execute_script(const std::string &path,
         _cout.str("");
         _cout.clear();
         if (str_beginswith(_chunk_order[index], "INCLUDE ")) {
-          std::string chunk_log = _chunk_order[index];
+          const std::string &chunk_log = _chunk_order[index];
           std::string splitter(chunk_log.length(), '=');
+
           output_handler.debug_print(makelblue(splitter));
           output_handler.debug_print(makelblue(chunk_log));
           output_handler.debug_print(makelblue(splitter));
         } else {
-          std::string chunk_log = "CHUNK: " + _chunk_order[index];
-          std::string splitter(chunk_log.length(), '-');
-          output_handler.debug_print(makeyellow(splitter));
+          std::string chunk_log{"CHUNK: "};
+          chunk_log += _chunk_order[index];
+          auto splitter = makeyellow(std::string(chunk_log.length(), '-'));
+
+          output_handler.debug_print(splitter);
           output_handler.debug_print(makeyellow(chunk_log));
-          output_handler.debug_print(makeyellow(splitter));
+          output_handler.debug_print(splitter);
         }
 
         // Gets the chunks for the next id
@@ -1426,7 +1418,7 @@ void Shell_script_tester::execute_script(const std::string &path,
 
         bool enabled;
         try {
-          enabled = context_enabled(chunk.def->context);
+          enabled = context_enabled(chunk.def.context);
 
           if (enabled && skip_until_cleanup) {
             if (_chunk_order[index] == "Cleanup") {
@@ -1439,15 +1431,15 @@ void Shell_script_tester::execute_script(const std::string &path,
         } catch (const std::exception &e) {
           ADD_FAILURE_AT(chunk.source.c_str(), chunk.code[0].first)
               << makered("ERROR EVALUATING CONTEXT: ") << e.what() << "\n"
-              << "\tCHUNK: " << chunk.def->line << "\n";
+              << "\tCHUNK: " << chunk.def.line << "\n";
           break;
         }
 
         // Executes the file line by line
         if (enabled) {
-          _custom_context = "while executing chunk \"" + chunk.def->line +
+          _custom_context = "while executing chunk \"" + chunk.def.line +
                             "\" at " + chunk.source + ":" +
-                            std::to_string(chunk.def->linenum);
+                            std::to_string(chunk.def.linenum);
           set_scripting_context();
           auto &code = chunk.code;
           std::string full_statement;
@@ -1507,7 +1499,7 @@ void Shell_script_tester::execute_script(const std::string &path,
 
           if (g_generate_validation_file) {
             // Only saves the data if the chunk is not a reference
-            if (chunk.def->id == chunk.def->validation_id) {
+            if (chunk.def.id == chunk.def.validation_id) {
               if (_options->trace_protocol) {
                 std::string protocol_text = _cout.str();
                 if (!protocol_text.empty()) {
@@ -1547,12 +1539,11 @@ void Shell_script_tester::execute_script(const std::string &path,
             }
           }
         } else {
-          _skipped_chunks.insert(chunk.def->id);
+          _skipped_chunks.insert(chunk.def.id);
           if (output_handler.internal_std_err.empty()) {
-            SKIP_CHUNK(chunk.def->line);
+            SKIP_CHUNK(chunk.def.line);
           } else {
-            SKIP_CHUNK(chunk.def->line + ": " +
-                       output_handler.internal_std_err);
+            SKIP_CHUNK(chunk.def.line + ": " + output_handler.internal_std_err);
           }
         }
       }
@@ -1623,40 +1614,40 @@ void Shell_script_tester::execute_script(const std::string &path,
 // Searches for // Assumpsions: comment, if found, creates the __assumptions__
 // array And processes the _assumption_script
 void Shell_script_tester::process_setup(std::istream &stream) {
-  bool done = false;
-  while (!done && !stream.eof()) {
+  while (!stream.eof()) {
     std::string line;
     std::getline(stream, line);
 
-    if (line.find(get_assumptions_token()) == 0) {
-      // Removes the assumptions header and parses the rest
-      std::vector<std::string> tokens;
-      tokens = split_string(line, ":", true);
+    if (line.find(get_assumptions_token()) != 0) break;
 
-      // Now parses the real assumptions
-      std::string assumptions = tokens[1];
-      tokens = split_string(assumptions, ",", true);
+    // Removes the assumptions header and parses the rest
+    auto tokens = split_string(line, ":", true);
 
-      // Now quotes the assumptions
-      for (size_t index = 0; index < tokens.size(); index++) {
-        tokens[index] = str_strip(tokens[index]);
-        tokens[index] = "'" + tokens[index] + "'";
-      }
+    // Now parses the real assumptions
+    tokens = split_string(tokens[1], ",", true);
 
-      // Creates an assumptions array to be processed on the setup script
-      std::string code = get_variable_prefix() + "__assumptions__ = [" +
-                         str_join(tokens, ",") + "];";
-      execute(code);
-
-      if (_setup_script.empty())
-        throw std::logic_error(
-            "A setup script must be specified when there are assumptions on "
-            "the tested scripts.");
-      else
-        execute_script();  // Executes the active setup script
-    } else {
-      done = true;
+    // Now quotes the assumptions
+    for (auto &token : tokens) {
+      auto token_stripped = str_strip_view(token);
+      token =
+          shcore::str_format("'%.*s'", static_cast<int>(token_stripped.size()),
+                             token_stripped.data());
     }
+
+    // Creates an assumptions array to be processed on the setup script
+    auto prefix = get_variable_prefix();
+    auto code = shcore::str_format(
+        "%.*s__assumptions__ = [%s];", static_cast<int>(prefix.size()),
+        prefix.data(), str_join(tokens, ",").c_str());
+
+    execute(code);
+
+    if (_setup_script.empty())
+      throw std::logic_error(
+          "A setup script must be specified when there are assumptions on "
+          "the tested scripts.");
+
+    execute_script();  // Executes the active setup script
   }
 
   // Once the assumptions are processed, rewinds the read position
@@ -1670,9 +1661,14 @@ void Shell_script_tester::validate_batch(const std::string &script) {
   execute_script(script, false);
 }
 
-void Shell_script_tester::def_var(const std::string &var,
-                                  const std::string &value) {
-  std::string code = get_variable_prefix() + var + " = " + value;
+void Shell_script_tester::def_var(std::string_view var,
+                                  std::string_view value) {
+  auto prefix = get_variable_prefix();
+  auto code = shcore::str_format("%.*s%.*s=%.*s",  //
+                                 static_cast<int>(prefix.size()), prefix.data(),
+                                 static_cast<int>(var.size()), var.data(),
+                                 static_cast<int>(value.size()), value.data());
+
   exec_and_out_equals(code);
 }
 
@@ -1714,48 +1710,49 @@ void Shell_script_tester::set_defaults() {
       break;
   }
 
-  std::string code =
-      get_variable_prefix() + "__test_execution_mode = '" + test_mode + "'";
+  auto var_prefix = std::string{get_variable_prefix()};
+  auto version_num = static_cast<int64_t>(_target_server_version.numeric());
+
+  auto code = shcore::str_format("%s__test_execution_mode = '%s'",
+                                 var_prefix.c_str(), test_mode.c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__package_year = '" PACKAGE_YEAR "'";
+  code = shcore::str_format("%s__package_year = '" PACKAGE_YEAR "'",
+                            var_prefix.c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__mysh_full_version = '" +
-         std::string(MYSH_FULL_VERSION) + "'";
+  code = shcore::str_format("%s__mysh_full_version = '" MYSH_FULL_VERSION "'",
+                            var_prefix.c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__mysh_version = '" +
-         std::string(MYSH_VERSION) + "'";
+  code = shcore::str_format("%s__mysh_version = '" MYSH_VERSION "'",
+                            var_prefix.c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__mysh_version_no_extra = '" +
-         mysqlshdk::utils::Version(MYSH_VERSION).get_base() + "'";
+  code = shcore::str_format(
+      "%s__mysh_version_no_extra = '%s'", var_prefix.c_str(),
+      mysqlshdk::utils::Version(MYSH_VERSION).get_base().c_str());
   exec_and_out_equals(code);
 
-  int64_t version_num =
-      mysqlshdk::utils::Version(MYSH_VERSION).get_major() * 10000 +
-      mysqlshdk::utils::Version(MYSH_VERSION).get_minor() * 100 +
-      mysqlshdk::utils::Version(MYSH_VERSION).get_patch();
+  {
+    auto sh_version_num =
+        static_cast<int64_t>(mysqlshdk::utils::Version(MYSH_VERSION).numeric());
 
-  code = get_variable_prefix() +
-         "__mysh_version_num = " + std::to_string(version_num);
+    code = shcore::str_format("%s__mysh_version_num = %" PRId64,
+                              var_prefix.c_str(), sh_version_num);
+    exec_and_out_equals(code);
+  }
+
+  code = shcore::str_format("%s__version = '%s'", var_prefix.c_str(),
+                            _target_server_version.get_base().c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__version = '" +
-         _target_server_version.get_base() + "'";
+  code = shcore::str_format("%s__version_full = '%s'", var_prefix.c_str(),
+                            _target_server_version.get_full().c_str());
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__version_full = '" +
-         _target_server_version.get_full() + "'";
-  exec_and_out_equals(code);
-
-  version_num = _target_server_version.get_major() * 10000 +
-                _target_server_version.get_minor() * 100 +
-                _target_server_version.get_patch();
-
-  code =
-      get_variable_prefix() + "__version_num = " + std::to_string(version_num);
+  code = shcore::str_format("%s__version_num = %" PRId64, var_prefix.c_str(),
+                            version_num);
   exec_and_out_equals(code);
 
   // Set terminology related variables
@@ -1934,7 +1931,7 @@ void Shell_py_script_tester::set_defaults() {
 #endif
 }
 
-std::string Shell_script_tester::get_current_mode_command() {
+std::string_view Shell_script_tester::get_current_mode_command() const {
   switch (_interactive_shell->shell_context()->interactive_mode()) {
     case shcore::IShell_core::Mode::SQL:
       return "\\sql";
@@ -1945,22 +1942,29 @@ std::string Shell_script_tester::get_current_mode_command() {
     case shcore::IShell_core::Mode::None:
       return "";
   }
+
   return "";
 }
 
 void Shell_script_tester::set_scripting_context() {
-  std::string current = get_current_mode_command();
-  std::string required = get_switch_mode_command();
+  auto current = get_current_mode_command();
+  auto required = get_switch_mode_command();
 
-  std::string context = context_identifier();
-  context = shcore::str_replace(context, "'", "\\'");
-  std::string code = get_variable_prefix() += "__test_context = '";
-  code += context + "';";
+  std::string code;
+  {
+    auto context = context_identifier();
+    context = shcore::str_replace(context, "'", "\\'");
+
+    auto var_prefix = get_variable_prefix();
+    code = shcore::str_format("%.*s__test_context = '%s';",
+                              static_cast<int>(var_prefix.size()),
+                              var_prefix.data(), context.c_str());
+  }
 
   if (current != required) {
-    execute_internal(required);
+    execute_internal(std::string{required});
     execute_internal(code);
-    execute_internal(current);
+    execute_internal(std::string{current});
   } else {
     execute_internal(code);
   }
@@ -2022,72 +2026,64 @@ bool Shell_script_tester::has_openssl_binary() {
   return false;
 }
 
-bool Shell_script_tester::context_enabled(const std::string &context) {
-  bool ret_val = true;
-  std::string code(context);
-  if (!context.empty()) {
-    size_t function_pos = code.find("VER(");
-    while (function_pos != std::string::npos) {
-      size_t version_pos = code.find_first_of("0123456789", function_pos);
-      size_t closing_pos = code.find(")", version_pos);
+bool Shell_script_tester::context_enabled(std::string code) {
+  if (code.empty()) return true;
 
-      if (version_pos == std::string::npos || closing_pos == std::string::npos)
-        throw std::invalid_argument("Invalid syntax for VER(#.#.#) macro.");
+  auto function_pos = code.find("VER(");
+  while (function_pos != std::string::npos) {
+    size_t version_pos = code.find_first_of("0123456789", function_pos);
+    size_t closing_pos = code.find(")", version_pos);
 
-      std::string old_func =
-          code.substr(function_pos, closing_pos - function_pos + 1);
-      std::string op = shcore::str_strip(
-          code.substr(function_pos + 4, version_pos - function_pos - 4));
-      std::string ver = shcore::str_strip(
-          code.substr(version_pos, closing_pos - version_pos));
-      std::string fname =
-          shcore::get_member_name("versionCheck", get_naming_style());
-      std::string new_func =
-          "testutil." + fname + "(__version, '" + op + "', '" + ver + "')";
+    if (version_pos == std::string::npos || closing_pos == std::string::npos)
+      throw std::invalid_argument("Invalid syntax for VER(#.#.#) macro.");
 
-      code = shcore::str_replace(code, old_func, new_func);
-      function_pos = code.find("VER(");
-    }
+    std::string old_func =
+        code.substr(function_pos, closing_pos - function_pos + 1);
+    std::string op = shcore::str_strip(
+        code.substr(function_pos + 4, version_pos - function_pos - 4));
+    std::string ver =
+        shcore::str_strip(code.substr(version_pos, closing_pos - version_pos));
+    std::string fname =
+        shcore::get_member_name("versionCheck", get_naming_style());
+    std::string new_func =
+        "testutil." + fname + "(__version, '" + op + "', '" + ver + "')";
 
-    function_pos = code.find("DEF(");
-    while (function_pos != std::string::npos) {
-      size_t closing_pos = code.find(")", function_pos);
-
-      if (closing_pos == std::string::npos)
-        throw std::invalid_argument("Invalid syntax for DEF(variable) macro.");
-
-      std::string old_func =
-          code.substr(function_pos, closing_pos - function_pos + 1);
-      std::string variable = shcore::str_strip(
-          code.substr(function_pos + 4, closing_pos - function_pos - 4));
-
-      std::string new_func = get_if_def(variable);
-      code = shcore::str_replace(code, old_func, new_func);
-      function_pos = code.find("DEF(");
-    }
-
-    output_handler.wipe_out();
-
-    std::string value;
-    execute_internal(code);
-    value = output_handler.internal_std_out;
-    value = str_strip(value);
-    if (value == "true" || value == "True") {
-      ret_val = true;
-    } else if (value == "false" || value == "False") {
-      ret_val = false;
-    } else {
-      if (!output_handler.internal_std_err.empty()) {
-        throw std::invalid_argument(output_handler.internal_std_err);
-      } else {
-        throw std::invalid_argument(
-            "Context does not evaluate to a boolean "
-            "expression");
-      }
-    }
+    code = shcore::str_replace(code, old_func, new_func);
+    function_pos = code.find("VER(");
   }
 
-  return ret_val;
+  function_pos = code.find("DEF(");
+  while (function_pos != std::string::npos) {
+    size_t closing_pos = code.find(")", function_pos);
+    if (closing_pos == std::string::npos)
+      throw std::invalid_argument("Invalid syntax for DEF(variable) macro.");
+
+    std::string old_func =
+        code.substr(function_pos, closing_pos - function_pos + 1);
+    std::string variable = shcore::str_strip(
+        code.substr(function_pos + 4, closing_pos - function_pos - 4));
+
+    std::string new_func = get_if_def(variable);
+    code = shcore::str_replace(code, old_func, new_func);
+    function_pos = code.find("DEF(");
+  }
+
+  output_handler.wipe_out();
+
+  execute_internal(code);
+
+  {
+    auto value = str_strip_view(output_handler.internal_std_out);
+    if (value == "true" || value == "True") return true;
+    if (value == "false" || value == "False") return false;
+  }
+
+  if (!output_handler.internal_std_err.empty()) {
+    throw std::invalid_argument(output_handler.internal_std_err);
+  }
+
+  throw std::invalid_argument(
+      "Context does not evaluate to a boolean expression");
 }
 
 void Shell_script_tester::execute(int location, const std::string &code) {

@@ -22,9 +22,11 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <map>
-#include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils.h"
 
 /**
@@ -42,13 +44,14 @@ inline constexpr std::string_view k_secure_password{"s3Cur3_pa22w0rd"};
 // validation, those things will start being ignored on the test scripts until
 // they are cleaned up
 struct Chunk_definition {
-  std::string line;           // The line as read from the file
-  std::string id;             // The ID of the chunk.
-  std::string context;        // The context if defined.
-  ValidationType validation;  // The validation type: single or multiline.
-  std::string stream;         // The stream for multiline validation.
-  int linenum;                // The line number
-  std::string validation_id;  // The id of the validation chunk to be used
+  std::string line;     // The line as read from the file
+  std::string id;       // The ID of the chunk.
+  std::string context;  // The context if defined.
+  ValidationType validation{
+      ValidationType::Simple};  // The validation type: single or multiline.
+  std::string stream;           // The stream for multiline validation.
+  int linenum{0};               // The line number
+  std::string validation_id;    // The id of the validation chunk to be used
 };
 
 /**
@@ -56,7 +59,7 @@ struct Chunk_definition {
  */
 struct Validation {
   Validation(const std::vector<std::string> &source,
-             const std::shared_ptr<Chunk_definition> &chunk_def) {
+             Chunk_definition chunk_def) noexcept {
     code = source.size() >= 1 ? source[0] : "";
     expected_output = source.size() >= 2 ? source[1] : "";
     expected_error = source.size() >= 3 ? source[2] : "";
@@ -66,7 +69,7 @@ struct Validation {
       expected_output = "";
     }
 
-    def = chunk_def;
+    def = std::move(chunk_def);
   }
 
   std::string code;  //!< Defines code that must be executed before the
@@ -75,10 +78,10 @@ struct Validation {
   std::string unexpected_output;  //!< Defines unexpected output
   std::string expected_error;     //!< Defines the expected error
 
-  std::shared_ptr<Chunk_definition> def;
+  Chunk_definition def;
 };
 
-typedef std::vector<std::shared_ptr<Validation>> Chunk_validations;
+using Chunk_validations = std::vector<Validation>;
 
 #define NEW_TEST_SCRIPT(x) _shell_scripts_home + "/" + x + "." + _extension
 #define PRE_SCRIPT(x) _shell_scripts_home + "/" + x + ".pre"
@@ -91,12 +94,12 @@ typedef std::vector<std::shared_ptr<Validation>> Chunk_validations;
 typedef std::pair<size_t, std::string> Chunk_line_t;
 
 struct Chunk_t {
-  Chunk_t() { def.reset(new Chunk_definition()); }
   std::string source;
   std::vector<Chunk_line_t> code;
-  std::shared_ptr<Chunk_definition> def;
-  bool is_validation_optional() const {
-    return def->validation == ValidationType::Optional;
+  Chunk_definition def;
+
+  bool is_validation_optional() const noexcept {
+    return def.validation == ValidationType::Optional;
   }
 };
 
@@ -121,16 +124,16 @@ class Shell_script_tester : public Crud_test_wrapper {
   void set_defaults() override;
   void reset_shell() override;
   virtual void set_scripting_context();
-  void def_var(const std::string &var, const std::string &value);
+  void def_var(std::string_view var, std::string_view value);
   void def_string_var_from_env(const std::string &var,
                                const std::string &env_var = "");
   void def_numeric_var_from_env(const std::string &var,
                                 const std::string &env_var = "");
-  virtual std::string get_if_def(const std::string &variable) {
-    return variable;
+  virtual std::string get_if_def(std::string_view variable) const {
+    return std::string{variable};
   }
 
-  std::streambuf *_cout_backup;
+  std::streambuf *_cout_backup{nullptr};
   std::ostringstream _cout;
   bool _skip_sandbox_check = false;
 
@@ -148,14 +151,15 @@ class Shell_script_tester : public Crud_test_wrapper {
   // The name of the active setup script, should be set after the config folder
   void set_setup_script(const std::string &name);
 
-  virtual std::string get_comment_token() = 0;
-  virtual std::string get_chunk_token() = 0;
-  virtual std::string get_chunk_by_line_token() = 0;
-  virtual std::string get_assumptions_token() = 0;
-  virtual std::string get_variable_prefix() = 0;
-  virtual std::string get_current_mode_command();
-  virtual std::string get_switch_mode_command() = 0;
-  virtual shcore::NamingStyle get_naming_style() = 0;
+  std::string_view get_current_mode_command() const;
+
+  virtual std::string_view get_comment_token() const noexcept = 0;
+  virtual std::string_view get_chunk_token() const noexcept = 0;
+  virtual std::string_view get_chunk_by_line_token() const noexcept = 0;
+  virtual std::string_view get_assumptions_token() const noexcept = 0;
+  virtual std::string_view get_variable_prefix() const noexcept = 0;
+  virtual std::string_view get_switch_mode_command() const noexcept = 0;
+  virtual shcore::NamingStyle get_naming_style() const noexcept = 0;
 
   std::string _extension;
   bool _new_format;
@@ -175,7 +179,7 @@ class Shell_script_tester : public Crud_test_wrapper {
   std::map<std::string, Chunk_t> _chunks;
   std::set<std::string> _skipped_chunks;
   std::vector<std::string> _chunk_order;
-  std::map<std::string, Chunk_validations> _chunk_validations;
+  std::map<std::string, Chunk_validations> m_chunk_validations;
 
   void execute_script(const std::string &path = "", bool in_chunks = false,
                       bool is_pre_script = false);
@@ -189,22 +193,23 @@ class Shell_script_tester : public Crud_test_wrapper {
                              const std::string &expected,
                              const std::string &actual, int srcline,
                              int valline);
-  std::string resolve_string(const std::string &source);
+
+  std::optional<std::string> resolve_token(const std::string &token);
+  std::string resolve_string(std::string source);
 
   virtual void pre_process_line(const std::string &, std::string *line) {
     *line = resolve_string(*line);
   }
 
-  std::shared_ptr<Chunk_definition> load_chunk_definition(
-      const std::string &line);
+  std::optional<Chunk_definition> load_chunk_definition(std::string_view line);
   bool load_source_chunks(const std::string &path, std::istream &stream,
                           const std::string &prefix = "");
   bool add_source_chunk(const std::string &path, const Chunk_t &chunk);
-  void add_validation(const std::shared_ptr<Chunk_definition> &chunk,
+  void add_validation(Chunk_definition chunk,
                       const std::vector<std::string> &source,
-                      const std::string &sep = "|");
+                      std::string_view sep = "|");
   void load_validations(const std::string &path);
-  bool context_enabled(const std::string &context);
+  bool context_enabled(std::string code);
 };
 
 /**
@@ -215,17 +220,27 @@ class Shell_js_script_tester : public Shell_script_tester {
   // You can define per-test set-up and tear-down logic as usual.
   void set_defaults() override;
 
-  std::string get_comment_token() override { return "//"; }
-  std::string get_chunk_token() override { return "//@"; }
-  std::string get_chunk_by_line_token() override { return "//@#"; }
-  std::string get_assumptions_token() override { return "// Assumptions:"; }
-  std::string get_variable_prefix() override { return "var "; }
-  std::string get_switch_mode_command() override { return "\\js"; }
-  shcore::NamingStyle get_naming_style() override {
+  std::string_view get_comment_token() const noexcept override { return "//"; }
+  std::string_view get_chunk_token() const noexcept override { return "//@"; }
+  std::string_view get_chunk_by_line_token() const noexcept override {
+    return "//@#";
+  }
+  std::string_view get_assumptions_token() const noexcept override {
+    return "// Assumptions:";
+  }
+  std::string_view get_variable_prefix() const noexcept override {
+    return "var ";
+  }
+  std::string_view get_switch_mode_command() const noexcept override {
+    return "\\js";
+  }
+  shcore::NamingStyle get_naming_style() const noexcept override {
     return shcore::LowerCamelCase;
   }
-  std::string get_if_def(const std::string &variable) override {
-    return "defined(function(){" + variable + "})";
+  std::string get_if_def(std::string_view variable) const override {
+    return shcore::str_format("defined(function(){%.*s})",
+                              static_cast<int>(variable.size()),
+                              variable.data());
   }
 };
 
@@ -237,16 +252,24 @@ class Shell_py_script_tester : public Shell_script_tester {
   // You can define per-test set-up and tear-down logic as usual.
   void set_defaults() override;
 
-  std::string get_comment_token() override { return "#"; };
-  std::string get_chunk_token() override { return "#@"; }
-  std::string get_chunk_by_line_token() override { return "#@#"; }
-  std::string get_assumptions_token() override { return "# Assumptions:"; }
-  std::string get_variable_prefix() override { return ""; }
-  std::string get_switch_mode_command() override { return "\\py"; }
-  shcore::NamingStyle get_naming_style() override {
+  std::string_view get_comment_token() const noexcept override { return "#"; };
+  std::string_view get_chunk_token() const noexcept override { return "#@"; }
+  std::string_view get_chunk_by_line_token() const noexcept override {
+    return "#@#";
+  }
+  std::string_view get_assumptions_token() const noexcept override {
+    return "# Assumptions:";
+  }
+  std::string_view get_variable_prefix() const noexcept override { return ""; }
+  std::string_view get_switch_mode_command() const noexcept override {
+    return "\\py";
+  }
+  shcore::NamingStyle get_naming_style() const noexcept override {
     return shcore::LowerCaseUnderscores;
   }
-  std::string get_if_def(const std::string &variable) override {
-    return "defined(lambda:" + variable + ")";
+  std::string get_if_def(std::string_view variable) const override {
+    return shcore::str_format("defined(lambda:%.*s)",
+                              static_cast<int>(variable.size()),
+                              variable.data());
   }
 };

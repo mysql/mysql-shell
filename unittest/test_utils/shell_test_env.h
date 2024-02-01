@@ -30,10 +30,10 @@
 
 #include <algorithm>
 #include <list>
-#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -203,8 +203,12 @@ class Shell_test_env : public ::testing::Test {
   bool _replaying = false;
   bool _recording = false;
 
-  std::map<std::string, std::string>
+ private:
+  std::unordered_map<std::string, std::string>
       _output_tokens;  //!< Tokens for string resolution
+
+ protected:
+  std::optional<std::string> resolve_token(const std::string &token);
   std::string resolve_string(std::string source);
 
   void SetUp() override;
