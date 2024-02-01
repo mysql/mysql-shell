@@ -262,6 +262,7 @@ void push_field(
       case Type::Geometry:
       case Type::Json:
       case Type::Date:
+      case Type::Vector:
       case Type::Time:
       case Type::DateTime:
       case Type::Enum:
@@ -284,6 +285,7 @@ bool is_set_as_string(Type type) {
     case Type::Bytes:
     case Type::Geometry:
     case Type::Json:
+    case Type::Vector:
     case Type::Date:
     case Type::Time:
     case Type::DateTime:

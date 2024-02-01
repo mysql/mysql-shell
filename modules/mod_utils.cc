@@ -678,9 +678,11 @@ std::vector<shcore::Value> get_row_values(const mysqlshdk::db::IRow &row) {
           break;
 
         case Type::Bytes:
+        case Type::Vector:
+        case Type::Geometry:
           v = Value(row.get_string(i), true);
           break;
-        case Type::Geometry:
+
         case Type::Json:
         case Type::Enum:
         case Type::Set:

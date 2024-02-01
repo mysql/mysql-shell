@@ -87,6 +87,7 @@ Row_copy::Row_copy(const IRow &row) {
       case Type::Time:
       case Type::Geometry:
       case Type::Json:
+      case Type::Vector:
       case Type::Enum:
       case Type::Set:
         _data->fields.emplace_back(
@@ -158,6 +159,7 @@ std::string Mem_row::get_as_string(uint32_t index) const {
     case Type::DateTime:
     case Type::Time:
     case Type::Geometry:
+    case Type::Vector:
     case Type::Json:
     case Type::Enum:
     case Type::Set:
@@ -232,7 +234,7 @@ std::string Mem_row::get_string(uint32_t index) const {
 
 std::pair<const char *, size_t> Mem_row::get_string_data(uint32_t index) const {
   Type ftype;
-  GET_VALIDATE_TYPE(index, (ftype == Type::String || ftype == Type::Bytes));
+  GET_VALIDATE_TYPE(index, (is_string_type(ftype)));
   const auto &s =
       static_cast<Field_data<std::string> *>(_data->fields[index].get())->value;
   return {s.data(), s.size()};

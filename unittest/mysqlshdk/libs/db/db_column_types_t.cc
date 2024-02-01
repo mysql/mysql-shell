@@ -34,25 +34,26 @@ namespace db {
   auto result = session->query("select * from xtest." table); \
   const std::vector<Column> &columns = result->get_metadata();
 
-#define CHECK(i, type, length, un, zf, bin)     \
-  EXPECT_EQ(type, columns[i].get_type());       \
-  if (length > 0) {                             \
-    EXPECT_EQ(length, columns[i].get_length()); \
-  }                                             \
-  if (un) {                                     \
-    EXPECT_TRUE(columns[i].is_unsigned());      \
-  } else {                                      \
-    EXPECT_FALSE(columns[i].is_unsigned());     \
-  }                                             \
-  if (zf) {                                     \
-    EXPECT_TRUE(columns[i].is_zerofill());      \
-  } else {                                      \
-    EXPECT_FALSE(columns[i].is_zerofill());     \
-  }                                             \
-  if (bin) {                                    \
-    EXPECT_TRUE(columns[i].is_binary());        \
-  } else {                                      \
-    EXPECT_FALSE(columns[i].is_binary());       \
+#define CHECK(i, type, length, un, zf, bin)       \
+  EXPECT_EQ(type, columns[i].get_type())          \
+      << type_to_dbstring(columns[i].get_type()); \
+  if (length > 0) {                               \
+    EXPECT_EQ(length, columns[i].get_length());   \
+  }                                               \
+  if (un) {                                       \
+    EXPECT_TRUE(columns[i].is_unsigned());        \
+  } else {                                        \
+    EXPECT_FALSE(columns[i].is_unsigned());       \
+  }                                               \
+  if (zf) {                                       \
+    EXPECT_TRUE(columns[i].is_zerofill());        \
+  } else {                                        \
+    EXPECT_FALSE(columns[i].is_zerofill());       \
+  }                                               \
+  if (bin) {                                      \
+    EXPECT_TRUE(columns[i].is_binary());          \
+  } else {                                        \
+    EXPECT_FALSE(columns[i].is_binary());         \
   }
 
 TEST_F(Db_tests, metadata_columns_alltypes) {
@@ -196,6 +197,17 @@ TEST_F(Db_tests, metadata_columns_alltypes) {
         CHECK(0, Type::Set, 0, false, false, false);
       }
       CHECK(1, Type::Set, 0, false, false, false);
+    }
+
+    if (_target_server_version >= mysqlshdk::utils::Version("8.4.0")) {
+      TABLE("t_vector");
+      ASSERT_EQ(1, columns.size());
+      if (is_classic) {
+        CHECK(0, Type::Vector, 32, false, false, true);
+      } else {
+        // X Protocol: vector not supported
+        CHECK(0, Type::Bytes, 32, false, false, true);
+      }
     }
   } while (switch_proto());
 #undef CHECK

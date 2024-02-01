@@ -55,7 +55,8 @@ enum class SHCORE_PUBLIC Type {
   DateTime,
   Bit,
   Enum,
-  Set
+  Set,
+  Vector
 };
 
 std::string to_string(Type type);
@@ -64,7 +65,13 @@ Type string_to_type(const std::string &type);
 inline bool is_string_type(Type type) {
   return (type == Type::Bytes || type == Type::Geometry || type == Type::Json ||
           type == Type::Date || type == Type::Time || type == Type::DateTime ||
-          type == Type::Enum || type == Type::Set || type == Type::String);
+          type == Type::Enum || type == Type::Set || type == Type::String ||
+          type == Type::Vector);
+}
+
+inline bool is_binary_type(Type type) {
+  return (type == Type::Bytes || type == Type::Geometry ||
+          type == Type::Vector);
 }
 
 std::string type_to_dbstring(Type type, uint32_t length = 0);

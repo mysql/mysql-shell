@@ -236,7 +236,8 @@ def TEST_LOAD(schema, table, options = {}, source_table = None):
             ctype.endswith("geometrycollection") or
             ctype.endswith("linestring") or
             ctype.endswith("point") or
-            ctype.endswith("polygon")):
+            ctype.endswith("polygon") or 
+            ctype.endswith("vector")):
                 decoded_columns[column] = "FROM_BASE64"
     if decoded_columns:
         run_options["columns"] = all_columns

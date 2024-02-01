@@ -69,6 +69,8 @@ std::string to_string(Type type) {
       return "Enum";
     case Type::Set:
       return "Set";
+    case Type::Vector:
+      return "Vector";
   }
   throw std::logic_error("Unknown type");
 }
@@ -106,6 +108,8 @@ Type string_to_type(const std::string &type) {
     return Type::Enum;
   else if (type == "Set")
     return Type::Set;
+  else if (type == "Vector")
+    return Type::Vector;
   else
     throw std::logic_error("Unknown type " + type);
 }
@@ -174,6 +178,8 @@ Type dbstring_to_type(const std::string &data_type,
     return mysqlshdk::db::Type::Set;
   } else if (shcore::str_caseeq(data_type, "json")) {
     return mysqlshdk::db::Type::Json;
+  } else if (shcore::str_caseeq(data_type, "vector")) {
+    return mysqlshdk::db::Type::Vector;
   }
 
   throw std::logic_error("Unknown data_type: " + data_type +
@@ -256,6 +262,8 @@ std::string Column::get_dbtype() const {
         return "NULL";
       case Type::Time:
         return "TIME";
+      case Type::Vector:
+        return "VECTOR";
       default:
         return "?-unknown-?";
     }

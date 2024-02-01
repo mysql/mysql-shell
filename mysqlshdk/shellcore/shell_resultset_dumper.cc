@@ -279,7 +279,7 @@ class Field_formatter {
     } else if (m_type == mysqlshdk::db::Type::Bit) {
       dlength = blength =
           shcore::bits_to_string_hex_size(std::get<1>(row->get_bit(index))) + 2;
-    } else if (m_type == mysqlshdk::db::Type::Bytes) {
+    } else if (is_binary_type(m_type)) {
       // TODO (anyone): Implement support for --skip-binary-as-hex
       auto data = row->get_string_data(index);
       dlength = blength = 2 + data.second * 2;
@@ -338,7 +338,7 @@ class Field_formatter {
 
       data = tmp.data();
       display_size = buffer_size = length = tmp.length();
-    } else if (m_type == mysqlshdk::db::Type::Bytes) {
+    } else if (is_binary_type(m_type)) {
       std::tie(data, length) = row->get_string_data(index);
 
       tmp = shcore::string_to_hex({data, length});
@@ -624,7 +624,7 @@ void dump_json_row(shcore::JSON_dumper *dumper,
     } else if (mysqlshdk::db::is_string_type(type)) {
       if (type == mysqlshdk::db::Type::Json) {
         dumper->append_json(row->get_string(col_index));
-      } else if (type == mysqlshdk::db::Type::Bytes) {
+      } else if (is_binary_type(type)) {
         auto data = row->get_string_data(col_index);
         std::string encoded;
         size_t binary_limit = data.second;
@@ -977,7 +977,7 @@ size_t Resultset_dumper_base::dump_table() {
         m_printer->print(fmt[field_index].str());
       } else {
         assert(mysqlshdk::db::is_string_type(metadata[field_index].get_type()));
-        if (row.get_type(field_index) == mysqlshdk::db::Type::Bytes) {
+        if (is_binary_type(row.get_type(field_index))) {
           const char *data;
           size_t length;
           std::tie(data, length) = row.get_string_data(field_index);

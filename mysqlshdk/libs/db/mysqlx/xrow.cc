@@ -176,6 +176,7 @@ std::string Row::get_string(uint32_t index) const {
     case Type::Geometry:
     case Type::Json:
     case Type::Bytes:
+    case Type::Vector:
     case Type::String: {
       std::string value;
       if (!_row->get_string(index, &value)) FAILED_GET_TYPE(index, (true));

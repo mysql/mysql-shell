@@ -555,5 +555,37 @@ TEST_F(Python, time_to_py) {
   ASSERT_EQ(v2, value);
 }
 
+TEST_F(Python, binary_to_py) {
+  Value v1("binary", 6, true);
+  Input_state cont = Input_state::Ok;
+  WillEnterPython lock;
+  // this will also test conversion of a wrapped array
+  ASSERT_EQ(py->convert(py->convert(v1).get()).repr(), v1.repr());
+
+  ASSERT_EQ(py->convert(py->convert(v1).get()), v1);
+
+  py->set_global("bytes1", v1);
+  ASSERT_EQ(py->get_global("bytes1").repr(), v1.repr());
+
+  ASSERT_EQ(py->execute_interactive("bytes1", cont).repr(), v1.repr());
+
+  ASSERT_EQ(py->execute_interactive("str(type(bytes1))", cont).repr(),
+            "\"<class \\'bytes\\'>\"");
+
+  py->execute_interactive("bytes2 = b'hello'", cont);
+  Value v2 = py->get_global("bytes2");
+  ASSERT_EQ(v2.get_type(), shcore::Binary);
+  ASSERT_EQ(v2.get_string(), "hello");
+
+  v2 = py->execute_interactive("b'world'", cont);
+  ASSERT_EQ(v2.get_type(), shcore::Binary);
+  ASSERT_EQ(v2.get_string(), "world");
+
+  v2 = py->execute_interactive("[b'data']", cont);
+  ASSERT_EQ(v2.get_type(), shcore::Array);
+  ASSERT_EQ(v2.as_array()->at(0).get_type(), shcore::Binary);
+  ASSERT_EQ(v2.as_array()->at(0).get_string(), "data");
+}
+
 }  // namespace tests
 }  // namespace shcore

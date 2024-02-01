@@ -86,6 +86,7 @@ void feed_field(shcore::sqlstring *sql, const IRow &row, uint32_t field) {
       case Type::Time:
       case Type::DateTime:
       case Type::Enum:
+      case Type::Vector:
       case Type::Set:
       case Type::String:
         *sql << row.get_string(field);

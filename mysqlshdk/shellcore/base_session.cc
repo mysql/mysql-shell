@@ -350,6 +350,8 @@ std::string ShellBaseSession::sub_query_placeholders(
           squery << value.as_double();
           break;
         case shcore::Binary:
+          squery << value.get_string();
+          break;
         case shcore::String:
           squery << value.get_string();
           break;

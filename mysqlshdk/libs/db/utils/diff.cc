@@ -69,6 +69,7 @@ int compare_field(const IRow &lrow, const IRow &rrow, uint32_t field) {
     case Type::Enum:
     case Type::Set:
     case Type::String:
+    case Type::Vector:
     case Type::Bytes: {
       int r = lrow.get_string(field).compare(rrow.get_string(field));
       if (r < 0)

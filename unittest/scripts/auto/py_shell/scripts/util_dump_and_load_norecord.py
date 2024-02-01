@@ -374,7 +374,7 @@ shell.connect(__sandbox_uri2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 
 # BUG#36197620 - summary should contain more details regarding all executed stages
-EXPECT_STDOUT_CONTAINS("59 DDL files were executed in ")
+EXPECT_STDOUT_CONTAINS(f"{60 if __version_num >= 84000 else 59} DDL files were executed in ")
 EXPECT_STDOUT_CONTAINS("6 accounts were loaded")
 EXPECT_STDOUT_CONTAINS("Data load duration: ")
 EXPECT_STDOUT_CONTAINS("Total duration: ")

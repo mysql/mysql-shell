@@ -113,6 +113,8 @@ static const char *fieldtype2str(enum enum_field_types type) {
       return "VAR_STRING";
     case MYSQL_TYPE_YEAR:
       return "YEAR";
+    case MYSQL_TYPE_VECTOR:
+      return "VECTOR";
     default:
       return "?-unknown-?";
   }
@@ -464,6 +466,8 @@ Type Result::map_data_type(int raw_type, int flags, int collation_id) {
       return Type::Enum;
     case MYSQL_TYPE_SET:
       return Type::Set;
+    case MYSQL_TYPE_VECTOR:
+      return Type::Vector;
   }
   throw std::logic_error("Invalid type");
 }

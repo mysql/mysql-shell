@@ -498,7 +498,8 @@ void Instance_cache_builder::fetch_columns() {
         data_type, row->get_string(6));  // COLUMN_TYPE
     column.csv_unsafe = shcore::str_iendswith(data_type, "binary", "blob") ||
                         mysqlshdk::db::Type::Bit == column.type ||
-                        mysqlshdk::db::Type::Geometry == column.type;
+                        mysqlshdk::db::Type::Geometry == column.type ||
+                        mysqlshdk::db::Type::Vector == column.type;
     const auto extra = row->get_string(7, "");  // EXTRA
     column.generated = extra.find(" GENERATED") != std::string::npos;
     column.auto_increment = extra.find("auto_increment") != std::string::npos;

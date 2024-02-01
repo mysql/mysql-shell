@@ -1,7 +1,14 @@
 shell.connect(__mysqluripwd)
 
-binary_types = ["TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB", "VARBINARY(20)", "BINARY(20)"]
-custom_values={"BINARY(20)": (b'some\x00value\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', "0x736F6D650076616C756500000000000000000000", "b'some\\x00value\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'")}
+binary_types = ["TINYBLOB", "BLOB", "MEDIUMBLOB", "LONGBLOB", "VARBINARY(20)", "BINARY(20)", "GEOMETRY"]
+custom_values={
+    # binary_value, expected_binary_value, expected_str_shell, expected_str_python
+    "BINARY(20)": (b'some\x00value', b'some\x00value\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', "0x736F6D650076616C756500000000000000000000", "b'some\\x00value\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'"),
+    "GEOMETRY": (b'\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x3F\x00\x00\x00\x00\x00\x00\xF0\x3F', b'\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x3F\x00\x00\x00\x00\x00\x00\xF0\x3F', '0x000000000101000000000000000000F03F000000000000F03F', repr(b'\x00\x00\x00\x00\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\xF0\x3F\x00\x00\x00\x00\x00\x00\xF0\x3F')),
+    "VECTOR": (b'\x00\x00\x80\x3F\x00\x00\x00\x40\x00\x00\x40\x40', b'\x00\x00\x80\x3F\x00\x00\x00\x40\x00\x00\x40\x40', '0x0000803F0000004000004040', repr(b'\x00\x00\x80?\x00\x00\x00@\x00\x00@@'))
+}
+if __version_num >= 80400:
+    binary_types.append("VECTOR")
 
 session.run_sql("drop schema if exists py_binary_data")
 session.run_sql("create schema py_binary_data")
@@ -19,7 +26,7 @@ def validate(row, binary_type, expected_binary_value, expected_str_shell, expect
 
 def test_run_sql(asession, binary_type, binary_value, expected_binary_value, expected_str_shell, expected_str_python):
     # Test data insertion and retrieval using ClassicSession.run_sql
-    asession.run_sql("insert into py_binary_data.sample values (?)", [b'some\0value'])
+    asession.run_sql("insert into py_binary_data.sample values (_binary ?)", [binary_value])
     res = asession.run_sql("select * from py_binary_data.sample")
     row = res.fetch_one()
     validate(row, binary_type, expected_binary_value, expected_str_shell, expected_str_python)
@@ -59,11 +66,12 @@ for binary_type in binary_types:
     # On BINARY(20) the row will be filled with 0's to fulfill the row size, so even the same
     # data is stored, a different binary value is returned
     if binary_type in custom_values:
-       expected_binary_value, expected_str_shell, expected_str_python = custom_values[binary_type]
+       binary_value, expected_binary_value, expected_str_shell, expected_str_python = custom_values[binary_type]
     session.run_sql(f"create table py_binary_data.sample(data {binary_type})")
     # Test data insertion and retrieval using ClassicSession.run_sql
     test_classic(binary_type, binary_value, expected_binary_value, expected_str_shell, expected_str_python)
-    test_x(binary_type, binary_value, expected_binary_value, expected_str_shell, expected_str_python)
+    if binary_type != "VECTOR": # NOTE: doesn't work atm
+        test_x(binary_type, binary_value, expected_binary_value, expected_str_shell, expected_str_python)
     session.run_sql("drop table py_binary_data.sample")
 
 session.run_sql("drop schema py_binary_data")
