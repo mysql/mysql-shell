@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,6 +49,9 @@ inline const mysqlshdk::utils::Version
     k_transaction_writeset_extraction_removed(8, 3, 0);
 
 inline const mysqlshdk::utils::Version k_replica_parallel_type_removed(8, 3, 0);
+
+inline const mysqlshdk::utils::Version
+    k_binlog_transaction_dependency_tracking_removed(8, 4, 0);
 
 // Feature getters
 

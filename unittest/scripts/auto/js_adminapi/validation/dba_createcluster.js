@@ -450,10 +450,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -733,10 +735,12 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"

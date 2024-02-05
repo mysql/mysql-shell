@@ -161,7 +161,7 @@ Account repl_admin@% was successfully created.
 
 Configuring instance...
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<8.4.0)}
 +----------------------------------------+---------------+----------------+-----------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                          |
 +----------------------------------------+---------------+----------------+-----------------------------------------------+
@@ -173,6 +173,25 @@ Configuring instance...
 | report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                              | 1             | <unique ID>    | Update the config file and restart the server |
 +----------------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
+Configuring instance...
+?{}
+?{VER(>=8.4.0)}
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                      | Current Value | Required Value | Note                                          |
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                 | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency      | OFF           | ON             | Update the config file and restart the server |
+| gtid_mode                     | OFF           | ON             | Update the config file and restart the server |
+| replica_preserve_commit_order | <not set>     | ON             | Update the config file                        |
+| report_port                   | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                     | 1             | <unique ID>    | Update the config file and restart the server |
++-------------------------------+---------------+----------------+-----------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:

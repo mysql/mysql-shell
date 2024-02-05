@@ -1080,8 +1080,8 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).restart, false);
   } else {
     if (!parallel_appliers_required ||
-        (m_instance->get_version() >= mysqlshdk::utils::Version(8, 3, 0))) {
-      ASSERT_EQ(5, res.size());
+        (m_instance->get_version() >= mysqlshdk::utils::Version(8, 4, 0))) {
+      ASSERT_EQ(4, res.size());
     } else {
       ASSERT_EQ(7, res.size());
     }
@@ -1150,14 +1150,16 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   }
 
   if (parallel_appliers_required) {
-    i = find("binlog_transaction_dependency_tracking");
-    EXPECT_STREQ(res.at(i).var_name.c_str(),
-                 "binlog_transaction_dependency_tracking");
-    EXPECT_STREQ(res.at(i).current_val.c_str(),
-                 mysqlshdk::mysql::k_value_not_set);
-    EXPECT_STREQ(res.at(i).required_val.c_str(), "WRITESET");
-    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(i).restart, false);
+    if (m_instance->get_version() < mysqlshdk::utils::Version(8, 4, 0)) {
+      i = find("binlog_transaction_dependency_tracking");
+      EXPECT_STREQ(res.at(i).var_name.c_str(),
+                   "binlog_transaction_dependency_tracking");
+      EXPECT_STREQ(res.at(i).current_val.c_str(),
+                   mysqlshdk::mysql::k_value_not_set);
+      EXPECT_STREQ(res.at(i).required_val.c_str(), "WRITESET");
+      EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+      EXPECT_EQ(res.at(i).restart, false);
+    }
 
     if (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0)) {
       i = find(mysqlshdk::mysql::get_replication_option_keyword(
@@ -1222,10 +1224,10 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).restart, false);
   } else {
     if (parallel_appliers_required &&
-        (m_instance->get_version() < mysqlshdk::utils::Version(8, 3, 0))) {
+        (m_instance->get_version() < mysqlshdk::utils::Version(8, 4, 0))) {
       ASSERT_EQ(8, res.size());
     } else {
-      ASSERT_EQ(6, res.size());
+      ASSERT_EQ(5, res.size());
     }
   }
 

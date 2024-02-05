@@ -164,10 +164,12 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -222,10 +224,12 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -280,10 +284,12 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -752,10 +758,12 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -810,10 +818,12 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -868,10 +878,12 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"

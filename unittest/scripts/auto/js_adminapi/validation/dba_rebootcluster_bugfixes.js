@@ -104,10 +104,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -162,10 +164,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -547,10 +551,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"
@@ -605,10 +611,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
                 {
                     "value": "4",
                     "variable": "<<<__replica_keyword>>>_parallel_workers"

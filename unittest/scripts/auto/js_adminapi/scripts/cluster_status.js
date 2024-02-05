@@ -385,7 +385,7 @@ session3.runSql("UNLOCK TABLES");
 // If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
 // must be included in 'instanceErrors'
 
-//@<> BUG#32015164: preparation {VER(>=8.0.23)}
+//@<> BUG#32015164: preparation {VER(>=8.0.23) && VER(<8.4.0)}
 // Stop GR
 session2.runSql("STOP group_replication");
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
@@ -400,17 +400,17 @@ testutil.restartSandbox(__mysql_sandbox_port2);
 // Let the instance rejoin the cluster
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23)}
+//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23) && VER(<8.4.0)}
 cluster.status();
 
-//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23)}
+//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23) && VER(<8.4.0)}
 dba.configureInstance(__sandbox_uri2);
 
-//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23)}
+//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23) && VER(<8.4.0)}
 testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23)}
+//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23) && VER(<8.4.0)}
 var stat = cluster.status();
 println(stat);
 

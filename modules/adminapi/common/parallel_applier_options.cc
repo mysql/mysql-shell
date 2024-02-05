@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,7 +23,6 @@
 
 #include "modules/adminapi/common/parallel_applier_options.h"
 
-#include "adminapi/common/common.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
@@ -83,8 +82,10 @@ Parallel_applier_options::get_required_values(
                           version, kReplicaPreserveCommitOrder),
                       "ON"));
 
-  req_cfgs.push_back(
-      std::make_tuple(kBinlogTransactionDependencyTracking, "WRITESET"));
+  if (version < k_binlog_transaction_dependency_tracking_removed) {
+    req_cfgs.push_back(
+        std::make_tuple(kBinlogTransactionDependencyTracking, "WRITESET"));
+  }
 
   if (!skip_transaction_writeset_extraction &&
       (version < k_transaction_writeset_extraction_removed)) {
@@ -100,14 +101,18 @@ Parallel_applier_options::get_current_settings(
     const mysqlshdk::utils::Version &version) const {
   std::map<std::string, std::optional<std::string>> ret_val;
 
-  if (version < k_replica_parallel_type_removed)
+  if (version < k_replica_parallel_type_removed) {
     ret_val[mysqlshdk::mysql::get_replication_option_keyword(
         version, kReplicaParallelType)] = replica_parallel_type;
+  }
 
   ret_val[mysqlshdk::mysql::get_replication_option_keyword(
       version, kReplicaPreserveCommitOrder)] = replica_preserve_commit_order;
-  ret_val[kBinlogTransactionDependencyTracking] =
-      binlog_transaction_dependency_tracking;
+
+  if (version < k_binlog_transaction_dependency_tracking_removed) {
+    ret_val[kBinlogTransactionDependencyTracking] =
+        binlog_transaction_dependency_tracking;
+  }
 
   if (version < k_transaction_writeset_extraction_removed) {
     ret_val[kTransactionWriteSetExtraction] = transaction_write_set_extraction;

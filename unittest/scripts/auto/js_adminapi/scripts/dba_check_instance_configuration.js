@@ -157,7 +157,9 @@ c = dba.checkInstanceConfiguration();
 EXPECT_STDOUT_CONTAINS("Instance configuration is compatible with InnoDB cluster");
 
 //@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>= 8.0.23)}
-session.runSql("SET GLOBAL binlog_transaction_dependency_tracking=COMMIT_ORDER");
+if (__version_num < 80400) {
+  session.runSql("SET GLOBAL binlog_transaction_dependency_tracking=COMMIT_ORDER");
+}
 session.runSql("SET GLOBAL slave_preserve_commit_order=OFF");
 
 if (__version_num < 80300) {

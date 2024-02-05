@@ -125,7 +125,7 @@ if (__version_num < 80300) {
 // If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
 // must be included in 'instanceErrors'
 
-//@<> BUG#32015164: preparation {VER(>=8.0.23)}
+//@<> BUG#32015164: preparation {VER(>=8.0.23) && VER(<8.4.0)}
 
 // Disable parallel-appliers
 testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
@@ -140,27 +140,29 @@ sb2 = hostname_ip+":"+__mysql_sandbox_port2;
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb2].status, "ONLINE");
 
-//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23)}
+//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23) && VER(<8.4.0)}
 println(s);
 
-//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23)}
+//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23) && VER(<8.4.0)}
 session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("STOP " + get_replica_keyword());
 dba.configureReplicaSetInstance(__sandbox_uri2);
 
-//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23)}
+//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23) && VER(<8.4.0)}
 testutil.restartSandbox(__mysql_sandbox_port2);
 session2 = mysql.getSession(__sandbox_uri2);
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb2].status, "ONLINE");
 
-//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23)}
+//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23) && VER(<8.4.0)}
 println(s);
 
 //@<> BUG#32015164: Finalize (restore value of slave_parallel_workers)
 session2.runSql("STOP " + get_replica_keyword());
 if (__version_num < 80300) {
     session2.runSql("SET GLOBAL slave_parallel_workers=0");
+} else {
+    session2.runSql("SET GLOBAL slave_parallel_workers=4");
 }
 session2.runSql("START " + get_replica_keyword());
 

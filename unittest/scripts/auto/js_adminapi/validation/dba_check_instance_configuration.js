@@ -187,7 +187,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 
-//@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>=8.3.0)}
+//@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>=8.3.0) && VER(<8.4.0)}
 +----------------------------------------+---------------+----------------+----------------------------+
 | Variable                               | Current Value | Required Value | Note                       |
 +----------------------------------------+---------------+----------------+----------------------------+
@@ -205,6 +205,27 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "option": "binlog_transaction_dependency_tracking",
             "required": "WRITESET"
         },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "<<<__replica_keyword>>>_preserve_commit_order",
+            "required": "ON"
+        }
+    ],
+    "status": "error"
+}
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>=8.4.0)}
++-------------------------------+---------------+----------------+----------------------------+
+| Variable                      | Current Value | Required Value | Note                       |
++-------------------------------+---------------+----------------+----------------------------+
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable |
++-------------------------------+---------------+----------------+----------------------------+
+
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
         {
             "action": "server_update",
             "current": "OFF",
@@ -265,7 +286,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 
-//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.3.0)}
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.3.0) && VER(<8.4.0)}
 +----------------------------------------+---------------+----------------+----------------------------+
 | Variable                               | Current Value | Required Value | Note                       |
 +----------------------------------------+---------------+----------------+----------------------------+
@@ -284,6 +305,34 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "option": "binlog_transaction_dependency_tracking",
             "required": "WRITESET"
         },
+        {
+            "action": "server_update",
+            "current": "MYSQL_ADMIN",
+            "option": "group_replication_tls_source",
+            "required": "MYSQL_MAIN"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "replica_preserve_commit_order",
+            "required": "ON"
+        }
+    ],
+    "status": "error"
+}
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is set to the default (mysql_main) {VER(>=8.4.0)}
++-------------------------------+---------------+----------------+----------------------------+
+| Variable                      | Current Value | Required Value | Note                       |
++-------------------------------+---------------+----------------+----------------------------+
+| group_replication_tls_source  | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable |
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable |
++-------------------------------+---------------+----------------+----------------------------+
+
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
         {
             "action": "server_update",
             "current": "MYSQL_ADMIN",
@@ -351,7 +400,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 
-//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is not persisted to use mysql_admin {VER(>=8.3.0)}
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is not persisted to use mysql_admin {VER(>=8.3.0) && VER(<8.4.0)}
 +----------------------------------------+---------------+----------------+----------------------------+
 | Variable                               | Current Value | Required Value | Note                       |
 +----------------------------------------+---------------+----------------+----------------------------+
@@ -370,6 +419,35 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "option": "binlog_transaction_dependency_tracking",
             "required": "WRITESET"
         },
+        {
+            "action": "server_update",
+            "current": "MYSQL_ADMIN",
+            "option": "group_replication_tls_source",
+            "persisted": "MYSQL_ADMIN",
+            "required": "MYSQL_MAIN"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "replica_preserve_commit_order",
+            "required": "ON"
+        }
+    ],
+    "status": "error"
+}
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if group_replication_tls_source is not persisted to use mysql_admin {VER(>=8.4.0)}
++-------------------------------+---------------+----------------+----------------------------+
+| Variable                      | Current Value | Required Value | Note                       |
++-------------------------------+---------------+----------------+----------------------------+
+| group_replication_tls_source  | MYSQL_ADMIN   | MYSQL_MAIN     | Update the server variable |
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable |
++-------------------------------+---------------+----------------+----------------------------+
+
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
         {
             "action": "server_update",
             "current": "MYSQL_ADMIN",

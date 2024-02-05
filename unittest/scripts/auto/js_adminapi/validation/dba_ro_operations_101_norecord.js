@@ -389,7 +389,7 @@ ${*}
                     "value": "OFF",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 },
                 {
                     "value": "WRITESET",
@@ -400,6 +400,9 @@ ${*}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
+                },
+?{}
+?{VER(>=8.4.0)}
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -503,7 +506,7 @@ ${*}
                     "value": "OFF",
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 },
                 {
                     "value": "WRITESET",
@@ -514,6 +517,9 @@ ${*}
                 {
                     "value": "LOGICAL_CLOCK",
                     "variable": "<<<__replica_keyword>>>_parallel_type"
+                },
+?{}
+?{VER(>=8.4.0)}
                 },
 ?{}
 ?{VER(>=8.0.23)}

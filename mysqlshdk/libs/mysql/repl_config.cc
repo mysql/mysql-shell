@@ -24,11 +24,6 @@
 #include "mysqlshdk/libs/mysql/repl_config.h"
 
 #include <cassert>
-#include <iomanip>
-#include <limits>
-#include <memory>
-#include <set>
-#include <tuple>
 
 #ifdef WIN32
 #include <windows.h>
@@ -40,16 +35,10 @@
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/uuid_gen.h"
 #include "utils/version.h"
 
 namespace mysqlshdk {

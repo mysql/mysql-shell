@@ -84,7 +84,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -171,7 +171,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -319,10 +319,12 @@
         },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
 ?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
@@ -384,10 +386,12 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
 ?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",

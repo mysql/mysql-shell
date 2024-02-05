@@ -140,7 +140,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -249,7 +249,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -358,7 +358,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -789,7 +789,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -1147,7 +1147,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -1505,7 +1505,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
@@ -1665,10 +1665,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
 ?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
@@ -1747,10 +1749,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
 ?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
@@ -1829,10 +1833,12 @@
                     "option": "certSubject",
                     "value": ""
                 },
+?{VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
                 },
+?{}
 ?{VER(<8.3.0)}
                 {
                     "value": "LOGICAL_CLOCK",
@@ -2000,7 +2006,7 @@
                     "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) && VER(<8.4.0)}
                 {
                     "value": "WRITESET",
                     "variable": "binlog_transaction_dependency_tracking"
