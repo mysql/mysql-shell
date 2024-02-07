@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/api_options.h"
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/common_cmd_options.h"
 #include "modules/adminapi/common/execute.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
@@ -50,9 +51,34 @@ void Timeout_option::set_timeout(int value) {
 
 const shcore::Option_pack_def<Recovery_progress_option>
     &Recovery_progress_option::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Recovery_progress_option>().optional(
-          kRecoveryProgress, &Recovery_progress_option::set_recovery_progress);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Recovery_progress_option> b;
+
+    b.optional_as<int>(
+        kOptionRecoveryProgress, &Recovery_progress_option::m_recovery_progress,
+        [](const auto &value) -> decltype(kOptionRecoveryProgress)::Type {
+          if (value < 0 || value > 2) {
+            throw shcore::Exception::argument_error(shcore::str_format(
+                "Invalid value '%d' for option '%.*s'. It must be an integer "
+                "in the range [0, 2].",
+                value, static_cast<int>(kOptionRecoveryProgress.name.length()),
+                kOptionRecoveryProgress.name.data()));
+          }
+
+          switch (value) {
+            case 0:
+              return Recovery_progress_style::MINIMAL;
+            case 1:
+              return Recovery_progress_style::TEXTUAL;
+            default:
+              return Recovery_progress_style::PROGRESS_BAR;
+          }
+
+          return std::nullopt;
+        });
+
+    return b.build();
+  });
 
   return opts;
 }
@@ -66,28 +92,6 @@ Recovery_progress_style Recovery_progress_option::get_recovery_progress()
   }
 
   return *m_recovery_progress;
-}
-
-void Recovery_progress_option::set_recovery_progress(int value) {
-  // Validate recoveryProgress option UInteger [0, 2]
-  if (value < 0 || value > 2) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%d' for option '%s'. It must be an "
-                           "integer in the range [0, 2].",
-                           value, kRecoveryProgress));
-  }
-
-  switch (value) {
-    case 0:
-      m_recovery_progress = Recovery_progress_style::MINIMAL;
-      break;
-    case 1:
-      m_recovery_progress = Recovery_progress_style::TEXTUAL;
-      break;
-    default:
-      m_recovery_progress = Recovery_progress_style::PROGRESS_BAR;
-      break;
-  }
 }
 
 const shcore::Option_pack_def<Force_options> &Force_options::options() {

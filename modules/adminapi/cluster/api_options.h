@@ -39,64 +39,64 @@
 
 namespace mysqlsh::dba::cluster {
 
-struct Add_instance_options : public Recovery_progress_option {
+struct Add_instance_options {
   static const shcore::Option_pack_def<Add_instance_options> &options();
 
-  void set_cert_subject(const std::string &value);
-
+  Recovery_progress_option recovery_progress;
   Join_group_replication_options gr_options;
   Join_cluster_clone_options clone_options;
   std::optional<std::string> label;
   std::string cert_subject;
 };
 
-struct Rejoin_instance_options : public Timeout_option,
-                                 public Recovery_progress_option {
+struct Rejoin_instance_options {
   static const shcore::Option_pack_def<Rejoin_instance_options> &options();
+
+  Recovery_progress_option recovery_progress;
   Rejoin_group_replication_options gr_options;
   Join_read_replica_clone_options clone_options;
-  bool dry_run = false;
+  int timeout{0};
+  bool dry_run{false};
 };
 
-struct Remove_instance_options : public Timeout_option {
+struct Remove_instance_options {
   static const shcore::Option_pack_def<Remove_instance_options> &options();
 
   bool get_force(bool default_value = false) const noexcept {
     return force.value_or(default_value);
   }
 
+  int timeout{0};
+  bool dry_run{false};
   std::optional<bool> force;
-  bool dry_run = false;
 };
 
 struct Status_options {
   static const shcore::Option_pack_def<Status_options> &options();
-  void set_extended(uint64_t value);
-  void set_query_members(bool value);
 
-  uint64_t extended = 0;  // By default 0 (false).
+  uint64_t extended{0};
 };
 
 struct Options_options {
   static const shcore::Option_pack_def<Options_options> &options();
 
-  bool all = false;
+  bool all{false};
 };
 
 struct Rescan_options {
   static const shcore::Option_pack_def<Rescan_options> &options();
-  void set_bool_option(const std::string &option, bool value);
-  void set_list_option(const std::string &option, const shcore::Value &value);
 
   std::vector<mysqlshdk::db::Connection_options> add_instances_list;
   std::vector<mysqlshdk::db::Connection_options> remove_instances_list;
-  bool auto_add = false;
-  bool auto_remove = false;
-  bool upgrade_comm_protocol = false;
+  bool auto_add{false};
+  bool auto_remove{false};
+  bool upgrade_comm_protocol{false};
   std::optional<bool> update_view_change_uuid;
   std::optional<bool> repair_metadata;
 
  private:
+  void set_list_option(std::string_view name, const shcore::Value &value);
+
   std::optional<bool> m_used_deprecated;
 };
 
@@ -117,19 +117,19 @@ struct Replication_sources {
   std::optional<Source_type> source_type;
 };
 
-struct Add_replica_instance_options : public Timeout_option,
-                                      public Recovery_progress_option {
+struct Add_replica_instance_options {
   static const shcore::Option_pack_def<Add_replica_instance_options> &options();
 
-  void set_replication_sources(const shcore::Value &value);
-  void set_cert_subject(const std::string &value);
-
-  bool dry_run = false;
+  int timeout{0};
+  bool dry_run{false};
   std::optional<std::string> label;
   std::string cert_subject;
+
+  Recovery_progress_option recovery_progress;
   Replication_sources replication_sources_option;
   Join_read_replica_clone_options clone_options;
 };
 
 }  // namespace mysqlsh::dba::cluster
+
 #endif  // MODULES_ADMINAPI_CLUSTER_API_OPTIONS_H_

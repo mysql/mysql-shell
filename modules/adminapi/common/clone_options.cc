@@ -29,6 +29,7 @@
 
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/common_cmd_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -168,47 +169,53 @@ void Clone_options::set_clone_donor(const std::string &value) {
   }
 }
 
+namespace {
+constexpr shcore::Option_data<std::optional<bool>> kOptionDisableClone{
+    "disableClone"};
+}
+
 const shcore::Option_pack_def<Create_cluster_clone_options>
     &Create_cluster_clone_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Create_cluster_clone_options>()
-          .optional(kDisableClone,
-                    &Create_cluster_clone_options::set_disable_clone)
-          .optional(kGtidSetIsComplete,
-                    &Create_cluster_clone_options::set_gtid_set_is_complete);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Create_cluster_clone_options> b;
+
+    b.optional(kOptionDisableClone,
+               &Create_cluster_clone_options::disable_clone);
+    b.optional(kOptionGtidSetIsComplete,
+               &Create_cluster_clone_options::gtid_set_is_complete);
+
+    return b.build();
+  });
 
   return opts;
-}
-
-void Create_cluster_clone_options::set_disable_clone(bool value) {
-  disable_clone = value;
-}
-
-void Create_cluster_clone_options::set_gtid_set_is_complete(bool value) {
-  gtid_set_is_complete = value;
 }
 
 const shcore::Option_pack_def<Join_cluster_clone_options>
     &Join_cluster_clone_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Join_cluster_clone_options>().optional(
-          kRecoveryMethod, &Join_cluster_clone_options::set_recovery_method);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Join_cluster_clone_options> b;
+
+    b.optional_as<std::string>(
+        kOptionRecoveryMethod, &Join_cluster_clone_options::recovery_method,
+
+        [](const auto &value) -> auto{
+          if (shcore::str_caseeq(value, "auto"))
+            return Member_recovery_method::AUTO;
+          if (shcore::str_caseeq(value, "clone"))
+            return Member_recovery_method::CLONE;
+          if (shcore::str_caseeq(value, "incremental"))
+            return Member_recovery_method::INCREMENTAL;
+
+          throw shcore::Exception::argument_error(shcore::str_format(
+              "Invalid value for option %.*s: %s",
+              static_cast<int>(kOptionRecoveryMethod.name.length()),
+              kOptionRecoveryMethod.name.data(), value.c_str()));
+        });
+
+    return b.build();
+  });
 
   return opts;
-}
-
-void Join_cluster_clone_options::set_recovery_method(const std::string &value) {
-  // Validate recoveryMethod
-  if (shcore::str_caseeq(value, "auto")) {
-    recovery_method = Member_recovery_method::AUTO;
-  } else if (shcore::str_caseeq(value, "clone")) {
-    recovery_method = Member_recovery_method::CLONE;
-  } else if (shcore::str_caseeq(value, "incremental")) {
-    recovery_method = Member_recovery_method::INCREMENTAL;
-  } else {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for option %s: %s", kRecoveryMethod, value.c_str()));
-  }
 }
 
 const shcore::Option_pack_def<Join_replicaset_clone_options>

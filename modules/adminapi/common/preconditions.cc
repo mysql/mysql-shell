@@ -340,6 +340,8 @@ void Precondition_checker::check_session() const {
 namespace ManagedInstance {
 std::string describe(State state) {
   switch (state) {
+    case Unknown:
+      return "Unknown";
     case OnlineRW:
       return "Read/Write";
     case OnlineRO:

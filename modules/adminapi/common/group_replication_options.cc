@@ -29,29 +29,13 @@
 #include <string_view>
 #include <vector>
 
+#include "modules/adminapi/common/common_cmd_options.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
-namespace mysqlsh {
-namespace dba {
-
-namespace {
-Cluster_ssl_mode translate_ssl_mode(std::string_view value) {
-  if (std::find(kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
-                shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
-    auto valid_values = shcore::str_join(kClusterSSLModeValues, ",");
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s option. Supported values: %s.",
-                           kMemberSslMode, valid_values.c_str()));
-  }
-
-  // Set the ssl-mode
-  return to_cluster_ssl_mode(value);
-}
-
-}  // namespace
+namespace mysqlsh::dba {
 
 /**
  * Validate the value specified for the localAddress option.
@@ -645,13 +629,15 @@ void Group_replication_options::set_communication_stack(
         kCommunicationStack));
   }
 
-  if (kCommunicationStackValidValues.count(shcore::str_upper(value)) == 0) {
-    std::string valid_values =
-        shcore::str_join(kCommunicationStackValidValues, ", ");
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for '%s' option. Supported values: %s.",
-        kCommunicationStack, valid_values.c_str()));
-  }
+  if (std::find(kCommunicationStackValidValues.begin(),
+                kCommunicationStackValidValues.end(),
+                *communication_stack) != kCommunicationStackValidValues.end())
+    return;
+
+  auto valid_values = shcore::str_join(kCommunicationStackValidValues, ", ");
+  throw shcore::Exception::argument_error(
+      shcore::str_format("Invalid value for '%s' option. Supported values: %s.",
+                         kCommunicationStack, valid_values.c_str()));
 }
 
 void Group_replication_options::set_transaction_size_limit(int64_t value) {
@@ -699,18 +685,45 @@ void Rejoin_group_replication_options::set_ip_allowlist(
   ip_allowlist = value;
 }
 
+namespace {
+constexpr shcore::Option_data<std::optional<std::string>>
+    kOptionExitStateAction{
+        "exitStateAction",
+        [](std::string_view name, std::optional<std::string> &value) {
+          if (!value.has_value()) return;
+
+          value = shcore::str_strip(*value);
+          if (!value->empty()) return;
+
+          throw shcore::Exception::argument_error(shcore::str_format(
+              "Invalid value for %.*s, string value cannot be empty.",
+              static_cast<int>(name.length()), name.data()));
+        }};
+
+constexpr shcore::Option_data<std::optional<int64_t>> kOptionMemberWeight{
+    "memberWeight", shcore::Option_extract_mode::EXACT};
+constexpr shcore::Option_data<std::optional<int64_t>> kOptionAutoRejoinTries{
+    "autoRejoinTries"};
+}  // namespace
+
 const shcore::Option_pack_def<Join_group_replication_options>
     &Join_group_replication_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Join_group_replication_options>()
-          .include<Rejoin_group_replication_options>()
-          .optional(kExitStateAction,
-                    &Group_replication_options::set_exit_state_action)
-          .optional(kMemberWeight,
-                    &Group_replication_options::set_member_weight, "",
-                    shcore::Option_extract_mode::EXACT)
-          .optional(kAutoRejoinTries,
-                    &Group_replication_options::set_auto_rejoin_tries);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Join_group_replication_options> b;
+
+    b.optional(kOptionIpAllowlist,
+               &Join_group_replication_options::ip_allowlist);
+    b.optional(kOptionLocalAddress,
+               &Rejoin_group_replication_options::local_address);
+    b.optional(kOptionExitStateAction,
+               &Join_group_replication_options::exit_state_action);
+    b.optional(kOptionMemberWeight,
+               &Join_group_replication_options::member_weight);
+    b.optional(kOptionAutoRejoinTries,
+               &Join_group_replication_options::auto_rejoin_tries);
+
+    return b.build();
+  });
 
   return opts;
 }
@@ -743,46 +756,96 @@ const shcore::Option_pack_def<Cluster_set_group_replication_options>
   return opts;
 }
 
+namespace {
+
+constexpr shcore::Option_data<std::optional<std::string>> kOptionGroupName{
+    "groupName", [](std::string_view name, std::optional<std::string> &value) {
+      if (!value.has_value()) return;
+
+      value = shcore::str_strip(*value);
+      if (!value->empty()) return;
+
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for %.*s, string value cannot be empty.",
+          static_cast<int>(name.length()), name.data()));
+    }};
+
+constexpr shcore::Option_data<std::optional<bool>> kOptionManualStartOnBoot{
+    "manualStartOnBoot"};
+
+constexpr shcore::Option_data<std::optional<std::string>> kOptionConsistency{
+    "consistency",
+    [](std::string_view name, std::optional<std::string> &value) {
+      if (!value.has_value()) return;
+
+      value = shcore::str_strip(*value);
+      if (!value->empty()) return;
+
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for '%.*s', string value cannot be empty.",
+          static_cast<int>(name.length()), name.data()));
+    }};
+
+constexpr shcore::Option_data<std::optional<int64_t>> kOptionExpelTimeout{
+    "expelTimeout", shcore::Option_extract_mode::EXACT,
+    [](std::string_view name, std::optional<int64_t> &value) {
+      if (!value.has_value()) return;
+      if (*value >= 0) return;
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for '%.*s': integer value must be >= 0",
+          static_cast<int>(name.length()), name.data()));
+    }};
+
+constexpr shcore::Option_data<std::optional<int64_t>>
+    kOptionTransactionSizeLimit{"transactionSizeLimit",
+                                shcore::Option_extract_mode::EXACT};
+
+constexpr shcore::Option_data<std::optional<bool>> kOptionPaxosSingleLeader{
+    "paxosSingleLeader"};
+
+}  // namespace
+
 const shcore::Option_pack_def<Create_group_replication_options>
     &Create_group_replication_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Create_group_replication_options>()
-          .include<Join_group_replication_options>()
-          .optional(kMemberSslMode,
-                    &Create_group_replication_options::set_ssl_mode)
-          .optional(kGroupName,
-                    &Create_group_replication_options::set_group_name)
-          .optional(kManualStartOnBoot,
-                    &Create_group_replication_options::manual_start_on_boot)
-          .optional(kConsistency,
-                    &Create_group_replication_options::set_consistency)
-          .optional(kExpelTimeout,
-                    &Create_group_replication_options::set_expel_timeout, "",
-                    shcore::Option_extract_mode::EXACT)
-          .optional(kCommunicationStack,
-                    &Create_group_replication_options::set_communication_stack,
-                    "", shcore::Option_extract_mode::CASE_INSENSITIVE)
-          .optional(kTransactionSizeLimit,
-                    &Group_replication_options::set_transaction_size_limit, "",
-                    shcore::Option_extract_mode::EXACT)
-          .optional(kPaxosSingleLeader,
-                    &Create_group_replication_options::set_paxos_single_leader);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Create_group_replication_options> b;
+
+    b.include<Join_group_replication_options>();
+
+    b.optional_as<std::string>(
+        kOptionMemberSslMode, &Create_group_replication_options::ssl_mode,
+        [](const auto &value) -> Cluster_ssl_mode {
+          if (std::find(
+                  kClusterSSLModeValues.begin(), kClusterSSLModeValues.end(),
+                  shcore::str_upper(value)) == kClusterSSLModeValues.end()) {
+            auto valid_values = shcore::str_join(kClusterSSLModeValues, ",");
+            throw shcore::Exception::argument_error(shcore::str_format(
+                "Invalid value for %.*s option. Supported values: %s.",
+                static_cast<int>(kOptionMemberSslMode.name.length()),
+                kOptionMemberSslMode.name.data(), valid_values.c_str()));
+          }
+
+          return to_cluster_ssl_mode(value);
+        });
+
+    b.optional(kOptionGroupName, &Create_group_replication_options::group_name);
+    b.optional(kOptionManualStartOnBoot,
+               &Create_group_replication_options::manual_start_on_boot);
+    b.optional(kOptionConsistency,
+               &Create_group_replication_options::consistency);
+    b.optional(kOptionExpelTimeout,
+               &Create_group_replication_options::expel_timeout);
+    b.optional(kOptionCommunicationStack,
+               &Create_group_replication_options::communication_stack);
+    b.optional(kOptionTransactionSizeLimit,
+               &Create_group_replication_options::transaction_size_limit);
+    b.optional(kOptionPaxosSingleLeader,
+               &Create_group_replication_options::paxos_single_leader);
+
+    return b.build();
+  });
 
   return opts;
 }
 
-void Create_group_replication_options::set_group_name(
-    const std::string &value) {
-  group_name = shcore::str_strip(value);
-
-  if (group_name->empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kGroupName));
-}
-
-void Create_group_replication_options::set_ssl_mode(const std::string &value) {
-  ssl_mode = translate_ssl_mode(value);
-}
-
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

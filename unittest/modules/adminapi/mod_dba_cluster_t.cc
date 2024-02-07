@@ -23,6 +23,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "unittest/gprod_clean.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils/admin_api_test.h"
+
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/server_features.h"
@@ -30,14 +34,14 @@
 #include "modules/adminapi/common/topology_executor.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "unittest/test_utils/admin_api_test.h"
 
 using mysqlshdk::mysql::Instance;
 using mysqlshdk::mysql::Var_qualifier;
 
-namespace tests {
+namespace mysqlsh {
+namespace dba {
 
-class Admin_api_cluster_test : public Admin_api_test {
+class Admin_api_cluster_test : public tests::Admin_api_test {
  public:
   static std::shared_ptr<mysqlshdk::db::ISession> create_session(
       int port, std::string user = "root") {
@@ -204,7 +208,8 @@ TEST_F(Admin_api_cluster_test, bug28219398) {
       // Create the add_instance command and execute it.
       mysqlsh::dba::cluster::Add_instance_options options;
       options.gr_options = gr_opts;
-      options.set_recovery_progress(0);
+      options.recovery_progress.m_recovery_progress =
+          Recovery_progress_style::NONE;
       options.label = "";
 
       mysqlsh::dba::Topology_executor<mysqlsh::dba::cluster::Add_instance>{
@@ -243,4 +248,5 @@ TEST_F(Admin_api_cluster_test, bug28219398) {
   md_session->close();
 }
 
-}  // namespace tests
+}  // namespace dba
+}  // namespace mysqlsh

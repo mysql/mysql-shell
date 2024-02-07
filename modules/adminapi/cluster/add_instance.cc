@@ -687,9 +687,9 @@ void Add_instance::do_run() {
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
-      m_cluster_impl->wait_instance_recovery(*m_target_instance,
-                                             join_begin_time,
-                                             m_options.get_recovery_progress());
+      m_cluster_impl->wait_instance_recovery(
+          *m_target_instance, join_begin_time,
+          m_options.recovery_progress.get_recovery_progress());
 
       // When clone is used, the target instance will restart and all
       // connections are closed so we need to test if the connection to the

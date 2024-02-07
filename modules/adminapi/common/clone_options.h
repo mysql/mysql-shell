@@ -80,8 +80,6 @@ struct Join_cluster_clone_options : public Clone_options {
       Unpack_target t = Unpack_target::JOIN_CLUSTER)
       : Clone_options(t) {}
   static const shcore::Option_pack_def<Join_cluster_clone_options> &options();
-
-  void set_recovery_method(const std::string &value);
 };
 
 struct Join_replicaset_clone_options : public Join_cluster_clone_options {
@@ -111,9 +109,6 @@ struct Create_cluster_clone_options : public Clone_options {
   static const shcore::Option_pack_def<Create_cluster_clone_options> &options();
   Create_cluster_clone_options()
       : Clone_options(Unpack_target::CREATE_CLUSTER) {}
-
-  void set_gtid_set_is_complete(bool value);
-  void set_disable_clone(bool value);
 
   Create_cluster_clone_options &operator=(
       const Create_replica_cluster_clone_options &options) {

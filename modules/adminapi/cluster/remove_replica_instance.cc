@@ -61,7 +61,7 @@ void Remove_replica_instance::do_run() {
   if (!mysqlshdk::mysql::get_channel_status(
           *m_target_instance, mysqlsh::dba::k_read_replica_async_channel_name,
           &channel)) {
-    if (!m_options.force.value_or(false)) {
+    if (!m_options.get_force()) {
       console->print_error(
           "The Read-Replica Replication channel could not be found. Use the "
           "'force' option to ignore this check.");
@@ -76,7 +76,7 @@ void Remove_replica_instance::do_run() {
     }
   } else {
     if (channel.status() != mysqlshdk::mysql::Replication_channel::Status::ON) {
-      if (!m_options.force.value_or(false)) {
+      if (!m_options.get_force()) {
         console->print_error(
             "The Read-Replica Replication channel has an invalid state: '" +
             to_string(channel.status()) +
@@ -152,12 +152,11 @@ void Remove_replica_instance::do_run() {
             "can lead to errors if you want to reuse it.");
 
         throw;
-      } else if (m_options.force.value_or(false)) {
+      } else if (m_options.get_force()) {
         console->print_warning(
-            "Transaction sync failed but ignored because of 'force' "
-            "option, the instance might have been left in an inconsistent "
-            "state "
-            "that can lead to errors if it is reused: " +
+            "Transaction sync failed but ignored because of 'force' option, "
+            "the instance might have been left in an inconsistent state that "
+            "can lead to errors if it is reused: " +
             e.format());
       } else {
         console->print_error(

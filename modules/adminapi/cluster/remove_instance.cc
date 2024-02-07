@@ -410,9 +410,10 @@ void Remove_instance::prepare() {
 
       if (!force) {
         // the address is valid, but we can only remove if force:true
-        console->print_error("The instance '" + m_target_address +
-                             "' is not reachable and cannot be safely removed "
-                             "from the cluster.");
+        console->print_error(
+            shcore::str_format("The instance '%s' is not reachable and cannot "
+                               "be safely removed from the cluster.",
+                               m_target_address.c_str()));
         console->print_info(
             "To safely remove the instance from the Cluster, make sure the "
             "instance is back ONLINE and try again. If you are sure the "
@@ -420,17 +421,17 @@ void Remove_instance::prepare() {
             "longer connectable, use the 'force' option to remove it from the "
             "metadata.");
 
-        if (!current_shell_options()->get().wizards || m_options.force ||
-            !prompt_to_force_remove())
+        if (!current_shell_options()->get().wizards ||
+            m_options.force.has_value() || !prompt_to_force_remove())
           throw;
       } else {
         // if we're here, we can't connect to the instance but we'll force
         // remove it
-        console->print_note(
-            "The instance '" + m_target_address +
-            "' is not reachable and it will only be removed from the metadata. "
-            "Please take any necessary actions to ensure the instance "
-            "will not rejoin the cluster if brought back online.");
+        console->print_note(shcore::str_format(
+            "The instance '%s' is not reachable and it will only be removed "
+            "from the metadata. Please take any necessary actions to ensure "
+            "the instance will not rejoin the cluster if brought back online.",
+            m_target_address.c_str()));
         console->print_info();
       }
     }
@@ -525,8 +526,8 @@ void Remove_instance::prepare() {
             "To safely remove it from the cluster, it must be brought back "
             "ONLINE. If not possible, use the 'force' option to remove it "
             "anyway.");
-        if (!current_shell_options()->get().wizards || m_options.force ||
-            !prompt_to_force_remove())
+        if (!current_shell_options()->get().wizards ||
+            m_options.force.has_value() || !prompt_to_force_remove())
           throw shcore::Exception(
               "Instance is not ONLINE and cannot be safely removed",
               SHERR_DBA_GROUP_MEMBER_NOT_ONLINE);
@@ -612,7 +613,7 @@ void Remove_instance::do_run() {
         // Skip error if force=true, otherwise revert instance remove from MD
         // and issue error.
         // If force is not used OR is set to false
-        if (!m_options.force.value_or(false)) {
+        if (!m_options.get_force()) {
           // REVERT JOB: Remove instance from the MD (metadata).
           undo_remove_instance_metadata(instance_def);
           // TODO(alfredo): all these checks for auto-rejoin should be done in
@@ -702,7 +703,7 @@ void Remove_instance::do_run() {
           shcore::str_format("Instance '%s' failed to leave the cluster: %s",
                              m_target_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (!m_options.force.value_or(false) && !m_options.dry_run) {
+      if (!m_options.get_force() && !m_options.dry_run) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used
@@ -738,7 +739,7 @@ void Remove_instance::do_run() {
                              "after removing '%s': %s",
                              m_target_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
-      if (!m_options.force.value_or(false) && !m_options.dry_run) {
+      if (!m_options.get_force(false) && !m_options.dry_run) {
         // REVERT JOB: Remove instance from the MD (metadata).
         // If the removal of the instance from the cluster failed
         // We must add it back to the MD if force is not used

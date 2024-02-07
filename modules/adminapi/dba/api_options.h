@@ -39,33 +39,36 @@
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 struct Common_sandbox_options {
-  Common_sandbox_options();
-
+ public:
   static const shcore::Option_pack_def<Common_sandbox_options> &options();
-  void set_sandbox_dir(const std::string &value);
 
-  std::string sandbox_dir;
+  std::string get_sandbox_dir() const;
+
+ private:
+  std::optional<std::string> sandbox_dir;
 };
 
-struct Stop_sandbox_options : public Common_sandbox_options {
+struct Stop_sandbox_options final : public Common_sandbox_options {
   static const shcore::Option_pack_def<Stop_sandbox_options> &options();
+
   std::optional<std::string> password;
 };
 
-struct Deploy_sandbox_options : public Stop_sandbox_options {
+struct Deploy_sandbox_options final : public Common_sandbox_options {
   static const shcore::Option_pack_def<Deploy_sandbox_options> &options();
 
+  std::optional<std::string> password;
   std::optional<int> xport;
   std::string allow_root_from{"%"};
-  bool ignore_ssl_error = false;
+  bool ignore_ssl_error{false};
   shcore::Array_t mysqld_options;
 };
 
-struct Check_instance_configuration_options {
+struct Check_instance_configuration_options final {
+ public:
   static const shcore::Option_pack_def<Check_instance_configuration_options>
       &options();
 
@@ -76,54 +79,44 @@ struct Configure_instance_options {
   explicit Configure_instance_options(Cluster_type type) noexcept
       : cluster_type{type} {}
 
-  static const shcore::Option_pack_def<Configure_instance_options> &options();
-
-  void set_password_expiration(const shcore::Value &value);
-
-  Cluster_type cluster_type;
+  const Cluster_type cluster_type;
 
   std::string cluster_admin;
   std::optional<std::string> cluster_admin_password;
   std::optional<std::string> cluster_admin_cert_issuer;
   std::optional<std::string> cluster_admin_cert_subject;
   std::optional<int64_t> cluster_admin_password_expiration;
-  std::optional<bool> restart;
-  std::optional<int64_t> replica_parallel_workers;
+
   std::string mycnf_path;
   std::string output_mycnf_path;
+
+  std::optional<bool> restart;
+
+  std::optional<int64_t> replica_parallel_workers;
 };
 
-struct Configure_cluster_instance_options : public Configure_instance_options {
+struct Configure_cluster_instance_options final
+    : public Configure_instance_options {
   Configure_cluster_instance_options() noexcept
       : Configure_instance_options{Cluster_type::GROUP_REPLICATION} {}
 
   static const shcore::Option_pack_def<Configure_cluster_instance_options>
       &options();
-
-  void set_replica_parallel_workers(int64_t value);
-  void set_mycnf_path(const std::string &value);
-  void set_output_mycnf_path(const std::string &value);
 };
 
-struct Configure_replicaset_instance_options
+struct Configure_replicaset_instance_options final
     : public Configure_instance_options {
   Configure_replicaset_instance_options() noexcept
       : Configure_instance_options{Cluster_type::ASYNC_REPLICATION} {}
 
   static const shcore::Option_pack_def<Configure_replicaset_instance_options>
       &options();
-
-  void set_replica_parallel_workers(int64_t value);
 };
 
 struct Replication_auth_options {
   static const shcore::Option_pack_def<Replication_auth_options> &options();
 
-  void set_auth_type(const std::string &value);
-  void set_cert_issuer(const std::string &value);
-  void set_cert_subject(const std::string &value);
-
-  Replication_auth_type member_auth_type = Replication_auth_type::PASSWORD;
+  Replication_auth_type member_auth_type{Replication_auth_type::PASSWORD};
   std::string cert_issuer;
   std::string cert_subject;
 };
@@ -140,25 +133,21 @@ struct Create_cluster_options : public Force_options {
   Replication_auth_options member_auth_options;
   std::optional<bool> adopt_from_gr;
   std::optional<bool> multi_primary;
-  bool dry_run = false;
+  bool dry_run{false};
 
   std::string replication_allowed_host;
 };
 
 struct Create_replicaset_options {
   static const shcore::Option_pack_def<Create_replicaset_options> &options();
-  void set_instance_label(const std::string &optionvalue);
-  void set_ssl_mode(const std::string &value);
 
-  bool adopt = false;
-  bool dry_run = false;
-  bool gtid_set_is_complete = false;
+  bool adopt{false};
+  bool dry_run{false};
+  bool gtid_set_is_complete{false};
   std::string instance_label;
-
   std::string replication_allowed_host;
-
   Replication_auth_options member_auth_options;
-  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
+  Cluster_ssl_mode ssl_mode{Cluster_ssl_mode::NONE};
 };
 
 struct Drop_metadata_schema_options {
@@ -169,11 +158,10 @@ struct Drop_metadata_schema_options {
 
 struct Reboot_cluster_options {
   static const shcore::Option_pack_def<Reboot_cluster_options> &options();
+
   void check_option_values(const mysqlshdk::utils::Version &version,
-                           int canonical_port, const std::string &comm_stack);
-  void set_primary(std::string value);
-  void set_switch_communication_stack(const std::string &value);
-  void set_timeout(uint32_t timeout_seconds);
+                           int canonical_port,
+                           std::string_view comm_stack) const;
 
   bool get_force(bool default_value = false) const noexcept {
     return force.value_or(default_value);
@@ -200,9 +188,9 @@ struct Reboot_cluster_options {
 struct Upgrade_metadata_options {
   static const shcore::Option_pack_def<Upgrade_metadata_options> &options();
 
-  bool dry_run = false;
+  bool dry_run{false};
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
+
 #endif  // MODULES_ADMINAPI_DBA_API_OPTIONS_H_

@@ -360,9 +360,9 @@ void Rejoin_instance::do_run() {
                                  cluster_count, cfg.get());
 
       // Wait until recovery done. Will throw an exception if recovery fails.
-      m_cluster_impl->wait_instance_recovery(*m_target_instance,
-                                             join_begin_time,
-                                             m_options.get_recovery_progress());
+      m_cluster_impl->wait_instance_recovery(
+          *m_target_instance, join_begin_time,
+          m_options.recovery_progress.get_recovery_progress());
     }
 
     if (m_comm_stack == kCommunicationStackMySQL && !m_options.dry_run) {

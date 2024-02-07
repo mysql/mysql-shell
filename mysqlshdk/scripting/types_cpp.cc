@@ -1029,11 +1029,11 @@ std::shared_ptr<Function_base> Cpp_function::create(
   return std::shared_ptr<Function_base>(new Cpp_function(name, func, args));
 }
 
-Cpp_property_name::Cpp_property_name(const std::string &name, bool constant) {
+Cpp_property_name::Cpp_property_name(std::string_view name, bool constant) {
   // The | separator is used when specific names are given for a function
   // Otherwise the function name is retrieved based on the style
   auto index = name.find("|");
-  if (index == std::string::npos) {
+  if (index == std::string_view::npos) {
     _name[LowerCamelCase] =
         get_member_name(name, constant ? Constants : LowerCamelCase);
     _name[LowerCaseUnderscores] =
@@ -1044,29 +1044,35 @@ Cpp_property_name::Cpp_property_name(const std::string &name, bool constant) {
   }
 }
 
-std::string Cpp_property_name::name(NamingStyle style) const {
+const std::string &Cpp_property_name::name(NamingStyle style) const {
   assert((style >= 0) && (style < _name.size()));
   return _name[style];
 }
 
-std::string Cpp_property_name::base_name() const {
+const std::string &Cpp_property_name::base_name() const {
   return _name[LowerCamelCase];
 }
 
 std::string Parameter_context::str() const {
-  std::vector<std::string> ctx_data;
-  ctx_data.reserve(levels.size());
+  std::string ctx_data;
+
+  if (!title.empty()) ctx_data.append(title).append(" ");
+
+  if (levels.empty()) return ctx_data;
 
   for (const auto &level : levels) {
     if (!level.position.has_value()) {
-      ctx_data.push_back(level.name);
+      ctx_data.append(level.name);
     } else {
-      ctx_data.push_back(
+      ctx_data.append(
           shcore::str_format("%s #%i", level.name.c_str(), *level.position));
     }
+    ctx_data.append(", ");
   }
 
-  return (title.empty() ? "" : title + " ") + shcore::str_join(ctx_data, ", ");
+  ctx_data.erase(ctx_data.size() - 2);  // remove last ", "
+
+  return ctx_data;
 }
 
 bool Parameter_validator::valid_type(const Parameter &param,

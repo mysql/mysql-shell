@@ -98,6 +98,9 @@ RETURNS
       nothing
 
 OPTIONS
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
@@ -123,9 +126,6 @@ OPTIONS
 
 --label=<str>
             An identifier for the instance being added
-
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
 
 --certSubject=<str>
             Instance's certificate subject to use when 'memberAuthType'
@@ -216,6 +216,10 @@ RETURNS
       A JSON object with the result of the operation.
 
 OPTIONS
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+            recovery process to finish and its verbosity level.
+
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
@@ -232,19 +236,15 @@ OPTIONS
             The Cluster member to be used as donor when performing clone-based
             recovery. Available only for Read Replicas.
 
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
-            recovery process to finish and its verbosity level.
-
---dryRun=<bool>
-            Boolean if true, all validations and steps for rejoining the
-            instance are executed, but no changes are actually made.
-
 --timeout=<int>
             Maximum number of seconds to wait for the instance to sync up with
             the PRIMARY after it's provisioned and the replication channel is
             established. If reached, the operation is rolled-back. Default is 0
             (no timeout). Available only for Read Replicas.
+
+--dryRun=<bool>
+            Boolean if true, all validations and steps for rejoining the
+            instance are executed, but no changes are actually made.
 
 //@<OUT> CLI cluster remove-instance --help
 NAME
@@ -260,6 +260,11 @@ RETURNS
       Nothing.
 
 OPTIONS
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
+
 --force=<bool>
             Boolean, indicating if the instance must be removed (even if only
             from metadata) in case it cannot be reached. By default, set to
@@ -269,11 +274,6 @@ OPTIONS
             Boolean if true, all validations and steps for removing the
             instance are executed, but no changes are actually made. An
             exception will be thrown when finished.
-
---timeout=<int>
-            Maximum number of seconds to wait for the instance to sync up with
-            the PRIMARY. If reached, the operation is rolled-back. Default is 0
-            (no timeout).
 
 //@<OUT> CLI cluster remove-router-metadata --help
 NAME

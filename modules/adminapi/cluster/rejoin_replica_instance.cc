@@ -297,7 +297,7 @@ void Rejoin_replica_instance::do_run() {
     m_cluster_impl->handle_clone_provisioning(
         m_target_instance, m_donor_instance, ar_options, repl_account_host,
         m_cluster_impl->query_cluster_auth_cert_issuer(), m_auth_cert_subject,
-        m_options.get_recovery_progress(), m_options.timeout,
+        m_options.recovery_progress.get_recovery_progress(), m_options.timeout,
         m_options.dry_run);
 
     // Clone will copy all tables, including the replication settings stored

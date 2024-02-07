@@ -1719,24 +1719,6 @@ TEST_F(Admin_api_common_test, resolve_gr_local_address) {
   testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
 }
 
-TEST_F(Admin_api_common_test, set_recovery_progress) {
-  if (!Shell_test_env::check_min_version_skip_test()) return;
-
-  mysqlsh::dba::cluster::Add_instance_options options;
-
-  options.set_recovery_progress(0);
-  EXPECT_EQ(options.get_recovery_progress(),
-            mysqlsh::dba::Recovery_progress_style::MINIMAL);
-
-  options.set_recovery_progress(1);
-  EXPECT_EQ(options.get_recovery_progress(),
-            mysqlsh::dba::Recovery_progress_style::TEXTUAL);
-
-  options.set_recovery_progress(2);
-  EXPECT_EQ(options.get_recovery_progress(),
-            mysqlsh::dba::Recovery_progress_style::PROGRESS_BAR);
-}
-
 TEST_F(Admin_api_common_test, ip_allowlist) {
   if (!Shell_test_env::check_min_version_skip_test()) return;
 

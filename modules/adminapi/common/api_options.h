@@ -50,8 +50,11 @@ struct Timeout_option {
 };
 
 struct Recovery_progress_option {
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Admin_api_cluster_test, bug28219398);
+#endif
+
   static const shcore::Option_pack_def<Recovery_progress_option> &options();
-  void set_recovery_progress(int value);
   Recovery_progress_style get_recovery_progress() const;
 
  private:

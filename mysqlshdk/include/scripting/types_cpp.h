@@ -51,9 +51,9 @@ namespace shcore {
 
 class SHCORE_PUBLIC Cpp_property_name {
  public:
-  explicit Cpp_property_name(const std::string &name, bool constant = false);
-  std::string name(NamingStyle style) const;
-  std::string base_name() const;
+  explicit Cpp_property_name(std::string_view name, bool constant = false);
+  const std::string &name(NamingStyle style) const;
+  const std::string &base_name() const;
 
  private:
   // Each instance holds it's names on the different styles
@@ -81,6 +81,7 @@ struct Parameter_context {
 };
 
 struct Parameter;
+
 struct Parameter_validator {
  public:
   virtual ~Parameter_validator() = default;
@@ -308,7 +309,7 @@ class Option_pack_def : public IOption_pack_def {
   template <typename T>
   Option_pack_def<C> &optional(
       const std::string &name,
-      std::function<void(C *instance, T value)> callback,
+      std::function<void(C &instance, std::string_view name, T value)> callback,
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -317,16 +318,17 @@ class Option_pack_def : public IOption_pack_def {
     // cannot capture this here, static instances are initialized via copy/move,
     // original object will no longer exist when unpack callback is called
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode](const Option_pack_def<C> *self,
-                                       shcore::Option_unpacker *unpacker,
-                                       C *instance) {
+        [name, callback = std::move(callback), extract_mode](
+            const Option_pack_def<C> *self, shcore::Option_unpacker *unpacker,
+            C *instance) {
           std::optional<T> value;
           self->get_optional(unpacker, extract_mode, name, &value);
 
-          if (value.has_value()) callback(instance, *value);
+          if (value.has_value()) callback(*instance, name, std::move(*value));
         });
     return *this;
   }
+
   /**
    * Allows defining an optional option for the pack, using a member attribute
    * as the target location for the unpacked value.
@@ -877,6 +879,240 @@ class Option_pack_def : public IOption_pack_def {
   std::unordered_map<std::string_view, std::size_t> m_all_options;
 };
 
+template <class TType>
+struct Option_data {
+  using Type = TType;
+
+  template <class TFilterType = TType>
+  using TFilter = void (*)(std::string_view, TFilterType &);
+
+  constexpr explicit Option_data(std::string_view option_name) noexcept
+      : name{option_name} {}
+
+  constexpr explicit Option_data(std::string_view option_name,
+                                 TFilter<> option_filter) noexcept
+      : name{option_name}, filter{option_filter} {}
+
+  constexpr explicit Option_data(std::string_view option_name,
+                                 shcore::Option_scope option_scope,
+                                 TFilter<> option_filter = nullptr) noexcept
+      : name{option_name}, scope{option_scope}, filter{option_filter} {}
+
+  constexpr explicit Option_data(
+      std::string_view option_name,
+      shcore::Option_extract_mode option_extract_mode,
+      TFilter<> option_filter = nullptr) noexcept
+      : name{option_name},
+        extract_mode{option_extract_mode},
+        filter{option_filter} {}
+
+  constexpr explicit Option_data(
+      std::string_view option_name,
+      shcore::Option_extract_mode option_extract_mode,
+      shcore::Option_scope option_scope,
+      TFilter<> option_filter = nullptr) noexcept
+      : name{option_name},
+        extract_mode{option_extract_mode},
+        scope{option_scope},
+        filter{option_filter} {}
+
+  constexpr Option_data(std::string_view option_name,
+                        std::string_view option_sname) noexcept
+      : name{option_name}, sname{option_sname} {}
+
+  constexpr explicit Option_data(
+      std::string_view option_name, std::string_view option_sname,
+      shcore::Option_extract_mode option_extract_mode,
+      shcore::Option_scope option_scope,
+      TFilter<> option_filter = nullptr) noexcept
+      : name{option_name},
+        sname{option_sname},
+        extract_mode{option_extract_mode},
+        scope{option_scope},
+        filter{option_filter} {}
+
+  template <class TNewType>
+  constexpr auto as(TFilter<TNewType> new_filter = nullptr) const noexcept {
+    return Option_data<TNewType>{name, sname, extract_mode, scope, new_filter};
+  }
+
+  auto deprecate() const noexcept {
+    auto new_option = *this;
+    new_option.scope = shcore::Option_scope::DEPRECATED;
+    return new_option;
+  }
+
+  std::string_view name;
+  std::string_view sname;
+  shcore::Option_extract_mode extract_mode{
+      shcore::Option_extract_mode::CASE_INSENSITIVE};
+  shcore::Option_scope scope{shcore::Option_scope::GLOBAL};
+  TFilter<> filter{nullptr};
+};
+
+template <class TOption>
+class Option_pack_builder {
+  template <class>
+  static constexpr bool dependent_false = false;
+
+ public:
+  template <class TOptionType, class TTarget>
+    requires(std::is_member_object_pointer_v<TTarget>)
+  Option_pack_builder &optional(const Option_data<TOptionType> &option,
+                                TTarget &&target) {
+    if (option.filter) {
+      m_pack.template optional<TOptionType>(
+          std::string{option.name},
+          [target = std::forward<TTarget>(target), filter = option.filter](
+              TOption &options, std::string_view option_name,
+              TOptionType option_value) {
+            filter(option_name, option_value);
+            options.*target = std::move(option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+
+    } else {
+      m_pack.optional(std::string{option.name}, std::move(target),
+                      std::string{option.sname}, option.extract_mode,
+                      option.scope);
+    }
+
+    return *this;
+  }
+
+  template <class TOptionType, class TTarget>
+    requires(std::is_member_object_pointer_v<TTarget>)
+  Option_pack_builder &required(const Option_data<TOptionType> &option,
+                                TTarget &&target) {
+    m_pack.required(std::string{option.name}, std::move(target),
+                    std::string{option.sname}, option.extract_mode,
+                    option.scope);
+
+    return *this;
+  }
+
+  template <class TFilterType, class TOptionType, class TTarget, class TFilter>
+    requires(std::is_member_object_pointer_v<TTarget> &&
+             !std::is_same_v<std::decay<TFilterType>, std::decay<TOptionType>>)
+  Option_pack_builder &optional_as(const Option_data<TOptionType> &option,
+                                   TTarget &&target, TFilter &&filter) {
+    if constexpr (std::is_invocable_r_v<TOptionType, TFilter,
+                                        const TFilterType &>) {
+      m_pack.template optional<TFilterType>(
+          std::string{option.name},
+          [target = std::forward<TTarget>(target),
+           filter = std::forward<TFilter>(filter)](
+              TOption &options, std::string_view,
+              const TFilterType &option_value) {
+            options.*target = filter(option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+
+    } else {
+      static_assert(
+          dependent_false<TFilter>,
+          "Convertion callback signature is not supported");  // until
+                                                              // CWG2518/P2593R1
+    }
+
+    return *this;
+  }
+
+  template <class TFilterType, class TOptionType, class TFilter>
+  Option_pack_builder &optional_as(const Option_data<TOptionType> &option,
+                                   TFilter &&callback) {
+    if constexpr (std::is_invocable_r_v<void, TFilter, TOption &,
+                                        std::string_view,
+                                        const TFilterType &>) {
+      m_pack.template optional<TFilterType>(
+          std::string{option.name},
+          [callback = std::forward<TFilter>(callback)](
+              TOption &options, std::string_view option_name,
+              const TFilterType &option_value) {
+            callback(options, option_name, option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+    } else {
+      static_assert(
+          dependent_false<TFilter>,
+          "Convertion callback signature is not supported");  // until
+                                                              // CWG2518/P2593R1
+    }
+
+    return *this;
+  }
+
+  template <class TOptionType, class TTarget, class TFilter,
+            class TFilterType = TOptionType>
+    requires(std::is_member_object_pointer_v<TTarget>)
+  Option_pack_builder &optional(const Option_data<TOptionType> &option,
+                                TTarget &&target, TFilter &&filter) {
+    if constexpr (std::is_invocable_r_v<void, TFilter, TOptionType &>) {
+      m_pack.template optional<TOptionType>(
+          std::string{option.name},
+          [target = std::forward<TTarget>(target),
+           filter = std::forward<TFilter>(filter)](
+              TOption &options, std::string_view, TOptionType option_value) {
+            filter(option_value);
+            options.*target = std::move(option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+    } else if constexpr (std::is_invocable_r_v<void, TFilter, std::string_view,
+                                               TOptionType &>) {
+      m_pack.template optional<TOptionType>(
+          std::string{option.name},
+          [target = std::forward<TTarget>(target),
+           filter = std::forward<TFilter>(filter)](TOption &options,
+                                                   std::string_view option_name,
+                                                   TOptionType option_value) {
+            filter(option_name, option_value);
+            options.*target = std::move(option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+    } else if constexpr (std::is_invocable_r_v<void, TFilter, const TOption &,
+                                               std::string_view,
+                                               TOptionType &>) {
+      m_pack.template optional<TOptionType>(
+          std::string{option.name},
+          [target = std::forward<TTarget>(target),
+           filter = std::forward<TFilter>(filter)](TOption &options,
+                                                   std::string_view option_name,
+                                                   TOptionType option_value) {
+            filter(options, option_name, option_value);
+            options.*target = std::move(option_value);
+          },
+          std::string{option.sname}, option.extract_mode, option.scope);
+    } else {
+      static_assert(
+          dependent_false<TFilter>,
+          "Filter callback signature is not supported");  // until
+                                                          // CWG2518/P2593R1
+    }
+
+    return *this;
+  }
+
+  template <class T>
+  Option_pack_builder &include() {
+    m_pack.template include<T>();
+    return *this;
+  }
+
+  template <class T>
+    requires(std::is_member_object_pointer_v<T>)
+  Option_pack_builder &include(T &&member) {
+    m_pack.include(std::forward<T>(member));
+    return *this;
+  }
+
+  shcore::Option_pack_def<TOption> build() noexcept {
+    return std::exchange(m_pack, {});
+  }
+
+ private:
+  shcore::Option_pack_def<TOption> m_pack;
+};
+
 /**
  * Wrapper for option packs to be used as parameters on exposed APIs.
  *
@@ -889,11 +1125,11 @@ class Option_pack_def : public IOption_pack_def {
 template <typename T>
 class Option_pack_ref {
  public:
-  T *operator->() { return &m_options; }
-  const T *operator->() const { return &m_options; }
+  T *operator->() noexcept { return &m_options; }
+  const T *operator->() const noexcept { return &m_options; }
 
-  T &operator*() { return m_options; }
-  const T &operator*() const { return m_options; }
+  T &operator*() noexcept { return m_options; }
+  const T &operator*() const noexcept { return m_options; }
 
   void unpack(const shcore::Dictionary_t &options) {
     T::options().unpack(options, &m_options);

@@ -35,8 +35,7 @@
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 struct Group_replication_options {
   enum Unpack_target {
@@ -126,10 +125,9 @@ struct Reboot_group_replication_options
       &options();
 };
 
-struct Join_group_replication_options
-    : public Rejoin_group_replication_options {
+struct Join_group_replication_options : public Group_replication_options {
   explicit Join_group_replication_options(Unpack_target t = Unpack_target::JOIN)
-      : Rejoin_group_replication_options(t) {}
+      : Group_replication_options(t) {}
   static const shcore::Option_pack_def<Join_group_replication_options>
       &options();
 };
@@ -149,20 +147,8 @@ struct Create_group_replication_options
       : Join_group_replication_options(Unpack_target::CREATE) {}
   static const shcore::Option_pack_def<Create_group_replication_options>
       &options();
-
-  void set_group_name(const std::string &value);
-  void set_ssl_mode(const std::string &value);
-
-  void set_consistency(const std::string &option, const std::string &value) {
-    Group_replication_options::set_consistency(option, value);
-  }
-
-  void set_expel_timeout(int64_t value) {
-    Group_replication_options::set_expel_timeout(value);
-  }
 };
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_COMMON_GROUP_REPLICATION_OPTIONS_H_

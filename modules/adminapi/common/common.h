@@ -91,6 +91,7 @@ std::string to_string(Type type);
 
 namespace ManagedInstance {
 enum State {
+  Unknown = 0,
   OnlineRW = 1 << 0,
   OnlineRO = 1 << 1,
   Recovering = 1 << 2,
@@ -132,10 +133,10 @@ struct Cluster_check_info {
   ReplicationQuorum::State quorum;
 
   // The configuration type of the instance from which the data was consulted
-  TargetType::Type source_type;
+  TargetType::Type source_type{TargetType::Type::Unknown};
 
   // The state of the instance from which the data was consulted
-  ManagedInstance::State source_state;
+  ManagedInstance::State source_state{ManagedInstance::State::Unknown};
 };
 
 class cancel_sync : public std::exception {};
@@ -210,14 +211,6 @@ inline constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
 inline constexpr const char kAdoptFromAR[] = "adoptFromAR";
 inline constexpr const char kDryRun[] = "dryRun";
 inline constexpr const char kInstanceLabel[] = "instanceLabel";
-inline constexpr const char kSandboxDir[] = "sandboxDir";
-inline constexpr const char kPortX[] = "portx";
-inline constexpr const char kAllowRootFrom[] = "allowRootFrom";
-inline constexpr const char kIgnoreSslError[] = "ignoreSslError";
-inline constexpr const char kMysqldOptions[] = "mysqldOptions";
-inline constexpr const char kMyCnfPath[] = "mycnfPath";
-inline constexpr const char kVerifyMyCnf[] = "verifyMyCnf";
-inline constexpr const char kOutputMycnfPath[] = "outputMycnfPath";
 inline constexpr const char kInteractive[] = "interactive";
 inline constexpr const char kClusterAdmin[] = "clusterAdmin";
 inline constexpr const char kClusterAdminPassword[] = "clusterAdminPassword";
@@ -247,7 +240,6 @@ inline constexpr const char kUpdate[] = "update";
 inline constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 inline constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
 inline constexpr const char kRepairMetadata[] = "repairMetadata";
-inline constexpr const char kAll[] = "all";
 inline constexpr const char kTimeout[] = "timeout";
 inline constexpr const char kInvalidateErrorInstances[] =
     "invalidateErrorInstances";
@@ -398,15 +390,8 @@ Replication_auth_type to_replication_auth_type(std::string_view auth);
 inline constexpr const char *kCommunicationStackMySQL = "MYSQL";
 inline constexpr const char *kCommunicationStackXCom = "XCOM";
 
-inline const std::set<std::string> kCommunicationStackValidValues = {
-    kCommunicationStackXCom, kCommunicationStackMySQL};
-
-/**
- * Map of the supported Cluster capabilities
- */
-inline const std::map<std::string, std::set<std::string>>
-    k_cluster_supported_capabilities{
-        {kCommunicationStack, kCommunicationStackValidValues}};
+inline const std::array<std::string_view, 2> kCommunicationStackValidValues = {
+    kCommunicationStackMySQL, kCommunicationStackXCom};
 
 /**
  * Check if a setting is supported on the target instance

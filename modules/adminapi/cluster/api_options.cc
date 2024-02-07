@@ -22,6 +22,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #include "modules/adminapi/cluster/api_options.h"
 
 #include <vector>
@@ -29,11 +30,10 @@
 #include "adminapi/common/api_options.h"
 #include "adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/common_cmd_options.h"
 #include "mysqlshdk/include/shellcore/console.h"
 
-namespace mysqlsh {
-namespace dba {
-namespace cluster {
+namespace mysqlsh::dba::cluster {
 
 namespace {
 void throw_rescan_mixing_exception() {
@@ -46,105 +46,155 @@ void throw_rescan_mixing_exception() {
 
 const shcore::Option_pack_def<Add_instance_options>
     &Add_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Add_instance_options>()
-          .include(&Add_instance_options::gr_options)
-          .include(&Add_instance_options::clone_options)
-          .optional(kLabel, &Add_instance_options::label)
-          .include<Recovery_progress_option>()
-          .optional(kCertSubject, &Add_instance_options::set_cert_subject);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Add_instance_options> b;
+
+    b.include(&Add_instance_options::recovery_progress);
+    b.include(&Add_instance_options::gr_options);
+    b.include(&Add_instance_options::clone_options);
+
+    b.optional(kOptionLabel, &Add_instance_options::label);
+    b.optional(kOptionCertSubject, &Add_instance_options::cert_subject);
+
+    return b.build();
+  });
+
   return opts;
-}
-
-void Add_instance_options::set_cert_subject(const std::string &value) {
-  if (value.empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for '%s' option. Value cannot be an empty string.",
-        kCertSubject));
-
-  cert_subject = value;
 }
 
 const shcore::Option_pack_def<Rejoin_instance_options>
     &Rejoin_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Rejoin_instance_options>()
-          .include(&Rejoin_instance_options::gr_options)
-          .include(&Rejoin_instance_options::clone_options)
-          .include<Recovery_progress_option>()
-          .optional(kDryRun, &Rejoin_instance_options::dry_run)
-          .include<Timeout_option>();
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Rejoin_instance_options> b;
+
+    b.include(&Rejoin_instance_options::recovery_progress);
+    b.include(&Rejoin_instance_options::gr_options);
+    b.include(&Rejoin_instance_options::clone_options);
+
+    b.optional(kOptionTimeout, &Rejoin_instance_options::timeout);
+    b.optional(kOptionDryRun, &Rejoin_instance_options::dry_run);
+
+    return b.build();
+  });
 
   return opts;
 }
 
 const shcore::Option_pack_def<Remove_instance_options>
     &Remove_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Remove_instance_options>()
-          .optional(kForce, &Remove_instance_options::force)
-          .optional(kDryRun, &Remove_instance_options::dry_run)
-          .include<Timeout_option>();
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Remove_instance_options> b;
+
+    b.optional(kOptionTimeout, &Remove_instance_options::timeout);
+    b.optional(kOptionForce, &Remove_instance_options::force);
+    b.optional(kOptionDryRun, &Remove_instance_options::dry_run);
+
+    return b.build();
+  });
 
   return opts;
 }
 
 const shcore::Option_pack_def<Status_options> &Status_options::options() {
-  static const auto opts = shcore::Option_pack_def<Status_options>().optional(
-      kExtended, &Status_options::set_extended);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Status_options> b;
+
+    b.optional(kOptionExtended, &Status_options::extended,
+               [](std::string_view name, uint64_t &value) {
+                 if (value <= 3) return;
+                 throw shcore::Exception::argument_error(shcore::str_format(
+                     "Invalid value '%" PRIu64
+                     "' for option '%.*s'. It must be an integer in the "
+                     "range [0, 3].",
+                     value, static_cast<int>(name.length()), name.data()));
+               });
+
+    return b.build();
+  });
 
   return opts;
 }
 
-void Status_options::set_extended(uint64_t value) {
-  // Validate extended option UInteger [0, 3] or Boolean.
-  if (value > 3) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value '%" PRIu64
-                           "' for option '%s'. It must be an integer in the "
-                           "range [0, 3].",
-                           value, kExtended));
-  }
-
-  extended = value;
+namespace {
+constexpr shcore::Option_data<bool> kOptionAll{"all"};
 }
 
 const shcore::Option_pack_def<Options_options> &Options_options::options() {
-  static const auto opts = shcore::Option_pack_def<Options_options>().optional(
-      kAll, &Options_options::all);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Options_options> b;
+
+    b.optional(kOptionAll, &Options_options::all);
+
+    return b.build();
+  });
 
   return opts;
 }
+
+namespace {
+constexpr shcore::Option_data<std::vector<mysqlshdk::db::Connection_options>>
+    kOptionAddInstances{"addInstances"};
+constexpr shcore::Option_data<std::vector<mysqlshdk::db::Connection_options>>
+    kOptionRemoveInstances{"removeInstances"};
+constexpr shcore::Option_data<bool> kOptionAddUnmanaged{"addUnmanaged"};
+constexpr shcore::Option_data<bool> kOptionRemoveObsolete{"removeObsolete"};
+constexpr shcore::Option_data<bool> kOptionUpgradeCommProtocol{
+    "upgradeCommProtocol"};
+constexpr shcore::Option_data<std::optional<bool>> kOptionUpdateViewChangeUuid{
+    "updateViewChangeUuid"};
+constexpr shcore::Option_data<std::optional<bool>> kOptionRepairMetadata{
+    "repairMetadata"};
+}  // namespace
 
 const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Rescan_options>()
-          .optional(kAddInstances, &Rescan_options::set_list_option)
-          .optional(kRemoveInstances, &Rescan_options::set_list_option)
-          .optional(kAddUnmanaged, &Rescan_options::set_bool_option)
-          .optional(kRemoveObsolete, &Rescan_options::set_bool_option)
-          .optional(kUpgradeCommProtocol,
-                    &Rescan_options::upgrade_comm_protocol)
-          .optional(kUpdateViewChangeUuid,
-                    &Rescan_options::update_view_change_uuid)
-          .optional(kRepairMetadata, &Rescan_options::repair_metadata);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Rescan_options> b;
+
+    b.optional_as<shcore::Value>(
+        kOptionAddInstances, [](Rescan_options &options, std::string_view name,
+                                const shcore::Value &value) {
+          options.set_list_option(name, value);
+        });
+    b.optional_as<shcore::Value>(
+        kOptionRemoveInstances,
+        [](Rescan_options &options, std::string_view name,
+           const shcore::Value &value) {
+          options.set_list_option(name, value);
+        });
+
+    b.optional_as<bool>(kOptionAddUnmanaged, [](Rescan_options &options,
+                                                std::string_view, bool value) {
+      if (options.m_used_deprecated.has_value() &&
+          !options.m_used_deprecated.value())
+        throw_rescan_mixing_exception();
+
+      options.m_used_deprecated = true;
+      options.auto_add = value;
+    });
+    b.optional_as<bool>(
+        kOptionRemoveObsolete,
+        [](Rescan_options &options, std::string_view, bool value) {
+          if (options.m_used_deprecated.has_value() &&
+              !options.m_used_deprecated.value())
+            throw_rescan_mixing_exception();
+
+          options.m_used_deprecated = true;
+          options.auto_remove = value;
+        });
+
+    b.optional(kOptionUpgradeCommProtocol,
+               &Rescan_options::upgrade_comm_protocol);
+    b.optional(kOptionUpdateViewChangeUuid,
+               &Rescan_options::update_view_change_uuid);
+    b.optional(kOptionRepairMetadata, &Rescan_options::repair_metadata);
+
+    return b.build();
+  });
 
   return opts;
 }
 
-void Rescan_options::set_bool_option(const std::string &option, bool value) {
-  if (m_used_deprecated.has_value() && !m_used_deprecated.value())
-    throw_rescan_mixing_exception();
-
-  m_used_deprecated = true;
-
-  if (option == kAddUnmanaged)
-    auto_add = value;
-  else
-    auto_remove = value;
-}
-
-void Rescan_options::set_list_option(const std::string &option,
+void Rescan_options::set_list_option(std::string_view name,
                                      const shcore::Value &value) {
   if (m_used_deprecated.has_value() && m_used_deprecated.value())
     throw_rescan_mixing_exception();
@@ -161,10 +211,12 @@ void Rescan_options::set_list_option(const std::string &option,
   std::vector<mysqlshdk::db::Connection_options> *instances_list;
 
   // Selects the target list
-  instances_list =
-      option == kRemoveInstances ? &remove_instances_list : &add_instances_list;
+  instances_list = (name == kOptionRemoveInstances.name)
+                       ? &remove_instances_list
+                       : &add_instances_list;
 
-  bool *auto_option = option == kRemoveInstances ? &auto_remove : &auto_add;
+  bool *auto_option =
+      (name == kOptionRemoveInstances.name) ? &auto_remove : &auto_add;
 
   if (value.get_type() == shcore::Value_type::String) {
     auto str_val = value.as_string();
@@ -172,15 +224,16 @@ void Rescan_options::set_list_option(const std::string &option,
       *auto_option = true;
     } else {
       throw shcore::Exception::argument_error(shcore::str_format(
-          "Option '%s' only accepts 'auto' as a valid string "
+          "Option '%.*s' only accepts 'auto' as a valid string "
           "value, otherwise a list of instances is expected.",
-          option.c_str()));
+          static_cast<int>(name.length()), name.data()));
     }
   } else if (value.get_type() == shcore::Value_type::Array) {
     auto instances_array = value.as_array();
     if (instances_array->empty()) {
-      throw shcore::Exception::argument_error(shcore::str_format(
-          "The list for '%s' option cannot be empty.", option.c_str()));
+      throw shcore::Exception::argument_error(
+          shcore::str_format("The list for '%.*s' option cannot be empty.",
+                             static_cast<int>(name.length()), name.data()));
     }
 
     // Process values from addInstances list (must be valid connection data).
@@ -200,97 +253,113 @@ void Rescan_options::set_list_option(const std::string &option,
       } catch (const std::exception &err) {
         std::string error(err.what());
         throw shcore::Exception::argument_error(shcore::str_format(
-            "Invalid value '%s' for '%s' option: %s", instance.descr().c_str(),
-            option.c_str(), error.c_str()));
+            "Invalid value '%s' for '%.*s' option: %s",
+            instance.descr().c_str(), static_cast<int>(name.length()),
+            name.data(), error.c_str()));
       }
     }
   } else {
     throw shcore::Exception::argument_error(shcore::str_format(
-        "The '%s' option must be a string or a list of strings.",
-        option.c_str()));
+        "The '%.*s' option must be a string or a list of strings.",
+        static_cast<int>(name.length()), name.data()));
   }
+}
+
+namespace {
+constexpr shcore::Option_data<std::optional<uint32_t>>
+    kOptionRunningTransactionsTimeout{"runningTransactionsTimeout"};
 }
 
 const shcore::Option_pack_def<Set_primary_instance_options>
     &Set_primary_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Set_primary_instance_options>().optional(
-          "runningTransactionsTimeout",
-          &Set_primary_instance_options::running_transactions_timeout);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Set_primary_instance_options> b;
+
+    b.optional(kOptionRunningTransactionsTimeout,
+               &Set_primary_instance_options::running_transactions_timeout);
+
+    return b.build();
+  });
 
   return opts;
 }
 
 // Read-Replicas
 
-void Add_replica_instance_options::set_replication_sources(
-    const shcore::Value &value) {
-  validate_replication_sources_option(value);
-
-  // Iterate the list to build the vector of Managed_async_channel_source(s)
-  if (value.get_type() == shcore::Value_type::Array) {
-    auto sources = value.to_string_container<std::vector<std::string>>();
-
-    replication_sources_option.replication_sources =
-        std::set<Managed_async_channel_source,
-                 std::greater<Managed_async_channel_source>>{};
-
-    // The source list is ordered by weight
-    int64_t source_weight = k_read_replica_max_weight;
-
-    for (const auto &src : sources) {
-      Managed_async_channel_source managed_src_address(src);
-
-      // Add it if not in the list already. The one kept in the list is the one
-      // with the highest priority/weight
-      if (replication_sources_option.replication_sources.find(
-              managed_src_address) ==
-          replication_sources_option.replication_sources.end()) {
-        Managed_async_channel_source managed_src(src, source_weight--);
-        replication_sources_option.replication_sources.emplace(
-            std::move(managed_src));
-      }
-    }
-
-    // Set the source type to CUSTOM
-    replication_sources_option.source_type = Source_type::CUSTOM;
-  } else if (value.get_type() == shcore::Value_type::String) {
-    auto string = value.as_string();
-
-    if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {
-      replication_sources_option.source_type = Source_type::PRIMARY;
-    } else if (shcore::str_caseeq(string, kReplicationSourcesAutoSecondary)) {
-      replication_sources_option.source_type = Source_type::SECONDARY;
-    }
-  }
-}
-
-void Add_replica_instance_options::set_cert_subject(const std::string &value) {
-  if (value.empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for '%s' option. Value cannot be an empty string.",
-        kCertSubject));
-
-  cert_subject = value;
+namespace {
+constexpr shcore::Option_data<Replication_sources> kOptionReplicationSources{
+    "replicationSources"};
 }
 
 const shcore::Option_pack_def<Add_replica_instance_options>
     &Add_replica_instance_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Add_replica_instance_options>()
-          .include<Timeout_option>()
-          .optional(kDryRun, &Add_replica_instance_options::dry_run)
-          .optional(kLabel, &Add_replica_instance_options::label)
-          .optional(kCertSubject,
-                    &Add_replica_instance_options::set_cert_subject)
-          .optional(kReplicationSources,
-                    &Add_replica_instance_options::set_replication_sources)
-          .include<Recovery_progress_option>()
-          .include(&Add_replica_instance_options::clone_options);
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Add_replica_instance_options> b;
+
+    b.optional(kOptionTimeout, &Add_replica_instance_options::timeout);
+    b.optional(kOptionDryRun, &Add_replica_instance_options::dry_run);
+    b.optional(kOptionLabel, &Add_replica_instance_options::label);
+    b.optional(kOptionCertSubject, &Add_replica_instance_options::cert_subject);
+
+    b.optional_as<shcore::Value>(
+        kOptionReplicationSources,
+        &Add_replica_instance_options::replication_sources_option,
+        [](const shcore::Value &value) -> Replication_sources {
+          validate_replication_sources_option(value);
+
+          Replication_sources repl_sources;
+
+          // Iterate the list to build the vector of
+          // Managed_async_channel_source(s)
+          if (value.get_type() == shcore::Value_type::Array) {
+            auto sources =
+                value.to_string_container<std::vector<std::string>>();
+
+            repl_sources.replication_sources =
+                std::set<Managed_async_channel_source,
+                         std::greater<Managed_async_channel_source>>{};
+
+            // The source list is ordered by weight
+            int64_t source_weight = k_read_replica_max_weight;
+
+            for (const auto &src : sources) {
+              Managed_async_channel_source managed_src_address(src);
+
+              // Add it if not in the list already. The one kept in the list is
+              // the one with the highest priority/weight
+              if (repl_sources.replication_sources.find(managed_src_address) ==
+                  repl_sources.replication_sources.end()) {
+                Managed_async_channel_source managed_src(src, source_weight--);
+                repl_sources.replication_sources.emplace(
+                    std::move(managed_src));
+              }
+            }
+
+            // Set the source type to CUSTOM
+            repl_sources.source_type = Source_type::CUSTOM;
+            return repl_sources;
+          }
+
+          assert(value.get_type() == shcore::Value_type::String);
+
+          auto string = value.as_string();
+          if (shcore::str_caseeq(string, kReplicationSourcesAutoPrimary)) {
+            repl_sources.source_type = Source_type::PRIMARY;
+          } else if (shcore::str_caseeq(string,
+                                        kReplicationSourcesAutoSecondary)) {
+            repl_sources.source_type = Source_type::SECONDARY;
+          }
+
+          return repl_sources;
+        });
+
+    b.include(&Add_replica_instance_options::recovery_progress);
+    b.include(&Add_replica_instance_options::clone_options);
+
+    return b.build();
+  });
 
   return opts;
 }
 
-}  // namespace cluster
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba::cluster

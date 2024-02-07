@@ -956,9 +956,11 @@ void Dba::connect_to_target_group(
   }
 
   // Check if we need to reset the MetadataStorage to use the Primary member
-  bool is_md_connected_to_primary = mysqlshdk::utils::are_endpoints_equal(
-      out_metadata->get()->get_md_server()->get_connection_options().as_uri(),
-      target_member->get_connection_options().as_uri());
+  bool is_md_connected_to_primary = false;
+  if (out_metadata)
+    is_md_connected_to_primary = !mysqlshdk::utils::are_endpoints_equal(
+        out_metadata->get()->get_md_server()->get_connection_options().as_uri(),
+        target_member->get_connection_options().as_uri());
 
   if (connect_to_primary && !is_md_connected_to_primary) {
     *out_metadata = std::make_shared<MetadataStorage>(
@@ -967,7 +969,8 @@ void Dba::connect_to_target_group(
 
   // Check if the target instance has MD schema
   mysqlshdk::utils::Version md_version;
-  bool has_md_schema = out_metadata->get()->check_version(&md_version);
+  bool has_md_schema =
+      !out_metadata ? false : out_metadata->get()->check_version(&md_version);
 
   // Check if the target member belongs to a ClusterSet and get the connection
   // to the primary instance of the primary cluster
@@ -2266,8 +2269,8 @@ void Dba::deploy_sandbox_instance(
   auto password = opts.password;
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
-  std::string path =
-      shcore::path::join_path(options->sandbox_dir, std::to_string(port));
+  auto path =
+      shcore::path::join_path(options->get_sandbox_dir(), std::to_string(port));
 
   if (interactive) {
     console->print_info(
@@ -2301,7 +2304,7 @@ void Dba::deploy_sandbox_instance(
 
   shcore::Array_t errors;
   int rc = _provisioning_interface.create_sandbox(
-      port, opts.xport.value_or(0), options->sandbox_dir, *password,
+      port, opts.xport.value_or(0), options->get_sandbox_dir(), *password,
       shcore::Value(opts.mysqld_options), true, opts.ignore_ssl_error, 0, "",
       &errors);
 
@@ -2412,7 +2415,7 @@ None Dba::delete_sandbox_instance(int port, dict options) {}
 #endif
 void Dba::delete_sandbox_instance(
     int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("delete", port, options->sandbox_dir);
+  exec_instance_op("delete", port, options->get_sandbox_dir());
 }
 
 REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
@@ -2450,7 +2453,7 @@ None Dba::kill_sandbox_instance(int port, dict options) {}
 #endif
 void Dba::kill_sandbox_instance(
     int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("kill", port, options->sandbox_dir);
+  exec_instance_op("kill", port, options->get_sandbox_dir());
 }
 
 REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
@@ -2497,7 +2500,7 @@ void Dba::stop_sandbox_instance(
 
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
-  std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
+  auto path = shcore::path::join_path(sandbox_dir, std::to_string(port));
   if (interactive) {
     console->print_info("The MySQL sandbox instance on this host in \n" + path +
                         " will be " + sandbox::Operations_text["stop"].past +
@@ -2537,7 +2540,7 @@ void Dba::stop_sandbox_instance(
     }
   }
 
-  exec_instance_op("stop", port, options->sandbox_dir, *password);
+  exec_instance_op("stop", port, options->get_sandbox_dir(), *password);
 }
 
 REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
@@ -2575,7 +2578,7 @@ None Dba::start_sandbox_instance(int port, dict options) {}
 #endif
 void Dba::start_sandbox_instance(
     int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("start", port, options->sandbox_dir);
+  exec_instance_op("start", port, options->get_sandbox_dir());
 }
 
 void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
@@ -2815,9 +2818,8 @@ void Dba::configure_replica_set_instance(
     const std::optional<Connection_options> &instance_def,
     const shcore::Option_pack_ref<Configure_replicaset_instance_options>
         &options) {
-  return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, *options,
-      Cluster_type::ASYNC_REPLICATION);
+  do_configure_instance(instance_def ? *instance_def : Connection_options{},
+                        *options, Cluster_type::ASYNC_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
@@ -2941,19 +2943,17 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     // Validate the options:
     //   - switchCommunicationStack
     //   - localAddress
-    static_cast<Reboot_cluster_options>(*options).check_option_values(
-        target_instance_version, target_instance->get_canonical_port(),
-        comm_stack);
+    options->check_option_values(target_instance_version,
+                                 target_instance->get_canonical_port(),
+                                 comm_stack);
   }
 
   Scoped_instance_pool ipool(
       metadata, false,
       Instance_pool::Auth_options{target_instance->get_connection_options()});
 
-  const auto console = current_console();
-
   if (options->get_dry_run()) {
-    console->print_note(
+    current_console()->print_note(
         "dryRun option was specified. Validations will be executed, but no "
         "changes will be applied.");
   }
