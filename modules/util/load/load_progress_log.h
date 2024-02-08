@@ -477,6 +477,7 @@ class Load_progress_log final {
     Status status;
     uint64_t data_bytes_completed;
     uint64_t file_bytes_completed;
+    uint64_t rows_completed;
   };
 
   Progress_status init(std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -501,6 +502,7 @@ class Load_progress_log final {
     std::string data;
     uint64_t data_bytes_completed = 0;
     uint64_t file_bytes_completed = 0;
+    uint64_t rows_completed = 0;
 
     if (existing_file && existing_file->exists()) {
       existing_file->open(mysqlshdk::storage::Mode::READ);
@@ -517,6 +519,7 @@ class Load_progress_log final {
         const std::string subchunk{progress::entry::Subchunk::key};
         const std::string bytes{progress::entry::Data_bytes::key};
         const std::string raw_bytes{progress::entry::File_bytes::key};
+        const std::string rows{progress::entry::Rows::key};
 
         shcore::str_itersplit(
             data,
@@ -568,6 +571,7 @@ class Load_progress_log final {
 
                 data_bytes_completed += entry->get_uint(bytes);
                 file_bytes_completed += entry->get_uint(raw_bytes);
+                rows_completed += entry->get_uint(rows);
               }
 
               if (result.second || done) {
@@ -597,7 +601,7 @@ class Load_progress_log final {
         flush();
       }
     }
-    return {status, data_bytes_completed, file_bytes_completed};
+    return {status, data_bytes_completed, file_bytes_completed, rows_completed};
   }
 
   void reset_progress() {

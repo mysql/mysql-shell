@@ -43,10 +43,9 @@ namespace mysqlshdk {
 namespace textui {
 
 Throughput::Throughput() {
-  auto current_time = std::chrono::steady_clock::now();
   for (auto &s : m_history) {
     s.bytes = 0;
-    s.time = current_time;
+    s.time = {};
   }
 }
 

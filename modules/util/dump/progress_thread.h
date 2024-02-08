@@ -160,6 +160,16 @@ class Progress_thread final {
     virtual ~Stage() = default;
 
     /**
+     * Starts execution of this stage.
+     */
+    void start();
+
+    /**
+     * Checks whether execution of this stage has started.
+     */
+    bool is_started() const noexcept { return m_started; }
+
+    /**
      * Finishes execution of this stage.
      *
      * @param wait If true, it will wait for the display loop to end.
@@ -217,8 +227,6 @@ class Progress_thread final {
    private:
     friend class Progress_thread;
 
-    void start();
-
     void display();
 
     void wait_for_finish();
@@ -243,6 +251,7 @@ class Progress_thread final {
     volatile bool m_display_done = false;
 
     volatile bool m_terminated = false;
+    bool m_started = false;
   };
 
   /**
@@ -414,6 +423,66 @@ class Progress_thread final {
   Stage *start_stage(Stage_config stage_config, Throughput_config config);
 
   /**
+   * Pushes a stage which displays a spinner. Needs to be manually started and
+   * finished.
+   *
+   * @param description The description of a new stage.
+   *
+   * @returns stage which was created.
+   */
+  inline Stage *push_stage(std::string description) {
+    return push_stage(Stage_config{std::move(description)});
+  }
+
+  /**
+   * Pushes a stage which displays a spinner. Needs to be manually started and
+   * finished.
+   *
+   * @param stage_config The configuration of a new stage.
+   *
+   * @returns stage which was created.
+   */
+  Stage *push_stage(Stage_config stage_config);
+
+  /**
+   * Pushes a stage which displays a progress.
+   *
+   * @param description The description of a new stage.
+   * @param config The configuration of the progress.
+   *
+   * @returns stage which was created.
+   */
+  template <typename T>
+  inline Stage *push_stage(std::string description, T &&config) requires(
+      std::is_same_v<T, Progress_config> ||
+      std::is_same_v<T, Throughput_config>) {
+    return push_stage(Stage_config{std::move(description)},
+                      std::forward<T>(config));
+  }
+
+  /**
+   * Pushes a stage which displays a spinner and a numeric progress. Needs to be
+   * manually started. Stage will be automatically finished.
+   *
+   * @param stage_config The configuration of a new stage.
+   * @param config The configuration of the numeric progress.
+   *
+   * @returns stage which was created.
+   */
+  Stage *push_stage(Stage_config stage_config, Progress_config config);
+
+  /**
+   * Pushes a stage which displays a throughput information. Needs to be
+   * manually started and finished.
+   *
+   * @param stage_config The configuration of a new stage.
+   * @param config The configuration of the throughput progress.
+   *
+   * @returns stage which was created.
+   */
+  Stage *push_stage(Stage_config stage_config, Throughput_config config);
+
+  /**
    * Finishes any pending stages and waits for their completion.
    *
    * @throws any exception reported by the stages
@@ -460,6 +529,9 @@ class Progress_thread final {
  private:
   template <class T, class... Args>
   Stage *start_stage(Stage_config stage_config, Args &&... args);
+
+  template <class T, class... Args>
+  Stage *push_stage(Stage_config stage_config, Args &&... args);
 
   void shutdown();
 

@@ -724,15 +724,15 @@ session.runSql(`create table init_test.init_test (a int)`);
 
 util.loadDump(__tmp_dir+"/ldtest/dump", {sessionInitSql:["set @cid=connection_id()", `insert into init_test.init_test values (@cid)`] });
 
-// ensure sessionInitSql was executed (4 threads + 1 main thread)
-EXPECT_EQ(5, session.runSql(`select * from init_test.init_test`).fetchAll().length);
+// ensure sessionInitSql was executed (4 threads + 1 main thread at least)
+EXPECT_GE(session.runSql(`select * from init_test.init_test`).fetchAll().length, 5);
 
 session.runSql("truncate init_test.init_test");
 
 util.loadDump(__tmp_dir+"/ldtest/dump", {sessionInitSql:["set @cid=connection_id()", `insert into init_test.init_test values (@cid)`] });
 
 // ensure sessionInitSql was executed even if no data loaded (4 threads + 1 main thread)
-EXPECT_EQ(5, session.runSql(`select * from init_test.init_test`).fetchAll().length);
+EXPECT_GE(session.runSql(`select * from init_test.init_test`).fetchAll().length, 5);
 
 
 wipe_instance(session);
@@ -1050,6 +1050,9 @@ session.runSql("ANALYZE TABLE sakila.payment UPDATE HISTOGRAM ON rental_id, cust
 util.dumpSchemas(["sakila"], __tmp_dir+"/ldtest/dump-sakila");
 wipe_instance(session);
 
+//@<> BUG#36197620 - summary should contain more details regarding all executed stages
+analyze_tables_summary = "tables were analyzed in ";
+
 //@<> Load everything with no analyze, indexes deferred
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off", deferTableIndexes:"all"});
@@ -1057,6 +1060,8 @@ EXPECT_SHELL_LOG_CONTAINS("(indexes removed for deferred creation)");
 EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`store`");
 EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`inventory`");
 EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
+
+EXPECT_OUTPUT_NOT_CONTAINS(analyze_tables_summary);
 
 //@<> Analyze only
 WIPE_SHELL_LOG();
@@ -1082,6 +1087,8 @@ if(__version_num>80000) {
   EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`film`");
 }
 
+EXPECT_OUTPUT_CONTAINS(`16 ${analyze_tables_summary}`);
+
 //@<> Load everything without deferring indexes and analyze only for histograms
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
@@ -1096,8 +1103,12 @@ if(__version_num>80000) {
   EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`film`");
   EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`rental`");
   EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`payment`");
+
+  EXPECT_OUTPUT_CONTAINS(`3 ${analyze_tables_summary}`);
 } else {
   EXPECT_OUTPUT_CONTAINS("WARNING: Histogram creation enabled but MySQL Server "+__version+" does not support it.");
+
+  EXPECT_OUTPUT_NOT_CONTAINS(analyze_tables_summary);
 }
 
 //@<> Load everything with fulltext index deferment (the default)

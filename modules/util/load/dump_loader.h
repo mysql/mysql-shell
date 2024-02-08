@@ -53,6 +53,7 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -370,7 +371,9 @@ class Dump_loader {
     void run();
     void stop();
 
-    uint64_t get_connection_id() const { return m_connection_id; }
+    uint64_t connection_id() const noexcept { return m_connection_id; }
+
+    uint64_t thread_id() const noexcept { return m_thread_id; }
 
    private:
     void handle_current_exception(Dump_loader *loader,
@@ -384,11 +387,14 @@ class Dump_loader {
 
     void connect();
 
+    uint64_t current_thread_id() const;
+
     size_t m_id = 0;
     Dump_loader *m_owner;
 
     std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
-    uint64_t m_connection_id;
+    uint64_t m_connection_id = 0;
+    uint64_t m_thread_id = 0;
 
     std::unique_ptr<Task> m_task;
 
@@ -399,6 +405,7 @@ class Dump_loader {
 
   struct Worker_event {
     enum Event {
+      CONNECTED,
       READY,
       FATAL_ERROR,
       SCHEMA_DDL_START,
@@ -620,6 +627,10 @@ class Dump_loader {
 
   std::string temp_table_name();
 
+  void update_rows_throughput(uint64_t rows);
+
+  uint64_t rows_throughput_rate();
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
@@ -714,6 +725,8 @@ class Dump_loader {
 
   class Bulk_load_support;
 
+  class Monitoring;
+
   const Load_dump_options &m_options;
 
   std::unique_ptr<Dump_reader> m_dump;
@@ -755,10 +768,16 @@ class Dump_loader {
   size_t m_total_tables_with_data = 0;
 
   size_t m_data_bytes_previously_loaded = 0;
+  size_t m_rows_previously_loaded = 0;
   import_table::Stats m_stats;
   std::atomic<size_t> m_num_errors;
+  mysqlshdk::textui::Throughput m_rows_throughput;
+  std::mutex m_rows_throughput_mutex;
 
   std::atomic<uint64_t> m_ddl_executed;
+
+  uint64_t m_total_ddl_executed = 0;
+  double m_total_ddl_execution_seconds = 0;
 
   std::atomic<uint64_t> m_indexes_recreated;
   uint64_t m_indexes_to_recreate = 0;
@@ -792,6 +811,8 @@ class Dump_loader {
 
   std::string m_temp_table_prefix;
   std::atomic<uint64_t> m_temp_table_suffix{0};
+
+  std::unique_ptr<Monitoring> m_monitoring;
 
   // BULK LOAD
   std::unique_ptr<Bulk_load_support> m_bulk_load;
