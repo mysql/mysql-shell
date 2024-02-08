@@ -97,6 +97,8 @@ static constexpr const auto k_chunk_size_overshoot_tolerance = 1.5;
 
 namespace {
 
+using Session_ptr = std::shared_ptr<mysqlshdk::db::mysql::Session>;
+
 constexpr auto k_temp_table_comment =
     "mysqlsh-tmp-218ffeec-b67b-4886-9a8c-d7812a1f93eb";
 
@@ -299,7 +301,90 @@ void mark_temp_table(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                     k_temp_table_comment);
 }
 
+std::string format_rows_throughput(const uint64_t rows, double seconds) {
+  return mysqlshdk::utils::format_throughput_items("row", "rows", rows, seconds,
+                                                   true);
+}
+
 }  // namespace
+
+class Dump_loader::Monitoring final {
+ public:
+  using Monitor = std::function<void(const Session_ptr &)>;
+
+  explicit Monitoring(Dump_loader *loader) : m_loader(loader) {
+    m_thread = mysqlsh::spawn_scoped_thread([this]() { monitoring_thread(); });
+  }
+
+  ~Monitoring() {
+    m_terminating = true;
+    m_thread.join();
+  }
+
+  void add(Monitor m) {
+    std::lock_guard lock{m_monitors_mutex};
+    m_monitors.emplace_back(std::move(m));
+  }
+
+  void add_worker(const Worker *w) {
+    std::lock_guard lock{m_workers_mutex};
+    m_workers.emplace(w);
+  }
+
+  void remove_worker(const Worker *w) {
+    std::lock_guard lock{m_workers_mutex};
+    m_workers.erase(w);
+  }
+
+ private:
+  void monitoring_thread() {
+    try {
+      mysqlsh::Mysql_thread mysql_thread;
+      const auto session = m_loader->create_session();
+
+      while (!m_terminating) {
+        if (m_loader->m_worker_hard_interrupt) {
+          kill_queries(session);
+        } else {
+          monitor(session);
+        }
+
+        shcore::sleep_ms(250);
+      }
+    } catch (const std::exception &e) {
+      log_error("Monitoring thread: %s", e.what());
+    }
+  }
+
+  void kill_queries(const Session_ptr &session) {
+    std::lock_guard lock{m_workers_mutex};
+
+    for (const auto worker : m_workers) {
+      try {
+        Dump_loader::execute(
+            session, "KILL QUERY " + std::to_string(worker->connection_id()));
+      } catch (const std::exception &e) {
+        log_warning("Error canceling SQL connection %" PRIu64 ": %s",
+                    worker->connection_id(), e.what());
+      }
+    }
+  }
+
+  void monitor(const Session_ptr &session) {
+    std::lock_guard lock{m_monitors_mutex};
+    for (const auto &m : m_monitors) {
+      m(session);
+    }
+  }
+
+  Dump_loader *m_loader;
+  std::atomic_bool m_terminating = false;
+  std::thread m_thread;
+  std::mutex m_monitors_mutex;
+  std::vector<Monitor> m_monitors;
+  std::mutex m_workers_mutex;
+  std::unordered_set<const Worker *> m_workers;
+};
 
 class Dump_loader::Bulk_load_support {
  public:
@@ -307,20 +392,9 @@ class Dump_loader::Bulk_load_support {
       : m_loader(loader),
         m_bulk_load_info(loader->m_options.bulk_load_info()) {}
 
-  ~Bulk_load_support() {
-    m_terminating = true;
-
-    if (m_monitoring_thread.joinable()) {
-      m_monitoring_thread.join();
-    }
-  }
-
   std::size_t compatible_tables() const noexcept { return m_compatible_tables; }
 
   void on_bulk_load_start(Worker *worker, Worker::Bulk_load_task *task) {
-    // fetch thread ID before locking the mutex
-    const auto tid = to_thread_id(worker);
-
     {
       std::lock_guard lock{m_monitored_threads_mutex};
 
@@ -330,14 +404,14 @@ class Dump_loader::Bulk_load_support {
       const auto next_progress_update = 1.0 / (2 * task->chunk().chunks_total);
 
       m_monitored_threads.emplace(
-          tid, Thread_info{worker, task, next_progress_update,
-                           next_progress_update});
+          worker->thread_id(), Thread_info{worker, task, next_progress_update,
+                                           next_progress_update});
     }
 
-    // create the monitoring thread
-    if (!m_monitoring_thread.joinable()) {
-      m_monitoring_thread =
-          mysqlsh::spawn_scoped_thread([this]() { monitoring_thread(); });
+    if (!m_monitoring_started) {
+      m_loader->m_monitoring->add(
+          [this](const Session_ptr &session) { report_progress(session); });
+      m_monitoring_started = true;
     }
 
     DBUG_EXECUTE_IF("dump_loader_bulk_interrupt", { m_loader->abort(); });
@@ -346,12 +420,11 @@ class Dump_loader::Bulk_load_support {
   void on_bulk_load_end(Worker *worker) {
     std::size_t data_bytes_update = 0;
     std::size_t file_bytes_update = 0;
-    const auto tid = to_thread_id(worker);
 
     {
       std::lock_guard lock{m_monitored_threads_mutex};
 
-      if (const auto it = m_monitored_threads.find(tid);
+      if (const auto it = m_monitored_threads.find(worker->thread_id());
           m_monitored_threads.end() != it) {
         const auto &info = it->second;
         const auto &chunk = info.task->chunk();
@@ -597,45 +670,7 @@ class Dump_loader::Bulk_load_support {
     std::size_t file_bytes_reported = 0;
   };
 
-  void monitoring_thread() {
-    try {
-      mysqlsh::Mysql_thread mysql_thread;
-      const auto session = m_loader->create_session();
-      const auto monitor_progress = m_bulk_load_info.monitoring;
-
-      while (!m_terminating) {
-        if (m_loader->m_worker_hard_interrupt) {
-          kill_queries(session);
-        } else if (monitor_progress) {
-          report_progress(session);
-        }
-
-        shcore::sleep_ms(250);
-      }
-    } catch (const std::exception &e) {
-      log_error("BULK LOAD monitoring thread: %s", e.what());
-    }
-  }
-
-  void kill_queries(
-      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
-    std::lock_guard lock{m_monitored_threads_mutex};
-
-    for (const auto &thread : m_monitored_threads) {
-      try {
-        Dump_loader::execute(
-            session,
-            "KILL QUERY " +
-                std::to_string(thread.second.worker->get_connection_id()));
-      } catch (const std::exception &e) {
-        log_warning("Error canceling SQL connection %" PRIu64 ": %s",
-                    thread.second.worker->get_connection_id(), e.what());
-      }
-    }
-  }
-
-  void report_progress(
-      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
+  void report_progress(const Session_ptr &session) {
     std::lock_guard lock{m_monitored_threads_mutex};
 
     if (m_monitored_threads.empty()) {
@@ -728,32 +763,10 @@ class Dump_loader::Bulk_load_support {
     }
   }
 
-  uint64_t to_thread_id(Worker *worker) {
-    if (const auto it = m_worker_to_thread.find(worker);
-        m_worker_to_thread.end() != it) {
-      return it->second;
-    }
-
-    const auto tid =
-        Dump_loader::query(m_loader->m_session,
-                           "SELECT THREAD_ID FROM performance_schema.threads "
-                           "WHERE PROCESSLIST_ID=" +
-                               std::to_string(worker->get_connection_id()))
-            ->fetch_one_or_throw()
-            ->get_uint(0);
-
-    m_worker_to_thread[worker] = tid;
-
-    return tid;
-  }
-
   Dump_loader *m_loader;
   const Load_dump_options::Bulk_load_info &m_bulk_load_info;
-  std::atomic_bool m_terminating = false;
-  std::thread m_monitoring_thread;
 
-  std::unordered_map<Worker *, uint64_t> m_worker_to_thread;
-
+  bool m_monitoring_started = false;
   std::mutex m_monitored_threads_mutex;
   std::unordered_map<uint64_t, Thread_info> m_monitored_threads;
 
@@ -776,9 +789,9 @@ void Dump_loader::Worker::Task::handle_current_exception(
   worker->handle_current_exception(loader, error);
 }
 
-bool Dump_loader::Worker::Schema_ddl_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Schema_ddl_task::execute(const Session_ptr &session,
+                                                   Worker *worker,
+                                                   Dump_loader *loader) {
   log_debug("%swill execute DDL for schema %s", log_id(), schema().c_str());
 
   loader->post_worker_event(worker, Worker_event::SCHEMA_DDL_START);
@@ -837,9 +850,9 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(
   return true;
 }
 
-bool Dump_loader::Worker::Table_ddl_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Table_ddl_task::execute(const Session_ptr &session,
+                                                  Worker *worker,
+                                                  Dump_loader *loader) {
   log_debug("%swill execute DDL file for table %s", log_id(), key().c_str());
 
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_START);
@@ -898,8 +911,7 @@ void Dump_loader::Worker::Table_ddl_task::extract_deferred_statements(
 }
 
 void Dump_loader::Worker::Table_ddl_task::post_process(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader) {
+    const Session_ptr &session, Dump_loader *loader) {
   if ((m_status == Load_progress_log::DONE ||
        loader->m_options.ignore_existing_objects()) &&
       m_deferred_statements && !m_deferred_statements->empty()) {
@@ -908,8 +920,7 @@ void Dump_loader::Worker::Table_ddl_task::post_process(
 }
 
 void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader) {
+    const Session_ptr &session, Dump_loader *loader) {
   // this handles the case where the table was already created (either in a
   // previous run or by the user) and some indexes may already have been
   // re-created
@@ -979,9 +990,8 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
   }
 }
 
-void Dump_loader::Worker::Table_ddl_task::load_ddl(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Table_ddl_task::load_ddl(const Session_ptr &session,
+                                                   Dump_loader *loader) {
   if (m_status == Load_progress_log::DONE || !loader->m_options.load_ddl()) {
     return;
   }
@@ -1029,9 +1039,9 @@ std::string Dump_loader::Worker::Table_data_task::query_comment() const {
   return query_comment;
 }
 
-bool Dump_loader::Worker::Load_data_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Load_data_task::execute(const Session_ptr &session,
+                                                  Worker *worker,
+                                                  Dump_loader *loader) {
   const auto masked_path = m_chunk.file->full_path().masked();
 
   log_debug("%swill load %s for table %s", log_id(), masked_path.c_str(),
@@ -1058,9 +1068,9 @@ bool Dump_loader::Worker::Load_data_task::execute(
   return true;
 }
 
-void Dump_loader::Worker::Load_data_task::load(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader, Worker *worker) {
+void Dump_loader::Worker::Load_data_task::load(const Session_ptr &session,
+                                               Dump_loader *loader,
+                                               Worker *worker) {
   loader->m_num_threads_loading++;
 
   shcore::on_leave_scope cleanup([this, loader]() {
@@ -1093,9 +1103,9 @@ void Dump_loader::Worker::Load_data_task::load(
   loader->m_stats.total_files_processed += stats.total_files_processed;
 }
 
-void Dump_loader::Worker::Load_chunk_task::on_load_start(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *worker,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Load_chunk_task::on_load_start(const Session_ptr &,
+                                                         Worker *worker,
+                                                         Dump_loader *loader) {
   FI_TRIGGER_TRAP(dump_loader, mysqlshdk::utils::FI::Trigger_options(
                                    {{"op", "BEFORE_LOAD_START"},
                                     {"schema", schema()},
@@ -1111,9 +1121,9 @@ void Dump_loader::Worker::Load_chunk_task::on_load_start(
                                     {"chunk", std::to_string(chunk().index)}}));
 }
 
-void Dump_loader::Worker::Load_chunk_task::do_load(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+void Dump_loader::Worker::Load_chunk_task::do_load(const Session_ptr &session,
+                                                   Worker *worker,
+                                                   Dump_loader *loader) {
   auto import_options =
       import_table::Import_table_options::unpack(chunk().options);
 
@@ -1251,9 +1261,9 @@ void Dump_loader::Worker::Load_chunk_task::do_load(
   }
 }
 
-void Dump_loader::Worker::Load_chunk_task::on_load_end(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *worker,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Load_chunk_task::on_load_end(const Session_ptr &,
+                                                       Worker *worker,
+                                                       Dump_loader *loader) {
   FI_TRIGGER_TRAP(dump_loader, mysqlshdk::utils::FI::Trigger_options(
                                    {{"op", "BEFORE_LOAD_END"},
                                     {"schema", schema()},
@@ -1265,8 +1275,7 @@ void Dump_loader::Worker::Load_chunk_task::on_load_end(
 }
 
 void Dump_loader::Worker::Bulk_load_task::on_load_start(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
   loader->post_worker_event(worker, Worker_event::BULK_LOAD_START);
 
   // if table is partitioned, we load into a temporary table, in that case
@@ -1286,9 +1295,9 @@ void Dump_loader::Worker::Bulk_load_task::on_load_start(
   }
 }
 
-void Dump_loader::Worker::Bulk_load_task::do_load(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session, Worker *,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Bulk_load_task::do_load(const Session_ptr &session,
+                                                  Worker *,
+                                                  Dump_loader *loader) {
   log_info("Loading %zu files into table %s using BULK LOAD",
            chunk().chunks_total, key().c_str());
 
@@ -1315,9 +1324,9 @@ void Dump_loader::Worker::Bulk_load_task::do_load(
   }
 }
 
-void Dump_loader::Worker::Bulk_load_task::on_load_end(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *worker,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Bulk_load_task::on_load_end(const Session_ptr &,
+                                                      Worker *worker,
+                                                      Dump_loader *loader) {
   // signal for more work
   loader->post_worker_event(worker, Worker_event::BULK_LOAD_END);
 }
@@ -1326,9 +1335,8 @@ bool Dump_loader::Worker::Bulk_load_task::partitioned() const {
   return !chunk().partition.empty();
 }
 
-void Dump_loader::Worker::Bulk_load_task::bulk_load(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Dump_loader *loader) {
+void Dump_loader::Worker::Bulk_load_task::bulk_load(const Session_ptr &session,
+                                                    Dump_loader *loader) {
   const auto import_options =
       Bulk_load_support::import_options(chunk(), m_target_table);
 
@@ -1380,8 +1388,7 @@ void Dump_loader::Worker::Bulk_load_task::bulk_load(
 }
 
 bool Dump_loader::Worker::Analyze_table_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
   log_debug("%swill analyze table `%s`.`%s`", log_id(), schema().c_str(),
             table().c_str());
 
@@ -1432,8 +1439,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 }
 
 bool Dump_loader::Worker::Index_recreation_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
   log_debug("%swill recreate %zu indexes for table %s", log_id(),
             m_indexes->size(), key().c_str());
 
@@ -1565,9 +1571,9 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   return true;
 }
 
-bool Dump_loader::Worker::Checksum_task::execute(
-    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Checksum_task::execute(const Session_ptr &session,
+                                                 Worker *worker,
+                                                 Dump_loader *loader) {
   log_debug("%swill verify checksum for: %s, chunk: %zi", log_id(),
             key().c_str(), chunk_index());
 
@@ -1626,6 +1632,8 @@ void Dump_loader::Worker::do_run() {
     return;
   }
 
+  m_owner->post_worker_event(this, Worker_event::CONNECTED);
+
   for (;;) {
     m_owner->post_worker_event(this, Worker_event::READY);
 
@@ -1647,6 +1655,32 @@ void Dump_loader::Worker::stop() { m_work_ready.push(false); }
 void Dump_loader::Worker::connect() {
   m_session = m_owner->create_session();
   m_connection_id = m_session->get_connection_id();
+  m_thread_id = current_thread_id();
+}
+
+uint64_t Dump_loader::Worker::current_thread_id() const {
+  const auto query = [this](std::string_view q) {
+    return Dump_loader::query(m_session, q)->fetch_one_or_throw()->get_uint(0);
+  };
+
+  if (m_session->get_server_version() >= Version(8, 0, 16)) {
+    return query("SELECT PS_CURRENT_THREAD_ID()");
+  }
+
+  try {
+    return query(
+        "SELECT THREAD_ID FROM performance_schema.threads WHERE "
+        "PROCESSLIST_ID=" +
+        std::to_string(connection_id()));
+  } catch (const mysqlshdk::db::Error &e) {
+    if (ER_TABLEACCESS_DENIED_ERROR != e.code()) {
+      throw;
+    }
+  }
+
+  log_warning("Unable to fetch thread ID for connection ID: %" PRIu64,
+              m_connection_id);
+  return 0;
 }
 
 void Dump_loader::Worker::schedule(std::unique_ptr<Task> task) {
@@ -1715,7 +1749,7 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
 
 Dump_loader::~Dump_loader() = default;
 
-std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
+Session_ptr Dump_loader::create_session() {
   auto session = establish_session(m_options.connection_options(), false);
 
   // Make sure we don't get affected by user customizations of sql_mode
@@ -2154,6 +2188,8 @@ size_t Dump_loader::handle_worker_events(
     const std::function<bool()> &schedule_next) {
   const auto to_string = [](Worker_event::Event event) {
     switch (event) {
+      case Worker_event::Event::CONNECTED:
+        return "CONNECTED";
       case Worker_event::Event::READY:
         return "READY";
       case Worker_event::Event::FATAL_ERROR:
@@ -2350,6 +2386,11 @@ size_t Dump_loader::handle_worker_events(
       case Worker_event::EXIT:
         clear_worker(event.worker);
         break;
+
+      case Worker_event::CONNECTED:
+        assert(m_monitoring);
+        m_monitoring->add_worker(event.worker);
+        break;
     }
 
     // schedule more work if the worker became free
@@ -2542,36 +2583,37 @@ void Dump_loader::show_summary() {
 
   const auto console = current_console();
 
-  if (m_stats.total_records == 0) {
+  if (m_stats.total_records == m_rows_previously_loaded) {
     if (m_resuming)
       console->print_info("There was no remaining data left to be loaded.");
     else
       console->print_info("No data loaded.");
   } else {
     assert(m_load_data_stage);
-
-    const auto seconds = m_progress_thread.duration().seconds();
     const auto load_seconds = m_load_data_stage->duration().seconds();
 
     console->print_info(shcore::str_format(
         "%zi chunks (%s, %s) for %" PRIu64
         " tables in %zi schemas were "
-        "loaded in %s (avg throughput %s)",
+        "loaded in %s (avg throughput %s, %s)",
         m_stats.total_files_processed.load(),
-        format_items("rows", "rows", m_stats.total_records.load()).c_str(),
-        format_bytes(m_stats.total_data_bytes.load()).c_str(),
+        format_items("rows", "rows", m_stats.total_records).c_str(),
+        format_bytes(m_stats.total_data_bytes).c_str(),
         m_dump->tables_to_load(), m_dump->schemas().size(),
-        format_seconds(seconds, false).c_str(),
+        format_seconds(load_seconds, false).c_str(),
         format_throughput_bytes(
-            m_stats.total_data_bytes.load() - m_data_bytes_previously_loaded,
+            m_stats.total_data_bytes - m_data_bytes_previously_loaded,
             load_seconds)
+            .c_str(),
+        format_rows_throughput(m_stats.total_records - m_rows_previously_loaded,
+                               load_seconds)
             .c_str()));
   }
 
-  if (m_stats.total_deleted > 0) {
-    // BUG#35304391 - notify about replaced rows
-    console->print_info(std::to_string(m_stats.total_deleted) +
-                        " rows were replaced");
+  if (m_total_ddl_executed) {
+    console->print_info(shcore::str_format(
+        "%" PRIu64 " DDL files were executed in %s.", m_total_ddl_executed,
+        format_seconds(m_total_ddl_execution_seconds, false).c_str()));
   }
 
   if (m_options.load_users()) {
@@ -2591,26 +2633,62 @@ void Dump_loader::show_summary() {
     console->print_info(msg);
   }
 
+  if (m_bulk_load && m_bulk_load->compatible_tables()) {
+    console->print_info(shcore::str_format(
+        "%zi table%s loaded using BULK LOAD.", m_bulk_load->compatible_tables(),
+        1 == m_bulk_load->compatible_tables() ? " was" : "s were"));
+  }
+
+  if (m_stats.total_records != m_rows_previously_loaded) {
+    assert(m_load_data_stage);
+    const auto load_seconds = m_load_data_stage->duration().seconds();
+
+    console->print_info(shcore::str_format(
+        "Data load duration: %s", format_seconds(load_seconds, false).c_str()));
+  }
+
+  if (m_indexes_recreated) {
+    assert(m_create_indexes_stage);
+
+    console->print_info(shcore::str_format(
+        "%" PRIu64 " indexes were recreated in %s.", m_indexes_recreated.load(),
+        format_seconds(m_create_indexes_stage->duration().seconds(), false)
+            .c_str()));
+
+    if (m_num_index_retries) {
+      console->print_info(
+          shcore::str_format("There were %zi retries to create indexes.",
+                             m_num_index_retries.load()));
+    }
+  }
+
+  if (m_tables_analyzed) {
+    assert(m_analyze_tables_stage);
+
+    console->print_info(shcore::str_format(
+        "%" PRIu64 " tables were analyzed in %s.", m_tables_analyzed.load(),
+        format_seconds(m_analyze_tables_stage->duration().seconds(), false)
+            .c_str()));
+  }
+
+  console->print_info(shcore::str_format(
+      "Total duration: %s",
+      format_seconds(m_progress_thread.duration().seconds(), false).c_str()));
+
+  if (m_stats.total_deleted > 0) {
+    // BUG#35304391 - notify about replaced rows
+    console->print_info(std::to_string(m_stats.total_deleted) +
+                        " rows were replaced");
+  }
+
   if (m_num_errors > 0) {
     console->print_info(shcore::str_format(
-        "%zi errors and %zi warnings messages were reported during the load.",
+        "%zi errors and %zi warnings were reported during the load.",
         m_num_errors.load(), m_stats.total_warnings.load()));
   } else {
     console->print_info(
         shcore::str_format("%zi warnings were reported during the load.",
                            m_stats.total_warnings.load()));
-  }
-
-  if (m_num_index_retries) {
-    console->print_info(
-        shcore::str_format("There were %zi retries to create indexes.",
-                           m_num_index_retries.load()));
-  }
-
-  if (m_bulk_load && m_bulk_load->compatible_tables()) {
-    console->print_info(shcore::str_format(
-        "%zi table%s loaded using BULK LOAD.", m_bulk_load->compatible_tables(),
-        1 == m_bulk_load->compatible_tables() ? " was" : "s were"));
   }
 
   if (!m_options.dry_run()) {
@@ -3197,12 +3275,16 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
             "reloaded.");
         *out_is_resuming = true;
 
-        log_info("Resuming load, last loaded %s bytes",
-                 std::to_string(progress.data_bytes_completed).c_str());
+        log_info("Resuming load, last loaded %s bytes (%s rows)",
+                 std::to_string(progress.data_bytes_completed).c_str(),
+                 std::to_string(progress.rows_completed).c_str());
         // Recall the partial progress that was made before
         m_data_bytes_previously_loaded = progress.data_bytes_completed;
+        m_rows_previously_loaded = progress.rows_completed;
+
         m_stats.total_data_bytes = progress.data_bytes_completed;
         m_stats.total_file_bytes = progress.file_bytes_completed;
+        m_stats.total_records = progress.rows_completed;
       } else {
         console->print_note(
             "Load progress file detected for the instance but "
@@ -3249,7 +3331,11 @@ void Dump_loader::execute_table_ddl_tasks() {
 
   const auto stage =
       m_progress_thread.start_stage("Executing DDL", std::move(config));
-  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+  shcore::on_leave_scope finish_stage([this, stage]() {
+    stage->finish();
+    m_total_ddl_executed += m_ddl_executed;
+    m_total_ddl_execution_seconds += stage->duration().seconds();
+  });
 
   // Create all schemas, all tables and all view placeholders.
   // Views and other objects must only be created after all
@@ -3490,7 +3576,11 @@ void Dump_loader::execute_view_ddl_tasks() {
 
   const auto stage =
       m_progress_thread.start_stage("Executing view DDL", std::move(config));
-  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+  shcore::on_leave_scope finish_stage([this, stage]() {
+    stage->finish();
+    m_total_ddl_executed += m_ddl_executed;
+    m_total_ddl_execution_seconds += stage->duration().seconds();
+  });
 
   Load_progress_log::Status schema_load_status;
   std::string schema;
@@ -3804,6 +3894,8 @@ void Dump_loader::spawn_workers() {
       worker.run();
     }));
   }
+
+  m_monitoring = std::make_unique<Monitoring>(this);
 }
 
 void Dump_loader::join_workers() {
@@ -3813,9 +3905,14 @@ void Dump_loader::join_workers() {
   for (auto &t : m_worker_threads)
     if (t.joinable()) t.join();
   log_debug("All worker threads stopped");
+
+  m_monitoring.reset();
 }
 
 void Dump_loader::clear_worker(Worker *worker) {
+  assert(m_monitoring);
+  m_monitoring->remove_worker(worker);
+
   const auto wid = worker->id();
   m_worker_threads[wid].join();
   m_workers.remove_if([wid](const Worker &w) { return w.id() == wid; });
@@ -3956,6 +4053,11 @@ void Dump_loader::on_bulk_load_end(std::size_t,
 
 void Dump_loader::on_index_start(std::size_t worker_id,
                                  const Worker::Index_recreation_task *task) {
+  assert(m_create_indexes_stage);
+  if (!m_create_indexes_stage->is_started()) {
+    m_create_indexes_stage->start();
+  }
+
   m_load_log->log(progress::start::Table_indexes{
       task->schema(),
       task->table(),
@@ -3974,6 +4076,11 @@ void Dump_loader::on_index_end(std::size_t,
 
 void Dump_loader::on_analyze_start(std::size_t worker_id,
                                    const Worker::Analyze_table_task *task) {
+  assert(m_analyze_tables_stage);
+  if (!m_analyze_tables_stage->is_started()) {
+    m_analyze_tables_stage->start();
+  }
+
   m_load_log->log(progress::start::Analyze_table{
       task->schema(), task->table(), {worker_id, task->weight()}});
 }
@@ -3988,7 +4095,12 @@ void Dump_loader::on_analyze_end(std::size_t,
 }
 
 void Dump_loader::on_checksum_start(
-    const dump::common::Checksums::Checksum_data *) {}
+    const dump::common::Checksums::Checksum_data *) {
+  assert(m_checksum_tables_stage);
+  if (!m_checksum_tables_stage->is_started()) {
+    m_checksum_tables_stage->start();
+  }
+}
 
 void Dump_loader::on_checksum_end(
     const dump::common::Checksums::Checksum_data *checksum,
@@ -4258,10 +4370,42 @@ void Dump_loader::setup_load_data_progress() {
     return label;
   };
 
+  if (m_bulk_load) {
+    // BULK LOAD does not update Innodb_rows_inserted, remove this once
+    // BUG#36286488 is fixed
+    update_rows_throughput(m_rows_previously_loaded);
+    m_monitoring->add(
+        [this, prev = m_rows_previously_loaded](const Session_ptr &) mutable {
+          const auto rows = m_stats.total_records.load();
+
+          // total records count is updated only once a data load task is
+          // finished, in order to avoid fluctuation of throughput we update it
+          // only if count has changed
+          if (rows > prev) {
+            prev = rows;
+            update_rows_throughput(rows);
+          }
+        });
+  } else {
+    m_monitoring->add([this](const Session_ptr &session) {
+      update_rows_throughput(
+          session
+              ->query("SELECT CAST(VARIABLE_VALUE AS UNSIGNED) FROM "
+                      "performance_schema.global_status WHERE "
+                      "VARIABLE_NAME='Innodb_rows_inserted'")
+              ->fetch_one_or_throw()
+              ->get_uint(0));
+    });
+  }
+
   config.right_label = [this]() {
+    std::string rows_throughput = " (";
+    rows_throughput += format_rows_throughput(rows_throughput_rate(), 1.0);
+    rows_throughput += ')';
+
     return shcore::str_format(
-        ", %zu / %zu tables%s done", m_unique_tables_loaded.size(),
-        m_total_tables_with_data,
+        "%s, %zu / %zu tables%s done", rows_throughput.c_str(),
+        m_unique_tables_loaded.size(), m_total_tables_with_data,
         m_dump->has_partitions() ? " and partitions" : "");
   };
   config.on_display_started = []() {
@@ -4286,7 +4430,7 @@ void Dump_loader::setup_create_indexes_progress() {
   config.is_total_known = [this]() { return m_index_count_is_known; };
 
   m_create_indexes_stage =
-      m_progress_thread.start_stage("Recreating indexes", std::move(config));
+      m_progress_thread.push_stage("Recreating indexes", std::move(config));
 }
 
 void Dump_loader::setup_analyze_tables_progress() {
@@ -4304,7 +4448,7 @@ void Dump_loader::setup_analyze_tables_progress() {
   config.is_total_known = [this]() { return m_all_analyze_tasks_scheduled; };
 
   m_analyze_tables_stage =
-      m_progress_thread.start_stage("Analyzing tables", std::move(config));
+      m_progress_thread.push_stage("Analyzing tables", std::move(config));
 }
 
 void Dump_loader::setup_checksum_tables_progress() {
@@ -4321,7 +4465,7 @@ void Dump_loader::setup_checksum_tables_progress() {
   config.total = [this]() { return m_checksum_tasks_to_complete; };
   config.is_total_known = [this]() { return m_all_checksum_tasks_scheduled; };
 
-  m_checksum_tables_stage = m_progress_thread.start_stage(
+  m_checksum_tables_stage = m_progress_thread.push_stage(
       "Verifying checksum information", std::move(config));
 }
 
@@ -4702,6 +4846,19 @@ std::string Dump_loader::temp_table_name() {
   std::string name = m_temp_table_prefix;
   name += std::to_string(++m_temp_table_suffix);
   return name;
+}
+
+void Dump_loader::update_rows_throughput(uint64_t rows) {
+  std::unique_lock lock{m_rows_throughput_mutex, std::try_to_lock};
+
+  if (lock.owns_lock()) {
+    m_rows_throughput.push(rows);
+  }
+}
+
+uint64_t Dump_loader::rows_throughput_rate() {
+  std::lock_guard lock{m_rows_throughput_mutex};
+  return m_rows_throughput.rate();
 }
 
 #if defined(__clang__)
