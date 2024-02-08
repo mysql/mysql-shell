@@ -205,7 +205,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path =
         shcore::path::join_path(m_option_files_basedir, "my_error_no_grp.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Group missing before option at line 24 of file '");
+                      "Group missing before option at line 26 of file '");
   }
   {
     // In case of error, previous state cannot be changed.
@@ -294,7 +294,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path = shcore::path::join_path(m_option_files_basedir,
                                        "my_include_error2.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Group missing before option at line 24 of file '");
+                      "Group missing before option at line 26 of file '");
   }
   {
     // Test error reading invalid directive
@@ -302,7 +302,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path = shcore::path::join_path(m_option_files_basedir,
                                        "my_error_invalid_directive.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Invalid directive at line 25 of file '");
+                      "Invalid directive at line 27 of file '");
   }
   {
     // Test error reading malformed group
@@ -311,7 +311,7 @@ TEST_F(ConfigFileTest, test_read) {
                                        "my_error_malformed_group.cnf");
     EXPECT_THROW_LIKE(
         cfg.read(cfg_path), std::runtime_error,
-        "Invalid group, not ending with ']', at line 32 of file '");
+        "Invalid group, not ending with ']', at line 34 of file '");
   }
   {
     // Test error reading invalid group
@@ -319,7 +319,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path = shcore::path::join_path(m_option_files_basedir,
                                        "my_error_invalid_group.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Invalid group at line 32 of file '");
+                      "Invalid group at line 34 of file '");
   }
   {
     // Test error missing closing quotes
@@ -329,7 +329,7 @@ TEST_F(ConfigFileTest, test_read) {
     EXPECT_THROW_LIKE(
         cfg.read(cfg_path), std::runtime_error,
         "Invalid option, missing closing quote for option value at "
-        "line 25 of file '");
+        "line 27 of file '");
   }
   {
     // Test error invalid text after quotes
@@ -338,7 +338,7 @@ TEST_F(ConfigFileTest, test_read) {
                                        "my_error_quotes_invalid_char.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
                       "Invalid option, only comments (started with #) are "
-                      "allowed after a quoted value at line 25 of file '");
+                      "allowed after a quoted value at line 27 of file '");
   }
   {
     // Test error invalid text after quotes
@@ -349,7 +349,7 @@ TEST_F(ConfigFileTest, test_read) {
     EXPECT_THROW_LIKE(
         cfg.read(cfg_path), std::runtime_error,
         "Invalid option, missing closing quote for option value at "
-        "line 25 of file '");
+        "line 27 of file '");
   }
   {
     // Test error invalid line start
@@ -357,7 +357,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path = shcore::path::join_path(m_option_files_basedir,
                                        "my_error_invalid_line_start.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Line 31 starts with invalid character in file '");
+                      "Line 33 starts with invalid character in file '");
   }
   {
     // Test clear (remove all elements) of the Config_file

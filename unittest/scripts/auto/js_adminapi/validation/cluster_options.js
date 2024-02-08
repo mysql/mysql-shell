@@ -657,6 +657,16 @@
                     "variable": "group_replication_recovery_complete_at"
                 },
 ?{}
+?{VER(>=8.4.0)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_preemptive_garbage_collection"
+                },
+                {
+                    "value": "100000",
+                    "variable": "group_replication_preemptive_garbage_collection_rows_threshold"
+                },
+?{}
 ?{VER(>=8.0.18)}
                 {
                     "value": "uncompressed",
@@ -1015,6 +1025,16 @@
                     "variable": "group_replication_recovery_complete_at"
                 },
 ?{}
+?{VER(>=8.4.0)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_preemptive_garbage_collection"
+                },
+                {
+                    "value": "100000",
+                    "variable": "group_replication_preemptive_garbage_collection_rows_threshold"
+                },
+?{}
 ?{VER(>=8.0.18)}
                 {
                     "value": "uncompressed",
@@ -1371,6 +1391,16 @@
                 {
                     "value": "TRANSACTIONS_APPLIED",
                     "variable": "group_replication_recovery_complete_at"
+                },
+?{}
+?{VER(>=8.4.0)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_preemptive_garbage_collection"
+                },
+                {
+                    "value": "100000",
+                    "variable": "group_replication_preemptive_garbage_collection_rows_threshold"
                 },
 ?{}
 ?{VER(>=8.0.18)}
