@@ -102,6 +102,7 @@ file(GLOB api_module_SOURCES
       "util/upgrade_checker/upgrade_check_formatter.cc"
       "util/upgrade_checker/upgrade_check_options.cc"
       "util/upgrade_checker/upgrade_check.cc"
+      "util/upgrade_checker/feature_life_cycle_check.cc"
       "util/upgrade_checker/upgrade_check_registry.cc"
       "util/upgrade_checker/upgrade_check_creators.cc"
       "util/upgrade_checker/upgrade_check_condition.cc"

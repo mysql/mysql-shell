@@ -29,6 +29,7 @@
 #include <string>
 
 #include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -58,6 +59,8 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
                     config.upgrade_info().server_version_long,
                     config.upgrade_info().target_version.get_base(),
                     config.upgrade_info().explicit_target_version);
+
+  config.upgrade_info().validate();
 
   const auto checklist = Upgrade_check_registry::create_checklist(
       config.upgrade_info(), config.targets());
@@ -99,7 +102,7 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
         print->check_error(*check, e.what());
       }
     } else {
-      update_counts(check->get_level());
+      update_counts(dynamic_cast<Manual_check *>(check.get())->get_level());
       print->manual_check(*check);
     }
 

@@ -29,6 +29,7 @@
 
 #include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -120,12 +121,13 @@ bool UNUSED_VARIABLE(register_removed_sys_log_vars_check) =
 bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
     Upgrade_check_registry::register_check(&get_removed_sys_vars_check,
                                            Target::SYSTEM_VARIABLES, "8.0.11",
-                                           "8.0.13", "8.0.16");
+                                           "8.0.13", "8.0.16", "8.2.0", "8.3.0",
+                                           "8.4.0");
 
 bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
-    Upgrade_check_registry::register_check(
-        std::bind(&get_sys_vars_new_defaults_check), Target::SYSTEM_VARIABLES,
-        "8.0.11");
+    Upgrade_check_registry::register_check(&get_sys_vars_new_defaults_check,
+                                           Target::SYSTEM_VARIABLES, "8.0.11",
+                                           "8.4.0");
 
 bool UNUSED_VARIABLE(register_zero_dates_check) =
     Upgrade_check_registry::register_check(std::bind(&get_zero_dates_check),
@@ -216,10 +218,13 @@ bool UNUSED_VARIABLE(register_get_invalid_engine_foreign_key_check) =
         std::bind(&get_invalid_engine_foreign_key_check),
         Target::OBJECT_DEFINITIONS, "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_deprecated_auth_method_check) =
-    Upgrade_check_registry::register_check(&get_deprecated_auth_method_check,
-                                           Target::AUTHENTICATION_PLUGINS,
-                                           "8.0.0", "8.1.0", "8.2.0");
+bool UNUSED_VARIABLE(register_auth_method_usage_check) =
+    Upgrade_check_registry::register_check(&get_auth_method_usage_check,
+                                           Target::AUTHENTICATION_PLUGINS);
+
+bool UNUSED_VARIABLE(register_plugin_usage_check) =
+    Upgrade_check_registry::register_check(&get_plugin_usage_check,
+                                           Target::PLUGINS);
 
 bool UNUSED_VARIABLE(register_get_deprecated_default_auth_check) =
     Upgrade_check_registry::register_check(&get_deprecated_default_auth_check,
@@ -236,40 +241,33 @@ bool UNUSED_VARIABLE(
     Upgrade_check_registry::register_check(
         std::bind(&get_deprecated_partition_temporal_delimiter_check),
         Target::OBJECT_DEFINITIONS, "8.0.29");
+
+bool UNUSED_VARIABLE(register_get_column_definition_check) =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_column_definition_check), Target::OBJECT_DEFINITIONS,
+        "8.4.0");
+
+bool UNUSED_VARIABLE(register_sys_var_allowed_values_check) =
+    Upgrade_check_registry::register_check(&get_sys_var_allowed_values_check,
+                                           Target::SYSTEM_VARIABLES, "8.4.0");
+
+bool UNUSED_VARIABLE(register_invalid_privileges_check) =
+    Upgrade_check_registry::register_check(&get_invalid_privileges_check,
+                                           Target::PRIVILEGES, "8.4.0");
+
 }  // namespace
 
 std::vector<std::unique_ptr<Upgrade_check>>
 Upgrade_check_registry::create_checklist(const Upgrade_info &info,
                                          Target_flags flags, bool include_all) {
-  const Version &src_version(info.server_version);
-  const Version &dst_version(info.target_version);
-
-  if (src_version < Version("5.7.0"))
-    throw std::invalid_argument(
-        shcore::str_format("Detected MySQL server version is %s, but this tool "
-                           "requires server to be at least at version 5.7",
-                           src_version.get_base().c_str()));
-
-  if (src_version >= Version(MYSH_VERSION))
-    throw std::invalid_argument(
-        "Detected MySQL Server version is " + src_version.get_base() +
-        ". MySQL Shell cannot check MySQL server instances for upgrade if they "
-        "are at a version the same as or higher than the MySQL Shell version.");
-
-  if (dst_version < Version("8.0") || dst_version > Version(MYSH_VERSION))
-    throw std::invalid_argument(
-        "This tool supports checking upgrade to MySQL server versions 8.0.11 "
-        "to " MYSH_VERSION);
-
-  if (src_version >= dst_version)
-    throw std::invalid_argument(
-        "Target version must be greater than current version of the server");
-
   std::vector<std::unique_ptr<Upgrade_check>> result;
   for (const auto &c : s_available_checks) {
     if (include_all || flags.is_set(c.target)) {
       if (include_all || !c.condition || c.condition->evaluate(info)) {
-        result.emplace_back(c.creator(info));
+        auto check = c.creator(info);
+        // New checks have the condition in the check itself...
+        if (!check->enabled()) continue;
+        result.emplace_back(std::move(check));
       }
     }
   }

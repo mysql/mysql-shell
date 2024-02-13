@@ -45,5 +45,31 @@ bool Version_condition::evaluate(const Upgrade_info &info) {
   return false;
 }
 
+Life_cycle_condition::Life_cycle_condition(std::optional<Version> start,
+                                           std::optional<Version> deprecation,
+                                           std::optional<Version> removal)
+    : m_start_version{std::move(start)},
+      m_deprecation_version{std::move(deprecation)},
+      m_removal_version{std::move(removal)} {
+  if (!m_deprecation_version.has_value() && !m_removal_version.has_value()) {
+    throw std::logic_error(
+        "Only deprecated or removed features should use life cycle "
+        "conditions.");
+  }
+}
+
+bool Life_cycle_condition::evaluate(const Upgrade_info &info) {
+  // Source server did not have the feature
+  if (m_start_version.has_value() && info.server_version < *m_start_version)
+    return false;
+
+  // Source server has the feature already removed
+  if (m_removal_version.has_value() &&
+      info.server_version >= *m_removal_version)
+    return false;
+
+  return true;
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

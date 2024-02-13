@@ -107,12 +107,14 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       issue_formater = format_upgrade_issue;
     }
 
-    for (const auto &issue : results) print_paragraph(issue_formater(issue));
+    for (const auto &issue : results) {
+      print_paragraph(issue_formater(issue));
+      print_doc_links(issue.doclink);
+    }
   }
 
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
-    print_title(check.get_title());
     m_console->print("  ");
     if (runtime_error) m_console->print_diag("Check failed: ");
     m_console->println(description);
@@ -237,6 +239,13 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       description.SetString(issue.description.c_str(),
                             issue.description.length(), m_allocator);
       issue_object.AddMember("description", description, m_allocator);
+
+      if (!issue.doclink.empty()) {
+        rapidjson::Value doclink;
+        doclink.SetString(issue.doclink.c_str(), issue.doclink.length(),
+                          m_allocator);
+        issue_object.AddMember("documentationLink", doclink, m_allocator);
+      }
 
       issues.PushBack(issue_object, m_allocator);
     }

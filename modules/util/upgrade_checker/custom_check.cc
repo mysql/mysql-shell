@@ -47,11 +47,6 @@ class Invalid_engine_foreign_key_check : public Upgrade_check {
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Upgrade_info &server_info, Checker_cache *cache) override;
-
- protected:
-  Upgrade_issue::Level get_level() const override {
-    return Upgrade_issue::ERROR;
-  }
 };
 
 Invalid_engine_foreign_key_check::Invalid_engine_foreign_key_check()
@@ -127,7 +122,7 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
                           fk.second.ref_engine + ").";
     problem.table = fk.second.table_name;
     problem.column = fk.second.columns;
-    problem.level = get_level();
+    problem.level = Upgrade_issue::ERROR;
 
     issues.emplace_back(std::move(problem));
   }

@@ -43,11 +43,10 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
-template <typename T>
-concept Version_source = std::is_constructible_v<Version, T>;
-
 class Upgrade_check;
 
+template <typename T>
+concept Version_source = std::is_constructible_v<Version, T>;
 class Upgrade_check_registry {
  public:
   using Creator =

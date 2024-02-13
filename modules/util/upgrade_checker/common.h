@@ -26,10 +26,12 @@
 #ifndef MODULES_UTIL_UPGRADE_CHECKER_COMMON_H_
 #define MODULES_UTIL_UPGRADE_CHECKER_COMMON_H_
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
@@ -37,6 +39,82 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+
+namespace ids {
+inline constexpr std::string_view k_reserved_keywords_check =
+    "reservedKeywords";
+inline constexpr std::string_view k_routine_syntax_check = "routineSyntax";
+inline constexpr std::string_view k_utf8mb3_check = "utf8mb3";
+inline constexpr std::string_view k_innodb_rowformat_check = "innodbRowformat";
+inline constexpr std::string_view k_zerofill_check = "zerofill";
+inline constexpr std::string_view k_nonnative_partitioning_check =
+    "nonNativePartitioning";
+inline constexpr std::string_view k_mysql_schema_check = "mysqlSchema";
+inline constexpr std::string_view k_old_temporal_check = "oldTemporal";
+inline constexpr std::string_view k_foreign_key_length_check =
+    "foreignKeyLength";
+inline constexpr std::string_view k_maxdb_sql_mode_flags_check =
+    "maxdbSqlModeFlags";
+inline constexpr std::string_view k_obsolete_sql_mode_flags_check =
+    "obsoleteSqlModeFlags";
+inline constexpr std::string_view k_enum_set_element_length_check =
+    "enumSetElementLength";
+inline constexpr std::string_view k_table_command_check = "checkTableCommand";
+inline constexpr std::string_view
+    k_partitioned_tables_in_shared_tablespaces_check =
+        "partitionedTablesInSharedTablespaces";
+inline constexpr std::string_view k_circular_directory_check =
+    "circularDirectory";
+inline constexpr std::string_view k_removed_functions_check =
+    "removedFunctions";
+inline constexpr std::string_view k_groupby_asc_syntax_check =
+    "groupbyAscSyntax";
+inline constexpr std::string_view k_removed_sys_log_vars_check =
+    "removedSysLogVars";
+inline constexpr std::string_view k_removed_sys_vars_check = "removedSysVars";
+inline constexpr std::string_view k_sys_vars_new_defaults_check =
+    "sysVarsNewDefaults";
+inline constexpr std::string_view k_zero_dates_check = "zeroDates";
+inline constexpr std::string_view k_schema_inconsistency_check =
+    "schemaInconsistency";
+inline constexpr std::string_view k_fts_in_tablename_check = "ftsInTablename";
+inline constexpr std::string_view k_engine_mixup_check = "engineMixup";
+inline constexpr std::string_view k_old_geometry_types_check =
+    "oldGeometryTypes";
+inline constexpr std::string_view k_changed_functions_generated_columns_check =
+    "changedFunctionsInGeneratedColumns";
+inline constexpr std::string_view k_columns_which_cannot_have_defaults_check =
+    "columnsWhichCannotHaveDefaults";
+inline constexpr std::string_view k_invalid_57_names_check = "invalid57Names";
+inline constexpr std::string_view k_orphaned_routines_check =
+    "orphanedRoutines";
+inline constexpr std::string_view k_dollar_sign_name_check = "dollarSignName";
+inline constexpr std::string_view k_index_too_large_check = "indexTooLarge";
+inline constexpr std::string_view k_empty_dot_table_syntax_check =
+    "emptyDotTableSyntax";
+inline constexpr std::string_view k_invalid_engine_foreign_key_check =
+    "invalidEngineForeignKey";
+inline constexpr std::string_view k_deprecated_router_auth_method_check =
+    "deprecatedRouterAuthMethod";
+inline constexpr std::string_view k_deprecated_default_auth_check =
+    "deprecatedDefaultAuth";
+inline constexpr std::string_view k_deprecated_temporal_delimiter_check =
+    "deprecatedTemporalDelimiter";
+inline constexpr std::string_view k_default_authentication_plugin_check =
+    "defaultAuthenticationPlugin";
+inline constexpr std::string_view k_default_authentication_plugin_mds_check =
+    "defaultAuthenticationPluginMds";
+inline constexpr std::string_view k_auth_method_usage_check = "authMethodUsage";
+inline constexpr std::string_view k_plugin_usage_check = "pluginUsage";
+inline constexpr std::string_view k_sysvar_allowed_values_check =
+    "sysvarAllowedValues";
+inline constexpr std::string_view k_invalid_privileges_check =
+    "invalidPrivileges";
+inline constexpr std::string_view k_column_definition = "columnDefinition";
+
+// NOTE: Every added id should be included here
+extern const std::set<std::string_view> all;
+}  // namespace ids
 
 using mysqlshdk::utils::Version;
 
@@ -55,6 +133,8 @@ enum class Target {
   TABLESPACES,
   SYSTEM_VARIABLES,
   AUTHENTICATION_PLUGINS,
+  PLUGINS,
+  PRIVILEGES,
   MDS_SPECIFIC,
   LAST,
 };
@@ -68,6 +148,8 @@ struct Upgrade_info {
   std::string server_os;
   std::string config_path;
   bool explicit_target_version;
+
+  void validate() const;
 };
 
 struct Upgrade_issue {
@@ -79,6 +161,9 @@ struct Upgrade_issue {
   std::string column;
   std::string description;
   Level level = ERROR;
+
+  // To be used for links related to the issue, rather than the check
+  std::string doclink;
 
   bool empty() const {
     return schema.empty() && table.empty() && column.empty() &&
@@ -95,6 +180,11 @@ class Check_configuration_error : public std::runtime_error {
       : std::runtime_error(what) {}
 };
 
+/**
+ * This ENUM defines the possible states of a feature.
+ */
+enum class Feature_life_cycle_state { OK, DEPRECATED, REMOVED };
+
 class Checker_cache {
  public:
   struct Table_info {
@@ -103,21 +193,40 @@ class Checker_cache {
     std::string engine;
   };
 
-  const Table_info *get_table(const std::string &schema_table);
+  struct Sysvar_info {
+    std::string name;
+    std::string value;
+    std::string source;
+  };
+
+  const Table_info *get_table(const std::string &schema_table) const;
+  const Sysvar_info *get_sysvar(const std::string &name) const;
 
   void cache_tables(mysqlshdk::db::ISession *session);
+  void cache_sysvars(mysqlshdk::db::ISession *session,
+                     const Upgrade_info &server_info);
 
  private:
-  std::unordered_map<std::string, Table_info> tables_;
+  std::unordered_map<std::string, Table_info> m_tables;
+  std::unordered_map<std::string, Sysvar_info> m_sysvars;
 };
 
 const std::string &get_translation(const char *item);
 
-using Token_definitions =
-    std::vector<std::pair<std::string_view, std::string_view>>;
+using Token_definitions = std::unordered_map<std::string_view, std::string>;
 
 std::string resolve_tokens(const std::string &text,
                            const Token_definitions &replacements);
+struct Feature_definition {
+  std::string id;
+  std::optional<Version> start;
+  std::optional<Version> deprecated;
+  std::optional<Version> removed;
+  std::optional<std::string> replacement;
+};
+
+Upgrade_issue::Level get_issue_level(const Feature_definition &feature,
+                                     const Upgrade_info &server_info);
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

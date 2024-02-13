@@ -29,7 +29,10 @@
 #include <regex>
 #include <vector>
 
+#include "modules/util/upgrade_checker/feature_life_cycle_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
+#include "modules/util/upgrade_checker/sql_upgrade_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -118,9 +121,6 @@ class Routine_syntax_check : public Upgrade_check {
  public:
   Routine_syntax_check() : Upgrade_check(ids::k_routine_syntax_check) {}
 
-  Upgrade_issue::Level get_level() const override {
-    return Upgrade_issue::ERROR;
-  }
   bool is_runnable() const override { return true; }
 
   std::vector<Upgrade_issue> run(
@@ -474,10 +474,6 @@ class Check_table_command : public Upgrade_check {
 
     return issues;
   }
-
-  Upgrade_issue::Level get_level() const override {
-    throw std::runtime_error("Unimplemented");
-  }
 };
 
 std::unique_ptr<Upgrade_check> get_table_command_check() {
@@ -737,285 +733,121 @@ std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check() {
   return std::make_unique<Groupby_asc_syntax_check>();
 }
 
-class Removed_sys_var_check : public Sql_upgrade_check {
- public:
-  Removed_sys_var_check(const std::string_view name,
-                        std::map<std::string, const char *> &&removed_vars,
-                        Upgrade_issue::Level level = Upgrade_issue::ERROR,
-                        const char *minimal_version = "8.0.11")
-      : Sql_upgrade_check(name, {}, level, minimal_version),
-        m_vars(std::move(removed_vars)) {
-    assert(!m_vars.empty());
-    std::stringstream ss;
-    ss << "SELECT VARIABLE_NAME FROM performance_schema.variables_info WHERE "
-          "VARIABLE_SOURCE <> 'COMPILED' AND VARIABLE_NAME IN (";
-    for (const auto &vp : m_vars) ss << "'" << vp.first << "',";
-    ss.seekp(-1, ss.cur);
-    ss << ");";
-    m_queries.push_back(ss.str());
-  }
-
- protected:
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
-    Upgrade_issue out;
-    out.schema = row->get_as_string(0);
-    Token_definitions tokens = {{"%item%", out.schema}};
-    std::string raw_description = get_text("issue");
-
-    const auto replacement = m_vars.at(out.schema);
-    if (replacement) {
-      raw_description += ", " + get_text("replacement");
-      tokens.emplace_back("%replacement%", replacement);
-    }
-
-    out.description = resolve_tokens(out.description, tokens);
-
-    out.description += ".";
-
-    return out;
-  }
-
-  const std::map<std::string, const char *> m_vars;
-};
-
-// This class enables checking server configuration file for defined/undefined
-// system variables that have been removed, deprecated etc.
-
-class Config_check : public Upgrade_check {
- public:
-  Config_check(const std::string_view name,
-               const std::map<std::string, const char *> &vars,
-               const Formatter &formatter,
-               Config_mode mode = Config_mode::DEFINED,
-               Upgrade_issue::Level level = Upgrade_issue::ERROR)
-      : Upgrade_check(name),
-        m_vars(std::move(vars)),
-        m_mode(mode),
-        m_level(level),
-        m_formatter(formatter) {}
-
-  std::vector<Upgrade_issue> run(
-      [[maybe_unused]] const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info) override {
-    if (server_info.config_path.empty())
-      throw Check_configuration_error(
-          "To run this check requires full path to MySQL server configuration "
-          "file to be specified at 'configPath' key of options dictionary");
-
-    mysqlshdk::config::Config_file cf;
-    cf.read(server_info.config_path);
-
-    std::vector<Upgrade_issue> res;
-    for (const auto &group : cf.groups()) {
-      for (const auto &option : cf.options(group)) {
-        auto standardized = shcore::str_replace(option, "-", "_");
-        const auto it = m_vars.find(standardized);
-        if (it == m_vars.end()) continue;
-        if (m_mode == Config_mode::DEFINED) {
-          Upgrade_issue issue;
-          issue.schema = option;
-          issue.description = m_formatter(this, it->first, it->second);
-          issue.level = m_level;
-          res.push_back(issue);
-        }
-        m_vars.erase(it);
-      }
-    }
-
-    if (m_mode == Config_mode::UNDEFINED) {
-      for (const auto &var : m_vars) {
-        Upgrade_issue issue;
-        issue.schema = var.first;
-        issue.description = m_formatter(this, var.first, var.second);
-        issue.level = m_level;
-        res.push_back(issue);
-      }
-    }
-
-    return res;
-  }
-
- protected:
-  Upgrade_issue::Level get_level() const override { return m_level; }
-
-  std::map<std::string, const char *> m_vars;
-  Config_mode m_mode;
-  const Upgrade_issue::Level m_level;
-  Formatter m_formatter;
-};
-
-std::unique_ptr<Upgrade_check> get_config_check(
-    const char *name, const std::map<std::string, const char *> &vars,
-    const Formatter &formatter, Config_mode mode, Upgrade_issue::Level level) {
-  return std::make_unique<Config_check>(name, vars, formatter, mode, level);
-}
-
 std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
     const Upgrade_info &info) {
-  std::map<std::string, const char *> vars{
-      {"log_syslog_facility", "syseventlog.facility"},
-      {"log_syslog_include_pid", "syseventlog.include_pid"},
-      {"log_syslog_tag", "syseventlog.tag"},
-      {"log_syslog", nullptr}};
+  auto check = std::make_unique<Removed_sys_var_check>(
+      ids::k_removed_sys_log_vars_check, info);
 
-  if (info.server_version < mysqlshdk::utils::Version(8, 0, 0) &&
-      info.server_version >= mysqlshdk::utils::Version(5, 7, 0))
-    return std::make_unique<Config_check>(
-        ids::k_removed_sys_log_vars_check, std::move(vars),
-        [](const Upgrade_check *check, const std::string &item,
-           const char *replacement) {
-          std::string description = check->get_text("issue");
-          Token_definitions tokens = {
-              {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::ERROR)},
-              {"%item%", item}};
-          if (replacement != nullptr) {
-            description += ", " + check->get_text("replacement");
-            tokens.emplace_back("%replacement%", replacement);
-          }
-          description += ".";
+  check->add_sys_var(Version(8, 0, 13),
+                     {{"log_syslog_facility", "syseventlog.facility"},
+                      {"log_syslog_include_pid", "syseventlog.include_pid"},
+                      {"log_syslog_tag", "syseventlog.tag"},
+                      {"log_syslog", nullptr}});
 
-          return resolve_tokens(description, tokens);
-        },
-        Config_mode::DEFINED, Upgrade_issue::ERROR);
-
-  return std::make_unique<Removed_sys_var_check>(
-      ids::k_removed_sys_log_vars_check, std::move(vars), Upgrade_issue::ERROR);
+  return check;
 }
 
-std::unique_ptr<Upgrade_check> get_removed_sys_vars_check(
+std::unique_ptr<Removed_sys_var_check> get_removed_sys_vars_check(
     const Upgrade_info &info) {
-  const auto &ver = info.server_version;
-  const auto &target = info.target_version;
-  std::map<std::string, const char *> vars;
-  if (ver < mysqlshdk::utils::Version(8, 0, 11))
-    vars.insert(
-        {{"date_format", nullptr},
-         {"datetime_format", nullptr},
-         {"group_replication_allow_local_disjoint_gtids_join", nullptr},
-         {"have_crypt", nullptr},
-         {"ignore_builtin_innodb", nullptr},
-         {"ignore_db_dirs", nullptr},
-         {"innodb_checksums", "innodb_checksum_algorithm"},
-         {"innodb_disable_resize_buffer_pool_debug", nullptr},
-         {"innodb_file_format", nullptr},
-         {"innodb_file_format_check", nullptr},
-         {"innodb_file_format_max", nullptr},
-         {"innodb_large_prefix", nullptr},
-         {"innodb_locks_unsafe_for_binlog", nullptr},
-         {"innodb_stats_sample_pages", "innodb_stats_transient_sample_pages"},
-         {"innodb_support_xa", nullptr},
-         {"innodb_undo_logs", "innodb_rollback_segments"},
-         {"log_warnings", "log_error_verbosity"},
-         {"log_builtin_as_identified_by_password", nullptr},
-         {"log_error_filter_rules", nullptr},
-         {"max_tmp_tables", nullptr},
-         {"multi_range_count", nullptr},
-         {"old_passwords", nullptr},
-         {"query_cache_limit", nullptr},
-         {"query_cache_min_res_unit", nullptr},
-         {"query_cache_size", nullptr},
-         {"query_cache_type", nullptr},
-         {"query_cache_wlock_invalidate", nullptr},
-         {"secure_auth", nullptr},
-         {"show_compatibility_56", nullptr},
-         {"sync_frm", nullptr},
-         {"time_format", nullptr},
-         {"tx_isolation", "transaction_isolation"},
-         {"tx_read_only", "transaction_read_only"}});
+  auto check = std::make_unique<Removed_sys_var_check>(
+      ids::k_removed_sys_vars_check, info);
 
-  if (ver < Version(8, 0, 13) && target >= Version(8, 0, 13))
-    vars.insert({{"metadata_locks_cache_size", nullptr},
-                 {"metadata_locks_hash_instances", nullptr}});
+  check->add_sys_var(
+      Version(8, 0, 11),
+      {{"date_format", nullptr},
+       {"datetime_format", nullptr},
+       {"group_replication_allow_local_disjoint_gtids_join", nullptr},
+       {"have_crypt", nullptr},
+       {"ignore_builtin_innodb", nullptr},
+       {"ignore_db_dirs", nullptr},
+       {"innodb_checksums", "innodb_checksum_algorithm"},
+       {"innodb_disable_resize_buffer_pool_debug", nullptr},
+       {"innodb_file_format", nullptr},
+       {"innodb_file_format_check", nullptr},
+       {"innodb_file_format_max", nullptr},
+       {"innodb_large_prefix", nullptr},
+       {"innodb_locks_unsafe_for_binlog", nullptr},
+       {"innodb_stats_sample_pages", "innodb_stats_transient_sample_pages"},
+       {"innodb_support_xa", nullptr},
+       {"innodb_undo_logs", "innodb_rollback_segments"},
+       {"log_warnings", "log_error_verbosity"},
+       {"log_builtin_as_identified_by_password", nullptr},
+       {"log_error_filter_rules", nullptr},
+       {"max_tmp_tables", nullptr},
+       {"multi_range_count", nullptr},
+       {"old_passwords", nullptr},
+       {"query_cache_limit", nullptr},
+       {"query_cache_min_res_unit", nullptr},
+       {"query_cache_size", nullptr},
+       {"query_cache_type", nullptr},
+       {"query_cache_wlock_invalidate", nullptr},
+       {"secure_auth", nullptr},
+       {"show_compatibility_56", nullptr},
+       {"sync_frm", nullptr},
+       {"time_format", nullptr},
+       {"tx_isolation", "transaction_isolation"},
+       {"tx_read_only", "transaction_read_only"}});
 
-  if (ver < Version(8, 0, 16) && target >= Version(8, 0, 16))
-    vars.insert({{"internal_tmp_disk_storage_engine", nullptr}});
+  check->add_sys_var(Version(8, 0, 13),
+                     {{"metadata_locks_cache_size", nullptr},
+                      {"metadata_locks_hash_instances", nullptr}});
 
-  if (ver < Version(8, 0, 0))
-    return std::make_unique<Config_check>(
-        ids::k_removed_sys_vars_check, std::move(vars),
-        [](const Upgrade_check *check, const std::string &item,
-           const char *replacement) {
-          std::string description = check->get_text("issue");
-          Token_definitions tokens = {
-              {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::ERROR)},
-              {"%item%", item}};
-          if (replacement != nullptr) {
-            description += ", " + check->get_text("replacement");
-            tokens.emplace_back("%replacement%", replacement);
-          }
-          description += ".";
+  check->add_sys_var(Version(8, 0, 16),
+                     {{"internal_tmp_disk_storage_engine", nullptr}});
 
-          return resolve_tokens(description, tokens);
-        },
-        Config_mode::DEFINED, Upgrade_issue::ERROR);
+  check->add_sys_var(Version(8, 2, 0), {{"expire_logs_days", nullptr}});
 
-  return std::make_unique<Removed_sys_var_check>(ids::k_removed_sys_vars_check,
-                                                 std::move(vars));
+  check->add_sys_var(Version(8, 3, 0),
+                     {{"slave_rows_search_algorithms", nullptr},
+                      {"log_bin_use_v1_row_events", nullptr},
+                      {"relay_log_info_file", nullptr},
+                      {"master_info_file", nullptr},
+                      {"transaction_write_set_extraction", nullptr},
+                      {"relay_log_info_repository", nullptr},
+                      {"master_info_repository", nullptr},
+                      {"group_replication_ip_whitelist", nullptr}});
+
+  check->add_sys_var(
+      Version(8, 4, 0),
+      {
+          {"default_authentication_plugin", "authentication_policy"},
+          {"sha256_password_auto_generate_rsa_keys", nullptr},
+          {"sha256_password_private_key_path", nullptr},
+          {"sha256_password_proxy_users", nullptr},
+          {"sha256_password_public_key_path", nullptr},
+          {"mysql_native_password_proxy_users", nullptr},
+          {"old", nullptr},
+          {"new", nullptr},
+          {"binlog_transaction_dependency_tracking", nullptr},
+          {"group_replication_recovery_complete_at", nullptr},
+          {"profiling", nullptr},
+          {"profiling_history_size", nullptr},
+          {"avoid_temporal_upgrade", nullptr},
+          {"show_old_temporals", nullptr},
+      });
+
+  return check;
 }
 
-std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check() {
-  std::map<std::string, const char *> vars{
-      {"character_set_server", "from latin1 to utf8mb4"},
-      {"collation_server", "from latin1_swedish_ci to utf8mb4_0900_ai_ci"},
-      {"explicit_defaults_for_timestamp", "from OFF to ON"},
-      {"optimizer_trace_max_mem_size", "from 16KB to 1MB"},
-      {"back_log", nullptr},
-      {"max_allowed_packet", "from 4194304 (4MB) to 67108864 (64MB)"},
-      {"max_error_count", "from 64 to 1024"},
-      {"event_scheduler", "from OFF to ON"},
-      {"table_open_cache", "from 2000 to 4000"},
-      {"log_error_verbosity", "from 3 (Notes) to 2 (Warning)"},
-      {"innodb_undo_tablespaces", "from 0 to 2"},
-      {"innodb_undo_log_truncate", "from OFF to ON"},
-      {"innodb_flush_method",
-       "from NULL to fsync (Unix), unbuffered (Windows)"},
-      {"innodb_autoinc_lock_mode", "from 1 (consecutive) to 2 (interleaved)"},
-      {"innodb_flush_neighbors", "from 1 (enable) to 0 (disable)"},
-      {"innodb_max_dirty_pages_pct_lwm", "from_0 (%) to 10 (%)"},
-      {"innodb_max_dirty_pages_pct", "from 75 (%)  90 (%)"},
-      {"performance_schema_consumer_events_transactions_current",
-       "from OFF to ON"},
-      {"performance_schema_consumer_events_transactions_history",
-       "from OFF to ON"},
-      {"log_bin", "from OFF to ON"},
-      {"server_id", "from 0 to 1"},
-      {"log_slave_updates", "from OFF to ON"},
-      {"master_info_repository", "from FILE to TABLE"},
-      {"relay_log_info_repository", "from FILE to TABLE"},
-      {"transaction_write_set_extraction", "from OFF to XXHASH64"},
-      {"slave_rows_search_algorithms",
-       "from 'INDEX_SCAN, TABLE_SCAN' to 'INDEX_SCAN, HASH_SCAN'"}};
-  return std::make_unique<Config_check>(
-      ids::k_sys_vars_new_defaults_check, std::move(vars),
-      [](const Upgrade_check *check, const std::string &item,
-         const char *change) {
-        auto description = check->get_text("issue");
-        Token_definitions tokens = {
-            {"%level%", Upgrade_issue::level_to_string(Upgrade_issue::WARNING)},
-            {"%item%", item}};
-
-        if (change != nullptr) {
-          description.append(" ");
-          description.append(change);
-        }
-        description += ".";
-
-        return resolve_tokens(description, tokens);
-      },
-      Config_mode::UNDEFINED, Upgrade_issue::WARNING);
+std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check(
+    const Upgrade_info &server_info) {
+  return std::make_unique<Sysvar_new_defaults>(server_info);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_zero_dates_check,
       std::vector<std::string>{
-          "select 'global.sql_mode', 'does not contain either NO_ZERO_DATE or "
-          "NO_ZERO_IN_DATE which allows insertion of zero dates' from (SELECT "
+          "select 'global.sql_mode', 'does not contain either NO_ZERO_DATE "
+          "or "
+          "NO_ZERO_IN_DATE which allows insertion of zero dates' from "
+          "(SELECT "
           "@@global.sql_mode like '%NO_ZERO_IN_DATE%' and @@global.sql_mode "
           "like '%NO_ZERO_DATE%' as zeroes_enabled) as q where "
           "q.zeroes_enabled = 0;",
           "select 'session.sql_mode', concat(' of ', q.thread_count, ' "
-          "session(s) does not contain either NO_ZERO_DATE or NO_ZERO_IN_DATE "
+          "session(s) does not contain either NO_ZERO_DATE or "
+          "NO_ZERO_IN_DATE "
           "which allows insertion of zero dates') FROM (select "
           "count(thread_id) as thread_count from "
           "performance_schema.variables_by_thread WHERE variable_name = "
@@ -1112,7 +944,6 @@ std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
 }
 
 namespace {
-
 class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
  private:
   const std::unordered_set<std::string> functions{"CAST", "CONVERT"};
@@ -1381,33 +1212,15 @@ Upgrade_issue parse_item(const std::string &item, const std::string &auth,
 }
 }  // namespace deprecated_auth_funcs
 
-class Deprecated_auth_method_check : public Sql_upgrade_check {
- public:
-  explicit Deprecated_auth_method_check(mysqlshdk::utils::Version target_ver)
-      : Sql_upgrade_check(ids::k_deprecated_auth_method_check,
-                          std::vector<std::string>{
-                              "SELECT CONCAT(user, '@', host), plugin FROM "
-                              "mysql.user WHERE plugin IN (" +
-                              deprecated_auth_funcs::get_auth_list() +
-                              ") AND user NOT LIKE 'mysql_router%';"},
-                          Upgrade_issue::WARNING),
-        m_target_version(target_ver) {}
+std::unique_ptr<Upgrade_check> get_auth_method_usage_check(
+    const Upgrade_info &info) {
+  return std::make_unique<Auth_method_usage_check>(info);
+}
 
-  ~Deprecated_auth_method_check() = default;
-
-  bool is_multi_lvl_check() const override { return true; }
-
- protected:
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
-    auto item = row->get_as_string(0);
-    auto auth = row->get_as_string(1);
-
-    return deprecated_auth_funcs::parse_item(item, auth, m_target_version);
-  }
-
- private:
-  const mysqlshdk::utils::Version m_target_version;
-};
+std::unique_ptr<Upgrade_check> get_plugin_usage_check(
+    const Upgrade_info &info) {
+  return std::make_unique<Plugin_usage_check>(info);
+}
 
 class Deprecated_default_auth_check : public Sql_upgrade_check {
  public:
@@ -1456,11 +1269,6 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
  private:
   const mysqlshdk::utils::Version m_target_version;
 };
-
-std::unique_ptr<Sql_upgrade_check> get_deprecated_auth_method_check(
-    const Upgrade_info &info) {
-  return std::make_unique<Deprecated_auth_method_check>(info.target_version);
-}
 
 std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
     const Upgrade_info &info) {
@@ -1629,6 +1437,27 @@ where
 std::unique_ptr<Sql_upgrade_check>
 get_deprecated_partition_temporal_delimiter_check() {
   return std::make_unique<Deprecated_partition_temporal_delimiter_check>();
+}
+
+std::unique_ptr<Sql_upgrade_check> get_column_definition_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      ids::k_column_definition,
+      std::vector<std::string>{
+          "SELECT table_schema,table_name,column_name,concat('##', "
+          "column_type, 'AutoIncrement') as tag FROM "
+          "information_schema.columns WHERE column_type IN ('float', 'double') "
+          "and extra = 'auto_increment'"},
+      Upgrade_issue::ERROR);
+}
+
+std::unique_ptr<Upgrade_check> get_sys_var_allowed_values_check(
+    const Upgrade_info &info) {
+  return std::make_unique<Sys_var_allowed_values_check>(info);
+}
+
+std::unique_ptr<Upgrade_check> get_invalid_privileges_check(
+    const Upgrade_info &info) {
+  return std::make_unique<Invalid_privileges_check>(info);
 }
 
 }  // namespace upgrade_checker

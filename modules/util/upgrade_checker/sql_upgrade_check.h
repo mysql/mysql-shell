@@ -60,7 +60,7 @@ class Sql_upgrade_check : public Upgrade_check {
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
   virtual void add_issue(const mysqlshdk::db::IRow *row,
                          std::vector<Upgrade_issue> *issues);
-  Upgrade_issue::Level get_level() const override { return m_level; }
+  Upgrade_issue::Level get_level() const { return m_level; }
 
   std::vector<std::string> m_queries;
   std::forward_list<std::string> m_set_up;

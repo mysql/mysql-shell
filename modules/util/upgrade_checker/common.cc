@@ -25,9 +25,13 @@
 
 #include "modules/util/upgrade_checker/common.h"
 
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 #include <sstream>
 #include <utility>
 
+#include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -36,10 +40,91 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
+namespace ids {
+
+const std::set<std::string_view> all = {
+    k_reserved_keywords_check,
+    k_routine_syntax_check,
+    k_utf8mb3_check,
+    k_innodb_rowformat_check,
+    k_zerofill_check,
+    k_nonnative_partitioning_check,
+    k_mysql_schema_check,
+    k_old_temporal_check,
+    k_foreign_key_length_check,
+    k_maxdb_sql_mode_flags_check,
+    k_obsolete_sql_mode_flags_check,
+    k_enum_set_element_length_check,
+    k_table_command_check,
+    k_partitioned_tables_in_shared_tablespaces_check,
+    k_circular_directory_check,
+    k_removed_functions_check,
+    k_groupby_asc_syntax_check,
+    k_removed_sys_log_vars_check,
+    k_removed_sys_vars_check,
+    k_sys_vars_new_defaults_check,
+    k_zero_dates_check,
+    k_schema_inconsistency_check,
+    k_fts_in_tablename_check,
+    k_engine_mixup_check,
+    k_old_geometry_types_check,
+    k_changed_functions_generated_columns_check,
+    k_columns_which_cannot_have_defaults_check,
+    k_invalid_57_names_check,
+    k_orphaned_routines_check,
+    k_dollar_sign_name_check,
+    k_index_too_large_check,
+    k_empty_dot_table_syntax_check,
+    k_invalid_engine_foreign_key_check,
+    k_deprecated_router_auth_method_check,
+    k_deprecated_default_auth_check,
+    k_deprecated_temporal_delimiter_check,
+    k_default_authentication_plugin_check,
+    k_default_authentication_plugin_mds_check,
+    k_auth_method_usage_check,
+    k_plugin_usage_check,
+    k_sysvar_allowed_values_check,
+    k_invalid_privileges_check,
+    k_column_definition,
+};
+
+}
+
 std::unordered_map<std::string, Version> k_latest_versions = {
     {"8", Version(MYSH_VERSION)},  // If 8 is given, latest version
                                    // is the current shell version
     {"8.0", Version(LATEST_MYSH_80_VERSION)}};
+
+void Upgrade_info::validate() const {
+  if (server_version < Version(5, 7, 0))
+    throw std::invalid_argument(
+        shcore::str_format("Detected MySQL server version is %s, but this tool "
+                           "requires server to be at least at version 5.7",
+                           server_version.get_base().c_str()));
+
+  if (server_version >= mysqlshdk::utils::k_shell_version)
+    throw std::invalid_argument(
+        "Detected MySQL Server version is " + server_version.get_base() +
+        ". MySQL Shell cannot check MySQL server instances for upgrade if they "
+        "are at a version the same as or higher than the MySQL Shell version.");
+
+  auto major_minor = [](const Version &version) {
+    return Version(version.get_major(), version.get_minor(), 0);
+  };
+
+  if (target_version < Version(8, 0, 0) ||
+      major_minor(target_version) >
+          major_minor(mysqlshdk::utils::k_shell_version))
+    throw std::invalid_argument(
+        shcore::str_format("This tool supports checking upgrade to MySQL "
+                           "servers of the following versions: 8.0 to %d.%d.*",
+                           mysqlshdk::utils::k_shell_version.get_major(),
+                           mysqlshdk::utils::k_shell_version.get_minor()));
+
+  if (server_version >= target_version)
+    throw std::invalid_argument(
+        "Target version must be greater than current version of the server");
+}
 
 std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
   std::stringstream ss;
@@ -69,14 +154,14 @@ std::string Upgrade_issue::get_db_object() const {
 }
 
 const Checker_cache::Table_info *Checker_cache::get_table(
-    const std::string &schema_table) {
-  auto t = tables_.find(schema_table);
-  if (t != tables_.end()) return &t->second;
+    const std::string &schema_table) const {
+  auto t = m_tables.find(schema_table);
+  if (t != m_tables.end()) return &t->second;
   return nullptr;
 }
 
 void Checker_cache::cache_tables(mysqlshdk::db::ISession *session) {
-  if (!tables_.empty()) return;
+  if (!m_tables.empty()) return;
 
   auto res = session->query(
       R"*(SELECT table_schema, table_name, engine
@@ -87,8 +172,74 @@ WHERE engine is not null and
     Table_info table{row->get_string(0), row->get_string(1),
                      row->get_string(2)};
 
-    tables_.emplace(row->get_string(0) + "/" + row->get_string(1),
-                    std::move(table));
+    m_tables.emplace(row->get_string(0) + "/" + row->get_string(1),
+                     std::move(table));
+  }
+}
+
+const Checker_cache::Sysvar_info *Checker_cache::get_sysvar(
+    const std::string &name) const {
+  auto t = m_sysvars.find(name);
+  if (t != m_sysvars.end()) return &t->second;
+  return nullptr;
+}
+
+void Checker_cache::cache_sysvars(mysqlshdk::db::ISession *session,
+                                  const Upgrade_info &server_info) {
+  // Cache is already loaded...
+  if (!m_sysvars.empty()) return;
+
+  if (server_info.server_version < mysqlshdk::utils::Version(8, 0, 0) &&
+      server_info.server_version >= mysqlshdk::utils::Version(5, 7, 0)) {
+    if (server_info.config_path.empty()) {
+      throw Check_configuration_error(
+          "To run this check requires full path to MySQL server configuration "
+          "file to be specified at 'configPath' key of options dictionary");
+    }
+
+    mysqlshdk::config::Config_file cf;
+    cf.read(server_info.config_path);
+
+    for (const auto &group : cf.groups()) {
+      bool process = false;
+      if (shcore::str_beginswith(group, "mysqld")) {
+        if (group != "mysqld") {
+          const auto tokens = shcore::str_split(group, "-");
+          if (tokens.size() == 2) {
+            Version config_version(tokens[1]);
+            process = server_info.server_version.get_major() ==
+                          config_version.get_major() &&
+                      server_info.server_version.get_minor() ==
+                          config_version.get_minor();
+          }
+        } else {
+          process = true;
+        }
+      }
+
+      if (process) {
+        for (const auto &option : cf.options(group)) {
+          auto standardized = shcore::str_replace(option, "-", "_");
+          const auto value = cf.get(group, option);
+
+          Sysvar_info sysvar{option, value.value_or("ON"), "SERVER"};
+
+          m_sysvars.emplace(standardized, std::move(sysvar));
+        }
+      }
+    }
+  } else {
+    auto res = session->query(
+        "SELECT sv.variable_name, sv.variable_value, vi.variable_source FROM "
+        "performance_schema.session_variables sv, "
+        "performance_schema.variables_info vi WHERE sv.variable_name = "
+        "vi.variable_name");
+    while (auto row = res->fetch_one()) {
+      Sysvar_info sysvar{row->get_string(0), row->get_string(1),
+                         row->get_string(2)};
+
+      m_sysvars.emplace(row->get_string(0), std::move(sysvar));
+    }
   }
 }
 
@@ -111,12 +262,46 @@ const std::string &get_translation(const char *item) {
 
 std::string resolve_tokens(const std::string &text,
                            const Token_definitions &replacements) {
-  auto updated{text};
-  for (const auto &replacement : replacements) {
-    updated =
-        shcore::str_replace(updated, replacement.first, replacement.second);
+  return shcore::str_subvars(
+      text,
+      [&](std::string_view var) {
+        try {
+          return replacements.at(var);
+        } catch (const std::out_of_range &) {
+          throw std::logic_error(
+              shcore::str_format("Missing value for token '%s' at "
+                                 "Upgrade Checker message '%s'",
+                                 std::string(var).c_str(), text.c_str()));
+        }
+      },
+      "%", "%");
+}
+
+Upgrade_issue::Level get_issue_level(const Feature_definition &feature,
+                                     const Upgrade_info &server_info) {
+  // UC Start is either before the feature or after the feature was removed
+  if ((feature.start.has_value() &&
+       server_info.server_version < *feature.start) ||
+      (feature.removed.has_value() &&
+       server_info.server_version >= *feature.removed)) {
+    throw std::logic_error(
+        "Attempt to get issue level on an unavailable feature");
   }
-  return updated;
+
+  // UC target is before the feature got deprecated
+  if (feature.deprecated.has_value() &&
+      server_info.target_version < *feature.deprecated) {
+    return Upgrade_issue::Level::NOTICE;
+  }
+
+  // UC targe is after deprecation or before removal
+  if (!feature.removed.has_value() ||
+      server_info.target_version < *feature.removed) {
+    return Upgrade_issue::WARNING;
+  }
+
+  // UC target is after removal
+  return Upgrade_issue::Level::ERROR;
 }
 
 }  // namespace upgrade_checker

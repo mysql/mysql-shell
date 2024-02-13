@@ -59,7 +59,7 @@ CONNECTOR_MIN_VERSION = (2, 1, 7)
 # Using mathematical notation for intervals, supported MYSQL versions are as
 # follows: [MIN_MYSQL_VERSION, MAX_MYSQL_VERSION [
 MIN_MYSQL_VERSION = (5, 7, 17)  # minimum required version (supported)
-MAX_MYSQL_VERSION = (10, )       # maximum mysql version (not supported)
+MAX_MYSQL_VERSION = (9, )       # maximum mysql version (not supported)
 MIN_PERSIST_MYSQL_VERSION = (8, 0, 11)  # minimum mysql version that supports
                                         # set persist syntax.
 

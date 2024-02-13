@@ -81,6 +81,18 @@ semi-colon=;
 
 log_error=/var/log/mysql/error.log # value to be removed
 
+# removed
+query-cache-type=ON
+max_tmp_tables=100
+
+# === invalid values ===
+explicit_defaults_for_timestamp=OFF
+ssl_cipher=ECDHE-ECDSA-AES128-GCM-INVALID
+admin_ssl_cipher=ECDHE-ECDSA-AES128-GCM-INVALID
+tls_ciphersuites=TLS_AES_128_GCM_INVALID
+admin_tls_ciphersuites=TLS_AES_128_GCM_INVALID
+
+
 [delete_section]
 option_to_drop_with_no_value  # comments are
 option_to_drop_with_value = "value"   # also to be
@@ -105,9 +117,5 @@ win_path_with_posix_sep="C:/Program Files/MySQL/MySQL Server 5.7"
 option_to_drop_with_no_value  # comments are
 option_to_drop_with_value = "value"   # also to be
 option_to_drop_with_value2 = "value"  # delete
-
-[removed]
-query-cache-type=ON
-max_tmp_tables=100
 
 [empty section]

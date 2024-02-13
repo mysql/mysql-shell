@@ -29,22 +29,12 @@
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
 
 #include "modules/util/upgrade_checker/manual_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "modules/util/upgrade_checker/upgrade_check_config.h"
+#include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "modules/util/upgrade_checker/upgrade_check_formatter.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/libs/config/config_file.h"
 
-#include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/parser/mysql_parser_utils.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_sqlstring.h"
-#include "mysqlshdk/libs/utils/utils_translate.h"
-
-#include "mysqlshdk/libs/db/result.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -101,8 +91,12 @@ Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
   problem.schema = row->get_as_string(0);
   if (fields_count > 2) problem.table = row->get_as_string(1);
   if (fields_count > 3) problem.column = row->get_as_string(2);
-  if (fields_count > 1)
+  if (fields_count > 1) {
     problem.description = row->get_as_string(3 - (4 - fields_count));
+    if (shcore::str_beginswith(problem.description, "##")) {
+      problem.description = get_text(problem.description.substr(2).c_str());
+    }
+  }
   problem.level = m_level;
 
   return problem;

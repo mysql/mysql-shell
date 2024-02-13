@@ -213,10 +213,10 @@ Error: Following system variables that were detected as being used will be remov
 your system to not rely on them before the upgrade.
 
 * removedSysVars.issue
-%item% is set and will be removed
+The system variable '%item%' is set to %value% (%source%) and will be removed
 
 * removedSysVars.replacement
-consider using %replacement% instead
+consider using '%replacement%' instead
 
 * removedSysVars.docLink
 https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-removed
@@ -291,10 +291,10 @@ Error: The following columns are spatial data columns created in MySQL Server ve
 the upgrade to succeed we encourage you to upgrade directly to MySQL Server version 8.0.24 or
 newer. Otherwise, you must rebuild these tables using ALTER TABLE FORCE before upgrading.
 
-* tableCommand.title
+* checkTableCommand.title
 Issues reported by 'check table x for upgrade' command
 
-* tableCommand.description
+* checkTableCommand.description
 Issues reported by 'check table x for upgrade' command
 
 * defaultAuthenticationPlugin.title
@@ -419,12 +419,6 @@ Error: The following columns have foreign keys pointing to tables from different
 than originating table. This is invalid and probably a mistake done when FOREIGN_KEY_CHECKS was
 turned OFF:\n
 
-* deprecatedAuthMethod.title
-Check for deprecated or invalid user authentication methods.
-
-* deprecatedAuthMethod.description
-The following users are using a deprecated authentication method:\n
-
 * deprecatedDefaultAuth.title
 Check for deprecated or invalid default authentication methods in system variables.
 
@@ -474,3 +468,122 @@ Usage of use ZEROFILL/display length type attributes
 * zerofill.description
 The following table columns specify a ZEROFILL/display length attributes.
 Please be aware that they will be ignored in the latest MySQL version.
+
+* authMethodUsage.title
+Check for deprecated or invalid user authentication methods.
+
+* authMethodUsage.description
+Some users are using authentication methods that may be deprecated or removed,
+please review the details below.\n
+
+* authMethodUsage.description.Notice
+The following users are using the '%feature_id%' authentication method which
+will be deprecated as of MySQL %deprecated%.\n
+Consider switching the users to a different authentication method.\n
+
+* authMethodUsage.description.Warning
+The following users are using the '%feature_id%' authentication method which
+is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
+Consider switching the users to a different authentication method.\n
+
+* authMethodUsage.description.Error
+The following users are using the '%feature_id%' authentication method which
+is removed as of MySQL %removed%.\n
+The users must be deleted or re-created with a different authentication method.\n
+
+* authMethodUsage.description.Notice.Replacement
+The following users are using the '%feature_id%' authentication method which
+will be deprecated as of MySQL %deprecated%.\n
+Consider switching the users to a different authentication method (i.e. %replacement%).\n
+
+* authMethodUsage.description.Warning.Replacement
+The following users are using the '%feature_id%' authentication method which
+is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
+Consider switching the users to a different authentication method (i.e. %replacement%).\n
+
+* authMethodUsage.description.Error.Replacement
+The following users are using the '%feature_id%' authentication method which
+is removed as of MySQL %removed%.\n
+The users must be deleted or re-created with a different authentication method (i.e. %replacement%).\n
+
+* authMethodUsage.authentication_fido.docLink
+https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
+
+* authMethodUsage.sha256_password.docLink
+https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
+
+* authMethodUsage.mysql_native_password.docLink
+https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
+
+* pluginUsage.title
+Check for deprecated or removed plugin usage.
+
+* pluginUsage.description
+The following plugins are ACTIVE and they have been deprecated or removed.\n
+
+* pluginUsage.description.Notice
+The '%item_id%' plugin will be deprecated as of MySQL %deprecated%.\n
+Consider to stop using it.\n
+
+* pluginUsage.description.Warning
+The '%item_id%' plugin is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
+Consider to stop using it.\n
+
+* pluginUsage.description.Error
+The '%item_id%' plugin is removed as of MySQL %removed%.\n
+It must not be used anymore.\n
+
+* pluginUsage.description.Notice.Replacement
+The '%item_id%' plugin will be deprecated as of MySQL %deprecated%.\n
+Consider using %replacement% instead.\n
+
+* pluginUsage.description.Warning.Replacement
+The '%item_id%' plugin is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
+Consider using %replacement% instead.\n
+
+* pluginUsage.description.Error.Replacement
+The '%item_id%' plugin is removed as of MySQL %removed%.\n
+It must not be used anymore, please use %replacement% instead.\n
+
+* pluginUsage.authentication_fido.docLink
+https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
+
+* pluginUsage.keyring_file.docLink
+https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html
+
+* pluginUsage.keyring_encrypted_file.docLink
+https://dev.mysql.com/doc/refman/8.0/en/keyring-encrypted-file-component.html
+
+* pluginUsage.keyring_oci.docLink
+https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/keyring-oci-plugin.html
+
+* sysvarAllowedValues.title
+Check for allowed values in System Variables.
+
+* sysvarAllowedValues.description
+The following system variables are using values that are not allowed.\n
+
+* sysvarAllowedValues.issue
+The system variable '%variable%' is set to '%value%', allowed values include: %allowed%\n
+
+* invalidPrivileges.title
+Checks for user privileges that will be removed
+
+* invalidPrivileges.description
+Verifies for users containing grants to be removed, since privileges are removed as part of
+the upgrade, raises a NOTICE to inform the user about users that will be losing invalid privileges\n
+
+* invalidPrivileges.issue
+The user %account% has the following privileges that will be removed as part of the upgrade process: %privileges%
+
+* columnDefinition.title
+Checks for errors in column definitions
+
+* columnDefinition.description
+Identifies column definitions that may not be supported in future versions of MySQL
+
+* columnDefinition.floatAutoIncrement
+The column is of type FLOAT and has the AUTO_INCREMENT flag set, this is no longer supported.
+
+* columnDefinition.doubleAutoIncrement
+The column is of type DOUBLE and has the AUTO_INCREMENT flag set, this is no longer supported.

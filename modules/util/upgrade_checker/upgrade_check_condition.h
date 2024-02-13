@@ -79,6 +79,24 @@ class Custom_condition : public Condition {
  private:
   Callback m_condition;
 };
+/**
+ * This condition can be used to track the different states of a feature and
+ * activate or not a check depending on that.
+ */
+class Life_cycle_condition : public Condition {
+ public:
+  Life_cycle_condition(std::optional<Version> start,
+                       std::optional<Version> deprecation,
+                       std::optional<Version> removal);
+
+  bool evaluate(const Upgrade_info &info) override;
+
+ private:
+  std::optional<Version> m_start_version;
+  std::optional<Version> m_deprecation_version;
+  std::optional<Version> m_removal_version;
+};
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 #endif  // MODULES_UTIL_UPGRADE_CHECKER_UPGRADE_CHECK_CONDITION_H_

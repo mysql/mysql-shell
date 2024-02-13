@@ -42,7 +42,7 @@ class Manual_check : public Upgrade_check {
   Manual_check(const std::string_view name, Upgrade_issue::Level level)
       : Upgrade_check(name), m_level(level) {}
 
-  Upgrade_issue::Level get_level() const override { return m_level; }
+  Upgrade_issue::Level get_level() const { return m_level; }
   bool is_runnable() const override { return false; }
 
   std::vector<Upgrade_issue> run(
