@@ -82,19 +82,19 @@ EXPECT_THROWS(function(){
     Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", "auth-method":56, memberSslMode: "foo", ipWhitelist: " "});
 }, "Invalid values in connection options: ipWhitelist, memberSslMode");
 EXPECT_THROWS(function(){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
 }, "Argument #2 is expected to be a map");
 EXPECT_THROWS(function(){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: ""});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: ""});
 }, "The label can not be empty.");
 EXPECT_THROWS(function(){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid"});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid"});
 }, "The label can only start with an alphanumeric or the '_' character.");
 EXPECT_THROWS(function(){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char"});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char"});
 }, "The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.");
 EXPECT_THROWS(function(){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"});
 }, "The label can not be greater than 256 characters.");
 
 //@ Cluster: addInstance with interaction, error
@@ -235,8 +235,7 @@ EXPECT_THROWS(function(){
 var session3 = mysql.getSession(__sandbox_uri3);
 var server_id = session3.runSql("select @@server_id").fetchOne()[0];
 var repl_user = "mysql_innodb_cluster_"+server_id;
-Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3, password: 'root'});
-EXPECT_STDOUT_CONTAINS("WARNING: 'dbUser' connection option is deprecated, use 'user' option instead.");
+Cluster.rejoinInstance({user: "root", host: "localhost", port: __mysql_sandbox_port3, password: 'root'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

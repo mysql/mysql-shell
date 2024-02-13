@@ -78,7 +78,7 @@ EXPECT_THROWS(function (){
 }, "Invalid values in connection options: ipWhitelist, memberSslMode");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, "root");
 }, "Argument #2 is expected to be a map");
 
 EXPECT_THROWS(function (){
@@ -86,19 +86,19 @@ EXPECT_THROWS(function (){
 }, `The instance '${hostname}:${__mysql_sandbox_port1}' is already part of this InnoDB Cluster`);
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: ""});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: ""});
 }, "The label can not be empty.");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid"});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "#invalid"});
 }, "The label can only start with an alphanumeric or the '_' character.");
 
 EXPECT_THROWS(function (){
-    Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char"});
+    Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "invalid#char"});
 }, "The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.");
 
 EXPECT_THROWS(function (){
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"});
+Cluster.addInstance({user: "root", host: "localhost", port:__mysql_sandbox_port2}, {label: "over256chars_1234567890123456789012345678990123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123"});
 }, "The label can not be greater than 256 characters.");
 
 //@<> Cluster: addInstance 2
@@ -343,7 +343,7 @@ EXPECT_THROWS(function (){ Cluster.rejoinInstance("localhost:3306"); }, "Could n
 EXPECT_THROWS(function (){ Cluster.rejoinInstance("somehost:3306", "root"); }, "Argument #2 is expected to be a map");
 
 //@<> Dba: rejoin instance 3 ok {VER(<8.0.11)}
-EXPECT_NO_THROWS(function (){ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"}); });
+EXPECT_NO_THROWS(function (){ Cluster.rejoinInstance({user: "root", host: "localhost", port:__mysql_sandbox_port3}, {memberSslMode: "AUTO", "password": "root"}); });
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

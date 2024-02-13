@@ -942,10 +942,7 @@ void Shell_cli_mapper::define_named_args() {
     switch (m_metadata->param_codes[index]) {
       case 'C':
         for (const auto &attribute : mysqlshdk::db::connection_attributes()) {
-          // Skips dbUser and dbPassword
-          if (attribute[0] != 'd' && attribute[1] != 'b') {
-            define_named_arg(param_name, attribute, "", false);
-          }
+          define_named_arg(param_name, attribute, "", false);
         }
         m_argument_options[param_name] = shcore::Value(shcore::make_dict());
         break;

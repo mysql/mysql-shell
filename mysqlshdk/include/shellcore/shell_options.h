@@ -129,7 +129,6 @@ class Shell_options final : public shcore::Options {
     bool passwords_from_stdin = false;
     bool prompt_password = false;
     bool no_password = false;  //< Do not ask for password
-    bool recreate_database = false;
     bool show_warnings = true;
     bool trace_protocol = false;
     bool log_to_stderr = false;

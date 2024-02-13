@@ -54,7 +54,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &args,
-      bool recreate_schema = false, bool shell_global_session = true,
+      bool shell_global_session = true,
       std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init =
           nullptr);
 

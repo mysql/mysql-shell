@@ -412,10 +412,8 @@ Shell_options::Shell_options(
       )
     (cmdline("-u", "--user=<name>"),
         "User for the connection to the server.")
-    (cmdline("--dbuser=<name>"), deprecated(m_on_warning, "--user"))
     (cmdline("--password=[<pass>]"), "Password to use when connecting to server. "
       "If password is empty, connection will be made without using a password.")
-    (cmdline("--dbpassword[=<pass>]"), deprecated(m_on_warning, "--password"))
     (cmdline("-p", "--password"), "Request password prompt to set the password")
     (cmdline("--password1[=<pass>]"),
       "Password for first factor authentication plugin.")
@@ -489,11 +487,7 @@ Shell_options::Shell_options(
             storage.webauthn_client_preserve_privacy = shcore::opts::convert<bool>(value,
               shcore::opts::Source::Command_line);
           }
-        })
-    (cmdline("--recreate-schema"), "Drop and recreate the specified schema. "
-        "Schema will be deleted if it exists!", deprecated(m_on_warning, nullptr, [this](const std::string&, const char* ) {
-          storage.recreate_database = true;
-        }));
+        });
 
   add_startup_options(true)
     (cmdline("--mx", "--mysqlx"),
@@ -882,22 +876,6 @@ Shell_options::Shell_options(
 #endif
         ;
 
-  add_startup_options()
-    (cmdline("--ssl[=<opt>]"), deprecated(m_on_warning, "--ssl-mode",
-      std::bind(&Shell_options::set_ssl_mode, this, _1, _2), "REQUIRED",
-     {
-       {"1", "REQUIRED"},
-       {"YES", "REQUIRED"},
-       {"0", "DISABLED"},
-       {"NO", "DISABLED"}
-     }))
-    (cmdline("--node"), deprecated(m_on_warning, "--mysqlx", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("--classic"), deprecated(m_on_warning, "--mysql", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)))
-    (cmdline("--sqln"), deprecated(m_on_warning, "--sqlx", std::bind(
-            &Shell_options::override_session_type, this, _1, _2)));
-
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (
       cmdline("--quiet-start[={1|2}]"),
@@ -1169,17 +1147,8 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     }
 
     iterator->next();
-  } else if ("--user" == option || "--dbuser" == option || "-u" == option) {
+  } else if ("--user" == option || "-u" == option) {
     handle_missing_value(iterator);
-
-    if ("--dbuser" == option) {
-      // Deprecated handler is not going to be invoked, need to inform the
-      // user that --dbuser should not longer be used.
-      // Console is not available at this time, need to use stdout.
-      m_on_warning(
-          "WARNING: The --dbuser option was deprecated, "
-          "please use --user instead.");
-    }
 
     storage.connection_data.set_user(iterator->value());
 
@@ -1198,7 +1167,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 
     iterator->next();
   } else if ("--password" == option || "-p" == option ||
-             "--dbpassword" == option || "--password1" == option) {
+             "--password1" == option) {
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
     // The behavior of the password cmd line argument is as follows:
@@ -1212,15 +1181,6 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     // empty so it will not be prompted)
     // -p<value> sets the password to <value>
     // --password=<value> sets the password to <value>
-
-    if ("--dbpassword" == option) {
-      // Deprecated handler is not going to be invoked, need to inform the
-      // user that --dbpassword should not longer be used.
-      // Console is not available at this time, need to use stdout.
-      m_on_warning(
-          "WARNING: The --dbpassword option was deprecated, "
-          "please use --password instead.");
-    }
 
     if (shcore::Options::Iterator::Type::NO_VALUE == iterator->type()) {
       storage.prompt_password = true;

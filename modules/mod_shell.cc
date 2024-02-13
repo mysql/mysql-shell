@@ -585,9 +585,7 @@ The following options are also valid when a dictionary is used:
 @li uri: a URI string.
 @li scheme: the protocol to be used on the connection.
 @li user: the MySQL user name to be used on the connection.
-@li dbUser: alias for user.
 @li password: the password to be used on the connection.
-@li dbPassword: same as password.
 @li host: the hostname or IP address to be used on the connection.
 @li port: the port to be used in a TCP connection.
 @li socket: the socket file name to be used on a connection through unix sockets.
@@ -599,8 +597,6 @@ The following options are also valid when a dictionary is used:
 @li ssh-identity-file: the key file to be used on the SSH connection.
 @li ssh-identity-file-password: the SSH key file password.
 @li ssh-config-file: the SSH configuration file, default is the value of shell.options['ssh.configFile']
-
-@attention The dbUser and dbPassword options are will be removed in a future release.
 
 @attention The connection options have precedence over options specified in the connection options uri
 
@@ -968,7 +964,7 @@ std::shared_ptr<ShellBaseSession> Shell::open_session(
   if (connection_options_.has_data()) {
     auto connection_options = connection_options_;
     mysqlsh::set_password_from_string(&connection_options, password);
-    return _shell->connect(connection_options, false, false);
+    return _shell->connect(connection_options, false);
   } else {
     auto session = _shell_core->get_dev_session();
 
@@ -977,7 +973,7 @@ std::shared_ptr<ShellBaseSession> Shell::open_session(
           "An open session is required when duplicating sessions.");
     }
 
-    return _shell->connect(session->get_connection_options(), false, false);
+    return _shell->connect(session->get_connection_options(), false);
   }
 }
 

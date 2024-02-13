@@ -124,7 +124,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   coptions.set_scheme("mysql");
   coptions.set_password("");
   coptions.set_port(atoi(getenv("MYSQL_PORT")));
-  shell.connect(coptions, false);
+  shell.connect(coptions);
 
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",
             shell.get_options()->get("history.sql.ignorePattern").descr());

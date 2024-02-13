@@ -984,7 +984,7 @@ void Mysql_shell::print_connection_message(
 
 std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
-    bool recreate_schema, bool shell_global_session,
+    bool shell_global_session,
     std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
@@ -1016,10 +1016,6 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     schema_name = connection_options.get_schema();
   }
 
-  if (recreate_schema && schema_name.empty())
-    throw shcore::Exception::runtime_error(
-        "Recreate schema requested, but no schema specified");
-
   std::shared_ptr<mysqlshdk::db::ISession> isession;
   {
     shcore::Scoped_callback go_back_print_mode([this] { toggle_print(); });
@@ -1046,21 +1042,6 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     new_session->enable_sql_mode_tracking();
   }
 
-  if (recreate_schema) {
-    println("Recreating schema " + schema_name + "...");
-    try {
-      new_session->drop_schema(schema_name);
-    } catch (const shcore::Exception &e) {
-      if (e.is_mysql() && e.code() == 1008) {
-        // ignore DB doesn't exist error
-      } else {
-        throw;
-      }
-    }
-    new_session->create_schema(schema_name);
-
-    new_session->set_current_schema(schema_name);
-  }
   if (interactive) {
     std::string session_type = new_session->class_name();
     std::string message;

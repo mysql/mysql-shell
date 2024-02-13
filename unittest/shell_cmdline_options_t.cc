@@ -163,8 +163,6 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return AS__STRING(options->passwords_from_stdin);
     else if (option == "prompt_password")
       return AS__STRING(options->prompt_password);
-    else if (option == "recreate_database")
-      return AS__STRING(options->recreate_database);
     else if (option == "trace_protocol")
       return AS__STRING(options->trace_protocol);
     else if (option == "log_level")
@@ -780,7 +778,6 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.passwords_from_stdin);
   EXPECT_FALSE(options.prompt_password);
   EXPECT_TRUE(options.protocol.empty());
-  EXPECT_FALSE(options.recreate_database);
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(!options.connection_options().has_schema());
   EXPECT_TRUE(!options.connection_options().has_scheme());
@@ -827,8 +824,6 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_NULLABLE, "schema");
   test_option_with_value("user", "u", "root", "", IS_CONNECTION_DATA,
                          !IS_NULLABLE);
-  test_option_with_value("dbuser", "u", "root", "", IS_CONNECTION_DATA,
-                         !IS_NULLABLE, "user");
 #ifdef _WIN32
   test_option_with_value("socket", "S", "/some/socket/path", "",
                          IS_CONNECTION_DATA, !IS_NULLABLE, "sock");
@@ -844,29 +839,14 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("--password", "prompt_password", "1");
   test_option_with_no_value("--password1", "prompt_password", "1");
 
-  test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
-                          "password");
   test_option_equal_value("password1", "mypwd", IS_CONNECTION_DATA, "password");
   test_option_equal_value("password2", "mypwd", IS_CONNECTION_DATA);
   test_option_equal_value("password3", "mypwd", IS_CONNECTION_DATA);
 
-  test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "password",
-                          "");
-  test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA,
-                          "prompt_password", "1");
   test_option_space_value("password1", "mypwd", IS_CONNECTION_DATA,
                           "prompt_password", "1");
   test_option_space_value("password2", "mypwd", IS_CONNECTION_DATA);
   test_option_space_value("password3", "mypwd", IS_CONNECTION_DATA);
-  test_short_option_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA,
-                          "password");
-  test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA,
-                                "password", "");
-  test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA,
-                                "prompt_password", "1");
-  test_option_equal_no_value("dbpassword", true);
-  test_option_with_no_value("--dbpassword", "prompt_password", "1");
-
   test_option_with_value("ssl-ca", "", "some_value", "", IS_CONNECTION_DATA,
                          false);
   test_option_with_value("ssl-cert", "", "some_value", "", IS_CONNECTION_DATA,
@@ -911,8 +891,6 @@ TEST_F(Shell_cmdline_options, app) {
                             shell_mode_name(IShell_core::Mode::Python));
   test_option_with_no_value("--py", "initial-mode",
                             shell_mode_name(IShell_core::Mode::Python));
-
-  test_option_with_no_value("--recreate-schema", "recreate_database", "1");
 
   test_option_with_no_value("--table", "result_format", "table");
   test_option_with_no_value("--tabbed", "result_format", "tabbed");
@@ -1022,148 +1000,6 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
 
   test_session_type_conflicts("mysql://root@localhost", "--mysqlx", 0);
   test_session_type_conflicts("mysqlx://root@localhost", "--mysql", 0);
-}
-
-TEST_F(Shell_cmdline_options, test_deprecated_arguments) {
-  std::string firstArg, secondArg;
-
-  {
-    SCOPED_TRACE("TESTING: deprecated --node argument");
-    firstArg = "root@localhost:3301";
-    secondArg = "--node";
-
-    char *argv[] = {const_cast<char *>("ut"),
-                    const_cast<char *>(firstArg.c_str()),
-                    const_cast<char *>(secondArg.c_str()), NULL};
-
-    // Redirect cout.
-    std::streambuf *cout_backup = std::cout.rdbuf();
-    std::ostringstream cout;
-    std::cout.rdbuf(cout.rdbuf());
-
-    Shell_options cmd_options(3, argv);
-
-    // Restore old cout.
-    std::cout.rdbuf(cout_backup);
-
-    EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
-                 "mysqlx://root@localhost:3301");
-    MY_EXPECT_OUTPUT_CONTAINS(
-        "The --node option was deprecated, "
-        "please use --mysqlx instead. (Option has been processed "
-        "as --mysqlx).",
-        cout.str());
-  }
-
-  {
-    SCOPED_TRACE("TESTING: deprecated --classic argument");
-    firstArg = "root@localhost:3301";
-    secondArg = "--classic";
-
-    char *argv[] = {const_cast<char *>("ut"),
-                    const_cast<char *>(firstArg.c_str()),
-                    const_cast<char *>(secondArg.c_str()), NULL};
-
-    // Redirect cout.
-    std::streambuf *cout_backup = std::cout.rdbuf();
-    std::ostringstream cout;
-    std::cout.rdbuf(cout.rdbuf());
-
-    Shell_options cmd_options(3, argv);
-
-    // Restore old cout.
-    std::cout.rdbuf(cout_backup);
-
-    EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
-                 "mysql://root@localhost:3301");
-    MY_EXPECT_OUTPUT_CONTAINS(
-        "The --classic option was deprecated, "
-        "please use --mysql instead. (Option has been processed as "
-        "--mysql).",
-        cout.str());
-  }
-
-  {
-    SCOPED_TRACE("TESTING: deprecated --dbpassword argument");
-    firstArg = "root@localhost:3301";
-    secondArg = "--dbpassword=pass";
-
-    char *argv[] = {const_cast<char *>("ut"),
-                    const_cast<char *>(firstArg.c_str()),
-                    const_cast<char *>(secondArg.c_str()), NULL};
-
-    // Redirect cout.
-    std::streambuf *cout_backup = std::cout.rdbuf();
-    std::ostringstream cout;
-    std::cout.rdbuf(cout.rdbuf());
-
-    Shell_options cmd_options(3, argv);
-
-    // Restore old cout.
-    std::cout.rdbuf(cout_backup);
-
-    EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
-                 "root@localhost:3301");
-    MY_EXPECT_OUTPUT_CONTAINS(
-        "The --dbpassword option was deprecated, please use --password "
-        "instead.",
-        cout.str());
-  }
-
-  {
-    SCOPED_TRACE("TESTING: deprecated --dbuser argument");
-    firstArg = "root@localhost:3301";
-    secondArg = "--dbuser=root";
-
-    char *argv[] = {const_cast<char *>("ut"),
-                    const_cast<char *>(firstArg.c_str()),
-                    const_cast<char *>(secondArg.c_str()), NULL};
-
-    // Redirect cout.
-    std::streambuf *cout_backup = std::cout.rdbuf();
-    std::ostringstream cout;
-    std::cout.rdbuf(cout.rdbuf());
-
-    Shell_options cmd_options(3, argv);
-
-    // Restore old cout.
-    std::cout.rdbuf(cout_backup);
-
-    EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
-                 "root@localhost:3301");
-    MY_EXPECT_OUTPUT_CONTAINS(
-        "The --dbuser option was deprecated, please use --user instead.",
-        cout.str());
-  }
-  {
-    SCOPED_TRACE("TESTING: deprecated --recreate-schema argument");
-    firstArg = "root@localhost:3301/some-schema";
-    secondArg = "--recreate-schema";
-
-    char *argv[] = {const_cast<char *>("ut"),
-                    const_cast<char *>(firstArg.c_str()),
-                    const_cast<char *>(secondArg.c_str()), NULL};
-
-    // Redirect cout.
-    std::streambuf *cout_backup = std::cout.rdbuf();
-    std::ostringstream cout;
-    std::cout.rdbuf(cout.rdbuf());
-
-    Shell_options cmd_options(3, argv);
-
-    // Restore old cout.
-    std::cout.rdbuf(cout_backup);
-
-    EXPECT_EQ(0, cmd_options.get().exit_code);
-    EXPECT_STREQ(cmd_options.get().connection_options().as_uri().c_str(),
-                 "root@localhost:3301/some-schema");
-    MY_EXPECT_OUTPUT_CONTAINS("The --recreate-schema option was deprecated.",
-                              cout.str());
-  }
 }
 
 TEST_F(Shell_cmdline_options, test_positional_argument) {
@@ -1538,66 +1374,6 @@ TEST_F(Shell_cmdline_options, test_uri_with_password) {
 
   // Restore old cerr.
   std::cerr.rdbuf(backup);
-}
-
-TEST_F(Shell_cmdline_options, test_deprecated_ssl) {
-  std::string warning =
-      "The --ssl option was deprecated, please use --ssl-mode instead. ";
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl"),
-                                   const_cast<char *>("something"), NULL};
-
-    std::string error =
-        "--ssl-mode must be any of [DISABLED, PREFERRED, REQUIRED, VERIFY_CA, "
-        "VERIFY_IDENTITY]\n";
-
-    test_deprecated_ssl("--ssl=something", &options, "", error, 1,
-                        mysqlshdk::db::Ssl_mode::Preferred);
-    // This last param is
-    // ignored on this case
-  }
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl"), NULL};
-    std::string mywarning(warning);
-    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
-    test_deprecated_ssl("--ssl", &options, mywarning, "", 0,
-                        mysqlshdk::db::Ssl_mode::Required);
-  }
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl=1"), NULL};
-    std::string mywarning(warning);
-    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
-    test_deprecated_ssl("--ssl=1", &options, mywarning, "", 0,
-                        mysqlshdk::db::Ssl_mode::Required);
-  }
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl=yes"), NULL};
-    std::string mywarning(warning);
-    mywarning.append("(Option has been processed as --ssl-mode=REQUIRED).");
-    test_deprecated_ssl("--ssl=yes", &options, mywarning, "", 0,
-                        mysqlshdk::db::Ssl_mode::Required);
-  }
-
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl=0"), NULL};
-    std::string mywarning(warning);
-    mywarning.append("(Option has been processed as --ssl-mode=DISABLED).");
-    test_deprecated_ssl("--ssl=0", &options, mywarning, "", 0,
-                        mysqlshdk::db::Ssl_mode::Disabled);
-  }
-  {
-    std::vector<char *> options = {const_cast<char *>("ut"),
-                                   const_cast<char *>("--ssl=no"), NULL};
-    std::string mywarning(warning);
-    mywarning.append("(Option has been processed as --ssl-mode=DISABLED).");
-    test_deprecated_ssl("--ssl=no", &options, mywarning, "", 0,
-                        mysqlshdk::db::Ssl_mode::Disabled);
-  }
 }
 
 TEST_F(Shell_cmdline_options, dict_access_for_named_options) {

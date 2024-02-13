@@ -56,7 +56,7 @@ TEST(Cmdline_shell, query_variable_classic) {
   else
     coptions.set_password("");
   coptions.set_port(getenv("MYSQL_PORT") ? atoi(getenv("MYSQL_PORT")) : 3306);
-  shell.connect(coptions, false);
+  shell.connect(coptions);
   EXPECT_NE("", shell.query_variable(
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
   EXPECT_NE("",
@@ -84,7 +84,7 @@ TEST(Cmdline_shell, query_variable_x) {
     coptions.set_password("");
   coptions.set_port(getenv("MYSQLX_PORT") ? atoi(getenv("MYSQLX_PORT"))
                                           : 33060);
-  shell.connect(coptions, false);
+  shell.connect(coptions);
   EXPECT_NE("", shell.query_variable(
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
   EXPECT_NE("",

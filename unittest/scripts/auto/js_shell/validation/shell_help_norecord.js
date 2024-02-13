@@ -559,9 +559,7 @@ DESCRIPTION
       - uri: a URI string.
       - scheme: the protocol to be used on the connection.
       - user: the MySQL user name to be used on the connection.
-      - dbUser: alias for user.
       - password: the password to be used on the connection.
-      - dbPassword: same as password.
       - host: the hostname or IP address to be used on the connection.
       - port: the port to be used in a TCP connection.
       - socket: the socket file name to be used on a connection through unix
@@ -576,9 +574,6 @@ DESCRIPTION
       - ssh-identity-file-password: the SSH key file password.
       - ssh-config-file: the SSH configuration file, default is the value of
         shell.options['ssh.configFile']
-
-      ATTENTION: The dbUser and dbPassword options are will be removed in a
-                 future release.
 
       ATTENTION: The connection options have precedence over options specified
                  in the connection options uri
@@ -684,9 +679,7 @@ DESCRIPTION
       - uri: a URI string.
       - scheme: the protocol to be used on the connection.
       - user: the MySQL user name to be used on the connection.
-      - dbUser: alias for user.
       - password: the password to be used on the connection.
-      - dbPassword: same as password.
       - host: the hostname or IP address to be used on the connection.
       - port: the port to be used in a TCP connection.
       - socket: the socket file name to be used on a connection through unix
@@ -701,9 +694,6 @@ DESCRIPTION
       - ssh-identity-file-password: the SSH key file password.
       - ssh-config-file: the SSH configuration file, default is the value of
         shell.options['ssh.configFile']
-
-      ATTENTION: The dbUser and dbPassword options are will be removed in a
-                 future release.
 
       ATTENTION: The connection options have precedence over options specified
                  in the connection options uri
@@ -1361,9 +1351,7 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- dbUser: alias for user.
 - password: the password to be used on the connection.
-- dbPassword: same as password.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -1377,9 +1365,6 @@ SSH Tunnel Connection Options
 - ssh-identity-file-password: the SSH key file password.
 - ssh-config-file: the SSH configuration file, default is the value of
   shell.options['ssh.configFile']
-
-ATTENTION: The dbUser and dbPassword options are will be removed in a future
-           release.
 
 ATTENTION: The connection options have precedence over options specified in the
            connection options uri
@@ -1640,9 +1625,7 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- dbUser: alias for user.
 - password: the password to be used on the connection.
-- dbPassword: same as password.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -1656,9 +1639,6 @@ SSH Tunnel Connection Options
 - ssh-identity-file-password: the SSH key file password.
 - ssh-config-file: the SSH configuration file, default is the value of
   shell.options['ssh.configFile']
-
-ATTENTION: The dbUser and dbPassword options are will be removed in a future
-           release.
 
 ATTENTION: The connection options have precedence over options specified in the
            connection options uri

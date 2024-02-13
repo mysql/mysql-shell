@@ -62,10 +62,6 @@ const std::set<std::string> uri_extra_options = {
     kOciAuthenticationClientConfigProfile,
 };
 
-const std::map<std::string, std::string, shcore::Case_insensitive_comparator>
-    deprecated_connection_attributes = {{kDbUser, kUser},
-                                        {kDbPassword, kPassword}};
-
 int lexical_cast_timeout(const std::string &name, const std::string &value) {
   try {
     auto result = shcore::lexical_cast<int>(value);
@@ -333,15 +329,6 @@ void Connection_options::set_port(int port) {
   m_transport_type = Transport_type::Tcp;
 }
 
-std::string Connection_options::get_iname(const std::string &name) const {
-  // Deprecated options are only supported as input
-  // Internally, they are handled with replacements
-  const auto it = deprecated_connection_attributes.find(name);
-  if (it != deprecated_connection_attributes.end() && !it->second.empty())
-    return it->second;
-  return name;
-}
-
 bool Connection_options::is_extra_option(const std::string &option) {
   return std::find_if(uri_extra_options.begin(), uri_extra_options.end(),
                       [this, &option](
@@ -359,57 +346,52 @@ bool Connection_options::is_bool_value(const std::string &value) {
 void Connection_options::set(const std::string &name,
                              const std::string &value) {
   using namespace std::string_literals;
-  const std::string iname = get_iname(name);
-  if (name != iname)
-    m_warnings.emplace_back("'" + name +
-                            "' connection option is deprecated, use '" + iname +
-                            "' option instead.");
-  if (compare(iname, db::kScheme) == 0) {
+  if (compare(name, db::kScheme) == 0) {
     set_scheme(value);
-  } else if (compare(iname, db::kUser) == 0) {
+  } else if (compare(name, db::kUser) == 0) {
     set_user(value);
-  } else if (compare(iname, db::kPassword) == 0) {
+  } else if (compare(name, db::kPassword) == 0) {
     set_password(value);
-  } else if (compare(iname, db::kHost) == 0) {
+  } else if (compare(name, db::kHost) == 0) {
     set_host(value);
-  } else if (compare(iname, db::kPath) == 0) {
+  } else if (compare(name, db::kPath) == 0) {
     set_path(value);
-  } else if (compare(iname, db::kSocket) == 0) {
+  } else if (compare(name, db::kSocket) == 0) {
     set_socket(value);
-  } else if (compare(iname, db::kPipe) == 0) {
+  } else if (compare(name, db::kPipe) == 0) {
     set_pipe(value);
-  } else if (compare(iname, db::kSchema) == 0) {
+  } else if (compare(name, db::kSchema) == 0) {
     set_schema(value);
-  } else if (m_ssl_options.has(iname)) {
-    m_ssl_options.set(iname, value);
-  } else if (iname == kCompression) {
+  } else if (m_ssl_options.has(name)) {
+    m_ssl_options.set(name, value);
+  } else if (name == kCompression) {
     set_compression(value);
-  } else if (iname == kCompressionAlgorithms) {
+  } else if (name == kCompressionAlgorithms) {
     set_compression_algorithms(value);
-  } else if (compare(iname, db::kConnectTimeout) == 0) {
+  } else if (compare(name, db::kConnectTimeout) == 0) {
     set_connect_timeout(lexical_cast_timeout(db::kConnectTimeout, value));
-  } else if (compare(iname, db::kNetReadTimeout) == 0) {
+  } else if (compare(name, db::kNetReadTimeout) == 0) {
     set_net_read_timeout(lexical_cast_timeout(db::kNetReadTimeout, value));
-  } else if (compare(iname, db::kNetWriteTimeout) == 0) {
+  } else if (compare(name, db::kNetWriteTimeout) == 0) {
     set_net_write_timeout(lexical_cast_timeout(db::kNetWriteTimeout, value));
   }
 #ifdef _WIN32
-  else if (iname == kKerberosClientAuthMode) {
+  else if (name == kKerberosClientAuthMode) {
     set_kerberos_auth_mode(value);
   }
 #endif
-  else if (is_extra_option(iname)) {
-    if (iname == kGetServerPublicKey) {
+  else if (is_extra_option(name)) {
+    if (name == kGetServerPublicKey) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "
                                "values: true, false, 1, 0.",
-                               value.c_str(), iname.c_str()));
+                               value.c_str(), name.c_str()));
       }
     }
 
-    m_extra_options.set(iname, value, Set_mode::CREATE);
-  } else if (iname == kConnectionAttributes) {
+    m_extra_options.set(name, value, Set_mode::CREATE);
+  } else if (name == kConnectionAttributes) {
     // When connection-attributes has assigned a single value, it must
     // be a boolean. We do NOT do anything with it: in DevAPI standard
     // it should avoid ANY connection attribute to be sent, however
@@ -425,7 +407,7 @@ void Connection_options::set(const std::string &name,
         m_enable_connection_attributes = false;
       }
     }
-  } else if (iname == kCompressionLevel) {
+  } else if (name == kCompressionLevel) {
     try {
       set_compression_level(shcore::lexical_cast<int>(value));
     } catch (...) {
@@ -474,8 +456,6 @@ void Connection_options::set_unchecked(const std::string &name,
 
 void Connection_options::set(const std::string &name,
                              const std::vector<std::string> &values) {
-  std::string iname = get_iname(name);
-
   if (name == kConnectionAttributes) {
     set_connection_attributes(values);
   } else if (shcore::str_caseeq(name, kSslTlsVersions)) {
@@ -484,8 +464,8 @@ void Connection_options::set(const std::string &name,
   } else if (shcore::str_caseeq(name, kSslTlsCiphersuites)) {
     m_ssl_options.set_tls_ciphersuites(
         shcore::str_join(values.begin(), values.end(), ":"));
-  } else if (m_options.has(iname) || m_ssl_options.has(iname) ||
-             is_extra_option(iname)) {
+  } else if (m_options.has(name) || m_ssl_options.has(name) ||
+             is_extra_option(name)) {
     // All the connection parameters accept only 1 value
     throw std::invalid_argument("The connection option '" + name +
                                 "' requires exactly one value.");
@@ -495,38 +475,34 @@ void Connection_options::set(const std::string &name,
 }
 
 bool Connection_options::has(const std::string &name) const {
-  std::string iname = get_iname(name);
+  if (name == db::kCompressionLevel) return has_compression_level();
+  if (name == db::kConnectTimeout) return has_connect_timeout();
+  if (name == db::kNetReadTimeout) return has_net_read_timeout();
+  if (name == db::kNetWriteTimeout) return has_net_write_timeout();
 
-  if (iname == db::kCompressionLevel) return has_compression_level();
-  if (iname == db::kConnectTimeout) return has_connect_timeout();
-  if (iname == db::kNetReadTimeout) return has_net_read_timeout();
-  if (iname == db::kNetWriteTimeout) return has_net_write_timeout();
-
-  return m_options.has(iname) || m_ssl_options.has(iname) ||
-         m_extra_options.has(iname) || m_options.compare(iname, kPort) == 0;
+  return m_options.has(name) || m_ssl_options.has(name) ||
+         m_extra_options.has(name) || m_options.compare(name, kPort) == 0;
 }
 
 bool Connection_options::has_value(const std::string &name) const {
-  std::string iname = get_iname(name);
-
-  if (m_options.compare(iname, kSocket) == 0)
+  if (m_options.compare(name, kSocket) == 0)
     return has_socket();
-  else if (m_options.compare(iname, kPipe) == 0)
+  else if (m_options.compare(name, kPipe) == 0)
     return has_pipe();
-  else if (m_options.compare(iname, kConnectTimeout) == 0)
+  else if (m_options.compare(name, kConnectTimeout) == 0)
     return has_connect_timeout();
-  else if (m_options.compare(iname, kNetReadTimeout) == 0)
+  else if (m_options.compare(name, kNetReadTimeout) == 0)
     return has_net_read_timeout();
-  else if (m_options.compare(iname, kNetWriteTimeout) == 0)
+  else if (m_options.compare(name, kNetWriteTimeout) == 0)
     return has_net_write_timeout();
-  else if (m_options.has(iname))
-    return m_options.has_value(iname);
-  else if (m_ssl_options.has(iname))
-    return m_ssl_options.has_value(iname);
-  else if (m_options.compare(iname, kPort) == 0)
+  else if (m_options.has(name))
+    return m_options.has_value(name);
+  else if (m_ssl_options.has(name))
+    return m_ssl_options.has_value(name);
+  else if (m_options.compare(name, kPort) == 0)
     return m_port.has_value();
-  else if (m_extra_options.has(iname))
-    return m_extra_options.has_value(iname);
+  else if (m_extra_options.has(name))
+    return m_extra_options.has_value(name);
 
   return false;
 }
@@ -624,11 +600,10 @@ const Connection_options::Mfa_passwords &Connection_options::get_mfa_passwords()
 }
 
 const std::string &Connection_options::get(const std::string &name) const {
-  std::string iname = get_iname(name);
-  if (m_ssl_options.has(iname)) return m_ssl_options.get_value(iname);
-  if (m_extra_options.has(iname)) return m_extra_options.get_value(iname);
-  if (m_options.compare(iname, kSocket) == 0) return get_socket();
-  if (m_options.compare(iname, kPipe) == 0) return get_pipe();
+  if (m_ssl_options.has(name)) return m_ssl_options.get_value(name);
+  if (m_extra_options.has(name)) return m_extra_options.get_value(name);
+  if (m_options.compare(name, kSocket) == 0) return get_socket();
+  if (m_options.compare(name, kPipe) == 0) return get_pipe();
 
   return get_value(name);
 }

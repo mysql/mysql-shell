@@ -100,8 +100,6 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    to be used for signing challenge. If not
                                    enabled, challenge is signed by all
                                    credentials for given relying party.
-  --recreate-schema                Drop and recreate the specified schema.
-                                   Schema will be deleted if it exists!
   --mx, --mysqlx                   Uses connection data to create an X protocol
                                    session.
   --mc, --mysql                    Uses connection data to create a classic

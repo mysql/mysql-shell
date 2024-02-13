@@ -59,7 +59,7 @@ class Completion_cache_refresh : public Shell_core_test_wrapper {
     _options->initial_mode = mode;
     reset_shell();
     if (!uri.empty()) {
-      _interactive_shell->connect(_options->connection_options(), false);
+      _interactive_shell->connect(_options->connection_options());
     }
   }
 };

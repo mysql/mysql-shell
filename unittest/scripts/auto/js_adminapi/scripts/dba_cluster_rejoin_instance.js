@@ -40,13 +40,13 @@ var cluster;
 EXPECT_NO_THROWS(function(){ cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true}); });
 
 //@<> Adding instance 2 using the root account
-EXPECT_NO_THROWS(function(){ cluster.addInstance({dbUser: 'root', password: 'root', host: 'localhost', port:__mysql_sandbox_port2}); });
+EXPECT_NO_THROWS(function(){ cluster.addInstance({user: 'root', password: 'root', host: 'localhost', port:__mysql_sandbox_port2}); });
 
 // Waiting for the instance 2 to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Adding instance 3
-EXPECT_NO_THROWS(function(){ cluster.addInstance({dbUser: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port3}); });
+EXPECT_NO_THROWS(function(){ cluster.addInstance({user: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port3}); });
 
 // Waiting for the instance 3 to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
@@ -69,7 +69,7 @@ EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "(MISSING)
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 //@<> Rejoin instance 2
-cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2, password: 'bar'});
+cluster.rejoinInstance({user: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2, password: 'bar'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Cluster status after rejoin
@@ -79,7 +79,7 @@ EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
 EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 //@<> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
-EXPECT_NO_THROWS(function(){ cluster.rejoinInstance({dbUser: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port2}); });
+EXPECT_NO_THROWS(function(){ cluster.rejoinInstance({user: 'foo', password: 'bar', host: 'localhost', port:__mysql_sandbox_port2}); });
 EXPECT_OUTPUT_CONTAINS(`NOTE: ${hostname}:${__mysql_sandbox_port2} is already an active (ONLINE) member of cluster 'dev'.`)
 
 //@<> Dissolve cluster
