@@ -14,13 +14,11 @@ result = mySession.run_sql('create table js_shell_test.buffer_table (name varcha
 validate_members(result, [
   'affected_items_count',
   'execution_time',
-  'warning_count',
   'warnings',
   'warnings_count',
   'statement_id',
   'get_affected_items_count',
   'get_execution_time',
-  'get_warning_count',
   'get_warnings',
   'get_warnings_count',
   'get_statement_id',
@@ -37,11 +35,8 @@ validate_members(result, [
   'fetch_one_object',
   'fetch_all',
   'has_data',
-  'next_data_set',
   'next_result',
-  'affected_row_count',
   'auto_increment_value',
-  'get_affected_row_count',
   'get_auto_increment_value'])
 
 result = mySession.run_sql('insert into buffer_table values("jack", 17, "male")')

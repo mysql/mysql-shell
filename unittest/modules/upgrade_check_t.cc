@@ -1257,8 +1257,6 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     ASSERT_TRUE(d["targetVersion"].IsString());
     ASSERT_TRUE(d.HasMember("errorCount"));
     ASSERT_TRUE(d["errorCount"].IsInt());
-    ASSERT_TRUE(d.HasMember("warningCount"));
-    ASSERT_TRUE(d["warningCount"].IsInt());
     ASSERT_TRUE(d.HasMember("noticeCount"));
     ASSERT_TRUE(d["noticeCount"].IsInt());
     ASSERT_TRUE(d.HasMember("summary"));
@@ -1910,8 +1908,6 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
     ASSERT_TRUE(d["targetVersion"].IsString());
     ASSERT_TRUE(d.HasMember("errorCount"));
     ASSERT_TRUE(d["errorCount"].IsInt());
-    ASSERT_TRUE(d.HasMember("warningCount"));
-    ASSERT_TRUE(d["warningCount"].IsInt());
     ASSERT_TRUE(d.HasMember("noticeCount"));
     ASSERT_TRUE(d["noticeCount"].IsInt());
     ASSERT_TRUE(d.HasMember("summary"));

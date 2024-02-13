@@ -104,13 +104,6 @@ FUNCTIONS
       isOpen()
             Returns true if session is known to be open.
 
-      query(query[, args])
-            Executes a query and returns the corresponding ClassicResult
-            object.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the runSql function instead.
-
       rollback()
             Discards all the operations executed after a call to
             startTransaction().

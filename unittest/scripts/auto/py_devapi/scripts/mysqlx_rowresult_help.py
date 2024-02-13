@@ -128,15 +128,6 @@ rowresult.help('get_execution_time')
 #@ global help for get_execution_time[USE:rowresult.get_execution_time]
 \help RowResult.get_execution_time
 
-#@ rowresult.get_warning_count
-rowresult.help('get_warning_count')
-
-#@ global ? for get_warning_count[USE:rowresult.get_warning_count]
-\? RowResult.get_warning_count
-
-#@ global help for get_warning_count[USE:rowresult.get_warning_count]
-\help RowResult.get_warning_count
-
 #@ rowresult.get_warnings
 rowresult.help('get_warnings')
 
@@ -163,15 +154,6 @@ rowresult.help('help')
 
 #@ global help for help[USE:rowresult.help]
 \help RowResult.help
-
-#@ rowresult.warning_count
-rowresult.help('warning_count')
-
-#@ global ? for warning_count[USE:rowresult.warning_count]
-\? RowResult.warning_count
-
-#@ global help for warning_count[USE:rowresult.warning_count]
-\help RowResult.warning_count
 
 #@ rowresult.warnings
 rowresult.help('warnings')

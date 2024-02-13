@@ -52,13 +52,6 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
  public:
 #if DOXYGEN_JS
   Integer affectedItemsCount;  //!< Same as getAffectedItemsCount()
-  /**
-   * Same as getAffectedRowCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affectedItemsCount</b> property instead.
-   */
-  Integer affectedRowCount;
   Integer columnCount;         //!< Same as getColumnCount()
   List columnNames;            //!< Same as getColumnNames()
   List columns;                //!< Same as getColumns()
@@ -67,20 +60,12 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
   List warnings;               //!< Same as getWarnings()
   String statementId;          //!< Same as getStatementId()
-  /**
-   * Same as getWarningCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>warningsCount</b> property instead.
-   */
-  Integer warningCount;
-  Integer warningsCount;  //!< Same as getWarningsCount()
+  Integer warningsCount;       //!< Same as getWarningsCount()
 
   Row fetchOne();
   Dictionary fetchOneObject();
   List fetchAll();
   Integer getAffectedItemsCount();
-  Integer getAffectedRowCount();
   Integer getColumnCount();
   List getColumnNames();
   List getColumns();
@@ -88,21 +73,12 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   Bool hasData();
   String getInfo();
   Integer getAutoIncrementValue();
-  Integer getWarningCount();
   Integer getWarningsCount();
   List getWarnings();
-  Bool nextDataSet();
   Bool nextResult();
   Srting getStatementId();
 #elif DOXYGEN_PY
   int affected_items_count;  //!< Same as get_affected_items_count()
-  /**
-   * Same as get_affected_row_count()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affected_items_count</b> property instead.
-   */
-  int affected_row_count;
   int column_count;          //!< Same as get_column_count()
   list column_names;         //!< Same as get_column_names()
   list columns;              //!< Same as get_columns()
@@ -111,20 +87,12 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   int auto_increment_value;  //!< Same as get_auto_increment_value()
   list warnings;             //!< Same as get_warnings()
   str statement_id;          //!< Same as get_statement_id()
-  /**
-   * Same as get_warning_count()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>warnings_count</b> property instead.
-   */
-  int warning_count;
-  int warnings_count;  //!< Same as get_warnings_count()
+  int warnings_count;        //!< Same as get_warnings_count()
 
   Row fetch_one();
   dict fetch_one_object();
   list fetch_all();
   int get_affected_items_count();
-  int get_affected_row_count();
   int get_column_count();
   list get_column_names();
   list get_columns();
@@ -132,10 +100,8 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   bool has_data();
   str get_info();
   int get_auto_increment_value();
-  int get_warning_count();
   int get_warnings_count();
   list get_warnings();
-  bool next_data_set();
   bool next_result();
   str get_statement_id();
 #endif
@@ -150,7 +116,6 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   std::shared_ptr<Row> fetch_one() const;
   shcore::Dictionary_t _fetch_one_object();
   shcore::Array_t fetch_all() const;
-  bool next_data_set();
   bool next_result();
 
   mysqlshdk::db::IResult *get_result() const override { return _result.get(); }

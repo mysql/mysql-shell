@@ -14,7 +14,6 @@ validateMembers(classicSession, [
     'isOpen',
     'startTransaction',
     'setQueryAttributes',
-    'query',
     'rollback',
     'runSql',
     'sshUri',
@@ -126,17 +125,6 @@ classicSession.runSql('select ?, ?', [1]);
 
 //@<OUT> ClassicSession: runSql placeholders
 classicSession.runSql("select ?, ?", ['hello', 1234]);
-
-//@# ClassicSession: query errors
-classicSession.query();
-classicSession.query(1, 2, 3);
-classicSession.query(1);
-classicSession.query('select ?', 5);
-classicSession.query('select ?, ?', [1, 2, 3]);
-classicSession.query('select ?, ?', [1]);
-
-//@<OUT> ClassicSession: query placeholders
-classicSession.query("select ?, ?", ['hello', 1234]);
 
 //@<OUT> ClassicSession: runSql with various parameter types
 classicSession.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();

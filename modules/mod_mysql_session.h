@@ -96,9 +96,6 @@ class SHCORE_PUBLIC ClassicSession
   std::shared_ptr<ClassicResult> _commit();
   std::shared_ptr<ClassicResult> _rollback();
 
-  std::shared_ptr<ClassicResult> query(const std::string &query,
-                                       const shcore::Array_t &args = {});
-
   std::vector<mysqlshdk::db::Query_attribute> query_attributes() const override;
 
   std::shared_ptr<ClassicResult> run_sql(const std::string &query,
@@ -140,7 +137,6 @@ class SHCORE_PUBLIC ClassicSession
   String getUri();
   String getSshUri();
   ClassicResult runSql(String query, Array args = []);
-  ClassicResult query(String query, Array args = []);
   Undefined close();
   ClassicResult startTransaction();
   ClassicResult commit();
@@ -153,7 +149,6 @@ class SHCORE_PUBLIC ClassicSession
   str get_uri();
   str get_ssh_uri();
   ClassicResult run_sql(str query, list args = []);
-  ClassicResult query(str query, list args = []);
   None close();
   ClassicResult start_transaction();
   ClassicResult commit();

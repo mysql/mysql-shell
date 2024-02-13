@@ -13,7 +13,6 @@ validate_members(classicSession, [
   'get_ssh_uri',
   'help',
   'is_open',
-  'query',
   'rollback',
   'run_sql',
   'start_transaction',
@@ -89,17 +88,6 @@ classicSession.run_sql('select ?, ?', [1]);
 
 #@<OUT> ClassicSession: run_sql placeholders
 classicSession.run_sql("select ?, ?", ['hello', 1234]);
-
-#@# ClassicSession: query errors
-classicSession.query();
-classicSession.query(1, 2, 3);
-classicSession.query(1);
-classicSession.query('select ?', 5);
-classicSession.query('select ?, ?', [1, 2, 3]);
-classicSession.query('select ?, ?', [1]);
-
-#@<OUT> ClassicSession: query placeholders
-classicSession.query("select ?, ?", ['hello', 1234]);
 
 # Cleanup
 classicSession.close();

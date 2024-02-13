@@ -37,13 +37,6 @@ FUNCTIONS
       is_open()
             Returns true if session is known to be open.
 
-      query(query[, args])
-            Executes a query and returns the corresponding ClassicResult
-            object.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the run_sql function instead.
-
       rollback()
             Discards all the operations executed after a call to
             start_transaction().
@@ -116,29 +109,6 @@ DESCRIPTION
       Returns true if the session is still open and false otherwise.
 
       NOTE: This function may return true if connection is lost.
-
-#@<OUT> session.query
-NAME
-      query - Executes a query and returns the corresponding ClassicResult
-              object.
-
-SYNTAX
-      <ClassicSession>.query(query[, args])
-
-WHERE
-      query: the SQL query string to execute, with optional ? placeholders.
-      args: List of literals to use when replacing ? placeholders in the query
-            string.
-
-RETURNS
-      A ClassicResult object.
-
-DESCRIPTION
-      ATTENTION: This function will be removed in a future release, use the
-                 run_sql function instead.
-
-EXCEPTIONS
-      An exception is thrown if an error occurs on the SQL execution.
 
 #@<OUT> session.rollback
 NAME

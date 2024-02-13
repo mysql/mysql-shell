@@ -59,9 +59,7 @@ data
         }
     ],
     "executionTime": "[[*]] sec",
-    "affectedRowCount": 0,
     "affectedItemsCount": 0,
-    "warningCount": 0,
     "warningsCount": 0,
     "warnings": [],
     "info": "",
@@ -124,9 +122,7 @@ data
         }
     ],
     "executionTime": "[[*]] sec",
-    "affectedRowCount": 0,
     "affectedItemsCount": 0,
-    "warningCount": 0,
     "warningsCount": 0,
     "warnings": [],
     "info": "",
@@ -568,6 +564,6 @@ Field 1
 Name:      `2`
 
 //@<OUT> Multiple Results JSON Mode
-{"hasData":true,"rows":[{"1":1}],"executionTime":"[[*]] sec","affectedRowCount":0,"affectedItemsCount":0,"warningCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}
-{"hasData":true,"rows":[{"2":2}],"executionTime":"[[*]] sec","affectedRowCount":0,"affectedItemsCount":0,"warningCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}
-{"hasData":false,"rows":[],"executionTime":"[[*]] sec","affectedRowCount":0,"affectedItemsCount":0,"warningCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}
+{"hasData":true,"rows":[{"1":1}],"executionTime":"[[*]] sec","affectedItemsCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}
+{"hasData":true,"rows":[{"2":2}],"executionTime":"[[*]] sec","affectedItemsCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}
+{"hasData":false,"rows":[],"executionTime":"[[*]] sec","affectedItemsCount":0,"warningsCount":0,"warnings":[],"info":"","autoIncrementValue":0}

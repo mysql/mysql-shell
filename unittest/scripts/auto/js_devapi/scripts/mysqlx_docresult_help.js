@@ -23,12 +23,6 @@ result.help('executionTime');
 //@ Help on executionTime, \? [USE:Help on executionTime]
 \? DocResult.executionTime
 
-//@ Help on warningCount
-result.help('warningCount');
-
-//@ Help on warningCount, \? [USE:Help on warningCount]
-\? DocResult.warningCount
-
 //@ Help on warnings
 result.help('warnings');
 
@@ -64,12 +58,6 @@ result.help('getExecutionTime');
 
 //@ Help on getExecutionTime, \? [USE:Help on getExecutionTime]
 \? DocResult.getExecutionTime
-
-//@ Help on getWarningCount
-result.help('getWarningCount');
-
-//@ Help on getWarningCount, \? [USE:Help on getWarningCount]
-\? DocResult.getWarningCount
 
 //@ Help on getWarnings
 result.help('getWarnings');

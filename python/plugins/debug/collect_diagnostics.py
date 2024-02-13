@@ -622,7 +622,7 @@ def execute_profiled_query(zf: zipfile.ZipFile, prefix: str, helper_session, que
         "Result Fetch Time": (fetch_end - fetch_start),
         "Query": query,
         "Warnings": normalize(r.get_warnings()),
-        "Affected Rows": r.get_affected_row_count(),
+        "Affected Rows": r.get_affected_items_count(),
         "Result Rows": row_count
     }
     if hasattr(r, "get_info"):

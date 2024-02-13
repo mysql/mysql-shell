@@ -42,20 +42,3 @@
 
 #@<OUT> ClassicSession: run_sql placeholders
 | hello | 1234 |
-
-#@# ClassicSession: query errors
-||ClassicSession.query: Invalid number of arguments, expected 1 to 2 but got 0
-||ClassicSession.query: Invalid number of arguments, expected 1 to 2 but got 3
-||ClassicSession.query: Argument #1 is expected to be a string
-||ClassicSession.query: Argument #2 is expected to be an array
-||ClassicSession.query: Error formatting SQL query: more arguments than escapes while substituting placeholder value at index #2
-||ClassicSession.query: Insufficient number of values for placeholders in query
-
-
-#@<OUT> ClassicSession: query placeholders
-WARNING: 'query' is deprecated, use ClassicSession.run_sql instead.
-+-------+------+
-| hello | 1234 |
-+-------+------+
-| hello | 1234 |
-+-------+------+

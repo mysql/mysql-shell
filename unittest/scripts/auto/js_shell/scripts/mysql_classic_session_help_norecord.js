@@ -43,12 +43,6 @@ session.help('isOpen')
 //@ Help on isOpen, \? [USE:Help on isOpen]
 \? classicsession.isOpen
 
-//@ Help on query
-session.help('query')
-
-//@ Help on query, \? [USE:Help on query]
-\? classicsession.query
-
 //@ Help on rollback
 session.help('rollback')
 

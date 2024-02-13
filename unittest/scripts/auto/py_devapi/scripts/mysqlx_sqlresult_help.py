@@ -20,15 +20,6 @@ sqlresult.help('affected_items_count')
 #@ global help for affected_items_count[USE:sqlresult.affected_items_count]
 \help SqlResult.affected_items_count
 
-#@ sqlresult.affected_row_count
-sqlresult.help('affected_row_count')
-
-#@ global ? for affected_row_count[USE:sqlresult.affected_row_count]
-\? SqlResult.affected_row_count
-
-#@ global help for affected_row_count[USE:sqlresult.affected_row_count]
-\help SqlResult.affected_row_count
-
 #@ sqlresult.auto_increment_value
 sqlresult.help('auto_increment_value')
 
@@ -110,15 +101,6 @@ sqlresult.help('get_affected_items_count')
 #@ global help for get_affected_items_count[USE:sqlresult.get_affected_items_count]
 \help SqlResult.get_affected_items_count
 
-#@ sqlresult.get_affected_row_count
-sqlresult.help('get_affected_row_count')
-
-#@ global ? for get_affected_row_count[USE:sqlresult.get_affected_row_count]
-\? SqlResult.get_affected_row_count
-
-#@ global help for get_affected_row_count[USE:sqlresult.get_affected_row_count]
-\help SqlResult.get_affected_row_count
-
 #@ sqlresult.get_auto_increment_value
 sqlresult.help('get_auto_increment_value')
 
@@ -164,15 +146,6 @@ sqlresult.help('get_execution_time')
 #@ global help for get_execution_time[USE:sqlresult.get_execution_time]
 \help SqlResult.get_execution_time
 
-#@ sqlresult.get_warning_count
-sqlresult.help('get_warning_count')
-
-#@ global ? for get_warning_count[USE:sqlresult.get_warning_count]
-\? SqlResult.get_warning_count
-
-#@ global help for get_warning_count[USE:sqlresult.get_warning_count]
-\help SqlResult.get_warning_count
-
 #@ sqlresult.get_warnings
 sqlresult.help('get_warnings')
 
@@ -209,15 +182,6 @@ sqlresult.help('help')
 #@ global help for help[USE:sqlresult.help]
 \help SqlResult.help
 
-#@ sqlresult.next_data_set
-sqlresult.help('next_data_set')
-
-#@ global ? for next_data_set[USE:sqlresult.next_data_set]
-\? SqlResult.next_data_set
-
-#@ global help for next_data_set[USE:sqlresult.next_data_set]
-\help SqlResult.next_data_set
-
 #@ sqlresult.next_result
 sqlresult.help('next_result')
 
@@ -226,15 +190,6 @@ sqlresult.help('next_result')
 
 #@ global help for next_result[USE:sqlresult.next_result]
 \help SqlResult.next_result
-
-#@ sqlresult.warning_count
-sqlresult.help('warning_count')
-
-#@ global ? for warning_count[USE:sqlresult.warning_count]
-\? SqlResult.warning_count
-
-#@ global help for warning_count[USE:sqlresult.warning_count]
-\help SqlResult.warning_count
 
 #@ sqlresult.warnings
 sqlresult.help('warnings')

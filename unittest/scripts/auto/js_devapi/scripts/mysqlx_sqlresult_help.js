@@ -15,12 +15,6 @@ result.help('affectedItemsCount');
 //@ Help on affectedItemsCount, \? [USE:Help on affectedItemsCount]
 \? SqlResult.affectedItemsCount
 
-//@ Help on affectedRowCount
-result.help('affectedRowCount');
-
-//@ Help on affectedRowCount, \? [USE:Help on affectedRowCount]
-\? SqlResult.affectedRowCount
-
 //@ Help on autoIncrementValue
 result.help('autoIncrementValue');
 
@@ -50,12 +44,6 @@ result.help('executionTime');
 
 //@ Help on executionTime, \? [USE:Help on executionTime]
 \? SqlResult.executionTime
-
-//@ Help on warningCount
-result.help('warningCount');
-
-//@ Help on warningCount, \? [USE:Help on warningCount]
-\? SqlResult.warningCount
 
 //@ Help on warnings
 result.help('warnings');
@@ -93,12 +81,6 @@ result.help('getAffectedItemsCount');
 //@ Help on getAffectedItemsCount, \? [USE:Help on getAffectedItemsCount]
 \? SqlResult.getAffectedItemsCount
 
-//@ Help on getAffectedRowCount
-result.help('getAffectedRowCount');
-
-//@ Help on getAffectedRowCount, \? [USE:Help on getAffectedRowCount]
-\? SqlResult.getAffectedRowCount
-
 //@ Help on getAutoIncrementValue
 result.help('getAutoIncrementValue');
 
@@ -129,12 +111,6 @@ result.help('getExecutionTime');
 //@ Help on getExecutionTime, \? [USE:Help on getExecutionTime]
 \? SqlResult.getExecutionTime
 
-//@ Help on getWarningCount
-result.help('getWarningCount');
-
-//@ Help on getWarningCount, \? [USE:Help on getWarningCount]
-\? SqlResult.getWarningCount
-
 //@ Help on getWarnings
 result.help('getWarnings');
 
@@ -158,9 +134,3 @@ result.help('help');
 
 //@ Help on help, \? [USE:Help on help]
 \? SqlResult.help
-
-//@ Help on nextDataSet
-result.help('nextDataSet');
-
-//@ Help on nextDataSet, \? [USE:Help on nextDataSet]
-\? SqlResult.nextDataSet

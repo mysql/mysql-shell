@@ -60,7 +60,6 @@ BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : _result(result) {
   add_property("affectedItemsCount", "getAffectedItemsCount");
   add_property("executionTime", "getExecutionTime");
-  add_property("warningCount", "getWarningCount");
   add_property("warningsCount", "getWarningsCount");
   add_property("warnings", "getWarnings");
 }
@@ -102,11 +101,6 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
     ret_val = Value(get_affected_items_count());
   } else if (prop == "executionTime") {
     return shcore::Value(get_execution_time());
-  } else if (prop == "warningCount") {
-    log_warning("'%s' is deprecated, use '%s' instead.",
-                get_function_name("warningCount").c_str(),
-                get_function_name("warningsCount").c_str());
-    ret_val = Value(get_warnings_count());
   } else if (prop == "warningsCount") {
     ret_val = Value(get_warnings_count());
   } else if (prop == "warnings") {
@@ -145,7 +139,7 @@ bool BaseResult::has_data() const {
   return _result && _result->has_resultset();
 }
 
-// Documentation of getAffectedItemCount function
+// Documentation of getAffectedItemsCount function
 REGISTER_HELP_PROPERTY(affectedItemsCount, BaseResult);
 REGISTER_HELP(BASERESULT_AFFECTEDITEMSCOUNT_BRIEF,
               "Same as <<<getAffectedItemsCount>>>");
@@ -195,43 +189,7 @@ std::string BaseResult::get_execution_time() const {
   return mysqlshdk::utils::format_seconds(_result->get_execution_time());
 }
 
-// Documentation of getWarningCount function
-REGISTER_HELP_PROPERTY(warningCount, BaseResult);
-REGISTER_HELP(BASERESULT_WARNINGCOUNT_BRIEF, "Same as <<<getWarningCount>>>");
-REGISTER_HELP(BASERESULT_WARNINGCOUNT_DETAIL,
-              "${BASERESULT_WARNINGCOUNT_DEPRECATED}");
-REGISTER_HELP(BASERESULT_WARNINGCOUNT_DEPRECATED,
-              "@attention This property will be removed in a future release, "
-              "use the <b><<<warningsCount>>></b> property instead.");
-
-REGISTER_HELP_FUNCTION(getWarningCount, BaseResult);
-REGISTER_HELP_FUNCTION_TEXT(BASERESULT_GETWARNINGCOUNT, R"*(
-The number of warnings produced by the last statement execution.
-
-@returns the number of warnings.
-
-@attention This function will be removed in a future release, use the
-<b><<<getWarningsCount>>></b> function instead.
-
-This is the same value than C API mysql_warning_count, see
-https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
-
-See <<<getWarnings>>>() for more details.
-)*");
-/**
- * $(BASERESULT_GETWARNINGCOUNT_BRIEF)
- *
- * $(BASERESULT_GETWARNINGCOUNT)
- *
- * \sa warnings
- */
-#if DOXYGEN_JS
-Integer BaseResult::getWarningCount() {}
-#elif DOXYGEN_PY
-int BaseResult::get_warning_count() {}
-#endif
-
-// Documentation of getWarningCount function
+// Documentation of getWarningsCount function
 REGISTER_HELP_PROPERTY(warningsCount, BaseResult);
 REGISTER_HELP(BASERESULT_WARNINGSCOUNT_BRIEF, "Same as <<<getWarningsCount>>>");
 
@@ -273,7 +231,6 @@ void BaseResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
 
   if (mysqlsh::current_shell_options()->get().show_warnings) {
-    dumper.append_value("warningCount", get_member("warningsCount"));
     dumper.append_value("warningsCount", get_member("warningsCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
@@ -301,7 +258,6 @@ Other functions on the Session class also return an instance of this class:
 )*");
 Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : BaseResult(result) {
-  add_property("affectedItemCount", "getAffectedItemCount");
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("generatedIds", "getGeneratedIds");
 }
@@ -309,12 +265,7 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
 shcore::Value Result::get_member(const std::string &prop) const {
   Value ret_val;
 
-  if (prop == "affectedItemCount") {
-    ret_val = Value(get_affected_items_count());
-    log_warning("'%s' is deprecated, use '%s' instead.",
-                get_function_name("affectedItemCount").c_str(),
-                get_function_name("affectedItemsCount").c_str());
-  } else if (prop == "autoIncrementValue") {
+  if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
   } else if (prop == "generatedIds") {
     auto array = shcore::make_array();
@@ -330,39 +281,6 @@ shcore::Value Result::get_member(const std::string &prop) const {
 
   return ret_val;
 }
-
-// Documentation of getAffectedItemCount function
-REGISTER_HELP_PROPERTY(affectedItemCount, Result);
-REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_BRIEF,
-              "Same as <<<getAffectedItemCount>>>");
-REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_DETAIL,
-              "${RESULT_AFFECTEDITEMCOUNT_DEPRECATED}");
-REGISTER_HELP(RESULT_AFFECTEDITEMCOUNT_DEPRECATED,
-              "@attention This property will be removed in a future release, "
-              "use the <b><<<affectedItemsCount>>></b> property instead.");
-
-REGISTER_HELP_FUNCTION(getAffectedItemCount, Result);
-REGISTER_HELP_FUNCTION_TEXT(RESULT_GETAFFECTEDITEMCOUNT, R"*(
-The the number of affected items for the last operation.
-
-@returns the number of affected items.
-
-@attention This function will be removed in a future release, use the
-<b><<<getAffectedItemsCount>>></b> function instead.
-
-This is the value of the C API mysql_affected_rows(), see
-https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
-)*");
-/**
- * $(RESULT_GETAFFECTEDITEMCOUNT_BRIEF)
- *
- * $(RESULT_GETAFFECTEDITEMCOUNT)
- */
-#if DOXYGEN_JS
-Integer Result::getAffectedItemCount() {}
-#elif DOXYGEN_PY
-int Result::get_affected_item_count() {}
-#endif
 
 // Documentation of getAutoIncrementValue function
 REGISTER_HELP_PROPERTY(autoIncrementValue, Result);
@@ -437,7 +355,7 @@ void Result::append_json(shcore::JSON_dumper &dumper) const {
 
   BaseResult::append_json(dumper);
 
-  dumper.append_value("affectedItemCount", get_member("affectedItemsCount"));
+  dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
   dumper.append_value("generatedIds", get_member("generatedIds"));
 
@@ -756,10 +674,8 @@ REGISTER_HELP(SQLRESULT_BRIEF,
 SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
     : RowResult(result) {
   expose("hasData", &SqlResult::has_data);
-  expose("nextDataSet", &SqlResult::next_data_set);
   expose("nextResult", &SqlResult::next_result);
   add_property("autoIncrementValue", "getAutoIncrementValue");
-  add_property("affectedRowCount", "getAffectedRowCount");
 }
 
 // Documentation of getAutoIncrementValue function
@@ -788,46 +704,10 @@ int64_t SqlResult::get_auto_increment_value() const {
   return 0;
 }
 
-// Documentation of getAffectedRowCount function
-REGISTER_HELP_PROPERTY(affectedRowCount, SqlResult);
-REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_BRIEF,
-              "Same as <<<getAffectedRowCount>>>");
-REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_DETAIL,
-              "${SQLRESULT_AFFECTEDROWCOUNT_DEPRECATED}");
-REGISTER_HELP(SQLRESULT_AFFECTEDROWCOUNT_DEPRECATED,
-              "@attention This property will be removed in a future release, "
-              "use the <b><<<affectedItemsCount>>></b> property instead.");
-REGISTER_HELP_FUNCTION(getAffectedRowCount, SqlResult);
-REGISTER_HELP_FUNCTION_TEXT(SQLRESULT_GETAFFECTEDROWCOUNT, R"*(
-Returns the number of rows affected by the executed query.
-
-@attention This function will be removed in a future release, use the
-<b><<<getAffectedItemsCount>>></b> function instead.
-)*");
-/**
- * $(SQLRESULT_GETAFFECTEDROWCOUNT_BRIEF)
- *
- * $(SQLRESULT_GETAFFECTEDROWCOUNT)
- */
-#if DOXYGEN_JS
-Integer SqlResult::getAffectedRowCount() {}
-#elif DOXYGEN_PY
-int SqlResult::get_affected_row_count() {}
-#endif
-int64_t SqlResult::get_affected_row_count() const {
-  if (_result) return _result->get_affected_row_count();
-  return 0;
-}
-
 shcore::Value SqlResult::get_member(const std::string &prop) const {
   Value ret_val;
   if (prop == "autoIncrementValue") {
     ret_val = Value(get_auto_increment_value());
-  } else if (prop == "affectedRowCount") {
-    ret_val = Value(get_affected_row_count());
-    log_warning("'%s' is deprecated, use '%s' instead.",
-                get_function_name("affectedRowCount").c_str(),
-                get_function_name("affectedItemsCount").c_str());
   } else {
     ret_val = RowResult::get_member(prop);
   }
@@ -849,36 +729,7 @@ Bool SqlResult::hasData() {}
 bool SqlResult::has_data() {}
 #endif
 
-// Documentation of nextDataSet function
-REGISTER_HELP_FUNCTION(nextDataSet, SqlResult);
-REGISTER_HELP_FUNCTION_TEXT(SQLRESULT_NEXTDATASET, R"*(
-Prepares the SqlResult to start reading data from the next Result (if many
-results were returned).
-
-@returns A boolean value indicating whether there is another result or not.
-
-@attention This function will be removed in a future release, use the
-<b><<<nextResult>>></b> function instead.
-)*");
-/**
- * $(SQLRESULT_NEXTDATASET_BRIEF)
- *
- * $(SQLRESULT_NEXTDATASET)
- */
-#if DOXYGEN_JS
-Bool SqlResult::nextDataSet() {}
-#elif DOXYGEN_PY
-bool SqlResult::next_data_set() {}
-#endif
-bool SqlResult::next_data_set() {
-  log_warning("'%s' is deprecated, use '%s' instead.",
-              get_function_name("nextDataSet").c_str(),
-              get_function_name("nextResult").c_str());
-
-  return next_result();
-}
-
-// Documentation of nextDataSet function
+// Documentation of nextResult function
 REGISTER_HELP_FUNCTION(nextResult, SqlResult);
 REGISTER_HELP_FUNCTION_TEXT(SQLRESULT_NEXTRESULT, R"*(
 Prepares the SqlResult to start reading data from the next Result (if many
@@ -907,7 +758,7 @@ void SqlResult::append_json(shcore::JSON_dumper &dumper) const {
   RowResult::append_json(dumper);
 
   dumper.append_value("hasData", shcore::Value(has_data()));
-  dumper.append_value("affectedRowCount", get_member("affectedItemsCount"));
+  dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 
   dumper.end_object();

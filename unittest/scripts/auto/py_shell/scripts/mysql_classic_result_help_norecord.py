@@ -20,15 +20,6 @@ classicresult.help('affected_items_count')
 #@ global help for affected_items_count[USE:classicresult.affected_items_count]
 \help ClassicResult.affected_items_count
 
-#@ classicresult.affected_row_count
-classicresult.help('affected_row_count')
-
-#@ global ? for affected_row_count[USE:classicresult.affected_row_count]
-\? ClassicResult.affected_row_count
-
-#@ global help for affected_row_count[USE:classicresult.affected_row_count]
-\help ClassicResult.affected_row_count
-
 #@ classicresult.auto_increment_value
 classicresult.help('auto_increment_value')
 
@@ -110,15 +101,6 @@ classicresult.help('get_affected_items_count')
 #@ global help for get_affected_items_count[USE:classicresult.get_affected_items_count]
 \help ClassicResult.get_affected_items_count
 
-#@ classicresult.get_affected_row_count
-classicresult.help('get_affected_row_count')
-
-#@ global ? for get_affected_row_count[USE:classicresult.get_affected_row_count]
-\? ClassicResult.get_affected_row_count
-
-#@ global help for get_affected_row_count[USE:classicresult.get_affected_row_count]
-\help ClassicResult.get_affected_row_count
-
 #@ classicresult.get_auto_increment_value
 classicresult.help('get_auto_increment_value')
 
@@ -173,15 +155,6 @@ classicresult.help('get_info')
 #@ global help for get_info[USE:classicresult.get_info]
 \help ClassicResult.get_info
 
-#@ classicresult.get_warning_count
-classicresult.help('get_warning_count')
-
-#@ global ? for get_warning_count[USE:classicresult.get_warning_count]
-\? ClassicResult.get_warning_count
-
-#@ global help for get_warning_count[USE:classicresult.get_warning_count]
-\help ClassicResult.get_warning_count
-
 #@ classicresult.get_warnings_count
 classicresult.help('get_warnings_count')
 
@@ -227,15 +200,6 @@ classicresult.help('info')
 #@ global help for info[USE:classicresult.info]
 \help ClassicResult.info
 
-#@ classicresult.next_data_set
-classicresult.help('next_data_set')
-
-#@ global ? for next_data_set[USE:classicresult.next_data_set]
-\? ClassicResult.next_data_set
-
-#@ global help for next_data_set[USE:classicresult.next_data_set]
-\help ClassicResult.next_data_set
-
 #@ classicresult.next_result
 classicresult.help('next_result')
 
@@ -244,15 +208,6 @@ classicresult.help('next_result')
 
 #@ global help for next_result[USE:classicresult.next_result]
 \help ClassicResult.next_result
-
-#@ classicresult.warning_count
-classicresult.help('warning_count')
-
-#@ global ? for warning_count[USE:classicresult.warning_count]
-\? ClassicResult.warning_count
-
-#@ global help for warning_count[USE:classicresult.warning_count]
-\help ClassicResult.warning_count
 
 #@ classicresult.warnings_count
 classicresult.help('warnings_count')

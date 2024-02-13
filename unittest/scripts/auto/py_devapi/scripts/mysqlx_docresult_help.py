@@ -67,15 +67,6 @@ docresult.help('get_execution_time')
 #@ global help for get_execution_time[USE:docresult.get_execution_time]
 \help DocResult.get_execution_time
 
-#@ docresult.get_warning_count
-docresult.help('get_warning_count')
-
-#@ global ? for get_warning_count[USE:docresult.get_warning_count]
-\? DocResult.get_warning_count
-
-#@ global help for get_warning_count[USE:docresult.get_warning_count]
-\help DocResult.get_warning_count
-
 #@ docresult.get_warnings
 docresult.help('get_warnings')
 
@@ -102,15 +93,6 @@ docresult.help('help')
 
 #@ global help for help[USE:docresult.help]
 \help DocResult.help
-
-#@ docresult.warning_count
-docresult.help('warning_count')
-
-#@ global ? for warning_count[USE:docresult.warning_count]
-\? DocResult.warning_count
-
-#@ global help for warning_count[USE:docresult.warning_count]
-\help DocResult.warning_count
 
 #@ docresult.warnings
 docresult.help('warnings')

@@ -60,8 +60,6 @@ ClassicResult::ClassicResult(
   add_property("columnCount", "getColumnCount");
   add_property("columnNames", "getColumnNames");
   add_property("affectedItemsCount", "getAffectedItemsCount");
-  add_property("affectedRowCount", "getAffectedRowCount");
-  add_property("warningCount", "getWarningCount");
   add_property("warningsCount", "getWarningsCount");
   add_property("warnings", "getWarnings");
   add_property("executionTime", "getExecutionTime");
@@ -72,7 +70,6 @@ ClassicResult::ClassicResult(
   expose("fetchOne", &ClassicResult::fetch_one);
   expose("fetchOneObject", &ClassicResult::_fetch_one_object);
   expose("fetchAll", &ClassicResult::fetch_all);
-  expose("nextDataSet", &ClassicResult::next_data_set);
   expose("nextResult", &ClassicResult::next_result);
   expose("hasData", &ClassicResult::has_data);
 }
@@ -142,35 +139,6 @@ shcore::Dictionary_t ClassicResult::_fetch_one_object() {
   return ShellBaseResult::fetch_one_object();
 }
 
-// Documentation of nextDataSet function
-REGISTER_HELP_FUNCTION(nextDataSet, ClassicResult);
-REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_NEXTDATASET, R"*(
-Prepares the SqlResult to start reading data from the next Result (if many
-results were returned).
-
-@returns A boolean value indicating whether there is another result or not.
-
-@attention This function will be removed in a future release, use the
-<b><<<nextResult>>></b> function instead.
-)*");
-/**
- * $(CLASSICRESULT_NEXTDATASET_BRIEF)
- *
- * $(CLASSICRESULT_NEXTDATASET)
- */
-#if DOXYGEN_JS
-Bool ClassicResult::nextDataSet() {}
-#elif DOXYGEN_PY
-bool ClassicResult::next_data_set() {}
-#endif
-bool ClassicResult::next_data_set() {
-  log_warning("'%s' is deprecated, use '%s' instead.",
-              get_function_name("nextDataSet").c_str(),
-              get_function_name("nextResult").c_str());
-
-  return next_result();
-}
-
 // Documentation of nextResult function
 REGISTER_HELP_FUNCTION(nextResult, ClassicResult);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_NEXTRESULT, R"*(
@@ -227,39 +195,6 @@ shcore::Array_t ClassicResult::fetch_all() const {
 
   return array;
 }
-
-// Documentation of getAffectedRowCount function
-REGISTER_HELP_PROPERTY(affectedRowCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_BRIEF,
-              "Same as <<<getAffectedRowCount>>>");
-REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_DETAIL,
-              "${CLASSICRESULT_AFFECTEDROWCOUNT_DEPRECATED}");
-REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_DEPRECATED,
-              "@attention This property will be removed in a future release, "
-              "use the <b><<<affectedItemsCount>>></b> property instead.");
-
-REGISTER_HELP_FUNCTION(getAffectedRowCount, ClassicResult);
-REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETAFFECTEDROWCOUNT, R"*(
-The number of affected rows for the last operation.
-
-@returns the number of affected rows.
-
-@attention This function will be removed in a future release, use the
-<b><<<getAffectedItemsCount>>></b> function instead.
-
-This is the value of the C API mysql_affected_rows(), see
-https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
-)*");
-/**
- * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF)
- *
- * $(CLASSICRESULT_GETAFFECTEDROWCOUNT)
- */
-#if DOXYGEN_JS
-Integer ClassicResult::getAffectedRowCount() {}
-#elif DOXYGEN_PY
-int ClassicResult::get_affected_row_count() {}
-#endif
 
 // Documentation of getAffectedItemsCount function
 REGISTER_HELP_PROPERTY(affectedItemsCount, ClassicResult);
@@ -415,43 +350,6 @@ Integer ClassicResult::getAutoIncrementValue() {}
 int ClassicResult::get_auto_increment_value() {}
 #endif
 
-// Documentation of getWarningCount function
-REGISTER_HELP_PROPERTY(warningCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_BRIEF,
-              "Same as <<<getWarningCount>>>");
-REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_DETAIL,
-              "${CLASSICRESULT_WARNINGCOUNT_DEPRECATED}");
-REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_DEPRECATED,
-              "@attention This property will be removed in a future release, "
-              "use the <b><<<warningsCount>>></b> property instead.");
-
-REGISTER_HELP_FUNCTION(getWarningCount, ClassicResult);
-REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETWARNINGCOUNT, R"*(
-The number of warnings produced by the last statement execution.
-
-@returns the number of warnings.
-
-@attention This function will be removed in a future release, use the
-<b><<<getWarningsCount>>></b> function instead.
-
-This is the same value than C API mysql_warning_count, see
-https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
-
-See <<<getWarnings>>>() for more details.
-)*");
-/**
- * $(CLASSICRESULT_GETWARNINGCOUNT_BRIEF)
- *
- * $(CLASSICRESULT_GETWARNINGCOUNT)
- *
- * \sa warnings
- */
-#if DOXYGEN_JS
-Integer ClassicResult::getWarningCount() {}
-#elif DOXYGEN_PY
-int ClassicResult::get_warning_count() {}
-#endif
-
 // Documentation of getWarningsCount function
 REGISTER_HELP_PROPERTY(warningsCount, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_WARNINGSCOUNT_BRIEF,
@@ -545,23 +443,11 @@ str ClassicResult::get_statement_id() {}
 #endif
 
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
-  if (prop == "affectedRowCount" || prop == "affectedItemsCount") {
-    if (prop == "affectedRowCount") {
-      log_warning("'%s' is deprecated, use '%s' instead.",
-                  get_function_name("affectedRowCount").c_str(),
-                  get_function_name("affectedItemsCount").c_str());
-    }
-
+  if (prop == "affectedItemsCount") {
     return shcore::Value(_result->get_affected_row_count());
   }
 
-  if (prop == "warningCount" || prop == "warningsCount") {
-    if (prop == "warningCount") {
-      log_warning("'%s' is deprecated, use '%s' instead.",
-                  get_function_name("warningCount").c_str(),
-                  get_function_name("warningsCount").c_str());
-    }
-
+  if (prop == "warningsCount") {
     return shcore::Value(_result->get_warning_count());
   }
 
@@ -647,13 +533,11 @@ void ClassicResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.append_value("rows", shcore::Value(fetch_all()));
 
   if (mysqlsh::current_shell_options()->get().show_warnings) {
-    dumper.append_value("warningCount", get_member("warningsCount"));
     dumper.append_value("warningsCount", get_member("warningsCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
 
   dumper.append_value("hasData", shcore::Value(has_data()));
-  dumper.append_value("affectedRowCount", get_member("affectedItemsCount"));
   dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 

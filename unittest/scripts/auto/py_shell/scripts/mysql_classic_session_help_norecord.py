@@ -55,15 +55,6 @@ session.help('is_open')
 #@ global help for is_open[USE:session.is_open]
 \help ClassicSession.is_open
 
-#@ session.query
-session.help('query')
-
-#@ global ? for query[USE:session.query]
-\? ClassicSession.query
-
-#@ global help for query[USE:session.query]
-\help ClassicSession.query
-
 #@ session.rollback
 session.help('rollback')
 

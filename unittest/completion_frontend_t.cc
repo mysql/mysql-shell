@@ -1146,7 +1146,6 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"close", ""},
       {"runSql", "('select 1')"},
       {"setQueryAttributes", "({})"},
-      {"query", "('select 1')"},
       {"_getSocketFd", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }

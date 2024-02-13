@@ -13,11 +13,9 @@ var result = mySession.sql('create table js_shell_test.buffer_table (name varcha
 //@<> SqlResult member validation
 validateMembers(result, [
     'executionTime',
-    'warningCount',
     'warnings',
     'warningsCount',
     'getExecutionTime',
-    'getWarningCount',
     'getWarnings',
     'getWarningsCount',
     'columnCount',
@@ -31,12 +29,9 @@ validateMembers(result, [
     'fetchAll',
     'help',
     'hasData',
-    'nextDataSet',
     'nextResult',
-    'affectedRowCount',
     'autoIncrementValue',
     'affectedItemsCount',
-    'getAffectedRowCount',
     'getAffectedItemsCount',
     'getAutoIncrementValue'])
 
@@ -55,19 +50,15 @@ var collection = schema.createCollection('buffer_collection');
 
 validateMembers(result, [
     'executionTime',
-    'warningCount',
     'warnings',
     'warningsCount',
     'getExecutionTime',
-    'getWarningCount',
     'getWarnings',
     'getWarningsCount',
-    'affectedItemCount',
     'affectedItemsCount',
     'autoIncrementValue',
     'generatedIds',
     'help',
-    'getAffectedItemCount',
     'getAffectedItemsCount',
     'getAutoIncrementValue',
     'getGeneratedIds'])
@@ -77,12 +68,10 @@ var result = table.select().execute();
 validateMembers(result, [
     'affectedItemsCount',
     'executionTime',
-    'warningCount',
     'warnings',
     'warningsCount',
     'getAffectedItemsCount',
     'getExecutionTime',
-    'getWarningCount',
     'getWarnings',
     'getWarningsCount',
     'columnCount',
@@ -102,12 +91,10 @@ var result = collection.find().execute();
 validateMembers(result, [
     'affectedItemsCount',
     'executionTime',
-    'warningCount',
     'warnings',
     'warningsCount',
     'getAffectedItemsCount',
     'getExecutionTime',
-    'getWarningCount',
     'getWarnings',
     'getWarningsCount',
     'help',

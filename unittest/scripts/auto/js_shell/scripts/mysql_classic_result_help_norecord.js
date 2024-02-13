@@ -14,12 +14,6 @@ result.help('affectedItemsCount')
 //@ Help on affectedItemsCount, \? [USE:Help on affectedItemsCount]
 \? classicresult.affectedItemsCount
 
-//@ Help on affectedRowCount
-result.help('affectedRowCount')
-
-//@ Help on affectedRowCount, \? [USE:Help on affectedRowCount]
-\? classicresult.affectedRowCount
-
 //@ Help on autoIncrementValue
 result.help('autoIncrementValue')
 
@@ -55,12 +49,6 @@ result.help('info')
 
 //@ Help on info, \? [USE:Help on info]
 \? classicresult.info
-
-//@ Help on warningCount
-result.help('warningCount')
-
-//@ Help on warningCount, \? [USE:Help on warningCount]
-\? classicresult.warningCount
 
 //@ Help on warningsCount
 result.help('warningsCount')
@@ -98,12 +86,6 @@ result.help('getAffectedItemsCount')
 //@ Help on getAffectedItemsCount, \? [USE:Help on getAffectedItemsCount]
 \? classicresult.getAffectedItemsCount
 
-//@ Help on getAffectedRowCount
-result.help('getAffectedRowCount')
-
-//@ Help on getAffectedRowCount, \? [USE:Help on getAffectedRowCount]
-\? classicresult.getAffectedRowCount
-
 //@ Help on getAutoIncrementValue
 result.help('getAutoIncrementValue')
 
@@ -140,12 +122,6 @@ result.help('getInfo')
 //@ Help on getInfo, \? [USE:Help on getInfo]
 \? classicresult.getInfo
 
-//@ Help on getWarningCount
-result.help('getWarningCount')
-
-//@ Help on getWarningCount, \? [USE:Help on getWarningCount]
-\? classicresult.getWarningCount
-
 //@ Help on getWarningsCount
 result.help('getWarningsCount')
 
@@ -169,12 +145,6 @@ result.help('help')
 
 //@ Help on help, \? [USE:Help on help]
 \? classicresult.help
-
-//@ Help on nextDataSet
-result.help('nextDataSet')
-
-//@ Help on nextDataSet, \? [USE:Help on nextDataSet]
-\? classicresult.nextDataSet
 
 //@ Help on nextResult
 result.help('nextResult')

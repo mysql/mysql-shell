@@ -85,7 +85,6 @@ void ClassicSession::init() {
 
   expose("close", &ClassicSession::close);
   expose("runSql", &ClassicSession::run_sql, "query", "?args");
-  expose("query", &ClassicSession::query, "query", "?args");
   expose("isOpen", &ClassicSession::is_open);
   expose("startTransaction", &ClassicSession::_start_transaction);
   expose("commit", &ClassicSession::_commit);
@@ -271,40 +270,6 @@ std::shared_ptr<ClassicResult> ClassicSession::run_sql(
   }
 
   return ret_val;
-}
-
-REGISTER_HELP_FUNCTION(query, ClassicSession);
-REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_QUERY, R"*(
-Executes a query and returns the corresponding ClassicResult object.
-
-@param query the SQL query string to execute, with optional ? placeholders.
-@param args Optional list of literals to use when replacing ? placeholders in
-the query string.
-
-@returns A ClassicResult object.
-
-@attention This function will be removed in a future release, use the
-<b><<<runSql>>></b> function instead.
-
-@throw An exception is thrown if an error occurs on the SQL execution.
-)*");
-/**
- * $(CLASSICSESSION_QUERY_BRIEF)
- *
- * $(CLASSICSESSION_QUERY)
- */
-#if DOXYGEN_JS
-ClassicResult ClassicSession::query(String query, Array args = []) {}
-#elif DOXYGEN_PY
-ClassicResult ClassicSession::query(str query, list args = []) {}
-#endif
-std::shared_ptr<ClassicResult> ClassicSession::query(
-    const std::string &query, const shcore::Array_t &args) {
-  auto console = mysqlsh::current_console();
-  console->print_warning("'query' is deprecated, use " +
-                         get_function_name("runSql") + " instead.");
-
-  return run_sql(query, args);
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(

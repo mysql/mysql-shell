@@ -11,12 +11,6 @@ result.help();
 //@ Result help, \? [USE:Result help]
 \? Result
 
-//@ Help on affectedItemCount
-result.help('affectedItemCount');
-
-//@ Help on affectedItemCount, \? [USE:Help on affectedItemCount]
-\? Result.affectedItemCount
-
 //@ Help on affectedItemsCount
 result.help('affectedItemsCount');
 
@@ -41,12 +35,6 @@ result.help('generatedIds');
 //@ Help on generatedIds, \? [USE:Help on generatedIds]
 \? Result.generatedIds
 
-//@ Help on warningCount
-result.help('warningCount');
-
-//@ Help on warningCount, \? [USE:Help on warningCount]
-\? Result.warningCount
-
 //@ Help on warningsCount
 result.help('warningsCount');
 
@@ -58,12 +46,6 @@ result.help('warnings');
 
 //@ Help on warnings, \? [USE:Help on warnings]
 \? Result.warnings
-
-//@ Help on getAffectedItemCount
-result.help('getAffectedItemCount');
-
-//@ Help on getAffectedItemCount, \? [USE:Help on getAffectedItemCount]
-\? Result.getAffectedItemCount
 
 //@ Help on getAffectedItemsCount
 result.help('getAffectedItemsCount');
@@ -88,12 +70,6 @@ result.help('getGeneratedIds');
 
 //@ Help on getGeneratedIds, \? [USE:Help on getGeneratedIds]
 \? Result.getGeneratedIds
-
-//@ Help on getWarningCount
-result.help('getWarningCount');
-
-//@ Help on getWarningCount, \? [USE:Help on getWarningCount]
-\? Result.getWarningCount
 
 //@ Help on getWarningsCount
 result.help('getWarningsCount');

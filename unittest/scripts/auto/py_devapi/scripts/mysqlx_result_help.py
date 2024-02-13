@@ -13,15 +13,6 @@ result.help()
 #@ global help for Result[USE:result]
 \help Result
 
-#@ result.affected_item_count
-result.help('affected_item_count')
-
-#@ global ? for affected_item_count[USE:result.affected_item_count]
-\? Result.affected_item_count
-
-#@ global help for affected_item_count[USE:result.affected_item_count]
-\help Result.affected_item_count
-
 #@ result.affected_items_count
 result.help('affected_items_count')
 
@@ -57,15 +48,6 @@ result.help('generated_ids')
 
 #@ global help for generated_ids[USE:result.generated_ids]
 \help Result.generated_ids
-
-#@ result.get_affected_item_count
-result.help('get_affected_item_count')
-
-#@ global ? for get_affected_item_count[USE:result.get_affected_item_count]
-\? Result.get_affected_item_count
-
-#@ global help for get_affected_item_count[USE:result.get_affected_item_count]
-\help Result.get_affected_item_count
 
 #@ result.get_affected_items_count
 result.help('get_affected_items_count')
@@ -103,15 +85,6 @@ result.help('get_generated_ids')
 #@ global help for get_generated_ids[USE:result.get_generated_ids]
 \help Result.get_generated_ids
 
-#@ result.get_warning_count
-result.help('get_warning_count')
-
-#@ global ? for get_warning_count[USE:result.get_warning_count]
-\? Result.get_warning_count
-
-#@ global help for get_warning_count[USE:result.get_warning_count]
-\help Result.get_warning_count
-
 #@ result.get_warnings
 result.help('get_warnings')
 
@@ -138,15 +111,6 @@ result.help('help')
 
 #@ global help for help[USE:result.help]
 \help Result.help
-
-#@ result.warning_count
-result.help('warning_count')
-
-#@ global ? for warning_count[USE:result.warning_count]
-\? Result.warning_count
-
-#@ global help for warning_count[USE:result.warning_count]
-\help Result.warning_count
 
 #@ result.warnings
 result.help('warnings')

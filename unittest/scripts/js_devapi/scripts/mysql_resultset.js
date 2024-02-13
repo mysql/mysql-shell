@@ -15,13 +15,11 @@ validateMembers(result, [
 'affectedItemsCount',
 'executionTime',
 'statementId',
-'warningCount',
 'warnings',
 'warningsCount',
 'getAffectedItemsCount',
 'getExecutionTime',
 'getStatementId',
-'getWarningCount',
 'getWarnings',
 'getWarningsCount',
 'columnCount',
@@ -36,11 +34,8 @@ validateMembers(result, [
 'fetchOneObject',
 'fetchAll',
 'hasData',
-'nextDataSet',
 'nextResult',
-'affectedRowCount',
 'autoIncrementValue',
-'getAffectedRowCount',
 'getAutoIncrementValue'])
 
 var result = mySession.runSql('insert into buffer_table values("jack", 17, "male")');

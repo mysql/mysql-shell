@@ -852,14 +852,8 @@ std::string Resultset_dumper_base::format_json(const std::string &item_label,
   dumper.append_string("executionTime");
   dumper.append_string(
       mysqlshdk::utils::format_seconds(m_result->get_execution_time()));
-  if (!is_doc_result) {
-    dumper.append_string("affectedRowCount");
-    dumper.append_uint64(m_result->get_affected_row_count());
-  }
   dumper.append_string("affectedItemsCount");
   dumper.append_uint64(m_result->get_affected_row_count());
-  dumper.append_string("warningCount");
-  dumper.append_int64(m_result->get_warning_count());
   dumper.append_string("warningsCount");
   dumper.append_uint64(m_result->get_warning_count());
   dumper.append_string("warnings");

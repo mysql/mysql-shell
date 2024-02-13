@@ -59,38 +59,22 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
 
 #if DOXYGEN_JS
   Integer affectedItemsCount;  //!< Same as getAffectedItemsCount()
-  /**
-   * Same as getWarningCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>warningsCount</b> property instead.
-   */
-  Integer warningCount;
-  Integer warningsCount;  //!< Same as getWarningsCount()
-  List warnings;          //!< Same as getWarnings()
-  String executionTime;   //!< Same as getExecutionTime()
+  Integer warningsCount;       //!< Same as getWarningsCount()
+  List warnings;               //!< Same as getWarnings()
+  String executionTime;        //!< Same as getExecutionTime()
 
   Integer getAffectedItemsCount();
   Integer getWarningsCount();
-  Integer getWarningCount();
   List getWarnings();
   String getExecutionTime();
 #elif DOXYGEN_PY
   int affected_items_count;  //!< Same as get_affected_items_count()
-  /**
-   * Same as get_warning_count()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>warnings_count</b> property instead.
-   */
-  int warning_count;
-  int warnings_count;  //!< Same as get_warnings_count()
-  list warnings;       //!< Same as get_warnings()
-  str execution_time;  //!< Same as get_execution_time()
+  int warnings_count;        //!< Same as get_warnings_count()
+  list warnings;             //!< Same as get_warnings()
+  str execution_time;        //!< Same as get_execution_time()
 
   int get_affected_items_count();
   int get_warnings_count();
-  int get_warning_count();
   list get_warnings();
   str get_execution_time();
 #endif
@@ -127,31 +111,15 @@ class SHCORE_PUBLIC Result : public BaseResult {
   const std::vector<std::string> get_generated_ids() const;
 
 #if DOXYGEN_JS
-  /**
-   * Same as getAffectedItemCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affectedItemsCount</b> property instead.
-   */
-  Integer affectedItemCount;
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
   List generatedIds;           //!< Same as getGeneratedIds()
 
-  Integer getAffectedItemCount();
   Integer getAutoIncrementValue();
   List getGeneratedIds();
 #elif DOXYGEN_PY
-  /**
-   * Same as get_affected_itemCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affected_items_count</b> property instead.
-   */
-  int affected_item_count;
   int auto_increment_value;  //!< Same as get_auto_increment_value()
   list generated_ids;        //!< Same as get_generated_ids()
 
-  int get_affected_item_count();
   int get_auto_increment_value();
   list get_generated_ids();
 #endif
@@ -240,7 +208,6 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
   std::string class_name() const override { return "SqlResult"; }
   shcore::Value get_member(const std::string &prop) const override;
 
-  bool next_data_set();
   bool next_result();
   void append_json(shcore::JSON_dumper &dumper) const override;
 
@@ -251,33 +218,13 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
 
 #if DOXYGEN_JS
   Integer autoIncrementValue;  //!< Same as getAutoIncrementValue()
-  /**
-   * Same as getAffectedRowCount()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affectedItemsCount</b> property instead.
-   */
-  Integer affectedRowCount;
-
   Integer getAutoIncrementValue();
-  Integer getAffectedRowCount();
   Bool hasData();
-  Bool nextDataSet();
   Bool nextResult();
 #elif DOXYGEN_PY
   int auto_increment_value;  //!< Same as get_auto_increment_value()
-  /**
-   * Same as get_affected_row_count()
-   *
-   * @attention This property will be removed in a future release, use the
-   * <b>affected_items_count</b> property instead.
-   */
-  int affected_row_count;
-
   int get_auto_increment_value();
-  int get_affected_row_count();
   bool has_data();
-  bool next_data_set();
   bool next_result();
 #endif
 };
