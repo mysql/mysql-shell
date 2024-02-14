@@ -12,6 +12,7 @@ var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
@@ -21,6 +22,29 @@ replicacluster.addInstance(__sandbox_uri4);
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], cluster, replicacluster);
 EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
 EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
+
+//@<> Removing an instance that doesn't belong to the cluster must produce an error
+EXPECT_THROWS(function(){
+    replicacluster.removeInstance(__sandbox_uri1);
+}, `Metadata for instance '${__sandbox1}' not found`);
+
+EXPECT_OUTPUT_CONTAINS(`The instance '${__sandbox1}' does not belong to the Cluster.`);
+
+//@<> Removing a read-replica that doesn't belong to the cluster must produce an error
+EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri6); });
+
+EXPECT_THROWS(function(){
+    replicacluster.removeInstance(__sandbox_uri5);
+}, "Instance does not belong to the Cluster");
+
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port5}' does not belong to the Cluster 'replica'.`);
+
+EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri6); });
+
+shell.connect(__sandbox_uri5);
+reset_instance(session);
 
 // Cluster topology changes that affect the replication channel between cluster update the replication channels accordingly:
 //   - When the primary instance is removed (of either REPLICA or PRIMARY cluster).
@@ -319,3 +343,4 @@ scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
+testutil.destroySandbox(__mysql_sandbox_port6);

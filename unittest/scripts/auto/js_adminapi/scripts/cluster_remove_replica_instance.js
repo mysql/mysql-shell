@@ -23,9 +23,9 @@ EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__sandbox_uri3, {timeout:
 EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__sandbox_uri3, {timeout: -1})}, "Argument #2 timeout option must be >= 0", "ArgumentError");
 
 // Instance does not belong to the Cluster
-EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__sandbox_uri4)}, "Cluster.removeInstance: Metadata for instance localhost:" +__mysql_sandbox_port4 + " not found", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.removeInstance(__sandbox_uri4)}, "Cluster.removeInstance: Metadata for instance 'localhost:" +__mysql_sandbox_port4 + "' not found", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`ERROR: The instance localhost:${__mysql_sandbox_port4} does not belong to the cluster.`);
+EXPECT_OUTPUT_CONTAINS(`ERROR: The instance 'localhost:${__mysql_sandbox_port4}' does not belong to the Cluster.`);
 
 //@<> Account password doesn't match (should fail)
 __sandbox_uri3_wrong_pwd = "mysql://root:wrong@localhost:" + __mysql_sandbox_port3;

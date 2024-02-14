@@ -2037,45 +2037,55 @@ std::vector<Instance_metadata> MetadataStorage::get_replica_set_instances(
 }
 
 Instance_metadata MetadataStorage::get_instance_by_uuid(
-    const std::string &uuid, const Cluster_id &cluster_id) const {
-  std::string query =
-      get_instance_query(real_version()) + " WHERE i.mysql_server_uuid = ?";
-
+    std::string_view uuid, const Cluster_id &cluster_id) const {
   std::shared_ptr<mysqlshdk::db::IResult> result;
+  {
+    auto query = get_instance_query(real_version());
+    query += " WHERE i.mysql_server_uuid = ?";
 
-  if (cluster_id.empty()) {
-    result = execute_sqlf(query, uuid);
-  } else {
-    query += " AND i.cluster_id = ?";
-    result = execute_sqlf(query, uuid, cluster_id);
+    if (cluster_id.empty()) {
+      result = execute_sqlf(query, uuid);
+    } else {
+      query += " AND i.cluster_id = ?";
+      result = execute_sqlf(query, uuid, cluster_id);
+    }
   }
 
-  if (auto row = result->fetch_one_named()) {
-    return unserialize_instance(row);
-  }
-
-  throw shcore::Exception("Metadata for instance " + uuid + " not found",
-                          SHERR_DBA_MEMBER_METADATA_MISSING);
-}
-
-Instance_metadata MetadataStorage::get_instance_by_address(
-    std::string_view instance_address) const {
-  auto md_version = real_version();
-  auto query(get_instance_query(md_version));
-
-  if (md_version.get_major() == 1)
-    query += " WHERE LOWER(i.addresses->>'$.mysqlClassic') = LOWER(?)";
-  else
-    query += " WHERE i.address = ?";
-
-  auto result = execute_sqlf(query, instance_address);
-
-  if (auto row = result->fetch_one_named()) {
+  if (auto row = result->fetch_one_named(); row) {
     return unserialize_instance(row);
   }
 
   throw shcore::Exception(
-      shcore::str_format("Metadata for instance %.*s not found",
+      shcore::str_format("Metadata for instance '%.*s' not found",
+                         static_cast<int>(uuid.size()), uuid.data()),
+      SHERR_DBA_MEMBER_METADATA_MISSING);
+}
+
+Instance_metadata MetadataStorage::get_instance_by_address(
+    std::string_view instance_address, const Cluster_id &cluster_id) const {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  {
+    auto md_version = real_version();
+    auto query = get_instance_query(md_version);
+
+    query += (md_version.get_major() == 1)
+                 ? " WHERE LOWER(i.addresses->>'$.mysqlClassic') = LOWER(?)"
+                 : " WHERE i.address = ?";
+
+    if (cluster_id.empty()) {
+      result = execute_sqlf(query, instance_address);
+    } else {
+      query += " AND i.cluster_id = ?";
+      result = execute_sqlf(query, instance_address, cluster_id);
+    }
+  }
+
+  if (auto row = result->fetch_one_named(); row) {
+    return unserialize_instance(row);
+  }
+
+  throw shcore::Exception(
+      shcore::str_format("Metadata for instance '%.*s' not found",
                          static_cast<int>(instance_address.length()),
                          instance_address.data()),
       SHERR_DBA_MEMBER_METADATA_MISSING);

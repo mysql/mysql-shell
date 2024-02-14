@@ -154,7 +154,7 @@ EXPECT_THROWS(function (){ Cluster.removeInstance(1); }, "Argument #1: Invalid c
 EXPECT_THROWS(function (){ Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", fakeOption:56}); }, "Argument #1: Invalid values in connection options: fakeOption");
 
 // try to remove instance that is not in the cluster using the classic port
-EXPECT_THROWS(function (){ Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password}); }, `Metadata for instance ${__host}:${__mysql_port} not found`);
+EXPECT_THROWS(function (){ Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password}); }, `Metadata for instance '${__host}:${__mysql_port}' not found`);
 
 //@<> Cluster: removeInstance read only
 EXPECT_NO_THROWS(function (){ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2}); });
