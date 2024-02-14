@@ -166,8 +166,6 @@ class Shell_options final : public shcore::Options {
     std::string server_public_key_path;
     // cmdline params to be passed to script
     std::vector<std::string> script_argv;
-    std::vector<std::string> import_args;
-    std::vector<std::string> import_opts;
     std::string pager;
     Quiet_start quiet_start = Quiet_start::NOT_SET;
     bool show_column_type_info = false;
@@ -304,11 +302,6 @@ class Shell_options final : public shcore::Options {
   void check_file_execute_conflicts();
   void check_ssh_conflicts();
 
-  /**
-   * --import option require default schema to be provided in connection
-   * options.
-   */
-  void check_import_options();
   void check_connection_options();
 
   Storage storage;

@@ -10,7 +10,6 @@ Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] --cluster|--replicaset
        mysqlsh [OPTIONS] [URI] -- <object> <method> [<method-args>...]
        mysqlsh [OPTIONS] [URI] --dba enableXProtocol
-       mysqlsh [OPTIONS] [URI] --import {<file>|-} [<collection>|<table> <column>]
 
   -?, --help                       Display this help and exit.
   --                               Triggers API Command Line integration, which
@@ -86,11 +85,6 @@ Usage: mysqlsh [OPTIONS] [URI]
   --zstd-compression-level=<int>   client/server protocol. Supported by X
                                    protocol and zstd compression in classic
                                    protocol.
-  --import <file> <collection>     Import JSON documents from file to
-  --import <file> <table> <col>    collection or table in MySQL Server. Set
-                                   file to - if you want to read the data from
-                                   stdin. Requires a default schema on the
-                                   connection options.
   -D, --schema=<name>              Schema to use.
   --database=<name>                Same as --schema.
   --register-factor=<name>         Specifies authentication factor, for which

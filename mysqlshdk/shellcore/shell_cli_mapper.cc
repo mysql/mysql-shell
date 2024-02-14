@@ -503,11 +503,7 @@ Provider *Shell_cli_mapper::identify_operation(Provider *base_provider) {
     return false;
   };
 
-  if (!m_object_chain.empty()) {
-    // The target object name is pre-defined when using the --import function,
-    // on this case the target provider is just taken from the base providers.
-    current_provider = base_provider->get_provider(m_object_chain.back()).get();
-  } else if (!is_help_required(Help_type::GLOBAL)) {
+  if (!is_help_required(Help_type::GLOBAL)) {
     // This block will identify the target object provider to be used on the
     // operation, it will also analyze nested objects.
     const auto advance_provider = [this](Provider *p) {

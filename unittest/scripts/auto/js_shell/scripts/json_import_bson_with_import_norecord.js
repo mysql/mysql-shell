@@ -5,11 +5,9 @@ session.createSchema(schema);
 var fname = __import_data_path + "/bson_types.json";
 
 var import_docs = function(newParams) {
-  var params = [__uripwd + "/" + schema, "--import", fname];
-  var delta = params.splice.apply(params, [3,0].concat(newParams));
+  var params = [__uripwd + "/" + schema, "--", "util", "import-json", fname];
+  var delta = params.splice.apply(params, [5,0].concat(newParams));
   testutil.callMysqlsh(params, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
-  EXPECT_STDOUT_CONTAINS("WARNING: The --import option was deprecated and will be removed in a future version of the MySQL Shell. Please consider using the CLI call for import-json instead.");
-  EXPECT_STDOUT_CONTAINS("For additional information: mysqlsh -- util import-json --help");
 }
 
 var import_doc = function(document, customParams) {
@@ -17,8 +15,8 @@ var import_doc = function(document, customParams) {
     customParams = ["--convertBsonTypes", "--ignoreRegexOptions=false"];
 
   testutil.createFile("single_doc.json", JSON.stringify(document));
-  var params = [__uripwd + "/" + schema, "--import", "single_doc.json"];
-  var delta = params.splice.apply(params, [3,0].concat(customParams));
+  var params = [__uripwd + "/" + schema, "--", "util", "import-json", "single_doc.json"];
+  var delta = params.splice.apply(params, [5,0].concat(customParams));
   testutil.callMysqlsh(params, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
   println(testutil.catFile("single_doc.json"));
   testutil.rmfile("single_doc.json");

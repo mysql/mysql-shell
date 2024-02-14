@@ -465,10 +465,6 @@ Shell_options::Shell_options(
         });
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
-    (cmdline("--import <file> <collection>", "--import <file> <table> <col>"),
-        "Import JSON documents from file to collection or table in MySQL"
-        " Server. Set file to - if you want to read the data from stdin."
-        " Requires a default schema on the connection options.")
     (cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.",
       [this](const std::string&, const char* value) {
           storage.connection_data.set_schema(value);
@@ -960,7 +956,6 @@ Shell_options::Shell_options(
 
     if (!flags.is_set(Option_flags::CONNECTION_ONLY)) {
       check_file_execute_conflicts();
-      check_import_options();
       check_result_format();
     }
     check_connection_options();
@@ -1200,71 +1195,6 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       storage.prompt_password = true;
       iterator->next_no_value();
     }
-  } else if ("--import" == option) {
-    m_on_warning(
-        "WARNING: The --import option was deprecated and will be removed in "
-        "a future version of the MySQL Shell. Please consider using the CLI "
-        "call for import-json instead.\nFor additional information: mysqlsh -- "
-        "util import-json --help");
-
-    const auto cmdline = iterator->iterator();
-
-    storage.import_args.push_back(cmdline->get());  // omit --import
-
-    // Gets the positional arguments for --import
-    // As they define the target database object for the data
-    while (cmdline->valid()) {
-      // We append --import arguments until next shell option in program
-      // argument list, i.e. -* or --*. Single char '-' is a --import argument.
-      const char *arg = cmdline->peek();
-      if (arg[0] == '-' && arg[1] != '\0') {
-        break;
-      }
-      storage.import_args.push_back(cmdline->get());
-    }
-
-    if (storage.import_args[1] == "-") {
-      // STDIN import will be handled directly in main
-      // Here we store the import options
-      while (cmdline->valid()) storage.import_opts.push_back(cmdline->get());
-    } else {
-      // Non STDIN import is handled as a CLI API call
-      if (m_shell_cli_operation)
-        throw std::invalid_argument(
-            "MySQL Shell can handle only one operation at a time");
-      m_shell_cli_operation =
-          std::make_unique<shcore::cli::Shell_cli_operation>();
-      m_shell_cli_operation->set_object_name("util");
-      m_shell_cli_operation->set_method_name("importJson");
-
-      m_shell_cli_operation->add_cmdline_argument(storage.import_args.at(1));
-
-      // Parses the positional arguments to set them on the CLI operation
-      switch (storage.import_args.size()) {
-        case 4: {
-          const std::string &target = storage.import_args.at(2);
-          const std::string &column = storage.import_args.at(3);
-          m_shell_cli_operation->add_cmdline_argument("--table=" + target);
-          m_shell_cli_operation->add_cmdline_argument("--tableColumn=" +
-                                                      column);
-          break;
-        }
-        case 3: {
-          const std::string &target = storage.import_args.at(2);
-          m_shell_cli_operation->add_cmdline_argument("--collection=" + target);
-          break;
-        }
-        case 2:
-          break;
-        default:
-          throw std::runtime_error(
-              "Usage: --import <filename> [<collection>|<table> <column>] "
-              "[options]");
-      }
-
-      // All of the options above are valid
-      m_shell_cli_operation->parse(cmdline);
-    }
   } else if ("-m" == option) {
     bool handled = false;
 
@@ -1403,21 +1333,6 @@ void Shell_options::check_result_format() {
         " cannot be set to '%s' when "
         "--json option implying '%s' value is used.",
         storage.result_format.c_str(), storage.wrap_json.c_str()));
-}
-
-void Shell_options::check_import_options() {
-  bool is_schema_set = storage.connection_data.has_schema();
-  if (!storage.import_args.empty()) {
-    if (!storage.has_connection_data()) {
-      const auto error = "Error: --import requires an active session.";
-      throw std::runtime_error(error);
-    }
-    if (!is_schema_set) {
-      const auto error =
-          "Error: --import requires a default schema on the active session.";
-      throw std::runtime_error(error);
-    }
-  }
 }
 
 void Shell_options::check_connection_options() {

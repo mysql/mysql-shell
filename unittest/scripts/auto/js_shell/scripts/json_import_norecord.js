@@ -37,7 +37,7 @@ EXPECT_STDOUT_CONTAINS(
     '" to collection `wl10606`.`fr1_01_sample` in MySQL Server at');
 
 util.importJson(__import_data_path + '/sample2.json', {schema: target_schema, collection: 'sample'});
-var rc = testutil.callMysqlsh([xuri, '--schema', target_schema, '--import', __import_data_path + '/sample.json', 'sample']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json', '--schema', target_schema, '--collection', 'sample']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample2.json' +
@@ -49,7 +49,8 @@ EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
     '" to table `wl10606`.`fr1_01_sample_table` in MySQL Server at');
 
-var rc = testutil.callMysqlsh([xuri, '--schema', target_schema, '--import', __import_data_path + '/sample.json', 'fr1_01_sample_table', 'doc']);
+    
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json', '--schema', target_schema,  '--table', 'fr1_01_sample_table', '--table-column', 'doc']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
@@ -69,13 +70,14 @@ EXPECT_STDOUT_CONTAINS(
     '" to table `wl10606`.`fr1_02_sample_table` in MySQL Server at');
 
 //@ FR1-02 cli call
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', __import_data_path + '/sample.json', 'fr1_02_sample_cli']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json', '--schema='+ target_schema, '--collection',  'fr1_02_sample_cli']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
     '" to collection `wl10606`.`fr1_02_sample_cli` in MySQL Server at');
 
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', __import_data_path + '/sample.json', 'fr1_02_sample_cli_table', 'doc']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json', '--schema='+ target_schema, '--table', 'fr1_02_sample_cli_table', '--table-column', 'doc']);
+
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
@@ -119,14 +121,15 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 18 ");
 /// FR2-01  Validate that import VALID json STDIN to a VALID schema, into
 /// existing collection|table works - DEV
 schema_handler.createCollection("FR2_01a_sample");
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', '-', 'FR2_01a_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema='+ target_schema, '--collection', 'FR2_01a_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("Importing from -stdin- to collection `wl10606`.`FR2_01a_sample` in MySQL Server at");
 EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
 
 //@ FR2-01b
 session.sql(create_table('FR2_01b_sample_table'));
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', '-', 'FR2_01b_sample_table', 'doc'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema='+ target_schema, '--table', 'FR2_01b_sample_table', '--table-column', 'doc'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("Importing from -stdin- to table `wl10606`.`FR2_01b_sample_table` in MySQL Server at");
 EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
@@ -134,13 +137,13 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
 //@ FR2-02a
 /// FR2-02  Validate that import VALID json STDIN to a VALID schema with no
 /// collection|table existing works - DEV
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', '-', 'fr2_02_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema='+ target_schema, '--collection', 'fr2_02_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("Importing from -stdin- to collection `wl10606`.`fr2_02_sample` in MySQL Server at");
 EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
 
 //@ FR2-02b
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', '-', 'fr2_02_sample_table', 'doc'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema='+ target_schema, '--table', 'fr2_02_sample_table', '--table-column', 'doc'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("Importing from -stdin- to table `wl10606`.`fr2_02_sample_table` in MySQL Server at");
 EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
@@ -154,9 +157,9 @@ EXPECT_THROWS(function() {
 
 //@<> FR2-03 Using mysqlsh command line arguments
 var rc = testutil.callMysqlsh(
-    [ xuri, '--schema=non_existing_schema', '--import', '-', 'sample', 'doc' ],
-    '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
-EXPECT_NE(0, rc);
+  [ xuri, '--', 'util', 'import-json', '-', '--schema=non_existing_schema', '--table', 'sample', '--table-column', 'doc' ],
+  '{"_id": "a"}{"_id": "b"}{"_id": "c"}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+      EXPECT_NE(0, rc);
 if (testutil.versionCheck(__version, "==", "8.0.12")) {
   EXPECT_STDOUT_CONTAINS("Access denied for user");
 } else {
@@ -167,7 +170,7 @@ if (testutil.versionCheck(__version, "==", "8.0.12")) {
 /// FR2-04  Validate that import INVALID json STDIN to a VALID schema, raise
 /// error regarding invalid json STDIN and report the documents that were
 /// imported successfully  - DEV
-var rc = testutil.callMysqlsh([xuri, '--schema='+ target_schema, '--import', '-', 'fr2_04_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema='+ target_schema, '--collection', 'fr2_04_sample'], '{"_id": "a"}{"_id": "b"}{"_id": "c"}}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Importing from -stdin- to collection `wl10606`.`fr2_04_sample` in MySQL Server at");
 EXPECT_STDOUT_CONTAINS("Input does not start with a JSON object at offset 36");
@@ -177,8 +180,8 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 0 ");
 /// FR2-05  Validate that import INVALID json STDIN to an INVALID schema, raise
 /// error regarding invalid schema adn/or invalid json STDIN  - DEV
 var rc = testutil.callMysqlsh(
-    [ xuri, '--schema=non_existing_schema', '--import', '-', 'fr2_05_sample' ],
-    '{"_id": "a"}{"_id": "b"}{"_id": "c"}}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
+  [ xuri, '--', 'util', 'import-json', '-', '--schema=non_existing_schema', '--table', 'fr2_05_sample' ],
+  '{"_id": "a"}{"_id": "b"}{"_id": "c"}}{"_id": "d"}{"_id": "e"}{"_id": "f"}');
 EXPECT_NE(0, rc);
 if (testutil.versionCheck(__version, "==", "8.0.12")) {
   EXPECT_STDOUT_CONTAINS("Access denied for user");
@@ -256,16 +259,16 @@ EXPECT_THROWS(function() {
   util.importJson(__import_data_path + '/sample.json');
 }, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
-var rc = testutil.callMysqlsh([xuri, '--import', __import_data_path + '/sample.json', 'sample']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json',  __import_data_path + '/sample.json', '--table', 'sample']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Error: --import requires a default schema on the active session.");
+EXPECT_STDOUT_CONTAINS("There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 //@ FRA1-02B
 /// FRA1-02B  validate that if schema isn't provided as parameter, mysqlsh will
 /// try to retrieve schema name from current session. - DEV
 var rc = testutil.callMysqlsh([
-  xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
-  'fra01_02b_sample'
+  xuri + '/' + target_schema, '--', 'util', 'import-json', __import_data_path + '/sample.json',
+  '--collection', 'fra01_02b_sample'
 ]);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
@@ -280,9 +283,9 @@ EXPECT_THROWS(function() {
   util.importJson('', {schema: target_schema});
 }, "Util.importJson: Path cannot be empty.");
 
-var rc = testutil.callMysqlsh([xuri, '--schema=' + target_schema, '--import', '-']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema=' + target_schema]);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Target collection or table must be set if filename is a STDIN");
+EXPECT_STDOUT_CONTAINS("Target collection or table must be set if filename is a STDIN.");
 
 //@ FRB1-01
 /// FRB1-01 Validate that documents must be imported into a schema, table and
@@ -326,9 +329,9 @@ EXPECT_THROWS(function() {
 }, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 //@ FRB1-04 cli
-var rc = testutil.callMysqlsh([xuri, '--import', __import_data_path + '/sample.json']);
+var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Error: --import requires a default schema on the active session.");
+EXPECT_STDOUT_CONTAINS("There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 //@ FRB1-05
 /// FRB1-05 Validate that missing table name when input is STDIN is an error
@@ -341,7 +344,7 @@ EXPECT_THROWS(function() {
 }, "Util.importJson: Path cannot be empty.");
 
 var rc =
-    testutil.callMysqlsh([ xuri, '--schema=' + target_schema, '--import', '-' ],
+    testutil.callMysqlsh([ xuri, '--', 'util', 'import-json', '-', '--schema=' + target_schema],
                          '{"_id": "a"}{"_id": "b"}{"_id": "c"}');
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Target collection or table must be set if filename is a STDIN");
@@ -388,11 +391,11 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 25359 ");
 session.sql("select count(1) from `" + target_schema + "`.`primer-dataset-id`");
 
 //@ E3
-/// E3  Validate if user call mysqlsh user@host/mydb --import c:\bla.js blubb, we
+/// E3  Validate if user calls the utility, it
 /// will create collection blubb if neither collection nor table exits. - DEV
 var rc = testutil.callMysqlsh([
-  xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
-  'blubb'
+  xuri + '/' + target_schema, '--', 'util', 'import-json', __import_data_path + '/sample.json',
+  '--collection', 'blubb'
 ]);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
@@ -402,7 +405,7 @@ println(schema_handler.getCollections());
 session.sql("describe " + target_schema + ".blubb;");
 
 //@ E4
-/// E4  Validate if user call mysqlsh user@host/mydb --import c:\bla.js blubb,
+/// E4  Validate if user calls the utility,
 /// and blubb exists and user do not point table column, default column is doc,
 /// which is available for collections and for tables. - DEV
 util.importJson(__import_data_path + '/sample.json', {
@@ -410,10 +413,10 @@ util.importJson(__import_data_path + '/sample.json', {
   table : "blubb_table"
 });
 var rc = testutil.callMysqlsh([
-  xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
-  'blubb_table'
+  xuri + '/' + target_schema, '--', 'util', 'import-json', __import_data_path + '/sample.json',
+  '--table', 'blubb_table'
 ]);
-EXPECT_EQ(1, rc);
+EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS(
     'Importing from file "' + __import_data_path + '/sample.json' +
     '" to table `wl10606`.`blubb_table` in MySQL Server at');
@@ -436,8 +439,8 @@ EXPECT_THROWS(
         ".blubb_table_view' exists but is not a collection");
 
 var rc = testutil.callMysqlsh([
-  xuri + '/' + target_schema, '--import', __import_data_path + '/sample.json',
-  'blubb_table_view'
+  xuri + '/' + target_schema, '--', 'util', 'import-json', __import_data_path + '/sample.json',
+  '--collection', 'blubb_table_view'
 ], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 
 EXPECT_EQ(1, rc);
@@ -445,9 +448,9 @@ EXPECT_STDOUT_CONTAINS(
     'ERROR: Table \'wl10606.blubb_table_view\' exists but is not a collection');
 
 //@<> E6 Missing connection options on cli returns error
-var rc = testutil.callMysqlsh(['--import', __import_data_path + '/sample.json', 'sample']);
+var rc = testutil.callMysqlsh(['--', 'util', 'import-json', __import_data_path + '/sample.json', '--table', 'sample']);
 EXPECT_NE(0, rc);
-EXPECT_STDOUT_CONTAINS("Error: --import requires an active session.");
+EXPECT_STDOUT_CONTAINS("Please connect the shell to the MySQL server.");
 
 //@<> tableColumn cannot be used with collection
 EXPECT_THROWS(

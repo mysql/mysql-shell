@@ -63,7 +63,9 @@ void Prepare_json_import::validate() {
   }
 
   if (!m_collection.has_value() && !m_table.has_value()) {
-    throw std::invalid_argument("Target collection or table must be set.");
+    throw std::invalid_argument(shcore::str_format(
+        "Target collection or table must be set%s.",
+        m_source.path == "-" ? " if filename is a STDIN" : ""));
   }
 
   if (m_collection.has_value() && m_table.has_value()) {
@@ -105,7 +107,8 @@ std::optional<std::string> Prepare_json_import::target_name_from_path() {
 
 void Prepare_json_import::guess_collection() {
   if (!m_collection.has_value()) {
-    if (const auto name = target_name_from_path(); name.has_value()) {
+    if (const auto name = target_name_from_path();
+        name.has_value() && *name != "-") {
       this->collection(*name);
     }
   }
