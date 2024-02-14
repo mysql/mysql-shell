@@ -37,11 +37,9 @@
 
 namespace mysqlsh::dba::cluster {
 
-void Remove_instance::validate_metadata_for_address(
-    Instance_metadata *out_metadata) const {
-  *out_metadata =
-      m_cluster_impl->get_metadata_storage()->get_instance_by_address(
-          m_target_address);
+Instance_metadata Remove_instance::validate_metadata_for_address() const {
+  return m_cluster_impl->get_metadata_storage()->get_instance_by_address(
+      m_target_address, m_cluster_impl->get_id());
 }
 
 void Remove_instance::ensure_not_last_instance_in_cluster(
@@ -432,8 +430,7 @@ void Remove_instance::prepare() {
       }
 
       try {
-        Instance_metadata md;
-        validate_metadata_for_address(&md);
+        auto md = validate_metadata_for_address();
         m_instance_uuid = md.uuid;
         m_instance_id = md.server_id;
         m_address_in_metadata = m_target_address;
@@ -485,8 +482,7 @@ void Remove_instance::prepare() {
   if (m_target_instance) {
     // First check the address given by the user.
     try {
-      Instance_metadata md;
-      validate_metadata_for_address(&md);
+      auto md = validate_metadata_for_address();
       m_instance_uuid = md.uuid;
       m_instance_id = md.server_id;
       m_address_in_metadata = m_target_address;
@@ -499,7 +495,7 @@ void Remove_instance::prepare() {
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
-      std::string uuid = m_target_instance->get_uuid();
+      const std::string &uuid = m_target_instance->get_uuid();
 
       // If that's not right, then query it from the instance using the UUID.
       // We do this after checking the address given by the user in case
@@ -509,8 +505,8 @@ void Remove_instance::prepare() {
       // whatever they gave as a param to the command, not necessarily
       // whatever the UUID of the server maps to in the metadata.
       try {
-        auto md =
-            m_cluster_impl->get_metadata_storage()->get_instance_by_uuid(uuid);
+        auto md = m_cluster_impl->get_metadata_storage()->get_instance_by_uuid(
+            uuid, m_cluster_impl->get_id());
         m_instance_uuid = md.uuid;
         m_instance_id = md.server_id;
         m_address_in_metadata = md.address;
@@ -532,8 +528,9 @@ void Remove_instance::prepare() {
             "@@server_uuid '%s' was found in metadata.",
             m_target_address.c_str(), uuid.c_str());
 
-        console->print_error("The instance " + m_target_address +
-                             " does not belong to the cluster.");
+        console->print_error(shcore::str_format(
+            "The instance '%s' does not belong to the Cluster.",
+            m_target_address.c_str()));
         // we throw the exception from the 1st lookup, not the 2nd one
       }
       if (m_address_in_metadata.empty()) throw;

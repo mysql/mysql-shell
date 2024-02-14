@@ -142,7 +142,7 @@ EXPECT_THROWS(function(){
 // try to remove instance that is not in the cluster using the classic port
 EXPECT_THROWS(function(){
     Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password});
-}, `Cluster.removeInstance: Metadata for instance ${__host}:${__mysql_port} not found`);
+}, `Cluster.removeInstance: Metadata for instance '${__host}:${__mysql_port}' not found`);
 
 //@<> Cluster: removeInstance
 EXPECT_NO_THROWS(function(){ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2}); });

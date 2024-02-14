@@ -451,10 +451,11 @@ class MetadataStorage {
       Cluster_id cluster_id = "", bool include_read_replicas = false);
 
   Instance_metadata get_instance_by_uuid(
-      const std::string &uuid, const Cluster_id &cluster_id = "") const;
+      std::string_view uuid, const Cluster_id &cluster_id = "") const;
 
   Instance_metadata get_instance_by_address(
-      std::string_view instance_address) const;
+      std::string_view instance_address,
+      const Cluster_id &cluster_id = "") const;
 
   Instance_metadata get_instance_by_label(std::string_view label) const;
 

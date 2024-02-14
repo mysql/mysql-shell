@@ -73,7 +73,7 @@ class Remove_instance {
 
  private:
   void prepare();
-  void validate_metadata_for_address(Instance_metadata *out_metadata) const;
+  Instance_metadata validate_metadata_for_address() const;
 
   /**
    * Verify if it is the last instance in the cluster, otherwise it cannot
