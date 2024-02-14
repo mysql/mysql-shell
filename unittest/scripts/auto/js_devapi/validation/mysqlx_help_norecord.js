@@ -362,13 +362,6 @@ FUNCTIONS
             Sets number of documents to skip on the resultset when a limit has
             been defined.
 
-      skip(numberOfDocs)
-            Sets number of documents to skip on the resultset when a limit has
-            been defined.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the offset() function instead.
-
       sort(...)
             Sets the sorting criteria to be used on the DocResult.
 
@@ -385,13 +378,6 @@ FUNCTIONS
       arrayAppend(docPath, value)
             Appends a value into an array attribute in documents of a
             collection.
-
-      arrayDelete(docPath)
-            Deletes the value at a specific position in an array attribute in
-            documents of a collection.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the unset() function instead.
 
       arrayInsert(docPath, value)
             Inserts a value into a specific position in an array attribute in
@@ -411,13 +397,6 @@ FUNCTIONS
       limit(numberOfDocs)
             Sets a limit for the documents to be updated by the operations
             added to the handler.
-
-      merge(document)
-            Adds attributes taken from a document into the documents in a
-            collection.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the patch() function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated

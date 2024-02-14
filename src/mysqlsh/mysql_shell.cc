@@ -2139,8 +2139,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"execute", "DocResult", true},
                                   {"help", "", true}});
   registry->add_completable_type(
-      "CollectionFind*limit", {{"skip", "CollectionFind*skip_offset", true},
-                               {"offset", "CollectionFind*skip_offset", true},
+      "CollectionFind*limit", {{"offset", "CollectionFind*skip_offset", true},
                                {"lockShared", "Bind*", true},
                                {"lockExclusive", "Bind*", true},
                                {"bind", "Bind*", true},
@@ -2187,21 +2186,17 @@ void Mysql_shell::add_devapi_completions() {
   registry->add_completable_type("CollectionModify",
                                  {{"set", "CollectionModify*", true},
                                   {"unset", "CollectionModify*", true},
-                                  {"merge", "CollectionModify*", true},
                                   {"patch", "CollectionModify*", true},
                                   {"arrayInsert", "CollectionModify*", true},
                                   {"arrayAppend", "CollectionModify*", true},
-                                  {"arrayDelete", "CollectionModify*", true},
                                   {"help", "", true}});
 
   registry->add_completable_type("CollectionModify*",
                                  {{"set", "CollectionModify*", true},
                                   {"unset", "CollectionModify*", true},
-                                  {"merge", "CollectionModify*", true},
                                   {"patch", "CollectionModify*", true},
                                   {"arrayInsert", "CollectionModify*", true},
                                   {"arrayAppend", "CollectionModify*", true},
-                                  {"arrayDelete", "CollectionModify*", true},
                                   {"sort", "CollectionModify*sort", true},
                                   {"limit", "CollectionModify*limit", true},
                                   {"bind", "Bind*", true},

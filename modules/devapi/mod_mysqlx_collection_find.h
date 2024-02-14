@@ -69,7 +69,6 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(List sortCriteria);
   CollectionFind sort(String sortCriterion[, String sortCriterion, ...]);
   CollectionFind limit(Integer numberOfDocs);
-  CollectionFind skip(Integer numberOfDocs);
   CollectionFind offset(Integer numberOfDocs);
   CollectionFind lockShared(String lockContention);
   CollectionFind lockExclusive(String lockContention);
@@ -86,7 +85,6 @@ class CollectionFind : public Collection_crud_definition,
   CollectionFind sort(list sortCriteria);
   CollectionFind sort(str sortCriterion[, str sortCriterion, ...]);
   CollectionFind limit(int numberOfDocs);
-  CollectionFind skip(int numberOfDocs);
   CollectionFind offset(int numberOfDocs);
   CollectionFind lock_shared(str lockContention);
   CollectionFind lock_exclusive(str lockContention);
@@ -121,12 +119,11 @@ class CollectionFind : public Collection_crud_definition,
     static constexpr Allowed_function_mask having = 1 << 3;
     static constexpr Allowed_function_mask sort = 1 << 4;
     static constexpr Allowed_function_mask limit = 1 << 5;
-    static constexpr Allowed_function_mask skip = 1 << 6;
-    static constexpr Allowed_function_mask offset = 1 << 7;
-    static constexpr Allowed_function_mask lockShared = 1 << 8;
-    static constexpr Allowed_function_mask lockExclusive = 1 << 9;
-    static constexpr Allowed_function_mask bind = 1 << 10;
-    static constexpr Allowed_function_mask execute = 1 << 11;
+    static constexpr Allowed_function_mask offset = 1 << 6;
+    static constexpr Allowed_function_mask lockShared = 1 << 7;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 8;
+    static constexpr Allowed_function_mask bind = 1 << 9;
+    static constexpr Allowed_function_mask execute = 1 << 10;
   };
 
   Allowed_function_mask function_name_to_bitmask(
@@ -148,9 +145,6 @@ class CollectionFind : public Collection_crud_definition,
     }
     if ("limit" == s) {
       return F::limit;
-    }
-    if ("skip" == s) {
-      return F::skip;
     }
     if ("offset" == s) {
       return F::offset;

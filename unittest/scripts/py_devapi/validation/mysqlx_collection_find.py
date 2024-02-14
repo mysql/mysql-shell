@@ -26,10 +26,6 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionFind: valid operations after skip
-|All expected functions are available|
-|No additional functions are available|
-
 #@ CollectionFind: valid operations after lock_shared
 |All expected functions are available|
 |No additional functions are available|
@@ -92,10 +88,6 @@
 #@# CollectionFind: Error conditions on offset
 ||CollectionFind.offset: Invalid number of arguments, expected 1 but got 0
 ||CollectionFind.offset: Argument #1 is expected to be an unsigned int
-
-#@# CollectionFind: Error conditions on skip
-||CollectionFind.skip: Invalid number of arguments, expected 1 but got 0
-||CollectionFind.skip: Argument #1 is expected to be an unsigned int
 
 #@# CollectionFind: Error conditions on lock_shared
 ||CollectionFind.lock_shared: Invalid number of arguments, expected 0 to 1 but got 2

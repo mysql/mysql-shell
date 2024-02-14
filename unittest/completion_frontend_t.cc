@@ -900,7 +900,6 @@ TEST_F(Completer_frontend, js_devapi_collection) {
   CHECK_OBJECT_COMPLETIONS("people.find().groupBy(['x'])");
   CHECK_OBJECT_COMPLETIONS("people.find().groupBy(['x']).having('x')");
   CHECK_OBJECT_COMPLETIONS("people.find().limit(2)");
-  CHECK_OBJECT_COMPLETIONS("people.find().limit(0).skip(2)");
   CHECK_OBJECT_COMPLETIONS("people.find().lockShared()");
   CHECK_OBJECT_COMPLETIONS("people.find().lockExclusive()");
   CHECK_OBJECT_COMPLETIONS("people.find(':x').bind('x',1)");
@@ -1427,7 +1426,6 @@ TEST_F(Completer_frontend, py_devapi_collection) {
   CHECK_OBJECT_COMPLETIONS("people.find().group_by(['x'])");
   CHECK_OBJECT_COMPLETIONS("people.find().group_by(['x']).having('x')");
   CHECK_OBJECT_COMPLETIONS("people.find().limit(2)");
-  CHECK_OBJECT_COMPLETIONS("people.find().limit(0).skip(2)");
   CHECK_OBJECT_COMPLETIONS("people.find(':x').bind('x',1)");
   CHECK_OBJECT_COMPLETIONS("people.find().execute()");
 

@@ -17,12 +17,6 @@ crud.help('arrayAppend');
 //@ Help on arrayAppend, \? [USE:Help on arrayAppend]
 \? CollectionModify.arrayAppend
 
-//@ Help on arrayDelete
-crud.help('arrayDelete');
-
-//@ Help on arrayDelete, \? [USE:Help on arrayDelete]
-\? CollectionModify.arrayDelete
-
 //@ Help on arrayInsert
 crud.help('arrayInsert');
 
@@ -52,12 +46,6 @@ crud.help('limit');
 
 //@ Help on limit, \? [USE:Help on limit]
 \? CollectionModify.limit
-
-//@ Help on merge
-crud.help('merge');
-
-//@ Help on merge, \? [USE:Help on merge]
-\? CollectionModify.merge
 
 //@ Help on modify
 crud.help('modify');

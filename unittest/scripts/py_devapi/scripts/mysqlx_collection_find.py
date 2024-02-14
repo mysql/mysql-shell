@@ -45,14 +45,10 @@ validate_crud_functions(crud, ['limit', 'lock_shared', 'lock_exclusive', 'bind',
 
 #@ CollectionFind: valid operations after limit
 crud = crud.limit(1)
-validate_crud_functions(crud, ['skip', 'offset', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
+validate_crud_functions(crud, ['offset', 'lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after offset
 crud = crud.offset(1)
-validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
-
-#@ CollectionFind: valid operations after skip
-crud = collection.find().limit(10).skip(1)
 validate_crud_functions(crud, ['lock_shared', 'lock_exclusive', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after lock_shared
@@ -73,7 +69,7 @@ validate_crud_functions(crud, ['limit', 'bind', 'execute'])
 
 #@ CollectionFind: valid operations after execute with limit
 result = crud.limit(1).bind('data', 'adam').execute()
-validate_crud_functions(crud, ['limit', 'offset', 'skip', 'bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'offset', 'bind', 'execute'])
 
 #@ Reusing CRUD with binding
 print(result.fetch_one().name + '\n')
@@ -122,10 +118,6 @@ crud = collection.find().limit('')
 #@# CollectionFind: Error conditions on offset
 crud = collection.find().limit(1).offset()
 crud = collection.find().limit(1).offset('')
-
-#@# CollectionFind: Error conditions on skip
-crud = collection.find().limit(1).skip()
-crud = collection.find().limit(1).skip('')
 
 #@# CollectionFind: Error conditions on lock_shared
 crud = collection.find().lock_shared(5,1)

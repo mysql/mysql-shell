@@ -44,16 +44,11 @@ validate_crud_functions(crud, ['limit', 'lockShared', 'lockExclusive', 'bind', '
 
 //@ CollectionFind: valid operations after limit
 var crud = crud.limit(1);
-validate_crud_functions(crud, ['skip', 'offset', 'lockShared', 'lockExclusive', 'bind', 'execute']);
+validate_crud_functions(crud, ['offset', 'lockShared', 'lockExclusive', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after offset
 var crud = crud.offset(1);
 validate_crud_functions(crud, ['lockShared', 'lockExclusive', 'bind', 'execute']);
-
-//@ CollectionFind: valid operations after skip
-var crudSkip = collection.find().limit(10).skip(1);
-validate_crud_functions(crudSkip, ['lockShared', 'lockExclusive', 'bind', 'execute']);
-
 
 //@ CollectionFind: valid operations after lockShared
 var crud = collection.find('name = :data').lockShared()
@@ -73,7 +68,7 @@ validate_crud_functions(crud, ['limit', 'bind', 'execute']);
 
 //@ CollectionFind: valid operations after execute with limit
 var result = crud.limit(1).bind('data', 'adam').execute();
-validate_crud_functions(crud, ['limit', 'offset', 'skip', 'bind', 'execute'])
+validate_crud_functions(crud, ['limit', 'offset', 'bind', 'execute'])
 
 //@ Reusing CRUD with binding
 print(result.fetchOne().name + '\n');
@@ -121,10 +116,6 @@ crud = collection.find().limit('');
 //@# CollectionFind: Error conditions on offset
 crud = collection.find().limit(1).offset();
 crud = collection.find().limit(1).offset('');
-
-//@# CollectionFind: Error conditions on skip
-crud = collection.find().limit(1).skip();
-crud = collection.find().limit(1).skip('');
 
 //@# CollectionFind: Error conditions on lockShared
 crud = collection.find().lockShared(5,1);

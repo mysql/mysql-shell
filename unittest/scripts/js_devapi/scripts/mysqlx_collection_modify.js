@@ -24,57 +24,45 @@ var result = collection.add({ _id: '5C514FF38144957BE71111C04E0D1252', name: 'an
 // ------------------------------------------------
 //@ CollectionModify: valid operations after modify and set
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.set('name', 'dummy');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset empty
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.unset([]);
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 
 //@ CollectionModify: valid operations after modify and unset list
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.unset(['name', 'type']);
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and unset multiple params
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.unset('name', 'type');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
-
-//@ CollectionModify: valid operations after modify and merge
-var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
-var crud = crud.merge({ 'att': 'value', 'second': 'final' });
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and patch
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.patch({ 'att': 'value', 'second': 'final' });
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayInsert
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.arrayInsert('hobbies[3]', 'run');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after modify and arrayAppend
 var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend']);
 var crud = crud.arrayAppend('hobbies', 'skate');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
-
-//@ CollectionModify: valid operations after modify and arrayDelete
-var crud = collection.modify('some_filter');
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete']);
-var crud = crud.arrayDelete('hobbies[5]')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'patch', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute']);
+validate_crud_functions(crud, ['set', 'unset', 'patch', 'arrayInsert', 'arrayAppend', 'sort', 'limit', 'bind', 'execute']);
 
 //@ CollectionModify: valid operations after sort
 var crud = crud.sort(['name']);
@@ -123,10 +111,6 @@ crud = collection.modify('some_filter').unset('');
 crud = collection.modify('some_filter').unset('a b');
 crud = collection.modify('some_filter').unset('"string"');
 
-//@# CollectionModify: Error conditions on merge
-crud = collection.modify('some_filter').merge();
-crud = collection.modify('some_filter').merge('');
-
 //@# CollectionModify: Error conditions on patch
 crud = collection.modify('some_filter').patch();
 crud = collection.modify('some_filter').patch('');
@@ -146,14 +130,6 @@ crud = collection.modify('some_filter').arrayAppend('', 45);
 crud = collection.modify('some_filter').arrayAppend('a b', 45);
 crud = collection.modify('some_filter').arrayAppend('"string"', 45);
 crud = collection.modify('some_filter').arrayAppend('data', mySession);
-
-//@# CollectionModify: Error conditions on arrayDelete
-crud = collection.modify('some_filter').arrayDelete();
-crud = collection.modify('some_filter').arrayDelete(5);
-crud = collection.modify('some_filter').arrayDelete('');
-crud = collection.modify('some_filter').arrayDelete('a b');
-crud = collection.modify('some_filter').arrayDelete('"string"');
-crud = collection.modify('some_filter').arrayDelete('test');
 
 //@# CollectionModify: Error conditions on sort
 crud = collection.modify('some_filter').unset('name').sort();
@@ -236,52 +212,27 @@ print("Brian's alias:", doc.alias, '\n');
 print("Brian's first girlfriend:", doc.girlfriends[0], '\n');
 print("Brian's second girlfriend:", doc.girlfriends[1], '\n');
 
-//@ CollectionModify: unset for merge {VER(>=8.0.4)}
-var result = collection.modify('name = "brian"').unset(['last_name', 'age', 'alias', 'girlfriends']).execute();
-print('Unset Affected Rows:', result.affectedItemsCount, '\n');
-
-//@ CollectionModify: Merge Execution
-var result = collection.modify('name = "brian"').merge({'last_name': 'black', 'age': 15, 'alias': 'bri', 'girlfriends': ['martha', 'karen'] }).execute();
-print('Merge Affected Rows:', result.affectedItemsCount, '\n');
-
-var result = collection.find('name = "brian"').execute();
-var doc = result.fetchOne();
-print("Brian's last_name:", doc.last_name, '\n');
-print("Brian's age:", doc.age, '\n');
-print("Brian's alias:", doc.alias, '\n');
-print("Brian's first girlfriend:", doc.girlfriends[0], '\n');
-print("Brian's second girlfriend:", doc.girlfriends[1], '\n');
-
 //@ CollectionModify: arrayAppend Execution
 //! [CollectionModify: arrayAppend Execution]
-var result = collection.modify('name = "brian"').arrayAppend('girlfriends', 'cloe').execute();
+var result = collection.modify('name = "brian"').arrayAppend('hobbies', 'running').execute();
 print('Array Append Affected Rows:', result.affectedItemsCount, '\n');
 //! [CollectionModify: arrayAppend Execution]
 
 var result = collection.find('name = "brian"').execute();
 var doc = result.fetchOne();
-print("Brian's girlfriends:", doc.girlfriends.length);
-print("Brian's last:", doc.girlfriends[2]);
+print("Brian's hobbies:", doc.hobbies.length);
+print("Brian's last:", doc.hobbies[3]);
 
 //@ CollectionModify: arrayInsert Execution
 //! [CollectionModify: arrayInsert Execution]
-var result = collection.modify('name = "brian"').arrayInsert('girlfriends[1]', 'samantha').execute();
+var result = collection.modify('name = "brian"').arrayInsert('hobbies[1]', 'cycling').execute();
 print('Array Insert Affected Rows:', result.affectedItemsCount, '\n');
 //! [CollectionModify: arrayInsert Execution]
 
 var result = collection.find('name = "brian"').execute();
 var doc = result.fetchOne();
-print("Brian's girlfriends:", doc.girlfriends.length, '\n');
-print("Brian's second:", doc.girlfriends[1], '\n');
-
-//@ CollectionModify: arrayDelete Execution
-var result = collection.modify('name = "brian"').arrayDelete('girlfriends[2]').execute();
-print('Array Delete Affected Rows:', result.affectedItemsCount, '\n');
-
-var result = collection.find('name = "brian"').execute();
-var doc = result.fetchOne();
-print("Brian's girlfriends:", doc.girlfriends.length, '\n');
-print("Brian's third:", doc.girlfriends[2], '\n');
+print("Brian's hobbies:", doc.hobbies.length, '\n');
+print("Brian's second:", doc.hobbies[1], '\n');
 
 //@ CollectionModify: sorting and limit Execution
 //! [CollectionModify: sorting and limit]
@@ -300,10 +251,6 @@ var doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 3
-var doc = result.fetchOne();
-print(dir(doc));
-
-//@ CollectionModify: sorting and limit Execution - 4
 var doc = result.fetchOne();
 print(dir(doc));
 

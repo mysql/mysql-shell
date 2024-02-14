@@ -60,11 +60,9 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify set(String attribute, Value value);
   CollectionModify unset(String attribute[, String attribute, ...]);
   CollectionModify unset(List attributes);
-  CollectionModify merge(Document document);
   CollectionModify patch(Document document);
   CollectionModify arrayAppend(String docPath, Value value);
   CollectionModify arrayInsert(String docPath, Value value);
-  CollectionModify arrayDelete(String docPath);
   CollectionModify sort(List sortCriteria);
   CollectionModify sort(String sortCriterion[, String sortCriterion, ...]);
   CollectionModify limit(Integer numberOfRows);
@@ -75,11 +73,9 @@ class CollectionModify : public Collection_crud_definition,
   CollectionModify set(str attribute, Value value);
   CollectionModify unset(str attribute[, str attribute, ...]);
   CollectionModify unset(list attributes);
-  CollectionModify merge(Document document);
   CollectionModify patch(Document document);
   CollectionModify array_append(str docPath, Value value);
   CollectionModify array_insert(str docPath, Value value);
-  CollectionModify array_delete(str docPath);
   CollectionModify sort(list sortCriteria);
   CollectionModify sort(str sortCriterion[, str sortCriterion, ...]);
   CollectionModify limit(int numberOfRows);
@@ -95,13 +91,11 @@ class CollectionModify : public Collection_crud_definition,
   std::shared_ptr<CollectionModify> set(const std::string &attribute,
                                         shcore::Value value);
   shcore::Value unset(const shcore::Argument_list &args);
-  shcore::Value merge(const shcore::Argument_list &args);
   shcore::Value patch(const shcore::Argument_list &args);
   std::shared_ptr<CollectionModify> array_insert(const std::string &doc_path,
                                                  shcore::Value value);
   std::shared_ptr<CollectionModify> array_append(const std::string &doc_path,
                                                  shcore::Value value);
-  std::shared_ptr<CollectionModify> array_delete(const std::string &doc_path);
   shcore::Value sort(const shcore::Argument_list &args);
   shcore::Value execute(const shcore::Argument_list &args) override;
   void set_prepared_stmt() override;
@@ -121,15 +115,13 @@ class CollectionModify : public Collection_crud_definition,
     static constexpr Allowed_function_mask modify = 1 << 1;
     static constexpr Allowed_function_mask set = 1 << 2;
     static constexpr Allowed_function_mask unset = 1 << 3;
-    static constexpr Allowed_function_mask merge = 1 << 4;
-    static constexpr Allowed_function_mask patch = 1 << 5;
-    static constexpr Allowed_function_mask arrayInsert = 1 << 6;
-    static constexpr Allowed_function_mask arrayAppend = 1 << 7;
-    static constexpr Allowed_function_mask arrayDelete = 1 << 8;
-    static constexpr Allowed_function_mask sort = 1 << 9;
-    static constexpr Allowed_function_mask limit = 1 << 10;
-    static constexpr Allowed_function_mask bind = 1 << 11;
-    static constexpr Allowed_function_mask execute = 1 << 12;
+    static constexpr Allowed_function_mask patch = 1 << 4;
+    static constexpr Allowed_function_mask arrayInsert = 1 << 5;
+    static constexpr Allowed_function_mask arrayAppend = 1 << 6;
+    static constexpr Allowed_function_mask sort = 1 << 7;
+    static constexpr Allowed_function_mask limit = 1 << 8;
+    static constexpr Allowed_function_mask bind = 1 << 9;
+    static constexpr Allowed_function_mask execute = 1 << 10;
   };
 
   Allowed_function_mask function_name_to_bitmask(
@@ -146,9 +138,6 @@ class CollectionModify : public Collection_crud_definition,
     if ("unset" == s) {
       return F::unset;
     }
-    if ("merge" == s) {
-      return F::merge;
-    }
     if ("patch" == s) {
       return F::patch;
     }
@@ -157,9 +146,6 @@ class CollectionModify : public Collection_crud_definition,
     }
     if ("arrayAppend" == s) {
       return F::arrayAppend;
-    }
-    if ("arrayDelete" == s) {
-      return F::arrayDelete;
     }
     if ("sort" == s) {
       return F::sort;

@@ -77,12 +77,6 @@ crud.help('offset');
 //@ Help on offset, \? [USE:Help on offset]
 \? CollectionFind.offset
 
-//@ Help on skip
-crud.help('skip');
-
-//@ Help on skip, \? [USE:Help on skip]
-\? CollectionFind.skip
-
 //@ Help on sort
 crud.help('sort');
 

@@ -67,9 +67,6 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   add_method("groupBy", std::bind(&CollectionFind::group_by, this, _1), "data");
   add_method("having", std::bind(&CollectionFind::having, this, _1), "data");
   add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
-  add_method("skip",
-             std::bind(&CollectionFind::offset, this, _1, offset_id, "skip"),
-             "data");
   add_method("offset",
              std::bind(&CollectionFind::offset, this, _1, offset_id, "offset"),
              "data");
@@ -91,21 +88,19 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   register_dynamic_function(F::having);
   register_dynamic_function(F::sort, K_ENABLE_NONE,
                             F::fields | F::groupBy | F::having);
-  register_dynamic_function(F::limit, F::skip | F::offset,
+  register_dynamic_function(F::limit, F::offset,
                             F::fields | F::groupBy | F::having | F::sort);
-  register_dynamic_function(F::offset, K_ENABLE_NONE, F::limit | F::skip);
-  register_dynamic_function(F::skip, K_ENABLE_NONE, F::limit | F::offset);
+  register_dynamic_function(F::offset, K_ENABLE_NONE, F::limit);
   register_dynamic_function(F::lockShared, K_ENABLE_NONE,
                             F::lockExclusive | F::fields | F::groupBy |
-                                F::having | F::sort | F::limit | F::offset |
-                                F::skip);
+                                F::having | F::sort | F::limit | F::offset);
   register_dynamic_function(F::lockExclusive, K_ENABLE_NONE,
                             F::lockShared | F::fields | F::groupBy | F::having |
-                                F::sort | F::limit | F::offset | F::skip);
+                                F::sort | F::limit | F::offset);
   register_dynamic_function(F::bind, K_ENABLE_NONE,
                             F::lockExclusive | F::lockShared | F::fields |
                                 F::groupBy | F::having | F::sort | F::limit |
-                                F::offset | F::skip,
+                                F::offset,
                             K_ALLOW_REUSE);
   register_dynamic_function(F::execute, F::limit, K_DISABLE_NONE,
                             K_ALLOW_REUSE);
@@ -802,78 +797,6 @@ CollectionFind CollectionFind::limit(int numberOfDocs) {}
 #endif
 //@}
 
-REGISTER_HELP_FUNCTION(skip, CollectionFind);
-REGISTER_HELP(COLLECTIONFIND_SKIP_BRIEF,
-              "Sets number of documents to skip on the resultset when a limit "
-              "has been defined.");
-REGISTER_HELP(
-    COLLECTIONFIND_SKIP_PARAM,
-    "@param numberOfDocs The number of documents to skip before start "
-    "including them on the DocResult.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_RETURNS,
-              "@returns This CollectionFind object.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL,
-              "If used, the first <b>numberOfDocs</b> records will not be "
-              "included on the result.");
-REGISTER_HELP(COLLECTIONFIND_SKIP_DETAIL1, "${COLLECTIONFIND_SKIP_DEPRECATED}");
-REGISTER_HELP(COLLECTIONFIND_SKIP_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b>offset()</b> function instead.");
-
-/**
- * $(COLLECTIONFIND_SKIP_BRIEF)
- *
- * $(COLLECTIONFIND_SKIP_PARAM)
- *
- * $(COLLECTIONFIND_SKIP_RETURNS)
- *
- * $(COLLECTIONFIND_SKIP_DETAIL)
- *
- * $(COLLECTIONFIND_SKIP_DETAIL1)
- *
- * #### Method Chaining
- *
- * This function can be invoked only once after:
- */
-#if DOXYGEN_JS
-/**
- * - limit(Integer numberOfDocs)
- */
-#elif DOXYGEN_PY
-/**
- * - limit(int numberOfDocs)
- */
-#endif
-/**
- *
- * After this function invocation, the following functions can be invoked:
- */
-#if DOXYGEN_JS
-/**
- * - lockShared(String lockContention)
- * - lockExclusive(String lockContention)
- * - bind(String name, Value value)
- */
-#elif DOXYGEN_PY
-/**
- * - lock_shared(str lockContention)
- * - lock_exclusive(str lockContention)
- * - bind(str name, Value value)
- */
-#endif
-/**
- * - execute()
- *
- * \sa Usage examples at execute().
- */
-//@{
-#if DOXYGEN_JS
-CollectionFind CollectionFind::skip(Integer numberOfDocs) {}
-#elif DOXYGEN_PY
-CollectionFind CollectionFind::skip(int numberOfDocs) {}
-#endif
-//@}
-
 REGISTER_HELP_FUNCTION(offset, CollectionFind);
 REGISTER_HELP(COLLECTIONFIND_OFFSET_BRIEF,
               "Sets number of documents to skip on the resultset when a limit "
@@ -1414,7 +1337,6 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
     update_functions(F::execute);
     if (m_limit.has_value()) {
       enable_function(F::offset);
-      enable_function(F::skip);
     }
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));

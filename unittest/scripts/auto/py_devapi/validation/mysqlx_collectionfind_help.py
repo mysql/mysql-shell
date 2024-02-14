@@ -52,13 +52,6 @@ FUNCTIONS
             Sets number of documents to skip on the resultset when a limit has
             been defined.
 
-      skip(numberOfDocs)
-            Sets number of documents to skip on the resultset when a limit has
-            been defined.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the offset() function instead.
-
       sort(...)
             Sets the sorting criteria to be used on the DocResult.
 
@@ -332,28 +325,6 @@ RETURNS
 
 DESCRIPTION
       If used, the first quantity records will not be included on the result.
-
-#@<OUT> collfind.skip
-NAME
-      skip - Sets number of documents to skip on the resultset when a limit has
-             been defined.
-
-SYNTAX
-      <CollectionFind>.skip(numberOfDocs)
-
-WHERE
-      numberOfDocs: The number of documents to skip before start including them
-                    on the DocResult.
-
-RETURNS
-      This CollectionFind object.
-
-DESCRIPTION
-      If used, the first numberOfDocs records will not be included on the
-      result.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 offset() function instead.
 
 #@<OUT> collfind.sort
 NAME

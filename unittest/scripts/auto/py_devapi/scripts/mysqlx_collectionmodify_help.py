@@ -22,15 +22,6 @@ collmodify.help('array_append')
 #@ global help for array_append[USE:collfind.array_append]
 \help CollectionModify.array_append
 
-#@ collfind.array_delete
-collmodify.help('array_delete')
-
-#@ global ? for array_delete[USE:collfind.array_delete]
-\? CollectionModify.array_delete
-
-#@ global help for array_delete[USE:collfind.array_delete]
-\help CollectionModify.array_delete
-
 #@ collfind.array_insert
 collmodify.help('array_insert')
 
@@ -48,15 +39,6 @@ collmodify.help('help')
 
 #@ global help for help[USE:collfind.help]
 \help CollectionModify.help
-
-#@ collfind.merge
-collmodify.help('merge')
-
-#@ global ? for merge[USE:collfind.merge]
-\? CollectionModify.merge
-
-#@ global help for merge[USE:collfind.merge]
-\help CollectionModify.merge
 
 #@ collfind.modify
 collmodify.help('modify')

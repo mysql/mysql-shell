@@ -112,15 +112,6 @@ collfind.help('offset')
 #@ global help for offset [USE: collfind.offset]
 \help CollectionFind.offset
 
-#@ collfind.skip
-collfind.help('skip')
-
-#@ global ? for skip [USE: collfind.skip]
-\? CollectionFind.skip
-
-#@ global help for skip [USE: collfind.skip]
-\help CollectionFind.skip
-
 #@ collfind.sort
 collfind.help('sort')
 

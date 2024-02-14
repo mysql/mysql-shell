@@ -15,13 +15,6 @@ FUNCTIONS
             Appends a value into an array attribute in documents of a
             collection.
 
-      arrayDelete(docPath)
-            Deletes the value at a specific position in an array attribute in
-            documents of a collection.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the unset() function instead.
-
       arrayInsert(docPath, value)
             Inserts a value into a specific position in an array attribute in
             documents of a collection.
@@ -40,13 +33,6 @@ FUNCTIONS
       limit(numberOfDocs)
             Sets a limit for the documents to be updated by the operations
             added to the handler.
-
-      merge(document)
-            Adds attributes taken from a document into the documents in a
-            collection.
-
-            ATTENTION: This function will be removed in a future release, use
-                       the patch() function instead.
 
       modify(searchCondition)
             Sets the search condition to identify the Documents to be updated
@@ -85,32 +71,6 @@ DESCRIPTION
       Adds an operation into the modify handler to append a value into an array
       attribute on the documents that were included on the selection filter and
       limit.
-
-//@<OUT> Help on arrayDelete
-NAME
-      arrayDelete - Deletes the value at a specific position in an array
-                    attribute in documents of a collection.
-
-SYNTAX
-      <CollectionModify>.arrayDelete(docPath)
-
-WHERE
-      docPath: A document path that identifies the array attribute and position
-               of the value to be deleted.
-
-RETURNS
-      This CollectionModify object.
-
-DESCRIPTION
-      Adds an operation into the modify handler to delete a value from an array
-      attribute on the documents that were included on the selection filter and
-      limit.
-
-      The attribute deletion will be done on the collection's documents once
-      the execute() method is called.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 unset() function instead.
 
 //@<OUT> Help on arrayInsert
 NAME
@@ -199,31 +159,6 @@ RETURNS
 DESCRIPTION
       This method is usually used in combination with sort to fix the amount of
       documents to be updated.
-
-//@<OUT> Help on merge
-NAME
-      merge - Adds attributes taken from a document into the documents in a
-              collection.
-
-SYNTAX
-      <CollectionModify>.merge(document)
-
-WHERE
-      document: The document from which the attributes will be merged.
-
-RETURNS
-      This CollectionModify object.
-
-DESCRIPTION
-      This function adds an operation to add into the documents of a
-      collection, all the attributes defined in document that do not exist on
-      the collection's documents.
-
-      The attribute addition will be done on the collection's documents once
-      the execute() method is called.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 patch() function instead.
 
 //@<OUT> Help on modify
 NAME

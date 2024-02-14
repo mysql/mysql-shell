@@ -67,11 +67,9 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
   expose("modify", &CollectionModify::modify, "searchCondition");
   expose("set", &CollectionModify::set, "attribute", "value");
   add_method("unset", std::bind(&CollectionModify::unset, this, _1), "data");
-  add_method("merge", std::bind(&CollectionModify::merge, this, _1), "data");
   add_method("patch", std::bind(&CollectionModify::patch, this, _1), "data");
   expose("arrayInsert", &CollectionModify::array_insert, "docPath", "value");
   expose("arrayAppend", &CollectionModify::array_append, "docPath", "value");
-  expose("arrayDelete", &CollectionModify::array_delete, "docPath");
   add_method("sort", std::bind(&CollectionModify::sort, this, _1), "data");
   add_method("limit",
              std::bind(&CollectionModify::limit, this, _1, limit_id, false),
@@ -80,9 +78,8 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
              "data");
 
   // Registers the dynamic function behavior
-  Allowed_function_mask operations = F::set | F::unset | F::merge | F::patch |
-                                     F::arrayInsert | F::arrayAppend |
-                                     F::arrayDelete;
+  Allowed_function_mask operations =
+      F::set | F::unset | F::patch | F::arrayInsert | F::arrayAppend;
   register_dynamic_function(F::modify, operations);
   register_dynamic_function(F::operation,
                             F::sort | F::limit | F::bind | F::execute);
@@ -653,140 +650,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-// Documentation of merge function
-REGISTER_HELP_FUNCTION(merge, CollectionModify);
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_BRIEF,
-              "Adds attributes taken from a document into the documents in a "
-              "collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_MERGE_PARAM,
-    "@param document The document from which the attributes will be merged.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_RETURNS,
-              "@returns This CollectionModify object.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL,
-              "This function adds an operation to add into the documents of a "
-              "collection, all the attributes defined in document that do not "
-              "exist on the collection's documents.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL1,
-              "The attribute addition will be done on the collection's "
-              "documents once the execute() method is called.");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DETAIL2,
-              "${COLLECTIONMODIFY_MERGE_DEPRECATED}");
-REGISTER_HELP(COLLECTIONMODIFY_MERGE_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b>patch()</b> function instead.");
-
-/**
- * $(COLLECTIONMODIFY_MERGE_BRIEF)
- *
- * $(COLLECTIONMODIFY_MERGE_PARAM)
- *
- * $(COLLECTIONMODIFY_MERGE_RETURNS)
- *
- * $(COLLECTIONMODIFY_MERGE_DETAIL)
- *
- * $(COLLECTIONMODIFY_MERGE_DETAIL1)
- *
- * $(COLLECTIONMODIFY_MERGE_DEPRECATED)
- *
- * #### Method Chaining
- *
- * This function can be invoked multiple times after:
- */
-#if DOXYGEN_JS
-/**
- * - modify(String searchCondition)
- * - set(String attribute, Value value)
- * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
- *   unset(String attribute[, String attribute, ...])</a>,
- *   unset(List attributes)
- * - merge(Document document)
- * - patch(Document document)
- * - arrayAppend(String docPath, Value value)
- * - arrayInsert(String docPath, Value value)
- */
-#elif DOXYGEN_PY
-/**
- * - modify(str searchCondition)
- * - set(str attribute, Value value)
- * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
- *   unset(str attribute[, str attribute, ...])</a>,
- *   unset(list attributes)
- * - merge(Document document)
- * - patch(Document document)
- * - array_append(str docPath, Value value)
- * - array_insert(str docPath, Value value)
- */
-#endif
-/**
- *
- * After this function invocation, the following functions can be invoked:
- */
-#if DOXYGEN_JS
-/**
- * - set(String attribute, Value value)
- * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
- *   unset(String attribute[, String attribute, ...])</a>,
- *   unset(List attributes)
- * - merge(Document document)
- * - patch(Document document)
- * - arrayAppend(String docPath, Value value)
- * - arrayInsert(String docPath, Value value)
- * - sort(List sortCriteria),
- *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
- *   sort(String sortCriterion[, String sortCriterion, ...])</a>
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- */
-#elif DOXYGEN_PY
-/**
- * - set(str attribute, Value value)
- * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
- *   unset(str attribute[, str attribute, ...])</a>,
- *   unset(list attributes)
- * - merge(Document document)
- * - patch(Document document)
- * - array_append(str docPath, Value value)
- * - array_insert(str docPath, Value value)
- * - sort(list sortCriteria),
- *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
- *   sort(str sortCriterion[, str sortCriterion, ...])</a>
- * - limit(int numberOfRows)
- * - bind(str name, Value value)
- */
-#endif
-/**
- * - execute()
- *
- * \sa Usage examples at execute().
- */
-//@{
-#if DOXYGEN_JS
-CollectionModify CollectionModify::merge(Document document) {}
-#elif DOXYGEN_PY
-CollectionModify CollectionModify::merge(Document document) {}
-#endif
-//@}
-shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
-  // Each method validates the received parameters
-  args.ensure_count(1, get_function_name("merge").c_str());
-
-  log_warning("'%s' is deprecated, use '%s' instead.",
-              get_function_name("merge").c_str(),
-              get_function_name("patch").c_str());
-
-  try {
-    set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", args[0]);
-
-    update_functions(F::operation);
-    reset_prepared_statement();
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("merge"));
-
-  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
-// Documentation of merge function
+// Documentation of patch function
 REGISTER_HELP_FUNCTION(patch, CollectionModify);
 REGISTER_HELP(
     COLLECTIONMODIFY_PATCH_BRIEF,
@@ -1174,137 +1038,6 @@ std::shared_ptr<CollectionModify> CollectionModify::array_append(
   update_functions(F::operation);
 
   reset_prepared_statement();
-  return shared_from_this();
-}
-
-// Documentation of arrayDelete function
-REGISTER_HELP_FUNCTION(arrayDelete, CollectionModify);
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_BRIEF,
-              "Deletes the value at a specific position in an array attribute "
-              "in documents of a collection.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_PARAM,
-    "@param docPath A document path that identifies the array attribute "
-    "and position of the value to be deleted.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_RETURNS,
-              "@returns This CollectionModify object.");
-REGISTER_HELP(
-    COLLECTIONMODIFY_ARRAYDELETE_DETAIL,
-    "Adds an operation into the modify handler to delete a value from "
-    "an array attribute on the documents that were included on the "
-    "selection filter and limit.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1,
-              "The attribute deletion will be done on the collection's "
-              "documents once the execute() method is called.");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DETAIL2,
-              "${COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED}");
-REGISTER_HELP(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b>unset()</b> function instead.");
-/**
- * $(COLLECTIONMODIFY_ARRAYDELETE_BRIEF)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_PARAM)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_RETURNS)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_DETAIL1)
- *
- * $(COLLECTIONMODIFY_ARRAYDELETE_DEPRECATED)
- *
- * #### Method Chaining
- *
- * This function can be invoked multiple times after:
- */
-#if DOXYGEN_JS
-/**
- * - modify(String searchCondition)
- * - set(String attribute, Value value)
- * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
- *   unset(String attribute[, String attribute, ...])</a>,
- *   unset(List attributes)
- * - patch(Document document)
- * - arrayAppend(String docPath, Value value)
- * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- */
-#elif DOXYGEN_PY
-/**
- * - modify(str searchCondition)
- * - set(str attribute, Value value)
- * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
- *   unset(str attribute[, str attribute, ...])</a>,
- *   unset(list attributes)
- * - patch(Document document)
- * - array_append(str docPath, Value value)
- * - array_insert(str docPath, Value value)
- * - array_delete(str docPath)
- */
-#endif
-/**
- *
- * After this function invocation, the following functions can be invoked:
- */
-#if DOXYGEN_JS
-/**
- * - set(String attribute, Value value)
- * - <a class="el" href="#a9d437bacdafe2a8d6f8926383799e00a">
- *   unset(String attribute[, String attribute, ...])</a>,
- *   unset(List attributes)
- * - patch(Document document)
- * - arrayAppend(String docPath, Value value)
- * - arrayInsert(String docPath, Value value)
- * - arrayDelete(String docPath)
- * - sort(List sortCriteria),
- *   <a class="el" href="#a66972f83287da6ec22c6c5f62fbbd1dd">
- *   sort(String sortCriterion[, String sortCriterion, ...])</a>
- * - limit(Integer numberOfRows)
- * - bind(String name, Value value)
- */
-#elif DOXYGEN_PY
-/**
- * - set(str attribute, Value value)
- * - <a class="el" href="#ab5519a8a8522e370fe4cb79ebf267f5e">
- *   unset(str attribute[, str attribute, ...])</a>,
- *   unset(list attributes)
- * - patch(Document document)
- * - array_append(str docPath, Value value)
- * - array_insert(str docPath, Value value)
- * - array_delete(str docPath)
- * - sort(list sortCriteria),
- *   <a class="el" href="#ab5f363eb8790616578b118502bbdf2e7">
- *   sort(str sortCriterion[, str sortCriterion, ...])</a>
- * - limit(int numberOfRows)
- * - bind(str name, Value value)
- */
-#endif
-/**
- * - execute()
- *
- * \sa Usage examples at execute().
- */
-//@{
-#if DOXYGEN_JS
-CollectionModify CollectionModify::arrayDelete(String docPath) {}
-#elif DOXYGEN_PY
-CollectionModify CollectionModify::array_delete(str docPath) {}
-#endif
-//@}
-std::shared_ptr<CollectionModify> CollectionModify::array_delete(
-    const std::string &doc_path) {
-  log_warning("'%s' is deprecated, use '%s' instead.",
-              get_function_name("arrayDelete").c_str(),
-              get_function_name("unset").c_str());
-
-  set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, doc_path,
-                shcore::Value(), true);
-
-  // Updates the exposed functions
-  update_functions(F::operation);
-  reset_prepared_statement();
-
   return shared_from_this();
 }
 

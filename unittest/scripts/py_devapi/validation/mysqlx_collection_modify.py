@@ -14,10 +14,6 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionModify: valid operations after modify and merge
-|All expected functions are available|
-|No additional functions are available|
-
 #@ CollectionModify: valid operations after modify and patch
 |All expected functions are available|
 |No additional functions are available|
@@ -27,10 +23,6 @@
 |No additional functions are available|
 
 #@ CollectionModify: valid operations after modify and array_append
-|All expected functions are available|
-|No additional functions are available|
-
-#@ CollectionModify: valid operations after modify and array_delete
 |All expected functions are available|
 |No additional functions are available|
 
@@ -76,10 +68,6 @@
 ||CollectionModify.unset: Invalid document path
 ||CollectionModify.unset: Invalid document path
 
-#@# CollectionModify: Error conditions on merge
-||CollectionModify.merge: Invalid number of arguments, expected 1 but got 0
-||CollectionModify.merge: Argument expected to be a JSON object
-
 #@# CollectionModify: Error conditions on patch
 ||CollectionModify.patch: Invalid number of arguments, expected 1 but got 0
 ||CollectionModify.patch: Argument expected to be a JSON object
@@ -99,14 +87,6 @@
 ||CollectionModify.array_append: Invalid document path
 ||CollectionModify.array_append: Invalid document path
 ||CollectionModify.array_append: Unsupported value received: <Session:
-
-#@# CollectionModify: Error conditions on array_delete
-||CollectionModify.array_delete: Invalid number of arguments, expected 1 but got
-||CollectionModify.array_delete: Argument #1 is expected to be a string
-||CollectionModify.array_delete: Invalid document path
-||CollectionModify.array_delete: Invalid document path
-||CollectionModify.array_delete: Invalid document path
-||CollectionModify.array_delete: An array document path must be specified
 
 #@# CollectionModify: Error conditions on sort
 ||CollectionModify.sort: Invalid number of arguments, expected at least 1 but got 0
@@ -168,32 +148,15 @@
 |Brian's first girlfriend: lois|
 |Brian's second girlfriend: jane|
 
-#@ CollectionModify: unset for merge
-|Unset Affected Rows: 1|
-
-#@ CollectionModify: Merge Execution
-|Merge Affected Rows: 1|
-
-|Brian's last_name: black|
-|Brian's age: 15|
-|Brian's alias: bri|
-|Brian's first girlfriend: martha|
-|Brian's second girlfriend: karen|
-
 #@ CollectionModify: array_append Execution
 |Array Append Affected Rows: 1|
-|Brian's girlfriends: 3|
-|Brian's last: cloe|
+|Brian's hobbies: 4|
+|Brian's last: running|
 
 #@ CollectionModify: array_insert Execution
 |Array Insert Affected Rows: 1|
-|Brian's girlfriends: 4|
-|Brian's second: samantha|
-
-#@ CollectionModify: array_delete Execution
-|Array Delete Affected Rows: 1|
-|Brian's girlfriends: 3|
-|Brian's third: cloe|
+|Brian's hobbies: 5|
+|Brian's second: cycling|
 
 #@ CollectionModify: sorting and limit Execution
 |Affected Rows: 2|
@@ -211,12 +174,6 @@
 |sample|
 
 #@ CollectionModify: sorting and limit Execution - 3
-|~sample|
-|age|
-|gender|
-|name|
-
-#@ CollectionModify: sorting and limit Execution - 4
 |~sample|
 |age|
 |gender|
