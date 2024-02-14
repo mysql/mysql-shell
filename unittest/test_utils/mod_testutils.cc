@@ -3836,16 +3836,111 @@ void Testutils::deploy_sandbox_from_boilerplate(
       change_sandbox_uuid(port, opts->get_string("server_uuid"));
       opts->erase("server_uuid");
     }
+
+    using mysqlshdk::utils::Version;
+    // keyring component was introduced in 8.0.24, keyring plugin was removed
+    // in 8.4.0
+    const auto use_keyring_component =
+        Version(mysqld_version) >= Version(8, 4, 0);
+    std::string plugin_dir;
+
+    if (use_keyring_component) {
+      const auto handle_early_plugin_load = [&](const std::string &entry) {
+        if (opts->has_key(entry)) {
+          // check if keyring_file plugin is supposed to be loaded early
+          auto early_plugin_load =
+              shcore::str_split(opts->get_string(entry), ";");
+
+          const auto it = std::find_if(
+              early_plugin_load.begin(), early_plugin_load.end(),
+              [](const auto &plugin) {
+                return std::string::npos != plugin.find("keyring_file.");
+              });
+
+          if (early_plugin_load.end() != it) {
+            // remove plugin from the list of plugins to be loaded early
+            early_plugin_load.erase(it);
+
+            if (early_plugin_load.empty()) {
+              opts->erase(entry);
+            } else {
+              opts->set(entry, shcore::Value(
+                                   shcore::str_join(early_plugin_load, ";")));
+            }
+
+            // create a global manifest file - it's sandbox-specific, so it does
+            // not interefere with the server used to create the boilerplate
+            shcore::create_file(
+                shcore::path::join_path(basedir, "bin", "mysqld.my"),
+                R"({"components": "file://component_keyring_file"})");
+
+            // find the component
+            shcore::iterdir(
+                get_sandbox_conf(port, "basedir"),
+                [&plugin_dir](const std::string &base,
+                              const std::string &name) {
+                  if (shcore::str_beginswith(name, "component_keyring_file.")) {
+                    plugin_dir = base;
+                    return false;
+                  } else {
+                    return true;
+                  }
+                });
+
+            assert(!plugin_dir.empty());
+            // loader which is used by mysqld to load the components uses only
+            // 'datadir' and 'plugin_dir' options and does not construct the
+            // latter from 'basedir', we need to set it explicitly
+            change_sandbox_conf(port, "plugin_dir", plugin_dir, "mysqld");
+          }
+        }
+      };
+
+      handle_early_plugin_load("early_plugin_load");
+      handle_early_plugin_load("early-plugin-load");
+    }
+
+    const auto handle_keyring_file_data = [&](const std::string &entry) {
+      if (opts->has_key(entry)) {
+        const auto keyring_file_data = opts->get_string(entry);
+        const auto keyring_file_dir = shcore::path::basename(keyring_file_data);
+        shcore::create_directory(keyring_file_dir);
+        shcore::ch_mod(keyring_file_dir, 0570);
+
+        if (use_keyring_component) {
+          opts->erase(entry);
+
+          // we need to create both global and local configration files to not
+          // interfere with the existing server configuration
+
+          // create global configuration file
+          assert(!plugin_dir.empty());
+          const auto global_config =
+              shcore::path::join_path(plugin_dir, "component_keyring_file.cnf");
+
+          if (!shcore::is_file(global_config)) {
+            shcore::create_file(global_config,
+                                R"({"read_local_config": true})");
+          }
+
+          // create local configuration file
+          shcore::create_file(
+              shcore::path::join_path(get_sandbox_datadir(port),
+                                      "component_keyring_file.cnf"),
+              shcore::str_format(
+                  R"({"path": "%s","read_only": false})",
+                  shcore::str_replace(keyring_file_data, "\\", "\\\\")
+                      .c_str()));
+        }
+      }
+    };
+
+    handle_keyring_file_data("keyring_file_data");
+    handle_keyring_file_data("keyring-file-data");
+
     for (const auto &option : (*opts)) {
       change_sandbox_conf(port, option.first, option.second.descr(), "mysqld");
     }
-  }
-
-  if (opts && opts->has_key("keyring_file_data")) {
-    auto keyring_path =
-        shcore::path::basename(opts->get_string("keyring_file_data"));
-    shcore::create_directory(keyring_path);
-    shcore::ch_mod(keyring_path, 0570);
   }
 
   const auto start_options = shcore::make_dict();

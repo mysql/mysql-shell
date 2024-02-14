@@ -600,6 +600,24 @@ bool iterdir(const std::string &path,
   return !stopped;
 }
 
+/**
+ * Recursively iterate contents of given directory, calling the given function
+ * on each entry, parameters are current directory and name of the item.
+ */
+bool iterdir(
+    const std::string &base,
+    const std::function<bool(const std::string &, const std::string &)> &fun) {
+  return iterdir(base, [&base, &fun](const std::string &name) {
+    const auto full_path = shcore::path::join_path(base, name);
+
+    if (is_folder(full_path)) {
+      return iterdir(full_path, fun);
+    } else {
+      return fun(base, name);
+    }
+  });
+}
+
 /*
  * Remove the specified directory and all its contents.
  */

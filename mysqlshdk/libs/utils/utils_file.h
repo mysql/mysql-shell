@@ -106,6 +106,11 @@ std::vector<std::string> SHCORE_PUBLIC listdir(const std::string &path);
 bool SHCORE_PUBLIC iterdir(const std::string &path,
                            const std::function<bool(const std::string &)> &fun);
 
+// recursive iterdir()
+bool SHCORE_PUBLIC iterdir(
+    const std::string &path,
+    const std::function<bool(const std::string &, const std::string &)> &fun);
+
 void SHCORE_PUBLIC check_file_writable_or_throw(const std::string &filename);
 void SHCORE_PUBLIC check_file_readable_or_throw(const std::string &filename);
 int SHCORE_PUBLIC make_file_readonly(const std::string &path);
