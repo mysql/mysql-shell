@@ -804,9 +804,18 @@ if(HAVE_PYTHON)
       SET(BUNDLED_SHARED_PYTHON "YES")
     ENDIF()
   ELSE()
-    FIND_PACKAGE(Python "${USE_PYTHON_VERSION}" REQUIRED)
-    SET(PYTHON_EXECUTABLE "${Python_EXECUTABLE}")
     FIND_PACKAGE(PythonLibs "${USE_PYTHON_VERSION}" REQUIRED)
+    IF(NOT PYTHON_EXECUTABLE)
+      # Can't use FIND_PACKAGE(Python ...) as it finds the latest Python interp and not the version we want
+      GET_MAJOR_MINOR("${PYTHONLIBS_VERSION_STRING}" PYTHONLIBS_MAJOR_MINOR)
+      FIND_PROGRAM(PYTHON_EXECUTABLE
+        NAMES
+          python${PYTHONLIBS_MAJOR_MINOR}mu
+          python${PYTHONLIBS_MAJOR_MINOR}m
+          python${PYTHONLIBS_MAJOR_MINOR}u
+          python${PYTHONLIBS_MAJOR_MINOR}
+      )
+    ENDIF()
   ENDIF()
 endif()
 
