@@ -291,6 +291,7 @@ usr/lib/mysql/plugins/authentication*client.so
 usr/lib/mysqlsh/libfido2.so*
 # For protobuf library
 usr/lib/mysqlsh/libprotobuf*.so*
+usr/lib/mysqlsh/libabsl_*.so
 ")
 endif()
 

@@ -150,7 +150,7 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %else
 %global _pluginlibs libfido2.*
 %endif
-%global _protobuflibs libprotobuf.*
+%global _protobuflibs libprotobuf.*|libabsl_.*
 %else
 %global _pluginlibs %{nil}
 %global _protobuflibs %{nil}
@@ -271,6 +271,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/libfido2.so*
 %endif
 %{_prefix}/lib/mysqlsh/libprotobuf*
+%{_prefix}/lib/mysqlsh/libabsl_*
 %endif
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*

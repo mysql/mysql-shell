@@ -104,7 +104,18 @@ IF(NOT WITH_PROTOBUF)
 
   IF(WIN32)
     list(APPEND PROTOBUF_LIBRARIES "${MYSQL_BUILD_DIR}/${ABSEIL_DIR}/absl/${CMAKE_BUILD_TYPE}/abseil_dll.lib")
-    SET(BUNDLED_ABSEIL_LIBRARY "${_protobuf_lib_dir}/abseil_dll.${_protobuf_lib_ext}")
+    SET(BUNDLED_ABSEIL_LIBRARIES "${_protobuf_lib_dir}/abseil_dll.${_protobuf_lib_ext}")
+  ELSE()
+    FILE(GLOB BUNDLED_ABSEIL_LIBRARIES LIST_DIRECTORIES false "${_protobuf_lib_dir}/libabsl_*.so")
+
+    IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      # we need to explicitly link with log libraries
+      FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
+        IF(_lib MATCHES "libabsl_log_")
+          list(APPEND PROTOBUF_LIBRARIES "${_lib}")
+        ENDIF()
+      ENDFOREACH()
+    ENDIF()
   ENDIF()
 ENDIF()
 
