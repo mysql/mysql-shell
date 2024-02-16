@@ -89,8 +89,6 @@ class Export_table_options : public Dump_options {
 
   bool dump_binlog_info() const override { return false; }
 
-  bool par_manifest() const override { return false; }
-
   bool checksum() const override { return false; }
 
  private:

@@ -73,10 +73,6 @@
 #define SHERR_DUMP_NO_SCHEMAS_SELECTED_MSG \
   "Filters for schemas result in an empty set."
 
-#define SHERR_DUMP_MANIFEST_PAR_CREATION_FAILED 52011
-#define SHERR_DUMP_MANIFEST_PAR_CREATION_FAILED_MSG \
-  "Failed creating PAR for object '%s': %s"
-
 #define SHERR_DUMP_DW_WRITE_FAILED 52012
 #define SHERR_DUMP_DW_WRITE_FAILED_MSG "Failed to write %s into file %s"
 

@@ -233,9 +233,9 @@ invalid_par = "https://objectstorage.region.oraclecloud.com/p/secret/n/namespace
 
 for sample_par in [ invalid_par, convert_par(invalid_par) ]:
     PREPARE_PAR_IS_SECRET_TEST()
-    EXPECT_THROWS(lambda: util.load_dump(sample_par, {"progressFile": ""}), "Invalid PAR, expected: https://<namespace>.objectstorage.<region>.oci.customer-oci.com/p/<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]")
+    EXPECT_THROWS(lambda: util.load_dump(sample_par, {"progressFile": ""}), "Invalid PAR, expected: https://<namespace>.objectstorage.<region>.oci.customer-oci.com/p/<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/]")
     EXPECT_PAR_IS_SECRET()
-    EXPECT_STDOUT_CONTAINS("WARNING: The given URL is not a prefix PAR or a PAR to the @.manifest.json file.")
+    EXPECT_STDOUT_CONTAINS("WARNING: The given URL is not a prefix PAR.")
     EXPECT_STDOUT_CONTAINS("Loading DDL and Data from OCI general PAR=/p/<secret>/n/namespace/b/bucket/o/prefix, prefix=''")
 
 #@<> Cleanup

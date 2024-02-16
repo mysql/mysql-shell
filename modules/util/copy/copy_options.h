@@ -53,7 +53,7 @@ class Copy_options {
   static const shcore::Option_pack_def<Copy_options> &options() {
     static const auto opts =
         shcore::Option_pack_def<Copy_options>()
-            .template ignore<dump::Dump_manifest_options>()
+            .template ignore<mysqlshdk::oci::Oci_bucket_options>()
             .template ignore<mysqlshdk::aws::S3_bucket_options>()
             .template ignore<mysqlshdk::azure::Blob_storage_options>()
             .template ignore<import_table::Dialect>()

@@ -38,8 +38,6 @@ namespace oci {
 
 namespace {
 
-const std::string k_at_manifest_json = "@.manifest.json";
-
 const std::regex k_full_par_parser(
     R"(^(https:\/\/(?:[^\.]+\.)?objectstorage\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*)$)");
 
@@ -99,9 +97,6 @@ std::string to_string(PAR_list_action list_action) {
 
 std::string to_string(PAR_type type) {
   switch (type) {
-    case PAR_type::MANIFEST:
-      return "manifest";
-
     case PAR_type::PREFIX:
       return "prefix";
 
@@ -137,8 +132,6 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
 
     if (object_name.empty()) {
       ret_val = PAR_type::PREFIX;
-    } else if (object_name == k_at_manifest_json) {
-      ret_val = PAR_type::MANIFEST;
     } else {
       // Any other PAR
       ret_val = PAR_type::GENERAL;
@@ -195,7 +188,7 @@ std::unique_ptr<storage::IDirectory> General_par_config::directory(
   throw std::invalid_argument(
       "Invalid PAR, expected: "
       "https://<namespace>.objectstorage.<region>.oci.customer-oci.com/p/"
-      "<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]");
+      "<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/]");
 }
 
 }  // namespace oci

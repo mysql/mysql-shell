@@ -60,7 +60,7 @@ struct PAR {
   std::size_t size;
 };
 
-enum class PAR_type { MANIFEST, PREFIX, GENERAL, NONE };
+enum class PAR_type { PREFIX, GENERAL, NONE };
 
 struct PAR_structure {
   inline PAR_type type() const noexcept { return m_type; }

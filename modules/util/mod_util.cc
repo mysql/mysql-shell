@@ -1024,8 +1024,6 @@ pre-authenticated requests (PAR). Allowed values:
 OCI profile
 @li <b>/aws/bucket/path</b> - to load a dump from AWS S3 Object Storage using
 the AWS settings stored in the <b>credentials</b> and <b>config</b> files
-@li <b>PAR to the dump manifest</b> - to load a dump from OCI Object Storage
-created with the ociParManifest option
 @li <b>PAR to the dump location</b> - to load a dump from OCI Object Storage
 using a single PAR
 
@@ -1255,28 +1253,6 @@ util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 
 In both of the above cases the load is done using pure HTTP GET requests and the
 progressFile option is mandatory.
-
-A legacy method to create a dump loadable through PAR is still supported, this
-is done by using the ociParManifest option when creating the dump. When this is
-enabled, a manifest file "@.manifest.json" will be generated, to be used as the
-entry point to load the dump using a PAR to this file.
-
-When using a Manifest PAR to load a dump, the progressFile option is mandatory.
-
-To store the progress on dump location, create an ObjectReadWrite PAR to the
-desired progress file (it does not need to exist), it should be located on
-the same location of the "@.manifest.json" file. Finally specify the PAR URL
-on the progressFile option.
-
-Example:
-<br>
-@code
-Dump Location: root of 'test' bucket:
-
-uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/@.manifest.json'
-
-util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
-@endcode
 )*");
 /**
  * \ingroup util
@@ -1494,13 +1470,6 @@ using the tenancy id on the OCI configuration.
 configuration file instead of the one at the default location.
 @li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
 instead of the default one.)*");
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS, R"*(
-@li <b>ociParManifest</b>: bool (default: not set) - Enables the generation of
-the PAR manifest while the dump operation is being executed. Deprecated.
-@li <b>ociParExpireTime</b>: string (default: not set) - Allows defining the
-expiration time for the PARs generated when ociParManifest is enabled. Deprecated.
-)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
 @li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
@@ -1766,29 +1735,6 @@ permissions:
 
 The generated URL can be used to load the dump, see \? <<<loadDump>>> for more
 details.
-
-@attention The ociParManifest and ociParExpireTime options described below are
-deprecated and will be removed in a future release.
-
-Another way to enable loading a dump without requiring an OCI Profile, is to
-execute the dump operations enabling the ociParManifest option which will
-cause the dump operation automatically generates a PAR for every file
-in the dump, and will store them as part of the dump in a file named
-"@.manifest.json". The manifest is updated as the dump operation progresses.
-
-Using a PAR with permissions to read the manifest is another option to load
-the dump using PAR.
-
-The <b>ociParManifest</b> option cannot be used if <b>osBucketName</b> is not
-set.
-
-When creating PARs, an expiration time is required, it can be defined through
-the <b>ociParExpireTime</b> option. If the option is not used, a predefined
-expiration time will be used equivalent to a week after the dump operation
-started. The values assigned to this option should be conformant to RFC3339.
-
-The <b>ociParExpireTime</b> option cannot be used if the <b>ociParManifest</b>
-option is not enabled.
 )*");
 
 REGISTER_HELP_FUNCTION(exportTable, util);

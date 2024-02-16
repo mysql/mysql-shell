@@ -629,24 +629,6 @@ TEST_STRING_OPTION("ociProfile")
 #@<> WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 EXPECT_FAIL("ValueError", "Argument #4: The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociProfile": "profile" })
 
-#@<> Validate that the option ociParManifest only take boolean values as valid values.
-TEST_BOOL_OPTION("ociParManifest")
-
-#@<> Validate that the option ociParManifest is valid only when doing a dump to OCI.
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True })
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": False })
-
-#@<> Doing a dump to file system with ociParManifest set to True and ociParExpireTime set to a valid value. Validate that dump fails because ociParManifest is not valid if osBucketName is not specified.
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
-
-#@<> Validate that the option ociParExpireTime only take string values
-TEST_STRING_OPTION("ociParExpireTime")
-
-#@<> Doing a dump to OCI ociParManifest not set or set to False and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
-
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")
 
@@ -1058,7 +1040,7 @@ EXPECT_FAIL("ValueError", "Argument #4: The value of the option 's3EndpointOverr
 
 #@<> options param being a dictionary that contains an unknown key
 # WL13804-TSFR_11_1_2
-for param in { "dummy", "users", "excludeUsers", "includeUsers", "indexColumn", "excludeSchemas", "includeSchemas", "excludeTables", "includeTables", "events", "excludeEvents", "includeEvents", "routines", "excludeRoutines", "includeRoutines" }:
+for param in { "dummy", "users", "excludeUsers", "includeUsers", "indexColumn", "excludeSchemas", "includeSchemas", "excludeTables", "includeTables", "events", "excludeEvents", "includeEvents", "routines", "excludeRoutines", "includeRoutines", "ociParManifest", "ociParExpireTime" }:
     EXPECT_FAIL("ValueError", f"Argument #4: Invalid options: {param}", types_schema, types_schema_tables, test_output_relative, { param: "fails" })
 
 # FR12 - The `util.dumpTables()` function must create:

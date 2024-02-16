@@ -186,8 +186,6 @@ class Dump_options {
 
   virtual bool dump_binlog_info() const = 0;
 
-  virtual bool par_manifest() const = 0;
-
   virtual bool checksum() const = 0;
 
  protected:

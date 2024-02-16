@@ -33,8 +33,6 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
-#include "modules/util/dump/dump_manifest_config.h"
-#include "modules/util/dump/dump_manifest_options.h"
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -48,8 +46,6 @@
 extern "C" const char *g_oci_config_path;
 
 namespace testing {
-
-using mysqlsh::dump::Dump_manifest_options;
 
 #define SKIP_IF_NO_OCI_CONFIGURATION \
   do {                               \
@@ -117,26 +113,22 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     }
   }
 
-  // NOTE: this returns Dump_manifest_write_config, so it can be used in the
-  // Dump_manifest tests, but can be upcast to Oci_bucket_config, and used to
-  // initialize an OCI bucket
-  std::shared_ptr<mysqlsh::dump::Dump_manifest_write_config> get_config(
+  std::shared_ptr<mysqlshdk::oci::Oci_bucket_config> get_config(
       const std::string &bucket = {}) {
-    const auto options =
-        shcore::make_dict(Dump_manifest_options::bucket_name_option(),
-                          bucket.empty() ? m_os_bucket_name : bucket,
-                          Dump_manifest_options::par_manifest_option(), true);
+    const auto options = shcore::make_dict(
+        mysqlshdk::oci::Oci_bucket_options::bucket_name_option(),
+        bucket.empty() ? m_os_bucket_name : bucket);
 
     if (!m_os_namespace.empty()) {
-      options->set(Dump_manifest_options::namespace_option(),
+      options->set(mysqlshdk::oci::Oci_bucket_options::namespace_option(),
                    shcore::Value{m_os_namespace});
     }
 
-    Dump_manifest_options parsed_options;
-    Dump_manifest_options::options().unpack(options, &parsed_options);
+    mysqlshdk::oci::Oci_bucket_options parsed_options;
+    mysqlshdk::oci::Oci_bucket_options::options().unpack(options,
+                                                         &parsed_options);
 
-    return std::make_shared<mysqlsh::dump::Dump_manifest_write_config>(
-        parsed_options);
+    return std::make_shared<mysqlshdk::oci::Oci_bucket_config>(parsed_options);
   }
 
   void clean_bucket(mysqlshdk::oci::Oci_bucket &bucket,

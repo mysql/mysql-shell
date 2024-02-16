@@ -74,7 +74,6 @@
 #include "modules/util/dump/decimal.h"
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_errors.h"
-#include "modules/util/dump/dump_manifest.h"
 #include "modules/util/dump/indexes.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
@@ -2881,10 +2880,6 @@ void Dumper::close_output_directory() {
     }
   });
 
-  if (m_options.par_manifest()) {
-    stage = m_current_stage = m_progress_thread.start_stage("Writing manifest");
-  }
-
   m_output_dir.reset();
 }
 
@@ -3632,15 +3627,6 @@ void Dumper::write_dump_finished_metadata() const {
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
-  // We cannot use m_progress_thread.duration().finished_at() here, because
-  // progress thread was not terminated yet, as it needs to optionally show
-  // progress when closing the output directory, if ociParManifest was enabled.
-  // We cannot close it before writing the @.done.json, because manifest will be
-  // missing that file, and loader will assume that the dump is not complete.
-  // We're writing the current time here, it's a good approximation, which will
-  // be off only if writing the manifest takes a lot of time. On the other hand,
-  // dump is now complete, writing the manifest is an extra step, and the
-  // summary will include the time it takes.
   doc.AddMember(StringRef("end"),
                 {Progress_thread::Duration::current_time().c_str(), a}, a);
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);

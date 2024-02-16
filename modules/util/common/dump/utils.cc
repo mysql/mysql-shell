@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "modules/util/dump/dump_manifest_config.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -164,9 +163,6 @@ std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
 std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
     const mysqlshdk::oci::PAR_structure &par) {
   switch (par.type()) {
-    case mysqlshdk::oci::PAR_type::MANIFEST:
-      return std::make_shared<dump::Dump_manifest_read_config>(par);
-
     case mysqlshdk::oci::PAR_type::PREFIX:
       return std::make_shared<
           mysqlshdk::storage::backend::oci::Oci_par_directory_config>(par);

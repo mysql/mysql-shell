@@ -30,11 +30,10 @@
 #include <string>
 #include <vector>
 
+#include "modules/util/dump/dump_options.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
-
-#include "modules/util/dump/dump_manifest_options.h"
-#include "modules/util/dump/dump_options.h"
+#include "mysqlshdk/libs/oci/oci_bucket_options.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -82,10 +81,6 @@ class Ddl_dumper_options : public Dump_options {
 
   bool dump_binlog_info() const override { return true; }
 
-  bool par_manifest() const override {
-    return m_dump_manifest_options.par_manifest();
-  }
-
   bool checksum() const override { return m_checksum; }
 
   void enable_mds_compatibility_checks();
@@ -108,8 +103,7 @@ class Ddl_dumper_options : public Dump_options {
   void set_dry_run(bool dry_run);
   void set_threads(uint64_t threads);
   const Object_storage_options *object_storage_options() const;
-
-  Dump_manifest_options m_dump_manifest_options;
+  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
   // this should be in the Dump_options class, but storing it at the same level
   // as OCI options helps in handling both option groups at the same time
   mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;

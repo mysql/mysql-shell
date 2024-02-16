@@ -32,15 +32,6 @@
 
 #define SHERR_LOAD_FIRST SHERR_LOAD_MIN
 
-#define SHERR_LOAD_MANIFEST_EXPIRED_PARS 53000
-#define SHERR_LOAD_MANIFEST_EXPIRED_PARS_MSG                                 \
-  "The PARs in the manifest file have expired, the expiration time was set " \
-  "to: %s"
-
-#define SHERR_LOAD_MANIFEST_PAR_MISMATCH 53001
-#define SHERR_LOAD_MANIFEST_PAR_MISMATCH_MSG \
-  "The provided PAR must be a file on the dump location: '%s'"
-
 #define SHERR_LOAD_SPLITTING_DDL_FAILED 53002
 #define SHERR_LOAD_SPLITTING_DDL_FAILED_MSG \
   "Error splitting DDL script for table %s: %s"
@@ -146,9 +137,6 @@
 #define SHERR_LOAD_PROGRESS_FILE_UUID_MISMATCH_MSG                         \
   "Progress file was created for a server with UUID %s, while the target " \
   "server has UUID: %s"
-
-#define SHERR_LOAD_MANIFEST_UNKNOWN_OBJECT 53028
-#define SHERR_LOAD_MANIFEST_UNKNOWN_OBJECT_MSG "Unknown object in manifest: %s"
 
 #define SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA 53029
 #define SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA_MSG \

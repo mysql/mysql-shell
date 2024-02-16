@@ -695,11 +695,6 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
-      - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed. Deprecated.
-      - ociParExpireTime: string (default: not set) - Allows defining the
-        expiration time for the PARs generated when ociParManifest is enabled.
-        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1012,30 +1007,6 @@ DESCRIPTION
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
 
-      ATTENTION: The ociParManifest and ociParExpireTime options described
-                 below are deprecated and will be removed in a future release.
-
-      Another way to enable loading a dump without requiring an OCI Profile, is
-      to execute the dump operations enabling the ociParManifest option which
-      will cause the dump operation automatically generates a PAR for every
-      file in the dump, and will store them as part of the dump in a file named
-      "@.manifest.json". The manifest is updated as the dump operation
-      progresses.
-
-      Using a PAR with permissions to read the manifest is another option to
-      load the dump using PAR.
-
-      The ociParManifest option cannot be used if osBucketName is not set.
-
-      When creating PARs, an expiration time is required, it can be defined
-      through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week after the
-      dump operation started. The values assigned to this option should be
-      conformant to RFC3339.
-
-      The ociParExpireTime option cannot be used if the ociParManifest option
-      is not enabled.
-
       Dumping to a Bucket in the AWS S3 Object Storage
 
       If the s3BucketName option is used, the dump is stored in the specified
@@ -1334,11 +1305,6 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
-      - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed. Deprecated.
-      - ociParExpireTime: string (default: not set) - Allows defining the
-        expiration time for the PARs generated when ociParManifest is enabled.
-        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1640,30 +1606,6 @@ DESCRIPTION
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
 
-      ATTENTION: The ociParManifest and ociParExpireTime options described
-                 below are deprecated and will be removed in a future release.
-
-      Another way to enable loading a dump without requiring an OCI Profile, is
-      to execute the dump operations enabling the ociParManifest option which
-      will cause the dump operation automatically generates a PAR for every
-      file in the dump, and will store them as part of the dump in a file named
-      "@.manifest.json". The manifest is updated as the dump operation
-      progresses.
-
-      Using a PAR with permissions to read the manifest is another option to
-      load the dump using PAR.
-
-      The ociParManifest option cannot be used if osBucketName is not set.
-
-      When creating PARs, an expiration time is required, it can be defined
-      through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week after the
-      dump operation started. The values assigned to this option should be
-      conformant to RFC3339.
-
-      The ociParExpireTime option cannot be used if the ociParManifest option
-      is not enabled.
-
       Dumping to a Bucket in the AWS S3 Object Storage
 
       If the s3BucketName option is used, the dump is stored in the specified
@@ -1950,11 +1892,6 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
-      - ociParManifest: bool (default: not set) - Enables the generation of the
-        PAR manifest while the dump operation is being executed. Deprecated.
-      - ociParExpireTime: string (default: not set) - Allows defining the
-        expiration time for the PARs generated when ociParManifest is enabled.
-        Deprecated.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2261,30 +2198,6 @@ DESCRIPTION
 
       The generated URL can be used to load the dump, see \? loadDump for more
       details.
-
-      ATTENTION: The ociParManifest and ociParExpireTime options described
-                 below are deprecated and will be removed in a future release.
-
-      Another way to enable loading a dump without requiring an OCI Profile, is
-      to execute the dump operations enabling the ociParManifest option which
-      will cause the dump operation automatically generates a PAR for every
-      file in the dump, and will store them as part of the dump in a file named
-      "@.manifest.json". The manifest is updated as the dump operation
-      progresses.
-
-      Using a PAR with permissions to read the manifest is another option to
-      load the dump using PAR.
-
-      The ociParManifest option cannot be used if osBucketName is not set.
-
-      When creating PARs, an expiration time is required, it can be defined
-      through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week after the
-      dump operation started. The values assigned to this option should be
-      conformant to RFC3339.
-
-      The ociParExpireTime option cannot be used if the ociParManifest option
-      is not enabled.
 
       Dumping to a Bucket in the AWS S3 Object Storage
 
@@ -3271,8 +3184,6 @@ DESCRIPTION
         profile
       - /aws/bucket/path - to load a dump from AWS S3 Object Storage using the
         AWS settings stored in the credentials and config files
-      - PAR to the dump manifest - to load a dump from OCI Object Storage
-        created with the ociParManifest option
       - PAR to the dump location - to load a dump from OCI Object Storage using
         a single PAR
 
@@ -3529,26 +3440,3 @@ DESCRIPTION
 
       In both of the above cases the load is done using pure HTTP GET requests
       and the progressFile option is mandatory.
-
-      A legacy method to create a dump loadable through PAR is still supported,
-      this is done by using the ociParManifest option when creating the dump.
-      When this is enabled, a manifest file "@.manifest.json" will be
-      generated, to be used as the entry point to load the dump using a PAR to
-      this file.
-
-      When using a Manifest PAR to load a dump, the progressFile option is
-      mandatory.
-
-      To store the progress on dump location, create an ObjectReadWrite PAR to
-      the desired progress file (it does not need to exist), it should be
-      located on the same location of the "@.manifest.json" file. Finally
-      specify the PAR URL on the progressFile option.
-
-      Example:
-
-      Dump Location: root of 'test' bucket:
-
-      uri =
-      'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/@.manifest.json'
-
-      util.loadDump(uri, { 'progressFile': 'load_progress.txt' })

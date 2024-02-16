@@ -89,7 +89,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("where", &Ddl_dumper_options::set_where_clause)
           .optional("partitions", &Ddl_dumper_options::set_partitions)
           .optional("checksum", &Ddl_dumper_options::m_checksum)
-          .include(&Ddl_dumper_options::m_dump_manifest_options)
+          .include(&Ddl_dumper_options::m_oci_bucket_options)
           .include(&Ddl_dumper_options::m_s3_bucket_options)
           .include(&Ddl_dumper_options::m_blob_storage_options)
           .on_done(&Ddl_dumper_options::on_unpacked_options)
@@ -131,12 +131,12 @@ void Ddl_dumper_options::set_target_version_str(const std::string &value) {
 }
 
 void Ddl_dumper_options::on_unpacked_options() {
-  m_s3_bucket_options.throw_on_conflict(m_dump_manifest_options);
+  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
   m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
-  m_blob_storage_options.throw_on_conflict(m_dump_manifest_options);
+  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
 
-  if (m_dump_manifest_options) {
-    set_storage_config(m_dump_manifest_options.config());
+  if (m_oci_bucket_options) {
+    set_storage_config(m_oci_bucket_options.config());
   }
 
   if (m_s3_bucket_options) {
@@ -210,8 +210,8 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
 
 const Object_storage_options *Ddl_dumper_options::object_storage_options()
     const {
-  if (m_dump_manifest_options) {
-    return &m_dump_manifest_options;
+  if (m_oci_bucket_options) {
+    return &m_oci_bucket_options;
   } else if (m_s3_bucket_options) {
     return &m_s3_bucket_options;
   } else if (m_blob_storage_options) {

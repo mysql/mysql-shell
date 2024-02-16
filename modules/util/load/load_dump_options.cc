@@ -35,7 +35,6 @@
 #include "modules/mod_utils.h"
 #include "modules/util/common/dump/constants.h"
 #include "modules/util/common/dump/utils.h"
-#include "modules/util/dump/dump_manifest_config.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -162,8 +161,7 @@ void Load_dump_options::set_progress_file(const std::string &value) {
   if (config && config->valid()) {
     if (mysqlshdk::oci::PAR_type::GENERAL != config->par().type()) {
       throw shcore::Exception::argument_error(
-          "Invalid PAR for progress file, use a PAR to a specific file "
-          "different than the manifest");
+          "Invalid PAR for progress file, use a PAR to a specific file");
     }
 
     m_progress_file_config = std::move(config);
@@ -287,22 +285,14 @@ void Load_dump_options::validate() {
     auto config = dump::common::get_par_config(m_url);
 
     if (config && config->valid()) {
-      if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type() ||
-          mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
-        if (mysqlshdk::oci::PAR_type::MANIFEST == config->par().type()) {
-          current_console()->print_warning(
-              "Support for PAR Manifest is deprecated and will be removed in a "
-              "future release. Please use a prefix PAR instead.");
-        }
+      if (mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
         if (!m_progress_file.has_value()) {
           throw shcore::Exception::argument_error(
               "When using a PAR to load a dump, the progressFile option must "
               "be defined");
         }
       } else {
-        current_console()->print_warning(
-            "The given URL is not a prefix PAR or a PAR to the @.manifest.json "
-            "file.");
+        current_console()->print_warning("The given URL is not a prefix PAR.");
       }
 
       set_storage_config(std::move(config));
