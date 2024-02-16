@@ -3869,10 +3869,27 @@ void Testutils::deploy_sandbox_from_boilerplate(
                                    shcore::str_join(early_plugin_load, ";")));
             }
 
-            // create a global manifest file - it's sandbox-specific, so it does
-            // not interefere with the server used to create the boilerplate
+#if defined(_WIN32) || defined(__APPLE__)
+            // Windows and MacOS - use global path
+            const auto mysqld_dir = shcore::path::dirname(
+                mysqld_path.empty() ? get_executable_path("mysqld")
+                                    : mysqld_path);
+#else
+            // use sandbox path
+            const auto mysqld_dir = shcore::path::join_path(basedir, "bin");
+#endif
+            const auto global_manifest =
+                shcore::path::join_path(mysqld_dir, "mysqld.my");
+
+            // create a global manifest file
+            if (!shcore::is_file(global_manifest)) {
+              shcore::create_file(global_manifest,
+                                  R"({"read_local_manifest": true})");
+            }
+
+            // create a local manifest file
             shcore::create_file(
-                shcore::path::join_path(basedir, "bin", "mysqld.my"),
+                shcore::path::join_path(get_sandbox_datadir(port), "mysqld.my"),
                 R"({"components": "file://component_keyring_file"})");
 
             // find the component
@@ -3880,7 +3897,8 @@ void Testutils::deploy_sandbox_from_boilerplate(
                 get_sandbox_conf(port, "basedir"),
                 [&plugin_dir](const std::string &base,
                               const std::string &name) {
-                  if (shcore::str_beginswith(name, "component_keyring_file.")) {
+                  if (shcore::str_beginswith(name, "component_keyring_file.") &&
+                      std::string::npos == base.find("debug")) {
                     plugin_dir = base;
                     return false;
                   } else {
@@ -3904,9 +3922,11 @@ void Testutils::deploy_sandbox_from_boilerplate(
     const auto handle_keyring_file_data = [&](const std::string &entry) {
       if (opts->has_key(entry)) {
         const auto keyring_file_data = opts->get_string(entry);
-        const auto keyring_file_dir = shcore::path::basename(keyring_file_data);
+        const auto keyring_file_dir = shcore::path::dirname(keyring_file_data);
         shcore::create_directory(keyring_file_dir);
-        shcore::ch_mod(keyring_file_dir, 0570);
+        // server may be running as another user, make sure it's able to write
+        // to the keyring file
+        shcore::ch_mod(keyring_file_dir, 0777);
 
         if (use_keyring_component) {
           opts->erase(entry);
