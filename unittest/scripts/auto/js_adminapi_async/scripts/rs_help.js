@@ -107,6 +107,12 @@ rs.help("routingOptions")
 //@ routingOptions. \? [USE:routingOptions]
 \? ReplicaSet.routingOptions
 
+//@ routerOptions
+rs.help("routerOptions")
+
+//@ routerOptions. \? [USE:routerOptions]
+\? ReplicaSet.routerOptions
+
 //@ setRoutingOption
 rs.help("setRoutingOption")
 

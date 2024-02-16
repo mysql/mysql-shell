@@ -5,14 +5,12 @@
  * it under the terms of the GNU General Public License, version 2.0,
  * as published by the Free Software Foundation.
  *
- * This program is designed to work with certain software (including
- * but not limited to OpenSSL) that is licensed under separate terms,
- * as designated in a particular file or component or in included license
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
  * documentation.  The authors of MySQL hereby grant you an additional
  * permission to link the program and your derivative works with the
- * separately licensed software that they have either included with
- * the program or referenced in the documentation.
- *
+ * separately licensed software that they have included with MySQL.
  * This program is distributed in the hope that it will be useful,  but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
@@ -26,8 +24,10 @@
 #include "modules/adminapi/common/metadata_storage.h"
 
 #include <mysqld_error.h>
+#include <algorithm>
 
 #include <list>
+#include <string_view>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -35,7 +35,9 @@
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
-#include "mysql/group_replication.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -310,6 +312,99 @@ std::string get_topology_mode_query(const Version &md_version) {
   else
     return k_base_topology_mode_query;
 }
+
+constexpr std::string_view k_select_router_options =
+    R"*(SELECT
+CONCAT(CONVERT(r.address using utf8mb4), '::', r.router_name) AS router_label,
+JSON_MERGE_PATCH(
+  COALESCE(r.attributes->>'$.Configuration', '{}'),
+  COALESCE( ( SELECT cs.router_options->>'$.ConfigurationChanges' FROM mysql_innodb_cluster_metadata.clustersets cs where (cs.clusterset_id = r.clusterset_id) ), '{}' ),
+  COALESCE( ( SELECT c.router_options->>'$.ConfigurationChanges' FROM mysql_innodb_cluster_metadata.clusters c where (c.cluster_id = r.cluster_id) ), '{}' ),
+  COALESCE( r.attributes->>'$.ConfigurationChanges', '{}' ),
+  JSON_OBJECT(
+    "routing_rules",
+    (
+      WITH ro AS (
+        SELECT JSON_MERGE_PATCH(
+          COALESCE((SELECT cs.router_options FROM mysql_innodb_cluster_metadata.clustersets cs where cs.clusterset_id = r.clusterset_id), '{}'),
+          COALESCE((SELECT c.router_options FROM mysql_innodb_cluster_metadata.clusters c where c.cluster_id = r.cluster_id), '{}'),
+            COALESCE(r.options, '{}')
+        ) AS merged_options
+      )
+      SELECT JSON_MERGE_PATCH("{}",
+        JSON_OBJECT(
+          "tags", JSON_EXTRACT(ro.merged_options, "$.tags"),
+          "target_cluster", JSON_EXTRACT(ro.merged_options, "$.target_cluster"),
+          "use_replica_primary_as_rw", JSON_EXTRACT(ro.merged_options, "$.use_replica_primary_as_rw"),
+          "stats_updates_frequency", JSON_EXTRACT(ro.merged_options, "$.stats_updates_frequency"),
+          "read_only_targets", JSON_EXTRACT(ro.merged_options, "$.read_only_targets"),
+          "unreachable_quorum_allowed_traffic", JSON_EXTRACT(ro.merged_options, "$.unreachable_quorum_allowed_traffic"),
+          "invalidated_cluster_policy", JSON_EXTRACT(ro.merged_options, "$.invalidated_cluster_policy")
+        )
+      )
+      FROM ro
+    )
+  )
+) AS router_configuration
+FROM mysql_innodb_cluster_metadata.routers r)*";
+
+constexpr std::string_view k_select_router_versions =
+    R"*(SELECT versions.version
+  FROM mysql_innodb_cluster_metadata.!,
+  JSON_TABLE(
+    JSON_KEYS(
+      JSON_EXTRACT(router_options, '$.Configuration')
+    ),
+    '$[*]' COLUMNS (version VARCHAR(9) PATH '$'))
+  AS versions
+  )*";
+
+constexpr std::string_view k_select_default_router_options =
+    R"*(SELECT
+  JSON_MERGE_PATCH(
+    IFNULL(
+    JSON_EXTRACT(
+      JSON_EXTRACT(
+        JSON_EXTRACT(c.router_options, '$.Configuration'),
+        ?),
+    '$.Defaults'), '{}'),
+    JSON_OBJECT(
+      "routing_rules",
+      (
+        SELECT
+          JSON_MERGE_PATCH(
+            '{}',
+            JSON_OBJECT(
+              "tags",
+              JSON_EXTRACT(c.router_options, "$.tags"),
+              "target_cluster",
+              JSON_EXTRACT(c.router_options, "$.target_cluster"),
+              "use_replica_primary_as_rw",
+              JSON_EXTRACT(c.router_options, "$.use_replica_primary_as_rw"),
+              "stats_updates_frequency",
+              JSON_EXTRACT(c.router_options, "$.stats_updates_frequency"),
+              "read_only_targets",
+              JSON_EXTRACT(c.router_options, "$.read_only_targets"),
+              "unreachable_quorum_allowed_traffic",
+              JSON_EXTRACT(c.router_options, "$.unreachable_quorum_allowed_traffic"),
+              "invalidated_cluster_policy",
+              JSON_EXTRACT(c.router_options, "$.invalidated_cluster_policy")
+            )
+          ) AS routing_rules
+      )
+    )
+  ))*";
+
+constexpr std::string_view
+    k_select_default_router_configuration_changes_schema =
+        R"*(SELECT JSON_EXTRACT(
+            JSON_EXTRACT(
+                JSON_EXTRACT(
+                    JSON_EXTRACT(router_options, '$.Configuration'),
+                    ?),
+                '$.ConfigurationChangesSchema'),
+            '$.properties')
+      )*";
 
 }  // namespace
 
@@ -2519,10 +2614,10 @@ std::string router_opt_select_items(std::string_view prefix,
   return ret + " ";
 }
 
-Router_options_metadata fetch_router_options(
+Routing_options_metadata fetch_router_options(
     const std::shared_ptr<mysqlshdk::db::IResult> &result,
     const std::map<std::string, shcore::Value> &option_defaults) {
-  Router_options_metadata ret;
+  Routing_options_metadata ret;
 
   while (auto row = result->fetch_one_named()) {
     std::map<std::string, shcore::Value> rom;
@@ -2547,7 +2642,7 @@ Router_options_metadata fetch_router_options(
 }
 }  // namespace
 
-Router_options_metadata MetadataStorage::get_routing_options(
+Routing_options_metadata MetadataStorage::get_routing_options(
     Cluster_type type, const std::string &id) {
   std::string query;
   std::map<std::string, shcore::Value> option_defaults;
@@ -2606,6 +2701,243 @@ Router_options_metadata MetadataStorage::get_routing_options(
   }
 
   return fetch_router_options(execute_sqlf(query, id), option_defaults);
+}
+
+shcore::Value MetadataStorage::get_router_options(Cluster_type type,
+                                                  const std::string &id,
+                                                  const std::string &router) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  auto router_options = shcore::make_dict();
+
+  std::string query = std::string(k_select_router_options);
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      query += " WHERE cluster_id = ?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      query += " WHERE clusterset_id = ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  if (!router.empty()) {
+    query +=
+        " AND CONCAT(CONVERT(r.address using utf8mb4), '::', r.router_name) = "
+        "?";
+  }
+
+  if (!router.empty()) {
+    result = execute_sqlf(query, id, router);
+  } else {
+    result = execute_sqlf(query, id);
+  }
+
+  auto row = result->fetch_one_named();
+
+  if (!row) {
+    return shcore::Value::Null();
+  }
+
+  while (row) {
+    auto label = row.get_string("router_label");
+    auto options = row.get_string("router_configuration");
+    auto options_parsed = shcore::Value::parse(options);
+
+    router_options->set(std::move(label),
+                        shcore::Value(std::move(options_parsed)));
+
+    row = result->fetch_one_named();
+  }
+
+  return shcore::Value(std::move(router_options));
+}
+
+mysqlshdk::utils::Version MetadataStorage::get_router_version(
+    Cluster_type type, const std::string &id, const std::string &router_name) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  Version version;
+
+  std::string_view type_id;
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      type_id = "cluster_id = ?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      type_id = "clusterset_id = ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  std::string query =
+      "SELECT DISTINCT version FROM mysql_innodb_cluster_metadata.routers r "
+      "WHERE concat(r.address, '::', r.router_name) = ? AND ";
+
+  query.append(type_id);
+
+  result = execute_sqlf(query, router_name, id);
+
+  while (auto row = result->fetch_one()) {
+    version = mysqlshdk::utils::Version(row->get_string(0));
+  }
+
+  if (!version) throw std::logic_error("internal error");
+
+  return version;
+}
+
+mysqlshdk::utils::Version
+MetadataStorage::get_highest_bootstrapped_router_version(
+    Cluster_type type, const std::string &id) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  Version max_version;
+
+  std::string_view type_id;
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      type_id = "cluster_id = ?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      type_id = "clusterset_id = ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  std::string query =
+      "SELECT DISTINCT version FROM mysql_innodb_cluster_metadata.routers "
+      "WHERE ";
+  query.append(type_id);
+
+  result = execute_sqlf(query, id);
+
+  while (auto row = result->fetch_one()) {
+    max_version =
+        std::max(max_version, mysqlshdk::utils::Version(row->get_string(0)));
+  }
+
+  if (!max_version) return Version(0, 0, 0);
+
+  return max_version;
+}
+
+mysqlshdk::utils::Version
+MetadataStorage::get_highest_router_configuration_document_version(
+    Cluster_type type, const std::string &id) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  Version max_version;
+
+  std::string_view type_str, type_id;
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      type_str = "clusters";
+      type_id = "cluster_id = ?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      type_str = "clustersets";
+      type_id = "clusterset_id = ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  std::string query =
+      shcore::sqlformat(std::string(k_select_router_versions), type_str);
+
+  query.append("WHERE ").append(type_id);
+
+  result = execute_sqlf(query, id);
+
+  while (auto row = result->fetch_one()) {
+    max_version =
+        std::max(max_version, mysqlshdk::utils::Version(row->get_string(0)));
+  }
+
+  if (!max_version) return Version(0, 0, 0);
+
+  return max_version;
+}
+
+shcore::Value MetadataStorage::get_default_router_options(
+    Cluster_type type, const std::string &id,
+    const mysqlshdk::utils::Version &max_version) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+  auto default_router_options = shcore::make_dict();
+
+  std::string version_str =
+      shcore::str_format("$.\"%s\"", max_version.get_full().c_str());
+
+  std::string query = shcore::sqlformat(
+      std::string(k_select_default_router_options), version_str);
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      query +=
+          " FROM mysql_innodb_cluster_metadata.clusters c WHERE cluster_id = "
+          "?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      query +=
+          " FROM mysql_innodb_cluster_metadata.clustersets c WHERE "
+          "clusterset_id = ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  result = execute_sqlf(query, id);
+
+  if (auto row = result->fetch_one(); row && !row->is_null(0)) {
+    return shcore::Value::parse(row->get_string(0));
+  }
+
+  return {};
+}
+
+shcore::Value MetadataStorage::get_router_configuration_changes_schema(
+    Cluster_type type, const std::string &id,
+    const mysqlshdk::utils::Version &max_version) {
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  std::string version_str =
+      shcore::str_format("$.\"%s\"", max_version.get_full().c_str());
+
+  std::string query = shcore::sqlformat(
+      std::string(k_select_default_router_configuration_changes_schema),
+      version_str);
+
+  switch (type) {
+    case Cluster_type::ASYNC_REPLICATION:
+    case Cluster_type::GROUP_REPLICATION:
+      query +=
+          " FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      query +=
+          " FROM mysql_innodb_cluster_metadata.clustersets WHERE clusterset_id "
+          "= ?";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  result = execute_sqlf(query, id);
+
+  if (auto row = result->fetch_one(); row && !row->is_null(0)) {
+    return shcore::Value::parse(row->get_string(0));
+  }
+
+  return shcore::Value::Null();
 }
 
 shcore::Value MetadataStorage::get_global_routing_option(

@@ -59,6 +59,7 @@ file(GLOB adminapi_module_SOURCES
       "common/instance_pool.cc"
       "common/member_recovery_monitoring.cc"
       "common/router.cc"
+      "common/router_options.cc"
       "common/server_features.cc"
       "common/setup_account.cc"
       "common/base_cluster_impl.cc"

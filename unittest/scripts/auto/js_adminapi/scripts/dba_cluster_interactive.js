@@ -56,7 +56,8 @@ validateMembers(Cluster, [
   'unfenceWrites',
   'addReplicaInstance',
   'routingOptions',
-  'setRoutingOption'
+  'setRoutingOption',
+  'routerOptions'
 ])
 
 //@<> Cluster: addInstance errors

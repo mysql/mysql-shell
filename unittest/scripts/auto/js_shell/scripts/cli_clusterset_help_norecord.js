@@ -26,3 +26,6 @@ callMysqlsh(["--", "clusterset", "force-primary-cluster", "--help"])
 
 //@ CLI clusterset status --help
 callMysqlsh(["--", "clusterset", "status", "--help"])
+
+//@ CLI clusterset router-options --help
+callMysqlsh(["--", "clusterset", "router-options", "--help"])

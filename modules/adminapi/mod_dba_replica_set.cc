@@ -105,6 +105,7 @@ void ReplicaSet::init() {
          "?options")
       ->cli();
   expose("routingOptions", &ReplicaSet::routing_options, "?router")->cli();
+  expose("routerOptions", &ReplicaSet::router_options, "?options")->cli();
   expose("setRoutingOption", &ReplicaSet::set_routing_option, "option",
          "value");
   expose("setRoutingOption", &ReplicaSet::set_routing_option, "router",
@@ -924,6 +925,45 @@ ReplicaSet or the target Router.
 Dictionary ReplicaSet::routingOptions(String router) {}
 #elif DOXYGEN_PY
 dict ReplicaSet::routing_options(str router) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routerOptions, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTEROPTIONS, R"*(
+Lists the configuration options of the ReplicaSet's Routers.
+
+@param options Dictionary with options for the operation.
+
+@returns A JSON object with the list of Router configuration options.
+
+This function lists the Router configuration options of the ReplicaSet (global),
+and the Router instances. By default, only the options that can be changed from
+Shell (dynamic options) are displayed.
+Router instances with different configurations than the global ones will
+include the differences under their dedicated description.
+
+The options dictionary may contain the following attributes:
+
+@li extended: Verbosity level of the command output.
+@li router: Identifier of the Router instance to be displayed.
+
+The extended option supports Integer or Boolean values:
+
+@li 0: Includes only options that can be changed from Shell (default);
+@li 1: Includes all ReplicaSet global options and, per Router, only the options
+that have a different value than the corresponding global one.
+@li 2: Includes all Cluster and Router options.
+@li Boolean: equivalent to assign either 0 (false) or 1 (true).
+)*");
+
+/**
+ * $(REPLICASET_ROUTEROPTIONS_BRIEF)
+ *
+ * $(REPLICASET_ROUTEROPTIONS)
+ */
+#if DOXYGEN_JS
+Dictionary ReplicaSet::routerOptions(Dictionary options) {}
+#elif DOXYGEN_PY
+dict ReplicaSet::router_options(dict options) {}
 #endif
 
 REGISTER_HELP_FUNCTION(setRoutingOption, ReplicaSet);

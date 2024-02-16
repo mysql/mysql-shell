@@ -52,6 +52,9 @@ FUNCTIONS
       removeCluster(clusterName[, options])
             Removes a Replica cluster from a ClusterSet.
 
+      routerOptions(options)
+            Lists the configuration options of the ClusterSet's Routers.
+
       routingOptions([router])
             Lists the ClusterSet Routers configuration options.
 
@@ -822,6 +825,40 @@ RETURNS
 DESCRIPTION
       This function lists the Router configuration options of all Routers of
       the ClusterSet or the target Router.
+
+//@<OUT> routerOptions
+NAME
+      routerOptions - Lists the configuration options of the ClusterSet's
+                      Routers.
+
+SYNTAX
+      <ClusterSet>.routerOptions(options)
+
+WHERE
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A JSON object with the list of Router configuration options.
+
+DESCRIPTION
+      This function lists the Router configuration options of the ClusterSet
+      (global), and the Router instances. By default, only the options that can
+      be changed from Shell (dynamic options) are displayed. Router instances
+      with different configurations than the global ones will include the
+      differences under their dedicated description.
+
+      The options dictionary may contain the following attributes:
+
+      - extended: Verbosity level of the command output.
+      - router: Identifier of the Router instance to be displayed.
+
+      The extended option supports Integer or Boolean values:
+
+      - 0: Includes only options that can be changed from Shell (default);
+      - 1: Includes all ClusterSet global options and, per Router, only the
+        options that have a different value than the corresponding global one.
+      - 2: Includes all Cluster and Router options.
+      - Boolean: equivalent to assign either 0 (false) or 1 (true).
 
 //@<OUT> setRoutingOption
 NAME

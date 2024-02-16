@@ -68,6 +68,14 @@ struct List_routers_options {
   bool only_upgrade_required = false;
 };
 
+struct Router_options_options {
+  static const shcore::Option_pack_def<Router_options_options> &options();
+  void set_extended(uint64_t value);
+
+  std::optional<std::string> router;
+  uint64_t extended = 0;  // By default, 0 (disabled)
+};
+
 struct Setup_account_options {
   static const shcore::Option_pack_def<Setup_account_options> &options();
 

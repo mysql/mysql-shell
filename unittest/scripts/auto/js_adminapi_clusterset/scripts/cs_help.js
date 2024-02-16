@@ -73,6 +73,12 @@ cs.help("routingOptions");
 //@ routingOptions \? [USE:routingOptions]
 \? ClusterSet.routingOptions
 
+//@ routerOptions
+cs.help("routerOptions");
+
+//@ routerOptions \? [USE:routerOptions]
+\? ClusterSet.routerOptions
+
 //@ setRoutingOption
 cs.help("setRoutingOption");
 

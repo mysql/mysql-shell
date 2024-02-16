@@ -19,6 +19,30 @@ EXPECT_NO_THROWS(function() { cluster.rescan({addInstances: "auto", removeInstan
 EXPECT_OUTPUT_CONTAINS(`The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.`);
 WIPE_OUTPUT();
 
+//@<> A deprecation warning must be emitted when using the command cluster.routingOptions()
+EXPECT_NO_THROWS(function() { cluster.routingOptions(); });
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <Cluster>.routerOptions() instead.`);
+WIPE_OUTPUT();
+
+//@<> A deprecation warning must be emitted when using the command replicaset.routingOptions()
+EXPECT_NO_THROWS(function() {
+  cluster.dissolve();
+  rs = dba.createReplicaSet("rs");
+  rs.routingOptions();
+});
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <ReplicaSet>.routerOptions() instead.`);
+WIPE_OUTPUT();
+
+//@<> A deprecation warning must be emitted when using the command clusterset.routingOptions()
+EXPECT_NO_THROWS(function() {
+  rs.dissolve();
+  cluster = dba.createCluster("cluster");
+  cs = cluster.createClusterSet("cs");
+  cs.routingOptions();
+});
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <ClusterSet>.routerOptions() instead.`);
+WIPE_OUTPUT();
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port2);

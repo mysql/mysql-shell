@@ -303,6 +303,7 @@ inline constexpr const char kReplicationNetworkNamespace[] = "NetworkNamespace";
 inline constexpr const char kReplicationSources[] = "replicationSources";
 inline constexpr const char kReplicationSourcesAutoPrimary[] = "primary";
 inline constexpr const char kReplicationSourcesAutoSecondary[] = "secondary";
+inline constexpr const char kRouter[] = "router";
 
 inline constexpr const int k_group_replication_members_limit = 9;
 

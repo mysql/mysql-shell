@@ -125,8 +125,24 @@ void Base_cluster::set_routing_option(const std::string &router,
 shcore::Dictionary_t Base_cluster::routing_options(const std::string &router) {
   assert_valid("routingOptions");
 
+  std::string type =
+      to_display_string(base_impl()->get_type(), Display_form::API_CLASS);
+
+  mysqlsh::current_console()->print_warning(shcore::str_format(
+      "This function is deprecated and will be removed in a future release of "
+      "MySQL Shell, use <%s>.<<<routerOptions()>>> instead.",
+      type.c_str()));
+
   return execute_with_pool(
       [&]() { return base_impl()->routing_options(router); }, false);
+}
+
+shcore::Dictionary_t Base_cluster::router_options(
+    const shcore::Option_pack_ref<Router_options_options> &options) {
+  assert_valid("routerOptions");
+
+  return execute_with_pool(
+      [&]() { return base_impl()->router_options(options); }, false);
 }
 
 }  // namespace dba

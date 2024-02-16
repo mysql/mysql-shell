@@ -65,6 +65,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined setRoutingOption(String router, String option, String value);
   Undefined setupAdminAccount(String user, Dictionary options);
   Undefined setupRouterAccount(String user, Dictionary options);
+  Dictionary routerOptions(String router);
   Dictionary routingOptions(String router);
   Dictionary listRouters(String router);
   Undefined setOption(String option, String value);
@@ -85,6 +86,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None set_routing_option(str router, str option, str value);
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
+  dict router_options(dict options);
   dict routing_options(str router);
   dict list_routers(str router);
   None set_option(str option, str value);

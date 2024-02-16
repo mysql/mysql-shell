@@ -22,7 +22,6 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "unittest/gprod_clean.h"
 #include "unittest/test_utils.h"
 
 #include "modules/adminapi/common/common.h"
@@ -32,7 +31,6 @@
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/test_utils/mocks/modules/adminapi/common/mock_metadata_storage.h"
 #include "unittest/test_utils/mocks/modules/adminapi/common/mock_precondition_checker.h"
-#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 
 namespace mysqlsh {
@@ -527,8 +525,9 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
       "Cluster.unfenceWrites",        "ClusterSet.createReplicaCluster",
       "ClusterSet.listRouters",       "ClusterSet.options",
       "ClusterSet.removeCluster",     "ClusterSet.routingOptions",
-      "ClusterSet.setOption",         "ClusterSet.setRoutingOption",
-      "ClusterSet.setupAdminAccount", "ClusterSet.setupRouterAccount"};
+      "ClusterSet.routerOptions",     "ClusterSet.setOption",
+      "ClusterSet.setRoutingOption",  "ClusterSet.setupAdminAccount",
+      "ClusterSet.setupRouterAccount"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",
@@ -549,9 +548,10 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
       "Cluster.describe",       "Cluster.forceQuorumUsingPartitionOf",
       "Cluster.listRouters",    "Cluster.setPrimaryInstance",
       "Cluster.options",        "Cluster.routingOptions",
-      "Cluster.status",         "Cluster.dissolve",
-      "Dba.getCluster",         "Dba.upgradeMetadata",
-      "Dba.dropMetadataSchema", "Cluster.fenceAllTraffic"};
+      "Cluster.routerOptions",  "Cluster.status",
+      "Cluster.dissolve",       "Dba.getCluster",
+      "Dba.upgradeMetadata",    "Dba.dropMetadataSchema",
+      "Cluster.fenceAllTraffic"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {
       "Cluster.addInstance",

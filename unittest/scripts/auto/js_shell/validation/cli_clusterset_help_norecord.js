@@ -24,6 +24,9 @@ The following operations are available at 'clusterset':
    remove-cluster
       Removes a Replica cluster from a ClusterSet.
 
+   router-options
+      Lists the configuration options of the ClusterSet's Routers.
+
    routing-options
       Lists the ClusterSet Routers configuration options.
 
@@ -264,3 +267,20 @@ OPTIONS
 --extended=<uint>
             Verbosity level of the command output. Default is 0.
 
+//@<OUT> CLI clusterset router-options --help
+NAME
+      router-options - Lists the configuration options of the ClusterSet's
+                       Routers.
+
+SYNTAX
+      clusterset router-options [<options>]
+
+RETURNS
+      A JSON object with the list of Router configuration options.
+
+OPTIONS
+--router=<str>
+            Identifier of the Router instance to be displayed.
+
+--extended=<uint>
+            Verbosity level of the command output.

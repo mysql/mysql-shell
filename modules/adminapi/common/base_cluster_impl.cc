@@ -1171,8 +1171,16 @@ shcore::Dictionary_t Base_cluster_impl::routing_options(
     const std::string &router) {
   check_preconditions("routingOptions");
 
-  return router_options(get_metadata_storage().get(), get_type(), get_id(),
-                        router);
+  return mysqlsh::dba::routing_options(get_metadata_storage().get(), get_type(),
+                                       get_id(), router);
+}
+
+shcore::Dictionary_t Base_cluster_impl::router_options(
+    const shcore::Option_pack_ref<Router_options_options> &options) {
+  check_preconditions("routerOptions");
+
+  return mysqlsh::dba::router_options(get_metadata_storage().get(), get_type(),
+                                      get_id(), get_name(), *options);
 }
 
 }  // namespace dba

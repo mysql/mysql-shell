@@ -26,14 +26,16 @@
 #include "modules/adminapi/common/router.h"
 
 #include <map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/cluster_set/cluster_set_impl.h"
+#include "adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/router_options.h"
+#include "scripting/types.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -133,14 +135,53 @@ shcore::Dictionary_t get_router_dict(const Router_metadata &router_md,
   return router;
 }
 
+namespace {
+void check_router_errors(shcore::Array_t issues,
+                         const Router_metadata &router_md, MetadataStorage *md,
+                         const Cluster_id &cluster_id,
+                         Cluster_type cluster_type) {
+  // Check if this Router's version is >= 8.4.0. If so, confirm that the
+  // global dynamic options exist in the Metadata. If not, it means that
+  // either the Router needs to be re-bootstrapped (because was upgraded) or
+  // the Router accounts need to be upgraded.
+  if (router_md.version.has_value() &&
+      mysqlshdk::utils::Version(router_md.version.value()) >=
+          mysqlshdk::utils::Version(8, 4, 0)) {
+    auto highest_router_configuration_schema_version =
+        md->get_highest_router_configuration_document_version(cluster_type,
+                                                              cluster_id);
+
+    auto highest_router_version =
+        md->get_highest_bootstrapped_router_version(cluster_type, cluster_id);
+
+    if (highest_router_configuration_schema_version < highest_router_version) {
+      issues->push_back(shcore::Value(
+          "WARNING: Unable to fetch all configuration options: Please "
+          "ensure the Router account has the right privileges using "
+          "<Cluster>.setupRouterAccount() and re-bootstrap Router."));
+    }
+  }
+}
+}  // namespace
+
 shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
                           bool only_upgrade_required) {
   auto router_list = shcore::make_dict();
   auto routers_md = md->get_routers(cluster_id);
 
   for (const auto &router_md : routers_md) {
+    shcore::Array_t router_errors = shcore::make_array();
+
     auto router = get_router_dict(router_md, only_upgrade_required);
     if (router->empty()) continue;
+
+    // Check for router errors
+    check_router_errors(router_errors, router_md, md, cluster_id,
+                        Cluster_type::GROUP_REPLICATION);
+
+    if (router_errors && !router_errors->empty()) {
+      router->emplace("routerErrors", shcore::Value(std::move(router_errors)));
+    }
 
     auto label = shcore::str_format("%s::%s", router_md.hostname.c_str(),
                                     router_md.name.c_str());
@@ -188,6 +229,10 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
                         "ClusterSet to be recognized."));
     }
 
+    // Check for router errors
+    check_router_errors(router_errors, router_md, md, clusterset_id,
+                        Cluster_type::REPLICATED_CLUSTER);
+
     if (router_errors && !router_errors->empty()) {
       (*r)["routerErrors"] = shcore::Value(std::move(router_errors));
     }
@@ -211,17 +256,17 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
   return shcore::Value(std::move(router_list));
 }
 
-shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
-                                    const std::string &id,
-                                    const std::string &router_label) {
+shcore::Dictionary_t routing_options(MetadataStorage *md, Cluster_type type,
+                                     const std::string &id,
+                                     const std::string &router_label) {
   auto router_options = shcore::make_dict();
   auto romd = md->get_routing_options(type, id);
 
   if (Cluster_set_id cs_id;
       (type == Cluster_type::GROUP_REPLICATION) &&
       md->check_cluster_set(nullptr, nullptr, nullptr, &cs_id)) {
-    // if the Cluster belongs to a ClusterSet, we need to replace the options in
-    // the Cluster with the options in the ClusterSet
+    // if the Cluster belongs to a ClusterSet, we need to replace the options
+    // in the Cluster with the options in the ClusterSet
     auto cs_romd =
         md->get_routing_options(Cluster_type::REPLICATED_CLUSTER, cs_id);
 
@@ -260,6 +305,65 @@ shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
     }
     (*router_options)["routers"] = shcore::Value(routers);
   }
+
+  return router_options;
+}
+
+shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
+                                    const std::string &id,
+                                    const std::string &name,
+                                    const Router_options_options &options) {
+  auto router_options = shcore::make_dict();
+
+  switch (type) {
+    case Cluster_type::GROUP_REPLICATION:
+      (*router_options)["clusterName"] = shcore::Value(name);
+      break;
+    case Cluster_type::ASYNC_REPLICATION:
+      (*router_options)["name"] = shcore::Value(name);
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      (*router_options)["domainName"] = shcore::Value(name);
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  auto highest_router_version =
+      md->get_highest_bootstrapped_router_version(type, id);
+
+  // Get and parse the Configuration changes schema
+  auto json_configuration_schema_parsed = Router_configuration_changes_schema(
+      md->get_router_configuration_changes_schema(type, id,
+                                                  highest_router_version));
+
+  // Get and parse the default global options
+  auto default_global_options =
+      get_default_router_options(md, type, id, json_configuration_schema_parsed,
+                                 options.extended, highest_router_version);
+
+  auto default_global_options_parsed =
+      Router_configuration_document(default_global_options);
+
+  // Get all routers options
+  auto all_router_options =
+      get_router_options(md, type, id, json_configuration_schema_parsed,
+                         default_global_options_parsed, options.extended,
+                         options.router.value_or(""));
+
+  // Set the Default router configuration
+  (*router_options)["configuration"] = default_global_options;
+
+  // If the 'router' option was used return right away, nothing else is included
+  // in the output
+  if (options.router.has_value()) {
+    (*router_options)["routers"] = all_router_options;
+
+    return router_options;
+  }
+
+  // Get all routers options
+  (*router_options)["routers"] = all_router_options;
 
   return router_options;
 }
@@ -408,6 +512,134 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
   }
 
   return fixed_value;
+}
+
+shcore::Value get_default_router_options(
+    MetadataStorage *md, Cluster_type type, const std::string &id,
+    const Router_configuration_changes_schema &changes_schema,
+    uint64_t extended, const mysqlshdk::utils::Version &version) {
+  auto default_global_options =
+      md->get_default_router_options(type, id, version);
+
+  // By default (extended=0), filter out everything that does not belong to the
+  // configuration changes schema
+  if (extended == 0) {
+    auto default_global_options_parsed =
+        Router_configuration_document(default_global_options);
+
+    auto filtered_options =
+        default_global_options_parsed.filter_schema_by_changes(changes_schema);
+
+    return shcore::Value(filtered_options.to_value());
+  }
+
+  return shcore::Value(default_global_options);
+}
+
+shcore::Value get_router_options(
+    MetadataStorage *md, Cluster_type type, const std::string &id,
+    const Router_configuration_changes_schema &changes_schema,
+    const Router_configuration_document &global_dynamic_options,
+    uint64_t extended, const std::string &router_name) {
+  auto router_options_md = md->get_router_options(type, id, router_name);
+
+  // If the 'router' option was used, check if the router exists
+  if (!router_name.empty() && !router_options_md) {
+    throw shcore::Exception::argument_error(
+        "Router '" + router_name + "' is not registered in the " +
+        to_display_string(type, Display_form::THING));
+  }
+
+  auto ret = shcore::make_dict();
+
+  if (!router_options_md) return shcore::Value(ret);
+
+  auto configuration_map = router_options_md.as_map();
+
+  auto highest_router_version =
+      md->get_highest_bootstrapped_router_version(type, id);
+
+  auto highest_router_configuration_schema_version =
+      md->get_highest_router_configuration_document_version(type, id);
+
+  const auto warning_checker = [&](const std::string &router_label) {
+    shcore::Array_t warnings = shcore::make_array();
+
+    // Check if this Router's version is >= 8.4.0. If so, confirm that the
+    // global dynamic options exist in the Metadata. If not, it means that
+    // either the Router needs to be re-bootstrapped (because was upgraded) or
+    // the Router accounts need to be upgraded.
+    if (md->get_router_version(type, id, router_label) >=
+        mysqlshdk::utils::Version(8, 4, 0)) {
+      if (highest_router_configuration_schema_version <
+          highest_router_version) {
+        warnings->push_back(shcore::Value(
+            "WARNING: Unable to fetch all configuration options: Please ensure "
+            "the Router account has the right privileges using "
+            "<Cluster>.setupRouterAccount() and re-bootstrap Router."));
+      }
+    }
+
+    return warnings;
+  };
+
+  if (extended > 1) {
+    for (const auto &[name, options] : *configuration_map) {
+      auto new_configuration_map = shcore::make_dict();
+
+      new_configuration_map->emplace("configuration", options);
+
+      if (auto router_errors = warning_checker(name);
+          router_errors && !router_errors->empty()) {
+        new_configuration_map->emplace("routerErrors",
+                                       shcore::Value(std::move(router_errors)));
+      }
+
+      ret->emplace(name, std::move(new_configuration_map));
+    }
+
+    return shcore::Value(ret);
+  }
+
+  for (const auto &[name, options] : *configuration_map) {
+    auto filtered_schema = shcore::make_dict();
+
+    if (auto router_errors = warning_checker(name);
+        router_errors && !router_errors->empty()) {
+      filtered_schema->emplace("routerErrors",
+                               shcore::Value(std::move(router_errors)));
+    }
+
+    auto configuration_map_parsed = Router_configuration_document(options);
+
+    if (extended == 0) {
+      auto filtered_options =
+          configuration_map_parsed.filter_schema_by_changes(changes_schema);
+
+      auto diff_schema =
+          filtered_options.diff_configuration_schema(global_dynamic_options);
+
+      auto schema = diff_schema.to_value();
+
+      filtered_schema->emplace("configuration", schema);
+
+      ret->emplace(name, std::move(filtered_schema));
+    } else {
+      auto diff_schema = configuration_map_parsed.diff_configuration_schema(
+          global_dynamic_options);
+
+      auto global_router_options_filtered_schema =
+          diff_schema.filter_common_router_options();
+
+      auto schema = global_router_options_filtered_schema.to_value();
+
+      filtered_schema->emplace("configuration", schema);
+
+      ret->emplace(name, std::move(filtered_schema));
+    }
+  }
+
+  return shcore::Value(ret);
 }
 
 }  // namespace dba

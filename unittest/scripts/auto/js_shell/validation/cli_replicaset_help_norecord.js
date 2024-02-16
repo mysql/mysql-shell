@@ -31,6 +31,9 @@ The following operations are available at 'rs':
    rescan
       Rescans the ReplicaSet.
 
+   router-options
+      Lists the configuration options of the ReplicaSet's Routers.
+
    routing-options
       Lists the ReplicaSet Routers configuration options.
 
@@ -266,6 +269,24 @@ RETURNS
       A JSON object describing the configuration options of all router
       instances of the ReplicaSet and its global options or just the given
       Router.
+
+//@<OUT> CLI replicaset router-options --help
+NAME
+      router-options - Lists the configuration options of the ReplicaSet's
+                       Routers.
+
+SYNTAX
+      rs router-options [<options>]
+
+RETURNS
+      A JSON object with the list of Router configuration options.
+
+OPTIONS
+--router=<str>
+            Identifier of the Router instance to be displayed.
+
+--extended=<uint>
+            Verbosity level of the command output.
 
 //@<OUT> CLI replicaset set-instance-option --help
 NAME

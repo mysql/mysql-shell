@@ -62,6 +62,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Dictionary listRouters(Dictionary options);
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
+  Dictionary routerOptions(Dictionary options);
   Dictionary routingOptions(String router);
   Undefined rejoinInstance(String instance, Dictionary options);
   Undefined removeInstance(String instance, Dictionary options);
@@ -85,6 +86,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   dict list_routers(dict options);
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
+  dict router_options(dict options);
   dict routing_options(str router);
   None rejoin_instance(str instance, dict options);
   None remove_instance(str instance, dict options);

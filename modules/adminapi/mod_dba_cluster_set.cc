@@ -99,6 +99,7 @@ void ClusterSet::init() {
 
   expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
   expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
+  expose("routerOptions", &ClusterSet::router_options, "?options")->cli();
   // TODO(konrad): cli does not support yet such overloads
   expose("setRoutingOption", &ClusterSet::set_routing_option, "option",
          "value");
@@ -953,6 +954,40 @@ Dictionary ClusterSet::routingOptions(String router) {}
 #elif DOXYGEN_PY
 dict ClusterSet::routing_options(str router) {}
 #endif
+
+REGISTER_HELP_FUNCTION(routerOptions, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTEROPTIONS, R"*(
+Lists the configuration options of the ClusterSet's Routers.
+
+@param options Dictionary with options for the operation.
+
+@returns A JSON object with the list of Router configuration options.
+
+This function lists the Router configuration options of the ClusterSet (global),
+and the Router instances. By default, only the options that can be changed from
+Shell (dynamic options) are displayed.
+Router instances with different configurations than the global ones will
+include the differences under their dedicated description.
+
+The options dictionary may contain the following attributes:
+
+@li extended: Verbosity level of the command output.
+@li router: Identifier of the Router instance to be displayed.
+
+The extended option supports Integer or Boolean values:
+
+@li 0: Includes only options that can be changed from Shell (default);
+@li 1: Includes all ClusterSet global options and, per Router, only the options
+that have a different value than the corresponding global one.
+@li 2: Includes all Cluster and Router options.
+@li Boolean: equivalent to assign either 0 (false) or 1 (true).
+)*");
+
+/**
+ * $(CLUSTERSET_ROUTEROPTIONS_BRIEF)
+ *
+ * $(CLUSTERSET_ROUTEROPTIONS)
+ */
 
 REGISTER_HELP_FUNCTION(setupAdminAccount, ClusterSet);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETUPADMINACCOUNT,

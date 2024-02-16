@@ -227,6 +227,15 @@ cluster.help("routingOptions")
 //@ routingOptions, \help [USE:routingOptions]
 \help cluster.routingOptions
 
+//@ routerOptions
+cluster.help("routerOptions")
+
+//@ routerOptions, \? [USE:routerOptions]
+\? cluster.routerOptions
+
+//@ routerOptions, \help [USE:routerOptions]
+\help cluster.routerOptions
+
 //@ setRoutingOption
 cluster.help("setRoutingOption")
 

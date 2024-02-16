@@ -33,6 +33,7 @@
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
 namespace mysqlsh {
@@ -58,6 +59,9 @@ class Base_cluster : public shcore::Cpp_object_bridge {
                           const shcore::Value &value);
 
   shcore::Dictionary_t routing_options(const std::string &router);
+
+  shcore::Dictionary_t router_options(
+      const shcore::Option_pack_ref<Router_options_options> &options);
 
  public:  // User management
   void setup_admin_account(

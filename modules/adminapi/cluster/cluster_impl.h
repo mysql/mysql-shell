@@ -137,6 +137,8 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value list_routers(bool only_upgrade_required) override;
 
   shcore::Dictionary_t routing_options(const std::string &router) override;
+  shcore::Dictionary_t router_options(
+      const shcore::Option_pack_ref<Router_options_options> &options) override;
   void set_routing_option(const std::string &option,
                           const shcore::Value &value);
   void set_routing_option(const std::string &router, const std::string &option,

@@ -104,6 +104,29 @@ const shcore::Option_pack_def<List_routers_options>
   return opts;
 }
 
+void Router_options_options::set_extended(uint64_t value) {
+  // Validate extended option UInteger [0, 2] or Boolean.
+  if (value > 2) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value '%" PRIu64
+                           "' for option '%s'. It must be an integer in the "
+                           "range [0, 2].",
+                           value, kExtended));
+  }
+
+  extended = value;
+}
+
+const shcore::Option_pack_def<Router_options_options>
+    &Router_options_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Router_options_options>()
+          .optional(kRouter, &Router_options_options::router)
+          .optional(kExtended, &Router_options_options::set_extended);
+
+  return opts;
+}
+
 const shcore::Option_pack_def<Setup_account_options>
     &Setup_account_options::options() {
   static const auto opts =

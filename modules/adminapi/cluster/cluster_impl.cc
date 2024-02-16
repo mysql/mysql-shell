@@ -4835,6 +4835,21 @@ shcore::Dictionary_t Cluster_impl::routing_options(const std::string &router) {
   return dict;
 }
 
+shcore::Dictionary_t Cluster_impl::router_options(
+    const shcore::Option_pack_ref<Router_options_options> &options) {
+  if (is_cluster_set_member()) {
+    current_console()->print_error(shcore::str_format(
+        "Cluster '%s' is a member of ClusterSet '%s', use "
+        "<ClusterSet>.<<<routerOptions>>>() instead",
+        get_name().c_str(), get_cluster_set_object()->get_name().c_str()));
+
+    throw shcore::Exception::runtime_error(
+        "Function not available for ClusterSet members");
+  }
+
+  return Base_cluster_impl::router_options(options);
+}
+
 void Cluster_impl::set_routing_option(const std::string &option,
                                       const shcore::Value &value) {
   set_routing_option("", option, value);

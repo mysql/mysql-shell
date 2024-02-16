@@ -39,6 +39,8 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
+#include "modules/adminapi/common/router_options.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/undo.h"
@@ -145,7 +147,7 @@ struct Router_metadata {
   shcore::Dictionary_t tags = nullptr;
 };
 
-struct Router_options_metadata {
+struct Routing_options_metadata {
   std::map<std::string, shcore::Value> global;
   std::map<std::string, std::map<std::string, shcore::Value>> routers;
 };
@@ -462,8 +464,29 @@ class MetadataStorage {
   std::vector<Router_metadata> get_routers(const Cluster_id &cluster_id);
   std::vector<Router_metadata> get_clusterset_routers(const Cluster_set_id &cs);
 
-  Router_options_metadata get_routing_options(Cluster_type type,
-                                              const std::string &id);
+  Routing_options_metadata get_routing_options(Cluster_type type,
+                                               const std::string &id);
+
+  shcore::Value get_router_options(Cluster_type type, const std::string &id,
+                                   const std::string &router_name = "");
+
+  mysqlshdk::utils::Version get_router_version(Cluster_type type,
+                                               const std::string &id,
+                                               const std::string &router_name);
+
+  mysqlshdk::utils::Version get_highest_bootstrapped_router_version(
+      Cluster_type type, const std::string &id);
+
+  mysqlshdk::utils::Version get_highest_router_configuration_document_version(
+      Cluster_type type, const std::string &id);
+
+  shcore::Value get_default_router_options(
+      Cluster_type type, const std::string &id,
+      const mysqlshdk::utils::Version &max_version);
+
+  shcore::Value get_router_configuration_changes_schema(
+      Cluster_type type, const std::string &id,
+      const mysqlshdk::utils::Version &max_version);
 
   std::string get_cluster_name(const std::string &group_replication_group_name);
   std::string get_cluster_group_name(const std::string &cluster_name);

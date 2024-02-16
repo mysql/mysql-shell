@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -224,8 +225,15 @@ const std::map<std::string, std::map<std::string, std::set<std::string>>>
                             {"replication_group_member_stats", {"SELECT"}},
                             {"global_variables", {"SELECT"}}}},
                           {"mysql_innodb_cluster_metadata",
-                           {{"routers", {"INSERT", "UPDATE", "DELETE"}},
-                            {"v2_routers", {"INSERT", "UPDATE", "DELETE"}}}}};
+                           {
+                               {"routers", {"INSERT", "UPDATE", "DELETE"}},
+                               {"v2_routers", {"INSERT", "UPDATE", "DELETE"}},
+                               {"clusters", {"UPDATE"}},
+                               {"clustersets", {"UPDATE"}},
+                               {"v2_gr_clusters", {"UPDATE"}},
+                               {"v2_ar_clusters", {"UPDATE"}},
+                               {"v2_cs_clustersets", {"UPDATE"}},
+                           }}};
 
 std::string create_grant(const std::string &username,
                          const std::set<std::string> &privileges,
@@ -361,10 +369,19 @@ std::vector<std::string> create_router_grants(
   // tables on older metadata version from the list of tables
   std::map<std::string, std::map<std::string, std::set<std::string>>>
       router_table_grants = k_router_table_grants;
-  // For old metadata versions, there is no v2_routers table, so drop it
-  // from table_grants
-  if (metadata_version <= mysqlshdk::utils::Version(1, 0, 1)) {
+  // For old metadata versions, there is no v2_routers, v2_gr_clusters,
+  // v2_ar_clusters, and v2_cs_clustersets tables, so drop them from
+  // table_grants
+  if (metadata_version <= mysqlshdk::utils::Version(2, 0, 0)) {
     router_table_grants["mysql_innodb_cluster_metadata"].erase("v2_routers");
+    router_table_grants["mysql_innodb_cluster_metadata"].erase(
+        "v2_gr_clusters");
+    router_table_grants["mysql_innodb_cluster_metadata"].erase(
+        "v2_ar_clusters");
+    router_table_grants["mysql_innodb_cluster_metadata"].erase(
+        "v2_cs_clustersets");
+    router_table_grants["mysql_innodb_cluster_metadata"].erase("clustersets");
+    router_table_grants["mysql_innodb_cluster_metadata"].erase("clusters");
   }
 
   // privileges for tables

@@ -34,9 +34,14 @@ ClusterSet.setupRouterAccount: Invalid user syntax: Invalid user name: foo@bar (
 +----------------+--------------+-------------------------------+--------------------------------+
 | PRIVILEGE_TYPE | IS_GRANTABLE | TABLE_SCHEMA                  | TABLE_NAME                     |
 +----------------+--------------+-------------------------------+--------------------------------+
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | clusters                       |
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | clustersets                    |
 | DELETE         | NO           | mysql_innodb_cluster_metadata | routers                        |
 | INSERT         | NO           | mysql_innodb_cluster_metadata | routers                        |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | routers                        |
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_ar_clusters                 |
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_cs_clustersets              |
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_gr_clusters                 |
 | DELETE         | NO           | mysql_innodb_cluster_metadata | v2_routers                     |
 | INSERT         | NO           | mysql_innodb_cluster_metadata | v2_routers                     |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_routers                     |

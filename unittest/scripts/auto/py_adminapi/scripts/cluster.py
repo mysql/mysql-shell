@@ -38,7 +38,8 @@ validate_members(cluster, [
     'unfence_writes',
     'add_replica_instance',
     'routing_options',
-    'set_routing_option'
+    'set_routing_option',
+    'router_options'
     ])
 
 cluster.disconnect()

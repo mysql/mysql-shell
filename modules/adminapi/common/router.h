@@ -29,7 +29,6 @@
 #include <array>
 #include <string>
 #include <string_view>
-#include <utility>
 
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -98,13 +97,29 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
                                       const Cluster_set_id &clusterset_id,
                                       const std::string &router);
 
+shcore::Dictionary_t routing_options(MetadataStorage *md, Cluster_type type,
+                                     const std::string &id,
+                                     const std::string &router_label = "");
+
 shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
                                     const std::string &id,
-                                    const std::string &router_label = "");
+                                    const std::string &name,
+                                    const Router_options_options &options);
 
 shcore::Value validate_router_option(const Base_cluster_impl &cluster,
                                      const std::string &name,
                                      const shcore::Value &value);
+
+shcore::Value get_default_router_options(
+    MetadataStorage *md, Cluster_type type, const std::string &id,
+    const Router_configuration_changes_schema &changes_schema,
+    uint64_t extended, const mysqlshdk::utils::Version &max_version);
+
+shcore::Value get_router_options(
+    MetadataStorage *md, Cluster_type type, const std::string &id,
+    const Router_configuration_changes_schema &changes_schema,
+    const Router_configuration_document &global_dynamic_options,
+    uint64_t extended, const std::string &router_name = "");
 
 }  // namespace dba
 }  // namespace mysqlsh

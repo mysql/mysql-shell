@@ -74,3 +74,6 @@ callMysqlsh(["--", "cluster", "add-replica-instance", "--help"])
 
 //@ CLI cluster routing-options --help
 callMysqlsh(["--", "cluster", "routing-options", "--help"])
+
+//@ CLI cluster router-options --help
+callMysqlsh(["--", "cluster", "router-options", "--help"])

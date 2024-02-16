@@ -206,6 +206,10 @@ class Base_cluster_impl {
                                   const std::string &option,
                                   const shcore::Value &value);
   virtual shcore::Dictionary_t routing_options(const std::string &router);
+
+  virtual shcore::Dictionary_t router_options(
+      const shcore::Option_pack_ref<Router_options_options> &options);
+
   /**
    * Get the tags for a specific Cluster/ReplicaSet
    *

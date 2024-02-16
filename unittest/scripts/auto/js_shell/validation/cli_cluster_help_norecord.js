@@ -48,6 +48,9 @@ The following operations are available at 'cluster':
       Resets the password of the recovery and replication accounts of the
       Cluster.
 
+   router-options
+      Lists the configuration options of the Cluster's Routers.
+
    routing-options
       Lists the Cluster Routers configuration options.
 
@@ -575,3 +578,21 @@ WHERE
 RETURNS
       A JSON object describing the configuration options of all router
       instances of the Cluster and its global options or just the given Router.
+
+//@<OUT> CLI cluster router-options --help
+NAME
+      router-options - Lists the configuration options of the Cluster's
+                       Routers.
+
+SYNTAX
+      cluster router-options [<options>]
+
+RETURNS
+      A JSON object with the list of Router configuration options.
+
+OPTIONS
+--router=<str>
+            Identifier of the Router instance to be displayed.
+
+--extended=<uint>
+            Verbosity level of the command output.
