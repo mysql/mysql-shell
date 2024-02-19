@@ -3551,7 +3551,8 @@ void Testutils::prepare_sandbox_boilerplate(int port,
       shcore::Value("innodb_log_buffer_size=1M"));
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
-
+  mycnf_options.as_array()->push_back(
+      shcore::Value("require_secure_transport=OFF"));
   _mp.create_sandbox(port, port * 10, _sandbox_dir, k_boilerplate_root_password,
                      mycnf_options, true, true, 60, mysqld_path, &errors);
   if (errors && !errors->empty()) {

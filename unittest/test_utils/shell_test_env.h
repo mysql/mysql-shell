@@ -152,6 +152,8 @@ class Shell_test_env : public ::testing::Test {
   }
 
   static bool check_min_version_skip_test(bool skip_test = true);
+  static bool check_max_version_skip_test(
+      bool skip_test, const mysqlshdk::utils::Version &version);
 
  protected:
   static std::string _host;  //!< localhost

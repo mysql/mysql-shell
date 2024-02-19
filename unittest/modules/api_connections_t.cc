@@ -161,6 +161,10 @@ TEST_F(Api_connections, ssl_enabled_require_secure_transport_on) {
 }
 
 TEST_F(Api_connections, ssl_disabled) {
+  if (!Shell_test_env::check_max_version_skip_test(
+          true, mysqlshdk::utils::Version(8, 3, 0)))
+    return;
+
   disable_ssl_on_instance(_sb_port, "unsecure");
 
   execute("var secure_transport='disabled';");

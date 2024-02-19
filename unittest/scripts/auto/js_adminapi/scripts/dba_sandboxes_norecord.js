@@ -8,7 +8,7 @@ var test_dir = os.path.join(__sandbox_path, "foo \' bar");
 
 testutil.mkdir(test_dir);
 
-EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root'}); });
+EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root', mysqldOptions: ["require_secure_transport=OFF"]}); });
 
 //@<> BUG#29634828 AdminAPI should handle localhost and sandboxes better
 // sandboxes have report_host variable set to "127.0.0.1"
@@ -31,7 +31,7 @@ testutil.rmdir(test_dir, true);
 var test_dir_long = os.path.join(__sandbox_path, "012345678911234567892123456789312345678941234567895123456789612345678971234567898123456789");
 testutil.mkdir(test_dir_long);
 
-EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_long, password: 'root'}); });
+EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_long, password: 'root', mysqldOptions: ["require_secure_transport=OFF"]}); });
 
 //@<> Stop sandbox in dir with long path
 EXPECT_NO_THROWS(function() { dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_long, password: 'root'}); });
@@ -46,7 +46,7 @@ dba.verbose = 2;
 var test_dir_non_ascii = os.path.join(__sandbox_path, "no_café_para_los_niños");
 testutil.mkdir(test_dir_non_ascii);
 
-EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_non_ascii, password: 'root'}); });
+EXPECT_NO_THROWS(function() { dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_non_ascii, password: 'root', mysqldOptions: ["require_secure_transport=OFF"]}); });
 
 //@<> Stop sandbox in dir with non-ascii characters.
 EXPECT_NO_THROWS(function() { dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir_non_ascii, password: 'root'}); });

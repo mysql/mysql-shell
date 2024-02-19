@@ -54,6 +54,23 @@ class Command_line_connection_test : public Command_line_test {
     return execute(args);
   }
 
+  bool is_ssl_enabled() {
+    // Default ssl-mode as required must work regardless if the server has or
+    // not SSL enabled (i.e. commercial vs gpl)
+    std::string query{"show variables like 'have_ssl'"};
+    if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 21)) {
+      query =
+          "SELECT value FROM performance_schema.tls_channel_status WHERE "
+          "channel='mysql_main' AND property = 'Enabled'";
+    }
+
+    // Default ssl-mode as required must work regardless if the server has or
+    // not SSL enabled (i.e. commercial vs gpl)
+    execute_in_session(_mysql_uri, "--mysql", query);
+
+    return shcore::str_upper(_output).find("YES") != std::string::npos;
+  }
+
   int test_classic_connection(const std::vector<const char *> &additional_args,
                               const char *password = NULL) {
     std::string pwd_param = "--password=" + _pwd;
@@ -321,16 +338,9 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
 }
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
-  bool have_ssl = false;
+  if (is_ssl_enabled()) {
+    _output.clear();
 
-  // Default ssl-mode as required must work regardless if the server has or not
-  // SSL enabled (i.e. commercial vs gpl)
-  execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
-  if (_output.find("YES") != std::string::npos) have_ssl = true;
-
-  _output.clear();
-
-  if (have_ssl) {
     // Having SSL enabled sets secure_transport_required=ON
     bool require_secure_transport = false;
     execute_in_session(_mysql_uri, "--mysql",
@@ -377,16 +387,8 @@ TEST_F(Command_line_connection_test, uri_ssl_mode_classic) {
 }
 
 TEST_F(Command_line_connection_test, uri_ssl_mode_node) {
-  bool have_ssl = false;
-
-  // Default ssl-mode as required must work regardless if the server has or not
-  // SSL enabled (i.e. commercial vs gpl)
-  execute_in_session(_mysql_uri, "--mysql", "show variables like 'have_ssl';");
-  if (_output.find("YES") != std::string::npos) have_ssl = true;
-
-  _output.clear();
-
-  if (have_ssl) {
+  if (is_ssl_enabled()) {
+    _output.clear();
     // Having SSL enabled sets secure_transport_required=ON
     bool require_secure_transport = false;
     execute_in_session(_mysql_uri, "--mysql",

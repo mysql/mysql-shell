@@ -175,19 +175,30 @@ void detect_mysql_environment(int port, const char *pwd) {
     }
 
     {
-      const char *query =
-          "select @@version, @@have_ssl = 'YES', @@have_openssl = 'YES', "
-          "@@server_id";
+      const char *query = "select @@version, @@server_id";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
-          if (row[1] && strcmp(row[1], "1") == 0) have_ssl = true;
-          if (row[2] && strcmp(row[2], "1") == 0) have_openssl = true;
-          server_id = atoi(row[3]);
+          server_id = atoi(row[1]);
         }
         mysql_free_result(res);
       }
+    }
+
+    if (g_target_server_version < mysqlshdk::utils::Version(8, 0, 24)) {
+      const char *query = "select @@have_ssl = 'YES', @@have_openssl = 'YES'";
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          if (row[0] && strcmp(row[0], "1") == 0) have_ssl = true;
+          if (row[1] && strcmp(row[1], "1") == 0) have_openssl = true;
+        }
+        mysql_free_result(res);
+      }
+    } else {
+      have_ssl = true;
+      have_openssl = true;
     }
 
     {

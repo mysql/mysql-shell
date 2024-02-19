@@ -1,4 +1,4 @@
-//@ {VER(>=8.0.11)}
+//@ {VER(>=8.0.11) && VER(<8.0.24)}
 
 // Plain replicaset setup test, use as a template for other tests that check
 // a specific feature/aspect across the whole API

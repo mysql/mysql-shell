@@ -3742,7 +3742,7 @@ for account in account_names:
     EXPECT_STDOUT_NOT_CONTAINS("SET_ANY_DEFINER")
     session.run_sql(f"REVOKE SET_ANY_DEFINER ON *.* FROM {account}")
 
-#@<> WL15887-TSFR_6_1 - user/role with SET_USER_ID {VER(>=8.0.0)}
+#@<> WL15887-TSFR_6_1 - user/role with SET_USER_ID {VER(>=8.0.0) and VER(<8.0.24)}
 for account in account_names:
     session.run_sql(f"GRANT SET_USER_ID ON *.* TO {account}")
     WIPE_OUTPUT()

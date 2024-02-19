@@ -403,13 +403,13 @@ setup_slave(session3, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 
-session2.runSql("STOP SLAVE");
-session2.runSql("CHANGE MASTER TO GET_MASTER_PUBLIC_KEY=1");
-session2.runSql("START SLAVE");
+session2.runSql("STOP " + get_replication_source_keyword(__version_num, "REPLICA"));
+session2.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_source_keyword(__version_num, "GET_SOURCE_PUBLIC_KEY") + "=1");
+session2.runSql("START " + get_replication_source_keyword(__version_num, "REPLICA"));
 
-session3.runSql("STOP SLAVE");
-session3.runSql("CHANGE MASTER TO GET_MASTER_PUBLIC_KEY=1");
-session3.runSql("START SLAVE");
+session3.runSql("STOP " + get_replication_source_keyword(__version_num, "REPLICA"));
+session3.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_source_keyword(__version_num, "GET_SOURCE_PUBLIC_KEY") + "=1");
+session3.runSql("START " + get_replication_source_keyword(__version_num, "REPLICA"));
 
 var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
 
@@ -435,13 +435,13 @@ session.runSql("GRANT REPLICATION SLAVE ON *.* TO bar@'%'");
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 
-session2.runSql("STOP SLAVE");
+session2.runSql("STOP " + get_replication_source_keyword(__version_num, "REPLICA"));
 session2.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='foo', " + get_replication_option_keyword() + "_PASSWORD='foo_pwd', GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1");
-session2.runSql("START SLAVE");
+session2.runSql("START " + get_replication_source_keyword(__version_num, "REPLICA"));
 
-session3.runSql("STOP SLAVE");
+session3.runSql("STOP " + get_replication_source_keyword(__version_num, "REPLICA"));
 session3.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_option_keyword() + "_USER='bar', " + get_replication_option_keyword() + "_PASSWORD='bar_pwd', GET_" + get_replication_option_keyword() + "_PUBLIC_KEY=1");
-session3.runSql("START SLAVE");
+session3.runSql("START " + get_replication_source_keyword(__version_num, "REPLICA"));
 
 var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
 EXPECT_OUTPUT_CONTAINS("A new replication user was created for each instance of the ReplicaSet, which means that the following users are unused and should be removed: 'foo', 'bar'");

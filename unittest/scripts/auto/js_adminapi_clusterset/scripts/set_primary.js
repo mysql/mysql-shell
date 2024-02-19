@@ -527,9 +527,11 @@ testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host:hostname, ser
 c4 = cs.createReplicaCluster(__sandbox_uri6, "cluster4", {manualStartOnBoot:1, recoveryMethod: "clone"});
 c4.addInstance(__sandbox_uri4, {recoveryMethod: "clone"});
 
+shell.connect(__sandbox_uri4);
 session4 = mysql.getSession(__sandbox_uri4);
 session6 = mysql.getSession(__sandbox_uri6);
 
+testutil.waitMemberTransactions(__mysql_sandbox_port6, __mysql_sandbox_port5);
 CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c3, c1);
 CHECK_INVALIDATED_CLUSTER([], c3, c2);
 CHECK_PRIMARY_CLUSTER([__sandbox_uri5], c3);

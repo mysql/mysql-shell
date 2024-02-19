@@ -184,8 +184,13 @@ void change_master(const mysqlshdk::mysql::IInstance &instance,
                           ? credentials.ssl_options.get_mode()
                           : mysqlshdk::db::Ssl_mode::Preferred;
       if (ssl_mode == mysqlshdk::db::Ssl_mode::Disabled ||
-          ssl_mode == mysqlshdk::db::Ssl_mode::Preferred)
-        options.append("/*!80011 , get_master_public_key=1 */");
+          ssl_mode == mysqlshdk::db::Ssl_mode::Preferred) {
+        if (instance.get_version() < utils::Version(8, 4, 0)) {
+          options.append("/*!80011 , get_master_public_key=1 */");
+        } else {
+          options.append("/*!80011 , get_source_public_key=1 */");
+        }
+      }
     }
 
     auto query = shcore::str_format(

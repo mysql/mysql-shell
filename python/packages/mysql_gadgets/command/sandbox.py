@@ -1251,7 +1251,7 @@ def stop_sandbox(**kwargs):
     try:
         s.connect()
     except exceptions.GadgetServerError as err:
-        if err.errno == 2026: # SSL error
+        if err.errno == 2026:  # SSL error
             conn_dict["ssl"] = False
             s = server.Server({"conn_info": conn_dict})
             try:

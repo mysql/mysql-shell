@@ -6,8 +6,8 @@ var __sandbox_dir = testutil.getSandboxPath();
 //      compatible with the lower_case_table_names used on this test, so we need clean sandboxes generated
 //      with the required lowe_case_table_names value
 var lower_case_value = (__os_type !="macos" && __os_type != "windows") ? "0" : "2";
-dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=1", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
-dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=" + lower_case_value, "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=1", "report_host="+hostname, "require_secure_transport=OFF"], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=" + lower_case_value, "report_host="+hostname, "require_secure_transport=OFF"], password: 'root', sandboxDir:__sandbox_dir});
 EXPECT_STDERR_EMPTY();
 shell.connect(__sandbox_uri1);
 var cluster;

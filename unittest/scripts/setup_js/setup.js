@@ -766,7 +766,7 @@ var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandb
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
 
-var s = mysql.getSession(__mysqluripwd+"?ssl-mode=disabled");
+var s = mysql.getSession(__mysqluripwd+"?ssl-mode=preferred");
 var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
 var __mysql_hostname = r[0];
 var __mysql_report_host = r[1];
@@ -2037,15 +2037,24 @@ function get_replica_keyword(version) {
   return "REPLICA";
 }
 
-function get_replication_source_keyword(version) {
-  if (version === undefined)
-    version = __version_num;
+var replication_source_keywords = {
+  "REPLICATION SOURCE": "MASTER",
+  "GET_SOURCE_PUBLIC_KEY": "GET_MASTER_PUBLIC_KEY",
+  "SOURCE_USER": "MASTER_USER",
+  "SOURCE_PASSWORD": "MASTER_PASSWORD",
+  "REPLICA": "SLAVE"
+};
 
-  if (version < 80022) {
-    return "MASTER";
+function get_replication_source_keyword(version=__version_num, keyword="REPLICATION SOURCE") {
+  if (!(keyword in replication_source_keywords)) {
+    throw `Unkwnown replication source keyword: ${keyword}`
   }
 
-  return "REPLICATION SOURCE";
+  if (version < 80022) {
+    return replication_source_keywords[keyword];
+  }
+
+  return keyword;
 }
 
 function get_replication_option_keyword(version) {

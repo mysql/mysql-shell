@@ -547,6 +547,21 @@ bool Shell_test_env::check_min_version_skip_test(bool skip_test) {
   return false;
 }
 
+bool Shell_test_env::check_max_version_skip_test(
+    bool skip_test, const mysqlshdk::utils::Version &version) {
+  auto server_version = tests::Shell_test_env::get_target_server_version();
+
+  if (server_version <= version) return true;
+
+  if (skip_test)
+    ADD_SKIPPED_TEST(shcore::str_format(
+        "Skipping the test because the server version"
+        "(%s) is bigger that the maximum permitted one (%s)",
+        server_version.get_base().c_str(), version.get_base().c_str()));
+
+  return false;
+}
+
 static int find_column_in_select_stmt(const std::string &sql,
                                       const std::string &column) {
   std::string s = shcore::str_lower(sql);

@@ -307,6 +307,16 @@ function CHECK_CLUSTER_MEMBER(session, is_primary_member, primary_cluster, value
   }
 }
 
+function is_ssl_enabled() {
+  var query = "";
+  if (__version_num >= 80021) {
+    query = "SELECT value FROM performance_schema.tls_channel_status WHERE channel='mysql_main' AND property = 'Enabled'";
+  } else {
+    query = "SELECT @@have_ssl";
+  }
+  return session.runSql(query).fetchOne()[0].toUpperCase();
+}
+
 function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
   var view_change_uuid;
 
@@ -382,7 +392,7 @@ function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
     }
 
     // Check if instance supports SSL or not
-    var have_ssl = session.runSql("SELECT @@have_ssl").fetchOne()[0];
+    var have_ssl = is_ssl_enabled();
 
     // check metadata consistency
     var res = session.runSql("select async_topology_type, clusterset_id, domain_name, attributes->>'$.opt_clusterSetReplicationSslMode' as ssl_mode, router_options->>'$.target_cluster' as target_cluster, router_options->>'$.invalidated_cluster_policy' as invalidated_cluster_policy from mysql_innodb_cluster_metadata.v2_cs_clustersets");

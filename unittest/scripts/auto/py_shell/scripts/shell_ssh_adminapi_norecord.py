@@ -50,7 +50,7 @@ except OSError as e:
     print ("Error: %s - %s." % (e.filename, e.strerror))
 os.makedirs(test_dir)
 
-dba.deploy_sandbox_instance(__mysql_sandbox_port1, {"password": "root", "sandboxDir": test_dir})
+dba.deploy_sandbox_instance(__mysql_sandbox_port1, {"password": "root", "sandboxDir": test_dir, "mysqldOptions": ["require_secure_transport=OFF"]})
 dba.stop_sandbox_instance(__mysql_sandbox_port1, {"password": "root", "sandboxDir": test_dir})
 dba.start_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": test_dir})
 dba.kill_sandbox_instance(__mysql_sandbox_port1, {"sandboxDir": test_dir})

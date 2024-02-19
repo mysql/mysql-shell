@@ -1,3 +1,4 @@
+//@ {VER(<8.0.24)}
 // Various negative test cases for createCluster()
 
 //@<> Initialize

@@ -261,6 +261,9 @@ TEST_F(Admin_api_common_test, resolve_cluster_ssl_mode_on_instance_with_ssl) {
 TEST_F(Admin_api_common_test,
        resolve_cluster_ssl_mode_on_instance_without_ssl) {
   if (!Shell_test_env::check_min_version_skip_test()) return;
+  if (!Shell_test_env::check_max_version_skip_test(
+          true, mysqlshdk::utils::Version(8, 3, 0)))
+    return;
 
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root");
   disable_ssl_on_instance(_mysql_sandbox_ports[0], "unsecure");
@@ -377,21 +380,23 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
     ADD_FAILURE();
   }
 
-  peer->execute("SET GLOBAL group_replication_ssl_mode=REQUIRED");
-  disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
-  instance = create_session(_mysql_sandbox_ports[1], "unsecure");
+  if (_target_server_version < mysqlshdk::utils::Version(8, 4, 0)) {
+    peer->execute("SET GLOBAL group_replication_ssl_mode=REQUIRED");
+    disable_ssl_on_instance(_mysql_sandbox_ports[1], "unsecure");
+    instance = create_session(_mysql_sandbox_ports[1], "unsecure");
 
-  // Cluster SSL memberSslMode Instance SSL
-  //----------- ------------- ------------
-  // REQUIRED    AUTO          disabled
-  EXPECT_THROW_MSG(
-      mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer),
-      std::runtime_error,
-      "Instance '" + instance->descr() +
-          "' does not support TLS and cannot join a cluster with "
-          "TLS (encryption) enabled. Enable TLS support on the "
-          "instance and try again, otherwise it can only be added "
-          "to a cluster with TLS disabled.");
+    // Cluster SSL memberSslMode Instance SSL
+    //----------- ------------- ------------
+    // REQUIRED    AUTO          disabled
+    EXPECT_THROW_MSG(
+        mysqlsh::dba::resolve_instance_ssl_mode_option(*instance, *peer),
+        std::runtime_error,
+        "Instance '" + instance->descr() +
+            "' does not support TLS and cannot join a cluster with "
+            "TLS (encryption) enabled. Enable TLS support on the "
+            "instance and try again, otherwise it can only be added "
+            "to a cluster with TLS disabled.");
+  }
 
   testutil->destroy_sandbox(_mysql_sandbox_ports[0]);
   testutil->destroy_sandbox(_mysql_sandbox_ports[1]);
@@ -399,6 +404,9 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
 TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
   if (!Shell_test_env::check_min_version_skip_test()) return;
+  if (!Shell_test_env::check_max_version_skip_test(
+          true, mysqlshdk::utils::Version(8, 3, 0)))
+    return;
 
   shcore::Dictionary_t sandbox_opts = shcore::make_dict();
   (*sandbox_opts)["report_host"] = shcore::Value(hostname());

@@ -195,7 +195,7 @@ session2.runSql("GRANT BACKUP_ADMIN ON *.* TO foo@'%'");
 session2.runSql("GRANT GROUP_REPLICATION_STREAM ON *.* TO foo@'%'");
 session2.runSql("FLUSH PRIVILEGES");
 session2.runSql("SET sql_log_bin=1");
-session2.runSql("CHANGE MASTER TO MASTER_USER='foo', MASTER_PASSWORD='password' FOR CHANNEL 'group_replication_recovery'");
+session2.runSql("CHANGE " + get_replication_source_keyword() + " TO " + get_replication_source_keyword(__version_num, "SOURCE_USER") + "='foo', " + get_replication_source_keyword(__version_num, "SOURCE_PASSWORD") + "='password' FOR CHANNEL 'group_replication_recovery'");
 
 session.runSql("CREATE USER IF NOT EXISTS foo@'%' IDENTIFIED BY 'password'");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO foo@'%'");
