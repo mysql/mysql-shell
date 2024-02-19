@@ -30,10 +30,10 @@
     RequiredVersion="4.0.1">
 
     <Package ProductCode="$(var.CPACK_WIX_PRODUCT_GUID)"
-        Name="$(var.CPACK_PACKAGE_NAME)"
+        Name="MySQL Shell"
         Language="1033"
         Version="$(var.CPACK_PACKAGE_VERSION)"
-        Manufacturer="$(var.CPACK_PACKAGE_VENDOR)"
+        Manufacturer="Oracle Corporation"
         UpgradeCode="$(var.CPACK_WIX_UPGRADE_GUID)"
         InstallerVersion="301"
         Scope="perMachine">

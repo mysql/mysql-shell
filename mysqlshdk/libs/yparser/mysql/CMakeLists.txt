@@ -180,6 +180,11 @@ function(create_parser_plugin)
         list(APPEND PLUGIN_SOURCES "${OUTPUT_DIR}/${FILENAME}")
     endforeach()
 
+    if(WIN32)
+        generate_rc_file(NAME "${PLUGIN_NAME}.dll" DESCRIPTION "Parser of MySQL ${ARG_VERSION} grammar." OUTPUT_DIR "${OUTPUT_DIR}" OUT_RC_FILE RC_FILE)
+        list(APPEND PLUGIN_SOURCES "${RC_FILE}")
+    endif()
+
     # create the plugin
     add_library(${PLUGIN_NAME} MODULE ${MYSQL_SOURCES} ${PLUGIN_SOURCES})
     target_compile_definitions(${PLUGIN_NAME} PRIVATE
@@ -264,9 +269,12 @@ if(WIN32)
         DEPENDS "${EXTRACT_SYMBOLS}" ${mysql_deps_STATIC_LIBS}
     )
 
+    generate_rc_file(NAME "mysql_deps.dll" DESCRIPTION "MySQL libraries - dependencies of parsers." OUT_RC_FILE RC_FILE)
+
     set(mysql_deps_SOURCES
         yacc/mysql_deps.cc
         "${mysql_deps_DEF}"
+        "${RC_FILE}"
     )
 
     add_library(mysql_deps SHARED ${mysql_deps_SOURCES})

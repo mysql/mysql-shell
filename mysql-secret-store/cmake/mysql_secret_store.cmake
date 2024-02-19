@@ -37,6 +37,14 @@ function(add_helper_executable)
     ${helper_src}
   )
 
+  if(WIN32)
+    generate_rc_file(NAME "${exec_name}.exe" DESCRIPTION "Secret store helper - ${helper_name}." OUT_RC_FILE RC_FILE)
+    set(exec_src
+      ${exec_src}
+      "${RC_FILE}"
+    )
+  endif()
+
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
   include_directories(BEFORE

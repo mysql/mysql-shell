@@ -78,17 +78,17 @@ if(WIN32)
   # - Define the icon to be used on the application.
   # - Define the version information to be shown while looking at the file
   # properties.
-  SET(MYSH_FILE_TYPE "VFT_APP")
-  SET(MYSH_PRODUCT_NAME "MySQL Shell")
-  SET(MYSH_ORIGINAL_FILE_NAME "mysqlsh.exe")
-  SET(MYSH_FILE_DESCRIPTION "MySQL Shell")
-  CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlsh.rc @ONLY)
-  set_source_files_properties("${SYSLOG_EVENT_RC}" PROPERTIES GENERATED TRUE)
+  generate_rc_file(NAME "mysqlsh.exe" DESCRIPTION "Advanced client and code editor for MySQL." OUT_RC_FILE RC_FILE)
   set(mysqlsh_SRC
       "${mysqlsh_SRC}"
-      "${CMAKE_BINARY_DIR}/mysqlsh.rc"
+      "${RC_FILE}"
+  )
+
+  # syslog event
+  set(mysqlsh_SRC
+      "${mysqlsh_SRC}"
       "${SYSLOG_EVENT_RC}"
-      )
+  )
 endif()
 
 add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
