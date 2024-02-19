@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,14 @@ function(add_helper_executable)
     client.cc
     ${helper_src}
   )
+
+  if(WIN32)
+    generate_rc_file(NAME "${exec_name}.exe" DESCRIPTION "Secret store helper - ${helper_name}." OUT_RC_FILE RC_FILE)
+    set(exec_src
+      ${exec_src}
+      "${RC_FILE}"
+    )
+  endif()
 
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 

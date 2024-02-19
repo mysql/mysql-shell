@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -172,4 +172,33 @@ function(install_bundled_binaries)
   add_custom_command(TARGET ${INSTALL_BUNDLED_TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DESTINATION_BINARY_DIR}"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${INSTALL_BUNDLED_BINARIES} "${DESTINATION_BINARY_DIR}")
+endfunction()
+
+function(generate_rc_file)
+  set(options)
+  set(oneValueArgs NAME DESCRIPTION OUTPUT_DIR OUT_RC_FILE)
+  set(multiValueArgs)
+  cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  set(MYSH_ORIGINAL_FILE_NAME "${ARG_NAME}")
+  get_filename_component(MYSH_INTERNAL_NAME "${ARG_NAME}" NAME_WLE)
+  set(MYSH_FILE_DESCRIPTION "${ARG_DESCRIPTION}")
+
+  get_filename_component(_ext "${ARG_NAME}" LAST_EXT)
+
+  if(_ext STREQUAL ".exe")
+    set(MYSH_FILE_TYPE "VFT_APP")
+  elseif(_ext STREQUAL ".dll")
+    set(MYSH_FILE_TYPE "VFT_DLL")
+  else()
+    message(FATAL_ERROR "Unsupported file type: ${_ext}")
+  endif()
+
+  if(NOT ARG_OUTPUT_DIR)
+    set(ARG_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  endif()
+
+  set(_rc_file "${ARG_OUTPUT_DIR}/${MYSH_INTERNAL_NAME}.rc")
+  configure_file("${PROJECT_SOURCE_DIR}/res/resource.rc.in" "${_rc_file}" @ONLY)
+  set(${ARG_OUT_RC_FILE} "${_rc_file}" PARENT_SCOPE)
 endfunction()

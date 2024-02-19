@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -75,18 +75,7 @@ if(WIN32)
   remove_definitions(-DUNICODE)
 endif()
 
-if(WIN32)
-  set(MYSH_FILE_TYPE "VFT_DLL")
-  set(MYSH_PRODUCT_NAME "MySQL Shell Core Library")
-  set(MYSH_ORIGINAL_FILE_NAME "mysqlshcore.dll")
-  set(MYSH_FILE_DESCRIPTION "MySQL Shell Core Library")
-  configure_file(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlshcore.rc @ONLY)
-
-  set(SHELLCORE_DLL_SOURCES
-        "${CMAKE_BINARY_DIR}/mysqlshcore.rc")
-endif()
-
-add_convenience_library(shellcore ${SHELLCORE_SOURCES} ${SHELLCORE_DLL_SOURCES})
+add_convenience_library(shellcore ${SHELLCORE_SOURCES})
 
 add_convenience_library(shellcore-minimal ${SHELLCORE_MINIMAL_SOURCES})
 
