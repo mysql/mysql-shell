@@ -180,6 +180,41 @@ testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 
 CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
 
+//@<> reboot fom a read-replica must switch or fail if explicitly picked
+
+//make sure that the read-replica is cloned
+cluster.removeInstance(__sandbox_uri4);
+
+EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint1}); });
+EXPECT_OUTPUT_CONTAINS(`NOTE: ${hostname}:${__mysql_sandbox_port4} is being cloned from ${hostname}:${__mysql_sandbox_port1}`);
+
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
+
+testutil.stopGroup([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
+
+shell.connect(__sandbox_uri1);
+
+EXPECT_THROWS(function(){
+    cluster = dba.rebootClusterFromCompleteOutage("cluster", {primary:`${hostname}:${__mysql_sandbox_port5}`});
+}, `The requested instance '${hostname}:${__mysql_sandbox_port5}' isn't part of the members of the Cluster.`);
+
+EXPECT_THROWS(function(){
+    cluster = dba.rebootClusterFromCompleteOutage("cluster", {primary:`${hostname}:${__mysql_sandbox_port4}`});
+}, "The seed instance is invalid because it's a Read-Replica instance.");
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (OFFLINE), '${hostname}:${__mysql_sandbox_port2}' (OFFLINE), '${hostname}:${__mysql_sandbox_port3}' (OFFLINE)`);
+EXPECT_OUTPUT_CONTAINS(`The requested instance '${hostname}:${__mysql_sandbox_port4}' cannot be used as the new seed because it's a Read-Replica. Select an appropriate instance with the 'primary' option, or, let the command select the most appropriate one by not using the option.`);
+
+shell.connect(__sandbox_uri4);
+
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
+EXPECT_OUTPUT_NOT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (OFFLINE), '${hostname}:${__mysql_sandbox_port2}' (OFFLINE), '${hostname}:${__mysql_sandbox_port3}' (OFFLINE), '${hostname}:${__mysql_sandbox_port4}' (OFFLINE)`);
+EXPECT_OUTPUT_CONTAINS(`Cluster instances: '${hostname}:${__mysql_sandbox_port1}' (OFFLINE), '${hostname}:${__mysql_sandbox_port2}' (OFFLINE), '${hostname}:${__mysql_sandbox_port3}' (OFFLINE)`);
+EXPECT_OUTPUT_CONTAINS(`Switching over to instance '${hostname}:${__mysql_sandbox_port1}' to be used as seed because the target instance '${hostname}:${__mysql_sandbox_port4}' is a Read-Replica.`)
+
+CHECK_READ_REPLICA(__sandbox_uri4, cluster, "primary", __endpoint1);
+
+shell.connect(__sandbox_uri1);
 reset_read_replica(__sandbox_uri4, cluster);
 
 //@<> .addReplicaInstance() with the target instance being a former InnoDB Cluster member
