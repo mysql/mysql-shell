@@ -85,6 +85,7 @@ if(WIN32)
   )
 
   # syslog event
+  set_source_files_properties("${SYSLOG_EVENT_RC}" PROPERTIES GENERATED TRUE)
   set(mysqlsh_SRC
       "${mysqlsh_SRC}"
       "${SYSLOG_EVENT_RC}"
