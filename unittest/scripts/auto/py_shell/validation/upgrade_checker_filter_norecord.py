@@ -182,8 +182,12 @@ Excluded:
   Checks for user privileges that will be removed
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- partitionsWithPrefixKeys
+  Checks for partitions by key using columns with prefix key indexes
+  Condition: When the upgrade reaches any of the following versions: 8.4.0
+
 Included: 1
-Excluded: 40
+Excluded: 41
 
 
 #@<OUT> WL15974-TSFR_3_3_2
@@ -368,10 +372,15 @@ Included:
   Checks for user privileges that will be removed
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- partitionsWithPrefixKeys
+  Checks for partitions by key using columns with prefix key indexes
+  Condition: When the upgrade reaches any of the following versions: 8.4.0
+
 Excluded:
   Empty.
 
-Included: 41
+Included: 42
+
 
 #@<OUT> warning about excluded checks
 [[*]]WARNING: The following checks were excluded (per user request):

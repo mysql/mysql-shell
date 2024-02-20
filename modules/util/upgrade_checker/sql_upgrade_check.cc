@@ -88,15 +88,53 @@ void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
 Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
   Upgrade_issue problem;
   auto fields_count = row->num_fields();
+  std::string issue_details;
   problem.schema = row->get_as_string(0);
   if (fields_count > 2) problem.table = row->get_as_string(1);
   if (fields_count > 3) problem.column = row->get_as_string(2);
   if (fields_count > 1) {
-    problem.description = row->get_as_string(3 - (4 - fields_count));
-    if (shcore::str_beginswith(problem.description, "##")) {
-      problem.description = get_text(problem.description.substr(2).c_str());
-    }
+    issue_details = row->get_as_string(3 - (4 - fields_count));
   }
+
+  // If the issue details start with ##, it is interpreted as a token to be
+  // resolved from the messages file
+  if (shcore::str_beginswith(issue_details, "##")) {
+    problem.description = get_text(issue_details.substr(2).c_str());
+  } else {
+    // Otherwise tries to get a generic issue description defined in the
+    // messages file
+    problem.description = get_text("issue");
+  }
+
+  // The description was loaded from the messages file, so token resolution is
+  // performed
+  if (!problem.description.empty()) {
+    Token_definitions tokens;
+    if (!problem.schema.empty()) {
+      tokens["schema"] = problem.schema;
+    }
+
+    if (!problem.table.empty()) {
+      tokens["table"] = problem.table;
+    }
+
+    if (!problem.column.empty()) {
+      tokens["column"] = problem.column;
+    }
+
+    if (!issue_details.empty()) {
+      tokens["details"] = std::move(issue_details);
+    }
+
+    tokens["level"] = Upgrade_issue::level_to_string(get_level());
+
+    problem.description = resolve_tokens(problem.description, tokens);
+  } else {
+    // Otherwise issue_details is taken as the description itself (backward
+    // compatibility)
+    problem.description = std::move(issue_details);
+  }
+
   problem.level = m_level;
 
   return problem;

@@ -284,6 +284,11 @@ bool UNUSED_VARIABLE(register_invalid_privileges_check) =
     Upgrade_check_registry::register_check(&get_invalid_privileges_check,
                                            Target::PRIVILEGES, "8.4.0");
 
+bool UNUSED_VARIABLE(register_gget_partitions_with_prefix_keys_check) =
+    Upgrade_check_registry::register_check(
+        &get_partitions_with_prefix_keys_check, Target::OBJECT_DEFINITIONS,
+        "8.4.0");
+
 }  // namespace
 
 Upgrade_check_registry::Upgrade_check_vec
