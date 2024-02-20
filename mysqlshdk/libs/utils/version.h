@@ -30,6 +30,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace mysqlshdk {
 namespace utils {
@@ -128,6 +129,12 @@ inline const Version k_shell_version = Version(MYSH_VERSION);
  * @returns difference between major versions
  */
 int major_version_difference(const Version &source, const Version &target);
+
+/**
+ * Returns all versions which were current when the given version was released,
+ * sorted in ascending order.
+ */
+std::vector<Version> corresponding_versions(Version version);
 
 }  // namespace utils
 }  // namespace mysqlshdk
