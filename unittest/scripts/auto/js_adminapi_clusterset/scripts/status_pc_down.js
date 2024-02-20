@@ -6,14 +6,12 @@
 
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname});
-// testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host:hostname});
 testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host:hostname});
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
-// session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
 session5 = mysql.getSession(__sandbox_uri5);
 session6 = mysql.getSession(__sandbox_uri6);
@@ -345,14 +343,20 @@ EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreachable instances that could still be ONLINE."], cluster2(s)["clusterErrors"]);
 
-EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
-} else {
+} else if (cluster3(s)["clusterSetReplicationStatus"] == "CONNECTING") {
+EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("CONNECTING", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
+} else {
+EXPECT_EQ("OK_NOT_REPLICATING", cluster3(s)["globalStatus"]);
+EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
+EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 }
 
 s = cs.status({extended:1});
@@ -368,18 +372,20 @@ EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
-EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
 EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
-} else {
+} else if (cluster3(s)["clusterSetReplicationStatus"] == "CONNECTING") {
 EXPECT_EQ("CONNECTING", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
+} else {
+EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
+EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 }
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
-
-
 
 //@<> Both PC and RC OFFLINE
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -388,6 +394,10 @@ testutil.startSandbox(__mysql_sandbox_port5);
 
 // from the remaining ONLINE cluster
 shell.connect(__sandbox_uri6);
+
+wait_channel_ready(session, __mysql_sandbox_port1, "clusterset_replication");
+wait_channel_ready(session, __mysql_sandbox_port2, "clusterset_replication");
+
 cs = dba.getClusterSet();
 c3 = dba.getCluster()
 
@@ -472,7 +482,6 @@ cs.describe();
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-// testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
 testutil.destroySandbox(__mysql_sandbox_port6);
