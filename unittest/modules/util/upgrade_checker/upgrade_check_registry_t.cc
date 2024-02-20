@@ -97,6 +97,7 @@ TEST(Upgrade_check_registry, messages) {
   additional_checks[ids::k_column_definition] = {
       false, {"floatAutoIncrement", "doubleAutoIncrement"}};
   additional_checks[ids::k_invalid_privileges_check] = {false, {}};
+  additional_checks[ids::k_partitions_with_prefix_keys] = {true, {"issue"}};
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();
@@ -227,7 +228,8 @@ TEST(Upgrade_check_registry, create_checklist) {
       {Version(8, 0, 29), {ids::k_deprecated_temporal_delimiter_check}},
       {Version(8, 0, 31), {ids::k_dollar_sign_name_check}},
       {Version(8, 4, 0),
-       {ids::k_column_definition, ids::k_invalid_privileges_check}}};
+       {ids::k_column_definition, ids::k_invalid_privileges_check,
+        ids::k_partitions_with_prefix_keys}}};
 
   auto v5_7_0 = Version(5, 7, 0);
   for (const auto &version_check : single_version_checks) {

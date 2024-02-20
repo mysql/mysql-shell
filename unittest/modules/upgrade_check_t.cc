@@ -2879,5 +2879,128 @@ TEST_F(MySQL_upgrade_check_test, options_filter_json) {
   }
 }
 
+TEST_F(MySQL_upgrade_check_test, partitions_with_prefix_keys) {
+  info.server_version = Version(8, 0, 3);
+  info.target_version = mysqlshdk::utils::k_shell_version;
+
+  auto check = get_partitions_with_prefix_keys_check(info);
+
+  auto msession = std::make_shared<testing::Mock_session>();
+  msession
+      ->expect_query(
+          "SELECT s.table_schema, s.table_name, group_concat(distinct "
+          "s.column_name) AS COLUMNS FROM information_schema.statistics s "
+          "INNER JOIN information_schema.partitions p ON s.table_schema = "
+          "p.table_schema AND s.table_name = p.table_name WHERE s.sub_part IS "
+          "NOT NULL AND p.partition_method='KEY' AND "
+          "(INSTR(p.partition_expression,CONCAT('`',s.column_name,'`'))>0 OR "
+          "p.partition_expression IS NULL) GROUP BY s.table_schema, "
+          "s.table_name")
+      .then({"TABLE_SCHEMA", "TABLE_NAME", "COLUMNS"})
+      .add_row({"myschema", "mytable1", "col1,col2"})
+      .add_row({"myschema", "mytable2", "col3,col4"});
+
+  issues = check->run(msession, info);
+
+  EXPECT_STREQ("myschema", issues[0].schema.c_str());
+  EXPECT_STREQ("mytable1", issues[0].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`mytable1` table uses partition by KEY using the "
+      "following columns with prefix index: col1,col2.",
+      issues[0].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[0].level);
+
+  EXPECT_STREQ("myschema", issues[1].schema.c_str());
+  EXPECT_STREQ("mytable2", issues[1].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`mytable2` table uses partition by KEY using the "
+      "following columns with prefix index: col3,col4.",
+      issues[1].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[0].level);
+}
+
+TEST_F(MySQL_upgrade_check_test, partitions_with_prefix_keys_57) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 3, 0));
+
+  PrepareTestDatabase("myschema");
+
+  // Some invalid partitions by key
+  session->execute(
+      "CREATE TABLE t1 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, PRIMARY KEY (f1(10),f2,f3(2))) PARTITION BY KEY "
+      "()");
+  session->execute(
+      "CREATE TABLE t2 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1(10),f2,f3(2))) PARTITION BY KEY (f1)");
+  session->execute(
+      "CREATE TABLE t3 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1(10),f2,f3(2))) PARTITION BY KEY (f1, "
+      "f2,f3)");
+  session->execute(
+      "CREATE TABLE t4 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1(10),f2,f3(2))) PARTITION BY KEY (f1, f2)");
+
+  // Some valid partitions by key
+  session->execute(
+      "CREATE TABLE t6 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, PRIMARY KEY (f1(10),f2,f3(2))) PARTITION BY KEY "
+      "(f2)");
+  session->execute(
+      "CREATE TABLE t7 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1(10),f2,f3(2))) PARTITION BY KEY (f2)");
+  session->execute(
+      "CREATE TABLE t8 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, PRIMARY KEY (f1,f2,f3)) PARTITION BY KEY ()");
+  session->execute(
+      "CREATE TABLE t9 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1,f2,f3)) PARTITION BY KEY (f1, f2)");
+  session->execute(
+      "CREATE TABLE t10 (f1 varchar(100) NOT NULL, f2 varchar(25) NOT NULL, f3 "
+      "varchar(10) NOT NULL, KEY (f1,f2,f3)) PARTITION BY KEY (f1, f2,f3)");
+
+  shcore::on_leave_scope cleanup(
+      [&]() { session->execute("drop schema myschema"); });
+
+  info.server_version = Version(5, 7, 44);
+  info.target_version = mysqlshdk::utils::k_shell_version;
+
+  auto check = get_partitions_with_prefix_keys_check(info);
+
+  issues = check->run(session, info);
+  EXPECT_EQ(4, issues.size());
+
+  EXPECT_STREQ("myschema", issues[0].schema.c_str());
+  EXPECT_STREQ("t1", issues[0].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`t1` table uses partition by KEY using the "
+      "following columns with prefix index: f1,f3.",
+      issues[0].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[0].level);
+
+  EXPECT_STREQ("myschema", issues[1].schema.c_str());
+  EXPECT_STREQ("t2", issues[1].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`t2` table uses partition by KEY using the "
+      "following columns with prefix index: f1.",
+      issues[1].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[1].level);
+
+  EXPECT_STREQ("myschema", issues[2].schema.c_str());
+  EXPECT_STREQ("t3", issues[2].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`t3` table uses partition by KEY using the "
+      "following columns with prefix index: f1,f3.",
+      issues[2].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[2].level);
+
+  EXPECT_STREQ("myschema", issues[3].schema.c_str());
+  EXPECT_STREQ("t4", issues[3].table.c_str());
+  EXPECT_STREQ(
+      "Error: the `myschema`.`t4` table uses partition by KEY using the "
+      "following columns with prefix index: f1.",
+      issues[3].description.c_str());
+  EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[3].level);
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

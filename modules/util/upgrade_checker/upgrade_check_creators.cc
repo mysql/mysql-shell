@@ -1450,6 +1450,31 @@ std::unique_ptr<Sql_upgrade_check> get_column_definition_check() {
       Upgrade_issue::ERROR);
 }
 
+std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
+    const Upgrade_info &info) {
+  // Conditions on partition expression
+  std::vector<std::string> pe_conditions = {
+      "INSTR(p.partition_expression,CONCAT('`',s.column_name,'`'))>0",
+      "p.partition_expression IS NULL"};
+
+  if (info.server_version < Version(8, 0, 0)) {
+    pe_conditions.push_back("p.partition_expression = ''");
+  }
+
+  return std::make_unique<Sql_upgrade_check>(
+      ids::k_partitions_with_prefix_keys,
+      std::vector<std::string>{
+          "SELECT s.table_schema, s.table_name, group_concat(distinct "
+          "s.column_name) AS COLUMNS FROM information_schema.statistics s "
+          "INNER JOIN information_schema.partitions p ON s.table_schema = "
+          "p.table_schema AND s.table_name = p.table_name WHERE s.sub_part IS "
+          "NOT NULL AND p.partition_method='KEY' AND "
+          "(" +
+          shcore::str_join(pe_conditions, " OR ") +
+          ") GROUP BY s.table_schema, s.table_name"},
+      Upgrade_issue::ERROR);
+}
+
 std::unique_ptr<Upgrade_check> get_sys_var_allowed_values_check(
     const Upgrade_info &info) {
   return std::make_unique<Sys_var_allowed_values_check>(info);

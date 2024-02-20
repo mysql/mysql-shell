@@ -111,6 +111,8 @@ inline constexpr std::string_view k_sysvar_allowed_values_check =
 inline constexpr std::string_view k_invalid_privileges_check =
     "invalidPrivileges";
 inline constexpr std::string_view k_column_definition = "columnDefinition";
+inline constexpr std::string_view k_partitions_with_prefix_keys =
+    "partitionsWithPrefixKeys";
 
 // NOTE: Every added id should be included here
 extern const std::set<std::string_view> all;
