@@ -25,17 +25,16 @@
  * 02110-1301  USA
  */
 
-#include <cctype>
-#include <fstream>
-#include <string>
-
 #include "mysqlshdk/libs/utils/version.h"
+
 #include "unittest/gtest_clean.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
-namespace ngcommon {
-namespace tests {
+namespace mysqlshdk {
+namespace utils {
+namespace {
 
-using mysqlshdk::utils::Version;
+using testing::ElementsAre;
 
 TEST(Version, version_parsing) {
   // Full version
@@ -137,15 +136,77 @@ TEST(Version, version_parsing) {
     ASSERT_FALSE(Version("1.0.0") != Version("1"));
   }
 
-  ASSERT_ANY_THROW(mysqlshdk::utils::Version("-uno-dos"));
-  ASSERT_ANY_THROW(mysqlshdk::utils::Version("5..2-uno-dos"));
-  ASSERT_ANY_THROW(mysqlshdk::utils::Version("5.2.-uno-dos"));
-  ASSERT_ANY_THROW(mysqlshdk::utils::Version("5.2.A-uno-dos"));
+  ASSERT_ANY_THROW(Version("-uno-dos"));
+  ASSERT_ANY_THROW(Version("5..2-uno-dos"));
+  ASSERT_ANY_THROW(Version("5.2.-uno-dos"));
+  ASSERT_ANY_THROW(Version("5.2.A-uno-dos"));
 
   EXPECT_EQ(80000, Version("8.0.0").numeric());
   EXPECT_EQ(10203, Version("1.2.3").numeric());
   EXPECT_EQ(12345, Version("1.23.45").numeric());
 }
 
-}  // namespace tests
-}  // namespace ngcommon
+TEST(Version, corresponding_versions) {
+  EXPECT_THAT(corresponding_versions(Version(8, 1, 0)),
+              ElementsAre(Version(8, 0, 34), Version(8, 1, 0)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 1, 1)),
+              ElementsAre(Version(8, 0, 34), Version(8, 1, 1)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 2, 0)),
+              ElementsAre(Version(8, 0, 35), Version(8, 2, 0)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 2, 1)),
+              ElementsAre(Version(8, 0, 35), Version(8, 2, 1)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 4, 0)),
+              ElementsAre(Version(8, 0, 37), Version(8, 4, 0)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 4, 1)),
+              ElementsAre(Version(8, 0, 38), Version(8, 4, 1)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 0, 0)),
+      ElementsAre(Version(8, 0, 38), Version(8, 4, 1), Version(9, 0, 0)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 0, 1)),
+      ElementsAre(Version(8, 0, 38), Version(8, 4, 1), Version(9, 0, 1)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 1, 0)),
+      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 1, 0)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 1, 1)),
+      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 1, 1)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 7, 0)),
+      ElementsAre(Version(8, 0, 45), Version(8, 4, 8), Version(9, 7, 0)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 7, 1)),
+      ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1)));
+
+  EXPECT_THAT(corresponding_versions(Version(10, 0, 0)),
+              ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1),
+                          Version(10, 0, 0)));
+
+  EXPECT_THAT(corresponding_versions(Version(10, 0, 1)),
+              ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1),
+                          Version(10, 0, 1)));
+
+  EXPECT_THAT(corresponding_versions(Version(10, 7, 0)),
+              ElementsAre(Version(8, 0, 53), Version(8, 4, 16),
+                          Version(9, 7, 8), Version(10, 7, 0)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(11, 0, 0)),
+      ElementsAre(Version(8, 0, 54), Version(8, 4, 17), Version(9, 7, 9),
+                  Version(10, 7, 1), Version(11, 0, 0)));
+}
+
+}  // namespace
+}  // namespace utils
+}  // namespace mysqlshdk

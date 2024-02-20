@@ -25,8 +25,15 @@
 
 #include "mysqlshdk/libs/utils/version.h"
 
+#include <algorithm>
+#include <cassert>
 #include <charconv>
+#include <map>
 #include <stdexcept>
+#include <utility>
+#include <vector>
+
+#include <iostream>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -194,6 +201,44 @@ int major_version_difference(const Version &source, const Version &target) {
   };
 
   return major_version(target) - major_version(source);
+}
+
+std::vector<Version> corresponding_versions(Version version) {
+  // first innovation release
+  assert(version >= Version(8, 1, 0));
+  // LTS releases are 8.4.0, then X.7.0
+  assert((version.get_major() == 8 && version.get_minor() <= 4) ||
+         (version.get_major() > 8 && version.get_minor() <= 7));
+
+  // number of releases so far
+  int releases = (version.get_major() == 8)
+                     ? version.get_minor() +
+                           (version.get_minor() < 4 ? 0 : version.get_patch())
+                     : 1 + version.get_minor() +
+                           (version.get_minor() < 7 ? 0 : version.get_patch());
+
+  std::vector<Version> result;
+  result.emplace_back(std::move(version));
+
+  while (true) {
+    const auto &prev = result.back();
+
+    if (prev.get_major() == 8) {
+      result.emplace_back(8, 0, 33 + releases);
+      break;
+    } else if (prev.get_major() == 9) {
+      result.emplace_back(8, 4, releases);
+      // three innovation releases + LTS
+      releases += 4;
+    } else {
+      result.emplace_back(prev.get_major() - 1, 7, releases);
+      // seven innovation releases + LTS
+      releases += 8;
+    }
+  }
+
+  std::reverse(result.begin(), result.end());
+  return result;
 }
 
 }  // namespace utils

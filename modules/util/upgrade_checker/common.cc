@@ -25,14 +25,14 @@
 
 #include "modules/util/upgrade_checker/common.h"
 
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
-
+#include <set>
 #include <sstream>
+#include <unordered_set>
 #include <utility>
 
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_translate.h"
@@ -88,12 +88,40 @@ const std::set<std::string_view> all = {
     k_column_definition,
     k_partitions_with_prefix_keys};
 
+}  // namespace ids
+
+namespace {
+
+std::unordered_map<std::string, Version> generate_mapping() {
+  std::unordered_map<std::string, Version> result;
+  int major;
+
+  for (auto &ver : mysqlshdk::utils::corresponding_versions(
+           mysqlshdk::utils::k_shell_version)) {
+    major = ver.get_major();
+
+    if (major == 8) {
+      // 8 series had two LTS releases
+      auto key = std::to_string(major);
+      key += '.';
+      key += std::to_string(ver.get_minor());
+
+      result.emplace(std::move(key), ver);
+    }
+
+    if (major > 8 || ver.get_minor() > 0) {
+      // major version corresponds to the latest release in series
+      auto key = std::to_string(major);
+      result.emplace(std::move(key), std::move(ver));
+    }
+  }
+
+  return result;
 }
 
-std::unordered_map<std::string, Version> k_latest_versions = {
-    {"8", Version(MYSH_VERSION)},  // If 8 is given, latest version
-                                   // is the current shell version
-    {"8.0", Version(LATEST_MYSH_80_VERSION)}};
+}  // namespace
+
+std::unordered_map<std::string, Version> k_latest_versions = generate_mapping();
 
 void Upgrade_info::validate(bool listing) const {
   if (!listing || server_version) {
