@@ -597,18 +597,32 @@ TEST(Upgrade_check_cache, get_schema_filter) {
 }
 
 TEST(Upgrade_check_options, set_target_version) {
+  using mysqlshdk::utils::corresponding_versions;
+  using mysqlshdk::utils::k_shell_version;
+
   Upgrade_check_options options;
-  options.set_target_version("9");
-  EXPECT_EQ(Version(MYSH_VERSION), options.target_version);
 
-  options.set_target_version("8");
-  EXPECT_EQ(Version(LATEST_MYSH_84_VERSION), options.target_version);
+  options.set_target_version(std::to_string(k_shell_version.get_major()));
+  EXPECT_EQ(k_shell_version, options.target_version);
 
-  options.set_target_version("8.4");
-  EXPECT_EQ(Version(LATEST_MYSH_84_VERSION), options.target_version);
+  for (const auto &expected : corresponding_versions(k_shell_version)) {
+    if (expected > Version(8, 1, 0)) {
+      const auto target = std::to_string(expected.get_major());
+      options.set_target_version(target);
+      EXPECT_EQ(expected, options.target_version);
 
-  options.set_target_version("8.0");
-  EXPECT_EQ(Version(LATEST_MYSH_80_VERSION), options.target_version);
+      std::cout << target << " -> " << expected.get_base() << std::endl;
+    }
+
+    if (expected < Version(9, 0, 0)) {
+      const auto target = std::to_string(expected.get_major()) + "." +
+                          std::to_string(expected.get_minor());
+      options.set_target_version(target);
+      EXPECT_EQ(expected, options.target_version);
+
+      std::cout << target << " -> " << expected.get_base() << std::endl;
+    }
+  }
 
   options.set_target_version("8.1");
   EXPECT_EQ(Version(8, 1, 0), options.target_version);
@@ -865,7 +879,7 @@ END)*",
       END)*",
       R"*(CREATE TRIGGER mytrigger_ok BEFORE INSERT ON testbl
        FOR EACH ROW
-      BEGIN 
+      BEGIN
         DECLARE `rows` INT DEFAULT 0;
         DECLARE `ROW` INT DEFAULT 4;
       END)*",
