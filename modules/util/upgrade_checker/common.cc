@@ -91,8 +91,10 @@ const std::set<std::string_view> all = {
 }
 
 std::unordered_map<std::string, Version> k_latest_versions = {
-    {"8", Version(MYSH_VERSION)},  // If 8 is given, latest version
-                                   // is the current shell version
+    {"9", Version(MYSH_VERSION)},  // If 9 is given, latest version is the
+                                   // current shell version
+    {"8", Version(LATEST_MYSH_84_VERSION)},
+    {"8.4", Version(LATEST_MYSH_84_VERSION)},
     {"8.0", Version(LATEST_MYSH_80_VERSION)}};
 
 void Upgrade_info::validate() const {

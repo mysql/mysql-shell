@@ -1,4 +1,4 @@
-#@ {DEF(MYSQLD57_PATH)}
+#@ {DEF(MYSQLD57_PATH) and VER(<9.0.0)}
 # Tests where dump is generated in one version and loaded in another
 
 

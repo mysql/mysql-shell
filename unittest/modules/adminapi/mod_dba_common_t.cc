@@ -1313,10 +1313,10 @@ TEST(mod_dba_common, is_option_supported) {
   // else just save the result for further testing
   EXPECT_THROW_LIKE(
       mysqlsh::dba::is_option_supported(
-          Version(9, 0, 0), mysqlsh::dba::kExitStateAction,
+          Version(100, 0, 0), mysqlsh::dba::kExitStateAction,
           mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
-      "Unexpected version found for option support check: '9.0.0'.");
+      "Unexpected version found for option support check: '100.0.0'.");
 
   // testing the result of exit-state action case since it has requirements
   // for 8.0 MySQL versions.

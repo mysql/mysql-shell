@@ -190,8 +190,14 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
 TEST(Upgrade_check_options, set_target_version) {
   Upgrade_check_options options;
-  options.set_target_version("8");
+  options.set_target_version("9");
   EXPECT_EQ(Version(MYSH_VERSION), options.target_version);
+
+  options.set_target_version("8");
+  EXPECT_EQ(Version(LATEST_MYSH_84_VERSION), options.target_version);
+
+  options.set_target_version("8.4");
+  EXPECT_EQ(Version(LATEST_MYSH_84_VERSION), options.target_version);
 
   options.set_target_version("8.0");
   EXPECT_EQ(Version(LATEST_MYSH_80_VERSION), options.target_version);

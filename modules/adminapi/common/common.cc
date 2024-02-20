@@ -217,7 +217,12 @@ bool is_option_supported(
   // if no version was supplied, options can be used regardless of version
   if (!opt_avail.support) return true;
 
-  if (version.get_major() == 8) return version >= opt_avail.support;
+  if (version.get_major() >=
+          Precondition_checker::k_min_adminapi_server_version.get_major() &&
+      version.get_major() <=
+          Precondition_checker::k_max_adminapi_server_version.get_major()) {
+    return version >= opt_avail.support;
+  }
 
   throw std::runtime_error(shcore::str_format(
       "Unexpected version found for option support check: '%s'.",
