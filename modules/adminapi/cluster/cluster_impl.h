@@ -254,6 +254,7 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::set<Managed_async_channel_source,
                      std::greater<Managed_async_channel_source>> &sources,
       const std::string &target_instance_address,
+      std::string_view target_instance_uuid, bool is_rejoin,
       std::vector<std::string> *out_sources_canonical_address = nullptr) const;
 
   cluster::Replication_sources get_read_replica_replication_sources(

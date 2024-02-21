@@ -68,9 +68,10 @@ function mark_gtid_set_complete(flag) {
 
 
 //@<> Setup + Create primary cluster
-var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
 var session = scene.session
 var cluster = scene.cluster
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 var session4 = mysql.getSession(__sandbox_uri4);
 
@@ -80,16 +81,16 @@ var gtid_executed = session.runSql("SELECT @@global.gtid_executed").fetchOne()[0
 testutil.dbugSet("+d,dba_abort_create_replica_cluster");
 
 //@<> invalid recoveryMethod (should fail)
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "foobar"})}, "Invalid value for option recoveryMethod: foobar", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: 1})}, "Option 'recoveryMethod' is expected to be of type String, but is Integer", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "foobar"})}, "Invalid value for option recoveryMethod: foobar", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: 1})}, "Option 'recoveryMethod' is expected to be of type String, but is Integer", "TypeError");
 
 //@<> invalid cloneDonor (should fail)
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, cloneDonor: "127.0.0.1:3306"})}, "Option cloneDonor only allowed if option recoveryMethod is used and set to 'clone'.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "incremental", cloneDonor: "127.0.0.1:3306"})}, "Option cloneDonor only allowed if option recoveryMethod is set to 'clone'.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "clone", cloneDonor: ":"})}, "Invalid value for cloneDonor: Invalid address format in ':'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "clone", cloneDonor: ""})}, "Invalid value for cloneDonor, string value cannot be empty.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "clone", cloneDonor: "localhost:"})}, "Invalid value for cloneDonor: Invalid address format in 'localhost:'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: false, recoveryMethod: "clone", cloneDonor: ":3306"})}, "Invalid value for cloneDonor: Invalid address format in ':3306'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {cloneDonor: "127.0.0.1:3306"})}, "Option cloneDonor only allowed if option recoveryMethod is used and set to 'clone'.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "incremental", cloneDonor: "127.0.0.1:3306"})}, "Option cloneDonor only allowed if option recoveryMethod is set to 'clone'.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone", cloneDonor: ":"})}, "Invalid value for cloneDonor: Invalid address format in ':'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone", cloneDonor: ""})}, "Invalid value for cloneDonor, string value cannot be empty.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone", cloneDonor: "localhost:"})}, "Invalid value for cloneDonor: Invalid address format in 'localhost:'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone", cloneDonor: ":3306"})}, "Invalid value for cloneDonor: Invalid address format in ':3306'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses", "ArgumentError");
 
 // Tests for recoveryMethod = clone
 //
@@ -359,7 +360,6 @@ EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "
 EXPECT_OUTPUT_CONTAINS(`NOTE: A GTID set check of the MySQL instance at '${__endpoint4}' determined that it is missing transactions that were purged from all clusterset members.`);
 EXPECT_OUTPUT_CONTAINS("Clone based recovery selected through the recoveryMethod option");
 
-
 //@<> createReplicaCluster: recoveryMethod:clone, errant GTIDs + purged GTIDs -> clone
 session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed+",00025721-1111-1111-1111-111111111111:1"]);
@@ -390,9 +390,25 @@ testutil.dbugSet("");
 
 EXPECT_NO_THROWS(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint2}); });
 
+// donor must belong to the primary cluster
+EXPECT_THROWS_TYPE(function(){
+    cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster2", {recoveryMethod: "clone", cloneDonor: __endpoint4});
+}, `Instance '${__endpoint4}' does not belong to the PRIMARY Cluster`, "MYSQLSH");
+
+// donor must belong to the primary cluster and have a valid state
+testutil.stopGroup([__mysql_sandbox_port2]);
+
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
+EXPECT_THROWS(function(){
+    cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster2", {recoveryMethod: "clone", cloneDonor: __endpoint2});
+}, `Instance '${__endpoint2}' is not an ONLINE member of the PRIMARY Cluster.`);
+
 //@<> Cleanup
 session.close();
 session4.close();
 scene.destroy();
+testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.dbugSet("");

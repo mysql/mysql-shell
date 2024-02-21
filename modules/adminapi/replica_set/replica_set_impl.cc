@@ -2547,7 +2547,7 @@ void Replica_set_impl::ensure_compatible_clone_donor(
   // Check if the target belongs to the ReplicaSet (MD)
   std::string target_address = donor.get_canonical_address();
   try {
-    m_metadata_storage->get_instance_by_address(target_address);
+    m_metadata_storage->get_instance_by_address(target_address, get_id());
   } catch (const shcore::Exception &e) {
     if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
