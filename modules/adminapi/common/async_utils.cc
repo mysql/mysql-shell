@@ -69,7 +69,7 @@ void wait_pending_master_transactions(const std::string &master_gtid_set,
  */
 void Global_locks::sync_and_lock_all(
     const std::list<std::shared_ptr<Instance>> &instances,
-    const std::string &master_uuid, uint32_t gtid_sync_timeout, bool dry_run) {
+    const std::string &master_uuid, uint32_t gtid_sync_timeout) {
   auto console = current_console();
 
   // NOTE: Set the master and list of slaves, otherwise UNLOCK TABLES is never
@@ -130,19 +130,22 @@ void Global_locks::sync_and_lock_all(
   // This can block indefinitely, but the session is expected to have been
   // opened with a read-timeout, which would throw an exception
   console->print_info("** Acquiring global lock at PRIMARY");
-  try {
-    m_master->execute("FLUSH TABLES WITH READ LOCK");
-  } catch (const shcore::Exception &e) {
-    console->print_error(m_master->descr() +
-                         ": FLUSH TABLES WITH READ LOCK failed: " + e.format());
-    throw;
+  if (!m_dry_run) {
+    try {
+      m_master->execute("FLUSH TABLES WITH READ LOCK");
+    } catch (const shcore::Exception &e) {
+      console->print_error(
+          shcore::str_format("%s: FLUSH TABLES WITH READ LOCK failed: %s",
+                             m_master->descr().c_str(), e.format().c_str()));
+      throw;
+    }
   }
 
   // Set SRO so that any attempts to do new writes at the PRIMARY error out
   // instead of blocking.
-  if (!dry_run) m_master->execute("SET global super_read_only=1");
+  if (!m_dry_run) m_master->execute("SET global super_read_only=1");
 
-  if (!dry_run) m_master->execute("FLUSH BINARY LOGS");
+  if (!m_dry_run) m_master->execute("FLUSH BINARY LOGS");
 
   // 3 - synchronize and lock all slaves (in parallel)
   // Sync slaves to master once again and acquire lock
@@ -156,22 +159,25 @@ void Global_locks::sync_and_lock_all(
   master_gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*m_master);
 
   for (const auto &inst : instances) {
-    if (m_master->get_uuid() != inst->get_uuid()) {
-      try {
-        wait_pending_master_transactions(master_gtid_set, inst.get(),
-                                         gtid_sync_timeout);
-      } catch (const shcore::Exception &e) {
-        console->print_error(shcore::str_format("%s: GTID sync failed: %s",
-                                                inst->descr().c_str(),
-                                                e.format().c_str()));
-        throw;
-      }
+    if (m_master->get_uuid() == inst->get_uuid()) continue;
+
+    try {
+      wait_pending_master_transactions(master_gtid_set, inst.get(),
+                                       gtid_sync_timeout);
+    } catch (const shcore::Exception &e) {
+      console->print_error(shcore::str_format("%s: GTID sync failed: %s",
+                                              inst->descr().c_str(),
+                                              e.format().c_str()));
+      throw;
+    }
+
+    if (!m_dry_run) {
       try {
         inst->execute("FLUSH TABLES WITH READ LOCK");
       } catch (const shcore::Exception &e) {
         console->print_error(
-            inst->descr() +
-            ": FLUSH TABLES WITH READ LOCK failed: " + e.format());
+            shcore::str_format("%s: FLUSH TABLES WITH READ LOCK failed: %s",
+                               inst->descr().c_str(), e.format().c_str()));
         throw;
       }
     }
@@ -181,15 +187,21 @@ void Global_locks::sync_and_lock_all(
 void Global_locks::acquire(
     const std::list<std::shared_ptr<Instance>> &instances,
     const std::string &master_uuid, uint32_t gtid_sync_timeout, bool dry_run) {
-  current_console()->print_info("* Acquiring locks in replicaset instances");
+  if (std::exchange(m_acquired, true)) {
+    log_info("Global locks already acquired.");
+    return;
+  }
 
-  sync_and_lock_all(instances, master_uuid, gtid_sync_timeout, dry_run);
+  m_dry_run = dry_run;
+  sync_and_lock_all(instances, master_uuid, gtid_sync_timeout);
 
   current_console()->print_info();
 }
 
 Global_locks::~Global_locks() {
   log_info("Releasing global locks");
+
+  if (m_dry_run) return;
 
   if (m_master) {
     try {

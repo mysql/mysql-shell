@@ -4,9 +4,9 @@
 // Only tests corner cases and negative cases since the positive ones will
 // be tested everywhere else.
 
-//@ INCLUDE async_utils.inc
+//@<> INCLUDE async_utils.inc
 
-//@ Setup
+//@<> Setup
 
 // Set report_host to a valid value, in case hostname is bogus
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip, server_uuid:"5ef81566-9395-11e9-87e9-111111111111"});
@@ -28,39 +28,54 @@ shell.options['useWizards'] = true;
 // Negative tests based on environment and params
 //--------------------------------
 
-//@ bad parameters (should fail)
-rs.setPrimaryInstance();
-rs.setPrimaryInstance(null);
-rs.setPrimaryInstance(null, null);
-rs.setPrimaryInstance(1, null);
-rs.setPrimaryInstance(__sandbox1, 1);
-rs.setPrimaryInstance(__sandbox1, {}, {});
-rs.setPrimaryInstance(null, {});
-rs.setPrimaryInstance({}, {});
-rs.setPrimaryInstance(__sandbox1, {badOption:123});
-rs.setPrimaryInstance([__sandbox1]);
+//@<> bad parameters (should fail)
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(null); }, "Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(null, null); }, "Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(1, null); }, "Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(__sandbox1, 1); }, "Argument #2 is expected to be a map", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(__sandbox1, {}, {}); }, "Invalid number of arguments, expected 1 to 2 but got 3", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(null, {}); }, "Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance({}, {}); }, "Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance(__sandbox1, {badOption:123}); }, "Argument #2: Invalid options: badOption", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){ rs.setPrimaryInstance([__sandbox1]); }, "Argument #1 is expected to be a string", "TypeError");
 
-//@ disconnected rs object (should fail)
+//@<> disconnected rs object (should fail)
 rs.disconnect();
-rs.setPrimaryInstance(__sandbox2);
+
+EXPECT_THROWS_TYPE(function(){
+    rs.setPrimaryInstance(__sandbox2);
+}, "The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object.", "RuntimeError");
+
 rs = dba.getReplicaSet();
 
-//@ promoted isn't member (should fail)
-rs.setPrimaryInstance(__sandbox3);
+//@<> promoted isn't member (should fail)
+EXPECT_THROWS_TYPE(function(){
+    rs.setPrimaryInstance(__sandbox3);
+}, `Target instance localhost:${__mysql_sandbox_port3} is not a managed instance.`, "MYSQLSH");
 
-//@ promoted doesn't exist (should fail)
-rs.setPrimaryInstance("localhost:"+__mysql_sandbox_port3+1);
+//@<> promoted doesn't exist (should fail)
+EXPECT_THROWS(function(){
+    rs.setPrimaryInstance("localhost:"+__mysql_sandbox_port3+1);
+}, `Could not open connection to 'localhost:${__mysql_sandbox_port3}1': Can't connect to MySQL server on '${libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")}'`);
 
-//@ bad target with a different user (should fail)
-rs.setPrimaryInstance("admin@"+__sandbox1);
+//@<> bad target with a different user (should fail)
+EXPECT_THROWS_TYPE(function(){
+    rs.setPrimaryInstance("admin@"+__sandbox1);
+}, "Invalid target instance specification", "ArgumentError");
 
-//@ bad target with a different password (should fail)
-rs.setPrimaryInstance("root:foo@"+__sandbox1);
+EXPECT_OUTPUT_CONTAINS("ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them");
 
-//@ bad target but allowed for compatibility
-rs.setPrimaryInstance("root@"+__sandbox1);
+//@<> bad target with a different password (should fail)
+EXPECT_THROWS_TYPE(function(){
+    rs.setPrimaryInstance("root:foo@"+__sandbox1);
+}, "Invalid target instance specification", "ArgumentError");
 
-//@ add 3rd instance
+//@<> bad target but allowed for compatibility
+EXPECT_NO_THROWS(function(){ rs.setPrimaryInstance("root@"+__sandbox1); });
+EXPECT_OUTPUT_CONTAINS(`Target instance ${hostname_ip}:${__mysql_sandbox_port1} is already the PRIMARY.`);
+
+//@<> add 3rd instance
 rs.addInstance(__sandbox3);
 
 // Positive tests for specific issues
@@ -85,27 +100,41 @@ var cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_met
 var userhost=session3.runSql("select user()").fetchOne()[0];
 shell.dumpRows(session2.runSql("SELECT * FROM mysql_innodb_cluster_metadata.async_cluster_views"), "tabbed");
 
-//@ promote back
+//@<> promote back
 rs.setPrimaryInstance(__sandbox1);
+EXPECT_OUTPUT_CONTAINS(`The current PRIMARY is ${hostname_ip}:${__mysql_sandbox_port2}.`);
+EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port1} was promoted to PRIMARY.`);
 
-//@ primary is super-read-only (error ok)
+//@<> primary is super-read-only (error ok)
 session.runSql("SET GLOBAL super_read_only=1");
-rs.setPrimaryInstance(__sandbox2);
+
+EXPECT_THROWS_TYPE(function(){
+    rs.setPrimaryInstance(__sandbox2);
+}, `Replication or configuration errors at ${hostname_ip}:${__mysql_sandbox_port1}`, "MYSQLSH");
 
 session.runSql("SET GLOBAL super_read_only=0");
 session.runSql("SET GLOBAL read_only=0");
 
-//@ promoted is already primary
-rs.setPrimaryInstance(__sandbox1);
+//@<> promoted is already primary
+EXPECT_NO_THROWS(function(){ rs.setPrimaryInstance(__sandbox1); });
+EXPECT_OUTPUT_CONTAINS(`Target instance ${hostname_ip}:${__mysql_sandbox_port1} is already the PRIMARY.`);
 
-//@ promote via URL
-rs.setPrimaryInstance(__sandbox_uri2);
+//@<> promote via URL
+EXPECT_NO_THROWS(function(){ rs.setPrimaryInstance(__sandbox_uri2); });
 
+EXPECT_OUTPUT_CONTAINS(`The current PRIMARY is ${hostname_ip}:${__mysql_sandbox_port1}.`);
+EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port2} was promoted to PRIMARY.`);
 
 // Options
 //--------------------------------
 //@ dryRun
+
+shell.options["dba.logSql"] = 2;
+
 rs.setPrimaryInstance(__sandbox1, {dryRun:true});
+EXPECT_SHELL_LOG_NOT_CONTAINS("FLUSH TABLES WITH READ LOCK");
+
+shell.options["dba.logSql"] = 0;
 
 //@ timeout (should fail)
 rs.setPrimaryInstance(__sandbox1);
@@ -130,8 +159,7 @@ EXPECT_EQ(before, strip_status(rs.status()));
 
 session2.runSql("UNLOCK TABLES");
 
-//@ Runtime problems
-//--------------------------------
+//@<> Runtime problems
 rs = rebuild_rs();
 
 //@ primary is down (should fail)
@@ -252,7 +280,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 EXPECT_NO_THROWS(function() { rs.setPrimaryInstance(__sandbox3); });
 
-//@ Cleanup
+//@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

@@ -1,43 +1,3 @@
-//@ INCLUDE async_utils.inc
-||
-
-//@# Setup
-||
-
-//@<ERR> bad parameters (should fail)
-ReplicaSet.setPrimaryInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Argument #2 is expected to be a map (TypeError)
-ReplicaSet.setPrimaryInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Argument #2: Invalid options: badOption (ArgumentError)
-ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-
-//@<ERR> disconnected rs object (should fail)
-ReplicaSet.setPrimaryInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
-
-//@<ERR> promoted isn't member (should fail)
-ReplicaSet.setPrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
-
-//@# promoted doesn't exist (should fail)
-||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")>>>'
-
-//@# bad target with a different user (should fail)
-|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|
-||Invalid target instance specification (ArgumentError)
-
-//@# bad target with a different password (should fail)
-||Invalid target instance specification (ArgumentError)
-
-//@# bad target but allowed for compatibility
-|Target instance <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY.|
-
-//@# add 3rd instance
-||
-
 //@<OUT> check state of instances after switch
 <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> will be promoted to PRIMARY of 'myrs'.
 The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
@@ -59,7 +19,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 
 * Updating metadata
 
-* Acquiring locks in replicaset instances
+* Acquiring locks in ReplicaSet instances
 ** Pre-synchronizing SECONDARIES
 ** Acquiring global lock at PRIMARY
 ** Acquiring global lock at SECONDARIES
@@ -133,20 +93,6 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 <<<cluster_id>>>	5	SINGLE-PRIMARY-TREE	SWITCH_ACTIVE	[[*]]	{"user": "<<<userhost>>>", "source": "5ef81566-9395-11e9-87e9-111111111111"}	{}
 5
 
-//@# promote back
-|The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was promoted to PRIMARY.|
-
-//@# primary is super-read-only (error ok)
-||Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
-
-//@<OUT> promoted is already primary
-Target instance <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY.
-
-//@# promote via URL
-|The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
-|<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was promoted to PRIMARY.|
-
 //@<OUT> dryRun
 <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> will be promoted to PRIMARY of 'myrs'.
 The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
@@ -166,7 +112,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
 * Synchronizing transaction backlog at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 * Updating metadata
 
-* Acquiring locks in replicaset instances
+* Acquiring locks in ReplicaSet instances
 ** Pre-synchronizing SECONDARIES
 ** Acquiring global lock at PRIMARY
 ** Acquiring global lock at SECONDARIES
@@ -187,9 +133,6 @@ dryRun finished.
 |ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: GTID sync failed: MYSQLSH 51157: Timeout waiting for replica to synchronize|
 |ERROR: An error occurred while preparing replicaset instances for a PRIMARY switch: 1 SECONDARY instance(s) failed to synchronize|
 ||1 SECONDARY instance(s) failed to synchronize (MYSQLSH 51160)
-
-//@# Runtime problems
-||
 
 //@# primary is down (should fail)
 ||The replicaset object is disconnected.
@@ -244,6 +187,3 @@ dryRun finished.
 
 //@ BUG#30574971 - Add 3rd instance using the other replicaset object rs1.
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
-
-//@# Cleanup
-||

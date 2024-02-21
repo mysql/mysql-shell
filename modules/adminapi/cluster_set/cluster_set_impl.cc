@@ -2451,6 +2451,7 @@ void Cluster_set_impl::set_primary_cluster(
       // Synchronize all slaves and lock all instances.
       Global_locks global_locks;
       try {
+        console->print_info("* Acquiring locks in ClusterSet instances");
         global_locks.acquire(lock_instances, primary->get_uuid(),
                              options.timeout, options.dry_run);
       } catch (const std::exception &e) {

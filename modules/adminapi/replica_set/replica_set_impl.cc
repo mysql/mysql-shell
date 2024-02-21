@@ -1839,6 +1839,7 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   // Synchronize all slaves and lock all instances.
   Global_locks global_locks;
   try {
+    console->print_info("* Acquiring locks in ReplicaSet instances");
     global_locks.acquire(lock_instances.list(),
                          demoted->get_primary_member()->uuid, timeout, dry_run);
   } catch (const std::exception &e) {
