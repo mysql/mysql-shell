@@ -477,7 +477,7 @@ class MetadataStorage {
   mysqlshdk::utils::Version get_highest_bootstrapped_router_version(
       Cluster_type type, const std::string &id);
 
-  mysqlshdk::utils::Version get_highest_router_configuration_document_version(
+  mysqlshdk::utils::Version get_highest_router_configuration_schema_version(
       Cluster_type type, const std::string &id);
 
   shcore::Value get_default_router_options(

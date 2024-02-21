@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/router_options.h"
 
 #include <cmath>
+#include <cstdio>
 #include <memory>
 #include <stdexcept>
 
@@ -148,9 +149,8 @@ Router_configuration_changes_schema::Router_configuration_changes_schema(
  * Convert options in shcore::Value format into the Router_configuration_schema
  * types
  */
-Router_configuration_document::Option
-Router_configuration_document::parse_option(std::string name,
-                                            const shcore::Value &value) {
+Router_configuration_schema::Option Router_configuration_schema::parse_option(
+    std::string name, const shcore::Value &value) {
   Option option(std::move(name));
 
   switch (value.get_type()) {
@@ -202,9 +202,9 @@ Router_configuration_document::parse_option(std::string name,
   return option;
 }
 
-void Router_configuration_document::add_option(const std::string &category,
-                                               std::string name,
-                                               std::string str_value) {
+void Router_configuration_schema::add_option(const std::string &category,
+                                             std::string name,
+                                             std::string str_value) {
   auto &options_map = options[category];
 
   // Create the new Option and emplace it in the options vector. If the vector
@@ -213,8 +213,8 @@ void Router_configuration_document::add_option(const std::string &category,
       std::make_unique<Option>(std::move(name), std::move(str_value)));
 }
 
-void Router_configuration_document::add_option(const std::string &category,
-                                               Option option) {
+void Router_configuration_schema::add_option(const std::string &category,
+                                             Option option) {
   auto &options_map = options[category];
 
   // Create the new Option and emplace it in the options vector. If the vector
@@ -226,7 +226,7 @@ void Router_configuration_document::add_option(const std::string &category,
  * Construct the Router_configuration_schema object that represents the
  * shcore::Value schema passed by argument
  */
-Router_configuration_document::Router_configuration_document(
+Router_configuration_schema::Router_configuration_schema(
     const shcore::Value &schema) {
   if (!schema) return;
 
@@ -251,10 +251,10 @@ Router_configuration_document::Router_configuration_document(
  * Get the differences of the parent Configuration Schema in comparison with the
  * one passed by argument
  */
-Router_configuration_document
-Router_configuration_document::diff_configuration_schema(
-    const Router_configuration_document &target_schema) const {
-  Router_configuration_document diff_schema;
+Router_configuration_schema
+Router_configuration_schema::diff_configuration_schema(
+    const Router_configuration_schema &target_schema) const {
+  Router_configuration_schema diff_schema;
 
   // Iterate over the categories in the parent schema
   for (const auto &category : options) {
@@ -344,10 +344,10 @@ Router_configuration_document::diff_configuration_schema(
  * Filter out from the parent Configuration Schema all options that do not
  * belong to the Configuration ChangesSchema passed by argument
  */
-Router_configuration_document
-Router_configuration_document::filter_schema_by_changes(
+Router_configuration_schema
+Router_configuration_schema::filter_schema_by_changes(
     const Router_configuration_changes_schema &configurations) const {
-  Router_configuration_document result;
+  Router_configuration_schema result;
 
   const auto &target_properties = configurations.get_properties();
 
@@ -401,12 +401,12 @@ Router_configuration_document::filter_schema_by_changes(
  * Filter out from the parent Configuration Schema all options that exist in the
  * "common" category, i.e. have the same name and value
  */
-Router_configuration_document
-Router_configuration_document::filter_common_router_options() const {
+Router_configuration_schema
+Router_configuration_schema::filter_common_router_options() const {
   if (!options.contains("common")) return {};
 
   // Create a new schema object to store filtered options
-  Router_configuration_document filtered_schema;
+  Router_configuration_schema filtered_schema;
 
   // Copy "common" options to the filtered schema since we must keep it
   const auto &common_options = options.at("common");
@@ -462,8 +462,10 @@ Router_configuration_document::filter_common_router_options() const {
         }
       }
 
-      // Add the option to the resulting object if it's not empty
-      if (!filtered_option->sub_option.empty() ||
+      // Add the option to the resulting object if it's not empty, except for
+      // the "tags" that should be added even if empty
+      if (filtered_option->name == "tags" ||
+          !filtered_option->sub_option.empty() ||
           filtered_option->value.index() != 0) {
         filtered_cat_options.push_back(std::move(filtered_option));
       }
@@ -481,7 +483,7 @@ Router_configuration_document::filter_common_router_options() const {
 /*
  * Convert an Option to a representation in shcore::Value
  */
-shcore::Value Router_configuration_document::convert_option_to_value(
+shcore::Value Router_configuration_schema::convert_option_to_value(
     const Option &option) const {
   // If the option has sub-options, convert them to a shcore::Map
   if (!option.sub_option.empty()) {
@@ -514,7 +516,7 @@ shcore::Value Router_configuration_document::convert_option_to_value(
 /*
  * Convert the object to a representation in shcore::Value
  */
-shcore::Value Router_configuration_document::to_value() {
+shcore::Value Router_configuration_schema::to_value() {
   shcore::Dictionary_t result = shcore::make_dict();
 
   for (const auto &category : options) {

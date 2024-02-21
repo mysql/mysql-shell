@@ -118,7 +118,7 @@ shcore::Value get_default_router_options(
 shcore::Value get_router_options(
     MetadataStorage *md, Cluster_type type, const std::string &id,
     const Router_configuration_changes_schema &changes_schema,
-    const Router_configuration_document &global_dynamic_options,
+    const Router_configuration_schema &global_dynamic_options,
     uint64_t extended, const std::string &router_name = "");
 
 }  // namespace dba

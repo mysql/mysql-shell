@@ -148,8 +148,8 @@ void check_router_errors(shcore::Array_t issues,
       mysqlshdk::utils::Version(router_md.version.value()) >=
           mysqlshdk::utils::Version(8, 4, 0)) {
     auto highest_router_configuration_schema_version =
-        md->get_highest_router_configuration_document_version(cluster_type,
-                                                              cluster_id);
+        md->get_highest_router_configuration_schema_version(cluster_type,
+                                                            cluster_id);
 
     auto highest_router_version =
         md->get_highest_bootstrapped_router_version(cluster_type, cluster_id);
@@ -343,7 +343,7 @@ shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
                                  options.extended, highest_router_version);
 
   auto default_global_options_parsed =
-      Router_configuration_document(default_global_options);
+      Router_configuration_schema(default_global_options);
 
   // Get all routers options
   auto all_router_options =
@@ -525,10 +525,20 @@ shcore::Value get_default_router_options(
   // configuration changes schema
   if (extended == 0) {
     auto default_global_options_parsed =
-        Router_configuration_document(default_global_options);
+        Router_configuration_schema(default_global_options);
 
     auto filtered_options =
         default_global_options_parsed.filter_schema_by_changes(changes_schema);
+
+    return shcore::Value(filtered_options.to_value());
+  } else if (extended == 1) {
+    // With extended:1 we must filter out everything that is the same as in the
+    // "common" section
+    auto default_global_options_parsed =
+        Router_configuration_schema(default_global_options);
+
+    auto filtered_options =
+        default_global_options_parsed.filter_common_router_options();
 
     return shcore::Value(filtered_options.to_value());
   }
@@ -539,7 +549,7 @@ shcore::Value get_default_router_options(
 shcore::Value get_router_options(
     MetadataStorage *md, Cluster_type type, const std::string &id,
     const Router_configuration_changes_schema &changes_schema,
-    const Router_configuration_document &global_dynamic_options,
+    const Router_configuration_schema &global_dynamic_options,
     uint64_t extended, const std::string &router_name) {
   auto router_options_md = md->get_router_options(type, id, router_name);
 
@@ -560,7 +570,7 @@ shcore::Value get_router_options(
       md->get_highest_bootstrapped_router_version(type, id);
 
   auto highest_router_configuration_schema_version =
-      md->get_highest_router_configuration_document_version(type, id);
+      md->get_highest_router_configuration_schema_version(type, id);
 
   const auto warning_checker = [&](const std::string &router_label) {
     shcore::Array_t warnings = shcore::make_array();
@@ -610,7 +620,7 @@ shcore::Value get_router_options(
                                shcore::Value(std::move(router_errors)));
     }
 
-    auto configuration_map_parsed = Router_configuration_document(options);
+    auto configuration_map_parsed = Router_configuration_schema(options);
 
     if (extended == 0) {
       auto filtered_options =
@@ -625,13 +635,17 @@ shcore::Value get_router_options(
 
       ret->emplace(name, std::move(filtered_schema));
     } else {
-      auto diff_schema = configuration_map_parsed.diff_configuration_schema(
-          global_dynamic_options);
-
+      // In extended:1 we must first filter out the common router options from
+      // the defaults
       auto global_router_options_filtered_schema =
-          diff_schema.filter_common_router_options();
+          configuration_map_parsed.filter_common_router_options();
 
-      auto schema = global_router_options_filtered_schema.to_value();
+      // Then get filter out the differences with the global dynamic options
+      auto diff_schema =
+          global_router_options_filtered_schema.diff_configuration_schema(
+              global_dynamic_options);
+
+      auto schema = diff_schema.to_value();
 
       filtered_schema->emplace("configuration", schema);
 

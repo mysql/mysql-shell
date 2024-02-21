@@ -127,7 +127,7 @@ class Router_configuration_changes_schema final {
 
   std::unordered_map<std::string, Array> properties;
 
-  friend class Router_configuration_document;
+  friend class Router_configuration_schema;
   friend class Admin_api_router_options_test;
 
  public:
@@ -169,7 +169,7 @@ class Router_configuration_changes_schema final {
   }
 };
 
-/*  The Configuration Document has the following format:
+/*  The Configuration Schema has the following format:
 {
     "connection_pool": {
         "idle_timeout": 5,
@@ -211,8 +211,8 @@ class Router_configuration_changes_schema final {
  (...)
 */
 
-// Representation of the Configuration Document Schema.
-class Router_configuration_document final {
+// Representation of the Configuration Changes Schema.
+class Router_configuration_schema final {
  private:
   struct Option;
   using Value =
@@ -281,17 +281,17 @@ class Router_configuration_document final {
   std::unordered_map<std::string, std::vector<std::unique_ptr<Option>>> options;
 
  public:
-  explicit Router_configuration_document(const shcore::Value &schema);
+  explicit Router_configuration_schema(const shcore::Value &schema);
 
-  Router_configuration_document() = default;
-  Router_configuration_document(const Router_configuration_document &) = delete;
-  Router_configuration_document(Router_configuration_document &&) = default;
-  Router_configuration_document &operator=(
-      const Router_configuration_document &) = delete;
-  Router_configuration_document &operator=(Router_configuration_document &&) =
+  Router_configuration_schema() = default;
+  Router_configuration_schema(const Router_configuration_schema &) = delete;
+  Router_configuration_schema(Router_configuration_schema &&) = default;
+  Router_configuration_schema &operator=(const Router_configuration_schema &) =
+      delete;
+  Router_configuration_schema &operator=(Router_configuration_schema &&) =
       default;
 
-  ~Router_configuration_document() = default;
+  ~Router_configuration_schema() = default;
 
  public:
   void add_option(const std::string &section_name, std::string name,
@@ -299,13 +299,13 @@ class Router_configuration_document final {
 
   void add_option(const std::string &section_name, Option option);
 
-  Router_configuration_document diff_configuration_schema(
-      const Router_configuration_document &target_schema) const;
+  Router_configuration_schema diff_configuration_schema(
+      const Router_configuration_schema &target_schema) const;
 
-  Router_configuration_document filter_schema_by_changes(
+  Router_configuration_schema filter_schema_by_changes(
       const Router_configuration_changes_schema &configurations) const;
 
-  Router_configuration_document filter_common_router_options() const;
+  Router_configuration_schema filter_common_router_options() const;
 
   shcore::Value to_value();
 
