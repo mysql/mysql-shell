@@ -122,7 +122,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 
 * Updating metadata
 
-* Acquiring locks in replicaset instances
+* Acquiring locks in ReplicaSet instances
 ** Pre-synchronizing SECONDARIES
 ** Acquiring global lock at PRIMARY
 ** Acquiring global lock at SECONDARIES

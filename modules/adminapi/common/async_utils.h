@@ -34,7 +34,8 @@
 namespace mysqlsh {
 namespace dba {
 
-/** Executes a FTWRL on all instances in the replicaset, after a GTID sync.
+/**
+ * Executes a FTWRL on all instances in the replicaset, after a GTID sync.
  *
  * Locks are held in sessions that are owned by the object. Both locks and
  * sessions are released at destruction.
@@ -47,12 +48,14 @@ class Global_locks {
   ~Global_locks();
 
  private:
+  bool m_acquired{false};
+  bool m_dry_run{false};
   std::shared_ptr<Instance> m_master;
   std::list<std::shared_ptr<Instance>> m_slaves;
 
   void sync_and_lock_all(const std::list<std::shared_ptr<Instance>> &instances,
                          const std::string &master_uuid,
-                         uint32_t gtid_sync_timeout, bool dry_run);
+                         uint32_t gtid_sync_timeout);
 };
 
 }  // namespace  dba

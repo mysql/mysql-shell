@@ -71,6 +71,8 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "ClusterSet.setPrimaryCluster: The cluster with the name 'cluster3' does not exist.");
 
 //@<> Switch primary 1/1 (dryRun)
+shell.options["dba.logSql"] = 2;
+
 cs.setPrimaryCluster("cluster2", {dryRun:1});
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1], c1);
@@ -79,6 +81,12 @@ CHECK_CLUSTER_SET(session);
 
 EXPECT_OUTPUT_NOT_CONTAINS("WARNING");
 EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
+
+EXPECT_OUTPUT_CONTAINS("* Acquiring locks in ClusterSet instances");
+
+EXPECT_SHELL_LOG_NOT_CONTAINS("FLUSH TABLES WITH READ LOCK");
+
+shell.options["dba.logSql"] = 0;
 
 //@<> Switch primary 1/1
 cs.setPrimaryCluster("cluster2");
@@ -386,7 +394,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 var logs = testutil.readGeneralLog(__mysql_sandbox_port1, ts1);
 var logs = genlog_filter_reads(logs, /^SELECT.*FROM|SHOW|SET (SESSION|@|lock_wait)|SELECT (@@|COALESCE|GTID_EXECUTED|GTID_PURGED|GTID_SUB|group_replication_get_)/i);
 var logs = logs.map(function(x){return x["sql"];});
-EXPECT_EQ(["FLUSH TABLES WITH READ LOCK", "UNLOCK TABLES"], logs);
+EXPECT_EQ([], logs);
 var logs = testutil.readGeneralLog(__mysql_sandbox_port2, ts2);
 var logs = genlog_filter_reads(logs, /^SELECT.*FROM|SHOW|SET (SESSION|@|lock_wait)|SELECT (@@|COALESCE|GTID_EXECUTED|GTID_PURGED|GTID_SUB|group_replication_get_)/i);
 var logs = logs.map(function(x){return x["sql"];});
