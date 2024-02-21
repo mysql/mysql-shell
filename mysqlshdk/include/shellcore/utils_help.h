@@ -164,7 +164,7 @@ class Help_registry {
   typedef std::map<
       std::string,
       std::map<Help_topic *, IShell_core::Mode_mask, Help_topic_id_compare>,
-      bool (*)(const std::string &, const std::string &)>
+      shcore::Case_insensitive_comparator>
       Keyword_registry;
 
   typedef std::map<std::string, std::map<Help_topic *, IShell_core::Mode_mask,
@@ -172,7 +172,7 @@ class Help_registry {
       Keyword_case_sensitive_registry;
 
   typedef std::map<std::string, std::string,
-                   bool (*)(const std::string &, const std::string &)>
+                   shcore::Case_insensitive_comparator>
       Data_registry;
 
  public:
@@ -213,7 +213,7 @@ class Help_registry {
    * @param token The token under which the text entry will be associated
    * @param data The help data
    */
-  void add_help(const std::string &token, const std::string &data,
+  void add_help(const std::string &token, std::string data,
                 Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   /**
@@ -226,8 +226,7 @@ class Help_registry {
    * A token will be created as <prefix>_<tag> and the data will be registered
    * using this token.
    */
-  void add_help(const std::string &prefix, const std::string &tag,
-                const std::string &data,
+  void add_help(std::string_view prefix, std::string_view tag, std::string data,
                 Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   /**
@@ -380,8 +379,6 @@ class Help_registry {
   // Private constructor since this is a singleton
   explicit Help_registry(bool threaded = false);
 
-  static bool icomp(const std::string &lhs, const std::string &rhs);
-
   // Helper functions for add_help_topic
   void register_topic(Help_topic *topic, bool new_topic,
                       IShell_core::Mode_mask mode);
@@ -408,8 +405,8 @@ class Help_registry {
  * Helper structure to statically register help data.
  */
 struct Help_register {
-  Help_register(const std::string &token, const std::string &data) {
-    shcore::Help_registry::get()->add_help(token, data);
+  Help_register(const std::string &token, std::string data) {
+    shcore::Help_registry::get()->add_help(token, std::move(data));
   }
 };
 
@@ -702,8 +699,6 @@ class Help_manager {
 };
 
 }  // namespace shcore
-
-#define REGISTER_HELP_ALIAS(x, y) shcore::Help_register_alias x(#x, #y)
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
 

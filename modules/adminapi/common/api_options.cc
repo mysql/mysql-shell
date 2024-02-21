@@ -144,43 +144,6 @@ const shcore::Option_pack_def<Setup_account_options>
   return opts;
 }
 
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION,
-    "@li passwordExpiration: Password expiration setting for the account. "
-    "May be set to the number of days for expiration, 'NEVER' to disable "
-    "expiration and 'DEFAULT' to use the system default.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER,
-    "@li requireCertIssuer: Optional SSL certificate issuer for the account.");
-
-REGISTER_HELP(OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT,
-              "@li requireCertSubject: Optional SSL certificate subject for "
-              "the account.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN,
-    "@li dryRun: boolean value used to enable a dry run of the account setup "
-    "process. Default value is False.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL,
-    "If dryRun is used, the function will display information about the "
-    "permissions to be granted to `user` account without actually creating "
-    "and/or performing any changes to it.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_UPDATE,
-    "@li update: boolean value that must be enabled to allow updating the "
-    "privileges and/or password of existing accounts. Default value is False.");
-
-REGISTER_HELP(
-    OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL,
-    "To change authentication options for an existing account, set `update` to "
-    "`true`. It is possible to change password without affecting "
-    "certificate options or vice-versa but certificate options can only be "
-    "changed together.");
-
 void Setup_account_options::set_password_expiration(
     const shcore::Value &value) {
   switch (value.get_type()) {
