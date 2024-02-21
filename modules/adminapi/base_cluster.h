@@ -150,20 +150,28 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the <<<:FullType>>> administrator account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
+@li passwordExpiration: Password expiration setting for the account. May be set
+to the number of days for expiration, 'NEVER' to disable expiration and 'DEFAULT'
+to use the system default.
+@li requireCertIssuer: Optional SSL certificate issuer for the account.
+@li requireCertSubject: Optional SSL certificate subject for the account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li update: boolean value that must be enabled to allow updating the privileges and/or
+password of existing accounts. Default value is False.
 
 If the user account does not exist, either the password, requireCertIssuer or
 requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
+If dryRun is used, the function will display information about the permissions to
+be granted to `user` account without actually creating and/or performing any
+changes to it.
 
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
+To change authentication options for an existing account, set `update` to `true`.
+It is possible to change password without affecting certificate options or
+vice-versa but certificate options can only be changed together.
 )*"));
 
 REGISTER_HELP_SHARED_TEXT(SETUPROUTERACCOUNT_HELP_TEXT, (R"*(
@@ -188,20 +196,28 @@ username[@@host] where the host part is optional and if not provided defaults to
 The options dictionary may contain the following attributes:
 
 @li password: The password for the MySQL Router account.
-${OPT_SETUP_ACCOUNT_OPTIONS_PASSWORD_EXPIRATION}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_ISSUER}
-${OPT_SETUP_ACCOUNT_OPTIONS_REQUIRE_CERT_SUBJECT}
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN}
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE}
+@li passwordExpiration: Password expiration setting for the account. May be set
+to the number of days for expiration, 'NEVER' to disable expiration and 'DEFAULT'
+to use the system default.
+@li requireCertIssuer: Optional SSL certificate issuer for the account.
+@li requireCertSubject: Optional SSL certificate subject for the account.
+@li dryRun: boolean value used to enable a dry run of the account setup
+process. Default value is False.
+@li update: boolean value that must be enabled to allow updating the privileges and/or
+password of existing accounts. Default value is False.
 
 If the user account does not exist, either the password, requireCertIssuer or
 requireCertSubject are mandatory.
 
 If the user account exists, the update option must be enabled.
 
-${OPT_SETUP_ACCOUNT_OPTIONS_DRY_RUN_DETAIL}
+If dryRun is used, the function will display information about the permissions to
+be granted to `user` account without actually creating and/or performing any
+changes to it.
 
-${OPT_SETUP_ACCOUNT_OPTIONS_UPDATE_DETAIL}
+To change authentication options for an existing account, set `update` to `true`.
+It is possible to change password without affecting certificate options or
+vice-versa but certificate options can only be changed together.
 )*"));
 
 REGISTER_HELP_SHARED_TEXT(ROUTINGOPTIONS_HELP_TEXT, (R"*(
