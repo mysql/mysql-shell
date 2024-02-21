@@ -168,7 +168,7 @@ void Set_instance_option::ensure_option_supported_target_member() {
   log_debug("Checking if member '%s' of the cluster supports the option '%s'",
             m_target_instance->descr().c_str(), m_option.c_str());
 
-  // If the member is a Read-Replica, validate first if the option is supportes
+  // If the member is a Read-Replica, validate first if the option is supported
   if (m_cluster.is_read_replica(*m_target_instance)) {
     if (std::find(k_read_replica_supported_options.begin(),
                   k_read_replica_supported_options.end(),
@@ -272,7 +272,8 @@ void Set_instance_option::prepare() {
       std::vector<std::string> updated_list;
 
       m_cluster.validate_replication_sources(
-          managed_src_list, m_target_instance_address, &updated_list);
+          managed_src_list, m_target_instance_address,
+          m_target_instance->get_uuid(), false, &updated_list);
 
       m_value_value = shcore::Value::new_array();
       auto array = m_value_value->as_array();

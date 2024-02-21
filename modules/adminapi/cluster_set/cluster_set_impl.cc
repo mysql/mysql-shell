@@ -942,9 +942,10 @@ void Cluster_set_impl::ensure_compatible_clone_donor(
     auto donor_address = donor.get_canonical_address();
 
     // check if the donor belongs to the primary cluster (MD)
-    auto primary = get_primary_cluster();
     try {
-      primary->get_metadata_storage()->get_instance_by_address(donor_address);
+      auto primary = get_primary_cluster();
+      primary->get_metadata_storage()->get_instance_by_address(
+          donor_address, primary->get_id());
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
