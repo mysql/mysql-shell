@@ -492,7 +492,7 @@ std::string get_replication_source_keyword(
  * @return a string with the right keyword to be used for the replication
  * configuration command
  */
-std::string get_binary_logs_keyword(const mysqlshdk::utils::Version &version,
+const char *get_binary_logs_keyword(const mysqlshdk::utils::Version &version,
                                     bool status = false);
 
 /**
