@@ -312,7 +312,9 @@ Router_configuration_schema::diff_configuration_schema(
         auto it_sub_option_target =
             option_target.sub_option.find(sub_option_current.first);
 
-        if (it_sub_option_target != option_target.sub_option.end() &&
+        // If option was found and has a different value, include it in the
+        // differences. If the option was not found, include it too
+        if (it_sub_option_target == option_target.sub_option.end() ||
             sub_option_current.second->value !=
                 it_sub_option_target->second->value) {
           // Set the name and the value in the aux diff_option object

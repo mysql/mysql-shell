@@ -864,6 +864,7 @@ TEST_F(Admin_api_router_options_test, diff_schema) {
                 "net_buffer_length": 17896,
                 "protocol": "classic",
                 "routing_strategy": "round-robin",
+                "option_that_does_not_exist_in_defaults": 123,
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
                 "server_ssl_cipher": "",
@@ -1028,7 +1029,8 @@ TEST_F(Admin_api_router_options_test, diff_schema) {
         "server_ssl_ca": "/home/miguel/some/path/file.ca"
       },
       bootstrap_rw_split": {
-        "net_buffer_length": 17896
+        "net_buffer_length": 17896,
+        "option_that_does_not_exist_in_defaults": 123
       }
     },
     "http_authentication_backends": {
@@ -1102,12 +1104,17 @@ TEST_F(Admin_api_router_options_test, diff_schema) {
 
     const auto &sub_opt2 = (*bootstrap_rw_split_diff)->sub_option;
 
-    ASSERT_EQ(sub_opt2.size(), 1);
+    ASSERT_EQ(sub_opt2.size(), 2);
 
     const auto &it2 = sub_opt2.find("net_buffer_length");
 
     ASSERT_TRUE(it2 != sub_opt2.end());
     ASSERT_EQ(std::get<int64>(it2->second.get()->value), 17896);
+
+    const auto &it3 = sub_opt2.find("option_that_does_not_exist_in_defaults");
+
+    ASSERT_TRUE(it3 != sub_opt2.end());
+    ASSERT_EQ(std::get<int64>(it3->second.get()->value), 123);
   }
 
   // Assert specific differences within "http_authentication_backends"
