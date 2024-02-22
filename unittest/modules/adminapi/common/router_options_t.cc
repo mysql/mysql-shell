@@ -624,7 +624,7 @@ TEST_F(Admin_api_router_options_test,
 }
 
 TEST_F(Admin_api_router_options_test, add_option) {
-  Router_configuration_document schema;
+  Router_configuration_schema schema;
 
   // Add an option with a category, name, and string value
   std::string category = "routing_rules";
@@ -645,7 +645,7 @@ TEST_F(Admin_api_router_options_test, add_option) {
   ASSERT_EQ(std::get<std::string>(category_options[0]->value), str_value);
 
   // Create an Option object
-  Router_configuration_document::Option option{"ttl", 0.5};
+  Router_configuration_schema::Option option{"ttl", 0.5};
 
   // Add the option with a category
   std::string category2 = "metadata_cache";
@@ -666,10 +666,10 @@ TEST_F(Admin_api_router_options_test, add_option) {
 }
 
 TEST_F(Admin_api_router_options_test, Router_configuration_schema_from_value) {
-  Router_configuration_document configuration_schema;
+  Router_configuration_schema configuration_schema;
 
   EXPECT_NO_THROW(configuration_schema =
-                      Router_configuration_document{m_configuration_schema});
+                      Router_configuration_schema{m_configuration_schema});
 
   // Get the options
   const auto &options_list = configuration_schema.get_options();
@@ -719,16 +719,16 @@ TEST_F(Admin_api_router_options_test, Router_configuration_schema_from_value) {
 
 TEST_F(Admin_api_router_options_test, filter_schema_by_changes) {
   Router_configuration_changes_schema changes_schema;
-  Router_configuration_document configuration_schema;
+  Router_configuration_schema configuration_schema;
 
   EXPECT_NO_THROW(changes_schema = Router_configuration_changes_schema{
                       m_changes_schema_simple});
 
   EXPECT_NO_THROW(configuration_schema =
-                      Router_configuration_document{m_configuration_schema});
+                      Router_configuration_schema{m_configuration_schema});
 
   // Filter out options that only exist in the configuration schema
-  Router_configuration_document filtered_schema;
+  Router_configuration_schema filtered_schema;
 
   EXPECT_NO_THROW(
       filtered_schema =
@@ -767,8 +767,8 @@ TEST_F(Admin_api_router_options_test, filter_schema_by_changes) {
 }
 
 TEST_F(Admin_api_router_options_test, diff_schema) {
-  Router_configuration_document configuration_schema;
-  Router_configuration_document configuration_schema_different;
+  Router_configuration_schema configuration_schema;
+  Router_configuration_schema configuration_schema_different;
   shcore::Value schema_different;
 
   schema_different = shcore::Value::parse(R"##({
@@ -1008,13 +1008,13 @@ TEST_F(Admin_api_router_options_test, diff_schema) {
     })##");
 
   EXPECT_NO_THROW(configuration_schema =
-                      Router_configuration_document{m_configuration_schema});
+                      Router_configuration_schema{m_configuration_schema});
 
   EXPECT_NO_THROW(configuration_schema_different =
-                      Router_configuration_document{schema_different});
+                      Router_configuration_schema{schema_different});
 
   // Diff out options that only exist in the configuration schema
-  Router_configuration_document diff_schema;
+  Router_configuration_schema diff_schema;
 
   EXPECT_NO_THROW(diff_schema =
                       configuration_schema_different.diff_configuration_schema(
@@ -1197,7 +1197,7 @@ TEST_F(Admin_api_router_options_test, diff_schema) {
 }
 
 TEST_F(Admin_api_router_options_test, filter_common) {
-  Router_configuration_document configuration_schema_with_common;
+  Router_configuration_schema configuration_schema_with_common;
   shcore::Value schema_with_common;
 
   schema_with_common = shcore::Value::parse(R"##({
@@ -1443,10 +1443,10 @@ TEST_F(Admin_api_router_options_test, filter_common) {
     })##");
 
   EXPECT_NO_THROW(configuration_schema_with_common =
-                      Router_configuration_document{schema_with_common});
+                      Router_configuration_schema{schema_with_common});
 
   // Filter out the global common options
-  Router_configuration_document filtered_schema;
+  Router_configuration_schema filtered_schema;
 
   EXPECT_NO_THROW(
       filtered_schema =

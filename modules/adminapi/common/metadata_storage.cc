@@ -29,6 +29,7 @@
 #include <list>
 #include <string_view>
 
+#include "adminapi/common/cluster_types.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -2829,7 +2830,7 @@ MetadataStorage::get_highest_bootstrapped_router_version(
 }
 
 mysqlshdk::utils::Version
-MetadataStorage::get_highest_router_configuration_document_version(
+MetadataStorage::get_highest_router_configuration_schema_version(
     Cluster_type type, const std::string &id) {
   std::shared_ptr<mysqlshdk::db::IResult> result;
   Version max_version;
@@ -3067,7 +3068,7 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
   std::string name;
   parse_router_definition(router_def, &address, &name);
 
-  // This has to support MD versions 1.0 and 2.0, so that we can remove older
+  // This has to support MD versions 1.0 and 2.x, so that we can remove older
   // router versions while upgrading the MD.
   std::shared_ptr<mysqlshdk::db::IResult> result;
   if (real_version().get_major() == 1) {
@@ -3076,19 +3077,96 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
         "mysql_innodb_cluster_metadata.hosts h ON r.host_id = h.host_id WHERE "
         "r.router_name = ? AND LOWER(h.host_name) = LOWER(?)",
         name, address);
-  } else {
-    result = execute_sqlf(
-        "SELECT router_id FROM mysql_innodb_cluster_metadata.routers r WHERE "
-        "r.router_name = ? AND r.address = ?",
-        name, address);
+
+    auto row = result->fetch_one();
+    if (!row) return false;
+
+    execute_sqlf(
+        "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE router_id = ?",
+        row->get_int(0));
+
+    return true;
   }
 
-  auto row = result->fetch_one();
+  // For versions of Metadata >= 2.0, Routers running 8.4.0+ will also store
+  // the Default Configurations Document in the topology table. If the Router
+  // being removed is the last of that version, the corresponding document
+  // must be removed too
+  result = execute_sqlf(
+      "SELECT * FROM mysql_innodb_cluster_metadata.routers r WHERE "
+      "r.router_name = ? AND r.address = ?",
+      name, address);
+
+  auto row = result->fetch_one_named();
   if (!row) return false;
 
+  std::string topology_id, bootstrap_target_type, router_version_str;
+  uint64_t router_id;
+
+  router_version_str = row.get_string("version");
+  router_id = row.get_uint("router_id");
+
+  if (row.has_field("attributes") && !row.is_null("attributes")) {
+    auto attr = shcore::Value::parse(row.get_string("attributes")).as_map();
+    bootstrap_target_type = attr->get_string("bootstrapTargetType");
+  }
+
+  if (bootstrap_target_type == "cluster" && row.has_field("cluster_id") &&
+      !row.is_null("cluster_id")) {
+    topology_id = row.get_string("cluster_id");
+  } else if (bootstrap_target_type == "clusterset" &&
+             row.has_field("clusterset_id") && !row.is_null("clusterset_id")) {
+    topology_id = row.get_string("clusterset_id");
+  }
+
+  // Delete the Router
   execute_sqlf(
-      "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE router_id = ?",
-      row->get_int(0));
+      "DELETE FROM mysql_innodb_cluster_metadata.routers WHERE "
+      "router_id = ?",
+      router_id);
+
+  // If we cannot determine the topology type we're done and cannot do anything
+  // else so return right away
+  if (bootstrap_target_type.empty() || topology_id.empty()) return true;
+
+  auto cluster_type = bootstrap_target_type == "clusterset"
+                          ? Cluster_type::REPLICATED_CLUSTER
+                          : Cluster_type::GROUP_REPLICATION;
+
+  // Check which is the highest version of Router bootstrapped in this
+  // topology
+  auto highest_bootstrapped_router_version =
+      get_highest_bootstrapped_router_version(cluster_type, topology_id);
+
+  auto highest_router_configuration_document_version =
+      get_highest_router_configuration_schema_version(cluster_type,
+                                                      topology_id);
+
+  // If there are no configuration documents we're done
+  if (!highest_router_configuration_document_version) {
+    return true;
+  }
+
+  // If the highest version of the configuration document is higher than the
+  // Router with highest version bootstrapped in this topology, the document
+  // must be removed. Same if there are no more routers in the Metadata.
+  if (!highest_bootstrapped_router_version ||
+      highest_router_configuration_document_version >
+          highest_bootstrapped_router_version) {
+    if (cluster_type == Cluster_type::REPLICATED_CLUSTER) {
+      std::string query = shcore::str_format(
+          "UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options "
+          "= JSON_REMOVE(router_options, '$.Configuration.\"%s\"')",
+          Version(router_version_str).get_full().c_str());
+      execute_sqlf(query);
+    } else {
+      std::string query = shcore::str_format(
+          "UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = "
+          "JSON_REMOVE(router_options, '$.Configuration.\"%s\"')",
+          Version(router_version_str).get_full().c_str());
+      execute_sqlf(query);
+    }
+  }
 
   return true;
 }
