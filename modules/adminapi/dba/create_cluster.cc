@@ -150,6 +150,12 @@ void Create_cluster::validate_create_cluster_options() {
           kCommunicationStack, kAdoptFromGR));
     }
 
+    if (!m_options.member_auth_options.cert_issuer.empty() ||
+        !m_options.member_auth_options.cert_subject.empty())
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Cannot use the options '%s' or '%s' if '%s' is set to true.",
+          kCertIssuer, kCertSubject, kAdoptFromGR));
+
     if (m_options.member_auth_options.member_auth_type !=
         Replication_auth_type::PASSWORD)
       throw shcore::Exception::argument_error(

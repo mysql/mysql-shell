@@ -362,10 +362,7 @@ Topic_mask Help_registry::get_parent_topic_types() {
 }
 
 Help_registry::Help_registry(bool threaded)
-    : m_help_data(Help_registry::icomp),
-      m_keywords(Help_registry::icomp),
-      m_threaded(threaded),
-      m_global_removed(false) {
+    : m_threaded(threaded), m_global_removed(false) {
   m_c_tor = true;
   shcore::Scoped_callback leave([this]() { m_c_tor = false; });
 
@@ -411,10 +408,6 @@ Help_registry::~Help_registry() {
       }
     }
   }
-}
-
-bool Help_registry::icomp(const std::string &lhs, const std::string &rhs) {
-  return str_casecmp(lhs.c_str(), rhs.c_str()) < 0;
 }
 
 Help_registry *Help_registry::get() {
@@ -573,24 +566,26 @@ void Help_registry::add_split_help(const std::string &prefix,
   }
 }
 
-void Help_registry::add_help(const std::string &token, const std::string &data,
+void Help_registry::add_help(const std::string &token, std::string data,
                              Keyword_location loc) {
   auto lock = ensure_lock();
   if (loc == Keyword_location::LOCAL_CTX) {
-    get_thread_context_help()->m_help_data[token] = data;
+    get_thread_context_help()->m_help_data[token] = std::move(data);
   } else if (loc == Keyword_location::GLOBAL_CTX) {
-    m_help_data[token] = data;
+    m_help_data[token] = std::move(data);
   } else {
     get_thread_context_help()->m_help_data[token] = data;
-    m_help_data[token] = data;
+    m_help_data[token] = std::move(data);
   }
 }
 
-void Help_registry::add_help(const std::string &prefix, const std::string &tag,
-                             const std::string &data, Keyword_location loc) {
-  auto full_prefix = prefix + "_" + tag;
+void Help_registry::add_help(std::string_view prefix, std::string_view tag,
+                             std::string data, Keyword_location loc) {
+  auto full_prefix = shcore::str_format(
+      "%.*s_%.*s", static_cast<int>(prefix.size()), prefix.data(),
+      static_cast<int>(tag.size()), tag.data());
 
-  add_help(full_prefix, data, loc);
+  add_help(full_prefix, std::move(data), loc);
 }
 
 void Help_registry::add_help(const std::string &prefix, const std::string &tag,
