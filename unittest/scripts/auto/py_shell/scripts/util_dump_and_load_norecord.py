@@ -69,6 +69,8 @@ prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
 session2.run_sql("set names utf8mb4")
 
+# BUG#36159820 - accounts which are excluded when dumping with ocimds=true and when loading into MHS
+mhs_excluded_users = [ "administrator", "ociadmin", "ocidbm", "ocimonitor", "ocirpl", "oracle-cloud-agent", "rrhhuser" ]
 
 ## Tests to ensure restricted users dumped with strip_restricted_grants can be loaded with a restricted user and not just with root
 
@@ -124,6 +126,14 @@ session2.run_sql("grant all on test_schema.* to myuser3@'%' with grant option")
 session2.run_sql("grant all on mysql.* to myuser3@'%' with grant option")
 session2.run_sql("grant all on *.* to myuser3@'%' with grant option")
 
+# test role
+test_role = "sample-test-role"
+session2.run_sql(f"CREATE ROLE IF NOT EXISTS '{test_role}'")
+
+# BUG#36159820 - accounts which are excluded when dumping with ocimds=true
+for u in mhs_excluded_users:
+    session2.run_sql(f"CREATE USER IF NOT EXISTS '{u}'@'localhost' IDENTIFIED BY 'pwd';")
+
 def format_rows(rows):
     return "\n".join([r[0] for r in rows])
 
@@ -131,17 +141,22 @@ shell.connect(__sandbox_uri2)
 
 # dump with root
 util.dump_instance(os.path.join(outdir, "dump_root"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
+users_file = os.path.join(outdir, "dump_root", "@.users.sql")
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_CONTAINS(f"""CREATE ROLE IF NOT EXISTS {get_user_account_for_output("'administrator'@'%'")}""", os.path.join(outdir, "dump_root", "@.users.sql"))
+EXPECT_FILE_CONTAINS(f"""CREATE ROLE IF NOT EXISTS {get_user_account_for_output(f"'{test_role}'@'%'")}""", users_file)
+
+# BUG#36159820 - accounts were not dumped
+for u in mhs_excluded_users:
+    EXPECT_FILE_NOT_CONTAINS(f"""CREATE USER IF NOT EXISTS {get_user_account_for_output(f"'{u}'@'localhost'")}""", users_file)
+
+# BUG#36159820 - administrator role was excluded, there should be a warning that a user has excluded role
+EXPECT_STDOUT_CONTAINS(f"User 'admin'@'%' has a grant statement on a role `administrator`@`%` which is not included in the dump (")
 
 # dump with admin user
 shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
 # disable consistency b/c we won't be able to acquire a backup lock
 util.dump_instance(os.path.join(outdir, "dump_admin"), {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
-
-# CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_CONTAINS(f"""CREATE ROLE IF NOT EXISTS {get_user_account_for_output("'administrator'@'%'")}""", os.path.join(outdir, "dump_admin", "@.users.sql"))
 
 # load with admin user
 reset_server(session2)
@@ -466,8 +481,10 @@ session.run_sql("CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'p
 session.run_sql("CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';")
 # account which is excluded always, dumper also excludes it, so we need to hack the sql file
 session.run_sql("CREATE USER IF NOT EXISTS 'mysql.sys-ex'@'localhost' IDENTIFIED BY 'pwd';")
-# account which is excluded when loading into MDS
-session.run_sql("CREATE USER IF NOT EXISTS 'ocimonitor'@'localhost' IDENTIFIED BY 'pwd';")
+
+# BUG#36159820 - accounts which are excluded when loading into MHS - dump is without ocimds, so these accounts are dumped normally
+for u in mhs_excluded_users:
+    session.run_sql(f"CREATE USER IF NOT EXISTS '{u}'@'localhost' IDENTIFIED BY 'pwd';")
 
 users_outdir = os.path.join(outdir, "users")
 util.dump_instance(users_outdir, { "users": True, "ddlOnly": True, "showProgress": False })
@@ -604,11 +621,11 @@ EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True }, [], [])
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
-#@<> don't include or exclude anything when loading into MDS, ocimonitor is always excluded {VER(>=8.0.16) and not __dbug_off}
+#@<> BUG#36159820 - don't include or exclude anything when loading into MHS, some accounts are always excluded {VER(>=8.0.16) and not __dbug_off}
 testutil.dbug_set("+d,dump_loader_force_mds")
 session2.run_sql("SET global partial_revokes=1")
 
-EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True, 'ignoreVersion': True }, [], ["'ocimonitor'@'localhost'"], is_mds = True)
+EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True, 'ignoreVersion': True }, [], [ f"'{u}'@'localhost'" for u in mhs_excluded_users ], is_mds = True)
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
@@ -624,7 +641,9 @@ session.run_sql("DROP USER 'firstfirst'@'localhost';")
 session.run_sql("DROP USER 'second'@'localhost';")
 session.run_sql("DROP USER 'second'@'10.11.12.14';")
 session.run_sql("DROP USER 'mysql.sys-ex'@'localhost';")
-session.run_sql("DROP USER 'ocimonitor'@'localhost';")
+
+for u in mhs_excluded_users:
+    session.run_sql(f"DROP USER '{u}'@'localhost'")
 
 #@<> Bug#33128803 default roles {VER(>= 8.0.11)}
 shell.connect(__sandbox_uri1)
