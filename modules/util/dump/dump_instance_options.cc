@@ -78,8 +78,9 @@ void Dump_instance_options::on_unpacked_options() {
   }
 
   if (mds_compatibility().has_value()) {
-    // if MHS compatibility option is set, some schemas should be excluded
-    // automatically
+    // if MHS compatibility option is set, some users and schemas should be
+    // excluded automatically
+    filters().users().exclude(common::k_mhs_excluded_users);
     filters().schemas().exclude(common::k_mhs_excluded_schemas);
   }
 

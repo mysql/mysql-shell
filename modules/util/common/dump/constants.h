@@ -39,10 +39,8 @@ constexpr inline std::array k_excluded_users = {
 };
 
 constexpr inline std::array k_mhs_excluded_users = {
-    "administrator",
-    "ociadmin",
-    "ocimonitor",
-    "ocirpl",
+    "administrator", "ociadmin",           "ocidbm",   "ocimonitor",
+    "ocirpl",        "oracle-cloud-agent", "rrhhuser",
 };
 
 constexpr inline std::array k_excluded_schemas = {

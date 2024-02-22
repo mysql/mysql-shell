@@ -3041,6 +3041,18 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
               included_object =
                   filters.routines().is_included_ci(priv.schema, priv.object);
               break;
+
+            case Level::ROLE:
+              for (const auto &role : priv.privileges) {
+                if (!filters.users().is_included(role)) {
+                  problems.emplace_back(
+                      "User " + user + " has a grant statement on a role " +
+                          role + " which is not included in the dump (" +
+                          grant + ")",
+                      Issue::Status::WARNING);
+                }
+              }
+              break;
           }
 
           if (!included_object) {
