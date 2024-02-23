@@ -76,8 +76,12 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
       .retry_on(Error_code::PARTIAL_FILE)
       // retry if operation times out, sometimes servers get stuck...
       .retry_on(Error_code::OPERATION_TIMEDOUT)
+      // retry when there's a problem with SSL/TLS handshake
+      .retry_on(Error_code::SSL_CONNECT_ERROR)
       // retry when server returns an empty response
       .retry_on(Error_code::GOT_NOTHING)
+      // retry in case of failure in sending network data
+      .retry_on(Error_code::SEND_ERROR)
       // retry in case of failure in receiving network data
       .retry_on(Error_code::RECV_ERROR)
       .build();
