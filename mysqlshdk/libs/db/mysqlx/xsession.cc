@@ -167,6 +167,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
 
   _connection_options = data;
+  _connection_options.set_default_data();
 
   if (_connection_options.has(mysqlshdk::db::kGetServerPublicKey)) {
     _mysql.reset();

@@ -248,7 +248,7 @@ sample("some text)
 
 TEST(Json_shell, incomplete_sql) {
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("mysql://root@localhost");
+  auto coptions = mysqlshdk::db::Connection_options("mysql://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else
@@ -368,7 +368,7 @@ TEST(Json_shell, py_completed_without_new_line) {
 
 TEST(Json_shell, sql_completed_without_delimiter) {
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("mysql://root@localhost");
+  auto coptions = mysqlshdk::db::Connection_options("mysql://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else

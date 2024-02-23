@@ -120,7 +120,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
       std::make_shared<Shell_options>(2, args, _options_file));
   shell._history.set_limit(100);
 
-  auto coptions = shcore::get_connection_options("root@localhost");
+  auto coptions = mysqlshdk::db::Connection_options("root@localhost");
   coptions.set_scheme("mysql");
   coptions.set_password("");
   coptions.set_port(atoi(getenv("MYSQL_PORT")));

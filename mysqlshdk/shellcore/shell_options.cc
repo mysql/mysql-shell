@@ -191,7 +191,7 @@ void Shell_options::Storage::set_uri(const std::string &uri) {
     // don't set defaults to the parsed URI because we don't want to override
     // options like user, pass and scheme that were specified before the URI
     // with defaults
-    connection_data.override_with(shcore::get_connection_options(uri, false));
+    connection_data.override_with(Connection_options(uri));
   }
 }
 
@@ -374,8 +374,6 @@ Shell_options::Shell_options(
     (cmdline("-P", "--port=<#>"),
         "Port number to use for connection.",
         [this](const std::string& option, const char* value) {
-          storage.connection_data.clear_socket();
-          storage.connection_data.clear_pipe();
           try {
                 storage.connection_data.set_port(shcore::opts::convert<int>(
             value, shcore::opts::Source::Command_line));
@@ -395,8 +393,6 @@ Shell_options::Shell_options(
         "Pipe name to use (only classic sessions).",
 #endif
         [this](const std::string&, const char* value) {
-          storage.connection_data.clear_port();
-          storage.connection_data.clear_pipe();
           if (value) {
 #ifdef _WIN32
             storage.connection_data.set_pipe(value);

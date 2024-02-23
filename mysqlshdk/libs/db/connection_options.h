@@ -166,6 +166,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void clear_socket();
   void clear_pipe();
   void clear_compression_level() { m_compress_level.reset(); }
+  void clear_transport_type();
 
   void clear_warnings() { m_warnings.clear(); }
 
@@ -244,9 +245,11 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void _set_fixed(const std::string &key, const std::string &val);
   bool is_extra_option(const std::string &option);
   bool is_bool_value(const std::string &value);
+  bool uses_local_transport() const;
 
   void check_compression_conflicts();
 
+  std::optional<Transport_type> m_default_transport_type;
   std::optional<Transport_type> m_transport_type;
   std::optional<int64_t> m_compress_level;
   std::optional<int> m_connect_timeout;

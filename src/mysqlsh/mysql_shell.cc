@@ -1225,7 +1225,6 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
 
     mysqlshdk::db::Connection_options redirected_connection(redirect_uri);
 
-    connection.clear_host();
     connection.clear_port();
     connection.clear_socket();
 

@@ -109,8 +109,8 @@ class Api_connections : public Shell_js_script_tester {
   void disable_ssl_on_instance(int port, const std::string &unsecure_user) {
     auto session = mysqlshdk::db::mysql::Session::create();
 
-    auto connection_options = shcore::get_connection_options(
-        "root:root@localhost:" + std::to_string(port), false);
+    auto connection_options = mysqlshdk::db::Connection_options(
+        "root:root@localhost:" + std::to_string(port));
     session->connect(connection_options);
 
     session->query("create user " + unsecure_user +

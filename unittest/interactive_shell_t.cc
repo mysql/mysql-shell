@@ -521,7 +521,7 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
 
 #ifndef _WIN32
   {
-    auto data = shcore::get_connection_options(_uri);
+    auto data = mysqlshdk::db::Connection_options(_uri);
     std::string user = data.get_user();
     data.clear_host();
     data.clear_port();

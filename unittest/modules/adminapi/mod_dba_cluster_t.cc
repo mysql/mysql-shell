@@ -43,8 +43,8 @@ class Admin_api_cluster_test : public Admin_api_test {
       int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
 
-    auto connection_options = shcore::get_connection_options(
-        user + ":root@localhost:" + std::to_string(port), false);
+    auto connection_options = mysqlshdk::db::Connection_options(
+        user + ":root@localhost:" + std::to_string(port));
     session->connect(connection_options);
 
     return session;

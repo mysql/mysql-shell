@@ -72,7 +72,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     if (_target_server_version >= Version(5, 7, 0) ||
         _target_server_version < Version(8, 0, 0)) {
       session = mysqlshdk::db::mysql::Session::create();
-      auto connection_options = shcore::get_connection_options(_mysql_uri);
+      auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
       session->connect(connection_options);
     }
   }
@@ -1429,7 +1429,7 @@ TEST_F(MySQL_upgrade_check_test, manual_checks) {
 TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  auto mysql_connection_options = shcore::get_connection_options(_mysql_uri);
+  auto mysql_connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   _interactive_shell->connect(mysql_connection_options);
   Util util(_interactive_shell->shell_context().get());
 
@@ -1443,14 +1443,15 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
 
   // valid mysql 5.7 superuser X protocol
   EXPECT_NO_THROW(
-      util.check_for_server_upgrade(shcore::get_connection_options(_uri)));
+      util.check_for_server_upgrade(mysqlshdk::db::Connection_options(_uri)));
 
   // new user with required privileges sans grant option and '%' in host
   EXPECT_NO_THROW(session->execute(
       "create user if not exists 'percent'@'%' identified by 'percent';"));
   std::string percent_uri = _mysql_uri;
   percent_uri.replace(0, 4, "percent:percent");
-  auto percent_connection_options = shcore::get_connection_options(percent_uri);
+  auto percent_connection_options =
+      mysqlshdk::db::Connection_options(percent_uri);
   // No privileges function should throw
   EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
                std::runtime_error);
@@ -1487,7 +1488,7 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
   // valid mysql 5.7 superuser
   shcore::Option_pack_ref<Upgrade_check_options> options;
   options->output_format = "JSON";
-  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
     rapidjson::Document d;
@@ -1588,7 +1589,7 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
         "or greater than the shell version");
   Util util(_interactive_shell->shell_context().get());
   EXPECT_ANY_THROW(util.check_for_server_upgrade(
-      shcore::get_connection_options(_mysql_uri)));
+      mysqlshdk::db::Connection_options(_mysql_uri)));
 }
 
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
@@ -1601,7 +1602,7 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
        "WhAtEvEr",
        {}});
   EXPECT_THROW(util.check_for_server_upgrade(
-                   shcore::get_connection_options(_mysql_uri_nopasswd)),
+                   mysqlshdk::db::Connection_options(_mysql_uri_nopasswd)),
                shcore::Exception);
 
   // Passwords are consumed if prompted, so verifying this indicates the
@@ -1615,7 +1616,8 @@ TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
       {"If this was prompted it is an error", "WhAtEvEr", {}});
 
   try {
-    util.check_for_server_upgrade(shcore::get_connection_options(_mysql_uri));
+    util.check_for_server_upgrade(
+        mysqlshdk::db::Connection_options(_mysql_uri));
   } catch (...) {
     // We don't really care for this test
   }
@@ -1636,7 +1638,7 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
 
   try {
     util.check_for_server_upgrade(
-        shcore::get_connection_options(_mysql_uri_nopasswd));
+        mysqlshdk::db::Connection_options(_mysql_uri_nopasswd));
   } catch (...) {
     // We don't really care for this test
   }
@@ -1666,7 +1668,7 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
   try {
     std::string uri = "root:root@localhost:" + std::to_string(sb_port);
     auto s = mysqlshdk::db::mysql::Session::create();
-    s->connect(shcore::get_connection_options(uri));
+    s->connect(mysqlshdk::db::Connection_options(uri));
     EXPECT_NO_THROW(s->execute("set @@global.sql_mode='MAXDB';"));
     auto gtid_executed = s->query("select @@global.GTID_EXECUTED;")
                              ->fetch_one()
@@ -2138,7 +2140,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
 
   shcore::Option_pack_ref<Upgrade_check_options> options;
   options->output_format = "JSON";
-  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
     rapidjson::Document d;
@@ -2834,7 +2836,7 @@ TEST_F(MySQL_upgrade_check_test, options_filter_json) {
 
   shcore::Option_pack_ref<Upgrade_check_options> options;
   options->output_format = "JSON";
-  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
     rapidjson::Document d;

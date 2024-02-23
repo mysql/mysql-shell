@@ -271,8 +271,7 @@ void Remove_instance::update_read_replicas_source_for_removed_target(
     }
 
     // split host from port
-    mysqlshdk::db::Connection_options conn_opt =
-        shcore::get_connection_options(address, false);
+    mysqlshdk::db::Connection_options conn_opt(address);
 
     // Get a session to the read-replica
     std::shared_ptr<Instance> read_replica;

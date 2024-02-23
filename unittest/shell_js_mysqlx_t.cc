@@ -45,7 +45,7 @@ class Shell_js_mysqlx_tests : public Shell_js_script_tester {
     Shell_js_script_tester::set_defaults();
 
     std::string user, host, password;
-    auto connection_options = shcore::get_connection_options(_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_uri);
 
     if (connection_options.has_user()) user = connection_options.get_user();
 

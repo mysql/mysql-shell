@@ -176,8 +176,7 @@ enum class OperatingSystem {
 std::string SHCORE_PUBLIC to_string(OperatingSystem os_type);
 
 bool SHCORE_PUBLIC is_valid_identifier(std::string_view name);
-mysqlshdk::db::Connection_options SHCORE_PUBLIC
-get_connection_options(const std::string &uri, bool set_defaults = true);
+
 mysqlshdk::ssh::Ssh_connection_options SHCORE_PUBLIC
 get_ssh_connection_options(const std::string &uri, bool set_defaults = true,
                            const std::string &config_path = "");

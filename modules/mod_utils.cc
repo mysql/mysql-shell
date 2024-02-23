@@ -57,7 +57,7 @@ namespace {
 Connection_options get_connection_options(const std::string &instance_def) {
   if (instance_def.empty()) throw std::invalid_argument("Invalid URI: empty.");
 
-  auto ret_val = shcore::get_connection_options(instance_def, false);
+  auto ret_val = Connection_options(instance_def);
   for (const auto &warning : ret_val.get_warnings())
     mysqlsh::current_console()->print_warning(warning);
   ret_val.clear_warnings();
@@ -581,7 +581,6 @@ Connection_options get_classic_connection_options(
   auto co = session->get_connection_options();
   // switch from X protocol to classic
   if (SessionType::Classic != co.get_session_type()) {
-    co.clear_scheme();
     co.set_scheme("mysql");
 
     if (co.has_port()) {
@@ -594,7 +593,6 @@ Connection_options get_classic_connection_options(
             "connection");
       }
 
-      co.clear_port();
       co.set_port(row->get_int(0));
 
       // if we're here, we clear up local port, so establish session will find

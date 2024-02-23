@@ -64,7 +64,7 @@ TEST_F(Db_tests, connect_uri) {
 
     // Connection failure
     {
-      auto connection_options = shcore::get_connection_options(uri_nopass());
+      auto connection_options = mysqlshdk::db::Connection_options(uri_nopass());
       connection_options.set_password("fake_pwd");
 
       EXPECT_THROW(session->connect(connection_options), std::exception);
@@ -72,7 +72,7 @@ TEST_F(Db_tests, connect_uri) {
 
     // Success connection, no schema selected
     {
-      auto connection_options = shcore::get_connection_options(uri());
+      auto connection_options = mysqlshdk::db::Connection_options(uri());
 
       ASSERT_NO_THROW(session->connect(connection_options));
       auto result = std::shared_ptr<mysqlshdk::db::IResult>(
@@ -85,7 +85,7 @@ TEST_F(Db_tests, connect_uri) {
     // Success connection, default schema
     {
       auto connection_options =
-          shcore::get_connection_options(uri() + "/mysql");
+          mysqlshdk::db::Connection_options(uri() + "/mysql");
       ASSERT_NO_THROW(session->connect(connection_options));
       auto result = std::shared_ptr<mysqlshdk::db::IResult>(
           session->query("select database()"));
@@ -100,7 +100,7 @@ TEST_F(Db_tests, connect_uri) {
 TEST_F(Db_tests, execute) {
   do {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
-    auto connection_options = shcore::get_connection_options(uri());
+    auto connection_options = mysqlshdk::db::Connection_options(uri());
     EXPECT_NO_THROW(session->connect(connection_options));
 
     // Execute error, trying to use an unexisting schema
@@ -116,7 +116,7 @@ TEST_F(Db_tests, execute) {
 TEST_F(Db_tests, query) {
   do {
     SCOPED_TRACE(is_classic ? "mysql" : "mysqlx");
-    auto connection_options = shcore::get_connection_options(uri());
+    auto connection_options = mysqlshdk::db::Connection_options(uri());
 
     EXPECT_NO_THROW(session->connect(connection_options));
 
@@ -194,7 +194,7 @@ TEST_F(Db_tests, auto_close) {
     int ocount = result->fetch_one()->get_int(0);
 
     {
-      auto connection_options = shcore::get_connection_options(uri());
+      auto connection_options = mysqlshdk::db::Connection_options(uri());
       auto mysql_session = make_session();
       EXPECT_NO_THROW(mysql_session->connect(connection_options));
 
@@ -231,7 +231,7 @@ TEST_F(Db_tests, auto_close) {
 }
 
 TEST_F(Db_tests, connect_read_timeout) {
-  auto connection_options = shcore::get_connection_options(uri());
+  auto connection_options = mysqlshdk::db::Connection_options(uri());
 
   connection_options.set_unchecked("net-read-timeout", "1000");
 
@@ -244,7 +244,7 @@ TEST_F(Db_tests, connect_read_timeout) {
 }
 
 TEST_F(Db_tests, connect_write_timeout) {
-  auto connection_options = shcore::get_connection_options(uri());
+  auto connection_options = mysqlshdk::db::Connection_options(uri());
 
   connection_options.set_unchecked("net-write-timeout", "500");
 
@@ -254,7 +254,7 @@ TEST_F(Db_tests, connect_write_timeout) {
 }
 
 TEST_F(Db_tests, connect_max_allowed_packet) {
-  auto connection_options = shcore::get_connection_options(uri());
+  auto connection_options = mysqlshdk::db::Connection_options(uri());
 
   connection_options.set_unchecked("max-allowed-packet", "4096");
   connection_options.set_unchecked("net-buffer-length", "2048");

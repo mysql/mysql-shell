@@ -717,4 +717,47 @@ TEST_F(Command_line_test, default_is_xproto_via_tcp) {
   session->execute("drop user if exists testuser1@'%'");
 }
 
+TEST_F(Command_line_test, bug35751281_tcp_override_socket) {
+  // socket, then TCP host => TCP
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", "-h127.0.0.1", "-pbla",
+           "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
+
+  // socket, then TCP host, then localhost => socket
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", "-h127.0.0.1", "-hlocalhost",
+           "-pbla", "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("broken");
+
+  // TCP host, then socket => TCP
+  execute({_mysqlsh, "-uroot", "-h127.0.0.1", "-S/tmp/broken", "-pbla",
+           "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@127.0.0.1");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
+
+  std::string port = "-P" + _mysql_port;
+
+  // socket, then TCP port => TCP
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", port.c_str(), "-pbla",
+           "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@localhost:");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(_mysql_port);
+
+  // socket, then TCP port, then localhost => TCP
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", port.c_str(), "-hlocalhost",
+           "-pbla", "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(_mysql_port);
+
+  // socket, then TCP port, then localhost, then TCP address => TCP
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", port.c_str(), "-hlocalhost",
+           "-h127.0.0.1", "-pbla", "--verbose", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(_mysql_port);
+}
+
 }  // namespace tests

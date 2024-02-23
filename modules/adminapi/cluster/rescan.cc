@@ -519,8 +519,7 @@ void Rescan::update_metadata_for_instance(
 
 void Rescan::remove_instance_from_metadata(
     const std::string &instance_address) {
-  mysqlshdk::db::Connection_options instance_cnx_opts =
-      shcore::get_connection_options(instance_address, false);
+  mysqlshdk::db::Connection_options instance_cnx_opts(instance_address);
 
   auto console = mysqlsh::current_console();
   console->print_info("Removing instance from the cluster metadata...");
@@ -587,13 +586,11 @@ void Rescan::add_metadata_for_instances(
       instance_cnx_opts = *list_iter;
       m_options.add_instances_list.erase(list_iter);
     } else if (m_options.auto_add) {
-      instance_cnx_opts =
-          shcore::get_connection_options(instance_address, false);
+      instance_cnx_opts = mysqlshdk::db::Connection_options(instance_address);
     } else if (current_shell_options()->get().wizards) {
       if (console->confirm("Would you like to add it to the cluster metadata?",
                            Prompt_answer::YES) == Prompt_answer::YES) {
-        instance_cnx_opts =
-            shcore::get_connection_options(instance_address, false);
+        instance_cnx_opts = mysqlshdk::db::Connection_options(instance_address);
       }
     }
 
@@ -696,7 +693,7 @@ void Rescan::update_metadata_for_instances(
 
     // Decide to add/remove instance based on given operation options.
     auto instance_cnx_opts =
-        shcore::get_connection_options(instance_address, false);
+        mysqlshdk::db::Connection_options(instance_address);
 
     update_metadata_for_instance(instance_cnx_opts,
                                  instance_map->get_uint("id"), label);
