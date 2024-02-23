@@ -1084,6 +1084,9 @@ Dump_loader::~Dump_loader() {}
 std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   auto session = establish_session(m_options.connection_options(), false);
 
+  // Make sure we don't get affected by user customizations of sql_mode
+  execute(session, "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
+
   // Set timeouts to larger values since worker threads may get stuck
   // downloading data for some time before they have a chance to get back to
   // doing MySQL work.
@@ -1107,9 +1110,6 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
 
   execute(session, "SET foreign_key_checks = 0");
   execute(session, "SET unique_checks = 0");
-
-  // Make sure we don't get affected by user customizations of sql_mode
-  execute(session, "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
 
   if (!m_character_set.empty())
     executef(session, "SET NAMES ?", m_character_set);

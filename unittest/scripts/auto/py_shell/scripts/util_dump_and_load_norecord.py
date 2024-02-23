@@ -2745,6 +2745,25 @@ testutil.dbug_set("")
 for schema_name in schema_names:
     session.run_sql("DROP SCHEMA !;", [schema_name])
 
+#@<> BUG#36119568 - load fails on Windows if global sql_mode is set to STRICT_ALL_TABLES
+# constants
+dump_dir = os.path.join(outdir, "bug_36119568")
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
+
+# load
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+session.run_sql("SET @saved_sql_mode = @@global.sql_mode")
+session.run_sql("SET @@global.sql_mode = STRICT_ALL_TABLES")
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not fail")
+
+# cleanup
+session.run_sql("SET @@global.sql_mode = @saved_sql_mode")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
