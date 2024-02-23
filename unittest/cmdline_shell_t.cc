@@ -50,7 +50,7 @@ TEST(Cmdline_shell, query_variable_classic) {
                     "version", mysqlsh::Prompt_manager::Mysql_system_variable));
 
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("mysql://root@localhost");
+  auto coptions = mysqlshdk::db::Connection_options("mysql://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else
@@ -77,7 +77,7 @@ TEST(Cmdline_shell, query_variable_x) {
   shell.finish_init();
 
   const char *pwd = getenv("MYSQL_PWD");
-  auto coptions = shcore::get_connection_options("mysqlx://root@localhost");
+  auto coptions = mysqlshdk::db::Connection_options("mysqlx://root@localhost");
   if (pwd)
     coptions.set_password(pwd);
   else

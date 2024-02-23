@@ -1657,7 +1657,9 @@ socket=/sock/et
     EXPECT_NO_THROW(so.get().connection_options());
 
     EXPECT_EQ(3232, so.get().connection_options().get_port());
-    EXPECT_FALSE(so.get().connection_options().has_socket());
+    // socket setting must remain set, but it won't be active because the
+    // transport becomes TCP
+    EXPECT_TRUE(so.get().connection_options().has_socket());
   }
 
   {
@@ -1713,7 +1715,7 @@ port=3232
     EXPECT_EQ(0, so.get().exit_code);
     EXPECT_NO_THROW(so.get().connection_options());
 
-    EXPECT_FALSE(so.get().connection_options().has_port());
+    EXPECT_TRUE(so.get().connection_options().has_port());
     EXPECT_EQ("/tmp/sock", so.get().connection_options().get_socket());
   }
 

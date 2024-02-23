@@ -50,7 +50,7 @@ class Group_replication_test : public tests::Shell_base_test {
     tests::Shell_base_test::SetUp();
 
     // Create instance and Open the session for the tests.
-    _connection_options = shcore::get_connection_options(_mysql_uri);
+    _connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     _session->connect(_connection_options);
     m_instance = new mysqlshdk::mysql::Instance(_session);
 

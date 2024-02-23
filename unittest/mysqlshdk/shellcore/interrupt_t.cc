@@ -235,7 +235,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
       const std::string & /* uri */, const std::string & /* password */) {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysql::ClassicSession());
-    auto connection_options = shcore::get_connection_options(_mysql_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     session->connect(connection_options);
     return session;
   }
@@ -245,7 +245,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     std::shared_ptr<mysqlsh::ShellBaseSession> session(
         new mysqlsh::mysqlx::Session());
     shcore::Argument_list args;
-    auto connection_options = shcore::get_connection_options(_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_uri);
     session->connect(connection_options);
     return session;
   }
@@ -266,7 +266,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   static const int k_processlist_command_column = 4;
   static void session_wait(uint64_t sid, int timeout, const char *str,
                            int column = 7) {
-    auto connection_options = shcore::get_connection_options(_mysql_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     auto conn = mysqlshdk::db::mysql::Session::create();
     conn->connect(connection_options);
     timeout *= 1000;

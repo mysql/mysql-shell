@@ -35,7 +35,7 @@ class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
     Shell_py_script_tester::SetUp();
 
     std::string user, host, password;
-    auto connection_options = shcore::get_connection_options(_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_uri);
 
     if (connection_options.has_user()) user = connection_options.get_user();
 

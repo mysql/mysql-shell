@@ -170,16 +170,6 @@ char *mysh_get_stdin_password(const char *prompt) {
   return NULL;
 }
 
-// Builds a connection data dictionary using the URI
-mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
-                                                         bool set_defaults) {
-  mysqlshdk::db::Connection_options connection_options(uri);
-
-  if (set_defaults) connection_options.set_default_data();
-
-  return connection_options;
-}
-
 mysqlshdk::ssh::Ssh_connection_options get_ssh_connection_options(
     const std::string &uri, bool set_defaults, const std::string &config_path) {
   mysqlshdk::ssh::Ssh_connection_options config(uri);

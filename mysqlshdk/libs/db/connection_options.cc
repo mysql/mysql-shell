@@ -94,7 +94,8 @@ Connection_options::Connection_options(Comparison_mode mode)
       m_extra_options(m_mode),
       m_enable_connection_attributes(true),
       m_connection_attributes(m_mode) {
-  for (auto o : {kSocket, kPipe}) m_options.set(o, nullptr, Set_mode::CREATE);
+  for (auto o : {kSocket, kPipe})
+    m_options.set(o, nullptr, Set_mode::CREATE_AND_UPDATE);
 }
 
 Connection_options::Connection_options(const std::string &uri,
@@ -123,18 +124,14 @@ void Connection_options::override_with(const Connection_options &options) {
   }
 
   if (options.has_port()) {
-    clear_port();
     set_port(options.get_port());
   } else {
     // "default" port should also override old value
     clear_port();
   }
 
-  if (options.has_transport_type()) {
-    m_transport_type = options.get_transport_type();
-  } else {
-    m_transport_type.reset();
-  }
+  m_default_transport_type = options.m_default_transport_type;
+  m_transport_type = options.m_transport_type;
 
   for (int i = 0; i < 3; i++) {
     if (options.m_mfa_passwords[i].has_value())
@@ -263,7 +260,7 @@ void Connection_options::set_pipe(const std::string &pipe) {
 
   m_options.set(kSocket, pipe, Set_mode::CREATE_AND_UPDATE);
   m_options.set(kPipe, pipe, Set_mode::CREATE_AND_UPDATE);
-  m_transport_type = Transport_type::Pipe;
+  m_default_transport_type = Transport_type::Pipe;
 }
 
 void Connection_options::check_compression_conflicts() {
@@ -306,7 +303,7 @@ void Connection_options::set_compression_algorithms(
 
 void Connection_options::set_socket(const std::string &socket) {
   m_options.set(kSocket, socket, Set_mode::CREATE_AND_UPDATE);
-  m_transport_type = Transport_type::Socket;
+  m_default_transport_type = Transport_type::Socket;
 }
 
 void Connection_options::set_host(const std::string &host) {
@@ -314,19 +311,15 @@ void Connection_options::set_host(const std::string &host) {
 
 #ifdef _WIN32
   if (host == ".") {
-    m_transport_type = Transport_type::Pipe;
+    m_default_transport_type = Transport_type::Pipe;
     return;
   }
-#endif  // _WIN32i
-  if (host != "localhost")
-    m_transport_type = Transport_type::Tcp;
-  else if (!m_port.has_value())
-    m_transport_type.reset();
+#endif  // _WIN32
 }
 
 void Connection_options::set_port(int port) {
   m_port = port;
-  m_transport_type = Transport_type::Tcp;
+  m_default_transport_type = Transport_type::Tcp;
 }
 
 bool Connection_options::is_extra_option(const std::string &option) {
@@ -486,9 +479,9 @@ bool Connection_options::has(const std::string &name) const {
 
 bool Connection_options::has_value(const std::string &name) const {
   if (m_options.compare(name, kSocket) == 0)
-    return has_socket();
+    return uses_local_transport() && has_socket();
   else if (m_options.compare(name, kPipe) == 0)
-    return has_pipe();
+    return uses_local_transport() && has_pipe();
   else if (m_options.compare(name, kConnectTimeout) == 0)
     return has_connect_timeout();
   else if (m_options.compare(name, kNetReadTimeout) == 0)
@@ -633,28 +626,15 @@ void Connection_options::clear_mfa_passwords() {
   }
 }
 
-void Connection_options::clear_host() {
-  if (m_transport_type.has_value() &&
-      *m_transport_type == Transport_type::Tcp && !m_port.has_value())
-    m_transport_type.reset();
+void Connection_options::clear_transport_type() { m_transport_type.reset(); }
 
-  clear_value(kHost);
-}
+void Connection_options::clear_host() { clear_value(kHost); }
 
-void Connection_options::clear_port() {
-  if (has_value(kHost) && get_value(kHost) == "localhost")
-    m_transport_type.reset();
+void Connection_options::clear_port() { m_port.reset(); }
 
-  m_port.reset();
-}
-
-void Connection_options::clear_socket() {
-  m_transport_type.reset();
-  clear_value(kSocket);
-}
+void Connection_options::clear_socket() { clear_value(kSocket); }
 
 void Connection_options::clear_pipe() {
-  m_transport_type.reset();
   clear_value(kSocket);
   clear_value(kPipe);
 }
@@ -717,19 +697,9 @@ void Connection_options::set_default_data() {
   }
 #else
   if (!has_transp) {
-    // xproto connections connect via TCP by default
-    if (!has_scheme() || get_scheme() == "mysqlx") {
-      if (has_port() || !has_socket())
-        m_transport_type = mysqlshdk::db::Transport_type::Tcp;
-      else
-        m_transport_type = mysqlshdk::db::Transport_type::Socket;
-    } else {
-      // classic connections connect via socket by default
-      if (has_port())
-        m_transport_type = mysqlshdk::db::Transport_type::Tcp;
-      else
-        m_transport_type = mysqlshdk::db::Transport_type::Socket;
-    }
+    m_transport_type = uses_local_transport()
+                           ? mysqlshdk::db::Transport_type::Socket
+                           : mysqlshdk::db::Transport_type::Tcp;
   }
 #endif
 
@@ -813,7 +783,7 @@ void Connection_options::set_kerberos_auth_mode(const std::string &mode) {
   }
 
   m_extra_options.set(mysqlshdk::db::kKerberosClientAuthMode, uppermode,
-                      Set_mode::CREATE);
+                      Set_mode::CREATE_AND_UPDATE);
 }
 
 std::string Connection_options::get_kerberos_auth_mode() const {
@@ -922,6 +892,39 @@ void Connection_options::set_connection_attributes(
       set_connection_attribute(attribute, value);
     }
   }
+}
+
+bool Connection_options::uses_local_transport() const {
+  if (m_transport_type.has_value())
+    return *m_transport_type != Transport_type::Tcp;
+
+#ifdef _WIN32
+  if (m_default_transport_type.has_value())
+    return *m_default_transport_type != Transport_type::Tcp;
+#else
+  if (m_default_transport_type.has_value()) {
+    if (has_host() && get_host() != "localhost")
+      return false;
+    else
+      return *m_default_transport_type != Transport_type::Tcp;
+  } else {
+    // xproto connections connect via TCP by default
+    if (!has_scheme() || get_scheme() == "mysqlx") {
+      if (has_port() || !has_socket())
+        return false;
+      else
+        return true;
+    } else {
+      // classic connections connect via socket by default
+      if (has_port())
+        return false;
+      else
+        return true;
+    }
+  }
+#endif
+
+  return false;
 }
 
 int64_t default_connect_timeout() {

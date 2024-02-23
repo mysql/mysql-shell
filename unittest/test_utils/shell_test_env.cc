@@ -725,7 +725,7 @@ std::string shell_test_server_uri(int proto) {
 
   // Creates connection data and recreates URI, fixes URI if no pwd defined
   // So the UT don't prompt for password ever
-  auto data = shcore::get_connection_options(uri);
+  auto data = mysqlshdk::db::Connection_options(uri);
   data.set_password("");
 
   std::string _uri;

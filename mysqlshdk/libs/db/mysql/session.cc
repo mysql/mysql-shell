@@ -212,6 +212,7 @@ void Session_impl::connect(
   std::call_once(trace_register_flag, register_tracer_plugin, _mysql);
 
   _connection_options = connection_options;
+  _connection_options.set_default_data();
 
   auth::register_connection_options_for_mysql(_mysql, _connection_options);
   shcore::on_leave_scope unregister_conn_options(

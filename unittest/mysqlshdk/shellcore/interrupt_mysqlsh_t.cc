@@ -316,7 +316,7 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
 
     session.reset(new mysqlsh::mysql::ClassicSession());
 
-    auto connection_options = shcore::get_connection_options(_mysql_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     session->connect(connection_options);
   }
 
