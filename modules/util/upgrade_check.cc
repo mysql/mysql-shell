@@ -1452,8 +1452,16 @@ Sql_upgrade_check::get_schema_inconsistency_check() {
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
        "join information_schema.tables I on A.table_name = I.table_name and "
        "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
-       "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
-       "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';"},
+       "and (I.table_name IS NULL or I.table_schema IS NULL) "
+       // When a table's name contains non-ASCII characters, each non-ASCII character
+       // is replaced by '@' followed by exactly 4 hexadecimal digits representing
+       // its Unicode codepoint.
+       //
+       // It is difficult to write a SQL query to remap all such occurrences
+       // in a correct way to match their rows in I_S.TABLES and I_S.INNODB_SYS_TABLES,
+       // so for now any tables or schemas containing @-escapes (other than the ones
+       // specifically handed by replace_in_SQL) are simply ignored by this query.
+       "and A.table_name not REGEXP '@[0-9a-f]{4}' and A.schema_name not REGEXP '@[0-9a-f]{4}';"},
       Upgrade_issue::ERROR,
       "Following tables show signs that either table datadir directory or frm "
       "file was removed/corrupted. Please check server logs, examine datadir "
