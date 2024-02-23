@@ -689,8 +689,9 @@ DESCRIPTION
         otherwise) - Enable or disable dump progress information.
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
-      - compression: string (default: "zstd") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
+      - compression: string (default: "zstd;level=1") - Compression used when
+        writing the data dump files, one of: "none", "gzip", "zstd".
+        Compression level may be specified as "gzip;level=8" or "zstd;level=8".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where
@@ -1299,8 +1300,9 @@ DESCRIPTION
         otherwise) - Enable or disable dump progress information.
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
-      - compression: string (default: "zstd") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
+      - compression: string (default: "zstd;level=1") - Compression used when
+        writing the data dump files, one of: "none", "gzip", "zstd".
+        Compression level may be specified as "gzip;level=8" or "zstd;level=8".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where
@@ -1886,8 +1888,9 @@ DESCRIPTION
         otherwise) - Enable or disable dump progress information.
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
-      - compression: string (default: "zstd") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
+      - compression: string (default: "zstd;level=1") - Compression used when
+        writing the data dump files, one of: "none", "gzip", "zstd".
+        Compression level may be specified as "gzip;level=8" or "zstd;level=8".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where
@@ -2428,7 +2431,8 @@ DESCRIPTION
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
       - compression: string (default: "none") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
+        the data dump files, one of: "none", "gzip", "zstd". Compression level
+        may be specified as "gzip;level=8" or "zstd;level=8".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where

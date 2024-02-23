@@ -845,6 +845,16 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
+#@<> Check compression level option
+EXPECT_FAIL("ValueError", "Argument #2: Compression options not supported", test_output_relative, {"compression": "none;level=3"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid compression level for zstd: 9000", test_output_relative, {"compression": "zstd;level=9000"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid compression level for gzip: 12", test_output_relative, {"compression": "gzip;level=12"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid compression option for zstd: superfast", test_output_relative, {"compression": "zstd;superfast=1"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid compression option for gzip: superfast", test_output_relative, {"compression": "gzip;superfast=1"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid compression option for zstd: superfast", test_output_relative, {"compression": "zstd;level=2;superfast=1"})
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "zstd;level=20", "showProgress": False })
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "gzip;level=9", "showProgress": False })
+
 #@<> WL13807: WL13804-FR5.4 - The `options` dictionary may contain a `osBucketName` key with a string value, which specifies the OCI bucket name where the data dump files are going to be stored.
 # WL13807-TSFR_3_58
 TEST_STRING_OPTION("osBucketName")

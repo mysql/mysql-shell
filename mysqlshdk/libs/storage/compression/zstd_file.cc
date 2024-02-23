@@ -31,13 +31,17 @@
 
 #include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace storage {
 namespace compression {
 
-Zstd_file::Zstd_file(std::unique_ptr<IFile> file)
-    : Compressed_file(std::move(file)) {}
+Zstd_file::Zstd_file(std::unique_ptr<IFile> file,
+                     const Compression_options &options)
+    : Compressed_file(std::move(file)) {
+  parse_compression_options(options, this);
+}
 
 Zstd_file::~Zstd_file() {
   try {
@@ -335,6 +339,27 @@ void Zstd_file::do_close() {
 
   if (file()->is_open()) {
     file()->close();
+  }
+}
+
+void Zstd_file::parse_compression_options(const Compression_options &options,
+                                          Zstd_file *out) {
+  for (const auto &opt : options) {
+    if (opt.first == "level") {
+      int level;
+      try {
+        level = std::stoi(opt.second);
+      } catch (...) {
+        level = -1;
+      }
+      if (level < 0 || level > ZSTD_maxCLevel())
+        throw std::invalid_argument("Invalid compression level for zstd: " +
+                                    opt.second);
+      if (out) out->m_clevel = level;
+    } else {
+      throw std::invalid_argument("Invalid compression option for zstd: " +
+                                  opt.first);
+    }
   }
 }
 

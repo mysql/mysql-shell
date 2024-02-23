@@ -30,13 +30,17 @@
 #include <utility>
 
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace storage {
 namespace compression {
 
-Gz_file::Gz_file(std::unique_ptr<IFile> file)
-    : Compressed_file(std::move(file)) {}
+Gz_file::Gz_file(std::unique_ptr<IFile> file,
+                 const Compression_options &options)
+    : Compressed_file(std::move(file)) {
+  parse_compression_options(options, this);
+}
 
 Gz_file::~Gz_file() {
   try {
@@ -133,7 +137,7 @@ void Gz_file::init_write() {
 
   const int gzip_window_bits = 15 + 16;
   const int mem_level = 8;
-  const int compression_level = 1;  // Z_DEFAULT_COMPRESSION
+  const int compression_level = m_clevel;
   int result = deflateInit2(&m_stream, compression_level, Z_DEFLATED,
                             gzip_window_bits, mem_level, Z_DEFAULT_STRATEGY);
   if (result != Z_OK) {
@@ -190,6 +194,27 @@ void Gz_file::do_close() {
 
   if (file()->is_open()) {
     file()->close();
+  }
+}
+
+void Gz_file::parse_compression_options(const Compression_options &options,
+                                        Gz_file *out) {
+  for (const auto &opt : options) {
+    if (opt.first == "level") {
+      int level;
+      try {
+        level = std::stoi(opt.second);
+      } catch (...) {
+        level = -1;
+      }
+      if (level < 0 || level > Z_BEST_COMPRESSION)
+        throw std::invalid_argument("Invalid compression level for gzip: " +
+                                    opt.second);
+      if (out) out->m_clevel = level;
+    } else {
+      throw std::invalid_argument("Invalid compression option for gzip: " +
+                                  opt.first);
+    }
   }
 }
 
