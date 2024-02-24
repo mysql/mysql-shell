@@ -84,7 +84,7 @@ BEGIN
             VALUE "CompanyName",      "Oracle Corporation\0"
             VALUE "FileDescription",  "@MYSH_FILE_DESCRIPTION@\0"
             VALUE "InternalName",     "@MYSH_INTERNAL_NAME@\0"
-            VALUE "LegalCopyright",   "Copyright ® 2016, @PACKAGE_YEAR@, Oracle and/or its affiliates.\0"
+            VALUE "LegalCopyright",   "Copyright © 2016, @PACKAGE_YEAR@, Oracle and/or its affiliates.\0"
             VALUE "LegalTrademarks",  "Oracle®, Java, MySQL, and NetSuite are registered trademarks of Oracle and/or its affiliates.\0"
             VALUE "OriginalFilename", "@MYSH_ORIGINAL_FILE_NAME@\0"
             VALUE "ProductName",      "MySQL Shell\0"
