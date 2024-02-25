@@ -26,12 +26,26 @@
 #include "modules/util/upgrade_checker/upgrade_check_options.h"
 
 #include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/utils/utils_filtering.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
+namespace {
+
+void normalize_value(const Upgrade_check_options::Check_id_uset &value,
+                     Check_id_set *output) {
+  for (const auto &item : value) {
+    if (auto clean_item = shcore::str_strip(item); !clean_item.empty()) {
+      output->emplace(std::move(clean_item));
+    }
+  }
+}
+}  // namespace
 
 const shcore::Option_pack_def<Upgrade_check_options>
     &Upgrade_check_options::options() {
@@ -42,8 +56,11 @@ const shcore::Option_pack_def<Upgrade_check_options>
           .optional("configPath", &Upgrade_check_options::config_path)
           .optional("password", &Upgrade_check_options::password, "",
                     shcore::Option_extract_mode::CASE_SENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED);
-
+                    shcore::Option_scope::CLI_DISABLED)
+          .optional("include", &Upgrade_check_options::include)
+          .optional("exclude", &Upgrade_check_options::exclude)
+          .optional("list", &Upgrade_check_options::list_checks)
+          .on_done(&Upgrade_check_options::verify_options);
   return opts;
 }
 
@@ -58,6 +75,21 @@ void Upgrade_check_options::set_target_version(const std::string &value) {
     } else {
       target_version = Version(value);
     }
+  }
+}
+
+void Upgrade_check_options::include(const Check_id_uset &value) {
+  normalize_value(value, &include_list);
+}
+
+void Upgrade_check_options::exclude(const Check_id_uset &value) {
+  normalize_value(value, &exclude_list);
+}
+
+void Upgrade_check_options::verify_options() {
+  if (mysqlshdk::utils::error_on_conflicts<Check_id_set, std::string>(
+          include_list, exclude_list, "check", "", "")) {
+    throw std::invalid_argument("Conflicting filtering options");
   }
 }
 

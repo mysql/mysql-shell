@@ -34,6 +34,12 @@ Version_condition::Version_condition(Version version) {
   m_versions.emplace_front(std::move(version));
 }
 
+std::string Version_condition::description() const {
+  return "When the upgrade reaches any of the following versions: " +
+         shcore::str_join(m_versions, ", ",
+                          [](const auto &ver) { return ver.get_base(); });
+}
+
 bool Version_condition::evaluate(const Upgrade_info &info) {
   // The condition is met if the source -> target versions cross one of the
   // registered versions
@@ -69,6 +75,32 @@ bool Life_cycle_condition::evaluate(const Upgrade_info &info) {
     return false;
 
   return true;
+}
+
+std::string Life_cycle_condition::description() const {
+  std::vector<std::string> source_conditions;
+  if (m_start_version.has_value()) {
+    source_conditions.push_back("at least " + m_start_version->get_base());
+  }
+  if (m_removal_version.has_value()) {
+    source_conditions.push_back("lower than " + m_removal_version->get_base());
+  }
+
+  std::string result;
+  if (!source_conditions.empty()) {
+    result =
+        "Server version is " + shcore::str_join(source_conditions, " and ");
+    result += " and the target version is at least ";
+  } else {
+    result = "Target version is at least ";
+  }
+
+  if (m_deprecation_version.has_value()) {
+    result += m_deprecation_version->get_base();
+  } else {
+    result += m_removal_version->get_base();
+  }
+  return result;
 }
 
 }  // namespace upgrade_checker

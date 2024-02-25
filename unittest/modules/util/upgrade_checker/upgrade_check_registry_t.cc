@@ -34,6 +34,7 @@
 #include "modules/util/upgrade_checker/feature_life_cycle_check.h"
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
 #include "modules/util/upgrade_checker/upgrade_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_config.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "unittest/modules/util/upgrade_checker/test_utils.h"
@@ -43,12 +44,12 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 TEST(Upgrade_check_registry, messages) {
-  // checkTableCommand is available all the time as it has no conditions
-  Upgrade_info ui;
-  ui.server_version = Version(5, 7, 44);
-  ui.target_version = Version(8, 0, 0);
-  auto checklist =
-      Upgrade_check_registry::create_checklist(ui, Target_flags::all(), true);
+  // checkTableOutput is available all the time as it has no conditions
+  Upgrade_check_config config =
+      create_config(Version(5, 7, 44), Version(8, 0, 0), "");
+  config.set_targets(Target_flags::all());
+
+  auto checklist = Upgrade_check_registry::create_checklist(config, true);
 
   using Tag_list = std::vector<std::string>;
   using Additional_checks = std::pair<bool, Tag_list>;
@@ -95,6 +96,7 @@ TEST(Upgrade_check_registry, messages) {
   additional_checks[ids::k_sysvar_allowed_values_check] = {false, {"issue"}};
   additional_checks[ids::k_column_definition] = {
       false, {"floatAutoIncrement", "doubleAutoIncrement"}};
+  additional_checks[ids::k_invalid_privileges_check] = {false, {}};
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();
@@ -154,11 +156,11 @@ void test_check_availability(
   }
 
   for (const auto &item : versions) {
-    auto ui = mysqlsh::upgrade_checker::upgrade_info(item.first, item.second,
-                                                     server_os);
+    auto ui = mysqlsh::upgrade_checker::create_config(item.first, item.second,
+                                                      server_os);
+    ui.set_targets(Target_flags::all());
 
-    auto checklist =
-        Upgrade_check_registry::create_checklist(ui, Target_flags::all());
+    auto checklist = Upgrade_check_registry::create_checklist(ui);
 
     bool found = false;
     for (const auto &check : checklist) {

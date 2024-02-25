@@ -35,6 +35,8 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
+
 namespace mysqlsh {
 namespace upgrade_checker {
 
@@ -70,7 +72,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
  public:
   Text_upgrade_checker_output() : m_console(mysqlsh::current_console()) {}
 
-  void check_info(const std::string &server_addres,
+  void check_info(const std::string &server_address,
                   const std::string &server_version,
                   const std::string &target_version,
                   bool explicit_target_version) override {
@@ -78,7 +80,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         shcore::str_format(
             "The MySQL server at %s, version %s, will now be checked for "
             "compatibility issues for upgrade to MySQL %s%s...",
-            server_addres.c_str(), server_version.c_str(),
+            server_address.c_str(), server_version.c_str(),
             target_version.c_str(),
             explicit_target_version
                 ? ""
@@ -88,7 +90,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
   }
 
   void check_title(const Upgrade_check &check) override {
-    print_title(check.get_title());
+    print_title(check.get_title(), check.get_name());
   }
 
   void check_results(const Upgrade_check &check,
@@ -115,6 +117,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
+    print_title(check.get_title(), check.get_name());
     m_console->print("  ");
     if (runtime_error) m_console->print_diag("Check failed: ");
     m_console->println(description);
@@ -122,13 +125,13 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
   }
 
   void manual_check(const Upgrade_check &check) override {
-    print_title(check.get_title());
+    print_title(check.get_title(), check.get_name());
     print_paragraph(check.get_description());
     print_doc_links(check.get_doc_link());
   }
 
-  void summarize(int error, int warning, int notice,
-                 const std::string &text) override {
+  void summarize(int error, int warning, int notice, const std::string &text,
+                 const std::map<std::string, std::string> &excluded) override {
     m_console->println();
     m_console->println(shcore::str_format("Errors:   %d", error));
     m_console->println(shcore::str_format("Warnings: %d", warning));
@@ -141,13 +144,82 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     } else {
       m_console->println(text);
     }
+
+    if (!excluded.empty()) {
+      m_console->println();
+      m_console->println(
+          "WARNING: The following checks were excluded (per user request):");
+      for (const auto &item : excluded) {
+        m_console->println(shcore::str_format("%s: %s", item.first.c_str(),
+                                              item.second.c_str()));
+      }
+    }
+  }
+
+  void list_info(const std::string &server_address,
+                 const std::string &server_version,
+                 const std::string &target_version,
+                 bool explicit_target_version) override {
+    print_paragraph("Upgrade Consistency Checks");
+    m_console->println();
+    if (!server_address.empty() && !server_version.empty() &&
+        !target_version.empty()) {
+      print_paragraph(
+          shcore::str_format(
+              "The following compatibility checks will be performed for an "
+              "upgrade of MySQL Server at %s, version %s to %s%s:",
+              server_address.c_str(), server_version.c_str(),
+              target_version.c_str(),
+              explicit_target_version ? ""
+                                      : ". To list checks for a different "
+                                        "target server version, use the "
+                                        "targetVersion option"),
+          0, 0);
+    } else {
+      print_paragraph(
+          "The MySQL Shell will now list checks for possible compatibility "
+          "issues for upgrade of MySQL Server...");
+    }
+  }
+
+  void list_item_infos(
+      const std::string &section,
+      const std::vector<std::unique_ptr<Upgrade_check>> &checks) override {
+    m_console->println();
+    m_console->println(shcore::str_format("%s:", section.c_str()));
+
+    if (checks.empty()) {
+      print_paragraph("Empty.");
+    } else {
+      for (const auto &check : checks) {
+        list_item_info(*check);
+      }
+    }
+  }
+
+  void list_summarize(size_t included, size_t excluded) override {
+    m_console->println();
+    if (included > 0)
+      m_console->println(shcore::str_format("Included: %zu", included));
+    if (excluded > 0)
+      m_console->println(shcore::str_format("Excluded: %zu", excluded));
+    if (included > 0 || excluded > 0) m_console->println();
   }
 
  private:
-  void print_title(const std::string &title) {
+  void list_item_info(const Upgrade_check &check) {
     m_console->println();
-    print_paragraph(
-        shcore::str_format("%d) %s", ++m_check_count, title.c_str()), 0, 0);
+    print_paragraph("- " + check.get_name(), 0);
+    print_paragraph(check.get_title());
+    if (check.get_condition())
+      print_paragraph("Condition: " + check.get_condition()->description());
+  }
+
+  void print_title(const std::string &title, const std::string &name) {
+    m_console->println();
+    print_paragraph(shcore::str_format("%d) %s (%s)", ++m_check_count,
+                                       title.c_str(), name.c_str()),
+                    0, 0);
   }
 
   void print_paragraph(const std::string &s, std::size_t base_indent = 2,
@@ -257,7 +329,7 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
     rapidjson::Value check_object(rapidjson::kObjectType);
-    rapidjson::Value id;
+
     check_object.AddMember("id", rapidjson::StringRef(check.get_name().c_str()),
                            m_allocator);
     check_object.AddMember(
@@ -289,9 +361,10 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     check_object.AddMember(
         "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
 
-    check_object.AddMember(
-        "description", rapidjson::StringRef(check.get_description().c_str()),
-        m_allocator);
+    if (!check.get_description().empty())
+      check_object.AddMember(
+          "description", rapidjson::StringRef(check.get_description().c_str()),
+          m_allocator);
     if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
                              rapidjson::StringRef(check.get_doc_link().c_str()),
@@ -299,8 +372,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_manual_checks.PushBack(check_object, m_allocator);
   }
 
-  void summarize(int error, int warning, int notice,
-                 const std::string &text) override {
+  void summarize(int error, int warning, int notice, const std::string &text,
+                 const std::map<std::string, std::string> &excluded) override {
     m_json_document.AddMember("errorCount", error, m_allocator);
     m_json_document.AddMember("warningCount", warning, m_allocator);
     m_json_document.AddMember("noticeCount", notice, m_allocator);
@@ -312,6 +385,89 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_json_document.AddMember("checksPerformed", m_checks, m_allocator);
     m_json_document.AddMember("manualChecks", m_manual_checks, m_allocator);
 
+    if (!excluded.empty()) {
+      rapidjson::Value excluded_list(rapidjson::kArrayType);
+
+      for (const auto &item : excluded) {
+        rapidjson::Value exclude_item(rapidjson::kObjectType);
+
+        exclude_item.AddMember("id", rapidjson::StringRef(item.first.c_str()),
+                               m_allocator);
+
+        exclude_item.AddMember(
+            "title", rapidjson::StringRef(item.second.c_str()), m_allocator);
+
+        excluded_list.PushBack(exclude_item, m_allocator);
+      }
+
+      m_json_document.AddMember("excludedChecks", excluded_list, m_allocator);
+    }
+
+    print_to_output();
+  }
+
+  void list_info(const std::string &server_address,
+                 const std::string &server_version,
+                 const std::string &target_version,
+                 [[maybe_unused]] bool explicit_target_version) override {
+    if (!server_address.empty()) {
+      rapidjson::Value addr;
+      addr.SetString(server_address.c_str(), server_address.length(),
+                     m_allocator);
+      m_json_document.AddMember("serverAddress", addr, m_allocator);
+    }
+
+    if (!server_version.empty()) {
+      rapidjson::Value svr;
+      svr.SetString(server_version.c_str(), server_version.length(),
+                    m_allocator);
+      m_json_document.AddMember("serverVersion", svr, m_allocator);
+    }
+
+    if (!target_version.empty()) {
+      rapidjson::Value tvr;
+      tvr.SetString(target_version.c_str(), target_version.length(),
+                    m_allocator);
+      m_json_document.AddMember("targetVersion", tvr, m_allocator);
+    }
+  }
+
+  void list_item_infos(
+      const std::string &section,
+      const std::vector<std::unique_ptr<Upgrade_check>> &checks) override {
+    rapidjson::Value checks_array(rapidjson::kArrayType);
+
+    for (const auto &check : checks) {
+      rapidjson::Value info_object(rapidjson::kObjectType);
+      info_object.AddMember(
+          "id", rapidjson::StringRef(check->get_name().c_str()), m_allocator);
+      info_object.AddMember("title",
+                            rapidjson::StringRef(check->get_title().c_str()),
+                            m_allocator);
+      if (check->get_condition()) {
+        rapidjson::Value val;
+        auto text = check->get_condition()->description();
+        val.SetString(text.c_str(), text.length(), m_allocator);
+        info_object.AddMember("condition", val, m_allocator);
+      }
+      checks_array.PushBack(info_object, m_allocator);
+    }
+    auto lower_section = shcore::str_lower(section);
+    rapidjson::Value val;
+    val.SetString(lower_section.c_str(), lower_section.length(), m_allocator);
+    m_json_document.AddMember(val, checks_array, m_allocator);
+  }
+
+  void list_summarize(size_t included, size_t excluded) override {
+    m_json_document.AddMember("included", static_cast<uint64_t>(included),
+                              m_allocator);
+    m_json_document.AddMember("excluded", static_cast<uint64_t>(excluded),
+                              m_allocator);
+    print_to_output();
+  }
+
+ private:
+  void print_to_output() {
     rapidjson::StringBuffer buffer;
     if (mysqlsh::current_shell_options()->get().wrap_json == "json/raw") {
       rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
@@ -326,7 +482,6 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                                           false);
   }
 
- private:
   rapidjson::Document m_json_document;
   rapidjson::Document::AllocatorType &m_allocator;
   rapidjson::Value m_checks;

@@ -29,8 +29,11 @@
 #include "modules/util/upgrade_checker/common.h"
 
 #include <optional>
+#include <string>
 
+#include "modules/util/upgrade_checker/upgrade_check_config.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "unittest/test_utils.h"
 
 #define SKIP_IF_SERVER_LOWER_THAN(version)                           \
@@ -48,6 +51,10 @@ Upgrade_info upgrade_info(Version server, Version target,
                           std::string server_os = "");
 
 Upgrade_info upgrade_info(const std::string &server, const std::string &target);
+
+Upgrade_check_config create_config(std::optional<Version> server_version = {},
+                                   std::optional<Version> target_version = {},
+                                   const std::string &server_os = "");
 
 Version before_version(const Version &version);
 

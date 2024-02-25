@@ -34,7 +34,10 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
-    : m_output_format(options.output_format) {
+    : m_output_format(options.output_format),
+      m_include(options.include_list),
+      m_exclude(options.exclude_list),
+      m_list_checks(options.list_checks) {
   m_upgrade_info.target_version = options.get_target_version();
   m_upgrade_info.explicit_target_version = options.target_version.has_value();
   m_upgrade_info.config_path = options.config_path;
@@ -48,9 +51,16 @@ Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
   }
 }
 
+Upgrade_check_config::Upgrade_check_config()
+    : m_output_format("TEXT"), m_list_checks(false) {
+  m_upgrade_info.target_version = mysqlshdk::utils::k_shell_version;
+  m_upgrade_info.explicit_target_version = true;
+}
+
 void Upgrade_check_config::set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   m_session = session;
+  if (!m_session) return;
 
   const auto result = session->query(
       "select @@version, @@version_comment, UPPER(@@version_compile_os);");

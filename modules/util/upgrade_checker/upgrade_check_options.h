@@ -32,16 +32,23 @@
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/upgrade_checker/common.h"
+
 namespace mysqlsh {
 namespace upgrade_checker {
 
 struct Upgrade_check_options {
+  using Check_id_uset = std::unordered_set<std::string>;
+
   static const shcore::Option_pack_def<Upgrade_check_options> &options();
 
   std::optional<mysqlshdk::utils::Version> target_version;
   std::string config_path;
   std::string output_format;
   std::optional<std::string> password;
+  Check_id_set include_list;
+  Check_id_set exclude_list;
+  bool list_checks = false;
 
   mysqlshdk::utils::Version get_target_version() const;
 
@@ -49,7 +56,11 @@ struct Upgrade_check_options {
 #ifdef FRIEND_TEST
   FRIEND_TEST(Upgrade_check_options, set_target_version);
 #endif
+  void include(const Check_id_uset &value);
+  void exclude(const Check_id_uset &value);
+
   void set_target_version(const std::string &value);
+  void verify_options();
 };
 
 }  // namespace upgrade_checker

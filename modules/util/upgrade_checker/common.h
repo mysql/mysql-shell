@@ -27,11 +27,11 @@
 #define MODULES_UTIL_UPGRADE_CHECKER_COMMON_H_
 
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/enumset.h"
@@ -140,6 +140,7 @@ enum class Target {
 };
 
 using Target_flags = mysqlshdk::utils::Enum_set<Target, Target::LAST>;
+using Check_id_set = std::set<std::string>;
 
 struct Upgrade_info {
   mysqlshdk::utils::Version server_version;
@@ -149,7 +150,7 @@ struct Upgrade_info {
   std::string config_path;
   bool explicit_target_version;
 
-  void validate() const;
+  void validate(bool listing = false) const;
 };
 
 struct Upgrade_issue {

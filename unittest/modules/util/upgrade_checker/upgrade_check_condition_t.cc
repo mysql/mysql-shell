@@ -84,21 +84,27 @@ TEST(Version_condition, test_multi_version) {
 
 TEST(Version_condition, test_custom_condition) {
   Version ver(8, 0, 20);
+  std::string test_string = "Some_text_to_test";
 
   {
     Custom_condition condition(
-        [=](const Upgrade_info &info) { return info.target_version < ver; });
+        [=](const Upgrade_info &info) { return info.target_version < ver; },
+        test_string);
 
     EXPECT_TRUE(condition.evaluate(upgrade_info(ver, before_version(ver, 1))));
 
     EXPECT_FALSE(condition.evaluate(upgrade_info(ver, ver)));
+
+    EXPECT_STREQ(test_string.c_str(), condition.description().c_str());
   }
 
   {
     auto temp_info = upgrade_info(ver, ver);
-    Custom_condition condition([](const Upgrade_info &info) {
-      return shcore::str_beginswith(info.server_os, "WIN");
-    });
+    Custom_condition condition(
+        [](const Upgrade_info &info) {
+          return shcore::str_beginswith(info.server_os, "WIN");
+        },
+        test_string);
 
     temp_info.server_os = "WIN32";
     EXPECT_TRUE(condition.evaluate(temp_info));
@@ -108,6 +114,8 @@ TEST(Version_condition, test_custom_condition) {
 
     temp_info.server_os = "Linux";
     EXPECT_FALSE(condition.evaluate(temp_info));
+
+    EXPECT_STREQ(test_string.c_str(), condition.description().c_str());
   }
 }
 
@@ -206,6 +214,46 @@ TEST(Life_cycle_condition, test_no_start_no_removal) {
       condition.evaluate(upgrade_info(Version(8, 4, 0), Version(8, 4, 1))));
   EXPECT_TRUE(
       condition.evaluate(upgrade_info(Version(8, 5, 0), Version(8, 5, 1))));
+}
+
+TEST(Life_cycle_condition, test_description) {
+  {
+    Life_cycle_condition condition(Version(8, 2, 0), Version(8, 3, 0),
+                                   Version(8, 4, 0));
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Server version is at least 8.2.0 and lower than 8.4.0 and "
+                 "the target version is at least 8.3.0");
+  }
+  {
+    Life_cycle_condition condition(Version(8, 2, 0), Version(8, 3, 0), {});
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Server version is at least 8.2.0 and the target version is "
+                 "at least 8.3.0");
+  }
+  {
+    Life_cycle_condition condition(Version(8, 2, 0), {}, Version(8, 4, 0));
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Server version is at least 8.2.0 and lower than 8.4.0 and "
+                 "the target version is at least 8.4.0");
+  }
+
+  {
+    Life_cycle_condition condition({}, Version(8, 3, 0), Version(8, 4, 0));
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Server version is lower than 8.4.0 and the target version is "
+                 "at least 8.3.0");
+  }
+  {
+    Life_cycle_condition condition({}, Version(8, 3, 0), {});
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Target version is at least 8.3.0");
+  }
+  {
+    Life_cycle_condition condition({}, {}, Version(8, 4, 0));
+    EXPECT_STREQ(condition.description().c_str(),
+                 "Server version is lower than 8.4.0 and the target version is "
+                 "at least 8.4.0");
+  }
 }
 
 }  // namespace upgrade_checker

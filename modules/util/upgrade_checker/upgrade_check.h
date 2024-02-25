@@ -38,6 +38,7 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
+class Condition;
 class Upgrade_check {
  public:
   explicit Upgrade_check(const std::string_view name) : m_name(name) {}
@@ -69,8 +70,12 @@ class Upgrade_check {
   const std::string &get_text(const char *field) const;
   virtual bool enabled() const { return true; }
 
+  void set_condition(Condition *condition) { m_condition = condition; }
+  Condition *get_condition() const noexcept { return m_condition; }
+
  private:
   std::string m_name;
+  Condition *m_condition = nullptr;
 };
 
 class Removed_sys_var_check : public Upgrade_check {

@@ -25,6 +25,7 @@
 #include "unittest/gprod_clean.h"
 
 #include <memory>
+#include <set>
 
 #include "modules/util/mod_util.h"
 #include "modules/util/upgrade_check.h"
@@ -58,10 +59,12 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 using mysqlshdk::db::Connection_options;
+
 class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
-      : info(upgrade_info(_target_server_version, Version(MYSH_VERSION))) {}
+      : info(upgrade_info(_target_server_version, Version(MYSH_VERSION))),
+        config(create_config(_target_server_version, Version(MYSH_VERSION))) {}
 
  protected:
   virtual void SetUp() {
@@ -139,9 +142,9 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     }
   }
 
-  bool is_check_present(const Upgrade_info &upgrade_info,
+  bool is_check_present(const Upgrade_check_config &upgrade_config,
                         const std::string_view name) {
-    auto checks = Upgrade_check_registry::create_checklist(upgrade_info);
+    auto checks = Upgrade_check_registry::create_checklist(upgrade_config);
     auto it = std::ranges::find_if(
         checks, [&](const auto &c) { return c->get_name() == name; });
     return it != checks.end();
@@ -183,6 +186,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   void EXPECT_NO_ISSUES(Upgrade_check *check) { EXPECT_ISSUES(check, 0); }
 
   Upgrade_info info;
+  Upgrade_check_config config;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string db;
   std::vector<Upgrade_issue> issues;
@@ -282,19 +286,18 @@ TEST_F(MySQL_upgrade_check_test, upgrade_info_validation) {
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version current(MYSH_VERSION);
-  Version prev(current.get_major(), current.get_minor(),
-               current.get_patch() - 1);
+  Version prev = before_version(current);
 
   EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
-      upgrade_info(Version("5.7.19"), current)));
+      create_config(Version("5.7.19"), current)));
   EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
-      upgrade_info(Version("5.7.17"), Version("8.0"))));
+      create_config(Version("5.7.17"), Version("8.0"))));
   EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
-      upgrade_info(Version("5.7"), Version("8.0.12"))));
+      create_config(Version("5.7"), Version("8.0.12"))));
 
   std::vector<std::unique_ptr<Upgrade_check>> checks;
   EXPECT_NO_THROW(checks = Upgrade_check_registry::create_checklist(
-                      upgrade_info(prev, current)));
+                      create_config(prev, current)));
 }
 
 TEST_F(MySQL_upgrade_check_test, old_temporal) {
@@ -1307,13 +1310,12 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   const auto res = session->query("select UPPER(@@version_compile_os);");
   const auto compile_os = res->fetch_one()->get_string(0);
-  auto si = upgrade_info(Version(5, 7, 25), Version(8, 0, 17));
-  si.server_os = compile_os;
+  auto si = create_config(Version(5, 7, 25), Version(8, 0, 17), compile_os);
 #if defined(WIN32)
   EXPECT_FALSE(is_check_present(si, ids::k_fts_in_tablename_check));
 #else
   PrepareTestDatabase("fts_tablename");
-  auto temp_info = upgrade_info(Version(5, 7, 25), Version(8, 1, 0));
+  auto temp_info = create_config(Version(5, 7, 25), Version(8, 1, 0));
   EXPECT_FALSE(is_check_present(temp_info, ids::k_fts_in_tablename_check));
   auto check = get_fts_in_tablename_check();
   EXPECT_NO_ISSUES(check.get());
@@ -1395,13 +1397,13 @@ TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
   // in 5.6 and upgraded to 5.7
   EXPECT_NO_ISSUES(check.get());
 
-  const auto si24 = upgrade_info(_target_server_version, Version(8, 0, 24));
+  const auto si24 = create_config(_target_server_version, Version(8, 0, 24));
   EXPECT_FALSE(is_check_present(si24, ids::k_old_geometry_types_check));
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
   auto manual = Upgrade_check_registry::create_checklist(
-      upgrade_info(Version("5.7.0"), Version("8.0.11")));
+      create_config(Version("5.7.0"), Version("8.0.11")));
   manual.erase(std::remove_if(manual.begin(), manual.end(),
                               [](const std::unique_ptr<Upgrade_check> &c) {
                                 return c->is_runnable();
@@ -1699,20 +1701,20 @@ TEST_F(MySQL_upgrade_check_test, convert_usage) {
   {
     // upgrade to < 8.0.28 needs no check
     EXPECT_FALSE(
-        is_check_present(upgrade_info(Version(8, 0, 26), Version(8, 0, 27)),
+        is_check_present(create_config(Version(8, 0, 26), Version(8, 0, 27)),
                          ids::k_changed_functions_generated_columns_check));
 
     // upgrade between >= 8.0.28 needs no check
     EXPECT_FALSE(
-        is_check_present(upgrade_info(Version(8, 0, 28), Version(8, 0, 29)),
+        is_check_present(create_config(Version(8, 0, 28), Version(8, 0, 29)),
                          ids::k_changed_functions_generated_columns_check));
 
     EXPECT_TRUE(
-        is_check_present(upgrade_info(Version(5, 7, 28), Version(8, 0, 28)),
+        is_check_present(create_config(Version(5, 7, 28), Version(8, 0, 28)),
                          ids::k_changed_functions_generated_columns_check));
 
     EXPECT_TRUE(
-        is_check_present(upgrade_info(Version(8, 0, 27), Version(8, 0, 29)),
+        is_check_present(create_config(Version(8, 0, 27), Version(8, 0, 29)),
                          ids::k_changed_functions_generated_columns_check));
   }
 
@@ -2811,6 +2813,76 @@ TEST_F(MySQL_upgrade_check_test, column_definition_check_57) {
   EXPECT_EQ(Upgrade_issue::Level::ERROR, issues[1].level);
 
   session->execute("drop schema if exists myschema");
+}
+
+// WL#15974-TSFR_2_1
+TEST_F(MySQL_upgrade_check_test, options_filter_json) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 4, 0));
+  std::set<std::string> expected_ids;
+  {
+    auto checklist =
+        upgrade_checker::Upgrade_check_registry::create_checklist(config);
+    ASSERT_FALSE(checklist.empty());
+    for (const auto &check : checklist) {
+      expected_ids.emplace(check->get_name());
+    }
+    // remove manual checks
+    expected_ids.erase(std::string(
+        upgrade_checker::ids::k_default_authentication_plugin_check));
+    expected_ids.erase(std::string(
+        upgrade_checker::ids::k_default_authentication_plugin_mds_check));
+  }
+
+  Util util(_interactive_shell->shell_context().get());
+
+  // clear stdout/stderr garbage
+  reset_shell();
+
+  shcore::Option_pack_ref<Upgrade_check_options> options;
+  options->output_format = "JSON";
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
+  try {
+    util.check_for_server_upgrade(connection_options, options);
+    rapidjson::Document d;
+    d.Parse(output_handler.std_out.c_str());
+
+    ASSERT_FALSE(d.HasParseError());
+    ASSERT_TRUE(d.IsObject());
+    ASSERT_TRUE(d.HasMember("serverAddress"));
+    ASSERT_TRUE(d["serverAddress"].IsString());
+    ASSERT_TRUE(d.HasMember("serverVersion"));
+    ASSERT_TRUE(d["serverVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("targetVersion"));
+    ASSERT_TRUE(d["targetVersion"].IsString());
+    ASSERT_TRUE(d.HasMember("errorCount"));
+    ASSERT_TRUE(d["errorCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("warningCount"));
+    ASSERT_TRUE(d["warningCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("noticeCount"));
+    ASSERT_TRUE(d["noticeCount"].IsInt());
+    ASSERT_TRUE(d.HasMember("summary"));
+    ASSERT_TRUE(d["summary"].IsString());
+    ASSERT_TRUE(d.HasMember("checksPerformed"));
+    ASSERT_TRUE(d["checksPerformed"].IsArray());
+    auto checks = d["checksPerformed"].GetArray();
+    ASSERT_GE(checks.Size(), 1);
+
+    for (const auto &check : checks) {
+      ASSERT_TRUE(check.IsObject());
+      ASSERT_TRUE(check.HasMember("id"));
+      ASSERT_TRUE(check["id"].IsString());
+
+      auto it =
+          std::ranges::find(expected_ids, std::string(check["id"].GetString()));
+      EXPECT_TRUE(it != expected_ids.end());
+
+      expected_ids.erase(it);
+    }
+    EXPECT_TRUE(expected_ids.empty());
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    EXPECT_TRUE(false);
+  }
 }
 
 }  // namespace upgrade_checker
