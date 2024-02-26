@@ -1002,14 +1002,16 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance) {
 void check_instance_version_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
     mysqlshdk::utils::Version lowest_cluster_version) {
-  auto gr_allow_lower_version_join = instance.get_sysvar_bool(
-      "group_replication_allow_local_lower_version_join", false);
+  if (lowest_cluster_version < utils::Version(8, 4, 0)) {
+    auto gr_allow_lower_version_join = instance.get_sysvar_bool(
+        "group_replication_allow_local_lower_version_join", false);
 
-  // If gr_allow_lower_version_join is NULL then it means the variable is not
-  // available, e.g., if the GR plugin is not installed which happens by default
-  // on 5.7 servers. In that case, we apply the expected behaviour for the
-  // default variable value (false).
-  if (gr_allow_lower_version_join) return;
+    // If gr_allow_lower_version_join is NULL then it means the variable is not
+    // available, e.g., if the GR plugin is not installed which happens by
+    // default on 5.7 servers. In that case, we apply the expected behaviour for
+    // the default variable value (false).
+    if (gr_allow_lower_version_join) return;
+  }
 
   mysqlshdk::utils::Version target_version = instance.get_version();
 

@@ -383,8 +383,7 @@ bool is_running_gr_auto_rejoin(const mysqlshdk::mysql::IInstance &instance);
 /**
  * Check the instance version compatibility to join Group Replication.
  *
- *  The compatibility of the instance version is determined based on the
- *  instance group_replication_allow_local_lower_version_join value and its
+ *  The compatibility of the instance version is determined using its
  *  version compared to the lowest version of the members in the cluster.
  *
  *  For more information see:
