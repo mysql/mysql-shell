@@ -170,6 +170,7 @@ function(install_bundled_binaries)
     get_filename_component(SOURCE_BINARY_NAME "${SOURCE_BINARY}" NAME)
     set(COPIED_BINARY "${DESTINATION_BINARY_DIR}/${SOURCE_BINARY_NAME}")
     set(COPY_TARGET "copy_${SOURCE_BINARY_NAME}")
+    SET(RPATH_COMMAND "")
 
     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
       message(STATUS "Bundling binary: ${SOURCE_BINARY}, installation directory: ${ARG_DESTINATION}")
