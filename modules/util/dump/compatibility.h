@@ -192,6 +192,7 @@ struct Privilege_level_info {
     SCHEMA,
     TABLE,
     ROUTINE,
+    ROLE,
   };
 
   bool grant = true;
