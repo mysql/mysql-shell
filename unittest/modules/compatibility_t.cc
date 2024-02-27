@@ -2647,5 +2647,72 @@ TEST_F(Compatibility_test, replace_keyword) {
          "Select Select Select");
 }
 
+TEST_F(Compatibility_test, parse_grant_statement) {
+  const auto EXPECT = [](const std::string &statement, bool expected_result,
+                         const Privilege_level_info &expected) {
+    SCOPED_TRACE(statement);
+
+    Privilege_level_info info;
+    ASSERT_EQ(expected_result, parse_grant_statement(statement, &info));
+
+    if (expected_result) {
+      EXPECT_EQ(expected.grant, info.grant);
+      EXPECT_EQ(expected.level, info.level);
+      EXPECT_EQ(expected.schema, info.schema);
+      EXPECT_EQ(expected.object, info.object);
+      EXPECT_EQ(expected.privileges, info.privileges);
+    }
+  };
+
+  {
+    Privilege_level_info info;
+    EXPECT_THROW(parse_grant_statement("CREATE ROLE IF NOT EXISTS r@l;", &info),
+                 std::runtime_error);
+  }
+
+  using Level = Privilege_level_info::Level;
+
+  EXPECT("GRANT SUPER ON *.* TO u@h", true,
+         {true, Level::GLOBAL, "*", "*", {"SUPER"}});
+  EXPECT("REVOKE CREATE TABLESPACE, CREATE USER, FILE ON *.* FROM u@h", true,
+         {false,
+          Level::GLOBAL,
+          "*",
+          "*",
+          {"CREATE TABLESPACE", "CREATE USER", "FILE"}});
+
+  EXPECT("GRANT EVENT, LOCK TABLES ON s.* TO u@h", true,
+         {true, Level::SCHEMA, "s", "*", {"EVENT", "LOCK TABLES"}});
+  EXPECT("REVOKE LOCK TABLES ON s.* FROM u@h", true,
+         {false, Level::SCHEMA, "s", "*", {"LOCK TABLES"}});
+
+  EXPECT("GRANT SELECT, SHOW VIEW, TRIGGER ON s.t TO u@h", true,
+         {true, Level::TABLE, "s", "t", {"SELECT", "SHOW VIEW", "TRIGGER"}});
+  EXPECT("REVOKE ALTER ON TABLE s.t FROM u@h", true,
+         {false, Level::TABLE, "s", "t", {"ALTER"}});
+  EXPECT("GRANT SELECT (c1), INSERT(c1, c2) ON s.t TO u@h", true,
+         {true, Level::TABLE, "s", "t", {"SELECT", "INSERT"}});
+
+  EXPECT("GRANT ALTER ROUTINE ON FUNCTION s.f TO u@h", true,
+         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}});
+  EXPECT("GRANT ALTER rOUTINE ON s.f TO u@h", true,
+         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}});
+  EXPECT("REVOKE EXECUTE ON PROCEDURE s.r FROM u@h", true,
+         {false, Level::ROUTINE, "s", "r", {"EXECUTE"}});
+
+  EXPECT("GRANT PROXY ON r TO u@h", false, {});
+  EXPECT("GRANT PROXY ON ''@'' TO u@h", false, {});
+
+  EXPECT("GRANT dev TO u@h", true, {true, Level::ROLE, "", "", {"dev"}});
+  EXPECT("REVOKE dev FROM u@h", true, {false, Level::ROLE, "", "", {"dev"}});
+
+  EXPECT("GRANT dev, admin@localhost TO u@h", true,
+         {true, Level::ROLE, "", "", {"dev", "admin@localhost"}});
+  EXPECT("REVOKE `admin`@`%`, dev FROM u@h", true,
+         {false, Level::ROLE, "", "", {"dev", "`admin`@`%`"}});
+
+  EXPECT("GRANT proxy TO u@h", true, {true, Level::ROLE, "", "", {"proxy"}});
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

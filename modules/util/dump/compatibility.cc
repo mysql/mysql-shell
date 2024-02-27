@@ -1711,75 +1711,118 @@ bool parse_grant_statement(const std::string &statement,
   }
 
   bool object_is_routine = false;
+  bool is_role = false;
+  std::vector<std::string> privileges;
 
   {
     bool all_privileges_done = false;
     bool privilege_done = false;
 
     do {
-      auto privilege = shcore::str_upper(it.next_token());
+      std::string privilege{it.next_token()};
 
       do {
-        auto token = it.next_token();
-
-        if (shcore::str_caseeq(token, result.grant ? "TO" : "FROM")) {
-          // this is GRANT role, we're not interested in these
+        if (!it.valid()) {
           return false;
         }
 
-        if (shcore::str_caseeq(token, "(")) {
-          // column-level privilege, move past column_list
-          do {
-            token = it.next_token();
-          } while (!shcore::str_caseeq(token, ")"));
+        auto token = it.next_token();
 
-          // read next token (either , or ON)
-          token = it.next_token();
+        if (!is_role && shcore::str_caseeq(token, "@")) {
+          is_role = true;
         }
 
-        privilege_done = shcore::str_caseeq(token, ",");
-        all_privileges_done = shcore::str_caseeq(token, "ON");
+        if (is_role) {
+          if (shcore::str_caseeq(token, "@")) {
+            privilege += '@';
+            privilege += it.next_token();
 
-        if (!privilege_done && !all_privileges_done) {
-          privilege += ' ';
-          privilege += shcore::str_upper(token);
-        } else {
-          if (privilege == "EXECUTE" || privilege == "ALTER ROUTINE") {
-            object_is_routine = true;
+            token = it.next_token();
           }
 
-          result.privileges.emplace(std::move(privilege));
+          privilege_done = true;
+          all_privileges_done =
+              shcore::str_caseeq(token, result.grant ? "TO" : "FROM");
+        } else {
+          if (shcore::str_caseeq(token, "(")) {
+            // column-level privilege, move past column_list
+            do {
+              token = it.next_token();
+            } while (!shcore::str_caseeq(token, ")"));
+
+            // read next token (either , or ON)
+            token = it.next_token();
+          }
+
+          privilege_done = shcore::str_caseeq(token, ",");
+
+          if (shcore::str_caseeq(token, result.grant ? "TO" : "FROM")) {
+            // this is GRANT/REVOKE role
+            all_privileges_done = is_role = true;
+          } else {
+            all_privileges_done = shcore::str_caseeq(token, "ON");
+          }
+
+          if (!privilege_done && !all_privileges_done) {
+            privilege += ' ';
+            privilege += token;
+          } else {
+            if (shcore::str_caseeq(privilege, "EXECUTE") ||
+                shcore::str_caseeq(privilege, "ALTER ROUTINE")) {
+              object_is_routine = true;
+            }
+          }
+        }
+
+        if (privilege_done || all_privileges_done) {
+          privileges.emplace_back(std::move(privilege));
         }
       } while (!privilege_done && !all_privileges_done);
     } while (!all_privileges_done);
   }
 
-  if (!it.valid() || result.privileges.count("PROXY")) {
+  if (!it.valid()) {
     return false;
   }
 
-  auto priv_level = it.next_token();
+  if (is_role) {
+    result.level = Privilege_level_info::Level::ROLE;
+  } else {
+    for (auto &p : privileges) {
+      if (shcore::str_caseeq(p, "PROXY")) {
+        return false;
+      }
 
-  if (shcore::str_caseeq(priv_level, "TABLE")) {
-    object_is_routine = false;
-    // priv_level follows
-    priv_level = it.next_token();
-  } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
-    object_is_routine = true;
-    // priv_level follows
-    priv_level = it.next_token();
+      p = shcore::str_upper(p);
+    }
+
+    auto priv_level = it.next_token();
+
+    if (shcore::str_caseeq(priv_level, "TABLE")) {
+      object_is_routine = false;
+      // priv_level follows
+      priv_level = it.next_token();
+    } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
+      object_is_routine = true;
+      // priv_level follows
+      priv_level = it.next_token();
+    }
+
+    shcore::split_priv_level(std::string{priv_level}, &result.schema,
+                             &result.object);
+
+    if ("*" == result.schema) {
+      result.level = Privilege_level_info::Level::GLOBAL;
+    } else if ("*" == result.object) {
+      result.level = Privilege_level_info::Level::SCHEMA;
+    } else {
+      result.level = object_is_routine ? Privilege_level_info::Level::ROUTINE
+                                       : Privilege_level_info::Level::TABLE;
+    }
   }
 
-  shcore::split_priv_level(std::string{priv_level}, &result.schema,
-                           &result.object);
-
-  if ("*" == result.schema) {
-    result.level = Privilege_level_info::Level::GLOBAL;
-  } else if ("*" == result.object) {
-    result.level = Privilege_level_info::Level::SCHEMA;
-  } else {
-    result.level = object_is_routine ? Privilege_level_info::Level::ROUTINE
-                                     : Privilege_level_info::Level::TABLE;
+  for (auto &p : privileges) {
+    result.privileges.emplace(std::move(p));
   }
 
   *info = std::move(result);
