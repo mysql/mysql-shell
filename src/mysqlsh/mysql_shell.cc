@@ -206,7 +206,6 @@ class Shell_command_provider : public shcore::completer::Provider {
     if (line[0] == '\\' && (cmdend = line.find(' ')) != std::string::npos) {
       // check if we're completing params for a \command
 
-      // keep it simple for now just and handle \command completions here...
       options =
           complete_command(line.substr(0, cmdend), line.substr(*compl_offset));
     } else if ((*compl_offset > 0 && *compl_offset < line.length() &&
@@ -248,11 +247,16 @@ class Shell_command_provider : public shcore::completer::Provider {
       auto provider = shell_->provider_sql();
       assert(provider);
       return provider->complete_schema(arg);
+    } else if (cmd == "\\h" || cmd == "\\help" || cmd == "\\?") {
+      auto help = shcore::Help_registry::get();
+
+      return help->search_topic_names(arg, shell_->interactive_mode());
     }
 
     return {};
   }
 };
+
 REGISTER_HELP_TOPIC(ShellAPI, CATEGORY, shellapi, Contents, SCRIPTING);
 REGISTER_HELP(SHELLAPI_BRIEF,
               "Contains information about the <b>shell</b> and <b>util</b> "

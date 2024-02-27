@@ -74,6 +74,7 @@ std::optional<int> find_unique_match(
   return match_index;
 }
 }  // namespace
+
 bool Command_help::execute(const std::vector<std::string> &args) {
   // Gets the entire help system
   auto help = _shell->get_helper();
