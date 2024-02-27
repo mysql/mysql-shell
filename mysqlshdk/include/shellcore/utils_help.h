@@ -300,6 +300,9 @@ class Help_registry {
                                                 IShell_core::Mode_mask mode,
                                                 bool case_sensitive);
 
+  std::vector<std::string> search_topic_names(const std::string &pattern,
+                                              IShell_core::Mode mode);
+
   Help_topic *get_topic(const std::string &id, bool allow_unexisting = false,
                         const Topic_mask &type = Topic_mask::any(),
                         bool exact_id_match = false) const;
