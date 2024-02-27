@@ -939,6 +939,21 @@ TEST_F(Shell_cli_operation_test, test_invalid_cli_operations) {
   }
 }
 
+TEST_F(Shell_cli_operation_test, bug34887426_special_chars) {
+  // In:
+  //  mysqlsh -- util import-table ... --linesTerminatedBy=$'\n'
+  // $'\n' is expanded by bash to a newline literal
+  std::vector<std::string> env{"MYSQLSH_TERM_COLOR_MODE=nocolor"};
+
+  testutil->call_mysqlsh_c({_uri.c_str(), "--", "util", "import-table",
+                            "/bad/file", "--linesTerminatedBy=\n"},
+                           "", env);
+
+  MY_EXPECT_STDOUT_NOT_CONTAINS("The following option is invalid");
+
+  output_handler.wipe_all();
+}
+
 #define TEST_API_CLI_OPTIONS(OPTIONS, ...) \
   test<OPTIONS>(__FILE__, __LINE__, __VA_ARGS__)
 
