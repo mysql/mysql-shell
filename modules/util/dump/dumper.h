@@ -491,6 +491,7 @@ class Dumper {
   std::atomic<bool> m_checksum_started;
   std::atomic<uint64_t> m_checksum_tasks_total;
   std::atomic<uint64_t> m_checksum_tasks_completed;
+  Progress_thread::Duration m_checksum_duration;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
   std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   volatile bool m_worker_interrupt = false;
@@ -499,9 +500,7 @@ class Dumper {
   // order to ensure that it is destroyed (and stopped) before any of those
   // fields
   mutable Progress_thread m_progress_thread;
-  mutable Progress_thread::Stage *m_current_stage = nullptr;
   Progress_thread::Stage *m_data_dump_stage = nullptr;
-  Progress_thread::Stage *m_checksum_stage = nullptr;
 
   shcore::Synchronized_queue<std::shared_ptr<mysqlshdk::db::ISession>>
       m_session_pool;
