@@ -30,8 +30,11 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -56,6 +59,8 @@ class Progress_thread final {
    */
   class Duration final : private mysqlshdk::utils::Duration {
    public:
+    Duration() = default;
+
     Duration(const Duration &) = delete;
     Duration(Duration &&) = delete;
 
@@ -63,6 +68,16 @@ class Progress_thread final {
     Duration &operator=(Duration &&) = delete;
 
     ~Duration() = default;
+
+    /**
+     * Starts time measurement.
+     */
+    void start();
+
+    /**
+     * Finishes time measurement.
+     */
+    void finish();
 
     /**
      * Returns current date and time, formatted: %Y-%m-%d %T.
@@ -115,19 +130,20 @@ class Progress_thread final {
     std::string to_string() const;
 
    private:
-    friend class Progress_thread;
-    friend class Progress_thread::Stage;
-
-    Duration() = default;
-
-    void start();
-
-    void finish();
-
     void validate() const;
 
     std::string m_started_at;
     std::string m_finished_at;
+  };
+
+  struct Stage_config {
+    // The description of a stage.
+    std::string description;
+    // Whether to log progress updates.
+    bool log_progress = true;
+    // Whether the progress should be displayed - if not set uses the value used
+    // to create the Progress_thread.
+    std::optional<bool> show_progress{};
   };
 
   /**
@@ -162,16 +178,15 @@ class Progress_thread final {
      *
      * @return description of this stage
      */
-    const std::string &description() const { return m_description; }
+    const std::string &description() const { return m_config.description; }
 
    protected:
     /**
      * Initializes a stage with the given description.
      *
-     * @param description The description of a stage.
-     * @param show_progress Whether the progress should be displayed.
+     * @param config The configuration of a stage.
      */
-    Stage(const std::string &description, bool show_progress);
+    explicit Stage(Stage_config config);
 
     /**
      * Write the progress to the console.
@@ -216,8 +231,7 @@ class Progress_thread final {
 
     // information about the stage
     Duration m_duration;
-    std::string m_description;
-    std::atomic<bool> m_show_progress;
+    Stage_config m_config;
 
     // display-related variables
     std::mutex m_finished_mutex;
@@ -322,7 +336,7 @@ class Progress_thread final {
    *        and will be replaced with static messages printed to the console
    *        when a stage starts and finishes.
    */
-  Progress_thread(const std::string &description, bool show_progress);
+  Progress_thread(std::string description, bool show_progress);
 
   Progress_thread(const Progress_thread &) = delete;
   Progress_thread(Progress_thread &&) = delete;
@@ -344,34 +358,60 @@ class Progress_thread final {
   /**
    * Starts a stage which displays a spinner. Needs to be manually finished.
    *
-   * @param description The description of the new stage.
+   * @param description The description of a new stage.
    *
    * @returns stage which was created.
    */
-  Stage *start_stage(const std::string &description);
+  inline Stage *start_stage(std::string description) {
+    return start_stage(Stage_config{std::move(description)});
+  }
+
+  /**
+   * Starts a stage which displays a spinner. Needs to be manually finished.
+   *
+   * @param stage_config The configuration of a new stage.
+   *
+   * @returns stage which was created.
+   */
+  Stage *start_stage(Stage_config stage_config);
+
+  /**
+   * Starts a stage which displays a progress.
+   *
+   * @param description The description of a new stage.
+   * @param config The configuration of the progress.
+   *
+   * @returns stage which was created.
+   */
+  template <typename T>
+  inline Stage *start_stage(std::string description, T &&config) requires(
+      std::is_same_v<T, Progress_config> ||
+      std::is_same_v<T, Throughput_config>) {
+    return start_stage(Stage_config{std::move(description)},
+                       std::forward<T>(config));
+  }
 
   /**
    * Starts a stage which displays a spinner and a numeric progress. Stage will
    * be automatically finished.
    *
-   * @param description The description of the new stage.
-   * @param config The configuration of the new stage.
+   * @param stage_config The configuration of a new stage.
+   * @param config The configuration of the numeric progress.
    *
    * @returns stage which was created.
    */
-  Stage *start_stage(const std::string &description, Progress_config &&config);
+  Stage *start_stage(Stage_config stage_config, Progress_config config);
 
   /**
    * Starts a stage which displays a throughput information. Needs to be
    * manually finished.
    *
-   * @param description The description of the new stage.
-   * @param config The configuration of the new stage.
+   * @param stage_config The configuration of a new stage.
+   * @param config The configuration of the throughput progress.
    *
    * @returns stage which was created.
    */
-  Stage *start_stage(const std::string &description,
-                     Throughput_config &&config);
+  Stage *start_stage(Stage_config stage_config, Throughput_config config);
 
   /**
    * Finishes any pending stages and waits for their completion.
@@ -419,7 +459,7 @@ class Progress_thread final {
 
  private:
   template <class T, class... Args>
-  Stage *start_stage(const std::string &description, Args &&... args);
+  Stage *start_stage(Stage_config stage_config, Args &&... args);
 
   void shutdown();
 
