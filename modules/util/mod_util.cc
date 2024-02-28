@@ -1537,8 +1537,9 @@ the server.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMPRESSION, R"*(
-@li <b>compression</b>: string (default: "zstd") - Compression used when writing
-the data dump files, one of: "none", "gzip", "zstd".
+@li <b>compression</b>: string (default: "zstd;level=1") - Compression used when writing
+the data dump files, one of: "none", "gzip", "zstd". Compression level may be
+specified as "gzip;level=8" or "zstd;level=8".
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
@@ -1789,7 +1790,8 @@ partition names used to limit the data export to just the specified partitions.
 
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 @li <b>compression</b>: string (default: "none") - Compression used when writing
-the data dump files, one of: "none", "gzip", "zstd".
+the data dump files, one of: "none", "gzip", "zstd". Compression level may be
+specified as "gzip;level=8" or "zstd;level=8".
 
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 

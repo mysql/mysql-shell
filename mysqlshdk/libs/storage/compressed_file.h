@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "mysqlshdk/libs/storage/ifile.h"
 
@@ -35,6 +36,8 @@ namespace mysqlshdk {
 namespace storage {
 
 enum class Compression { NONE, GZIP, ZSTD };
+
+using Compression_options = std::unordered_map<std::string, std::string>;
 
 class Compressed_file : public IFile {
  public:
@@ -87,14 +90,18 @@ class Compressed_file : public IFile {
   bool m_io_finished = false;
 };
 
-Compression to_compression(const std::string &c);
+Compression to_compression(
+    const std::string &c,
+    Compression_options *out_compression_options = nullptr);
 
 std::string to_string(Compression c);
 
 std::string get_extension(Compression c);
 Compression from_extension(const std::string &e);
 
-std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c);
+std::unique_ptr<IFile> make_file(
+    std::unique_ptr<IFile> file, Compression c,
+    const Compression_options &compression_options = {});
 
 }  // namespace storage
 }  // namespace mysqlshdk

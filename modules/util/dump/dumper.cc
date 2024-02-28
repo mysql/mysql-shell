@@ -1760,7 +1760,7 @@ Dumper::Dumper(const Dump_options &options)
     using mysqlshdk::storage::make_file;
     m_output_file =
         make_file(make_file(m_options.output_url(), m_options.storage_config()),
-                  m_options.compression());
+                  m_options.compression(), m_options.compression_options());
     m_output_dir = m_output_file->parent();
 
     if (m_output_dir->is_local() && !m_output_dir->exists()) {
@@ -3448,7 +3448,8 @@ std::unique_ptr<Dumper::Dump_writer_controller> Dumper::table_dump_controller(
         m_writer_creator(),
         [this](const std::string &name) {
           return mysqlshdk::storage::make_file(make_file(name, true),
-                                               m_options.compression());
+                                               m_options.compression(),
+                                               m_options.compression_options());
         },
         m_options.write_index_files()
             ? [this](const std::string &name) { return make_file(name); }

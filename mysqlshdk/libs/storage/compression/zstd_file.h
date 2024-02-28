@@ -46,7 +46,8 @@ class Zstd_file : public Compressed_file {
  public:
   Zstd_file() = delete;
 
-  explicit Zstd_file(std::unique_ptr<IFile> file);
+  explicit Zstd_file(std::unique_ptr<IFile> file,
+                     const Compression_options &options = {});
 
   Zstd_file(const Zstd_file &other) = delete;
   Zstd_file(Zstd_file &&other) = default;
@@ -70,6 +71,9 @@ class Zstd_file : public Compressed_file {
 
   ssize_t read(void *buffer, size_t length) override;
   ssize_t write(const void *buffer, size_t length) override;
+
+  static void parse_compression_options(const Compression_options &options,
+                                        Zstd_file *out);
 
  private:
   struct Buf_view {

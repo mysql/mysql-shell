@@ -455,6 +455,16 @@ plain_file_hash = hash_file(test_output_absolute)
 EXPECT_NO_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd", "showProgress": False }), "export with compression should not append the extension")
 EXPECT_NE(plain_file_hash, hash_file(test_output_absolute))
 
+#@<> Check compression level option
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "none;level=3"}), "Argument #3: Compression options not supported")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "zstd;level=9000"}), "Argument #3: Invalid compression level for zstd: 9000")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "gzip;level=12"}), "Argument #3: Invalid compression level for gzip: 12")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "zstd;superfast=1"}), "Argument #3: Invalid compression option for zstd: superfast")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "gzip;superfast=1"}), "Argument #3: Invalid compression option for gzip: superfast")
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, {"compression": "zstd;level=2;superfast=1"}), "Argument #3: Invalid compression option for zstd: superfast")
+EXPECT_NO_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd;level=20", "showProgress": False }), "compression level")
+EXPECT_NO_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "gzip;level=9", "showProgress": False }), "compression level")
+
 #@<> WL13804-FR5.1 - The `options` dictionary may contain a `maxRate` key with a string value, which specifies the limit of data read throughput in bytes per second per thread.
 TEST_STRING_OPTION("maxRate")
 

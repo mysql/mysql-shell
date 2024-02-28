@@ -182,8 +182,9 @@ class Compression
     }
   }
 
-  void compress_decompress(const std::string &input_data,
-                           mysqlshdk::storage::Compression ctype) {
+  void compress_decompress(
+      const std::string &input_data, mysqlshdk::storage::Compression ctype,
+      const mysqlshdk::storage::Compression_options &opts = {}) {
     using Memory_file = mysqlshdk::storage::backend::Memory_file;
     using Mode = mysqlshdk::storage::Mode;
 
@@ -201,7 +202,7 @@ class Compression
 
     auto compress_storage_ptr = compress_storage.get();
     auto compress =
-        mysqlshdk::storage::make_file(std::move(compress_storage), ctype);
+        mysqlshdk::storage::make_file(std::move(compress_storage), ctype, opts);
 
 #ifdef _WIN32
     if (std::get<1>(GetParam()) == "required") {
@@ -312,6 +313,16 @@ TEST_P(Compression, binary_data) {
     Generate_binary g;
     auto input_data = g.bytes(length);
     compress_decompress(input_data, std::get<0>(GetParam()));
+  }
+}
+
+TEST_P(Compression, options_level) {
+  for (const ssize_t length :
+       {0, 1, 2, 4, 8, 1024, 2000, 8313, 1024 * 1024, 4 * 1024 * 1024}) {
+    SCOPED_TRACE(length);
+    Generate_binary g;
+    auto input_data = g.bytes(length);
+    compress_decompress(input_data, std::get<0>(GetParam()), {{"level", "9"}});
   }
 }
 

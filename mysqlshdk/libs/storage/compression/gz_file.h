@@ -46,7 +46,8 @@ class Gz_file : public Compressed_file {
  public:
   Gz_file() = delete;
 
-  explicit Gz_file(std::unique_ptr<IFile> file);
+  explicit Gz_file(std::unique_ptr<IFile> file,
+                   const Compression_options &options = {});
 
   Gz_file(const Gz_file &other) = delete;
   Gz_file(Gz_file &&other) = default;
@@ -70,6 +71,9 @@ class Gz_file : public Compressed_file {
 
   ssize_t read(void *buffer, size_t length) override;
   ssize_t write(const void *buffer, size_t length) override;
+
+  static void parse_compression_options(const Compression_options &options,
+                                        Gz_file *out);
 
  private:
   struct Buf_view {
@@ -108,6 +112,7 @@ class Gz_file : public Compressed_file {
   z_stream m_stream;
   std::vector<uint8_t> m_source;
   std::optional<Mode> m_open_mode;
+  int m_clevel = 1;  // Z_DEFAULT_COMPRESSION
 };
 
 Gz_file::Buf_view Gz_file::peek(const size_t length) {

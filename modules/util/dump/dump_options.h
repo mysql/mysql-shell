@@ -106,6 +106,10 @@ class Dump_options {
 
   mysqlshdk::storage::Compression compression() const { return m_compression; }
 
+  const mysqlshdk::storage::Compression_options &compression_options() const {
+    return m_compression_options;
+  }
+
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const {
     return m_session;
   }
@@ -263,6 +267,7 @@ class Dump_options {
   bool m_show_progress;
   mysqlshdk::storage::Compression m_compression =
       mysqlshdk::storage::Compression::ZSTD;
+  mysqlshdk::storage::Compression_options m_compression_options;
   mysqlshdk::storage::Config_ptr m_storage_config;
 
   std::string m_character_set = "utf8mb4";
