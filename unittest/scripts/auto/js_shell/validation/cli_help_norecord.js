@@ -785,7 +785,8 @@ OPTIONS
 
 --compression=<str>
             Compression used when writing the data dump files, one of: "none",
-            "gzip", "zstd". Default: "zstd".
+            "gzip", "zstd". Compression level may be specified as
+            "gzip;level=8" or "zstd;level=8". Default: "zstd;level=1".
 
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
@@ -1026,7 +1027,8 @@ OPTIONS
 
 --compression=<str>
             Compression used when writing the data dump files, one of: "none",
-            "gzip", "zstd". Default: "zstd".
+            "gzip", "zstd". Compression level may be specified as
+            "gzip;level=8" or "zstd;level=8". Default: "zstd;level=1".
 
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
@@ -1248,7 +1250,8 @@ OPTIONS
 
 --compression=<str>
             Compression used when writing the data dump files, one of: "none",
-            "gzip", "zstd". Default: "zstd".
+            "gzip", "zstd". Compression level may be specified as
+            "gzip;level=8" or "zstd;level=8". Default: "zstd;level=1".
 
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".
@@ -1439,7 +1442,8 @@ OPTIONS
 
 --compression=<str>
             Compression used when writing the data dump files, one of: "none",
-            "gzip", "zstd". Default: "none".
+            "gzip", "zstd". Compression level may be specified as
+            "gzip;level=8" or "zstd;level=8". Default: "none".
 
 --defaultCharacterSet=<str>
             Character set used for the dump. Default: "utf8mb4".

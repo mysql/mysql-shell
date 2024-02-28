@@ -27,6 +27,7 @@
 
 #include <cassert>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
 #include "mysqlshdk/libs/storage/compression/zstd_file.h"
@@ -38,10 +39,15 @@ namespace storage {
 
 namespace {
 
-#define COMPRESSIONS     \
-  X(NONE, "none", "")    \
-  X(GZIP, "gzip", ".gz") \
-  X(ZSTD, "zstd", ".zst")
+void ensure_no_compression_options(const Compression_options &opts, void *) {
+  if (!opts.empty())
+    throw std::invalid_argument("Compression options not supported");
+}
+
+#define COMPRESSIONS                                                      \
+  X(NONE, "none", "", ensure_no_compression_options)                      \
+  X(GZIP, "gzip", ".gz", compression::Gz_file::parse_compression_options) \
+  X(ZSTD, "zstd", ".zst", compression::Zstd_file::parse_compression_options)
 
 }  // namespace
 
@@ -96,9 +102,27 @@ void Compressed_file::update_io(size_t bytes) {
 
 void Compressed_file::finish_io() { m_io_finished = true; }
 
-Compression to_compression(const std::string &c) {
-#define X(value, name, ext) \
-  if (c == name) return Compression::value;
+Compression to_compression(const std::string &c,
+                           Compression_options *out_compression_options) {
+  std::string ctype;
+
+  if (auto p = c.find(';'); p != std::string::npos) {
+    ctype = c.substr(0, p);
+    if (out_compression_options) {
+      for (const auto &opt : shcore::str_split(c.substr(p + 1), ";")) {
+        auto [n, v] = shcore::str_partition(opt, "=");
+        out_compression_options->emplace(std::move(n), std::move(v));
+      }
+    }
+  } else {
+    ctype = c;
+  }
+
+#define X(value, name, ext, check)                                         \
+  if (ctype == name) {                                                     \
+    if (out_compression_options) check(*out_compression_options, nullptr); \
+    return Compression::value;                                             \
+  }
 
   COMPRESSIONS
 
@@ -108,8 +132,8 @@ Compression to_compression(const std::string &c) {
 }
 
 std::string to_string(Compression c) {
-#define X(value, name, ext) \
-  case Compression::value:  \
+#define X(value, name, ext, check) \
+  case Compression::value:         \
     return name;
 
   switch (c) { COMPRESSIONS }
@@ -120,8 +144,8 @@ std::string to_string(Compression c) {
 }
 
 std::string get_extension(Compression c) {
-#define X(value, name, ext) \
-  case Compression::value:  \
+#define X(value, name, ext, check) \
+  case Compression::value:         \
     return ext;
 
   switch (c) { COMPRESSIONS }
@@ -132,7 +156,7 @@ std::string get_extension(Compression c) {
 }
 
 Compression from_extension(const std::string &e) {
-#define X(value, name, ext) \
+#define X(value, name, ext, check) \
   if (e == ext) return Compression::value;
 
   COMPRESSIONS
@@ -142,20 +166,27 @@ Compression from_extension(const std::string &e) {
   throw std::invalid_argument("Unknown compression type: " + e);
 }
 
-std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c) {
+std::unique_ptr<IFile> make_file(
+    std::unique_ptr<IFile> file, Compression c,
+    const Compression_options &compression_options) {
   std::unique_ptr<IFile> result;
 
   switch (c) {
     case Compression::NONE:
+      ensure_no_compression_options(compression_options, nullptr);
       result = std::move(file);
       break;
 
     case Compression::GZIP:
-      result = std::make_unique<compression::Gz_file>(std::move(file));
+      result = std::make_unique<compression::Gz_file>(std::move(file),
+                                                      compression_options);
+
       break;
 
     case Compression::ZSTD:
-      result = std::make_unique<compression::Zstd_file>(std::move(file));
+      result = std::make_unique<compression::Zstd_file>(std::move(file),
+                                                        compression_options);
+
       break;
 
     default:
