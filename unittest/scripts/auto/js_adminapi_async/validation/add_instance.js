@@ -400,7 +400,7 @@
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
 //@ cloneDonor invalid: not a ReplicaSet member {VER(>=8.0.17)}
-||Instance <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> does not belong to the replicaset (MYSQLSH 51310)
+||Instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' does not belong to the replicaset (MYSQLSH 51310)
 
 //@ cloneDonor valid {VER(>=8.0.17)}
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|

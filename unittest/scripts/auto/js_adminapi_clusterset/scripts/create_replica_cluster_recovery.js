@@ -374,14 +374,14 @@ testutil.dbugSet("");
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + automatic donor not valid
-EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"}); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"}); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance ${__endpoint1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version}).`);
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid
-EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance " + hostname + ":" + __mysql_sandbox_port1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" +__version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" +__version + ").", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance ${__endpoint1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+EXPECT_OUTPUT_CONTAINS(`Error creating Replica Cluster: MYSQLSH 51402: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version}).`);
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid
 

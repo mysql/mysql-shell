@@ -629,12 +629,12 @@ testutil.dbugSet("+d,dba_clone_version_check_fail");
 EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone"}); }, "The ReplicaSet has no compatible clone donors.", "MYSQLSH");
 
 EXPECT_OUTPUT_CONTAINS(`ERROR: None of the members in the replicaSet are compatible to be used as clone donors for ${hostname_ip}:${__mysql_sandbox_port3}`);
-EXPECT_OUTPUT_CONTAINS(`PRIMARY '${hostname_ip}:${__mysql_sandbox_port1}' is not a suitable clone donor: Instance ${hostname_ip}:${__mysql_sandbox_port1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+EXPECT_OUTPUT_CONTAINS(`PRIMARY '${hostname_ip}:${__mysql_sandbox_port1}' is not a suitable clone donor: Instance '${hostname_ip}:${__mysql_sandbox_port1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version}).`);
 
 //@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid {VER(>=8.0.17)}
-EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance " + hostname_ip + ":" + __mysql_sandbox_port1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" +__version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance '" + hostname_ip + ":" + __mysql_sandbox_port1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" +__version + ").", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`ERROR: Error rejoining instance to replicaset: MYSQLSH 51402: Instance ${hostname_ip}:${__mysql_sandbox_port1} cannot be a donor because it has a different version (8.0.17) than the recipient (${__version}).`);
+EXPECT_OUTPUT_CONTAINS(`ERROR: Error rejoining instance to replicaset: MYSQLSH 51402: Instance '${hostname_ip}:${__mysql_sandbox_port1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version}).`);
 
 //@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid {VER(>=8.0.17)}
 

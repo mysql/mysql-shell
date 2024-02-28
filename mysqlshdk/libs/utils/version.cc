@@ -136,7 +136,7 @@ std::string Version::get_base() const {
 std::string Version::get_full() const {
   std::string ret_val = get_base();
 
-  if (_extra) ret_val.append("-" + *_extra);
+  if (_extra) ret_val.append("-").append(*_extra);
 
   return ret_val;
 }

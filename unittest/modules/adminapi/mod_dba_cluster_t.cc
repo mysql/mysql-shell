@@ -241,4 +241,5 @@ TEST_F(Admin_api_cluster_test, bug28219398) {
 
   md_session->close();
 }
+
 }  // namespace tests

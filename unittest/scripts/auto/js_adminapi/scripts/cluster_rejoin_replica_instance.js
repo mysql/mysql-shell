@@ -398,7 +398,7 @@ session4 = mysql.getSession(__sandbox_uri4);
 session4.runSql("STOP replica");
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance " + __endpoint2 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance '" + __endpoint2 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
 
 // Disable the debug trap so the command can succeed
 testutil.dbugSet("");
@@ -411,7 +411,7 @@ session4 = mysql.getSession(__sandbox_uri4);
 session4.runSql("STOP replica");
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4); }, "Instance " + __endpoint1 + " cannot be a donor because it has a different version (8.0.17) than the recipient (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
 
 // Disable the debug trap so the command can succeed
 testutil.dbugSet("");
