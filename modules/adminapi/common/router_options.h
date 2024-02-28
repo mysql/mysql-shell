@@ -143,6 +143,8 @@ class Router_configuration_changes_schema final {
   Router_configuration_changes_schema &operator=(
       Router_configuration_changes_schema &&) = default;
 
+  explicit operator bool() const { return !properties.empty(); }
+
   ~Router_configuration_changes_schema() = default;
 
  public:
