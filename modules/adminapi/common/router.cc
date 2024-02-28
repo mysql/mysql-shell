@@ -521,6 +521,13 @@ shcore::Value get_default_router_options(
   auto default_global_options =
       md->get_default_router_options(type, id, version);
 
+  // If the changes schema is empty, because it's not yet in the Metadata
+  // (Router needs a re-bootstrap), then return right away the default options
+  // and don't do any filtering.
+  if (!changes_schema) {
+    return shcore::Value(default_global_options);
+  }
+
   // By default (extended=0), filter out everything that does not belong to the
   // configuration changes schema
   if (extended == 0) {
@@ -543,6 +550,7 @@ shcore::Value get_default_router_options(
     return shcore::Value(filtered_options.to_value());
   }
 
+  // extended > 1
   return shcore::Value(default_global_options);
 }
 
