@@ -1069,7 +1069,7 @@ std::string get_replication_source_keyword(
   }
 }
 
-std::string get_binary_logs_keyword(const mysqlshdk::utils::Version &version,
+const char *get_binary_logs_keyword(const mysqlshdk::utils::Version &version,
                                     bool status) {
   if (version < mysqlshdk::utils::Version(8, 2, 0)) {
     return "MASTER";

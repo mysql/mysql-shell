@@ -62,7 +62,7 @@ class Auto_script_js : public Shell_js_script_tester,
     Shell_js_script_tester::set_defaults();
 
     std::string user, host, password;
-    auto connection_options = shcore::get_connection_options(_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(_uri);
 
     if (connection_options.has_user()) user = connection_options.get_user();
 
@@ -450,7 +450,7 @@ class Credential_store_test : public Auto_script_js {
  private:
   void prepare_session() {
     m_session = mysqlshdk::db::mysql::Session::create();
-    m_session->connect(shcore::get_connection_options(_mysql_uri));
+    m_session->connect(mysqlshdk::db::Connection_options(_mysql_uri));
     const auto &connection_options = m_session->get_connection_options();
     if (connection_options.has_host()) m_host = connection_options.get_host();
     m_session->executef("CREATE USER ?@? IDENTIFIED BY ?", k_first_user, m_host,

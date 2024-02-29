@@ -280,7 +280,8 @@ class User_privileges_test : public tests::Shell_base_test {
 
     m_session = std::make_shared<Mock_session>();
 
-    const auto connection_options = shcore::get_connection_options(_mysql_uri);
+    const auto connection_options =
+        mysqlshdk::db::Connection_options(_mysql_uri);
 
     EXPECT_CALL(*m_session, do_connect(connection_options));
     EXPECT_CALL(*m_session, is_open()).WillOnce(Return(false));
@@ -659,7 +660,7 @@ TEST_F(User_privileges_test, validate_role_privileges_direct) {
 
   // setup
   const auto session = mysqlshdk::db::mysql::Session::create();
-  session->connect(shcore::get_connection_options(_mysql_uri));
+  session->connect(mysqlshdk::db::Connection_options(_mysql_uri));
 
   session->execute("DROP USER IF EXISTS test_user");
   session->execute("DROP ROLE IF EXISTS create_role");
@@ -713,7 +714,7 @@ TEST_F(User_privileges_test, partial_revokes) {
 
   // setup
   const auto session = mysqlshdk::db::mysql::Session::create();
-  session->connect(shcore::get_connection_options(_mysql_uri));
+  session->connect(mysqlshdk::db::Connection_options(_mysql_uri));
 
   session->execute("DROP USER IF EXISTS test_user");
   session->execute("DROP ROLE IF EXISTS app_dev");

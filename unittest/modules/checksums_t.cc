@@ -111,7 +111,7 @@ class Checksums_test : public Shell_core_test_wrapper {
   static std::shared_ptr<mysqlshdk::db::ISession> connect_session(
       const std::string &uri) {
     auto session = mysqlshdk::db::mysql::Session::create();
-    session->connect(shcore::get_connection_options(uri));
+    session->connect(mysqlshdk::db::Connection_options(uri));
     return session;
   }
 

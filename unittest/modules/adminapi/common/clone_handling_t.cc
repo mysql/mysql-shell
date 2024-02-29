@@ -43,8 +43,8 @@ class Admin_api_clone_test : public Shell_core_test_wrapper {
       int port, std::string user = "root") {
     auto session = mysqlshdk::db::mysql::Session::create();
 
-    auto connection_options = shcore::get_connection_options(
-        user + ":root@localhost:" + std::to_string(port), false);
+    auto connection_options =
+        Connection_options(user + ":root@localhost:" + std::to_string(port));
     session->connect(connection_options);
 
     return session;

@@ -3456,11 +3456,24 @@ std::string Schema_dumper::gtid_executed(bool quiet) {
 Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
   Instance_cache::Binlog binlog;
 
+  const auto &version = m_cache ? m_cache->server_version : server_version();
+
   try {
-    const auto result = m_mysql->query(shcore::str_format(
-        "SHOW %s STATUS", mysqlshdk::mysql::get_binary_logs_keyword(
-                              m_mysql->get_server_version(), true)
-                              .c_str()));
+    auto keyword =
+        version.is_maria_db
+            ? "MASTER"
+            : mysqlshdk::mysql::get_binary_logs_keyword(version.version, true);
+
+    DBUG_EXECUTE_IF("dumper_dump_mariadb", {
+      // We need the binlog query to not be affected by this dbug flag, because
+      // it has to work even when running in mysql.
+      keyword = mysqlshdk::mysql::get_binary_logs_keyword(
+          m_mysql->get_server_version(), true);
+    });
+
+    const auto result =
+        m_mysql->query(shcore::str_format("SHOW %s STATUS", keyword));
+
     if (const auto row = result->fetch_one()) {
       binlog.file = row->get_string(0);    // File
       binlog.position = row->get_uint(1);  // Position

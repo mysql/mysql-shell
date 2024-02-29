@@ -52,7 +52,7 @@ class Instance_test : public tests::Shell_base_test {
 
     _session.reset(&session, DoNotDelete());
 
-    _connection_options = shcore::get_connection_options(_mysql_uri);
+    _connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   }
 };
 

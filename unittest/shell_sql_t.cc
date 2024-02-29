@@ -97,7 +97,7 @@ class Shell_sql_test : public Shell_core_test_wrapper {
     mysql_uri.append(":");
     mysql_uri.append(port);
 
-    auto connection_options = shcore::get_connection_options(mysql_uri);
+    auto connection_options = mysqlshdk::db::Connection_options(mysql_uri);
 
     if (pwd)
       connection_options.set_password(pwd);

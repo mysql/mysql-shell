@@ -1424,7 +1424,7 @@ TEST_F(Compatibility_test, check_create_table_for_indexes) {
 
 TEST_F(Compatibility_test, indexes_recreation) {
   auto session = mysqlshdk::db::mysql::Session::create();
-  session->connect(shcore::get_connection_options(_mysql_uri));
+  session->connect(mysqlshdk::db::Connection_options(_mysql_uri));
   session->execute("drop database if exists index_recreation_test");
   session->execute("create database index_recreation_test");
   session->execute("use index_recreation_test");

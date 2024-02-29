@@ -106,8 +106,7 @@ void Topology_configuration_command::connect_all_members() {
     // Set login credentials to connect to instance.
     // NOTE: It is assumed that the same login credentials can be used to
     // connect to all cluster instances.
-    Connection_options instance_cnx_opts =
-        shcore::get_connection_options(instance_def.first.endpoint, false);
+    Connection_options instance_cnx_opts(instance_def.first.endpoint);
     instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
 
     log_debug("Connecting to instance '%s'.",

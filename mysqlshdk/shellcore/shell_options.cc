@@ -191,7 +191,7 @@ void Shell_options::Storage::set_uri(const std::string &uri) {
     // don't set defaults to the parsed URI because we don't want to override
     // options like user, pass and scheme that were specified before the URI
     // with defaults
-    connection_data.override_with(shcore::get_connection_options(uri, false));
+    connection_data.override_with(Connection_options(uri));
   }
 }
 
@@ -292,9 +292,11 @@ Shell_options::Shell_options(
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
+#ifdef HAVE_PYTHON
     (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit. "
         "Any options specified after this are used as arguments of the "
         "processed command.")
+#endif
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
         "processed file.");
@@ -372,8 +374,6 @@ Shell_options::Shell_options(
     (cmdline("-P", "--port=<#>"),
         "Port number to use for connection.",
         [this](const std::string& option, const char* value) {
-          storage.connection_data.clear_socket();
-          storage.connection_data.clear_pipe();
           try {
                 storage.connection_data.set_port(shcore::opts::convert<int>(
             value, shcore::opts::Source::Command_line));
@@ -393,8 +393,6 @@ Shell_options::Shell_options(
         "Pipe name to use (only classic sessions).",
 #endif
         [this](const std::string&, const char* value) {
-          storage.connection_data.clear_port();
-          storage.connection_data.clear_pipe();
           if (value) {
 #ifdef _WIN32
             storage.connection_data.set_pipe(value);
@@ -540,19 +538,15 @@ Shell_options::Shell_options(
         }
 #endif
     )
-    (cmdline("--py", "--python"), "Start in Python mode.",
 #ifdef HAVE_PYTHON
+    (cmdline("--py", "--python"), "Start in Python mode.",
         [this](const std::string&, const char*) {
           storage.initial_mode = shcore::IShell_core::Mode::Python;
         }
-#else
-        [](const std::string&, const char*) {
-          throw std::invalid_argument("Python is not supported.");
-        }
-#endif
     )
     (cmdline("--pym <module>"),
        "Run Python library module as a script. Remaining args are forwarded to it.")
+#endif
     (&storage.wrap_json, "off", cmdline("--json[=<format>]"),
         "Produce output in JSON format. Allowed values: raw, pretty, and off. "
         "If no format is specified pretty format is produced.",

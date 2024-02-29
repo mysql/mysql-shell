@@ -327,8 +327,7 @@ void Cluster_impl::execute_in_members(
       continue;
     }
 
-    auto target_coptions =
-        shcore::get_connection_options(instance_address, false);
+    auto target_coptions = mysqlshdk::db::Connection_options(instance_address);
 
     target_coptions.set_login_options_from(cnx_opt);
     try {
@@ -382,8 +381,7 @@ void Cluster_impl::execute_in_read_replicas(
       continue;
     }
 
-    auto target_coptions =
-        shcore::get_connection_options(instance_address, false);
+    auto target_coptions = mysqlshdk::db::Connection_options(instance_address);
 
     target_coptions.set_login_options_from(cnx_opt);
     try {
@@ -883,8 +881,7 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
       // Set login credentials to connect to instance.
       // NOTE: It is assumed that the same login credentials can be used to
       //       connect to all cluster instances.
-      Connection_options instance_cnx_opts =
-          shcore::get_connection_options(instance_def.first.endpoint, false);
+      Connection_options instance_cnx_opts(instance_def.first.endpoint);
       instance_cnx_opts.set_login_options_from(
           get_cluster_server()->get_connection_options());
 
@@ -2666,7 +2663,7 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   for (auto &instance : instances_info) {
     std::string instance_host = instance.first.endpoint;
-    auto target_coptions = shcore::get_connection_options(instance_host, false);
+    auto target_coptions = mysqlshdk::db::Connection_options(instance_host);
     // We assume the login credentials are the same on all instances
     target_coptions.set_login_options_from(
         target_instance->get_connection_options());
@@ -4266,8 +4263,7 @@ std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
     const std::string &instance_address) const {
   // Set login credentials to connect to instance.
   // use the host and port from the instance address
-  Connection_options instance_cnx_opts =
-      shcore::get_connection_options(instance_address, false);
+  Connection_options instance_cnx_opts(instance_address);
   // Use the password from the cluster session.
   Connection_options cluster_cnx_opt =
       get_cluster_server()->get_connection_options();
@@ -4443,9 +4439,8 @@ int64_t Cluster_impl::prepare_clone_recovery(
     // RESET MASTER to clear GTID_EXECUTED in case it's diverged, otherwise
     // clone is not executed and GR rejects the instance
     target_instance.query(shcore::str_format(
-        "RESET %s",
-        mysqlshdk::mysql::get_binary_logs_keyword(target_instance.get_version())
-            .c_str()));
+        "RESET %s", mysqlshdk::mysql::get_binary_logs_keyword(
+                        target_instance.get_version())));
   }
 
   // Make sure the Clone plugin is installed or uninstalled depending on the

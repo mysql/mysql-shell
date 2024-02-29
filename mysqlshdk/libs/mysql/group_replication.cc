@@ -1165,8 +1165,7 @@ bool is_endpoint_supported_by_gr(const std::string &endpoint,
   const bool supports_ipv6 = (version >= mysqlshdk::utils::Version(8, 0, 14));
   try {
     // split host from port, and make sure endpoint has both
-    mysqlshdk::db::Connection_options conn_opt =
-        shcore::get_connection_options(endpoint, false);
+    mysqlshdk::db::Connection_options conn_opt(endpoint);
 
     if (!conn_opt.has_host() || !conn_opt.has_port()) {
       throw shcore::Exception::argument_error(

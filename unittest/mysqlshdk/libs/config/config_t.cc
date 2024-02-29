@@ -47,7 +47,7 @@ class Config_test : public tests::Shell_base_test {
     tests::Shell_base_test::SetUp();
 
     // Create instance and Open the session for the tests.
-    m_connection_options = shcore::get_connection_options(_mysql_uri);
+    m_connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     m_session->connect(m_connection_options);
     m_tmpdir = getenv("TMPDIR");
     m_cfg_path = shcore::path::join_path(m_tmpdir, "my_test.cnf");

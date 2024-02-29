@@ -1059,9 +1059,16 @@ bool is_pattern(const std::string &pattern) {
 
 template <class Iterable>
 std::set<const Help_topic *> get_topics(const Iterable &topic_map,
-                                        const std::string &pattern,
+                                        const std::string &pattern_,
                                         IShell_core::Mode_mask mode) {
   std::set<const Help_topic *> ret_val;
+
+  std::string pattern = pattern_;
+
+  // strip (), in case it's a search for a function()
+  if (auto p = pattern.find('('); p != std::string::npos) {
+    pattern = pattern.substr(0, p);
+  }
 
   if (is_pattern(pattern)) {
     // First we look in the case sensitive registry
@@ -1124,6 +1131,32 @@ std::vector<const Help_topic *> Help_registry::search_topics(
 std::vector<const Help_topic *> Help_registry::search_topics(
     const std::string &pattern, IShell_core::Mode mode) {
   return search_topics(pattern, IShell_core::Mode_mask(mode), false);
+}
+
+std::vector<std::string> Help_registry::search_topic_names(
+    const std::string &pattern, IShell_core::Mode mode) {
+  std::vector<std::string> matches;
+
+  for (auto &entry : m_cs_keywords) {
+    if (shcore::str_beginswith(entry.first, pattern)) {
+      for (auto &topic : entry.second) {
+        if (topic.second.matches_any(IShell_core::Mode_mask(mode))) {
+          matches.push_back(entry.first);
+        }
+      }
+    }
+  }
+  for (auto &entry : m_keywords) {
+    if (shcore::str_beginswith(entry.first, pattern)) {
+      for (auto &topic : entry.second) {
+        if (topic.second.matches_any(IShell_core::Mode_mask(mode))) {
+          matches.push_back(entry.first);
+        }
+      }
+    }
+  }
+
+  return matches;
 }
 
 Help_topic *Help_registry::get_topic(const std::string &id,

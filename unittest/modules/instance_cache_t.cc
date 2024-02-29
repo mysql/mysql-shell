@@ -106,7 +106,7 @@ class Instance_cache_test : public Shell_core_test_wrapper {
 
   static std::shared_ptr<mysqlshdk::db::ISession> connect_session() {
     auto session = mysqlshdk::db::mysql::Session::create();
-    session->connect(shcore::get_connection_options(_mysql_uri));
+    session->connect(mysqlshdk::db::Connection_options(_mysql_uri));
     return session;
   }
 

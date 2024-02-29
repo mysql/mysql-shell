@@ -187,7 +187,8 @@ shcore::Value get_value_of_expected_type(const Cmd_line_arg_definition &arg,
   return shcore::Value();
 }
 
-const std::regex k_cmdline_arg_assignment("^((--)?(.+?))(:(.*?))?(=(.*))?$");
+const std::regex k_cmdline_arg_assignment(
+    "^((--)?(.+?))(:(.*?))?(=([\\s\\S]*))?$");
 // Constants for match index
 const int OPTION_MATCH_IDX = 1;
 const int COLON_MATCH_IDX = 4;

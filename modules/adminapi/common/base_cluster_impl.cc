@@ -742,15 +742,20 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   mysqlshdk::db::Connection_options connect_opts(main_opts);
 
   // overwrite address related options
-  connect_opts.clear_scheme();
   connect_opts.clear_host();
   connect_opts.clear_port();
   connect_opts.clear_socket();
   connect_opts.set_scheme(main_opts.get_scheme());
-  if (instance_def.has_host()) connect_opts.set_host(instance_def.get_host());
-  if (instance_def.has_port()) connect_opts.set_port(instance_def.get_port());
-  if (instance_def.has_socket())
+  if (instance_def.has_socket()) {
     connect_opts.set_socket(instance_def.get_socket());
+    connect_opts.set_host("localhost");
+  } else {
+    if (instance_def.has_host()) connect_opts.set_host(instance_def.get_host());
+    if (instance_def.has_port()) connect_opts.set_port(instance_def.get_port());
+  }
+  connect_opts.clear_transport_type();
+  if (connect_opts.has_transport_type())
+    connect_opts.set_transport_type(instance_def.get_transport_type());
 
   // is user has specified the connect-timeout connection option, use that
   // value explicitly

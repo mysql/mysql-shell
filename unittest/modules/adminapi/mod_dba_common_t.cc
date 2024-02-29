@@ -66,8 +66,8 @@ class Admin_api_common_test : public tests::Admin_api_test {
  protected:
   static std::shared_ptr<mysqlsh::dba::Instance> create_session(
       int port, std::string user = "root") {
-    auto connection_options = shcore::get_connection_options(
-        user + ":root@localhost:" + std::to_string(port), false);
+    auto connection_options = mysqlshdk::db::Connection_options(
+        user + ":root@localhost:" + std::to_string(port));
     return mysqlsh::dba::Instance::connect(connection_options);
   }
   std::shared_ptr<mysqlshdk::db::ISession> create_base_session(int port) {

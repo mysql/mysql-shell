@@ -42,7 +42,7 @@ class Config_server_handler_test : public tests::Shell_base_test {
     tests::Shell_base_test::SetUp();
 
     // Create instance and Open the session for the tests.
-    m_connection_options = shcore::get_connection_options(_mysql_uri);
+    m_connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
     m_session->connect(m_connection_options);
 
     m_report_host =
