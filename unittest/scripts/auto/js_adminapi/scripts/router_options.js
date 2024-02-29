@@ -2295,6 +2295,44 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET cluster_id=NULL
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET clusterset_id=? where address = 'routerhost2'", [clusterset_id]);
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JSON_SET(attributes, '$.bootstrapTargetType', 'clusterset') WHERE address = 'routerhost2'");
 
+//@<> .routerOptions() should automatically translate the target_cluster value from the group uuid to the cluster's name, likewise .listRouters() and .routingOption() do
+
+// Set target_cluster to 'primary'
+clusterset.setRoutingOption("target_cluster", "primary");
+
+// extended:0
+router_options = clusterset.routerOptions();
+target_cluster = router_options["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("primary", target_cluster);
+
+// extended:1
+router_options = clusterset.routerOptions({extended:1});
+target_cluster = router_options["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("primary", target_cluster);
+
+// extended:1
+router_options = clusterset.routerOptions({extended:2});
+target_cluster = router_options["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("primary", target_cluster);
+
+// Set to a specific cluster
+clusterset.setRoutingOption("routerhost1::system", "target_cluster", "cluster");
+
+// extended:0
+router_options = clusterset.routerOptions();
+target_cluster = router_options["routers"]["routerhost1::system"]["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("cluster", target_cluster);
+
+// extended:1
+router_options = clusterset.routerOptions({extended:1});
+target_cluster = router_options["routers"]["routerhost1::system"]["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("cluster", target_cluster);
+
+// extended:2
+router_options = clusterset.routerOptions({extended:2});
+target_cluster = router_options["routers"]["routerhost1::system"]["configuration"]["routing_rules"]["target_cluster"];
+EXPECT_EQ("cluster", target_cluster);
+
 //@<> .removeRouterMetadata() should clear the Defaults Configuration Document if needed
 EXPECT_NO_THROWS(function() { cluster.removeRouterMetadata("routerhost2::system"); });
 

@@ -337,7 +337,8 @@ JSON_MERGE_PATCH(
       SELECT JSON_MERGE_PATCH("{}",
         JSON_OBJECT(
           "tags", JSON_EXTRACT(ro.merged_options, "$.tags"),
-          "target_cluster", JSON_EXTRACT(ro.merged_options, "$.target_cluster"),
+          "target_cluster",
+              IF(JSON_EXTRACT(ro.merged_options, "$.target_cluster")='primary', 'primary', (SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters cl WHERE cl.attributes->>'$.group_replication_group_name' = ro.merged_options->>'$.target_cluster' limit 1)),
           "use_replica_primary_as_rw", JSON_EXTRACT(ro.merged_options, "$.use_replica_primary_as_rw"),
           "stats_updates_frequency", JSON_EXTRACT(ro.merged_options, "$.stats_updates_frequency"),
           "read_only_targets", JSON_EXTRACT(ro.merged_options, "$.read_only_targets"),
@@ -381,7 +382,7 @@ constexpr std::string_view k_select_default_router_options =
               "tags",
               JSON_EXTRACT(c.router_options, "$.tags"),
               "target_cluster",
-              JSON_EXTRACT(c.router_options, "$.target_cluster"),
+              IF(JSON_EXTRACT(c.router_options, "$.target_cluster")='primary', 'primary', (SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters cl WHERE cl.attributes->>'$.group_replication_group_name' = c.router_options->>'$.target_cluster' limit 1)),
               "use_replica_primary_as_rw",
               JSON_EXTRACT(c.router_options, "$.use_replica_primary_as_rw"),
               "stats_updates_frequency",
