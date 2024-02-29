@@ -24,7 +24,7 @@ pc.addInstance(__sandbox_uri2);
 pc.addInstance(__sandbox_uri3);
 
 //@<> removeInstance on a random standalone instance (should fail)
-EXPECT_THROWS(function(){pc.removeInstance(__sandbox_uri5);}, "Cluster.removeInstance: Metadata for instance localhost:"+__mysql_sandbox_port5+" not found");
+EXPECT_THROWS(function(){pc.removeInstance(__sandbox_uri5);}, "Cluster.removeInstance: Metadata for instance 'localhost:"+__mysql_sandbox_port5+"' not found");
 
 //@<> removeInstance from a different cluster (should fail)
 

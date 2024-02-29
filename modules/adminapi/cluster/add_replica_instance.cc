@@ -206,7 +206,7 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
 
       instance_md =
           m_cluster_impl->get_metadata_storage()->get_instance_by_address(
-              source_canononical_address);
+              source_canononical_address, m_cluster_impl->get_id());
     } catch (const shcore::Exception &e) {
       mysqlsh::current_console()->print_error(
           shcore::str_format("Unable to use '%s' as a source, instance does "

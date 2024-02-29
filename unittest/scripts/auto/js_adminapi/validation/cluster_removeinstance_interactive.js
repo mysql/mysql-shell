@@ -8,15 +8,15 @@
 ||
 
 //@ remove instance not in MD but reachable when there's just 1 (should fail)
-||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
-||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+||Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+||Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@ Adding instance
 ||
 
 //@ remove instance not in MD but reachable when there are 2 (should fail)
-||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
-||Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+||Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+||Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@ Configure instance on port1 to persist auto-rejoin settings {VER(<8.0.11)}
 ||
@@ -361,14 +361,14 @@ WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql
 ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
-Cluster.removeInstance: Metadata for instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
 
 //@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port2)>>>' ([[*]])
 ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
-Cluster.removeInstance: Metadata for instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
 
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
@@ -414,14 +414,14 @@ WARNING: MySQL Error 20[[*]]
 ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive true (should fail)
-Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> remove instance not in MD and unreachable, interactive false (should fail)
 WARNING: MySQL Error 20[[*]]
 ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive false (should fail)
-Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {
@@ -458,16 +458,16 @@ Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_
 ||
 
 //@<OUT> remove reachable instance but not MD, interactive false (should fail)
-ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> does not belong to the cluster.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the Cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive false (should fail)
-Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> remove reachable instance but not MD, interactive true (should fail)
-ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> does not belong to the cluster.
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the Cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive true (should fail)
-Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> not found (MYSQLSH 51104)
+Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@ Connect to instance2 (removed unreachable)
 ||

@@ -2446,7 +2446,7 @@ void Cluster_impl::ensure_compatible_clone_donor(
 
     // check if the donor belongs to the cluster (MD)
     try {
-      get_metadata_storage()->get_instance_by_address(donor_address);
+      get_metadata_storage()->get_instance_by_address(donor_address, get_id());
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
@@ -3408,6 +3408,7 @@ void Cluster_impl::validate_replication_sources(
     const std::set<Managed_async_channel_source,
                    std::greater<Managed_async_channel_source>> &sources,
     const std::string &target_instance_address,
+    std::string_view target_instance_uuid, bool is_rejoin,
     std::vector<std::string> *out_sources_canonical_address) const {
   // Check if the replicationSources are reachable and ONLINE cluster members
   for (const auto &source : sources) {
@@ -3418,16 +3419,41 @@ void Cluster_impl::validate_replication_sources(
       source_instance = get_session_to_cluster_instance(source_string);
     } catch (const shcore::Exception &) {
       // We can't connect to the instance so it's not a valid source
-      mysqlsh::current_console()->print_error(
-          "Unable to rejoin Read-Replica '" + target_instance_address +
-          "' to the Cluster: Unable to use '" + source_string +
-          "' as source, instance is unreachable. Use "
-          "Cluster.setInstanceOption() with the option 'replicationSources' "
-          "to update the instance's sources.");
+      auto basic_error = shcore::str_format(
+          "Unable to use '%s' as source, instance is unreachable.",
+          source_string.c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
 
       throw shcore::Exception(
           "Source is not reachable",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_UNREACHABLE);
+    }
+
+    // can't be a replication source of itself
+    if (target_instance_uuid == source_instance->get_uuid()) {
+      auto basic_error = shcore::str_format(
+          "Unable to use '%s' as source for itself.", source_string.c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
+
+      throw shcore::Exception(
+          "Source is invalid",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_ITSELF);
     }
 
     Instance_metadata instance_md;
@@ -3440,18 +3466,25 @@ void Cluster_impl::validate_replication_sources(
           source_instance->get_canonical_address();
 
       instance_md = get_metadata_storage()->get_instance_by_address(
-          source_canononical_address);
+          source_canononical_address, get_id());
 
       if (out_sources_canonical_address) {
         out_sources_canonical_address->push_back(source_canononical_address);
       }
     } catch (const shcore::Exception &) {
-      mysqlsh::current_console()->print_error(
-          "Unable to rejoin Read-Replica '" + target_instance_address +
-          "' to the Cluster: Unable to use '" + source_string +
-          "' as source, instance does not belong to the Cluster. Use "
-          "Cluster.setInstanceOption() with the option "
-          "'replicationSources' to update the instance's sources.");
+      auto basic_error = shcore::str_format(
+          "Unable to use '%s' as source, instance does not belong to the "
+          "Cluster.",
+          source_string.c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
 
       throw shcore::Exception(
           "Source does not belong to the Cluster",
@@ -3460,27 +3493,39 @@ void Cluster_impl::validate_replication_sources(
 
     // Check if the instance is a Read-Replica
     if (instance_md.instance_type == Instance_type::READ_REPLICA) {
-      mysqlsh::current_console()->print_error(
-          "Unable to rejoin Read-Replica '" + target_instance_address +
-          "' to the Cluster: Unable to use '" + source_string +
-          "' which is a Read-Replica, as source. Use "
-          "Cluster.setInstanceOption() with the option "
-          "'replicationSources' to update the instance's sources.");
+      auto basic_error = shcore::str_format(
+          "Unable to use '%s', which is a Read-Replica, as source.",
+          source_string.c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
 
       throw shcore::Exception(
-          "Invalid source type",
+          "Source cannot be a Read-Replica",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_CLUSTER_MEMBER);
     }
 
     auto state = mysqlshdk::gr::get_member_state(*source_instance);
 
     if (state != mysqlshdk::gr::Member_state::ONLINE) {
-      mysqlsh::current_console()->print_error(
-          "Unable to rejoin Read-Replica '" + target_instance_address +
-          "' to the Cluster: Unable to use '" + source_string +
-          "' as source, instance's state is '" + to_string(state) +
-          "'. Use Cluster.setInstanceOption() with the option "
-          "'replicationSources' to update the instance's sources.");
+      auto basic_error = shcore::str_format(
+          "Unable to use '%s' as source, instance's state is '%s'.",
+          source_string.c_str(), to_string(state).c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
 
       throw shcore::Exception(
           "Source is not ONLINE",

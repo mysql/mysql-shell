@@ -83,7 +83,7 @@ bool Rejoin_replica_instance::check_rejoinable() {
     // Check if the replicationSources are reachable and ONLINE cluster members
     m_cluster_impl->validate_replication_sources(
         m_replication_sources.replication_sources,
-        m_target_read_replica_address);
+        m_target_read_replica_address, m_target_instance->get_uuid(), true);
   }
 
   auto status = mysqlshdk::mysql::get_read_replica_status(*m_target_instance);

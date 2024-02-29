@@ -12,6 +12,7 @@ var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
@@ -21,6 +22,142 @@ replicacluster.addInstance(__sandbox_uri4);
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], cluster, replicacluster);
 EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
 EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
+
+//@<> Removing an instance that doesn't belong to the cluster must produce an error
+EXPECT_THROWS(function(){
+    replicacluster.removeInstance(__sandbox_uri1);
+}, `Metadata for instance '${__sandbox1}' not found`);
+
+EXPECT_OUTPUT_CONTAINS(`The instance '${__sandbox1}' does not belong to the Cluster.`);
+
+//@<> Adding a read-replica must fail if any of the sources doesn't belong to its cluster
+EXPECT_THROWS(function(){
+    replicacluster.addReplicaInstance(__sandbox_uri5, {"replicationSources": [__endpoint1]});
+}, "Source does not belong to the Cluster");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${__endpoint1}' as a source, instance does not belong to the Cluster`);
+
+//@<> Adding a read-replica must fail if the clone donor doesn't belong to its cluster
+EXPECT_THROWS(function(){
+    replicacluster.addReplicaInstance(__sandbox_uri5, {recoveryMethod: "clone", cloneDonor: __endpoint1});
+}, `Instance '${__endpoint1}' does not belong to the Cluster`);
+
+//@<> Rejoining a read-replica must fail if the clone donor doesn't belong to its cluster
+EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri5); });
+
+shell.connect(__sandbox_uri5);
+session.runSql("STOP replica");
+
+EXPECT_THROWS(function(){
+    replicacluster.rejoinInstance(__sandbox_uri5, {recoveryMethod: "clone", cloneDonor: __endpoint1});
+}, `Instance '${__endpoint1}' does not belong to the Cluster`);
+
+EXPECT_NO_THROWS(function(){ replicacluster.rejoinInstance(__sandbox_uri5, {recoveryMethod: "clone", cloneDonor: __endpoint4}); });
+
+EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri5); });
+
+shell.connect(__sandbox_uri5);
+reset_instance(session);
+
+//@<> Removing a read-replica that doesn't belong to the cluster must produce an error
+EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri6); });
+
+EXPECT_THROWS(function(){
+    replicacluster.removeInstance(__sandbox_uri5);
+}, "Instance does not belong to the Cluster");
+
+EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port5}' does not belong to the Cluster 'replica'.`);
+
+//@<> The replication sources for read-replica must belong to the cluster, must be non read-replicas, not itself, reachable and with a valid state
+
+EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri6); });
+EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri6); });
+
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint3]);
+}, "Source does not belong to the Cluster");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port3}' as source, instance does not belong to the Cluster.`);
+
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint6]);
+}, "Source cannot be a Read-Replica");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port6}', which is a Read-Replica, as source.`);
+
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint5]);
+}, "Source is invalid");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port5}' as source for itself.`);
+
+testutil.stopGroup([__mysql_sandbox_port2]);
+
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint2]);
+}, "Source is not ONLINE");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port2}' as source, instance's state is 'OFFLINE'`);
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint2]);
+}, "Source is not reachable");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port2}' as source, instance is unreachable.`);
+
+//reset cluster / replicacluster topology
+testutil.startSandbox(__mysql_sandbox_port2);
+cluster.rejoinInstance(__sandbox_uri2);
+
+EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri6); });
+EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri6); });
+
+cluster.status();
+replicacluster.status();
+
+EXPECT_THROWS(function(){
+    replicacluster.setInstanceOption(__sandbox_uri6, "replicationSources", [__endpoint1]);
+}, "Source does not belong to the Cluster");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port1}' as source, instance does not belong to the Cluster.`);
+
+EXPECT_THROWS(function(){
+    replicacluster.setInstanceOption(__sandbox_uri6, "replicationSources", [__endpoint5]);
+}, "Source cannot be a Read-Replica");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port5}', which is a Read-Replica, as source.`);
+
+EXPECT_THROWS(function(){
+    replicacluster.setInstanceOption(__sandbox_uri6, "replicationSources", [__endpoint6]);
+}, "Source is invalid");
+
+EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port6}' as source for itself.`);
+
+//cleanup
+EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri5); });
+EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri6); });
+
+shell.connect(__sandbox_uri6);
+reset_instance(session);
+shell.connect(__sandbox_uri5);
+reset_instance(session);
+
+//@<> Set instance option must fail if the instance doesn't belong to its cluster
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri4, "label", "foo");
+}, `The instance '${__sandbox4}' does not belong to the cluster.`);
+
+EXPECT_THROWS(function(){
+    replicacluster.setInstanceOption(__sandbox_uri1, "label", "foo");
+}, `The instance '${__sandbox1}' does not belong to the cluster.`);
 
 // Cluster topology changes that affect the replication channel between cluster update the replication channels accordingly:
 //   - When the primary instance is removed (of either REPLICA or PRIMARY cluster).
@@ -319,3 +456,4 @@ scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
+testutil.destroySandbox(__mysql_sandbox_port6);
