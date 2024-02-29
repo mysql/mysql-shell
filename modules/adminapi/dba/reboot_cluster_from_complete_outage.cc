@@ -330,13 +330,12 @@ Reboot_cluster_from_complete_outage::retrieve_instances(
                       get_member_name("forceQuorumUsingPartitionOf",
                                       shcore::current_naming_style()));
 
-  auto instances = m_cluster->impl()->get_instances();
-
   std::vector<std::shared_ptr<Instance>> out_instances;
-  out_instances.reserve(instances.size());
+  out_instances.reserve(m_instances_md.size());
 
-  for (const auto &i : instances) {
-    // skip the target
+  for (const auto &i : m_instances_md) {
+    // skip read_replicas and target
+    if (i.instance_type == Instance_type::READ_REPLICA) continue;
     if (i.uuid == m_target_instance->get_uuid()) continue;
 
     std::shared_ptr<Instance> instance;
@@ -376,6 +375,16 @@ Reboot_cluster_from_complete_outage::retrieve_instances(
   return out_instances;
 }
 
+bool Reboot_cluster_from_complete_outage::is_instance_read_replica(
+    std::string_view uuid) {
+  return std::find_if(
+             m_instances_md.begin(), m_instances_md.end(),
+             [uuid](const auto &i) {
+               return (i.instance_type == Instance_type::READ_REPLICA) &&
+                      (i.uuid == uuid);
+             }) != m_instances_md.end();
+}
+
 /*
  * It verifies which of the online instances of the cluster has the
  * GTID superset. If also checks the command options such as picking an explicit
@@ -398,11 +407,14 @@ Reboot_cluster_from_complete_outage::pick_best_instance_gtid(
     if (is_cluster_set_member)
       channels.push_back(k_clusterset_async_channel_name);
 
+    // we always want the target, but if it's a read-replica don't read the GTID
+    // set to avoid being picked
     {
       Instance_gtid_info info;
       info.server = m_target_instance->get_canonical_address();
-      info.gtid_executed =
-          mysqlshdk::mysql::get_total_gtid_set(*m_target_instance, channels);
+      if (!is_instance_read_replica(m_target_instance->get_uuid()))
+        info.gtid_executed =
+            mysqlshdk::mysql::get_total_gtid_set(*m_target_instance, channels);
       instance_gtids.push_back(std::move(info));
     }
 
@@ -735,10 +747,10 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
           *m_target_instance, *m_cluster->impl()->get_cluster_server(),
           m_cluster->impl()->get_id(), true);
     } catch (const shcore::Exception &exp) {
-      m_already_member =
+      auto already_member =
           (exp.code() == SHERR_DBA_ASYNC_MEMBER_INCONSISTENT) ||
           (exp.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
-      if (!m_already_member) throw;
+      if (!already_member) throw;
     }
 
     check_instance_configuration();
@@ -1015,10 +1027,13 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
                                    mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
 
   if (!m_options.get_dry_run()) {
-    console->print_info("Restoring the Cluster '" + cluster_impl->get_name() +
-                        "' from complete outage...");
+    console->print_info(
+        shcore::str_format("Restoring the Cluster '%s' from complete outage...",
+                           cluster_impl->get_name().c_str()));
     console->print_info();
   }
+
+  m_instances_md = m_cluster->impl()->get_all_instances();
 
   // after all the checks are done, this will store all the instances we need
   // to work with
@@ -1037,17 +1052,22 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     std::vector<Instance_metadata> instances_unreachable;
     instances = retrieve_instances(&instances_unreachable);
 
-    // gather all (including target instance) instances states
+    // gather all (including target instance if it isn't a read-replica)
+    // instances states
     std::unordered_map<std::shared_ptr<Instance>, mysqlshdk::gr::Member_state>
         istates;
 
     istates.rehash(instances.size() + 1);
-    istates[m_target_instance] =
-        mysqlshdk::gr::get_member_state(*m_target_instance);
+
+    if (!is_instance_read_replica(m_target_instance->get_uuid()))
+      istates[m_target_instance] =
+          mysqlshdk::gr::get_member_state(*m_target_instance);
     for (const auto &i : instances)
       istates[i] = mysqlshdk::gr::get_member_state(*i);
 
-    assert(instances.size() == (istates.size() - 1));
+    assert(is_instance_read_replica(m_target_instance->get_uuid())
+               ? instances.size() == istates.size()
+               : instances.size() == (istates.size() - 1));
 
     {
       std::vector<std::string> addresses;
@@ -1170,6 +1190,35 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     }
   }
 
+  // the requested seed instance must belong to the cluster and cannot be a
+  // read-replica
+  if (auto intended_address = m_options.get_primary();
+      !intended_address.empty()) {
+    auto intended_it =
+        std::find_if(m_instances_md.begin(), m_instances_md.end(),
+                     [&intended_address](const auto &i) {
+                       return (i.address == intended_address);
+                     });
+
+    if (intended_it == m_instances_md.end())
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("The requested instance '%s' isn't part of the "
+                             "members of the Cluster.",
+                             intended_address.c_str()));
+
+    if (intended_it->instance_type == Instance_type::READ_REPLICA) {
+      console->print_error(shcore::str_format(
+          "The requested instance '%s' cannot be used as the new seed because "
+          "it's a Read-Replica. Select an appropriate instance with the "
+          "'primary' option, or, let the command select the most appropriate "
+          "one by not using the option.",
+          intended_it->address.c_str()));
+
+      throw std::runtime_error(
+          "The seed instance is invalid because it's a Read-Replica instance.");
+    }
+  }
+
   // pick the seed instance
   std::shared_ptr<Instance> best_instance_gtid;
   try {
@@ -1261,6 +1310,12 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
       console->print_info(shcore::str_format(
           "Switching over to instance '%s' to be used as seed.",
           best_instance_gtid->get_canonical_address().c_str()));
+    } else if (cluster_impl->is_read_replica(*m_target_instance)) {
+      console->print_info(shcore::str_format(
+          "Switching over to instance '%s' to be used as seed because the "
+          "target instance '%s' is a Read-Replica.",
+          best_instance_gtid->get_canonical_address().c_str(),
+          m_target_instance->get_canonical_address().c_str()));
     } else {
       console->print_info(shcore::str_format(
           "Switching over to instance '%s' (which has the highest GTID set), "
@@ -1449,6 +1504,11 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   }
 
   if (rejoin_remaning_instances && !m_options.get_dry_run()) {
+    // we don't want to rejoin read-replicas
+    std::erase_if(instances, [this](const auto &i) {
+      return is_instance_read_replica(i->get_uuid());
+    });
+
     // and finally, rejoin all instances
     rejoin_instances(
         cluster_impl.get(), *m_target_instance, instances, m_options,

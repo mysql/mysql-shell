@@ -86,6 +86,8 @@ class Reboot_cluster_from_complete_outage {
 
   void check_instance_configuration();
 
+  bool is_instance_read_replica(std::string_view uuid);
+
   void resolve_local_address(Group_replication_options *gr_options);
 
   /**
@@ -104,10 +106,10 @@ class Reboot_cluster_from_complete_outage {
  private:
   Dba *m_dba;
   std::shared_ptr<Cluster> m_cluster;
+  std::vector<Instance_metadata> m_instances_md;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   Reboot_cluster_options m_options;
   bool m_is_autorejoining = false;
-  bool m_already_member = false;
 
   struct Cluster_set_info {
     bool is_member;
