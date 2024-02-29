@@ -587,3 +587,18 @@ The column is of type FLOAT and has the AUTO_INCREMENT flag set, this is no long
 
 * columnDefinition.doubleAutoIncrement
 The column is of type DOUBLE and has the AUTO_INCREMENT flag set, this is no longer supported.
+
+* partitionsWithPrefixKeys.title
+Checks for partitions by key using columns with prefix key indexes
+
+* partitionsWithPrefixKeys.description
+Indexes on column prefixes are not supported for key partitioning, they are ignored by the
+partition function and so they are not allowed in 8.4.0.
+This check identifies tables with partitions defined this way, they should be fixed
+before upgrading to 8.4.0.
+
+* partitionsWithPrefixKeys.issue
+%level%: the `%schema%`.`%table%` table uses partition by KEY using the following columns with prefix index: %details%.
+
+* partitionsWithPrefixKeys.docLink
+https://dev.mysql.com/doc/refman/8.0/en/partitioning-limitations.html
