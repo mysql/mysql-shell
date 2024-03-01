@@ -33,6 +33,8 @@
 namespace mysqlshdk {
 namespace parser {
 
+using Version = mysqlshdk::utils::Version;
+
 TEST(MysqlParserUtils, check_syntax_ok) {
   EXPECT_NO_THROW(check_sql_syntax(R"*(select 1, '1', "1")*", {}));
 
@@ -87,8 +89,15 @@ DELIMITER ;
 }
 
 TEST(MysqlParserUtils, syntax_deprecated_but_not_removed) {
-  EXPECT_NO_THROW(check_sql_syntax("show master status"));
-  EXPECT_NO_THROW(check_sql_syntax("change master to master_auto_position=1"));
+  EXPECT_NO_THROW(check_sql_syntax("show master status", Version(8, 3, 0)));
+  EXPECT_THROW(check_sql_syntax("show master status", Version(8, 4, 0)),
+               mysqlshdk::parser::Sql_syntax_error);
+
+  EXPECT_NO_THROW(check_sql_syntax("change master to master_auto_position=1",
+                                   Version(8, 3, 0)));
+  EXPECT_THROW(check_sql_syntax("change master to master_auto_position=1",
+                                Version(8, 4, 0)),
+               mysqlshdk::parser::Sql_syntax_error);
 }
 
 TEST(MysqlParserUtils, check_syntax_bad) {

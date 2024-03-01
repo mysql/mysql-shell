@@ -538,6 +538,9 @@ public:
   virtual void enterHavingClause(MySQLParser::HavingClauseContext * /*ctx*/) override { }
   virtual void exitHavingClause(MySQLParser::HavingClauseContext * /*ctx*/) override { }
 
+  virtual void enterQualifyClause(MySQLParser::QualifyClauseContext * /*ctx*/) override { }
+  virtual void exitQualifyClause(MySQLParser::QualifyClauseContext * /*ctx*/) override { }
+
   virtual void enterWindowClause(MySQLParser::WindowClauseContext * /*ctx*/) override { }
   virtual void exitWindowClause(MySQLParser::WindowClauseContext * /*ctx*/) override { }
 
@@ -1072,6 +1075,15 @@ public:
   virtual void enterTableAdministrationStatement(MySQLParser::TableAdministrationStatementContext * /*ctx*/) override { }
   virtual void exitTableAdministrationStatement(MySQLParser::TableAdministrationStatementContext * /*ctx*/) override { }
 
+  virtual void enterHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext * /*ctx*/) override { }
+  virtual void exitHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext * /*ctx*/) override { }
+
+  virtual void enterHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext * /*ctx*/) override { }
+  virtual void exitHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext * /*ctx*/) override { }
+
+  virtual void enterHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext * /*ctx*/) override { }
+  virtual void exitHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext * /*ctx*/) override { }
+
   virtual void enterHistogram(MySQLParser::HistogramContext * /*ctx*/) override { }
   virtual void exitHistogram(MySQLParser::HistogramContext * /*ctx*/) override { }
 
@@ -1536,6 +1548,15 @@ public:
 
   virtual void enterWindowFunctionCall(MySQLParser::WindowFunctionCallContext * /*ctx*/) override { }
   virtual void exitWindowFunctionCall(MySQLParser::WindowFunctionCallContext * /*ctx*/) override { }
+
+  virtual void enterSamplingMethod(MySQLParser::SamplingMethodContext * /*ctx*/) override { }
+  virtual void exitSamplingMethod(MySQLParser::SamplingMethodContext * /*ctx*/) override { }
+
+  virtual void enterSamplingPercentage(MySQLParser::SamplingPercentageContext * /*ctx*/) override { }
+  virtual void exitSamplingPercentage(MySQLParser::SamplingPercentageContext * /*ctx*/) override { }
+
+  virtual void enterTablesampleClause(MySQLParser::TablesampleClauseContext * /*ctx*/) override { }
+  virtual void exitTablesampleClause(MySQLParser::TablesampleClauseContext * /*ctx*/) override { }
 
   virtual void enterWindowingClause(MySQLParser::WindowingClauseContext * /*ctx*/) override { }
   virtual void exitWindowingClause(MySQLParser::WindowingClauseContext * /*ctx*/) override { }
@@ -2269,8 +2290,8 @@ public:
   virtual void enterReal_ulong_number(MySQLParser::Real_ulong_numberContext * /*ctx*/) override { }
   virtual void exitReal_ulong_number(MySQLParser::Real_ulong_numberContext * /*ctx*/) override { }
 
-  virtual void enterUlonglong_number(MySQLParser::Ulonglong_numberContext * /*ctx*/) override { }
-  virtual void exitUlonglong_number(MySQLParser::Ulonglong_numberContext * /*ctx*/) override { }
+  virtual void enterUlonglongNumber(MySQLParser::UlonglongNumberContext * /*ctx*/) override { }
+  virtual void exitUlonglongNumber(MySQLParser::UlonglongNumberContext * /*ctx*/) override { }
 
   virtual void enterReal_ulonglong_number(MySQLParser::Real_ulonglong_numberContext * /*ctx*/) override { }
   virtual void exitReal_ulonglong_number(MySQLParser::Real_ulonglong_numberContext * /*ctx*/) override { }
