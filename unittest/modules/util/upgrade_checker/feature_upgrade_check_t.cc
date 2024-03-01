@@ -143,9 +143,11 @@ TEST(Auth_method_usage_check, enabled_and_features) {
   {
     // UC Start version is after all registered features were removed
     Upgrade_info info;
-    info.server_version = Version(8, 4, 0);
+    info.server_version = mysqlshdk::utils::k_shell_version;
     Auth_method_usage_check check(info);
-    EXPECT_FALSE(check.enabled());
+
+    // NOTE: this will be false once all the deprecated plugins are removed
+    EXPECT_TRUE(check.enabled());
   }
   {
     // UC Start version before introduction of fido_authentication
@@ -571,10 +573,7 @@ TEST(Auth_method_usage_check, errors) {
   Upgrade_info info;
   Auth_method_usage_check check(info);
 
-  std::map<std::string, bool> tested_plugins = {
-      {"authentication_fido", false},
-      {"sha256_password", false},
-      {"mysql_native_password", false}};
+  std::map<std::string, bool> tested_plugins = {{"authentication_fido", false}};
 
   auto features = check.get_features();
   for (const auto feature : features) {
@@ -607,10 +606,7 @@ TEST(Auth_method_usage_check, errors) {
   }
 
   validate_expected(Upgrade_issue::Level::WARNING,
-                    {{"authentication_fido", true},
-                     {"sha256_password", true},
-                     {"mysql_native_password", true}},
-                    tested_plugins);
+                    {{"authentication_fido", true}}, tested_plugins);
 }
 
 TEST(Auth_method_usage_check, mixed) {

@@ -387,13 +387,6 @@ TEST(Upgrade_check_registry, create_checklist) {
           Version(8, 0, 34)},  // Start after feature deprecation
          {Version(8, 3, 0), Version(8, 4, 0)}},  // Start before feature removal
         method);
-
-    // Not included after feature removal
-    test_check_availability(
-        ids::k_auth_method_usage_check, false,
-        {{Version(8, 4, 0), Version(8, 4, 1)},   // Start on feature removal
-         {Version(8, 4, 1), Version(8, 4, 2)}},  // Start on feature deprecation
-        method);
   }
 
   // authentication_fido:
@@ -462,9 +455,8 @@ TEST(Upgrade_check_registry, create_checklist) {
       "keyring_oci");
 
   // Not included in upgrades that don't cross 8.4.0
-  for (const auto &item :
-       {"explicit_defaults_for_timestamp", "ssl_cipher", "admin_ssl_cipher",
-        "tls_ciphersuites", "admin_tls_ciphersuites"}) {
+  for (const auto &item : {"ssl_cipher", "admin_ssl_cipher", "tls_ciphersuites",
+                           "admin_tls_ciphersuites"}) {
     test_check_availability(ids::k_sysvar_allowed_values_check, false,
                             {{Version(8, 2, 0), Version(8, 3, 0)},
                              {Version(8, 4, 0), Version(8, 4, 1)},

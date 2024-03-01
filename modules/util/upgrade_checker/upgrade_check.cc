@@ -121,7 +121,6 @@ Sys_var_allowed_values_check::Sys_var_allowed_values_check(
     : Upgrade_check(ids::k_sysvar_allowed_values_check),
       m_server_info{server_info} {
   auto version = Version(8, 4, 0);
-  add_sys_var(version, "explicit_defaults_for_timestamp", {"ON"});
   std::vector<std::string> valid_ssl_ciphers{"ECDHE-ECDSA-AES128-GCM-SHA256",
                                              "ECDHE-ECDSA-AES256-GCM-SHA384",
                                              "ECDHE-RSA-AES128-GCM-SHA256",
@@ -343,9 +342,7 @@ Invalid_privileges_check::Invalid_privileges_check(
     : Upgrade_check(ids::k_invalid_privileges_check),
       m_upgrade_info(server_info) {
   if (m_upgrade_info.server_version > Version(8, 0, 0)) {
-    add_privileges(Version(8, 4, 0), {"SUPER", "SET_USER_ID"});
-  } else {
-    add_privileges(Version(8, 4, 0), {"SUPER"});
+    add_privileges(Version(8, 4, 0), {"SET_USER_ID"});
   }
 }
 
