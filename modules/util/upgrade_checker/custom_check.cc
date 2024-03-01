@@ -44,6 +44,9 @@ class Invalid_engine_foreign_key_check : public Upgrade_check {
  public:
   Invalid_engine_foreign_key_check();
 
+ private:
+  std::string get_fk_57_schema_filter(Checker_cache *cache) const;
+
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Upgrade_info &server_info, Checker_cache *cache) override;
@@ -51,6 +54,12 @@ class Invalid_engine_foreign_key_check : public Upgrade_check {
 
 Invalid_engine_foreign_key_check::Invalid_engine_foreign_key_check()
     : Upgrade_check(ids::k_invalid_engine_foreign_key_check) {}
+
+std::string Invalid_engine_foreign_key_check::get_fk_57_schema_filter(
+    Checker_cache *cache) const {
+  return cache->query_helper().get_schema_filter(
+      "substr(for_name, 1, instr(for_name, '/')-1)", true);
+}
 
 std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -74,32 +83,54 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
   };
 
   std::unordered_map<std::string, FKInfo> foreign_keys;
+  std::vector<Upgrade_issue> issues;
 
   auto result = session->query(
       "select id, for_name, ref_name from "
-      "information_schema.innodb_sys_foreign");
+      "information_schema.innodb_sys_foreign where " +
+      get_fk_57_schema_filter(cache));
+
   const mysqlshdk::db::IRow *row = nullptr;
   while ((row = result->fetch_one())) {
     auto table = cache->get_table(row->get_string(1));
     auto ref_table = cache->get_table(row->get_string(2));
     assert(table);
-    assert(ref_table);
-    // skip cases where the engines match
-    if (table && ref_table && table->engine == ref_table->engine) continue;
 
-    FKInfo fk;
-    fk.schema = table->schema_name;
-    fk.table = row->get_string(1);
-    fk.table_name = table->name;
-    fk.ref_table = row->get_string(2);
-    fk.ref_engine = ref_table->engine;
+    if (ref_table == nullptr) {
+      Upgrade_issue problem;
 
-    foreign_keys.emplace(row->get_string(0), std::move(fk));
+      problem.schema = table->schema_name;
+      problem.table = table->name;
+      problem.description = "foreign key '" + row->get_string(0) +
+                            "' references an unavailable table";
+      problem.level = Upgrade_issue::WARNING;
+
+      issues.emplace_back(std::move(problem));
+    } else {
+      // skip cases where the engines match
+      if (table && ref_table && table->engine == ref_table->engine) continue;
+
+      FKInfo fk;
+      fk.schema = table->schema_name;
+      fk.table = row->get_string(1);
+      fk.table_name = table->name;
+      fk.ref_table = row->get_string(2);
+      fk.ref_engine = ref_table->engine;
+
+      foreign_keys.emplace(row->get_string(0), std::move(fk));
+    }
+  }
+
+  // Early exit, if there are not even FKs that met the criteria being searched,
+  // we are done.
+  if (foreign_keys.empty()) {
+    return {};
   }
 
   result = session->query(
       "select id, for_col_name, ref_col_name from "
       "information_schema.innodb_sys_foreign_cols");
+
   while ((row = result->fetch_one())) {
     auto fk = foreign_keys.find(row->get_string(0));
     if (fk == foreign_keys.end()) continue;
@@ -110,7 +141,6 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     fk->second.ref_columns.append(row->get_string(2));
   }
 
-  std::vector<Upgrade_issue> issues;
   for (const auto &fk : foreign_keys) {
     Upgrade_issue problem;
 

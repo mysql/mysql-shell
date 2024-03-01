@@ -29,11 +29,24 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
+
+/**
+ * Sometimes the generated queries vary from the expected ones in the order in
+ * which some literals are places in the query. (i.e. when using unordered_sets
+ * to hold the list of literals). The order depends on the platform dependent
+ * hash function used to store the data, on cases like this a callback can be
+ * used to normalize the values before the actual query is compared with the
+ * expected one.
+ */
+using Query_expect =
+    std::pair<std::string,
+              std::function<std::string(const std::string &processor)>>;
 
 namespace testing {
 /**
@@ -60,7 +73,7 @@ class Mock_session_common {
   std::shared_ptr<mysqlshdk::db::IResult> do_querys(const char *, size_t,
                                                     bool buffered);
 
-  void do_expect_query(const std::string &query);
+  void do_expect_query(Query_expect expect);
   void then_return(const std::vector<Fake_result_data> &data);
   Fake_result &then(const std::vector<std::string> &names,
                     const std::vector<mysqlshdk::db::Type> &types = {});
@@ -72,9 +85,11 @@ class Mock_session_common {
     m_query_handler = handler;
   }
 
+  const std::vector<Query_expect> &queries() const { return m_queries; }
+
  protected:
   size_t m_last_query;
-  std::vector<std::string> m_queries;
+  std::vector<Query_expect> m_queries;
   std::unordered_map<std::string, std::shared_ptr<mysqlshdk::db::IResult>>
       m_results;
   std::vector<std::unique_ptr<mysqlshdk::db::Error>> m_throws;
@@ -122,8 +137,22 @@ class Mock_session : public mysqlshdk::db::ISession,
 
   MOCK_CONST_METHOD0(get_server_status, uint32_t());
 
+  /**
+   * Adds query expectation, which will be compared verbatim woth the actual
+   * query received.
+   */
   Mock_session &expect_query(const std::string &query) {
-    Mock_session_common::do_expect_query(query);
+    Mock_session_common::do_expect_query({query, nullptr});
+    return *this;
+  }
+
+  /**
+   * Adds query expectation, including a normalization callback that will be
+   * applied to both the expected query and the actual query before they are
+   * verified for equality.
+   */
+  Mock_session &expect_query(Query_expect expect) {
+    Mock_session_common::do_expect_query(std::move(expect));
     return *this;
   }
   // Disconnection

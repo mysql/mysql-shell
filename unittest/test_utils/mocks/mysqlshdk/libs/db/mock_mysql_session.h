@@ -73,7 +73,7 @@ class Mock_mysql_session : public mysqlshdk::db::mysql::Session,
 
   // Exception Simulation
   Mock_mysql_session &expect_query(const std::string &query) {
-    Mock_session_common::do_expect_query(query);
+    Mock_session_common::do_expect_query({query, nullptr});
     return *this;
   }
 };

@@ -129,26 +129,6 @@ std::string get_table_data_filename(const std::string &basename,
          std::to_string(index) + "." + ext;
 }
 
-void parse_schema_and_object(const std::string &str, const std::string &context,
-                             const std::string &object_type,
-                             std::string *out_schema, std::string *out_table) {
-  assert(out_schema && out_table);
-
-  try {
-    shcore::split_schema_and_table(str, out_schema, out_table);
-  } catch (const std::runtime_error &e) {
-    throw std::invalid_argument("Failed to parse " + context + " '" + str +
-                                "': " + e.what());
-  }
-
-  if (out_schema->empty()) {
-    throw std::invalid_argument(
-        "The " + context + " must be in the following form: schema." +
-        object_type + ", with optional backtick quotes, wrong value: '" + str +
-        "'.");
-  }
-}
-
 mysqlshdk::oci::PAR_structure parse_par(const std::string &url) {
   mysqlshdk::oci::PAR_structure par;
   mysqlshdk::oci::parse_par(url, &par);

@@ -52,10 +52,10 @@ const shcore::Option_pack_def<Dump_instance_options>
       shcore::Option_pack_def<Dump_instance_options>()
           .include<Dump_schemas_options>()
           .include(&Dump_instance_options::m_filtering_options,
-                   &common::Filtering_options::schemas)
+                   &mysqlshdk::db::Filtering_options::schemas)
           .optional("users", &Dump_instance_options::m_dump_users)
           .include(&Dump_instance_options::m_filtering_options,
-                   &common::Filtering_options::users)
+                   &mysqlshdk::db::Filtering_options::users)
           .on_done(&Dump_instance_options::on_unpacked_options)
           .on_log(&Dump_instance_options::on_log_options);
 

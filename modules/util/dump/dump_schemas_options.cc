@@ -36,6 +36,7 @@
 
 namespace mysqlsh {
 namespace dump {
+using Filtering_options = mysqlshdk::db::Filtering_options;
 
 const shcore::Option_pack_def<Dump_schemas_options>
     &Dump_schemas_options::options() {
@@ -43,13 +44,13 @@ const shcore::Option_pack_def<Dump_schemas_options>
       shcore::Option_pack_def<Dump_schemas_options>()
           .include<Ddl_dumper_options>()
           .include(&Dump_schemas_options::m_filtering_options,
-                   &common::Filtering_options::tables)
+                   &Filtering_options::tables)
           .optional("events", &Dump_schemas_options::m_dump_events)
           .include(&Dump_schemas_options::m_filtering_options,
-                   &common::Filtering_options::events)
+                   &Filtering_options::events)
           .optional("routines", &Dump_schemas_options::m_dump_routines)
           .include(&Dump_schemas_options::m_filtering_options,
-                   &common::Filtering_options::routines)
+                   &Filtering_options::routines)
           .on_done(&Dump_schemas_options::on_unpacked_options)
           .on_log(&Dump_schemas_options::on_log_options);
 

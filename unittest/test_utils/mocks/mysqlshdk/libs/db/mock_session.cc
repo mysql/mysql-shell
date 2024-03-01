@@ -34,9 +34,9 @@ Mock_session::Mock_session() {
   ON_CALL(*this, is_open()).WillByDefault(Return(true));
 }
 
-void Mock_session_common::do_expect_query(const std::string &query) {
+void Mock_session_common::do_expect_query(Query_expect expect) {
   m_last_query = m_queries.size();
-  m_queries.emplace_back(query);
+  m_queries.emplace_back(std::move(expect));
   m_throws.emplace_back();
 }
 
@@ -55,7 +55,14 @@ void Mock_session_common::then_return(
 
     result->set_data(data);
 
-    m_results[m_queries[m_last_query++]] = result;
+    if (m_queries[m_last_query].second) {
+      m_results[m_queries[m_last_query].second(m_queries[m_last_query].first)] =
+          result;
+    } else {
+      m_results[m_queries[m_last_query].first] = result;
+    }
+
+    m_last_query++;
   } else {
     throw std::logic_error("Attempted to set result with no query.");
   }
@@ -67,7 +74,14 @@ Fake_result &Mock_session_common::then(
   if (m_last_query < m_queries.size()) {
     auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
-    m_results[m_queries[m_last_query++]] = result;
+    // If a normalization function is provided, we better use it here
+    if (m_queries[m_last_query].second) {
+      m_results[m_queries[m_last_query].second(m_queries[m_last_query].first)] =
+          result;
+    } else {
+      m_results[m_queries[m_last_query].first] = result;
+    }
+    m_last_query++;
 
     if (types.empty()) {
       return result->add_result(
@@ -102,7 +116,13 @@ std::shared_ptr<mysqlshdk::db::IResult> Mock_session_common::do_querys(
   if (m_queries.empty()) throw std::logic_error("Unexpected query: " + s);
 
   // Ensures the expected query got received
-  EXPECT_EQ(s, m_queries[0]);
+  if (m_queries[0].second) {
+    auto expected = m_queries[0].second(m_queries[0].first);
+    s = m_queries[0].second(s);
+    EXPECT_EQ(expected, s);
+  } else {
+    EXPECT_EQ(m_queries[0].first, s);
+  }
 
   // Removes the query
   m_queries.erase(m_queries.begin());

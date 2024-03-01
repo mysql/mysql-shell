@@ -52,7 +52,7 @@ class Sql_upgrade_check : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info) override;
+      const Upgrade_info &server_info, Checker_cache *cache) override;
 
   const std::vector<std::string> &get_queries() const { return m_queries; }
 

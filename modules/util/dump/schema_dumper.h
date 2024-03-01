@@ -35,12 +35,12 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-#include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/instance_cache.h"
 
@@ -51,6 +51,8 @@ using mysqlshdk::storage::IFile;
 
 class Schema_dumper {
  public:
+  using Filtering_options = mysqlshdk::db::Filtering_options;
+
   struct Issue {
     enum class Status {
       FIXED_BY_CREATE_INVISIBLE_PKS,
@@ -131,12 +133,11 @@ class Schema_dumper {
   std::vector<std::string> get_routines(const std::string &db,
                                         const std::string &type);
 
-  std::vector<Issue> dump_grants(IFile *file,
-                                 const common::Filtering_options &filters);
+  std::vector<Issue> dump_grants(IFile *file, const Filtering_options &filters);
   std::vector<shcore::Account> get_users(
-      const common::Filtering_options::User_filters &filters);
+      const Filtering_options::User_filters &filters);
   std::vector<shcore::Account> get_roles(
-      const common::Filtering_options::User_filters &filters);
+      const Filtering_options::User_filters &filters);
 
   std::vector<Instance_cache::Histogram> get_histograms(
       const std::string &db_name, const std::string &table_name);
@@ -361,8 +362,7 @@ class Schema_dumper {
 
   std::vector<shcore::Account> fetch_users(
       const std::string &select, const std::string &where,
-      const common::Filtering_options::User_filters &filters,
-      bool log_error = true);
+      const Filtering_options::User_filters &filters, bool log_error = true);
 
   Version_dependent_check set_any_definer_check() const;
 

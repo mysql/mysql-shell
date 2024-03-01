@@ -548,6 +548,10 @@ bool setenv(const std::string &name_value);
 bool unsetenv(const char *name);
 bool unsetenv(const std::string &name);
 
+void parse_schema_and_object(const std::string &str, const std::string &context,
+                             const std::string &object_type,
+                             std::string *out_schema, std::string *out_table);
+
 #ifdef _WIN32
 #define STDIN_FILENO _fileno(stdin)
 #define STDOUT_FILENO _fileno(stdout)

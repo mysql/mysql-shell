@@ -37,13 +37,13 @@
 
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-#include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/instance_cache.h"
 #include "modules/util/import_table/dialect.h"
@@ -59,6 +59,7 @@ enum class Dry_run {
 
 class Dump_options {
  public:
+  using Filtering_options = mysqlshdk::db::Filtering_options;
   Dump_options();
 
   Dump_options(const Dump_options &) = default;
@@ -128,10 +129,8 @@ class Dump_options {
     return m_compatibility_options;
   }
 
-  common::Filtering_options &filters() { return m_filtering_options; }
-  const common::Filtering_options &filters() const {
-    return m_filtering_options;
-  }
+  Filtering_options &filters() { return m_filtering_options; }
+  const Filtering_options &filters() const { return m_filtering_options; }
 
   const mysqlshdk::utils::Version &target_version() const {
     if (m_target_version.has_value()) {
@@ -225,7 +224,7 @@ class Dump_options {
       const std::unordered_set<std::string> &tables) const;
 
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
-  common::Filtering_options m_filtering_options;
+  Filtering_options m_filtering_options;
 
   mutable bool m_filter_conflicts = false;
 

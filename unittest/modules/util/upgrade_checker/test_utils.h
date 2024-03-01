@@ -47,6 +47,10 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+extern std::unordered_map<std::string, Version> k_latest_versions;
+
+extern std::unordered_set<std::string> k_sys_schemas;
+
 Upgrade_info upgrade_info(Version server, Version target,
                           std::string server_os = "");
 
@@ -68,6 +72,9 @@ class Upgrade_checker_test : public Shell_core_test_wrapper {
  public:
   std::string deploy_sandbox(const shcore::Dictionary_t &conf, int *port);
 };
+
+std::string remove_quoted_strings(const std::string &source,
+                                  const std::unordered_set<std::string> &items);
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
