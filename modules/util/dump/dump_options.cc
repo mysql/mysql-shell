@@ -41,6 +41,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -196,7 +197,7 @@ void Dump_options::set_where_clause(
     schema.clear();
     table.clear();
 
-    common::parse_schema_and_object(w.first,
+    shcore::parse_schema_and_object(w.first,
                                     "table name key of the 'where' option",
                                     "table", &schema, &table);
 
@@ -250,7 +251,7 @@ void Dump_options::set_partitions(
     schema.clear();
     table.clear();
 
-    common::parse_schema_and_object(p.first,
+    shcore::parse_schema_and_object(p.first,
                                     "table name key of the 'partitions' option",
                                     "table", &schema, &table);
 

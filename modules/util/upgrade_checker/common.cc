@@ -159,6 +159,17 @@ std::string Upgrade_issue::get_db_object() const {
   return ss.str();
 }
 
+Checker_cache::Checker_cache(Filtering_options *db_filters)
+    : m_query_helper(db_filters != nullptr ? *db_filters : m_filters) {
+  m_filters.schemas().exclude("information_schema");
+  m_filters.schemas().exclude("performance_schema");
+  m_filters.schemas().exclude("mysql");
+  m_filters.schemas().exclude("sys");
+
+  m_query_helper.set_schema_filter(db_filters != nullptr);
+  m_query_helper.set_table_filter();
+}
+
 const Checker_cache::Table_info *Checker_cache::get_table(
     const std::string &schema_table) const {
   auto t = m_tables.find(schema_table);
@@ -169,11 +180,13 @@ const Checker_cache::Table_info *Checker_cache::get_table(
 void Checker_cache::cache_tables(mysqlshdk::db::ISession *session) {
   if (!m_tables.empty()) return;
 
-  auto res = session->query(
-      R"*(SELECT table_schema, table_name, engine
-FROM information_schema.tables
-WHERE engine is not null and
-  table_schema not in ('sys', 'mysql', 'information_schema', 'performance_schema'))*");
+  std::string query =
+      "SELECT TABLE_SCHEMA, TABLE_NAME, ENGINE FROM information_schema.tables "
+      "WHERE ENGINE IS NOT NULL AND " +
+      m_query_helper.schema_filter("TABLE_SCHEMA");
+
+  auto res = session->query(query);
+
   while (auto row = res->fetch_one()) {
     Table_info table{row->get_string(0), row->get_string(1),
                      row->get_string(2)};

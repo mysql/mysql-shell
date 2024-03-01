@@ -23,8 +23,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_COMMON_DUMP_FILTERING_OPTIONS_H_
-#define MODULES_UTIL_COMMON_DUMP_FILTERING_OPTIONS_H_
+#ifndef MYSQLSHDK_LIBS_DB_FILTERING_OPTIONS_H_
+#define MYSQLSHDK_LIBS_DB_FILTERING_OPTIONS_H_
 
 #include <string>
 #include <unordered_map>
@@ -36,9 +36,8 @@
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 
-namespace mysqlsh {
-namespace dump {
-namespace common {
+namespace mysqlshdk {
+namespace db {
 
 class Filtering_options final {
  public:
@@ -377,8 +376,7 @@ class Filtering_options final {
   Trigger_filters m_triggers;
 };
 
-}  // namespace common
-}  // namespace dump
-}  // namespace mysqlsh
+}  // namespace db
+}  // namespace mysqlshdk
 
-#endif  // MODULES_UTIL_COMMON_DUMP_FILTERING_OPTIONS_H_
+#endif  // MYSQLSHDK_LIBS_DB_FILTERING_OPTIONS_H_

@@ -31,6 +31,10 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+
+std::unordered_set<std::string> k_sys_schemas{"information_schema", "sys",
+                                              "performance_schema", "mysql"};
+
 Upgrade_info upgrade_info(Version server, Version target,
                           std::string server_os) {
   Upgrade_info ui;
@@ -129,6 +133,15 @@ std::string Upgrade_checker_test::deploy_sandbox(
   }
 
   return "";
+}
+
+std::string remove_quoted_strings(
+    const std::string &source, const std::unordered_set<std::string> &items) {
+  std::string result{source};
+  for (const auto &item : items) {
+    result = shcore::str_replace(result, "'" + item + "'", "");
+  }
+  return result;
 }
 
 }  // namespace upgrade_checker

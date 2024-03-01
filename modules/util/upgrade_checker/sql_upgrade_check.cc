@@ -56,7 +56,7 @@ Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const Upgrade_info &server_info) {
+    const Upgrade_info &server_info, Checker_cache *cache) {
   if (m_minimal_version != nullptr &&
       Version(server_info.server_version) < Version(m_minimal_version))
     throw std::runtime_error(shcore::str_format(
@@ -67,7 +67,43 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
 
   std::vector<Upgrade_issue> issues;
   for (const auto &query : m_queries) {
-    auto result = session->query(query);
+    auto final_query = shcore::str_subvars(
+        query,
+        [&cache](std::string_view key) {
+          const auto qh = cache->query_helper();
+          std::string filter;
+          if (key.compare("schema_filter") == 0) {
+            filter = qh.schema_filter();
+          } else if (key.compare("schema_and_table_filter") == 0) {
+            filter = qh.schema_and_table_filter();
+          } else if (key.compare("schema_and_routine_filter") == 0) {
+            filter = qh.schema_and_routine_filter();
+          } else if (key.compare("schema_and_trigger_filter") == 0) {
+            filter = qh.schema_and_trigger_filter();
+          } else if (key.compare("schema_and_event_filter") == 0) {
+            filter = qh.schema_and_event_filter();
+          } else if (shcore::str_endswith(key, "schema_and_table_filter")) {
+            filter = qh.schema_and_table_filter(
+                {{shcore::str_replace(key, "schema_and_table_filter",
+                                      "TABLE_SCHEMA"),
+                  {},
+                  "tables",
+                  ""},
+                 shcore::str_replace(key, "schema_and_table_filter",
+                                     "TABLE_NAME")});
+          }
+
+          // In both standard UC run as well as in execution from D&L there's
+          // always schemas filter at least (to exclude the system schemas), if
+          // this fails indicates some error in the logic that allows not
+          // excluding the system schemas.
+          assert(!filter.empty());
+
+          return filter;
+        },
+        "<<", ">>");
+
+    auto result = session->query(final_query);
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
       add_issue(row, &issues);

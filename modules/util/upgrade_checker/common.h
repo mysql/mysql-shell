@@ -33,7 +33,9 @@
 #include <unordered_map>
 #include <utility>
 
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/query_helper.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -190,6 +192,9 @@ enum class Feature_life_cycle_state { OK, DEPRECATED, REMOVED };
 
 class Checker_cache {
  public:
+  using Filtering_options = mysqlshdk::db::Filtering_options;
+  explicit Checker_cache(Filtering_options *db_filters = nullptr);
+
   struct Table_info {
     std::string schema_name;
     std::string name;
@@ -209,7 +214,13 @@ class Checker_cache {
   void cache_sysvars(mysqlshdk::db::ISession *session,
                      const Upgrade_info &server_info);
 
+  const mysqlshdk::db::Query_helper &query_helper() const {
+    return m_query_helper;
+  }
+
  private:
+  Filtering_options m_filters;
+  mysqlshdk::db::Query_helper m_query_helper;
   std::unordered_map<std::string, Table_info> m_tables;
   std::unordered_map<std::string, Sysvar_info> m_sysvars;
 };

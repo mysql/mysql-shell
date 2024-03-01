@@ -42,7 +42,7 @@ namespace tests {
 
 namespace {
 
-using common::Filtering_options;
+using Filtering_options = mysqlshdk::db::Filtering_options;
 using mysqlshdk::utils::Version;
 
 void verify(const Instance_cache &cache, const std::string &name,

@@ -2760,7 +2760,7 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
 }
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
-    IFile *file, const common::Filtering_options &filters) {
+    IFile *file, const Filtering_options &filters) {
   std::vector<Issue> problems;
   std::map<std::string, std::string> default_roles;
 
@@ -3165,7 +3165,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 }
 
 std::vector<shcore::Account> Schema_dumper::get_users(
-    const common::Filtering_options::User_filters &filters) {
+    const Filtering_options::User_filters &filters) {
   if (m_cache) {
     return m_cache->users;
   }
@@ -3199,7 +3199,7 @@ std::vector<shcore::Account> Schema_dumper::get_users(
 }
 
 std::vector<shcore::Account> Schema_dumper::get_roles(
-    const common::Filtering_options::User_filters &filters) {
+    const Filtering_options::User_filters &filters) {
   if (m_cache) {
     return m_cache->roles;
   }
@@ -3366,7 +3366,7 @@ Schema_dumper::preprocess_users_script(
 
 std::vector<shcore::Account> Schema_dumper::fetch_users(
     const std::string &select, const std::string &where,
-    const common::Filtering_options::User_filters &filters, bool log_error) {
+    const Filtering_options::User_filters &filters, bool log_error) {
   std::string where_filter = where;
 
   if (!where_filter.empty()) {

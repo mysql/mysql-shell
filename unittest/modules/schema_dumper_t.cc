@@ -51,7 +51,7 @@ using ::testing::AnyOf;
 using ::testing::HasSubstr;
 using ::testing::Not;
 
-using common::Filtering_options;
+using mysqlshdk::db::Filtering_options;
 using User_filters = Filtering_options::User_filters;
 
 std::string to_string(Schema_dumper::Issue::Status s) {

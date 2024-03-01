@@ -63,10 +63,6 @@ std::string get_table_data_filename(const std::string &basename,
                                     const std::string &ext, size_t index,
                                     bool last_chunk);
 
-void parse_schema_and_object(const std::string &str, const std::string &context,
-                             const std::string &object_type,
-                             std::string *out_schema, std::string *out_table);
-
 mysqlshdk::oci::PAR_structure parse_par(const std::string &url);
 
 std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(

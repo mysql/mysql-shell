@@ -40,6 +40,8 @@ set(db_SOURCE
     uri_common.cc
     generic_uri.cc
     file_uri.cc
+    filtering_options.cc
+    query_helper.cc
     utils/diff.cc
     utils/utils.cc
     mysql/session.cc

@@ -4561,6 +4561,8 @@ bool Dumper::check_for_upgrade_errors() const {
     return false;
   });
 
+  config.set_db_filters(&m_options.filters());
+
   return !check_for_upgrade(config);
 }
 

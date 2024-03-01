@@ -78,15 +78,15 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("resetProgress", &Load_dump_options::m_reset_progress)
           .optional("progressFile", &Load_dump_options::set_progress_file)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::events)
+                   &Filtering_options::events)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::routines)
+                   &Filtering_options::routines)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::schemas)
+                   &Filtering_options::schemas)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::tables)
+                   &Filtering_options::tables)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::triggers)
+                   &Filtering_options::triggers)
           .optional("characterSet", &Load_dump_options::m_character_set)
           .optional("skipBinlog", &Load_dump_options::m_skip_binlog)
           .optional("ignoreExistingObjects",
@@ -104,7 +104,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("loadIndexes", &Load_dump_options::m_load_indexes)
           .optional("schema", &Load_dump_options::m_target_schema)
           .include(&Load_dump_options::m_filtering_options,
-                   &dump::common::Filtering_options::users)
+                   &Filtering_options::users)
           .optional("updateGtidSet", &Load_dump_options::m_update_gtid_set,
                     {{"append", Update_gtid_set::APPEND},
                      {"replace", Update_gtid_set::REPLACE},
