@@ -808,24 +808,17 @@ std::unique_ptr<Removed_sys_var_check> get_removed_sys_vars_check(
                       {"master_info_repository", nullptr},
                       {"group_replication_ip_whitelist", nullptr}});
 
-  check->add_sys_var(
-      Version(8, 4, 0),
-      {
-          {"default_authentication_plugin", "authentication_policy"},
-          {"sha256_password_auto_generate_rsa_keys", nullptr},
-          {"sha256_password_private_key_path", nullptr},
-          {"sha256_password_proxy_users", nullptr},
-          {"sha256_password_public_key_path", nullptr},
-          {"mysql_native_password_proxy_users", nullptr},
-          {"old", nullptr},
-          {"new", nullptr},
-          {"binlog_transaction_dependency_tracking", nullptr},
-          {"group_replication_recovery_complete_at", nullptr},
-          {"profiling", nullptr},
-          {"profiling_history_size", nullptr},
-          {"avoid_temporal_upgrade", nullptr},
-          {"show_old_temporals", nullptr},
-      });
+  check->add_sys_var(Version(8, 4, 0),
+                     {
+                         {"old", nullptr},
+                         {"new", nullptr},
+                         {"binlog_transaction_dependency_tracking", nullptr},
+                         {"group_replication_recovery_complete_at", nullptr},
+                         {"profiling", nullptr},
+                         {"profiling_history_size", nullptr},
+                         {"avoid_temporal_upgrade", nullptr},
+                         {"show_old_temporals", nullptr},
+                     });
 
   return check;
 }

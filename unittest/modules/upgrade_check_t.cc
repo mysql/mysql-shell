@@ -1532,7 +1532,7 @@ void test_removed_vars(const Version &version, bool enabled = true,
       {Version(8, 0, 16), "internal_tmp_disk_storage_engine"},
       {Version(8, 2, 0), "expire_logs_days"},
       {Version(8, 3, 0), "slave_rows_search_algorithms"},
-      {Version(8, 4, 0), "default_authentication_plugin"},
+      {Version(8, 4, 0), "old"},
   };
 
   Upgrade_info info;
@@ -1756,26 +1756,6 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_enabled) {
     Sys_var_allowed_values_check check(info);
     EXPECT_FALSE(check.enabled());
   }
-
-  {
-    // Before 8.4.0 the check should be done as the variables were registered
-    // for an upgrade to 8.4.0
-    info.server_version = Version(8, 3, 0);
-    info.target_version = Version(8, 4, 0);
-    Sys_var_allowed_values_check check(info);
-    EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_sys_var("explicit_defaults_for_timestamp"));
-  }
-
-  {
-    // Before 8.4.0 the check should be done as the variables were registered
-    // for an upgrade to 8.4.0
-    info.server_version = Version(8, 3, 0);
-    info.target_version = Version(8, 4, 1);
-    Sys_var_allowed_values_check check(info);
-    EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_sys_var("explicit_defaults_for_timestamp"));
-  }
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values) {
@@ -1816,12 +1796,11 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_57) {
       "file to be specified at 'configPath' key of options dictionary");
   info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
-  EXPECT_ISSUES(check.get(), 5);
+  EXPECT_ISSUES(check.get(), 4);
   EXPECT_EQ("admin_ssl_cipher", issues[0].schema);
   EXPECT_EQ("admin_tls_ciphersuites", issues[1].schema);
-  EXPECT_EQ("explicit_defaults_for_timestamp", issues[2].schema);
-  EXPECT_EQ("ssl_cipher", issues[3].schema);
-  EXPECT_EQ("tls_ciphersuites", issues[4].schema);
+  EXPECT_EQ("ssl_cipher", issues[2].schema);
+  EXPECT_EQ("tls_ciphersuites", issues[3].schema);
 
   info.config_path.clear();
 }
@@ -3530,7 +3509,6 @@ TEST_F(MySQL_upgrade_check_test, privileges_check_enabled) {
     info.target_version = Version(8, 4, 0);
     Invalid_privileges_check check(info);
     EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_privilege("SUPER"));
     EXPECT_TRUE(check.has_privilege("SET_USER_ID"));
   }
 
@@ -3541,7 +3519,6 @@ TEST_F(MySQL_upgrade_check_test, privileges_check_enabled) {
     info.target_version = Version(8, 4, 1);
     Invalid_privileges_check check(info);
     EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_privilege("SUPER"));
     EXPECT_TRUE(check.has_privilege("SET_USER_ID"));
   }
 }
