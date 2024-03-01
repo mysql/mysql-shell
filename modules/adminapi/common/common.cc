@@ -2093,8 +2093,9 @@ TargetType::Type get_instance_type(
 
     if (!channels.empty()) return TargetType::AsyncReplication;
 
-    auto slaves = mysqlshdk::mysql::get_slaves(target_instance);
-    if (!slaves.empty()) return TargetType::AsyncReplication;
+    if (mysqlshdk::mysql::has_replicas(target_instance))
+      return TargetType::AsyncReplication;
+
   } catch (const shcore::Error &error) {
     switch (error.code()) {
       case ER_TABLEACCESS_DENIED_ERROR:

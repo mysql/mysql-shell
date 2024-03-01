@@ -31,12 +31,9 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/errors.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -372,7 +369,7 @@ std::vector<Replication_channel> get_incoming_channels(
       }
       unserialize_channel_applier_info(row, &channel);
     }
-    channels.push_back(channel);
+    channels.push_back(std::move(channel));
   }
 
   return channels;
@@ -611,35 +608,42 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
   return true;
 }
 
-std::vector<Slave_host> get_slaves(
-    const mysqlshdk::mysql::IInstance &instance) {
-  std::vector<Slave_host> slaves;
+bool has_replicas(const mysqlshdk::mysql::IInstance &instance) {
   std::shared_ptr<mysqlshdk::db::IResult> result;
-
   if (instance.get_version() < utils::Version(8, 2, 0)) {
     result = instance.query("SHOW SLAVE HOSTS");
   } else {
     result = instance.query("SHOW REPLICAS");
   }
-  while (auto row = result->fetch_one_named()) {
-    Slave_host host;
-    host.host = row.get_string("Host");
-    host.port = row.get_uint("Port");
-    if (instance.get_version() < utils::Version(8, 2, 0)) {
-      host.uuid = row.get_string("Slave_UUID");
-    } else {
-      host.uuid = row.get_string("Replica_UUID");
+  return static_cast<bool>(result->fetch_one_named());
+}
+
+std::vector<Slave_host> get_replicas(
+    const mysqlshdk::mysql::IInstance &instance) {
+  std::vector<Slave_host> replicas;
+
+  {
+    auto use_new_term = instance.get_version() >= utils::Version(8, 2, 0);
+
+    auto result =
+        instance.query(use_new_term ? "SHOW REPLICAS" : "SHOW SLAVE HOSTS");
+
+    while (auto row = result->fetch_one_named()) {
+      Slave_host host;
+      host.host = row.get_string("Host");
+      host.port = row.get_uint("Port");
+      host.uuid = row.get_string(use_new_term ? "Replica_UUID" : "Slave_UUID");
+      replicas.push_back(std::move(host));
     }
-    slaves.push_back(std::move(host));
   }
 
   // Sort by host/port to ensure deterministic output
-  std::sort(slaves.begin(), slaves.end(),
+  std::sort(replicas.begin(), replicas.end(),
             [](const Slave_host &a, const Slave_host &b) {
               return a.host < b.host || (a.host == b.host && a.port < b.port);
             });
 
-  return slaves;
+  return replicas;
 }
 
 Replication_channel::Status Replication_channel::status() const {

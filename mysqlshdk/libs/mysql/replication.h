@@ -180,6 +180,10 @@ struct Slave_host {
   std::string host;
   int port = 0;
   std::string uuid;
+
+  bool has_valid_endpoint() const noexcept {
+    return !host.empty() && (port > 0);
+  }
 };
 
 std::string to_string(Replication_channel::Status status);
@@ -245,9 +249,16 @@ std::vector<std::string> get_incoming_channel_names(
     const mysqlshdk::mysql::IInstance &instance, bool include_stopped);
 
 /**
- * Returns list of all replication slaves from the given instance.
+ * Returns true if the given instance has replicas. Equivalent to checking
+ * "get_replicas().empty()".
  */
-std::vector<Slave_host> get_slaves(const mysqlshdk::mysql::IInstance &instance);
+bool has_replicas(const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Returns list of all replicas from the given instance.
+ */
+std::vector<Slave_host> get_replicas(
+    const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Wait for the named replication channel to either switch from the CONNECTING

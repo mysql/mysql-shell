@@ -116,6 +116,8 @@ void Rescan::scan_topology(bool add_unmanaged, bool remove_obsolete,
 
   if (changes_ignored) *changes_ignored = false;
 
+  auto console = mysqlsh::current_console();
+
   // get list of new and obsolete instances
   std::vector<UnmanagedInstanceInfo> unmanaged_instances;
   std::vector<ObsoleteInstanceInfo> obsolete_instances;
@@ -132,11 +134,18 @@ void Rescan::scan_topology(bool add_unmanaged, bool remove_obsolete,
       auto it =
           std::find_if(known_instances.begin(), known_instances.end(),
                        [&s](const auto &i) { return (i.uuid == s.uuid); });
-
       if (it != known_instances.end()) continue;
 
-      unmanaged_instances.push_back(UnmanagedInstanceInfo{
-          .uuid = s.uuid, .host = s.host, .port = s.port});
+      if (!s.has_valid_endpoint()) {
+        console->print_info(shcore::str_format(
+            "Ignoring instance '%s', currently connected to '%s', because its "
+            "address can't be resolved: '%s'",
+            s.uuid.c_str(), primary->descr().c_str(),
+            mysqlshdk::utils::make_host_and_port(s.host, s.port).c_str()));
+      } else {
+        unmanaged_instances.push_back(UnmanagedInstanceInfo{
+            .uuid = s.uuid, .host = s.host, .port = s.port});
+      }
     }
 
     for (const auto &i : known_instances) {
@@ -165,8 +174,6 @@ void Rescan::scan_topology(bool add_unmanaged, bool remove_obsolete,
     log_info("No updates required.");
     return;
   }
-
-  auto console = mysqlsh::current_console();
 
   const auto &md = m_rset.get_metadata_storage();
   MetadataStorage::Transaction trx(md);

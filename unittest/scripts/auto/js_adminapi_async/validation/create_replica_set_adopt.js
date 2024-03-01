@@ -1,6 +1,3 @@
-//@# INCLUDE async_utils.inc
-||
-
 //@# on a standalone server (should fail)
 ||Target server is not part of an async replication topology (MYSQLSH 51151)
 
@@ -55,12 +52,12 @@
 ||Unsupported replication topology (MYSQLSH 51151)
 
 //@# bad repl channels - 2 channels (should fail)
-|    - replicates from localhost:<<<__mysql_sandbox_port1>>> through unsupported channel 'bla'|
+|    - replicates from 'localhost:<<<__mysql_sandbox_port1>>>' through unsupported channel 'bla'|
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port2>>> has one or more unsupported replication channels: bla|
 ||Unsupported replication topology (MYSQLSH 51151)
 
 //@# bad repl channels - master has a bogus channel
-|    - replicates from localhost:<<<__mysql_sandbox_port3>>> through unsupported channel 'foob'|
+|    - replicates from 'localhost:<<<__mysql_sandbox_port3>>>' through unsupported channel 'foob'|
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>> has one or more unsupported replication channels: foob|
 ||Unsupported replication topology (MYSQLSH 51151)
 
@@ -225,7 +222,7 @@ NOTE: dryRun option was specified. Validations will be executed, but no changes 
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
-    - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+    - replicates from '127.0.0.1:<<<__mysql_sandbox_port1>>>'
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 * Checking configuration of discovered instances...
