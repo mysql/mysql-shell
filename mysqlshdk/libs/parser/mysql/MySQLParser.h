@@ -281,12 +281,14 @@ public:
     UNREGISTER_SYMBOL = 816, INITIAL_SYMBOL = 817, CHALLENGE_RESPONSE_SYMBOL = 818, 
     GTID_ONLY_SYMBOL = 819, INTERSECT_SYMBOL = 820, BULK_SYMBOL = 821, URL_SYMBOL = 822, 
     GENERATE_SYMBOL = 823, PARSE_TREE_SYMBOL = 824, LOG_SYMBOL = 825, GTIDS_SYMBOL = 826, 
-    PARALLEL_SYMBOL = 827, S3_SYMBOL = 828, WHITESPACE = 829, INVALID_INPUT = 830, 
-    UNDERSCORE_CHARSET = 831, IDENTIFIER = 832, NCHAR_TEXT = 833, BACK_TICK_QUOTED_ID = 834, 
-    DOUBLE_QUOTED_TEXT = 835, SINGLE_QUOTED_TEXT = 836, DOLLAR_QUOTED_STRING_TEXT = 837, 
-    VERSION_COMMENT_START = 838, MYSQL_COMMENT_START = 839, VERSION_COMMENT_END = 840, 
-    BLOCK_COMMENT = 841, INVALID_BLOCK_COMMENT = 842, POUND_COMMENT = 843, 
-    DASHDASH_COMMENT = 844, SIMPLE_IDENTIFIER = 845, NOT_EQUAL2_OPERATOR = 846
+    PARALLEL_SYMBOL = 827, S3_SYMBOL = 828, QUALIFY_SYMBOL = 829, AUTO_SYMBOL = 830, 
+    MANUAL_SYMBOL = 831, BERNOULLI_SYMBOL = 832, TABLESAMPLE_SYMBOL = 833, 
+    WHITESPACE = 834, INVALID_INPUT = 835, UNDERSCORE_CHARSET = 836, IDENTIFIER = 837, 
+    NCHAR_TEXT = 838, BACK_TICK_QUOTED_ID = 839, DOUBLE_QUOTED_TEXT = 840, 
+    SINGLE_QUOTED_TEXT = 841, DOLLAR_QUOTED_STRING_TEXT = 842, VERSION_COMMENT_START = 843, 
+    MYSQL_COMMENT_START = 844, VERSION_COMMENT_END = 845, BLOCK_COMMENT = 846, 
+    INVALID_BLOCK_COMMENT = 847, POUND_COMMENT = 848, DASHDASH_COMMENT = 849, 
+    SIMPLE_IDENTIFIER = 850, NOT_EQUAL2_OPERATOR = 851
   };
 
   enum {
@@ -344,210 +346,213 @@ public:
     RuleQuerySpecification = 154, RuleSubquery = 155, RuleQuerySpecOption = 156, 
     RuleLimitClause = 157, RuleSimpleLimitClause = 158, RuleLimitOptions = 159, 
     RuleLimitOption = 160, RuleIntoClause = 161, RuleProcedureAnalyseClause = 162, 
-    RuleHavingClause = 163, RuleWindowClause = 164, RuleWindowDefinition = 165, 
-    RuleWindowSpec = 166, RuleWindowSpecDetails = 167, RuleWindowFrameClause = 168, 
-    RuleWindowFrameUnits = 169, RuleWindowFrameExtent = 170, RuleWindowFrameStart = 171, 
-    RuleWindowFrameBetween = 172, RuleWindowFrameBound = 173, RuleWindowFrameExclusion = 174, 
-    RuleWithClause = 175, RuleCommonTableExpression = 176, RuleGroupByClause = 177, 
-    RuleOlapOption = 178, RuleOrderClause = 179, RuleDirection = 180, RuleFromClause = 181, 
-    RuleTableReferenceList = 182, RuleTableValueConstructor = 183, RuleExplicitTable = 184, 
-    RuleRowValueExplicit = 185, RuleSelectOption = 186, RuleLockingClauseList = 187, 
-    RuleLockingClause = 188, RuleLockStrengh = 189, RuleLockedRowAction = 190, 
-    RuleSelectItemList = 191, RuleSelectItem = 192, RuleSelectAlias = 193, 
-    RuleWhereClause = 194, RuleTableReference = 195, RuleEscapedTableReference = 196, 
-    RuleJoinedTable = 197, RuleNaturalJoinType = 198, RuleInnerJoinType = 199, 
-    RuleOuterJoinType = 200, RuleTableFactor = 201, RuleSingleTable = 202, 
-    RuleSingleTableParens = 203, RuleDerivedTable = 204, RuleTableReferenceListParens = 205, 
-    RuleTableFunction = 206, RuleColumnsClause = 207, RuleJtColumn = 208, 
-    RuleOnEmptyOrError = 209, RuleOnEmptyOrErrorJsonTable = 210, RuleOnEmpty = 211, 
-    RuleOnError = 212, RuleJsonOnResponse = 213, RuleUnionOption = 214, 
-    RuleTableAlias = 215, RuleIndexHintList = 216, RuleIndexHint = 217, 
-    RuleIndexHintType = 218, RuleKeyOrIndex = 219, RuleConstraintKeyType = 220, 
-    RuleIndexHintClause = 221, RuleIndexList = 222, RuleIndexListElement = 223, 
-    RuleUpdateStatement = 224, RuleTransactionOrLockingStatement = 225, 
-    RuleTransactionStatement = 226, RuleBeginWork = 227, RuleStartTransactionOptionList = 228, 
-    RuleSavepointStatement = 229, RuleLockStatement = 230, RuleLockItem = 231, 
-    RuleLockOption = 232, RuleXaStatement = 233, RuleXaConvert = 234, RuleXid = 235, 
-    RuleReplicationStatement = 236, RulePurgeOptions = 237, RuleResetOption = 238, 
-    RuleMasterOrBinaryLogsAndGtids = 239, RuleSourceResetOptions = 240, 
-    RuleReplicationLoad = 241, RuleChangeReplicationSource = 242, RuleChangeSource = 243, 
-    RuleSourceDefinitions = 244, RuleSourceDefinition = 245, RuleChangeReplicationSourceAutoPosition = 246, 
-    RuleChangeReplicationSourceHost = 247, RuleChangeReplicationSourceBind = 248, 
-    RuleChangeReplicationSourceUser = 249, RuleChangeReplicationSourcePassword = 250, 
-    RuleChangeReplicationSourcePort = 251, RuleChangeReplicationSourceConnectRetry = 252, 
-    RuleChangeReplicationSourceRetryCount = 253, RuleChangeReplicationSourceDelay = 254, 
-    RuleChangeReplicationSourceSSL = 255, RuleChangeReplicationSourceSSLCA = 256, 
-    RuleChangeReplicationSourceSSLCApath = 257, RuleChangeReplicationSourceSSLCipher = 258, 
-    RuleChangeReplicationSourceSSLCLR = 259, RuleChangeReplicationSourceSSLCLRpath = 260, 
-    RuleChangeReplicationSourceSSLKey = 261, RuleChangeReplicationSourceSSLVerifyServerCert = 262, 
-    RuleChangeReplicationSourceTLSVersion = 263, RuleChangeReplicationSourceTLSCiphersuites = 264, 
-    RuleChangeReplicationSourceSSLCert = 265, RuleChangeReplicationSourcePublicKey = 266, 
-    RuleChangeReplicationSourceGetSourcePublicKey = 267, RuleChangeReplicationSourceHeartbeatPeriod = 268, 
-    RuleChangeReplicationSourceCompressionAlgorithm = 269, RuleChangeReplicationSourceZstdCompressionLevel = 270, 
-    RulePrivilegeCheckDef = 271, RuleTablePrimaryKeyCheckDef = 272, RuleAssignGtidsToAnonymousTransactionsDefinition = 273, 
-    RuleSourceTlsCiphersuitesDef = 274, RuleSourceFileDef = 275, RuleSourceLogFile = 276, 
-    RuleSourceLogPos = 277, RuleServerIdList = 278, RuleChangeReplication = 279, 
-    RuleFilterDefinition = 280, RuleFilterDbList = 281, RuleFilterTableList = 282, 
-    RuleFilterStringList = 283, RuleFilterWildDbTableString = 284, RuleFilterDbPairList = 285, 
-    RuleStartReplicaStatement = 286, RuleStopReplicaStatement = 287, RuleReplicaUntil = 288, 
-    RuleUserOption = 289, RulePasswordOption = 290, RuleDefaultAuthOption = 291, 
-    RulePluginDirOption = 292, RuleReplicaThreadOptions = 293, RuleReplicaThreadOption = 294, 
-    RuleGroupReplication = 295, RuleGroupReplicationStartOptions = 296, 
-    RuleGroupReplicationStartOption = 297, RuleGroupReplicationUser = 298, 
-    RuleGroupReplicationPassword = 299, RuleGroupReplicationPluginAuth = 300, 
-    RuleReplica = 301, RulePreparedStatement = 302, RuleExecuteStatement = 303, 
-    RuleExecuteVarList = 304, RuleCloneStatement = 305, RuleDataDirSSL = 306, 
-    RuleSsl = 307, RuleAccountManagementStatement = 308, RuleAlterUserStatement = 309, 
-    RuleAlterUserList = 310, RuleAlterUser = 311, RuleOldAlterUser = 312, 
-    RuleUserFunction = 313, RuleCreateUserStatement = 314, RuleCreateUserTail = 315, 
-    RuleUserAttributes = 316, RuleDefaultRoleClause = 317, RuleRequireClause = 318, 
-    RuleConnectOptions = 319, RuleAccountLockPasswordExpireOptions = 320, 
-    RuleDropUserStatement = 321, RuleGrantStatement = 322, RuleGrantTargetList = 323, 
-    RuleGrantOptions = 324, RuleExceptRoleList = 325, RuleWithRoles = 326, 
-    RuleGrantAs = 327, RuleVersionedRequireClause = 328, RuleRenameUserStatement = 329, 
-    RuleRevokeStatement = 330, RuleAclType = 331, RuleRoleOrPrivilegesList = 332, 
-    RuleRoleOrPrivilege = 333, RuleGrantIdentifier = 334, RuleRequireList = 335, 
-    RuleRequireListElement = 336, RuleGrantOption = 337, RuleSetRoleStatement = 338, 
-    RuleRoleList = 339, RuleRole = 340, RuleTableAdministrationStatement = 341, 
-    RuleHistogram = 342, RuleCheckOption = 343, RuleRepairType = 344, RuleUninstallStatement = 345, 
-    RuleInstallStatement = 346, RuleInstallOptionType = 347, RuleInstallSetRvalue = 348, 
-    RuleInstallSetValue = 349, RuleInstallSetValueList = 350, RuleSetStatement = 351, 
-    RuleStartOptionValueList = 352, RuleTransactionCharacteristics = 353, 
-    RuleTransactionAccessMode = 354, RuleIsolationLevel = 355, RuleOptionValueListContinued = 356, 
-    RuleOptionValueNoOptionType = 357, RuleOptionValue = 358, RuleStartOptionValueListFollowingOptionType = 359, 
-    RuleOptionValueFollowingOptionType = 360, RuleSetExprOrDefault = 361, 
-    RuleShowDatabasesStatement = 362, RuleShowTablesStatement = 363, RuleShowTriggersStatement = 364, 
-    RuleShowEventsStatement = 365, RuleShowTableStatusStatement = 366, RuleShowOpenTablesStatement = 367, 
-    RuleShowParseTreeStatement = 368, RuleShowPluginsStatement = 369, RuleShowEngineLogsStatement = 370, 
-    RuleShowEngineMutexStatement = 371, RuleShowEngineStatusStatement = 372, 
-    RuleShowColumnsStatement = 373, RuleShowBinaryLogsStatement = 374, RuleShowBinaryLogStatusStatement = 375, 
-    RuleShowReplicasStatement = 376, RuleShowBinlogEventsStatement = 377, 
-    RuleShowRelaylogEventsStatement = 378, RuleShowKeysStatement = 379, 
-    RuleShowEnginesStatement = 380, RuleShowCountWarningsStatement = 381, 
-    RuleShowCountErrorsStatement = 382, RuleShowWarningsStatement = 383, 
-    RuleShowErrorsStatement = 384, RuleShowProfilesStatement = 385, RuleShowProfileStatement = 386, 
-    RuleShowStatusStatement = 387, RuleShowProcessListStatement = 388, RuleShowVariablesStatement = 389, 
-    RuleShowCharacterSetStatement = 390, RuleShowCollationStatement = 391, 
-    RuleShowPrivilegesStatement = 392, RuleShowGrantsStatement = 393, RuleShowCreateDatabaseStatement = 394, 
-    RuleShowCreateTableStatement = 395, RuleShowCreateViewStatement = 396, 
-    RuleShowMasterStatusStatement = 397, RuleShowReplicaStatusStatement = 398, 
-    RuleShowCreateProcedureStatement = 399, RuleShowCreateFunctionStatement = 400, 
-    RuleShowCreateTriggerStatement = 401, RuleShowCreateProcedureStatusStatement = 402, 
-    RuleShowCreateFunctionStatusStatement = 403, RuleShowCreateProcedureCodeStatement = 404, 
-    RuleShowCreateFunctionCodeStatement = 405, RuleShowCreateEventStatement = 406, 
-    RuleShowCreateUserStatement = 407, RuleShowCommandType = 408, RuleEngineOrAll = 409, 
-    RuleFromOrIn = 410, RuleInDb = 411, RuleProfileDefinitions = 412, RuleProfileDefinition = 413, 
-    RuleOtherAdministrativeStatement = 414, RuleKeyCacheListOrParts = 415, 
-    RuleKeyCacheList = 416, RuleAssignToKeycache = 417, RuleAssignToKeycachePartition = 418, 
-    RuleCacheKeyList = 419, RuleKeyUsageElement = 420, RuleKeyUsageList = 421, 
-    RuleFlushOption = 422, RuleLogType = 423, RuleFlushTables = 424, RuleFlushTablesOptions = 425, 
-    RulePreloadTail = 426, RulePreloadList = 427, RulePreloadKeys = 428, 
-    RuleAdminPartition = 429, RuleResourceGroupManagement = 430, RuleCreateResourceGroup = 431, 
-    RuleResourceGroupVcpuList = 432, RuleVcpuNumOrRange = 433, RuleResourceGroupPriority = 434, 
-    RuleResourceGroupEnableDisable = 435, RuleAlterResourceGroup = 436, 
-    RuleSetResourceGroup = 437, RuleThreadIdList = 438, RuleDropResourceGroup = 439, 
-    RuleUtilityStatement = 440, RuleDescribeStatement = 441, RuleExplainStatement = 442, 
-    RuleExplainOptions = 443, RuleExplainableStatement = 444, RuleExplainInto = 445, 
-    RuleHelpCommand = 446, RuleUseCommand = 447, RuleRestartServer = 448, 
-    RuleExpr = 449, RuleBoolPri = 450, RuleCompOp = 451, RulePredicate = 452, 
-    RulePredicateOperations = 453, RuleBitExpr = 454, RuleSimpleExpr = 455, 
-    RuleArrayCast = 456, RuleJsonOperator = 457, RuleSumExpr = 458, RuleGroupingOperation = 459, 
-    RuleWindowFunctionCall = 460, RuleWindowingClause = 461, RuleLeadLagInfo = 462, 
-    RuleStableInteger = 463, RuleParamOrVar = 464, RuleNullTreatment = 465, 
-    RuleJsonFunction = 466, RuleInSumExpr = 467, RuleIdentListArg = 468, 
-    RuleIdentList = 469, RuleFulltextOptions = 470, RuleRuntimeFunctionCall = 471, 
-    RuleReturningType = 472, RuleGeometryFunction = 473, RuleTimeFunctionParameters = 474, 
-    RuleFractionalPrecision = 475, RuleWeightStringLevels = 476, RuleWeightStringLevelListItem = 477, 
-    RuleDateTimeTtype = 478, RuleTrimFunction = 479, RuleSubstringFunction = 480, 
-    RuleFunctionCall = 481, RuleUdfExprList = 482, RuleUdfExpr = 483, RuleUserVariable = 484, 
-    RuleUserVariableIdentifier = 485, RuleInExpressionUserVariableAssignment = 486, 
-    RuleRvalueSystemOrUserVariable = 487, RuleLvalueVariable = 488, RuleRvalueSystemVariable = 489, 
-    RuleWhenExpression = 490, RuleThenExpression = 491, RuleElseExpression = 492, 
-    RuleCastType = 493, RuleExprList = 494, RuleCharset = 495, RuleNotRule = 496, 
-    RuleNot2Rule = 497, RuleInterval = 498, RuleIntervalTimeStamp = 499, 
-    RuleExprListWithParentheses = 500, RuleExprWithParentheses = 501, RuleSimpleExprWithParentheses = 502, 
-    RuleOrderList = 503, RuleOrderExpression = 504, RuleGroupList = 505, 
-    RuleGroupingExpression = 506, RuleChannel = 507, RuleCompoundStatement = 508, 
-    RuleReturnStatement = 509, RuleIfStatement = 510, RuleIfBody = 511, 
-    RuleThenStatement = 512, RuleCompoundStatementList = 513, RuleCaseStatement = 514, 
-    RuleElseStatement = 515, RuleLabeledBlock = 516, RuleUnlabeledBlock = 517, 
-    RuleLabel = 518, RuleBeginEndBlock = 519, RuleLabeledControl = 520, 
-    RuleUnlabeledControl = 521, RuleLoopBlock = 522, RuleWhileDoBlock = 523, 
-    RuleRepeatUntilBlock = 524, RuleSpDeclarations = 525, RuleSpDeclaration = 526, 
-    RuleVariableDeclaration = 527, RuleConditionDeclaration = 528, RuleSpCondition = 529, 
-    RuleSqlstate = 530, RuleHandlerDeclaration = 531, RuleHandlerCondition = 532, 
-    RuleCursorDeclaration = 533, RuleIterateStatement = 534, RuleLeaveStatement = 535, 
-    RuleGetDiagnosticsStatement = 536, RuleSignalAllowedExpr = 537, RuleStatementInformationItem = 538, 
-    RuleConditionInformationItem = 539, RuleSignalInformationItemName = 540, 
-    RuleSignalStatement = 541, RuleResignalStatement = 542, RuleSignalInformationItem = 543, 
-    RuleCursorOpen = 544, RuleCursorClose = 545, RuleCursorFetch = 546, 
-    RuleSchedule = 547, RuleColumnDefinition = 548, RuleCheckOrReferences = 549, 
-    RuleCheckConstraint = 550, RuleConstraintEnforcement = 551, RuleTableConstraintDef = 552, 
-    RuleConstraintName = 553, RuleFieldDefinition = 554, RuleColumnAttribute = 555, 
-    RuleColumnFormat = 556, RuleStorageMedia = 557, RuleNow = 558, RuleNowOrSignedLiteral = 559, 
-    RuleGcolAttribute = 560, RuleReferences = 561, RuleDeleteOption = 562, 
-    RuleKeyList = 563, RuleKeyPart = 564, RuleKeyListWithExpression = 565, 
-    RuleKeyPartOrExpression = 566, RuleIndexType = 567, RuleIndexOption = 568, 
-    RuleCommonIndexOption = 569, RuleVisibility = 570, RuleIndexTypeClause = 571, 
-    RuleFulltextIndexOption = 572, RuleSpatialIndexOption = 573, RuleDataTypeDefinition = 574, 
-    RuleDataType = 575, RuleNchar = 576, RuleRealType = 577, RuleFieldLength = 578, 
-    RuleFieldOptions = 579, RuleCharsetWithOptBinary = 580, RuleAscii = 581, 
-    RuleUnicode = 582, RuleWsNumCodepoints = 583, RuleTypeDatetimePrecision = 584, 
-    RuleFunctionDatetimePrecision = 585, RuleCharsetName = 586, RuleCollationName = 587, 
-    RuleCreateTableOptions = 588, RuleCreateTableOptionsEtc = 589, RuleCreatePartitioningEtc = 590, 
-    RuleCreateTableOptionsSpaceSeparated = 591, RuleCreateTableOption = 592, 
-    RuleTernaryOption = 593, RuleDefaultCollation = 594, RuleDefaultEncryption = 595, 
-    RuleDefaultCharset = 596, RulePartitionClause = 597, RulePartitionTypeDef = 598, 
-    RuleSubPartitions = 599, RulePartitionKeyAlgorithm = 600, RulePartitionDefinitions = 601, 
-    RulePartitionDefinition = 602, RulePartitionValuesIn = 603, RulePartitionOption = 604, 
-    RuleSubpartitionDefinition = 605, RulePartitionValueItemListParen = 606, 
-    RulePartitionValueItem = 607, RuleDefinerClause = 608, RuleIfExists = 609, 
-    RuleIfExistsIdentifier = 610, RulePersistedVariableIdentifier = 611, 
-    RuleIfNotExists = 612, RuleIgnoreUnknownUser = 613, RuleProcedureParameter = 614, 
-    RuleFunctionParameter = 615, RuleCollate = 616, RuleTypeWithOptCollate = 617, 
-    RuleSchemaIdentifierPair = 618, RuleViewRefList = 619, RuleUpdateList = 620, 
-    RuleUpdateElement = 621, RuleCharsetClause = 622, RuleFieldsClause = 623, 
-    RuleFieldTerm = 624, RuleLinesClause = 625, RuleLineTerm = 626, RuleUserList = 627, 
-    RuleCreateUserList = 628, RuleCreateUser = 629, RuleCreateUserWithMfa = 630, 
-    RuleIdentification = 631, RuleIdentifiedByPassword = 632, RuleIdentifiedByRandomPassword = 633, 
-    RuleIdentifiedWithPlugin = 634, RuleIdentifiedWithPluginAsAuth = 635, 
-    RuleIdentifiedWithPluginByPassword = 636, RuleIdentifiedWithPluginByRandomPassword = 637, 
-    RuleInitialAuth = 638, RuleRetainCurrentPassword = 639, RuleDiscardOldPassword = 640, 
-    RuleUserRegistration = 641, RuleFactor = 642, RuleReplacePassword = 643, 
-    RuleUserIdentifierOrText = 644, RuleUser = 645, RuleLikeClause = 646, 
-    RuleLikeOrWhere = 647, RuleOnlineOption = 648, RuleNoWriteToBinLog = 649, 
-    RuleUsePartition = 650, RuleFieldIdentifier = 651, RuleColumnName = 652, 
-    RuleColumnInternalRef = 653, RuleColumnInternalRefList = 654, RuleColumnRef = 655, 
-    RuleInsertIdentifier = 656, RuleIndexName = 657, RuleIndexRef = 658, 
-    RuleTableWild = 659, RuleSchemaName = 660, RuleSchemaRef = 661, RuleProcedureName = 662, 
-    RuleProcedureRef = 663, RuleFunctionName = 664, RuleFunctionRef = 665, 
-    RuleTriggerName = 666, RuleTriggerRef = 667, RuleViewName = 668, RuleViewRef = 669, 
-    RuleTablespaceName = 670, RuleTablespaceRef = 671, RuleLogfileGroupName = 672, 
-    RuleLogfileGroupRef = 673, RuleEventName = 674, RuleEventRef = 675, 
-    RuleUdfName = 676, RuleServerName = 677, RuleServerRef = 678, RuleEngineRef = 679, 
-    RuleTableName = 680, RuleFilterTableRef = 681, RuleTableRefWithWildcard = 682, 
-    RuleTableRef = 683, RuleTableRefList = 684, RuleTableAliasRefList = 685, 
-    RuleParameterName = 686, RuleLabelIdentifier = 687, RuleLabelRef = 688, 
-    RuleRoleIdentifier = 689, RulePluginRef = 690, RuleComponentRef = 691, 
-    RuleResourceGroupRef = 692, RuleWindowName = 693, RulePureIdentifier = 694, 
-    RuleIdentifier = 695, RuleIdentifierList = 696, RuleIdentifierListWithParentheses = 697, 
-    RuleQualifiedIdentifier = 698, RuleSimpleIdentifier = 699, RuleDotIdentifier = 700, 
-    RuleUlong_number = 701, RuleReal_ulong_number = 702, RuleUlonglong_number = 703, 
-    RuleReal_ulonglong_number = 704, RuleSignedLiteral = 705, RuleSignedLiteralOrNull = 706, 
-    RuleLiteral = 707, RuleLiteralOrNull = 708, RuleNullAsLiteral = 709, 
-    RuleStringList = 710, RuleTextStringLiteral = 711, RuleTextString = 712, 
-    RuleTextStringHash = 713, RuleTextLiteral = 714, RuleTextStringNoLinebreak = 715, 
-    RuleTextStringLiteralList = 716, RuleNumLiteral = 717, RuleBoolLiteral = 718, 
-    RuleNullLiteral = 719, RuleInt64Literal = 720, RuleTemporalLiteral = 721, 
-    RuleFloatOptions = 722, RuleStandardFloatOptions = 723, RulePrecision = 724, 
-    RuleTextOrIdentifier = 725, RuleLValueIdentifier = 726, RuleRoleIdentifierOrText = 727, 
-    RuleSizeNumber = 728, RuleParentheses = 729, RuleEqual = 730, RuleOptionType = 731, 
-    RuleRvalueSystemVariableType = 732, RuleSetVarIdentType = 733, RuleJsonAttribute = 734, 
-    RuleIdentifierKeyword = 735, RuleIdentifierKeywordsAmbiguous1RolesAndLabels = 736, 
-    RuleIdentifierKeywordsAmbiguous2Labels = 737, RuleLabelKeyword = 738, 
-    RuleIdentifierKeywordsAmbiguous3Roles = 739, RuleIdentifierKeywordsUnambiguous = 740, 
-    RuleRoleKeyword = 741, RuleLValueKeyword = 742, RuleIdentifierKeywordsAmbiguous4SystemVariables = 743, 
-    RuleRoleOrIdentifierKeyword = 744, RuleRoleOrLabelKeyword = 745
+    RuleHavingClause = 163, RuleQualifyClause = 164, RuleWindowClause = 165, 
+    RuleWindowDefinition = 166, RuleWindowSpec = 167, RuleWindowSpecDetails = 168, 
+    RuleWindowFrameClause = 169, RuleWindowFrameUnits = 170, RuleWindowFrameExtent = 171, 
+    RuleWindowFrameStart = 172, RuleWindowFrameBetween = 173, RuleWindowFrameBound = 174, 
+    RuleWindowFrameExclusion = 175, RuleWithClause = 176, RuleCommonTableExpression = 177, 
+    RuleGroupByClause = 178, RuleOlapOption = 179, RuleOrderClause = 180, 
+    RuleDirection = 181, RuleFromClause = 182, RuleTableReferenceList = 183, 
+    RuleTableValueConstructor = 184, RuleExplicitTable = 185, RuleRowValueExplicit = 186, 
+    RuleSelectOption = 187, RuleLockingClauseList = 188, RuleLockingClause = 189, 
+    RuleLockStrengh = 190, RuleLockedRowAction = 191, RuleSelectItemList = 192, 
+    RuleSelectItem = 193, RuleSelectAlias = 194, RuleWhereClause = 195, 
+    RuleTableReference = 196, RuleEscapedTableReference = 197, RuleJoinedTable = 198, 
+    RuleNaturalJoinType = 199, RuleInnerJoinType = 200, RuleOuterJoinType = 201, 
+    RuleTableFactor = 202, RuleSingleTable = 203, RuleSingleTableParens = 204, 
+    RuleDerivedTable = 205, RuleTableReferenceListParens = 206, RuleTableFunction = 207, 
+    RuleColumnsClause = 208, RuleJtColumn = 209, RuleOnEmptyOrError = 210, 
+    RuleOnEmptyOrErrorJsonTable = 211, RuleOnEmpty = 212, RuleOnError = 213, 
+    RuleJsonOnResponse = 214, RuleUnionOption = 215, RuleTableAlias = 216, 
+    RuleIndexHintList = 217, RuleIndexHint = 218, RuleIndexHintType = 219, 
+    RuleKeyOrIndex = 220, RuleConstraintKeyType = 221, RuleIndexHintClause = 222, 
+    RuleIndexList = 223, RuleIndexListElement = 224, RuleUpdateStatement = 225, 
+    RuleTransactionOrLockingStatement = 226, RuleTransactionStatement = 227, 
+    RuleBeginWork = 228, RuleStartTransactionOptionList = 229, RuleSavepointStatement = 230, 
+    RuleLockStatement = 231, RuleLockItem = 232, RuleLockOption = 233, RuleXaStatement = 234, 
+    RuleXaConvert = 235, RuleXid = 236, RuleReplicationStatement = 237, 
+    RulePurgeOptions = 238, RuleResetOption = 239, RuleMasterOrBinaryLogsAndGtids = 240, 
+    RuleSourceResetOptions = 241, RuleReplicationLoad = 242, RuleChangeReplicationSource = 243, 
+    RuleChangeSource = 244, RuleSourceDefinitions = 245, RuleSourceDefinition = 246, 
+    RuleChangeReplicationSourceAutoPosition = 247, RuleChangeReplicationSourceHost = 248, 
+    RuleChangeReplicationSourceBind = 249, RuleChangeReplicationSourceUser = 250, 
+    RuleChangeReplicationSourcePassword = 251, RuleChangeReplicationSourcePort = 252, 
+    RuleChangeReplicationSourceConnectRetry = 253, RuleChangeReplicationSourceRetryCount = 254, 
+    RuleChangeReplicationSourceDelay = 255, RuleChangeReplicationSourceSSL = 256, 
+    RuleChangeReplicationSourceSSLCA = 257, RuleChangeReplicationSourceSSLCApath = 258, 
+    RuleChangeReplicationSourceSSLCipher = 259, RuleChangeReplicationSourceSSLCLR = 260, 
+    RuleChangeReplicationSourceSSLCLRpath = 261, RuleChangeReplicationSourceSSLKey = 262, 
+    RuleChangeReplicationSourceSSLVerifyServerCert = 263, RuleChangeReplicationSourceTLSVersion = 264, 
+    RuleChangeReplicationSourceTLSCiphersuites = 265, RuleChangeReplicationSourceSSLCert = 266, 
+    RuleChangeReplicationSourcePublicKey = 267, RuleChangeReplicationSourceGetSourcePublicKey = 268, 
+    RuleChangeReplicationSourceHeartbeatPeriod = 269, RuleChangeReplicationSourceCompressionAlgorithm = 270, 
+    RuleChangeReplicationSourceZstdCompressionLevel = 271, RulePrivilegeCheckDef = 272, 
+    RuleTablePrimaryKeyCheckDef = 273, RuleAssignGtidsToAnonymousTransactionsDefinition = 274, 
+    RuleSourceTlsCiphersuitesDef = 275, RuleSourceFileDef = 276, RuleSourceLogFile = 277, 
+    RuleSourceLogPos = 278, RuleServerIdList = 279, RuleChangeReplication = 280, 
+    RuleFilterDefinition = 281, RuleFilterDbList = 282, RuleFilterTableList = 283, 
+    RuleFilterStringList = 284, RuleFilterWildDbTableString = 285, RuleFilterDbPairList = 286, 
+    RuleStartReplicaStatement = 287, RuleStopReplicaStatement = 288, RuleReplicaUntil = 289, 
+    RuleUserOption = 290, RulePasswordOption = 291, RuleDefaultAuthOption = 292, 
+    RulePluginDirOption = 293, RuleReplicaThreadOptions = 294, RuleReplicaThreadOption = 295, 
+    RuleGroupReplication = 296, RuleGroupReplicationStartOptions = 297, 
+    RuleGroupReplicationStartOption = 298, RuleGroupReplicationUser = 299, 
+    RuleGroupReplicationPassword = 300, RuleGroupReplicationPluginAuth = 301, 
+    RuleReplica = 302, RulePreparedStatement = 303, RuleExecuteStatement = 304, 
+    RuleExecuteVarList = 305, RuleCloneStatement = 306, RuleDataDirSSL = 307, 
+    RuleSsl = 308, RuleAccountManagementStatement = 309, RuleAlterUserStatement = 310, 
+    RuleAlterUserList = 311, RuleAlterUser = 312, RuleOldAlterUser = 313, 
+    RuleUserFunction = 314, RuleCreateUserStatement = 315, RuleCreateUserTail = 316, 
+    RuleUserAttributes = 317, RuleDefaultRoleClause = 318, RuleRequireClause = 319, 
+    RuleConnectOptions = 320, RuleAccountLockPasswordExpireOptions = 321, 
+    RuleDropUserStatement = 322, RuleGrantStatement = 323, RuleGrantTargetList = 324, 
+    RuleGrantOptions = 325, RuleExceptRoleList = 326, RuleWithRoles = 327, 
+    RuleGrantAs = 328, RuleVersionedRequireClause = 329, RuleRenameUserStatement = 330, 
+    RuleRevokeStatement = 331, RuleAclType = 332, RuleRoleOrPrivilegesList = 333, 
+    RuleRoleOrPrivilege = 334, RuleGrantIdentifier = 335, RuleRequireList = 336, 
+    RuleRequireListElement = 337, RuleGrantOption = 338, RuleSetRoleStatement = 339, 
+    RuleRoleList = 340, RuleRole = 341, RuleTableAdministrationStatement = 342, 
+    RuleHistogramAutoUpdate = 343, RuleHistogramUpdateParam = 344, RuleHistogramNumBuckets = 345, 
+    RuleHistogram = 346, RuleCheckOption = 347, RuleRepairType = 348, RuleUninstallStatement = 349, 
+    RuleInstallStatement = 350, RuleInstallOptionType = 351, RuleInstallSetRvalue = 352, 
+    RuleInstallSetValue = 353, RuleInstallSetValueList = 354, RuleSetStatement = 355, 
+    RuleStartOptionValueList = 356, RuleTransactionCharacteristics = 357, 
+    RuleTransactionAccessMode = 358, RuleIsolationLevel = 359, RuleOptionValueListContinued = 360, 
+    RuleOptionValueNoOptionType = 361, RuleOptionValue = 362, RuleStartOptionValueListFollowingOptionType = 363, 
+    RuleOptionValueFollowingOptionType = 364, RuleSetExprOrDefault = 365, 
+    RuleShowDatabasesStatement = 366, RuleShowTablesStatement = 367, RuleShowTriggersStatement = 368, 
+    RuleShowEventsStatement = 369, RuleShowTableStatusStatement = 370, RuleShowOpenTablesStatement = 371, 
+    RuleShowParseTreeStatement = 372, RuleShowPluginsStatement = 373, RuleShowEngineLogsStatement = 374, 
+    RuleShowEngineMutexStatement = 375, RuleShowEngineStatusStatement = 376, 
+    RuleShowColumnsStatement = 377, RuleShowBinaryLogsStatement = 378, RuleShowBinaryLogStatusStatement = 379, 
+    RuleShowReplicasStatement = 380, RuleShowBinlogEventsStatement = 381, 
+    RuleShowRelaylogEventsStatement = 382, RuleShowKeysStatement = 383, 
+    RuleShowEnginesStatement = 384, RuleShowCountWarningsStatement = 385, 
+    RuleShowCountErrorsStatement = 386, RuleShowWarningsStatement = 387, 
+    RuleShowErrorsStatement = 388, RuleShowProfilesStatement = 389, RuleShowProfileStatement = 390, 
+    RuleShowStatusStatement = 391, RuleShowProcessListStatement = 392, RuleShowVariablesStatement = 393, 
+    RuleShowCharacterSetStatement = 394, RuleShowCollationStatement = 395, 
+    RuleShowPrivilegesStatement = 396, RuleShowGrantsStatement = 397, RuleShowCreateDatabaseStatement = 398, 
+    RuleShowCreateTableStatement = 399, RuleShowCreateViewStatement = 400, 
+    RuleShowMasterStatusStatement = 401, RuleShowReplicaStatusStatement = 402, 
+    RuleShowCreateProcedureStatement = 403, RuleShowCreateFunctionStatement = 404, 
+    RuleShowCreateTriggerStatement = 405, RuleShowCreateProcedureStatusStatement = 406, 
+    RuleShowCreateFunctionStatusStatement = 407, RuleShowCreateProcedureCodeStatement = 408, 
+    RuleShowCreateFunctionCodeStatement = 409, RuleShowCreateEventStatement = 410, 
+    RuleShowCreateUserStatement = 411, RuleShowCommandType = 412, RuleEngineOrAll = 413, 
+    RuleFromOrIn = 414, RuleInDb = 415, RuleProfileDefinitions = 416, RuleProfileDefinition = 417, 
+    RuleOtherAdministrativeStatement = 418, RuleKeyCacheListOrParts = 419, 
+    RuleKeyCacheList = 420, RuleAssignToKeycache = 421, RuleAssignToKeycachePartition = 422, 
+    RuleCacheKeyList = 423, RuleKeyUsageElement = 424, RuleKeyUsageList = 425, 
+    RuleFlushOption = 426, RuleLogType = 427, RuleFlushTables = 428, RuleFlushTablesOptions = 429, 
+    RulePreloadTail = 430, RulePreloadList = 431, RulePreloadKeys = 432, 
+    RuleAdminPartition = 433, RuleResourceGroupManagement = 434, RuleCreateResourceGroup = 435, 
+    RuleResourceGroupVcpuList = 436, RuleVcpuNumOrRange = 437, RuleResourceGroupPriority = 438, 
+    RuleResourceGroupEnableDisable = 439, RuleAlterResourceGroup = 440, 
+    RuleSetResourceGroup = 441, RuleThreadIdList = 442, RuleDropResourceGroup = 443, 
+    RuleUtilityStatement = 444, RuleDescribeStatement = 445, RuleExplainStatement = 446, 
+    RuleExplainOptions = 447, RuleExplainableStatement = 448, RuleExplainInto = 449, 
+    RuleHelpCommand = 450, RuleUseCommand = 451, RuleRestartServer = 452, 
+    RuleExpr = 453, RuleBoolPri = 454, RuleCompOp = 455, RulePredicate = 456, 
+    RulePredicateOperations = 457, RuleBitExpr = 458, RuleSimpleExpr = 459, 
+    RuleArrayCast = 460, RuleJsonOperator = 461, RuleSumExpr = 462, RuleGroupingOperation = 463, 
+    RuleWindowFunctionCall = 464, RuleSamplingMethod = 465, RuleSamplingPercentage = 466, 
+    RuleTablesampleClause = 467, RuleWindowingClause = 468, RuleLeadLagInfo = 469, 
+    RuleStableInteger = 470, RuleParamOrVar = 471, RuleNullTreatment = 472, 
+    RuleJsonFunction = 473, RuleInSumExpr = 474, RuleIdentListArg = 475, 
+    RuleIdentList = 476, RuleFulltextOptions = 477, RuleRuntimeFunctionCall = 478, 
+    RuleReturningType = 479, RuleGeometryFunction = 480, RuleTimeFunctionParameters = 481, 
+    RuleFractionalPrecision = 482, RuleWeightStringLevels = 483, RuleWeightStringLevelListItem = 484, 
+    RuleDateTimeTtype = 485, RuleTrimFunction = 486, RuleSubstringFunction = 487, 
+    RuleFunctionCall = 488, RuleUdfExprList = 489, RuleUdfExpr = 490, RuleUserVariable = 491, 
+    RuleUserVariableIdentifier = 492, RuleInExpressionUserVariableAssignment = 493, 
+    RuleRvalueSystemOrUserVariable = 494, RuleLvalueVariable = 495, RuleRvalueSystemVariable = 496, 
+    RuleWhenExpression = 497, RuleThenExpression = 498, RuleElseExpression = 499, 
+    RuleCastType = 500, RuleExprList = 501, RuleCharset = 502, RuleNotRule = 503, 
+    RuleNot2Rule = 504, RuleInterval = 505, RuleIntervalTimeStamp = 506, 
+    RuleExprListWithParentheses = 507, RuleExprWithParentheses = 508, RuleSimpleExprWithParentheses = 509, 
+    RuleOrderList = 510, RuleOrderExpression = 511, RuleGroupList = 512, 
+    RuleGroupingExpression = 513, RuleChannel = 514, RuleCompoundStatement = 515, 
+    RuleReturnStatement = 516, RuleIfStatement = 517, RuleIfBody = 518, 
+    RuleThenStatement = 519, RuleCompoundStatementList = 520, RuleCaseStatement = 521, 
+    RuleElseStatement = 522, RuleLabeledBlock = 523, RuleUnlabeledBlock = 524, 
+    RuleLabel = 525, RuleBeginEndBlock = 526, RuleLabeledControl = 527, 
+    RuleUnlabeledControl = 528, RuleLoopBlock = 529, RuleWhileDoBlock = 530, 
+    RuleRepeatUntilBlock = 531, RuleSpDeclarations = 532, RuleSpDeclaration = 533, 
+    RuleVariableDeclaration = 534, RuleConditionDeclaration = 535, RuleSpCondition = 536, 
+    RuleSqlstate = 537, RuleHandlerDeclaration = 538, RuleHandlerCondition = 539, 
+    RuleCursorDeclaration = 540, RuleIterateStatement = 541, RuleLeaveStatement = 542, 
+    RuleGetDiagnosticsStatement = 543, RuleSignalAllowedExpr = 544, RuleStatementInformationItem = 545, 
+    RuleConditionInformationItem = 546, RuleSignalInformationItemName = 547, 
+    RuleSignalStatement = 548, RuleResignalStatement = 549, RuleSignalInformationItem = 550, 
+    RuleCursorOpen = 551, RuleCursorClose = 552, RuleCursorFetch = 553, 
+    RuleSchedule = 554, RuleColumnDefinition = 555, RuleCheckOrReferences = 556, 
+    RuleCheckConstraint = 557, RuleConstraintEnforcement = 558, RuleTableConstraintDef = 559, 
+    RuleConstraintName = 560, RuleFieldDefinition = 561, RuleColumnAttribute = 562, 
+    RuleColumnFormat = 563, RuleStorageMedia = 564, RuleNow = 565, RuleNowOrSignedLiteral = 566, 
+    RuleGcolAttribute = 567, RuleReferences = 568, RuleDeleteOption = 569, 
+    RuleKeyList = 570, RuleKeyPart = 571, RuleKeyListWithExpression = 572, 
+    RuleKeyPartOrExpression = 573, RuleIndexType = 574, RuleIndexOption = 575, 
+    RuleCommonIndexOption = 576, RuleVisibility = 577, RuleIndexTypeClause = 578, 
+    RuleFulltextIndexOption = 579, RuleSpatialIndexOption = 580, RuleDataTypeDefinition = 581, 
+    RuleDataType = 582, RuleNchar = 583, RuleRealType = 584, RuleFieldLength = 585, 
+    RuleFieldOptions = 586, RuleCharsetWithOptBinary = 587, RuleAscii = 588, 
+    RuleUnicode = 589, RuleWsNumCodepoints = 590, RuleTypeDatetimePrecision = 591, 
+    RuleFunctionDatetimePrecision = 592, RuleCharsetName = 593, RuleCollationName = 594, 
+    RuleCreateTableOptions = 595, RuleCreateTableOptionsEtc = 596, RuleCreatePartitioningEtc = 597, 
+    RuleCreateTableOptionsSpaceSeparated = 598, RuleCreateTableOption = 599, 
+    RuleTernaryOption = 600, RuleDefaultCollation = 601, RuleDefaultEncryption = 602, 
+    RuleDefaultCharset = 603, RulePartitionClause = 604, RulePartitionTypeDef = 605, 
+    RuleSubPartitions = 606, RulePartitionKeyAlgorithm = 607, RulePartitionDefinitions = 608, 
+    RulePartitionDefinition = 609, RulePartitionValuesIn = 610, RulePartitionOption = 611, 
+    RuleSubpartitionDefinition = 612, RulePartitionValueItemListParen = 613, 
+    RulePartitionValueItem = 614, RuleDefinerClause = 615, RuleIfExists = 616, 
+    RuleIfExistsIdentifier = 617, RulePersistedVariableIdentifier = 618, 
+    RuleIfNotExists = 619, RuleIgnoreUnknownUser = 620, RuleProcedureParameter = 621, 
+    RuleFunctionParameter = 622, RuleCollate = 623, RuleTypeWithOptCollate = 624, 
+    RuleSchemaIdentifierPair = 625, RuleViewRefList = 626, RuleUpdateList = 627, 
+    RuleUpdateElement = 628, RuleCharsetClause = 629, RuleFieldsClause = 630, 
+    RuleFieldTerm = 631, RuleLinesClause = 632, RuleLineTerm = 633, RuleUserList = 634, 
+    RuleCreateUserList = 635, RuleCreateUser = 636, RuleCreateUserWithMfa = 637, 
+    RuleIdentification = 638, RuleIdentifiedByPassword = 639, RuleIdentifiedByRandomPassword = 640, 
+    RuleIdentifiedWithPlugin = 641, RuleIdentifiedWithPluginAsAuth = 642, 
+    RuleIdentifiedWithPluginByPassword = 643, RuleIdentifiedWithPluginByRandomPassword = 644, 
+    RuleInitialAuth = 645, RuleRetainCurrentPassword = 646, RuleDiscardOldPassword = 647, 
+    RuleUserRegistration = 648, RuleFactor = 649, RuleReplacePassword = 650, 
+    RuleUserIdentifierOrText = 651, RuleUser = 652, RuleLikeClause = 653, 
+    RuleLikeOrWhere = 654, RuleOnlineOption = 655, RuleNoWriteToBinLog = 656, 
+    RuleUsePartition = 657, RuleFieldIdentifier = 658, RuleColumnName = 659, 
+    RuleColumnInternalRef = 660, RuleColumnInternalRefList = 661, RuleColumnRef = 662, 
+    RuleInsertIdentifier = 663, RuleIndexName = 664, RuleIndexRef = 665, 
+    RuleTableWild = 666, RuleSchemaName = 667, RuleSchemaRef = 668, RuleProcedureName = 669, 
+    RuleProcedureRef = 670, RuleFunctionName = 671, RuleFunctionRef = 672, 
+    RuleTriggerName = 673, RuleTriggerRef = 674, RuleViewName = 675, RuleViewRef = 676, 
+    RuleTablespaceName = 677, RuleTablespaceRef = 678, RuleLogfileGroupName = 679, 
+    RuleLogfileGroupRef = 680, RuleEventName = 681, RuleEventRef = 682, 
+    RuleUdfName = 683, RuleServerName = 684, RuleServerRef = 685, RuleEngineRef = 686, 
+    RuleTableName = 687, RuleFilterTableRef = 688, RuleTableRefWithWildcard = 689, 
+    RuleTableRef = 690, RuleTableRefList = 691, RuleTableAliasRefList = 692, 
+    RuleParameterName = 693, RuleLabelIdentifier = 694, RuleLabelRef = 695, 
+    RuleRoleIdentifier = 696, RulePluginRef = 697, RuleComponentRef = 698, 
+    RuleResourceGroupRef = 699, RuleWindowName = 700, RulePureIdentifier = 701, 
+    RuleIdentifier = 702, RuleIdentifierList = 703, RuleIdentifierListWithParentheses = 704, 
+    RuleQualifiedIdentifier = 705, RuleSimpleIdentifier = 706, RuleDotIdentifier = 707, 
+    RuleUlong_number = 708, RuleReal_ulong_number = 709, RuleUlonglongNumber = 710, 
+    RuleReal_ulonglong_number = 711, RuleSignedLiteral = 712, RuleSignedLiteralOrNull = 713, 
+    RuleLiteral = 714, RuleLiteralOrNull = 715, RuleNullAsLiteral = 716, 
+    RuleStringList = 717, RuleTextStringLiteral = 718, RuleTextString = 719, 
+    RuleTextStringHash = 720, RuleTextLiteral = 721, RuleTextStringNoLinebreak = 722, 
+    RuleTextStringLiteralList = 723, RuleNumLiteral = 724, RuleBoolLiteral = 725, 
+    RuleNullLiteral = 726, RuleInt64Literal = 727, RuleTemporalLiteral = 728, 
+    RuleFloatOptions = 729, RuleStandardFloatOptions = 730, RulePrecision = 731, 
+    RuleTextOrIdentifier = 732, RuleLValueIdentifier = 733, RuleRoleIdentifierOrText = 734, 
+    RuleSizeNumber = 735, RuleParentheses = 736, RuleEqual = 737, RuleOptionType = 738, 
+    RuleRvalueSystemVariableType = 739, RuleSetVarIdentType = 740, RuleJsonAttribute = 741, 
+    RuleIdentifierKeyword = 742, RuleIdentifierKeywordsAmbiguous1RolesAndLabels = 743, 
+    RuleIdentifierKeywordsAmbiguous2Labels = 744, RuleLabelKeyword = 745, 
+    RuleIdentifierKeywordsAmbiguous3Roles = 746, RuleIdentifierKeywordsUnambiguous = 747, 
+    RuleRoleKeyword = 748, RuleLValueKeyword = 749, RuleIdentifierKeywordsAmbiguous4SystemVariables = 750, 
+    RuleRoleOrIdentifierKeyword = 751, RuleRoleOrLabelKeyword = 752
   };
 
   explicit MySQLParser(antlr4::TokenStream *input);
@@ -731,6 +736,7 @@ public:
   class IntoClauseContext;
   class ProcedureAnalyseClauseContext;
   class HavingClauseContext;
+  class QualifyClauseContext;
   class WindowClauseContext;
   class WindowDefinitionContext;
   class WindowSpecContext;
@@ -909,6 +915,9 @@ public:
   class RoleListContext;
   class RoleContext;
   class TableAdministrationStatementContext;
+  class HistogramAutoUpdateContext;
+  class HistogramUpdateParamContext;
+  class HistogramNumBucketsContext;
   class HistogramContext;
   class CheckOptionContext;
   class RepairTypeContext;
@@ -1028,6 +1037,9 @@ public:
   class SumExprContext;
   class GroupingOperationContext;
   class WindowFunctionCallContext;
+  class SamplingMethodContext;
+  class SamplingPercentageContext;
+  class TablesampleClauseContext;
   class WindowingClauseContext;
   class LeadLagInfoContext;
   class StableIntegerContext;
@@ -1270,7 +1282,7 @@ public:
   class DotIdentifierContext;
   class Ulong_numberContext;
   class Real_ulong_numberContext;
-  class Ulonglong_numberContext;
+  class UlonglongNumberContext;
   class Real_ulonglong_numberContext;
   class SignedLiteralContext;
   class SignedLiteralOrNullContext;
@@ -4493,6 +4505,7 @@ public:
     GroupByClauseContext *groupByClause();
     HavingClauseContext *havingClause();
     WindowClauseContext *windowClause();
+    QualifyClauseContext *qualifyClause();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -4673,6 +4686,22 @@ public:
 
   HavingClauseContext* havingClause();
 
+  class  QualifyClauseContext : public antlr4::ParserRuleContext {
+  public:
+    QualifyClauseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *QUALIFY_SYMBOL();
+    ExprContext *expr();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  QualifyClauseContext* qualifyClause();
+
   class  WindowClauseContext : public antlr4::ParserRuleContext {
   public:
     WindowClauseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -4802,7 +4831,7 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *UNBOUNDED_SYMBOL();
     antlr4::tree::TerminalNode *PRECEDING_SYMBOL();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     antlr4::tree::TerminalNode *PARAM_MARKER();
     antlr4::tree::TerminalNode *INTERVAL_SYMBOL();
     ExprContext *expr();
@@ -4844,7 +4873,7 @@ public:
     WindowFrameStartContext *windowFrameStart();
     antlr4::tree::TerminalNode *UNBOUNDED_SYMBOL();
     antlr4::tree::TerminalNode *FOLLOWING_SYMBOL();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     antlr4::tree::TerminalNode *PARAM_MARKER();
     antlr4::tree::TerminalNode *INTERVAL_SYMBOL();
     ExprContext *expr();
@@ -5387,6 +5416,7 @@ public:
     UsePartitionContext *usePartition();
     TableAliasContext *tableAlias();
     IndexHintListContext *indexHintList();
+    TablesampleClauseContext *tablesampleClause();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -6746,7 +6776,7 @@ public:
     antlr4::tree::TerminalNode *EQUAL_OPERATOR();
     TextStringNoLinebreakContext *textStringNoLinebreak();
     SourceLogPosContext *sourceLogPos();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     antlr4::tree::TerminalNode *RELAY_LOG_FILE_SYMBOL();
     antlr4::tree::TerminalNode *RELAY_LOG_POS_SYMBOL();
     Ulong_numberContext *ulong_number();
@@ -8123,6 +8153,59 @@ public:
 
   TableAdministrationStatementContext* tableAdministrationStatement();
 
+  class  HistogramAutoUpdateContext : public antlr4::ParserRuleContext {
+  public:
+    HistogramAutoUpdateContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *UPDATE_SYMBOL();
+    antlr4::tree::TerminalNode *MANUAL_SYMBOL();
+    antlr4::tree::TerminalNode *AUTO_SYMBOL();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  HistogramAutoUpdateContext* histogramAutoUpdate();
+
+  class  HistogramUpdateParamContext : public antlr4::ParserRuleContext {
+  public:
+    HistogramUpdateParamContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    HistogramNumBucketsContext *histogramNumBuckets();
+    HistogramAutoUpdateContext *histogramAutoUpdate();
+    antlr4::tree::TerminalNode *USING_SYMBOL();
+    antlr4::tree::TerminalNode *DATA_SYMBOL();
+    TextStringLiteralContext *textStringLiteral();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  HistogramUpdateParamContext* histogramUpdateParam();
+
+  class  HistogramNumBucketsContext : public antlr4::ParserRuleContext {
+  public:
+    HistogramNumBucketsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *WITH_SYMBOL();
+    antlr4::tree::TerminalNode *INT_NUMBER();
+    antlr4::tree::TerminalNode *BUCKETS_SYMBOL();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  HistogramNumBucketsContext* histogramNumBuckets();
+
   class  HistogramContext : public antlr4::ParserRuleContext {
   public:
     HistogramContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -8131,12 +8214,7 @@ public:
     antlr4::tree::TerminalNode *HISTOGRAM_SYMBOL();
     antlr4::tree::TerminalNode *ON_SYMBOL();
     IdentifierListContext *identifierList();
-    antlr4::tree::TerminalNode *WITH_SYMBOL();
-    antlr4::tree::TerminalNode *INT_NUMBER();
-    antlr4::tree::TerminalNode *BUCKETS_SYMBOL();
-    antlr4::tree::TerminalNode *USING_SYMBOL();
-    antlr4::tree::TerminalNode *DATA_SYMBOL();
-    TextStringLiteralContext *textStringLiteral();
+    HistogramUpdateParamContext *histogramUpdateParam();
     antlr4::tree::TerminalNode *DROP_SYMBOL();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -8809,7 +8887,7 @@ public:
     antlr4::tree::TerminalNode *IN_SYMBOL();
     TextStringContext *textString();
     antlr4::tree::TerminalNode *FROM_SYMBOL();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     LimitClauseContext *limitClause();
     ChannelContext *channel();
 
@@ -8832,7 +8910,7 @@ public:
     antlr4::tree::TerminalNode *IN_SYMBOL();
     TextStringContext *textString();
     antlr4::tree::TerminalNode *FROM_SYMBOL();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     LimitClauseContext *limitClause();
     ChannelContext *channel();
 
@@ -10980,6 +11058,59 @@ public:
 
   WindowFunctionCallContext* windowFunctionCall();
 
+  class  SamplingMethodContext : public antlr4::ParserRuleContext {
+  public:
+    SamplingMethodContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *SYSTEM_SYMBOL();
+    antlr4::tree::TerminalNode *BERNOULLI_SYMBOL();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  SamplingMethodContext* samplingMethod();
+
+  class  SamplingPercentageContext : public antlr4::ParserRuleContext {
+  public:
+    SamplingPercentageContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    UlonglongNumberContext *ulonglongNumber();
+    antlr4::tree::TerminalNode *AT_SIGN_SYMBOL();
+    TextOrIdentifierContext *textOrIdentifier();
+    antlr4::tree::TerminalNode *PARAM_MARKER();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  SamplingPercentageContext* samplingPercentage();
+
+  class  TablesampleClauseContext : public antlr4::ParserRuleContext {
+  public:
+    TablesampleClauseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *TABLESAMPLE_SYMBOL();
+    SamplingMethodContext *samplingMethod();
+    antlr4::tree::TerminalNode *OPEN_PAR_SYMBOL();
+    SamplingPercentageContext *samplingPercentage();
+    antlr4::tree::TerminalNode *CLOSE_PAR_SYMBOL();
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+
+    virtual std::any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
+   
+  };
+
+  TablesampleClauseContext* tablesampleClause();
+
   class  WindowingClauseContext : public antlr4::ParserRuleContext {
   public:
     WindowingClauseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -11003,7 +11134,7 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<antlr4::tree::TerminalNode *> COMMA_SYMBOL();
     antlr4::tree::TerminalNode* COMMA_SYMBOL(size_t i);
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     antlr4::tree::TerminalNode *PARAM_MARKER();
     StableIntegerContext *stableInteger();
     ExprContext *expr();
@@ -13600,7 +13731,7 @@ public:
     antlr4::tree::TerminalNode *NULL_SYMBOL();
     TextOrIdentifierContext *textOrIdentifier();
     EqualContext *equal();
-    Ulonglong_numberContext *ulonglong_number();
+    UlonglongNumberContext *ulonglongNumber();
     antlr4::tree::TerminalNode *MAX_ROWS_SYMBOL();
     antlr4::tree::TerminalNode *MIN_ROWS_SYMBOL();
     antlr4::tree::TerminalNode *AVG_ROW_LENGTH_SYMBOL();
@@ -15599,9 +15730,9 @@ public:
 
   Real_ulong_numberContext* real_ulong_number();
 
-  class  Ulonglong_numberContext : public antlr4::ParserRuleContext {
+  class  UlonglongNumberContext : public antlr4::ParserRuleContext {
   public:
-    Ulonglong_numberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    UlonglongNumberContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *INT_NUMBER();
     antlr4::tree::TerminalNode *LONG_NUMBER();
@@ -15616,7 +15747,7 @@ public:
    
   };
 
-  Ulonglong_numberContext* ulonglong_number();
+  UlonglongNumberContext* ulonglongNumber();
 
   class  Real_ulonglong_numberContext : public antlr4::ParserRuleContext {
   public:
@@ -16720,6 +16851,7 @@ public:
     antlr4::tree::TerminalNode *LOG_SYMBOL();
     antlr4::tree::TerminalNode *PARSE_TREE_SYMBOL();
     antlr4::tree::TerminalNode *S3_SYMBOL();
+    antlr4::tree::TerminalNode *BERNOULLI_SYMBOL();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -17266,6 +17398,7 @@ public:
   bool queryExpressionBodySempred(QueryExpressionBodyContext *_localctx, size_t predicateIndex);
   bool queryPrimarySempred(QueryPrimaryContext *_localctx, size_t predicateIndex);
   bool querySpecificationSempred(QuerySpecificationContext *_localctx, size_t predicateIndex);
+  bool qualifyClauseSempred(QualifyClauseContext *_localctx, size_t predicateIndex);
   bool groupByClauseSempred(GroupByClauseContext *_localctx, size_t predicateIndex);
   bool olapOptionSempred(OlapOptionContext *_localctx, size_t predicateIndex);
   bool selectOptionSempred(SelectOptionContext *_localctx, size_t predicateIndex);
@@ -17306,7 +17439,8 @@ public:
   bool grantIdentifierSempred(GrantIdentifierContext *_localctx, size_t predicateIndex);
   bool grantOptionSempred(GrantOptionContext *_localctx, size_t predicateIndex);
   bool tableAdministrationStatementSempred(TableAdministrationStatementContext *_localctx, size_t predicateIndex);
-  bool histogramSempred(HistogramContext *_localctx, size_t predicateIndex);
+  bool histogramAutoUpdateSempred(HistogramAutoUpdateContext *_localctx, size_t predicateIndex);
+  bool histogramUpdateParamSempred(HistogramUpdateParamContext *_localctx, size_t predicateIndex);
   bool installSetValueListSempred(InstallSetValueListContext *_localctx, size_t predicateIndex);
   bool startOptionValueListSempred(StartOptionValueListContext *_localctx, size_t predicateIndex);
   bool optionValueNoOptionTypeSempred(OptionValueNoOptionTypeContext *_localctx, size_t predicateIndex);
@@ -17329,6 +17463,7 @@ public:
   bool jsonOperatorSempred(JsonOperatorContext *_localctx, size_t predicateIndex);
   bool sumExprSempred(SumExprContext *_localctx, size_t predicateIndex);
   bool windowFunctionCallSempred(WindowFunctionCallContext *_localctx, size_t predicateIndex);
+  bool tablesampleClauseSempred(TablesampleClauseContext *_localctx, size_t predicateIndex);
   bool leadLagInfoSempred(LeadLagInfoContext *_localctx, size_t predicateIndex);
   bool runtimeFunctionCallSempred(RuntimeFunctionCallContext *_localctx, size_t predicateIndex);
   bool geometryFunctionSempred(GeometryFunctionContext *_localctx, size_t predicateIndex);

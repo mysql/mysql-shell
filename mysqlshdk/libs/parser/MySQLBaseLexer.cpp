@@ -983,6 +983,8 @@ bool MySQLBaseLexer::isOperator(size_t type) {
     case MySQLLexer::COLON_SYMBOL:
     case MySQLLexer::OPEN_PAR_SYMBOL:
     case MySQLLexer::CLOSE_PAR_SYMBOL:
+    case MySQLLexer::OPEN_CURLY_SYMBOL:
+    case MySQLLexer::CLOSE_CURLY_SYMBOL:
     case MySQLLexer::AT_SIGN_SYMBOL:
     case MySQLLexer::PARAM_MARKER:
       return true;
