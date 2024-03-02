@@ -34,6 +34,7 @@
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/db/query_helper.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -48,15 +49,6 @@ namespace mysqlsh {
 namespace dump {
 
 namespace {
-
-// ASCII NUL (U+0000) is not permitted in quoted or unquoted identifiers
-const std::string k_template_marker{"\0", 1};
-const std::string k_schema_var{"s"};
-const std::string k_schema_template =
-    k_template_marker + k_schema_var + k_template_marker;
-const std::string k_table_var{"t"};
-const std::string k_table_template =
-    k_template_marker + k_table_var + k_template_marker;
 
 class Profiler final {
  public:
@@ -113,188 +105,15 @@ void Instance_cache::Index::add_column(const Column *column) {
   m_columns_sql += column->quoted_name;
 }
 
-struct Instance_cache_builder::Iterate_schema {
-  std::string schema_column;
-  std::vector<std::string> extra_columns;
-  std::string table_name;
-  std::string where;
-};
-
-struct Instance_cache_builder::Iterate_table
-    : public Instance_cache_builder::Iterate_schema {
-  std::string table_column;
-};
-
-struct Instance_cache_builder::Query_helper {
-  static std::string case_sensitive_compare(const std::string &column,
-                                            const std::string &value) {
-    // we're forcing case-sensitive collation on all platforms (effectively
-    // ignoring lower_case_table_names system variable)
-    // STRCMP is used to overcome problems with comparison in 5.7
-    return shcore::sqlstring("STRCMP(" + column + " COLLATE utf8_bin,?)", 0)
-           << value;
-  }
-
-  template <typename It>
-  static std::string case_sensitive_compare(const std::string &column, It begin,
-                                            It end, bool equals) {
-    return "(" +
-           shcore::str_join(begin, end, "&",
-                            [&column](const auto &v) {
-                              return case_sensitive_compare(column, v);
-                            }) +
-           ")" + (!equals ? "!" : "") + "=0";
-  }
-
-  template <typename C>
-  static std::string case_sensitive_compare(const std::string &column,
-                                            const C &c, bool equals) {
-    return case_sensitive_compare(column, c.begin(), c.end(), equals);
-  }
-
-  static std::string compare(const std::string &column,
-                             const std::string &value) {
-    return shcore::sqlstring(column + "=?", 0) << value;
-  }
-
-  template <typename It>
-  static std::string compare(const std::string &column, It begin, It end,
-                             bool equals) {
-    return "(" + column + (equals ? "" : " NOT") + " IN(" +
-           shcore::str_join(
-               begin, end, ",",
-               [](const auto &v) { return shcore::sqlstring("?", 0) << v; }) +
-           "))";
-  }
-
-  template <typename C>
-  static std::string compare(const std::string &column, const C &c,
-                             bool equals) {
-    return compare(column, c.begin(), c.end(), equals);
-  }
-
-  static std::string build_query(const Iterate_schema &info,
-                                 const std::string &filter) {
-    std::string query = "SELECT " + info.schema_column;
-
-    build_query(info, filter, &query);
-
-    return query;
-  }
-
-  static std::string build_query(const Iterate_table &info,
-                                 const std::string &filter) {
-    std::string query =
-        "SELECT " + info.schema_column + "," + info.table_column;
-
-    build_query(info, filter, &query);
-
-    return query;
-  }
-
-  static std::string case_sensitive_match(const Iterate_table &info,
-                                          const Object &table) {
-    return "(" + case_sensitive_compare(info.schema_column, table.schema) +
-           "=0 AND " + case_sensitive_compare(info.table_column, table.name) +
-           "=0)";
-  }
-
-  template <typename It>
-  static std::string case_sensitive_match(const Iterate_table &info, It begin,
-                                          It end) {
-    return "(" +
-           shcore::str_join(begin, end, "OR",
-                            [&info](const auto &v) {
-                              return case_sensitive_match(info, v);
-                            }) +
-           ")";
-  }
-
-  template <typename T>
-  static std::string case_sensitive_match(const std::string &schema,
-                                          const T &objects,
-                                          const std::string &schema_column,
-                                          const std::string &object_column) {
-    return "(" + case_sensitive_compare(schema_column, schema) + "=0 AND " +
-           case_sensitive_compare(object_column, objects, true) + ")";
-  }
-
-  template <typename T>
-  static std::string match(const std::string &schema, const T &objects,
-                           const std::string &schema_column,
-                           const std::string &object_column) {
-    return "(" + case_sensitive_compare(schema_column, schema) + "=0 AND " +
-           compare(object_column, objects, true) + ")";
-  }
-
-  template <typename C>
-  static std::string build_case_sensitive_filter(
-      const C &map, const std::string &schema_column,
-      const std::string &object_column) {
-    return build_objects_filter<C, typename C::mapped_type>(
-        map, schema_column, object_column, case_sensitive_match);
-  }
-
-  template <typename C>
-  static std::string build_filter(const C &map,
-                                  const std::string &schema_column,
-                                  const std::string &object_column) {
-    return build_objects_filter<C, typename C::mapped_type>(
-        map, schema_column, object_column, match);
-  }
-
- private:
-  static void build_query(const Iterate_schema &info, const std::string &filter,
-                          std::string *query) {
-    if (!info.extra_columns.empty()) {
-      *query += "," + shcore::str_join(info.extra_columns, ",");
-    }
-
-    *query += " FROM information_schema." + info.table_name;
-
-    if (!info.where.empty() || !filter.empty()) {
-      *query += " WHERE " + info.where;
-
-      if (!info.where.empty() && !filter.empty()) {
-        *query += " AND ";
-      }
-
-      *query += filter;
-    }
-  }
-
-  template <typename C, typename T>
-  static std::string build_objects_filter(
-      const C &map, const std::string &schema_column,
-      const std::string &object_column,
-      std::string (*fun)(const std::string &, const T &, const std::string &,
-                         const std::string &)) {
-    std::string filter;
-
-    for (const auto &schema : map) {
-      if (!schema.second.empty()) {
-        filter +=
-            fun(schema.first, schema.second, schema_column, object_column) +
-            "OR";
-      }
-    }
-
-    if (!filter.empty()) {
-      // remove trailing OR
-      filter.pop_back();
-      filter.pop_back();
-    }
-
-    return filter;
-  }
-};
-
 Instance_cache_builder::Instance_cache_builder(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const common::Filtering_options &filters, Instance_cache &&cache)
-    : m_session(session), m_cache(std::move(cache)), m_filters(filters) {
-  set_schema_filter();
-  set_table_filter();
+    const mysqlshdk::db::Filtering_options &filters, Instance_cache &&cache)
+    : m_session(session),
+      m_cache(std::move(cache)),
+      m_query_helper(filters),
+      m_filters(filters) {
+  m_query_helper.set_schema_filter();
+  m_query_helper.set_table_filter();
 
   for (const auto &schema : m_cache.schemas) {
     if (!schema.second.tables.empty()) {
@@ -350,8 +169,7 @@ Instance_cache_builder &Instance_cache_builder::events() {
   };
   info.table_name = "events";
   // event names are case insensitive
-  info.where = object_filter(info, m_filters.events().included(),
-                             m_filters.events().excluded());
+  info.where = m_query_helper.event_filter(info);
 
   iterate_schemas(info,
                   [this](const std::string &, Instance_cache::Schema *schema,
@@ -378,8 +196,7 @@ Instance_cache_builder &Instance_cache_builder::routines() {
   };
   info.table_name = "routines";
   // routine names are case insensitive
-  info.where = object_filter(info, m_filters.routines().included(),
-                             m_filters.routines().excluded());
+  info.where = m_query_helper.routine_filter(info);
 
   const std::string procedure = "PROCEDURE";
 
@@ -414,8 +231,7 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
     };
     info.table_name = "triggers";
     // trigger names are case sensitive
-    info.where = trigger_filter(info, m_filters.triggers().included(),
-                                m_filters.triggers().excluded());
+    info.where = m_query_helper.trigger_filter(info);
 
     // schema -> table -> triggers
     std::unordered_map<
@@ -472,7 +288,7 @@ void Instance_cache_builder::filter_schemas() {
       "DEFAULT_COLLATION_NAME "  // NOT NULL
       "FROM information_schema.schemata";
 
-  const auto filter = schema_filter("SCHEMA_NAME");
+  const auto filter = m_query_helper.schema_filter("SCHEMA_NAME");
 
   if (!filter.empty()) {
     sql += " WHERE " + filter;
@@ -512,7 +328,7 @@ void Instance_cache_builder::filter_tables() {
       "TABLE_COMMENT"    // can be NULL in 8.0
   };
   info.table_name = "tables";
-  info.where = table_filter(schema_column, table_column);
+  info.where = m_query_helper.table_filter(schema_column, table_column);
 
   iterate_schemas(
       info, [this](const std::string &, Instance_cache::Schema *schema,
@@ -980,7 +796,8 @@ void Instance_cache_builder::iterate_schemas(
                              const mysqlshdk::db::IRow *)> &callback) {
   Profiler profiler{"iterating schemas"};
 
-  const auto result = query(QH::build_query(info, schema_filter(info)));
+  const auto result = query(
+      m_query_helper.build_query(info, m_query_helper.schema_filter(info)));
 
   std::string current_schema;
   Instance_cache::Schema *schema = nullptr;
@@ -1019,8 +836,8 @@ Instance_cache_builder::iterate_tables_and_views(
                              const mysqlshdk::db::IRow *)> &view_callback) {
   Profiler profiler{"iterating tables and views"};
 
-  const auto result =
-      query(QH::build_query(info, schema_and_table_filter(info)));
+  const auto result = query(m_query_helper.build_query(
+      info, m_query_helper.schema_and_table_filter(info)));
 
   std::string current_schema;
   Instance_cache::Schema *schema = nullptr;
@@ -1108,169 +925,6 @@ Instance_cache_builder::iterate_views(
   return iterate_tables_and_views(info, {}, callback);
 }
 
-void Instance_cache_builder::set_schema_filter() {
-  m_schema_filter = "";
-
-  const auto &included = m_filters.schemas().included();
-  const auto &excluded = m_filters.schemas().excluded();
-
-  if (!included.empty()) {
-    m_schema_filter +=
-        QH::case_sensitive_compare(k_schema_template, included, true);
-  }
-
-  if (!excluded.empty()) {
-    if (!included.empty()) {
-      m_schema_filter += " AND ";
-    }
-
-    m_schema_filter +=
-        QH::case_sensitive_compare(k_schema_template, excluded, false);
-  }
-}
-
-void Instance_cache_builder::set_table_filter() {
-  m_table_filter = "";
-
-  const auto &included = m_filters.tables().included();
-  const auto &excluded = m_filters.tables().excluded();
-
-  if (!included.empty()) {
-    m_table_filter += "(" +
-                      QH::build_case_sensitive_filter(
-                          included, k_schema_template, k_table_template) +
-                      ")";
-  }
-
-  for (const auto &schema : excluded) {
-    if (!m_table_filter.empty()) {
-      m_table_filter += " AND ";
-    }
-
-    m_table_filter +=
-        "NOT " + QH::case_sensitive_match(schema.first, schema.second,
-                                          k_schema_template, k_table_template);
-  }
-}
-
-std::string Instance_cache_builder::schema_filter(
-    const std::string &schema_column) const {
-  return shcore::str_subvars(
-      m_schema_filter,
-      [&schema_column](std::string_view) { return schema_column; },
-      k_template_marker, k_template_marker);
-}
-
-std::string Instance_cache_builder::schema_filter(
-    const Iterate_schema &info) const {
-  return schema_filter(info.schema_column);
-}
-
-std::string Instance_cache_builder::table_filter(
-    const std::string &schema_column, const std::string &table_column) const {
-  return shcore::str_subvars(
-      m_table_filter,
-      [&schema_column, &table_column](std::string_view var) {
-        if (var == k_schema_var) return schema_column;
-        if (var == k_table_var) return table_column;
-        throw std::logic_error("Unknown variable: " + std::string{var});
-      },
-      k_template_marker, k_template_marker);
-}
-
-std::string Instance_cache_builder::schema_and_table_filter(
-    const Iterate_table &info) const {
-  auto result = schema_filter(info.schema_column);
-  auto filter = table_filter(info.schema_column, info.table_column);
-
-  if (!result.empty() && !filter.empty()) {
-    result += " AND ";
-  }
-
-  result += filter;
-
-  return result;
-}
-
-std::string Instance_cache_builder::object_filter(
-    const Iterate_schema &info, const Object_filters &included,
-    const Object_filters &excluded) const {
-  std::string filter;
-  const auto &object_column = info.extra_columns[0];
-
-  if (!included.empty()) {
-    filter += "(" +
-              QH::build_filter(included, info.schema_column, object_column) +
-              ")";
-  }
-
-  for (const auto &schema : excluded) {
-    if (!filter.empty()) {
-      filter += " AND ";
-    }
-
-    filter += "NOT " + QH::match(schema.first, schema.second,
-                                 info.schema_column, object_column);
-  }
-
-  return filter;
-}
-
-std::string Instance_cache_builder::trigger_filter(
-    const Iterate_table &info, const Trigger_filters &included,
-    const Trigger_filters &excluded) const {
-  const auto filter_triggers = [&info](const std::string &schema,
-                                       const Object_filters &tables) {
-    const auto &trigger_column = info.extra_columns[0];
-    const auto schema_filter =
-        QH::case_sensitive_compare(info.schema_column, schema) + "=0";
-    std::string filter;
-
-    for (const auto &table : tables) {
-      filter += "(" + schema_filter + " AND " +
-                QH::case_sensitive_compare(info.table_column, table.first) +
-                "=0";
-
-      if (!table.second.empty()) {
-        // only the specified triggers are used
-        filter += " AND" + QH::case_sensitive_compare(trigger_column,
-                                                      table.second, true);
-      }
-
-      filter += ")OR";
-    }
-
-    if (!filter.empty()) {
-      // remove trailing OR
-      filter.pop_back();
-      filter.pop_back();
-    }
-
-    return filter;
-  };
-
-  std::string filter;
-
-  if (!included.empty()) {
-    filter += "(" +
-              shcore::str_join(included.begin(), included.end(), "OR",
-                               [&filter_triggers](const auto &v) {
-                                 return filter_triggers(v.first, v.second);
-                               }) +
-              ")";
-  }
-
-  for (const auto &schema : excluded) {
-    if (!filter.empty()) {
-      filter += " AND ";
-    }
-
-    filter += "NOT(" + filter_triggers(schema.first, schema.second) + ")";
-  }
-
-  return filter;
-}
-
 uint64_t Instance_cache_builder::count(const std::string &table,
                                        const std::string &where,
                                        const std::string &column) const {
@@ -1286,7 +940,7 @@ uint64_t Instance_cache_builder::count(const std::string &table,
 
 uint64_t Instance_cache_builder::count(const Iterate_schema &info,
                                        const std::string &where) const {
-  auto filter = schema_filter(info);
+  auto filter = m_query_helper.schema_filter(info);
 
   if (!filter.empty() && !where.empty()) {
     filter += " AND ";
@@ -1299,7 +953,7 @@ uint64_t Instance_cache_builder::count(const Iterate_schema &info,
 
 uint64_t Instance_cache_builder::count(const Iterate_table &info,
                                        const std::string &where) const {
-  auto filter = schema_and_table_filter(info);
+  auto filter = m_query_helper.schema_and_table_filter(info);
 
   if (!filter.empty() && !where.empty()) {
     filter += " AND ";

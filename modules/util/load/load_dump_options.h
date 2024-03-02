@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
@@ -47,7 +48,6 @@
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/mod_utils.h"
-#include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/import_table/helpers.h"
 
 namespace mysqlsh {
@@ -84,6 +84,7 @@ inline std::string schema_table_object_key(std::string_view schema,
 
 class Load_dump_options {
  public:
+  using Filtering_options = mysqlshdk::db::Filtering_options;
   using Connection_options = mysqlshdk::db::Connection_options;
 
   enum class Analyze_table_mode { OFF, HISTOGRAM, ON };
@@ -191,13 +192,9 @@ class Load_dump_options {
 
   bool force() const { return m_force; }
 
-  const dump::common::Filtering_options &filters() const {
-    return m_filtering_options;
-  }
+  const Filtering_options &filters() const { return m_filtering_options; }
 
-  inline dump::common::Filtering_options &filters() {
-    return m_filtering_options;
-  }
+  inline Filtering_options &filters() { return m_filtering_options; }
 
   bool ignore_existing_objects() const { return m_ignore_existing_objects; }
 
@@ -290,7 +287,7 @@ class Load_dump_options {
   Connection_options m_target;
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
 
-  dump::common::Filtering_options m_filtering_options;
+  Filtering_options m_filtering_options;
 
   uint64_t m_wait_dump_timeout_ms = 0;
   bool m_reset_progress = false;

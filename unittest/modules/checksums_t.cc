@@ -34,6 +34,7 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -41,7 +42,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/util/common/dump/checksums.h"
-#include "modules/util/common/dump/filtering_options.h"
 #include "modules/util/dump/indexes.h"
 #include "modules/util/dump/instance_cache.h"
 
@@ -617,7 +617,7 @@ class Checksums_test : public Shell_core_test_wrapper {
 
     m_session->executef(insert, k_partitioned_table);
 
-    Filtering_options filter;
+    mysqlshdk::db::Filtering_options filter;
     filter.schemas().include(k_schema);
     m_cache = Instance_cache_builder{m_session, filter}.metadata({}).build();
   }

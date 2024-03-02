@@ -23,7 +23,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/common/dump/filtering_options.h"
+#include "mysqlshdk/libs/db/filtering_options.h"
 
 #include <algorithm>
 #include <cassert>
@@ -32,14 +32,14 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_filtering.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/util/common/dump/utils.h"
 
-namespace mysqlsh {
-namespace dump {
-namespace common {
+namespace mysqlshdk {
+namespace db {
 
 namespace {
 
@@ -144,7 +144,7 @@ void Filtering_options::User_filters::include(shcore::Account account) {
 }
 
 bool Filtering_options::User_filters::error_on_conflicts() const {
-  const auto console = current_console();
+  const auto console = mysqlsh::current_console();
   bool conflict = false;
 
   for (const auto &included : included()) {
@@ -293,8 +293,9 @@ void Filtering_options::Object_filters::exclude(
   std::string schema;
   std::string object;
 
-  parse_schema_and_object(qualified_object, m_object_type + " to be excluded",
-                          m_object_type, &schema, &object);
+  shcore::parse_schema_and_object(qualified_object,
+                                  m_object_type + " to be excluded",
+                                  m_object_type, &schema, &object);
   exclude(std::move(schema), std::move(object));
 }
 
@@ -303,8 +304,9 @@ void Filtering_options::Object_filters::include(
   std::string schema;
   std::string object;
 
-  parse_schema_and_object(qualified_object, m_object_type + " to be included",
-                          m_object_type, &schema, &object);
+  shcore::parse_schema_and_object(qualified_object,
+                                  m_object_type + " to be included",
+                                  m_object_type, &schema, &object);
   include(std::move(schema), std::move(object));
 }
 
@@ -355,7 +357,7 @@ bool Filtering_options::Object_filters::error_on_cross_filters_conflicts()
         has_conflicts = true;
 
         for (const auto &object : schema.second) {
-          current_console()->print_error(
+          mysqlsh::current_console()->print_error(
               "The " + prefix + m_option_suffix + " option contains " +
               m_object_label + " " + shcore::quote_identifier(schema.first) +
               "." + shcore::quote_identifier(object) +
@@ -368,7 +370,7 @@ bool Filtering_options::Object_filters::error_on_cross_filters_conflicts()
         has_conflicts = true;
 
         for (const auto &object : schema.second) {
-          current_console()->print_error(
+          mysqlsh::current_console()->print_error(
               "The " + prefix + m_option_suffix + " option contains " +
               m_object_label + " " + shcore::quote_identifier(schema.first) +
               "." + shcore::quote_identifier(object) +
@@ -588,7 +590,7 @@ bool Filtering_options::Trigger_filters::error_on_conflicts() const {
                 if (e.empty()) {
                   has_conflicts = true;
 
-                  const auto console = current_console();
+                  const auto console = mysqlsh::current_console();
 
                   for (const auto &trigger : i) {
                     console->print_error(
@@ -602,7 +604,7 @@ bool Filtering_options::Trigger_filters::error_on_conflicts() const {
               } else {
                 // both trigger-level filters are empty, this is a conflict
                 has_conflicts = true;
-                current_console()->print_error(
+                mysqlsh::current_console()->print_error(
                     "Both includeTriggers and excludeTriggers options contain "
                     "a filter " +
                     table_name + ".");
@@ -618,7 +620,7 @@ bool Filtering_options::Trigger_filters::error_on_cross_filters_conflicts()
   bool has_conflicts = false;
 
   const auto print_error = [](const auto &triggers, const std::string &format) {
-    const auto console = current_console();
+    const auto console = mysqlsh::current_console();
 
     if (triggers.empty()) {
       console->print_error(shcore::str_format(format.c_str(), "filter", ""));
@@ -801,6 +803,5 @@ void Filtering_options::update_pointers() {
   m_triggers.m_tables = &m_tables;
 }
 
-}  // namespace common
-}  // namespace dump
-}  // namespace mysqlsh
+}  // namespace db
+}  // namespace mysqlshdk

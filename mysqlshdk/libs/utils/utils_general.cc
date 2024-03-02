@@ -1347,4 +1347,24 @@ bool unsetenv(const std::string &name) {
   return shcore::unsetenv(name.c_str());
 }
 
+void parse_schema_and_object(const std::string &str, const std::string &context,
+                             const std::string &object_type,
+                             std::string *out_schema, std::string *out_table) {
+  assert(out_schema && out_table);
+
+  try {
+    shcore::split_schema_and_table(str, out_schema, out_table);
+  } catch (const std::runtime_error &e) {
+    throw std::invalid_argument("Failed to parse " + context + " '" + str +
+                                "': " + e.what());
+  }
+
+  if (out_schema->empty()) {
+    throw std::invalid_argument(
+        "The " + context + " must be in the following form: schema." +
+        object_type + ", with optional backtick quotes, wrong value: '" + str +
+        "'.");
+  }
+}
+
 }  // namespace shcore

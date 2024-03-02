@@ -34,6 +34,8 @@
 #include "modules/util/upgrade_checker/common.h"
 #include "modules/util/upgrade_checker/upgrade_check_formatter.h"
 #include "modules/util/upgrade_checker/upgrade_check_options.h"
+
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 
@@ -65,6 +67,10 @@ class Upgrade_check_config final {
   }
 
   void set_issue_filter(const Include_issue &filter) { m_filter = filter; }
+
+  void set_db_filters(const mysqlshdk::db::Filtering_options *filters) {
+    m_db_filters = filters;
+  }
 
   std::vector<Upgrade_issue> filter_issues(
       std::vector<Upgrade_issue> &&issues) const;
@@ -99,6 +105,7 @@ class Upgrade_check_config final {
   friend Upgrade_check_config create_config(
       std::optional<Version> server_version,
       std::optional<Version> target_version, const std::string &server_os);
+  const mysqlshdk::db::Filtering_options *m_db_filters = nullptr;
 };
 
 }  // namespace upgrade_checker
