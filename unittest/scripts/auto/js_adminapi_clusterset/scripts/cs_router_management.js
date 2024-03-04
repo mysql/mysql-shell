@@ -206,11 +206,14 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_pr
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, 'use_replica_primary_as_rw', -1); },
   "Invalid value for routing option 'use_replica_primary_as_rw', value is expected to be a boolean.");
 
-//@<> Router does not belong to the clusterset
+//@<> Routers that don't belong to the clusterset
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra", 'invalidated_cluster_policy', 'drop_all'); },
   "Router 'abra' is not part of this topology");
 EXPECT_THROWS(function(){ clusterset.setRoutingOption("abra::cadabra", 'target_cluster', 'primary'); },
   "Router 'abra::cadabra' is not part of this topology");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption("routerhost2", 'read_only_targets', 'all'); }, "Router 'routerhost2' is not part of this topology");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption("another", 'read_only_targets', 'all'); }, "Router 'another' is not part of this topology");
+EXPECT_THROWS(function(){ clusterset.setRoutingOption("::system", 'read_only_targets', 'all'); }, "Router '::system' is not part of this topology");
 
 //@<> check types of clusterset router option values
 // Bug#34604612

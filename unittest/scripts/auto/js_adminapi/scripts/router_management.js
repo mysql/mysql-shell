@@ -22,8 +22,14 @@ var cr_router3 = "routerhost2::";
 
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mysqlrouter', 'routerhost2', '8.1.0', '2023-04-26 11:22:33', '{\"bootstrapTargetType\": \"cluster\"}', ?, NULL, NULL)", [cluster_id]);
 
-//@<> cluster.routingOptions on invalid router
+//@<> cluster.routingOptions on invalid routers
 EXPECT_THROWS(function(){ cluster.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the cluster");
+
+EXPECT_THROWS(function(){ cluster.routingOptions("routerhost2"); }, "Router 'routerhost2' is not registered in the cluster");
+
+EXPECT_THROWS(function(){ cluster.routingOptions("another"); }, "Router 'another' is not registered in the cluster");
+
+EXPECT_THROWS(function(){ cluster.routingOptions("::system"); }, "Router '::system' is not registered in the cluster");
 
 //@<> cluster.routingOptions() with all defaults
 cluster.routingOptions();
@@ -144,8 +150,11 @@ EXPECT_THROWS(function(){ cluster.setRoutingOption(router1, "read_only_targets",
 EXPECT_THROWS(function(){ cluster.setRoutingOption(router1, "read_only_targets", 1); },
   "Invalid value for routing option 'read_only_targets', accepted values: 'all', 'read_replicas', 'secondaries'");
 
-//@<> Router does not belong to the cluster
+//@<> Routers that don't belong to the cluster
 EXPECT_THROWS(function(){ cluster.setRoutingOption("abra", 'read_only_targets', 'all'); }, "Router 'abra' is not part of this topology");
+EXPECT_THROWS(function(){ cluster.setRoutingOption("routerhost2", 'read_only_targets', 'all'); }, "Router 'routerhost2' is not part of this topology");
+EXPECT_THROWS(function(){ cluster.setRoutingOption("another", 'read_only_targets', 'all'); }, "Router 'another' is not part of this topology");
+EXPECT_THROWS(function(){ cluster.setRoutingOption("::system", 'read_only_targets', 'all'); }, "Router '::system' is not part of this topology");
 
 //@<> check types of cluster router option values
 options = cluster.routingOptions();

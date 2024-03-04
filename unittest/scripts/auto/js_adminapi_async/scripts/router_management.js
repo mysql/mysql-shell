@@ -143,8 +143,11 @@ EXPECT_THROWS(function(){ rs.setRoutingOption("stats_updates_frequency", "asda")
 EXPECT_THROWS(function(){ rs.setRoutingOption("stats_updates_frequency", -1); },
   "Invalid value for routing option 'stats_updates_frequency', value is expected to be a positive integer.");
 
-//@<> Router does not belong to the replicaset
+//@<> Routers that don't belong to the replicaset
 EXPECT_THROWS(function(){ rs.setRoutingOption("abra", 'stats_updates_frequency', 18); }, "Router 'abra' is not part of this topology");
+EXPECT_THROWS(function(){ rs.setRoutingOption("routerhost2", 'stats_updates_frequency', 18); }, "Router 'routerhost2' is not part of this topology");
+EXPECT_THROWS(function(){ rs.setRoutingOption("another", 'stats_updates_frequency', 18); }, "Router 'another' is not part of this topology");
+EXPECT_THROWS(function(){ rs.setRoutingOption("::system", 'stats_updates_frequency', 18); }, "Router '::system' is not part of this topology");
 
 //@<> check types of replicaset router option values
 rs.setRoutingOption("stats_updates_frequency", 46);
