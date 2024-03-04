@@ -73,6 +73,10 @@ def collect_diagnostics(path: str, **options):
     @li Slow queries (if enabled)
     @li Performance Schema configuration
 
+    When the `hostInfo` option is enabled, various other OS level information
+    from the host is collected using various diagnostic utilities. In Linux
+    and macos, sudo is used to execute some of them.
+
     Replication/InnoDB Cluster
     @li mysql_innodb_cluster_metadata schema and contents
     @li Replication related tables in performance_schema
@@ -107,6 +111,8 @@ def collect_diagnostics(path: str, **options):
             Default false.
         ignoreErrors (bool): If true, ignores query errors during collection.
             Default false.
+        hostInfo (bool): If true and the target server is localhost,
+            collects various host diagnostics info. Default true.
         customSql (list): Custom list of SQL statements to execute.
         customShell (list): Custom list of shell commands to execute.
     """
@@ -138,6 +144,10 @@ def collect_high_load_diagnostics(path: str, **options):
     @li Benchmark info (SELECT BENCHMARK())
     @li Process list, open tables, host cache
     @li System info collected from the OS (if connected to localhost)
+
+    When the `hostInfo` option is enabled, various other OS level information
+    from the host is collected using various diagnostic utilities. In Linux
+    and macos, sudo is used to execute some of them.
 
     Schema Statistics
     @li Number of schema objects (sys.schema_table_overview)
@@ -175,6 +185,8 @@ def collect_high_load_diagnostics(path: str, **options):
         pfsInstrumentation (string): One of current, medium, full. Controls
             whether additional PERFORMANCE_SCHEMA instruments and consumers are
             temporarily enabled (default 'current').
+        hostInfo (bool): If true and the target server is localhost,
+            collects various host diagnostics info. Default true.
         customSql (list): Custom list of SQL statements to execute.
             If the statement is prefixed with `before:` or nothing, it will be
             executed once, before the metrics collection loop. If prefixed with
@@ -229,6 +241,10 @@ def collect_slow_query_diagnostics(path: str, query: str, **options):
     may provide additional insights, at the cost of an larger impact on server
     performance.
 
+    When the `hostInfo` option is enabled, various other OS level information
+    from the host is collected using various diagnostic utilities. In Linux
+    and macos, sudo is used to execute some of them.
+
     Args:
         path (str): path to write the zip file with diagnostics information
         query (str): query to be analyzed
@@ -243,6 +259,8 @@ def collect_slow_query_diagnostics(path: str, query: str, **options):
         pfsInstrumentation (string): One of current, medium, full. Controls
             whether additional PERFORMANCE_SCHEMA instruments and consumers are
             temporarily enabled (default 'current').
+        hostInfo (bool): If true and the target server is localhost,
+            collects various host diagnostics info. Default true.
         customSql (list): Custom list of SQL statements to execute.
             If the statement is prefixed with `before:` or nothing, it will be
             executed once, before the metrics collection loop. If prefixed with

@@ -261,11 +261,13 @@ testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "log_bin": 1,
     "enforce_gtid_consistency": "ON",
     "gtid_mode": "ON",
+    "innodb_doublewrite": "OFF"
 })
 
 #@<> wait for server
 testutil.wait_sandbox_alive(uri)
 shell.connect(uri)
+session.run_sql("/*!80021 alter instance disable innodb redo_log */")
 
 #@<> WL13804-FR7.1 - If there is no open global Shell session, an exception must be thrown. (no open session)
 # WL13804-TSFR_7_1_1

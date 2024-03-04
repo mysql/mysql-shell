@@ -37,6 +37,7 @@ def prepare(sbport, options={}):
         "keyring_file_data": os.path.join(datadir, "keyring"),
         "local_infile": "1",
         "tmpdir": mysql_tmpdir,
+        "innodb_doublewrite": "OFF",
         # small sort buffer to force stray filesorts to be triggered even if we don't have much data
         "sort_buffer_size": 32768,
     })
@@ -72,6 +73,7 @@ testutil.import_data(__sandbox_uri1, os.path.join(__data_path, "sql", "fieldtype
 session1.run_sql("create schema tests")
 # BUG#33079172 "SQL SECURITY INVOKER" INSERTED AT WRONG LOCATION
 session1.run_sql("create procedure tests.tmp() IF @v > 0 THEN SELECT 1; ELSE SELECT 2; END IF;;")
+session1.run_sql("/*!80021 alter instance disable innodb redo_log */")
 
 shell.connect(__sandbox_uri1)
 util.dump_instance(os.path.join(outdir, "dump_instance"), {"showProgress": False})
@@ -79,6 +81,7 @@ util.dump_instance(os.path.join(outdir, "dump_instance"), {"showProgress": False
 prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
 session2.run_sql("set names utf8mb4")
+session2.run_sql("/*!80021 alter instance disable innodb redo_log */")
 
 # BUG#36159820 - accounts which are excluded when dumping with ocimds=true and when loading into MHS
 # BUG#37457569 - added mysql_option_tracker_persister

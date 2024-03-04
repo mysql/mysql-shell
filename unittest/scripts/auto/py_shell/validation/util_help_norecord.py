@@ -2734,6 +2734,10 @@ DESCRIPTION
       without a Primary Key - Slow queries (if enabled) - Performance Schema
       configuration
 
+      When the `hostInfo` option is enabled, various other OS level information
+      from the host is collected using various diagnostic utilities. In Linux
+      and macos, sudo is used to execute some of them.
+
       Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
       contents - Replication related tables in performance_schema - Replication
       status information - InnoDB Cluster accounts and their grants - InnoDB
@@ -2759,6 +2763,8 @@ DESCRIPTION
         slow_log to be enabled and configured for TABLE output. Default false.
       - ignoreErrors: Bool - If true, ignores query errors during collection.
         Default false.
+      - hostInfo: Bool - If true and the target server is localhost, collects
+        various host diagnostics info. Default true.
       - customSql: Array - Custom list of SQL statements to execute.
       - customShell: Array - Custom list of shell commands to execute.
 
@@ -2786,6 +2792,10 @@ DESCRIPTION
       without a Primary Key - Slow queries (if enabled) - Performance Schema
       configuration
 
+      When the `hostInfo` option is enabled, various other OS level information
+      from the host is collected using various diagnostic utilities. In Linux
+      and macos, sudo is used to execute some of them.
+
       Replication/InnoDB Cluster - mysql_innodb_cluster_metadata schema and
       contents - Replication related tables in performance_schema - Replication
       status information - InnoDB Cluster accounts and their grants - InnoDB
@@ -2811,6 +2821,8 @@ DESCRIPTION
         slow_log to be enabled and configured for TABLE output. Default false.
       - ignoreErrors: Bool - If true, ignores query errors during collection.
         Default false.
+      - hostInfo: Bool - If true and the target server is localhost, collects
+        various host diagnostics info. Default true.
       - customSql: Array - Custom list of SQL statements to execute.
       - customShell: Array - Custom list of shell commands to execute.
 
@@ -2837,6 +2849,10 @@ DESCRIPTION
       executed - Names of tables without a Primary Key - Benchmark info (SELECT
       BENCHMARK()) - Process list, open tables, host cache - System info
       collected from the OS (if connected to localhost)
+
+      When the `hostInfo` option is enabled, various other OS level information
+      from the host is collected using various diagnostic utilities. In Linux
+      and macos, sudo is used to execute some of them.
 
       Schema Statistics - Number of schema objects (sys.schema_table_overview)
       - Full list of tables with basic stats - Top 20 biggest tables with
@@ -2869,6 +2885,8 @@ DESCRIPTION
       - pfsInstrumentation: String - One of current, medium, full. Controls
         whether additional PERFORMANCE_SCHEMA instruments and consumers are
         temporarily enabled (default 'current').
+      - hostInfo: Bool - If true and the target server is localhost, collects
+        various host diagnostics info. Default true.
       - customSql: Array - Custom list of SQL statements to execute. If the
         statement is prefixed with `before:` or nothing, it will be executed
         once, before the metrics collection loop. If prefixed with `after:`, it
@@ -2914,6 +2932,10 @@ DESCRIPTION
       additional instrumentation may provide additional insights, at the cost
       of an larger impact on server performance.
 
+      When the `hostInfo` option is enabled, various other OS level information
+      from the host is collected using various diagnostic utilities. In Linux
+      and macos, sudo is used to execute some of them.
+
       The options parameter accepts the following options:
 
       - delay: Integer - Number of seconds to wait between collection
@@ -2924,6 +2946,8 @@ DESCRIPTION
       - pfsInstrumentation: String - One of current, medium, full. Controls
         whether additional PERFORMANCE_SCHEMA instruments and consumers are
         temporarily enabled (default 'current').
+      - hostInfo: Bool - If true and the target server is localhost, collects
+        various host diagnostics info. Default true.
       - customSql: Array - Custom list of SQL statements to execute. If the
         statement is prefixed with `before:` or nothing, it will be executed
         once, before the metrics collection loop. If prefixed with `after:`, it

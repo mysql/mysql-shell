@@ -54,29 +54,29 @@ testutil.wait_member_transactions(__mysql_sandbox_port2, __mysql_sandbox_port1)
 testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
 
 #@<> highload and slowQuery
-outpath = run_collect_hl(__sandbox_uri1, None)
-CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True)
+outpath = run_collect_hl(__sandbox_uri1, None, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True, hostInfo=0)
 
-outpath = run_collect_sq(__sandbox_uri1, None)
-CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True)
+outpath = run_collect_sq(__sandbox_uri1, None, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True, hostInfo=0)
 
 #@<> cluster with innodbMutex + schemaStats
 testutil.expect_password("Password for root: ", "root")
-outpath = run_collect(hostname_uri, None, innodbMutex=1, schemaStats=1, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, session2), (3, session3)], is_cluster=True, innodbMutex=True, schemaStats=True)
+outpath = run_collect(hostname_uri, None, innodbMutex=1, schemaStats=1, allMembers=1, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, session2), (3, session3)], is_cluster=True, innodbMutex=True, schemaStats=True, hostInfo=0)
 
 #@<> cluster with allMembers=False
-outpath = run_collect(hostname_uri, None, schemaStats=1, allMembers=0)
+outpath = run_collect(hostname_uri, None, schemaStats=1, allMembers=0, hostInfo=0)
 EXPECT_STDOUT_NOT_CONTAINS("Password for root:")
-CHECK_DIAGPACK(outpath, [(1, session1), (2, session2), (3, session3)], is_cluster=True, schemaStats=True, allMembers=False)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, session2), (3, session3)], is_cluster=True, schemaStats=True, allMembers=False, hostInfo=0)
 
 #@<> with bad password
-outpath = run_collect(hostname_uri, None, password="bla", schemaStats=1, allMembers=1)
+outpath = run_collect(hostname_uri, None, password="bla", schemaStats=1, allMembers=1, hostInfo=0)
 EXPECT_STDOUT_CONTAINS("Access denied for user 'root'@'localhost'")
 EXPECT_NO_FILE(outpath)
 
 #@<> minimal privs with innodb cluster
-run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), None, allMembers=1, password="")
+run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), None, allMembers=1, password="", hostInfo=0)
 EXPECT_STDOUT_CONTAINS_ONE_OF(["Access denied", "Plugin 'mysql_native_password' is not loaded"])
 
 #@<> Shutdown instance
@@ -88,22 +88,22 @@ if __version_num > 80011:
 session2.close()
 testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 
-outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+outpath = run_collect(hostname_uri, None, allMembers=1, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False, hostInfo=0)
 
 #@<> Uninstall GR in one of the instances
 
 # NOTE: The util should be able to handle unknown vars, such as the Group Replication ones that become unknown after the plugin is uninstalled
 session1.run_sql("uninstall plugin group_replication")
 
-outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+outpath = run_collect(hostname_uri, None, allMembers=1, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False, hostInfo=0)
 
 #@<> Take offline
 session3.run_sql("stop group_replication")
 
-outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+outpath = run_collect(hostname_uri, None, allMembers=1, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False, hostInfo=0)
 
 #@<> Expand to ClusterSet {VER(>8.0.0)}
 testutil.start_sandbox(__mysql_sandbox_port2)

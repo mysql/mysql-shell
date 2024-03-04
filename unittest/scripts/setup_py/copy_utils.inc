@@ -14,8 +14,9 @@ def setup_copy_tests(arg_no, src_options = {}):
     setup_session(__sandbox_uri1)
     analyze_tables(session)
     session.run_sql("CREATE EVENT sakila.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
-    testutil.deploy_sandbox(__mysql_sandbox_port2, "root", { "local_infile": 1 })
+    testutil.deploy_sandbox(__mysql_sandbox_port2, "root", { "local_infile": 1, "innodb_doublewrite": "OFF" })
     globals()["tgt_session"] = mysql.get_session(__sandbox_uri2)
+    tgt_session.run_sql("/*!80021 alter instance disable innodb redo_log */")
     if instance_supports_libraries:
         # make sure that the MLE component is disabled, tests will enable it when needed
         # WL16731-TSFR_1_1_2 - tests are executed with MLE component disabled

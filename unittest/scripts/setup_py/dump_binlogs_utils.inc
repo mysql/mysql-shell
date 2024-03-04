@@ -40,6 +40,7 @@ mysqld_options = {
     "enforce_gtid_consistency": "ON",
     "gtid_mode": "ON",
     "max_binlog_size": str(128 * 1024),  # small binlog size, so that it rotates often
+    "innodb_doublewrite": "OFF",
 }
 
 # helpers

@@ -25,6 +25,7 @@ from re import X
 from typing import List, Tuple, Optional
 from mysqlsh import globals
 from mysqlsh import mysql, Error
+import mysqlsh
 import socket
 import zipfile
 import yaml
@@ -111,7 +112,7 @@ def collect_member_info(zf: zipfile.ZipFile, prefix: str, session: InstanceSessi
     if benchmark:
         print("Executing BENCHMARK()...")
         # speed up tests
-        if sys.executable.endswith("mysqlshrec"):
+        if mysqlsh.executable.endswith("mysqlshrec"):
             loop_count = 100
         bm_time = session.run_sql(
             f"SELECT BENCHMARK({loop_count},(1234*5678/37485-1298+8596^2))").get_execution_time()
@@ -383,14 +384,19 @@ def process_path(path: str) -> Tuple[str, str]:
     return path, prefix
 
 
-def do_collect_diagnostics(session_, path, orig_args,
-                           innodbMutex=False,
-                           allMembers=False,
-                           schemaStats=False,
-                           slowQueries=False,
-                           ignoreErrors=False,
-                           customSql: List[str] = [],
-                           customShell: List[str] = []):
+def do_collect_diagnostics(
+    session_,
+    path,
+    orig_args,
+    innodbMutex=False,
+    allMembers=False,
+    schemaStats=False,
+    slowQueries=False,
+    ignoreErrors=False,
+    hostInfo=True,
+    customSql: List[str] = [],
+    customShell: List[str] = [],
+):
     path, prefix = process_path(path)
 
     session = InstanceSession(session_)
@@ -477,7 +483,7 @@ def do_collect_diagnostics(session_, path, orig_args,
                         "Connected to remote server, ping stats not be collected.")
 
             # collect system info
-            if local_target:
+            if local_target and hostInfo:
                 collect_host_info(zf, prefix)
     except:
         if os.path.exists(path):
@@ -494,7 +500,14 @@ def do_collect_diagnostics(session_, path, orig_args,
         print("NOTE: allMembers enabled, but InnoDB Cluster metadata not found")
 
 
-def collect_common_high_load_data(zf: zipfile.ZipFile, prefix: str, session: InstanceSession, info: dict, local_target: bool):
+def collect_common_high_load_data(
+    zf: zipfile.ZipFile,
+    prefix: str,
+    session: InstanceSession,
+    info: dict,
+    local_target: bool,
+    host_info: bool,
+):
     # collect general info
     collect_basic_info(zf, prefix, session,
                        info=info,
@@ -510,17 +523,22 @@ def collect_common_high_load_data(zf: zipfile.ZipFile, prefix: str, session: Ins
                         benchmark=True)
 
     # collect system info
-    if local_target:
+    if local_target and host_info:
         collect_host_info(zf, prefix)
 
 
-def do_collect_high_load_diagnostics(session_, path, orig_args,
-                                     innodbMutex=False,
-                                     iterations=2,
-                                     delay=5*60,
-                                     pfsInstrumentation="current",
-                                     customSql: List[str] = [],
-                                     customShell: List[str] = []):
+def do_collect_high_load_diagnostics(
+    session_,
+    path,
+    orig_args,
+    innodbMutex=False,
+    hostInfo=True,
+    iterations=2,
+    delay=5 * 60,
+    pfsInstrumentation="current",
+    customSql: List[str] = [],
+    customShell: List[str] = [],
+):
     path, prefix = process_path(path)
 
     if iterations < 1:
@@ -546,19 +564,32 @@ def do_collect_high_load_diagnostics(session_, path, orig_args,
     try:
         with zipfile.ZipFile(path, mode="w") as zf:
             os.chmod(path, 0o600)
-            collect_common_high_load_data(zf, prefix, session,
-                                          {"command": "collectHighLoadDiagnostics",
-                                           "commandOptions": normalize(orig_args)},
-                                          local_target)
+            collect_common_high_load_data(
+                zf,
+                prefix,
+                session,
+                {
+                    "command": "collectHighLoadDiagnostics",
+                    "commandOptions": normalize(orig_args),
+                },
+                local_target,
+                host_info=hostInfo,
+            )
 
             assert not customShell or local_target
 
             print()
-            collect_diagnostics(zf, prefix, session,
-                                iterations, delay, pfsInstrumentation,
-                                innodb_mutex=innodbMutex,
-                                custom_sql=customSql,
-                                custom_shell=customShell)
+            collect_diagnostics(
+                zf,
+                prefix,
+                session,
+                iterations,
+                delay,
+                pfsInstrumentation,
+                innodb_mutex=innodbMutex,
+                custom_sql=customSql,
+                custom_shell=customShell,
+            )
     except:
         if os.path.exists(path):
             os.remove(path)
@@ -634,12 +665,18 @@ def execute_profiled_query(zf: zipfile.ZipFile, prefix: str, helper_session, que
     return query_info
 
 
-def do_collect_slow_query_diagnostics(session_, path: str, query: str, orig_args,
-                                      innodbMutex=False,
-                                      delay=15,
-                                      pfsInstrumentation="current",
-                                      customSql: List[str] = [],
-                                      customShell: List[str] = []):
+def do_collect_slow_query_diagnostics(
+    session_,
+    path: str,
+    query: str,
+    orig_args,
+    innodbMutex=False,
+    hostInfo=True,
+    delay=15,
+    pfsInstrumentation="current",
+    customSql: List[str] = [],
+    customShell: List[str] = [],
+):
     if not query:
         raise Error("'query' must contain the query to be analyzed")
     path, prefix = process_path(path)
@@ -679,10 +716,17 @@ def do_collect_slow_query_diagnostics(session_, path: str, query: str, orig_args
                     f"Collecting information for referenced table `{s}`.`{t}`")
                 collect_table_info(zf, prefix, session, s, t)
 
-            collect_common_high_load_data(zf, prefix, session,
-                                          {"command": "collectSlowQueryDiagnostics",
-                                           "commandOptions": normalize(orig_args)},
-                                          local_target)
+            collect_common_high_load_data(
+                zf,
+                prefix,
+                session,
+                {
+                    "command": "collectSlowQueryDiagnostics",
+                    "commandOptions": normalize(orig_args),
+                },
+                local_target,
+                host_info=hostInfo,
+            )
 
             print("Collecting EXPLAIN")
             explain_query(zf, session, query, prefix)
