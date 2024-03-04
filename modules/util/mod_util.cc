@@ -128,9 +128,13 @@ will be used as target version.
 
 <b>Limitations</b>
 
-When running this tool with a server older than 8.0, the full path
-to the configuration must be provided for the system variable related
-checks to be executed.
+When running this tool with a server older than 8.0, some checks have
+additional requirements:
+
+@li The checks related to system variables require the full path to the
+configuration file to be provided through the <b>configPath</b> option.
+@li The <b>checkTableCommand</b> check requires the user executing the
+tool has the RELOAD grant.
 )*");
 
 /**

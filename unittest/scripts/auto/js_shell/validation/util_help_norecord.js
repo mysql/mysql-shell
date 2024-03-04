@@ -94,9 +94,13 @@ DESCRIPTION
 
       Limitations
 
-      When running this tool with a server older than 8.0, the full path to the
-      configuration must be provided for the system variable related checks to
-      be executed.
+      When running this tool with a server older than 8.0, some checks have
+      additional requirements:
+
+      - The checks related to system variables require the full path to the
+        configuration file to be provided through the configPath option.
+      - The checkTableCommand check requires the user executing the tool has
+        the RELOAD grant.
 
 //@<OUT> util copyInstance help
 NAME
