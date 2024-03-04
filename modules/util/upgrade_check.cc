@@ -152,11 +152,11 @@ bool check_for_upgrade(const Upgrade_check_config &config) {
   if (!config.list_checks()) {
     if (config.user_privileges()) {
       if (config.user_privileges()
-              ->validate({"PROCESS", "RELOAD", "SELECT"})
+              ->validate({"PROCESS", "SELECT"})
               .has_missing_privileges()) {
         throw std::runtime_error(
-            "The upgrade check needs to be performed by user with RELOAD, "
-            "PROCESS, and SELECT privileges.");
+            "The upgrade check needs to be performed by user with PROCESS, and "
+            "SELECT privileges.");
       }
     } else {
       log_warning(
