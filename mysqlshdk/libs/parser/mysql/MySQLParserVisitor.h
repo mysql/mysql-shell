@@ -376,6 +376,8 @@ public:
 
     virtual std::any visitHavingClause(MySQLParser::HavingClauseContext *context) = 0;
 
+    virtual std::any visitQualifyClause(MySQLParser::QualifyClauseContext *context) = 0;
+
     virtual std::any visitWindowClause(MySQLParser::WindowClauseContext *context) = 0;
 
     virtual std::any visitWindowDefinition(MySQLParser::WindowDefinitionContext *context) = 0;
@@ -732,6 +734,12 @@ public:
 
     virtual std::any visitTableAdministrationStatement(MySQLParser::TableAdministrationStatementContext *context) = 0;
 
+    virtual std::any visitHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext *context) = 0;
+
+    virtual std::any visitHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext *context) = 0;
+
+    virtual std::any visitHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext *context) = 0;
+
     virtual std::any visitHistogram(MySQLParser::HistogramContext *context) = 0;
 
     virtual std::any visitCheckOption(MySQLParser::CheckOptionContext *context) = 0;
@@ -1041,6 +1049,12 @@ public:
     virtual std::any visitGroupingOperation(MySQLParser::GroupingOperationContext *context) = 0;
 
     virtual std::any visitWindowFunctionCall(MySQLParser::WindowFunctionCallContext *context) = 0;
+
+    virtual std::any visitSamplingMethod(MySQLParser::SamplingMethodContext *context) = 0;
+
+    virtual std::any visitSamplingPercentage(MySQLParser::SamplingPercentageContext *context) = 0;
+
+    virtual std::any visitTablesampleClause(MySQLParser::TablesampleClauseContext *context) = 0;
 
     virtual std::any visitWindowingClause(MySQLParser::WindowingClauseContext *context) = 0;
 
@@ -1530,7 +1544,7 @@ public:
 
     virtual std::any visitReal_ulong_number(MySQLParser::Real_ulong_numberContext *context) = 0;
 
-    virtual std::any visitUlonglong_number(MySQLParser::Ulonglong_numberContext *context) = 0;
+    virtual std::any visitUlonglongNumber(MySQLParser::UlonglongNumberContext *context) = 0;
 
     virtual std::any visitReal_ulonglong_number(MySQLParser::Real_ulonglong_numberContext *context) = 0;
 

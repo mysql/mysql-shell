@@ -26,7 +26,7 @@ parser grammar MySQLParser;
  */
 
 /*
- * Merged in all changes up to mysql-trunk git revision [fc82a16] (11. June 2023).
+ * Merged in all changes up to mysql-trunk git revision [d2c9971] (24. January 2024).
  *
  * MySQL grammar for ANTLR 4.5+ with language features from MySQL 5.7.0 up to MySQL 8.0.
  * The server version in the generated parser can be switched at runtime, making it so possible
@@ -1133,7 +1133,7 @@ queryPrimary:
 querySpecification:
     SELECT_SYMBOL selectOption* selectItemList intoClause? fromClause? whereClause? groupByClause? havingClause? (
         {this.serverVersion >= 80000}? windowClause
-    )?
+    )? qualifyClause?
 ;
 
 subquery:
@@ -1188,6 +1188,10 @@ havingClause:
     HAVING_SYMBOL expr
 ;
 
+qualifyClause:
+    {this.serverVersion >= 80300}? QUALIFY_SYMBOL expr
+;
+
 windowClause:
     WINDOW_SYMBOL windowDefinition (COMMA_SYMBOL windowDefinition)*
 ;
@@ -1221,7 +1225,7 @@ windowFrameExtent:
 
 windowFrameStart:
     UNBOUNDED_SYMBOL PRECEDING_SYMBOL
-    | ulonglong_number PRECEDING_SYMBOL
+    | ulonglongNumber PRECEDING_SYMBOL
     | PARAM_MARKER PRECEDING_SYMBOL
     | INTERVAL_SYMBOL expr interval PRECEDING_SYMBOL
     | CURRENT_SYMBOL ROW_SYMBOL
@@ -1234,7 +1238,7 @@ windowFrameBetween:
 windowFrameBound:
     windowFrameStart
     | UNBOUNDED_SYMBOL FOLLOWING_SYMBOL
-    | ulonglong_number FOLLOWING_SYMBOL
+    | ulonglongNumber FOLLOWING_SYMBOL
     | PARAM_MARKER FOLLOWING_SYMBOL
     | INTERVAL_SYMBOL expr interval FOLLOWING_SYMBOL
 ;
@@ -1391,7 +1395,7 @@ tableFactor:
 ;
 
 singleTable:
-    tableRef usePartition? tableAlias? indexHintList?
+    tableRef usePartition? tableAlias? indexHintList? tablesampleClause?
 ;
 
 singleTableParens:
@@ -1818,7 +1822,7 @@ sourceTlsCiphersuitesDef:
 
 sourceFileDef:
     sourceLogFile EQUAL_OPERATOR textStringNoLinebreak
-    | sourceLogPos EQUAL_OPERATOR ulonglong_number
+    | sourceLogPos EQUAL_OPERATOR ulonglongNumber
     | RELAY_LOG_FILE_SYMBOL EQUAL_OPERATOR textStringNoLinebreak
     | RELAY_LOG_POS_SYMBOL EQUAL_OPERATOR ulong_number
 ;
@@ -2286,11 +2290,21 @@ tableAdministrationStatement:
     | type = REPAIR_SYMBOL noWriteToBinLog? TABLE_SYMBOL tableRefList repairType*
 ;
 
+histogramAutoUpdate:
+    {this.serverVersion >= 80400}? (MANUAL_SYMBOL | AUTO_SYMBOL) UPDATE_SYMBOL
+;
+
+histogramUpdateParam:
+    histogramNumBuckets? histogramAutoUpdate?
+    | {this.serverVersion >= 80031}? USING_SYMBOL DATA_SYMBOL textStringLiteral
+;
+
+histogramNumBuckets:
+    WITH_SYMBOL INT_NUMBER BUCKETS_SYMBOL
+;
+
 histogram:
-    UPDATE_SYMBOL HISTOGRAM_SYMBOL ON_SYMBOL identifierList (
-        WITH_SYMBOL INT_NUMBER BUCKETS_SYMBOL
-        | {this.serverVersion >= 80031}? USING_SYMBOL DATA_SYMBOL textStringLiteral
-    )?
+    UPDATE_SYMBOL HISTOGRAM_SYMBOL ON_SYMBOL identifierList histogramUpdateParam
     | DROP_SYMBOL HISTOGRAM_SYMBOL ON_SYMBOL identifierList
 ;
 
@@ -2482,13 +2496,13 @@ showReplicasStatement:
 
 showBinlogEventsStatement:
     SHOW_SYMBOL BINLOG_SYMBOL EVENTS_SYMBOL (IN_SYMBOL textString)? (
-        FROM_SYMBOL ulonglong_number
+        FROM_SYMBOL ulonglongNumber
     )? limitClause? channel?
 ;
 
 showRelaylogEventsStatement:
     SHOW_SYMBOL RELAYLOG_SYMBOL EVENTS_SYMBOL (IN_SYMBOL textString)? (
-        FROM_SYMBOL ulonglong_number
+        FROM_SYMBOL ulonglongNumber
     )? limitClause? channel?
 ;
 
@@ -3002,13 +3016,28 @@ windowFunctionCall:
     )? nullTreatment? windowingClause
 ;
 
+samplingMethod:
+    SYSTEM_SYMBOL
+    | BERNOULLI_SYMBOL
+;
+
+samplingPercentage:
+    ulonglongNumber
+    | AT_SIGN_SYMBOL textOrIdentifier
+    | PARAM_MARKER
+;
+
+tablesampleClause:
+    {this.serverVersion >= 80400}? TABLESAMPLE_SYMBOL samplingMethod OPEN_PAR_SYMBOL samplingPercentage CLOSE_PAR_SYMBOL
+;
+
 windowingClause:
     OVER_SYMBOL (windowName | windowSpec)
 ;
 
 leadLagInfo:
     COMMA_SYMBOL (
-        ulonglong_number
+        ulonglongNumber
         | PARAM_MARKER
         | {this.serverVersion >= 80024}? stableInteger
     ) (COMMA_SYMBOL expr)?
@@ -3881,14 +3910,14 @@ createTableOption: // In the order as they appear in the server grammar.
         NULL_SYMBOL
         | textOrIdentifier
     )
-    | option = MAX_ROWS_SYMBOL EQUAL_OPERATOR? ulonglong_number
-    | option = MIN_ROWS_SYMBOL EQUAL_OPERATOR? ulonglong_number
-    | option = AVG_ROW_LENGTH_SYMBOL EQUAL_OPERATOR? ulonglong_number
+    | option = MAX_ROWS_SYMBOL EQUAL_OPERATOR? ulonglongNumber
+    | option = MIN_ROWS_SYMBOL EQUAL_OPERATOR? ulonglongNumber
+    | option = AVG_ROW_LENGTH_SYMBOL EQUAL_OPERATOR? ulonglongNumber
     | option = PASSWORD_SYMBOL EQUAL_OPERATOR? textStringLiteral
     | option = COMMENT_SYMBOL EQUAL_OPERATOR? textStringLiteral
     | {this.serverVersion >= 50708}? option = COMPRESSION_SYMBOL EQUAL_OPERATOR? textString
     | {this.serverVersion >= 50711}? option = ENCRYPTION_SYMBOL EQUAL_OPERATOR? textString
-    | option = AUTO_INCREMENT_SYMBOL EQUAL_OPERATOR? ulonglong_number
+    | option = AUTO_INCREMENT_SYMBOL EQUAL_OPERATOR? ulonglongNumber
     | option = PACK_KEYS_SYMBOL EQUAL_OPERATOR? ternaryOption
     | option = (
         STATS_AUTO_RECALC_SYMBOL
@@ -3921,7 +3950,7 @@ createTableOption: // In the order as they appear in the server grammar.
     ) identifier
     | option = STORAGE_SYMBOL (DISK_SYMBOL | MEMORY_SYMBOL)
     | option = CONNECTION_SYMBOL EQUAL_OPERATOR? textString
-    | option = KEY_BLOCK_SIZE_SYMBOL EQUAL_OPERATOR? ulonglong_number
+    | option = KEY_BLOCK_SIZE_SYMBOL EQUAL_OPERATOR? ulonglongNumber
     | {this.serverVersion >= 80024}? option = START_SYMBOL TRANSACTION_SYMBOL
     | {this.serverVersion >= 80024}? option = ENGINE_ATTRIBUTE_SYMBOL EQUAL_OPERATOR? jsonAttribute
     | {this.serverVersion >= 80024}? option = SECONDARY_ENGINE_ATTRIBUTE_SYMBOL EQUAL_OPERATOR? jsonAttribute
@@ -4457,7 +4486,7 @@ real_ulong_number:
     | ULONGLONG_NUMBER
 ;
 
-ulonglong_number:
+ulonglongNumber:
     INT_NUMBER
     | LONG_NUMBER
     | ULONGLONG_NUMBER
@@ -5203,6 +5232,7 @@ identifierKeywordsUnambiguous:
         | LOG_SYMBOL
         | PARSE_TREE_SYMBOL
         | S3_SYMBOL
+        | BERNOULLI_SYMBOL
     )
     /* INSERT OTHER KEYWORDS HERE */
 ;

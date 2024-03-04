@@ -25,9 +25,10 @@
 
 #include "modules/util/dump/progress_thread.h"
 
+#include <cassert>
 #include <cinttypes>
-
 #include <limits>
+#include <utility>
 
 #include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -53,9 +54,8 @@ std::string format_seconds(double seconds) {
 
 class Spinner_progress : public Progress_thread::Stage {
  public:
-  Spinner_progress(const std::string &description, bool show_progress,
-                   bool use_json)
-      : Stage(description, show_progress), m_spinner(description, use_json) {}
+  Spinner_progress(Progress_thread::Stage_config stage_config, bool use_json)
+      : Stage(std::move(stage_config)), m_spinner(description(), use_json) {}
 
  protected:
   void draw() override { m_spinner.update(); }
@@ -67,9 +67,9 @@ class Spinner_progress : public Progress_thread::Stage {
 
 class Numeric_progress : public Spinner_progress {
  public:
-  Numeric_progress(const std::string &description, bool show_progress,
-                   bool use_json, Progress_thread::Progress_config &&config)
-      : Spinner_progress(description, show_progress, use_json),
+  Numeric_progress(Progress_thread::Stage_config stage_config, bool use_json,
+                   Progress_thread::Progress_config config)
+      : Spinner_progress(std::move(stage_config), use_json),
         m_config(std::move(config)) {
     assert(m_config.current);
     assert(m_config.total);
@@ -114,11 +114,11 @@ class Numeric_progress : public Spinner_progress {
 
 class Throughput_progress : public Progress_thread::Stage {
  public:
-  Throughput_progress(const std::string &description, bool show_progress,
-                      Progress_thread::Throughput_config &&config,
+  Throughput_progress(Progress_thread::Stage_config stage_config,
+                      Progress_thread::Throughput_config config,
                       mysqlshdk::textui::Base_progress *progress,
                       std::recursive_mutex *mutex)
-      : Stage(description, show_progress),
+      : Stage(std::move(stage_config)),
         m_config(std::move(config)),
         m_progress(progress),
         m_progress_mutex(mutex) {
@@ -241,14 +241,17 @@ void Progress_thread::Duration::validate() const {
   }
 }
 
-Progress_thread::Stage::Stage(const std::string &description,
-                              bool show_progress)
-    : m_description(description), m_show_progress(show_progress) {}
+Progress_thread::Stage::Stage(Stage_config config)
+    : m_config(std::move(config)) {
+  assert(m_config.show_progress.has_value());
+}
 
 void Progress_thread::Stage::start() {
-  log_debug("%s%s", description().c_str(), k_ellipsis);
+  if (m_config.log_progress) {
+    log_debug("%s%s", description().c_str(), k_ellipsis);
+  }
 
-  if (!m_show_progress) {
+  if (!*m_config.show_progress) {
     current_console()->print_status(description() + k_ellipsis);
   }
 
@@ -276,10 +279,12 @@ void Progress_thread::Stage::finish(bool wait) {
     }
 
     if (!m_terminated) {
-      log_info("%s %s, duration: %f seconds", description().c_str(), k_done,
-               duration().seconds());
+      if (m_config.log_progress) {
+        log_info("%s %s, duration: %f seconds", description().c_str(), k_done,
+                 duration().seconds());
+      }
 
-      if (!m_show_progress) {
+      if (!*m_config.show_progress) {
         current_console()->print_status(description() + " " + k_done);
       }
     }
@@ -292,14 +297,14 @@ void Progress_thread::Stage::display() {
   while (!m_finished) {
     on_update();
 
-    if (m_show_progress) {
+    if (*m_config.show_progress) {
       draw();
     }
 
     wait_for_finish();
   }
 
-  if (m_show_progress) {
+  if (*m_config.show_progress) {
     if (m_terminated) {
       on_display_terminated();
     } else {
@@ -342,12 +347,11 @@ void Progress_thread::Stage::terminate() {
 }
 
 void Progress_thread::Stage::toggle_visibility(bool show) {
-  m_show_progress = show;
+  m_config.show_progress = show;
 }
 
-Progress_thread::Progress_thread(const std::string &description,
-                                 bool show_progress)
-    : m_description(description), m_show_progress(show_progress) {
+Progress_thread::Progress_thread(std::string description, bool show_progress)
+    : m_description(std::move(description)), m_show_progress(show_progress) {
   m_json_output = "off" != mysqlsh::current_shell_options()->get().wrap_json;
 
   if (m_json_output) {
@@ -403,20 +407,21 @@ void Progress_thread::start() {
 }
 
 Progress_thread::Stage *Progress_thread::start_stage(
-    const std::string &description) {
-  return start_stage<Spinner_progress>(description, m_json_output);
+    Stage_config stage_config) {
+  return start_stage<Spinner_progress>(std::move(stage_config), m_json_output);
 }
 
-Progress_thread::Stage *Progress_thread::start_stage(
-    const std::string &description, Progress_config &&config) {
-  return start_stage<Numeric_progress>(description, m_json_output,
+Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
+                                                     Progress_config config) {
+  return start_stage<Numeric_progress>(std::move(stage_config), m_json_output,
                                        std::move(config));
 }
 
-Progress_thread::Stage *Progress_thread::start_stage(
-    const std::string &description, Throughput_config &&config) {
-  return start_stage<Throughput_progress>(description, std::move(config),
-                                          m_progress.get(), &m_progress_mutex);
+Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
+                                                     Throughput_config config) {
+  return start_stage<Throughput_progress>(std::move(stage_config),
+                                          std::move(config), m_progress.get(),
+                                          &m_progress_mutex);
 }
 
 void Progress_thread::finish() {
@@ -436,14 +441,18 @@ void Progress_thread::show() { toggle_visibility(true); }
 void Progress_thread::hide() { toggle_visibility(false); }
 
 template <class T, class... Args>
-Progress_thread::Stage *Progress_thread::start_stage(
-    const std::string &description, Args &&... args) {
+Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
+                                                     Args &&... args) {
   if (!m_progress_thread) {
     start();
   }
 
-  std::unique_ptr<Stage> stage_ptr = std::make_unique<T>(
-      description, m_show_progress, std::forward<Args>(args)...);
+  if (!stage_config.show_progress.has_value()) {
+    stage_config.show_progress = m_show_progress;
+  }
+
+  std::unique_ptr<Stage> stage_ptr =
+      std::make_unique<T>(std::move(stage_config), std::forward<Args>(args)...);
   auto stage = stage_ptr.get();
 
   m_stages.emplace_back(std::move(stage_ptr));

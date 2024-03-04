@@ -536,6 +536,9 @@ public:
   virtual void enterHavingClause(MySQLParser::HavingClauseContext *ctx) = 0;
   virtual void exitHavingClause(MySQLParser::HavingClauseContext *ctx) = 0;
 
+  virtual void enterQualifyClause(MySQLParser::QualifyClauseContext *ctx) = 0;
+  virtual void exitQualifyClause(MySQLParser::QualifyClauseContext *ctx) = 0;
+
   virtual void enterWindowClause(MySQLParser::WindowClauseContext *ctx) = 0;
   virtual void exitWindowClause(MySQLParser::WindowClauseContext *ctx) = 0;
 
@@ -1070,6 +1073,15 @@ public:
   virtual void enterTableAdministrationStatement(MySQLParser::TableAdministrationStatementContext *ctx) = 0;
   virtual void exitTableAdministrationStatement(MySQLParser::TableAdministrationStatementContext *ctx) = 0;
 
+  virtual void enterHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext *ctx) = 0;
+  virtual void exitHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext *ctx) = 0;
+
+  virtual void enterHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext *ctx) = 0;
+  virtual void exitHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext *ctx) = 0;
+
+  virtual void enterHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext *ctx) = 0;
+  virtual void exitHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext *ctx) = 0;
+
   virtual void enterHistogram(MySQLParser::HistogramContext *ctx) = 0;
   virtual void exitHistogram(MySQLParser::HistogramContext *ctx) = 0;
 
@@ -1534,6 +1546,15 @@ public:
 
   virtual void enterWindowFunctionCall(MySQLParser::WindowFunctionCallContext *ctx) = 0;
   virtual void exitWindowFunctionCall(MySQLParser::WindowFunctionCallContext *ctx) = 0;
+
+  virtual void enterSamplingMethod(MySQLParser::SamplingMethodContext *ctx) = 0;
+  virtual void exitSamplingMethod(MySQLParser::SamplingMethodContext *ctx) = 0;
+
+  virtual void enterSamplingPercentage(MySQLParser::SamplingPercentageContext *ctx) = 0;
+  virtual void exitSamplingPercentage(MySQLParser::SamplingPercentageContext *ctx) = 0;
+
+  virtual void enterTablesampleClause(MySQLParser::TablesampleClauseContext *ctx) = 0;
+  virtual void exitTablesampleClause(MySQLParser::TablesampleClauseContext *ctx) = 0;
 
   virtual void enterWindowingClause(MySQLParser::WindowingClauseContext *ctx) = 0;
   virtual void exitWindowingClause(MySQLParser::WindowingClauseContext *ctx) = 0;
@@ -2267,8 +2288,8 @@ public:
   virtual void enterReal_ulong_number(MySQLParser::Real_ulong_numberContext *ctx) = 0;
   virtual void exitReal_ulong_number(MySQLParser::Real_ulong_numberContext *ctx) = 0;
 
-  virtual void enterUlonglong_number(MySQLParser::Ulonglong_numberContext *ctx) = 0;
-  virtual void exitUlonglong_number(MySQLParser::Ulonglong_numberContext *ctx) = 0;
+  virtual void enterUlonglongNumber(MySQLParser::UlonglongNumberContext *ctx) = 0;
+  virtual void exitUlonglongNumber(MySQLParser::UlonglongNumberContext *ctx) = 0;
 
   virtual void enterReal_ulonglong_number(MySQLParser::Real_ulonglong_numberContext *ctx) = 0;
   virtual void exitReal_ulonglong_number(MySQLParser::Real_ulonglong_numberContext *ctx) = 0;

@@ -1939,7 +1939,7 @@ void Dumper::do_run() {
     m_worker_interrupt = false;
     m_progress_thread.start();
     shcore::on_leave_scope cleanup_progress([this]() { shutdown_progress(); });
-    m_current_stage = m_progress_thread.start_stage("Initializing");
+    const auto init_stage = m_progress_thread.start_stage("Initializing");
 
     open_session();
 
@@ -1960,7 +1960,7 @@ void Dumper::do_run() {
 
       create_worker_threads();
 
-      m_current_stage->finish();
+      init_stage->finish();
 
       // initialize cache while threads are starting up
       initialize_instance_cache();
@@ -2041,6 +2041,7 @@ void Dumper::do_run() {
     }
 
     initialize_throughput_progress();
+    initialize_checksum_progress();
 
     maybe_push_shutdown_tasks();
     wait_for_all_tasks();
@@ -2546,8 +2547,8 @@ void Dumper::initialize_instance_cache_minimal() {
 }
 
 void Dumper::initialize_instance_cache() {
-  m_current_stage = m_progress_thread.start_stage("Gathering information");
-  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
+  const auto stage = m_progress_thread.start_stage("Gathering information");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   auto builder = Instance_cache_builder(session(), m_options.filters(),
                                         std::move(m_cache));
@@ -2670,9 +2671,9 @@ void Dumper::validate_mds() const {
   config.current = [&objects_checked]() -> uint64_t { return objects_checked; };
   config.total = [this]() { return m_total_objects; };
 
-  m_current_stage = m_progress_thread.start_stage(
+  const auto stage = m_progress_thread.start_stage(
       "Validating MySQL HeatWave Service compatibility", std::move(config));
-  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   const auto issues = [&status](const auto &memory) {
     status.set(show_issues(memory->issues()));
@@ -2931,11 +2932,18 @@ void Dumper::checksum_task_started() {
   bool expected = false;
 
   if (m_checksum_started.compare_exchange_strong(expected, true)) {
-    initialize_checksum_progress();
+    m_checksum_duration.start();
   }
 }
 
-void Dumper::checksum_task_finished() { ++m_checksum_tasks_completed; }
+void Dumper::checksum_task_finished() {
+  ++m_checksum_tasks_completed;
+
+  if (all_tasks_produced() &&
+      m_checksum_tasks_total == m_checksum_tasks_completed) {
+    m_checksum_duration.finish();
+  }
+}
 
 void Dumper::wait_for_all_tasks() {
   for (auto &worker : m_workers) {
@@ -3108,8 +3116,7 @@ void Dumper::create_schema_metadata_tasks() {
   config.current = [this]() -> uint64_t { return m_schema_metadata_written; };
   config.total = [this]() { return m_total_schemas; };
 
-  m_current_stage = m_progress_thread.start_stage("Writing schema metadata",
-                                                  std::move(config));
+  m_progress_thread.start_stage("Writing schema metadata", std::move(config));
 
   for (const auto &schema : m_schema_infos) {
     m_worker_tasks.push({"writing metadata of " + schema.quoted_name,
@@ -3130,8 +3137,7 @@ void Dumper::create_schema_ddl_tasks() {
   config.current = [this]() -> uint64_t { return m_ddl_written; };
   config.total = [this]() { return m_total_objects; };
 
-  m_current_stage =
-      m_progress_thread.start_stage("Writing DDL", std::move(config));
+  m_progress_thread.start_stage("Writing DDL", std::move(config));
 
   for (const auto &schema : m_schema_infos) {
     m_worker_tasks.push(
@@ -3183,8 +3189,7 @@ void Dumper::create_table_tasks() {
       return m_all_table_metadata_tasks_scheduled;
     };
 
-    m_current_stage = m_progress_thread.start_stage("Writing table metadata",
-                                                    std::move(config));
+    m_progress_thread.start_stage("Writing table metadata", std::move(config));
   }
 
   const auto console = current_console();
@@ -3937,9 +3942,9 @@ void Dumper::summarize() const {
                           m_data_dump_stage->duration().to_string());
   }
 
-  if (m_checksum_stage) {
+  if (m_options.checksum()) {
     console->print_status("Checksum duration: " +
-                          m_checksum_stage->duration().to_string());
+                          m_checksum_duration.to_string());
   }
 
   console->print_status("Total duration: " +
@@ -4069,7 +4074,7 @@ void Dumper::initialize_throughput_progress() {
     current_console()->print_status("Starting data dump");
   };
 
-  m_data_dump_stage = m_current_stage =
+  m_data_dump_stage =
       m_progress_thread.start_stage("Dumping data", std::move(config));
 }
 
@@ -4083,8 +4088,8 @@ void Dumper::initialize_checksum_progress() {
   config.total = [this]() { return m_checksum_tasks_total.load(); };
   config.is_total_known = [this]() { return all_tasks_produced(); };
 
-  m_current_stage = m_checksum_stage =
-      m_progress_thread.start_stage("Computing checksum", std::move(config));
+  m_progress_thread.start_stage({"Computing checksum", false},
+                                std::move(config));
 }
 
 void Dumper::update_progress(const Dump_write_result &progress) {

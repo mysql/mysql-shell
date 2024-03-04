@@ -281,12 +281,14 @@ public:
     UNREGISTER_SYMBOL = 816, INITIAL_SYMBOL = 817, CHALLENGE_RESPONSE_SYMBOL = 818, 
     GTID_ONLY_SYMBOL = 819, INTERSECT_SYMBOL = 820, BULK_SYMBOL = 821, URL_SYMBOL = 822, 
     GENERATE_SYMBOL = 823, PARSE_TREE_SYMBOL = 824, LOG_SYMBOL = 825, GTIDS_SYMBOL = 826, 
-    PARALLEL_SYMBOL = 827, S3_SYMBOL = 828, WHITESPACE = 829, INVALID_INPUT = 830, 
-    UNDERSCORE_CHARSET = 831, IDENTIFIER = 832, NCHAR_TEXT = 833, BACK_TICK_QUOTED_ID = 834, 
-    DOUBLE_QUOTED_TEXT = 835, SINGLE_QUOTED_TEXT = 836, DOLLAR_QUOTED_STRING_TEXT = 837, 
-    VERSION_COMMENT_START = 838, MYSQL_COMMENT_START = 839, VERSION_COMMENT_END = 840, 
-    BLOCK_COMMENT = 841, INVALID_BLOCK_COMMENT = 842, POUND_COMMENT = 843, 
-    DASHDASH_COMMENT = 844, SIMPLE_IDENTIFIER = 845, NOT_EQUAL2_OPERATOR = 846
+    PARALLEL_SYMBOL = 827, S3_SYMBOL = 828, QUALIFY_SYMBOL = 829, AUTO_SYMBOL = 830, 
+    MANUAL_SYMBOL = 831, BERNOULLI_SYMBOL = 832, TABLESAMPLE_SYMBOL = 833, 
+    WHITESPACE = 834, INVALID_INPUT = 835, UNDERSCORE_CHARSET = 836, IDENTIFIER = 837, 
+    NCHAR_TEXT = 838, BACK_TICK_QUOTED_ID = 839, DOUBLE_QUOTED_TEXT = 840, 
+    SINGLE_QUOTED_TEXT = 841, DOLLAR_QUOTED_STRING_TEXT = 842, VERSION_COMMENT_START = 843, 
+    MYSQL_COMMENT_START = 844, VERSION_COMMENT_END = 845, BLOCK_COMMENT = 846, 
+    INVALID_BLOCK_COMMENT = 847, POUND_COMMENT = 848, DASHDASH_COMMENT = 849, 
+    SIMPLE_IDENTIFIER = 850, NOT_EQUAL2_OPERATOR = 851
   };
 
   enum {
@@ -388,7 +390,30 @@ private:
   bool JSON_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool LOCATOR_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool LONG_NUM_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_AUTO_POSITION_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_BIND_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_CONNECT_RETRY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_DELAY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_HOST_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_LOG_FILE_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_LOG_POS_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_PASSWORD_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_PORT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_RETRY_COUNT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SERVER_ID_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CAPATH_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CA_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CERT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CIPHER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CRL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_CRLPATH_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_KEY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SSL_VERIFY_SERVER_CERT_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool MASTER_TLS_VERSION_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_USER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MASTER_HEARTBEAT_PERIOD_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool MAX_STATEMENT_TIME_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool NCHAR_STRING_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool NEG_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
@@ -553,6 +578,11 @@ private:
   bool GTIDS_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool PARALLEL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool S3_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool QUALIFY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool AUTO_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool MANUAL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool BERNOULLI_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool TABLESAMPLE_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool BACK_TICK_QUOTED_IDSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool DOUBLE_QUOTED_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool SINGLE_QUOTED_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);

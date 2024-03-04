@@ -701,6 +701,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitQualifyClause(MySQLParser::QualifyClauseContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitWindowClause(MySQLParser::WindowClauseContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -1413,6 +1417,18 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitHistogramAutoUpdate(MySQLParser::HistogramAutoUpdateContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitHistogramUpdateParam(MySQLParser::HistogramUpdateParamContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitHistogramNumBuckets(MySQLParser::HistogramNumBucketsContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitHistogram(MySQLParser::HistogramContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -2030,6 +2046,18 @@ public:
   }
 
   virtual std::any visitWindowFunctionCall(MySQLParser::WindowFunctionCallContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSamplingMethod(MySQLParser::SamplingMethodContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitSamplingPercentage(MySQLParser::SamplingPercentageContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitTablesampleClause(MySQLParser::TablesampleClauseContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -3009,7 +3037,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitUlonglong_number(MySQLParser::Ulonglong_numberContext *ctx) override {
+  virtual std::any visitUlonglongNumber(MySQLParser::UlonglongNumberContext *ctx) override {
     return visitChildren(ctx);
   }
 
