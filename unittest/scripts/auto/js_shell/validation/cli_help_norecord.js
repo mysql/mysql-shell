@@ -212,10 +212,21 @@ OPTIONS
             Value can be either TEXT (default) or JSON.
 
 --targetVersion=<str>
-            Version to which upgrade will be checked (default=<<<__mysh_version>>>)
+            Version to which upgrade will be checked.
 
 --configPath=<str>
             Full path to MySQL server configuration file.
+
+--include=<str list>
+            Comma separated list containing the check identifiers to be
+            included in the operation.
+
+--exclude=<str list>
+            Comma separated list containing the check identifiers to be
+            excluded from the operation.
+
+--list=<bool>
+            Bool value to indicate the operation should only list the checks.
 
 //@<OUT> CLI util copy-instance --help
 NAME
