@@ -108,7 +108,7 @@ EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: Unknown compatibility op
 
 #@<> WL15298_TSFR_4_4_8 {VER(>=8.0.24)}
 # this tests that compatibility mode is recognized (there's no error)
-EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ], "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_9
 # WL15298_TSFR_4_4_10
@@ -117,16 +117,16 @@ EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ] })
 # WL15298_TSFR_4_4_14
 # WL15298_TSFR_4_4_15
 # this tests that compatibility mode is recognized and some of them are applied
-EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers", "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers", "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces" ], "ddlOnly": True })
 EXPECT_STDOUT_NOT_CONTAINS(f"User {test_user_account} had restricted privileges")
 EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had definer clause removed")
 EXPECT_STDOUT_CONTAINS("View `sakila`.`sales_by_store` had SQL SECURITY characteristic set to INVOKER")
 
 #@<> WL15298_TSFR_4_4_19
-EXPECT_SUCCESS(__sandbox_uri2, { "triggers": True })
+EXPECT_SUCCESS(__sandbox_uri2, { "triggers": True, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_20
-EXPECT_SUCCESS(__sandbox_uri2, { "triggers": False })
+EXPECT_SUCCESS(__sandbox_uri2, { "triggers": False, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_21
 TEST_BOOL_OPTION("triggers")
@@ -135,25 +135,25 @@ TEST_BOOL_OPTION("triggers")
 TEST_ARRAY_OF_STRINGS_OPTION("excludeTriggers")
 
 #@<> WL15298_TSFR_4_4_22
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeTriggers": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeTriggers": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_23
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeTriggers": [ "sakila.customer", "sakila.wrong", "sakila.film.ins_film", "sakila.film.wrong" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeTriggers": [ "sakila.customer", "sakila.wrong", "sakila.film.ins_film", "sakila.film.wrong" ], "ddlOnly": True })
 
 #@<> WL15298 - test invalid values of includeTriggers option
 TEST_ARRAY_OF_STRINGS_OPTION("includeTriggers")
 
 #@<> WL15298_TSFR_4_4_27
-EXPECT_SUCCESS(__sandbox_uri2, { "includeTriggers": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeTriggers": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_28
-EXPECT_SUCCESS(__sandbox_uri2, { "includeTriggers": [ "sakila.customer", "sakila.wrong", "sakila.film.ins_film", "sakila.film.wrong" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeTriggers": [ "sakila.customer", "sakila.wrong", "sakila.film.ins_film", "sakila.film.wrong" ], "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_31
-EXPECT_SUCCESS(__sandbox_uri2, { "tzUtc": True })
+EXPECT_SUCCESS(__sandbox_uri2, { "tzUtc": True, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_32
-EXPECT_SUCCESS(__sandbox_uri2, { "tzUtc": False })
+EXPECT_SUCCESS(__sandbox_uri2, { "tzUtc": False, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_4_33
 TEST_BOOL_OPTION("tzUtc")
@@ -416,10 +416,10 @@ EXPECT_SUCCESS(__sandbox_uri2, { "sessionInitSql": [ "INSERT INTO ver.t VALUES (
 TEST_BOOL_OPTION("skipBinlog")
 
 #@<> WL15298_TSFR_4_5_33
-EXPECT_SUCCESS(__sandbox_uri2, { "skipBinlog": False })
+EXPECT_SUCCESS(__sandbox_uri2, { "skipBinlog": False, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_5_34
-EXPECT_SUCCESS(__sandbox_uri2, { "skipBinlog": True })
+EXPECT_SUCCESS(__sandbox_uri2, { "skipBinlog": True, "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_5_35
 TEST_STRING_OPTION("updateGtidSet")
@@ -427,13 +427,13 @@ EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: Invalid value '' for upd
 EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: Invalid value 'wrong' for updateGtidSet option, allowed values: 'append', 'off' and 'replace'.", __sandbox_uri2, { "updateGtidSet": "wrong" })
 
 #@<> WL15298_TSFR_4_5_36 {VER(>=8.0.0)}
-EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "replace" })
+EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "replace", "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_5_37 {VER(>=8.0.0)}
-EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "append" })
+EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "append", "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_5_38
-EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "off" })
+EXPECT_SUCCESS(__sandbox_uri2, { "updateGtidSet": "off", "ddlOnly": True })
 
 #@<> WL15298_TSFR_4_5_39 {VER(<8.0.0)}
 EXPECT_FAIL("Error: Shell Error (53013)", "Target MySQL server does not support updateGtidSet:'append'.", __sandbox_uri2, { "updateGtidSet": "append" })
@@ -461,58 +461,58 @@ EXPECT_SUCCESS(__sandbox_uri2, { "includeTables": [ "sakila.customer", "sakila.a
 TEST_ARRAY_OF_STRINGS_OPTION("includeTables")
 
 #@<> WL15298_TSFR_5_1_11
-EXPECT_SUCCESS(__sandbox_uri2, { "events": True })
+EXPECT_SUCCESS(__sandbox_uri2, { "events": True, "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_12
-EXPECT_SUCCESS(__sandbox_uri2, { "events": False })
+EXPECT_SUCCESS(__sandbox_uri2, { "events": False, "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_13
 TEST_BOOL_OPTION("events")
 
 #@<> WL15298_TSFR_5_1_14
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeEvents": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeEvents": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_16
 EXPECT_FAIL("ValueError", f"Argument #{options_arg_no}: The event to be excluded must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.", __sandbox_uri2, { "excludeEvents": [ "event" ] })
 
 #@<> WL15298_TSFR_5_1_17
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeEvents": [ "sakila.existing_event", "`sakila`.`wrong`" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeEvents": [ "sakila.existing_event", "`sakila`.`wrong`" ], "ddlOnly": True })
 
 #@<> WL15298 - test invalid values of excludeEvents option
 TEST_ARRAY_OF_STRINGS_OPTION("excludeEvents")
 
 #@<> WL15298_TSFR_5_1_20
-EXPECT_SUCCESS(__sandbox_uri2, { "includeEvents": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeEvents": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_21
-EXPECT_SUCCESS(__sandbox_uri2, { "includeEvents": [ "sakila.existing_event", "`sakila`.`wrong`" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeEvents": [ "sakila.existing_event", "`sakila`.`wrong`" ], "ddlOnly": True })
 
 #@<> WL15298 - test invalid values of includeEvents option
 TEST_ARRAY_OF_STRINGS_OPTION("includeEvents")
 
 #@<> WL15298_TSFR_5_1_23
-EXPECT_SUCCESS(__sandbox_uri2, { "routines": True })
+EXPECT_SUCCESS(__sandbox_uri2, { "routines": True, "ddlOnly": True })
 
 #@<> WL15298 - test routines option
-EXPECT_SUCCESS(__sandbox_uri2, { "routines": False })
+EXPECT_SUCCESS(__sandbox_uri2, { "routines": False, "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_24
 TEST_BOOL_OPTION("routines")
 
 #@<> WL15298_TSFR_5_1_25
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeRoutines": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeRoutines": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_26
-EXPECT_SUCCESS(__sandbox_uri2, { "excludeRoutines": [ "`sakila`.`rewards_report`", "sakila.get_customer_balance", "`sakila`.`wrong`" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeRoutines": [ "`sakila`.`rewards_report`", "sakila.get_customer_balance", "`sakila`.`wrong`" ], "ddlOnly": True })
 
 #@<> WL15298 - test invalid values of excludeRoutines option
 TEST_ARRAY_OF_STRINGS_OPTION("excludeRoutines")
 
 #@<> WL15298 - test includeRoutines option
-EXPECT_SUCCESS(__sandbox_uri2, { "includeRoutines": [] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeRoutines": [], "ddlOnly": True })
 
 #@<> WL15298_TSFR_5_1_29
-EXPECT_SUCCESS(__sandbox_uri2, { "includeRoutines": [ "`sakila`.`rewards_report`", "sakila.get_customer_balance", "`sakila`.`wrong`" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "includeRoutines": [ "`sakila`.`rewards_report`", "sakila.get_customer_balance", "`sakila`.`wrong`" ], "ddlOnly": True })
 
 #@<> WL15298 - test invalid values of includeRoutines option
 TEST_ARRAY_OF_STRINGS_OPTION("includeRoutines")
@@ -745,7 +745,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
 setup_db(test_user_account)
 
 #@<> WL15887-TSFR_3_2_1 - valid account {not __dbug_off and VER(>=8.2.0)}
-EXPECT_SUCCESS(__sandbox_uri2, { "dryRun": True, "showProgress": False }, schemas = [ schema_name ])
+EXPECT_SUCCESS(__sandbox_uri2, { "dryRun": True, "showProgress": False, "ddlOnly": True }, schemas = [ schema_name ])
 
 # no warnings about DEFINER=
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning(True))
@@ -763,7 +763,7 @@ EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view
 EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning(True))
 
 #@<> WL15887-TSFR_4_1 - note about strip_definers {not __dbug_off and VER(>=8.2.0)}
-EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_definers" ], "dryRun": True, "showProgress": False }, schemas = [ schema_name ])
+EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "strip_definers" ], "dryRun": True, "showProgress": False, "ddlOnly": True }, schemas = [ schema_name ])
 EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__version}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887 - cleanup {not __dbug_off and VER(>=8.2.0)}

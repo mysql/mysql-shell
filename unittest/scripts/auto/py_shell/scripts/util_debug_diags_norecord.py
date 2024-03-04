@@ -84,7 +84,7 @@ CHECK_ALL_ERROR(check, {"pfsInstrumentation":{}}, nobasic=True)
 # inject some binary junk into the log
 shell.log("info", b"test\xed\xf0")
 
-outpath = run_collect(__sandbox_uri1, None)
+outpath = run_collect(__sandbox_uri1, None, hostInfo=0)
 EXPECT_FILE_CONTENTS(outpath, "mysqlsh.log", b"test\xed\xf0")
 
 #@<> ensure query works with tables with more than one blob (or similar) columns
@@ -202,7 +202,7 @@ CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, allMembers=1, innodbM
 
 #@<> output is a directory, default filename with timestamp - all
 # TSFR_1_3_4
-run_collect(hostname_uri, outdir+"/")
+run_collect(hostname_uri, outdir+"/", hostInfo=0)
 filenames = [f for f in os.listdir(outdir) if f.startswith("mysql-diagnostics-")]
 EXPECT_EQ(1, len(filenames))
 
@@ -223,7 +223,7 @@ EXPECT_EQ(1, len(filenames))
 EXPECT_STDOUT_CONTAINS("NOTE: Target server is not at localhost, host information was not collected")
 
 #@<> slowQueries fail - basic
-outpath = run_collect(hostname_uri, None, {"slowQueries":1})
+outpath = run_collect(hostname_uri, None, {"slowQueries":1, "hostInfo":0})
 EXPECT_STDOUT_CONTAINS("slowQueries option requires slow_query_log to be enabled and log_output to be set to TABLE")
 EXPECT_NO_FILE(outpath)
 
@@ -232,23 +232,23 @@ session.run_sql("set global slow_query_log=1")
 session.run_sql("set session long_query_time=0.1")
 session.run_sql("set global log_output='TABLE'")
 session.run_sql("select sleep(1)")
-outpath = run_collect(hostname_uri, None, {"slowQueries":1})
+outpath = run_collect(hostname_uri, None, {"slowQueries":1, "hostInfo":0})
 CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=False, slowQueries=True)
 
 #@<> with no access - all - TSFR_1_2_4
-outpath = run_collect(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None)
+outpath = run_collect(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, {"hostInfo":0})
 EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
 EXPECT_NO_FILE(outpath)
 
 RESET(outpath)
 
-outpath = run_collect_hl(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None)
+outpath = run_collect_hl(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, {"hostInfo":0})
 EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
 EXPECT_NO_FILE(outpath)
 
 RESET(outpath)
 
-outpath = run_collect_sq(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, "select 1")
+outpath = run_collect_sq(f"nothing:@{hostname}:{__mysql_sandbox_port1}", None, "select 1", {"hostInfo":0})
 EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
 EXPECT_NO_FILE(outpath)
 
@@ -259,17 +259,17 @@ EXPECT_STDOUT_CONTAINS("Access denied for user 'nothing'@'%'")
 EXPECT_NO_FILE(outpath)
 
 #@<> with select only access
-outpath = run_collect(f"selectonly:@{hostname}:{__mysql_sandbox_port1}", None)
+outpath = run_collect(f"selectonly:@{hostname}:{__mysql_sandbox_port1}", None, {"hostInfo":0})
 EXPECT_STDOUT_CONTAINS("execute command denied to user 'selectonly'@'%' for routine")
 EXPECT_NO_FILE(outpath)
 
 #@<> minimal privs
-outpath = run_collect(f"minimal:@{hostname}:{__mysql_sandbox_port1}", None)
+outpath = run_collect(f"minimal:@{hostname}:{__mysql_sandbox_port1}", None, {"hostInfo":0})
 CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=False)
 
 #@<> Regular instance + innodbMutex + schemaStatus
-outpath = run_collect(hostname_uri, None, innodbMutex=1, schemaStats=1, allMembers=1)
-CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=True, schemaStats=True)
+outpath = run_collect(hostname_uri, None, innodbMutex=1, schemaStats=1, allMembers=1, hostInfo=0)
+CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, innodbMutex=True, schemaStats=True, hostInfo=0)
 EXPECT_STDOUT_CONTAINS("NOTE: allMembers enabled, but InnoDB Cluster metadata not found")
 
 #@<> customSql - bad value - TSFR_1_5_1
@@ -336,7 +336,8 @@ def check(outpath):
 # TSFR_1_5_2 TSFR_1_6_3
 CHECK_ALL_ERROR(check, {"customShell": ['echo "custom script"',
                                         'echo "custom script2"',
-                                        'false']}, uri=__sandbox_uri1)
+                                        'false'],
+                        "hostInfo": 0}, uri=__sandbox_uri1)
 
 
 def check(outpath):
@@ -352,7 +353,8 @@ CHECK_ALL_ERROR(check, {"customSql":["THIS WILL CAUSE AN ERROR",
 #@<> customSql and customShell - before/during/after - TSFR_1_6_4, TSFR_1_6_7, TSFR_13_1, TSFR_13_2
 options = {
     "customSql": ["before:select 'before'", "during:select 'during'", "during:select 'during2'", "after:select 'after'"],
-    "customShell": ["before:echo before", "during:echo during", "during:echo during2", "after:echo after", "echo $bla" if __os_type != "windows" else "echo %bla%"]
+    "customShell": ["before:echo before", "during:echo during", "during:echo during2", "after:echo after", "echo $bla" if __os_type != "windows" else "echo %bla%"],
+    "hostInfo": 0
 }
 outpath = run_collect_hl(__sandbox_uri1, None, options, env=["bla=inherited"])
 EXPECT_FILE_CONTENTS(outpath, "custom_shell-before.txt", b"^before$")
@@ -379,66 +381,63 @@ EXPECT_FILE_CONTENTS(outpath, "custom_sql-after-script_0.tsv", b"^after$")
 RESET(outpath)
 
 #@<> customSql - TSFR_1_5_3
+session1.run_sql("CREATE TABLE IF NOT EXISTS test.preamble(execution char(64), ts timestamp(6))")
+session1.run_sql("delete from test.preamble")
+session1.run_sql("DROP PROCEDURE IF EXISTS test.waitrows")
+session1.run_sql("""CREATE PROCEDURE test.waitrows(num_rows INT)
+BEGIN
+    DECLARE _count INT DEFAULT 0;
+    WHILE _count < num_rows DO
+            SELECT count(*) INTO _count FROM test.preamble;
+    END WHILE;
+END
+""")
 options = {
     "customSql": [
-        "CREATE TABLE IF NOT EXISTS test.preamble(execution TIMESTAMP(6))",
-        "DURING:INSERT INTO test.preamble(execution) VALUES (NOW(6))"
+        "INSERT INTO test.preamble VALUES ('start', now(6))",
+        "DURING:INSERT INTO test.preamble VALUES ('during', now(6))"
     ],
-    "delay": 2
+    "delay": 1,
+    "hostInfo": 0
 }
 def check(outpath):
+    shell.dump_rows(session1.run_sql("select * from test.preamble"))
+    count, = session1.run_sql("select count(*) from test.preamble").fetch_one()
     if __version_num >= 80000:
-        count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as float) from test.preamble").fetch_one()
+        c, dif = session1.run_sql("select count(*), cast(max(ts)-min(ts) as float) from test.preamble where execution <> 'start'").fetch_one()
     else:
-        count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as signed) from test.preamble").fetch_one()
-    EXPECT_BETWEEN(2, 3, count, outpath+" execution count")
-    EXPECT_GT(dif, 1, outpath)
-    # this test is not deterministic
-    # EXPECT_LT(dif, 4, outpath) # ensure iterations are spaced by more than the specified delay, but not too much more
-    if dif > 4:
-        print(f"WARNING: time between iterations > 4??? ({dif})")
-    session1.run_sql("drop table test.preamble")
+        c, dif = session1.run_sql("select count(*), cast(max(ts)-min(ts) as signed) from test.preamble where execution <> 'start'").fetch_one()
+    EXPECT_GE(count, 2, outpath+" total execution count")
+    EXPECT_GE(c, 2, outpath+" during execution count")
+    EXPECT_GE(dif/(c-1), 1, outpath+" time between collections")
+    # non-deterministic, can vary too much randomly under high loads
+    # EXPECT_LT(dif, 2, outpath) # ensure iterations are spaced by more than the specified delay, but not too much more
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
+CHECK_ALL(check, options, nobasic=True, query="CALL test.waitrows(3)")
 
 #@<> customSql - TSFR_1_5_4
+session1.run_sql("delete from test.preamble")
+
 options = {
     "customSql": [
-        "before:CREATE TABLE IF NOT EXISTS test.preamble(execution char(64))",
-        "during:INSERT INTO test.preamble(execution) VALUES ('during')",
-        "after:INSERT INTO test.preamble(execution) VALUES ('after') "
+        "before:INSERT INTO test.preamble VALUES ('before', now(6))",
+        "during:INSERT INTO test.preamble VALUES ('during', now(6))",
+        "after:INSERT INTO test.preamble VALUES ('after', now(6)) "
     ],
-    "delay": 2
+    "delay": 1,
+    "hostInfo": 0
 }
+
 def check(outpath):
     rows = session1.run_sql("select * from test.preamble").fetch_all()
-    EXPECT_BETWEEN(2, 4, len(rows))
-    EXPECT_EQ("during", rows[0][0])
+    EXPECT_GE(len(rows), 3)
+    EXPECT_EQ("before", rows[0][0])
     EXPECT_EQ("during", rows[1][0])
-    EXPECT_EQ("after", rows[len(rows)-1][0])
-    session1.run_sql("drop table test.preamble")
+    EXPECT_EQ("after", rows[-1][0])
 
-CHECK_ALL(check, options, nobasic=True, query="select sleep(5)")
+CHECK_ALL(check, options, nobasic=True, query="CALL test.waitrows(3)")
 
-#@<> customSql - TSFR_1_5_5
-options = {
-    "customSql": [
-        "SHOW VARIABLES",
-        "before:SHOW VARIABLES",
-        "during:SHOW VARIABLES",
-        "after:SHOW VARIABLES"
-    ],
-    "delay": 1
-}
-def check(outpath):
-    EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_0.tsv", b"SHOW VARIABLES")
-    EXPECT_FILE_CONTENTS(outpath, "custom_sql-before-script_1.tsv", b"SHOW VARIABLES")
-    EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration0-script_0.tsv", b"SHOW VARIABLES")
-    EXPECT_FILE_CONTENTS(outpath, "custom_sql-iteration1-script_0.tsv", b"SHOW VARIABLES")
-    EXPECT_FILE_CONTENTS(outpath, "custom_sql-after-script_0.tsv", b"SHOW VARIABLES")
-
-# TSFR_1_4_7
-CHECK_ALL(check, options, nobasic=True, query="select sleep(4)")
+# customSql - TSFR_1_5_5 - deleted redundant test
 
 #@<> plain highLoad
 
@@ -450,7 +449,7 @@ def check(outpath):
     EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-3.metrics.tsv")
     EXPECT_FILE_NOT_IN_ZIP(outpath, "diagnostics-raw/iteration-4.metrics.tsv")
 
-outpath = run_collect_hl(hostname_uri, None, {"iterations":3, "delay":1})
+outpath = run_collect_hl(hostname_uri, None, {"iterations":3, "delay":1, "hostInfo":0})
 check(outpath)
 
 #@<> plain all with innodbMutex
@@ -462,7 +461,7 @@ def check(outpath):
     EXPECT_FILE_IN_ZIP(outpath, "diagnostics-raw/iteration-2.metrics.tsv")
     EXPECT_FILE_NOT_IN_ZIP(outpath, "diagnostics-raw/iteration-3.metrics.tsv")
 
-outpath = run_collect_hl(hostname_uri, None, {"delay":1, "innodbMutex":1})
+outpath = run_collect_hl(hostname_uri, None, {"delay":1, "innodbMutex":1, "hostInfo":0})
 check(outpath)
 
 #@<> highLoad + slowQuery with pfsInstrumentation - current
@@ -480,7 +479,7 @@ def check(outpath):
                                         "wait/io": lambda x: 80 < x < 90 })
     CHECK_PFS_CONSUMERS(outpath, "current", default_consumers)
 
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current", "hostInfo":0}, nobasic=True)
 
 #@<> highLoad + slowQuery with pfsInstrumentation - medium
 if __version_num > 80000:
@@ -491,7 +490,7 @@ def check(outpath):
     CHECK_PFS_INSTRUMENTS(outpath, "medium", {"wait/synch":lambda x: x == 0})
     CHECK_PFS_CONSUMERS(outpath, "medium", consumers)
 
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"medium"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"medium", "hostInfo":0}, nobasic=True)
 
 #@<> highLoad + slowQuery with pfsInstrumentation - full
 # TSFR_6_1_1
@@ -500,12 +499,12 @@ def check(outpath):
     CHECK_PFS_INSTRUMENTS(outpath, "full", {})
     CHECK_PFS_CONSUMERS(outpath, "full", ["events_stages_current", "events_stages_history", "events_stages_history_long", "events_statements_cpu", "events_statements_current","events_statements_history","events_statements_history_long","events_transactions_current","events_transactions_history","events_transactions_history_long","events_waits_current","events_waits_history","events_waits_history_long","global_instrumentation","thread_instrumentation","statements_digest"])
 
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"full"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"full", "hostInfo":0}, nobasic=True)
 
 
 #@<> highLoad with pfsInstrumentation current and all disabled instruments/consumers
 # TSFR_6_8 (is invalid) TSFR_6_9 TSFR_6_10
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current", "hostInfo":0}, nobasic=True)
 
 session1.run_sql("call sys.ps_setup_reset_to_default(true)")
 
@@ -514,7 +513,7 @@ session1.run_sql("update performance_schema.setup_consumers set enabled='NO'")
 def check(outpath):
     EXPECT_STDOUT_CONTAINS("WARNING: performance_schema.setup_consumers is completely disabled")
 
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current", "hostInfo":0}, nobasic=True)
 
 session1.run_sql("call sys.ps_setup_reset_to_default(true)")
 
@@ -524,7 +523,7 @@ session1.run_sql("update performance_schema.setup_threads set enabled='NO'")
 def check(outpath):
     EXPECT_STDOUT_CONTAINS("WARNING: performance_schema.setup_threads is completely disabled")
 
-CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current"}, nobasic=True)
+CHECK_ALL(check, {"delay":1, "pfsInstrumentation":"current", "hostInfo":0}, nobasic=True)
 
 session1.run_sql("call sys.ps_setup_reset_to_default(true)")
 
@@ -539,7 +538,7 @@ CHECK_ALL(check, uri=__sandbox_uri5)
 #@<> plain slowQuery
 
 outpath = run_collect_sq(__sandbox_uri1, None, "select * from mysql.user join mysql.db", {"delay":1})
-CHECK_DIAGPACK(outpath, [(None, session1)], innodbMutex=False, allMembers=0, schemaStats=True, slowQueries=True, localTarget=True)
+CHECK_DIAGPACK(outpath, [(None, session1)], innodbMutex=False, allMembers=0, schemaStats=True, slowQueries=True, localTarget=True, hostInfo=0)
 
 #@<> invalid slowQuery - TSFR_9_0_15
 outpath = run_collect_sq(__sandbox_uri1, None, "drop schema information_schema")

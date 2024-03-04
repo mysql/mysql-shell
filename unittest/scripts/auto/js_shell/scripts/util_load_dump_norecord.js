@@ -174,11 +174,12 @@ if(__version_num<80000) {
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {
   loose_innodb_directories: __tmp_dir+"/ldtest/datadirs",
   early_plugin_load: "keyring_file."+(__os_type=="windows"? "dll":"so"),
-  keyring_file_data: __tmp_dir+"/ldtest/datadirs/keyring"
+  keyring_file_data: __tmp_dir+"/ldtest/datadirs/keyring",
+  innodb_doublewrite: "OFF"
 });
 
 shell.connect(__sandbox_uri1);
-
+session.runSql("/*!80021 alter instance disable innodb redo_log */")
 
 // change root password
 session.runSql("SET PASSWORD FOR root@localhost = 'old'");

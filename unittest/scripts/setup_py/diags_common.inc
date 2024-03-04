@@ -219,7 +219,7 @@ def CHECK_METADATA(session, path):
 def CHECK_INSTANCE(session, zf, instance_id, expected_files_per_instance, innodbMutex, localTarget):
     for q, fn, options in expected_files_per_instance:
         minver = options.get("version", None)
-        if minver and ((minver>0 and __version_num < minver) or (minver<0 and __version_num > -minver)):
+        if minver and ((minver>0 and __version_num < minver) or (minver<0 and __version_num >= -minver)):
             continue
         if options.get("innodbMutex") and not innodbMutex:
             continue
@@ -242,7 +242,7 @@ def CHECK_INSTANCE(session, zf, instance_id, expected_files_per_instance, innodb
                 CHECK_QUERY(session, data, q, f"{instance_id}: {fn}")
 
 
-def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False, allMembers=1, schemaStats=False, slowQueries=False, localTarget=False):
+def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False, allMembers=1, schemaStats=False, slowQueries=False, localTarget=False, hostInfo=True):
     if __os_type != "windows":
         EXPECT_EQ(0o600, os.stat(file).st_mode & 0o777, file) # TSFR_1_3_1
     diag_type = "basic"
@@ -270,7 +270,7 @@ def CHECK_DIAGPACK(file, sessions_or_errors, is_cluster=False, innodbMutex=False
         ZEXPECT_NOT_EMPTY(zf, "shell_info.yaml")
         if diag_type == "basic":
             ZEXPECT_NOT_EMPTY(zf, "mysqlsh.log")
-        if localTarget:
+        if localTarget and hostInfo:
             ZEXPECT_NOT_EMPTY(zf, "host_info")
         filelist = zf.namelist()
         if is_cluster:

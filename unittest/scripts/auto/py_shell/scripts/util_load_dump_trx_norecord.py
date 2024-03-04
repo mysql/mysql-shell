@@ -61,7 +61,7 @@ except:
   pass
 testutil.mkdir(__tmp_dir+"/ldtest")
 
-testutil.deploy_sandbox(__mysql_sandbox_port1, "root")
+testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {"innodb_doublewrite":"OFF"})
 
 shell.connect(__sandbox_uri1)
 
