@@ -151,12 +151,16 @@ void Create_replica_cluster::ensure_compatible_clone_donor(
         SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
   }
 
-  // Check if the instance has the same version of the recipient
-  if (target->get_version() != m_target_instance->get_version()) {
-    throw shcore::Exception("Instance " + target_address +
-                                " cannot be a donor because it has a different "
-                                "version than the recipient.",
-                            SHERR_DBA_CLONE_DIFF_VERSION);
+  // Check if the versions are compatible
+  if (!Base_cluster_impl::verify_compatible_clone_versions(
+          target->get_version(), m_target_instance->get_version())) {
+    throw shcore::Exception(
+        shcore::str_format(
+            "Instance '%s' cannot be a donor because its version (%s) isn't "
+            "compatible with the recipient's (%s).",
+            target_address.c_str(), target->get_version().get_full().c_str(),
+            m_target_instance->get_version().get_full().c_str()),
+        SHERR_DBA_CLONE_DIFF_VERSION);
   }
 
   // Check if the instance has the same OS the recipient

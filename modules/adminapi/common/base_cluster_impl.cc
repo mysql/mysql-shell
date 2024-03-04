@@ -38,6 +38,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/mysqlxtest_utils.h"
@@ -357,6 +358,57 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
                                    only_upgrade_required);
 
   return shcore::Value(dict);
+}
+
+bool Base_cluster_impl::verify_compatible_clone_versions(
+    const mysqlshdk::utils::Version &donor,
+    const mysqlshdk::utils::Version &recipient) {
+  // both must support clone (>= 8.0.17)
+  if (!supports_mysql_clone(donor) || !supports_mysql_clone(recipient))
+    return false;
+
+  // easy path: if {major.minor.patch.build/extra} are equal
+  if ((donor == recipient) && (donor.get_extra() == recipient.get_extra()))
+    return true;
+
+  // can't mix LTS with innovation releases: {major.minor} must always match
+  if (donor.numeric_version_series() != recipient.numeric_version_series())
+    return false;
+
+  // reaching this point, both donor and recipient have the same {major.minor}
+  // version but with different patch numbers and or build/extra.
+
+  const mysqlshdk::utils::Version min_mix_patch_version(8, 4, 0);
+  constexpr uint32_t mix_build_version_series(800);
+
+  // from 8.4 or newer, cloning is allowed if {major.minor} is the same (the
+  // rest is ignored)
+  if ((donor >= min_mix_patch_version) && (recipient >= min_mix_patch_version))
+    return true;
+
+  // if neither are in the 8.0 series, there's nothing to do and clone isn't
+  // supported
+  if ((donor.numeric_version_series() != mix_build_version_series) ||
+      (recipient.numeric_version_series() != mix_build_version_series))
+    return false;
+
+  // cloning is allowed if {major.minor.patch} is the same (the build/extra is
+  // ignored)
+  if (donor == recipient) return true;
+
+  // reaching this point, both donor and recipient are in the 8.0 series,
+  // {major.minor} is the same but patch (and possibly build/extra) is different
+
+  const mysqlshdk::utils::Version backported_mix_patch_version(8, 0, 37);
+
+  // cloning between different patch numbers is allowed if *both* versions
+  // are 8.0.37 or newer
+  if ((donor >= backported_mix_patch_version) &&
+      (recipient >= backported_mix_patch_version))
+    return true;
+
+  // anything else isn't supported
+  return false;
 }
 
 /**

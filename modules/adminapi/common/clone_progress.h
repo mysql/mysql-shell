@@ -45,7 +45,7 @@ class Clone_progress {
 
  private:
 #ifdef FRIEND_TEST
-  FRIEND_TEST(Clone_progress_test, update_transfer);
+  FRIEND_TEST(Admin_api_clone_test, update_transfer);
 #endif
 
   void update_stage(const mysqlshdk::mysql::Clone_status &status,

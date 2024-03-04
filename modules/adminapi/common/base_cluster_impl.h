@@ -223,6 +223,10 @@ class Base_cluster_impl {
       const mysqlshdk::db::Connection_options &instance_def,
       bool print_error = true, bool allow_account_override = false);
 
+  static bool verify_compatible_clone_versions(
+      const mysqlshdk::utils::Version &donor,
+      const mysqlshdk::utils::Version &recipient);
+
  protected:
   Cluster_id m_id;
   std::string m_cluster_name;
