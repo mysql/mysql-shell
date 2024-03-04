@@ -47,6 +47,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -216,6 +217,15 @@ void Star_global_topology_manager::validate_adopt_cluster(
 
       throw shcore::Exception("Unsupported replication topology",
                               SHERR_DBA_UNSUPPORTED_ASYNC_TOPOLOGY);
+    }
+
+    for (const auto &replica : server->get_primary_member()->invalid_replicas) {
+      console->print_error(shcore::str_format(
+          "Ignoring replica '%s', connected to '%s', because its address can't "
+          "be resolved: '%s'.",
+          replica.uuid.c_str(), server->label.c_str(),
+          mysqlshdk::utils::make_host_and_port(replica.host, replica.port)
+              .c_str()));
     }
 
     // check for connect errors

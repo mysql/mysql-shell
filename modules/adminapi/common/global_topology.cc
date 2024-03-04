@@ -759,6 +759,26 @@ Server *Server_global_topology::scan_instance_recursive(
     auto slave_it = next_it++;
     const auto &slave = *slave_it;
 
+    if (!slave.has_valid_endpoint()) {
+      console->print_warning(shcore::str_format(
+          "Instance '%s' (a replica of '%s') doesn't have the 'report_host' "
+          "variable properly configured: '%s'",
+          slave.uuid.c_str(), instance->descr().c_str(),
+          mysqlshdk::utils::make_host_and_port(slave.host, slave.port)
+              .c_str()));
+
+      console->print_info(shcore::str_format(
+          "In order to discover all available replicas, each one must have the "
+          "'report_host' variable set, otherwise they can't be uniquely "
+          "identified and reached from '%s'. Please configure the "
+          "'report_host' variable of instance '%s'.",
+          instance->descr().c_str(), slave.uuid.c_str()));
+
+      member->invalid_replicas.push_back(slave);
+      member->unmanaged_replicas.erase(slave_it);
+      continue;
+    }
+
     std::string endpoint =
         mysqlshdk::utils::make_host_and_port(slave.host, slave.port);
 

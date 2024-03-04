@@ -171,6 +171,10 @@ struct Slave_host {
   std::string host;
   int port = 0;
   std::string uuid;
+
+  bool has_valid_endpoint() const noexcept {
+    return !host.empty() && (port > 0);
+  }
 };
 
 std::string to_string(Replication_channel::Status status);

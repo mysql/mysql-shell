@@ -1,6 +1,3 @@
-//@# INCLUDE async_utils.inc
-||
-
 //@# on a standalone server (should fail)
 ||Target server is not part of an async replication topology (MYSQLSH 51151)
 

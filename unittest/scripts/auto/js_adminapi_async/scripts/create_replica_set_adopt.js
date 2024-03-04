@@ -2,12 +2,12 @@
 
 // Tests createReplicaSet() for adoption specifically
 
-//@ INCLUDE async_utils.inc
+//@<> INCLUDE async_utils.inc
 
 //@<> Setup
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130005"});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130006"});
 
 // enable interactive by default
 shell.options.useWizards = true;
@@ -62,7 +62,7 @@ shell.connect(__sandbox_uri1);
 
 //@ adopt with existing replicaset (should fail)
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
 shell.connect(__sandbox_uri1);
 // should work
 rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:1});
@@ -161,7 +161,7 @@ dba.createReplicaSet("myrs", {adoptFromAR:true});
 
 //@ binlog filters (should fail)
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
 testutil.stopSandbox(__mysql_sandbox_port1);
 testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_ignore_db", "igndata");
 testutil.startSandbox(__mysql_sandbox_port1);
@@ -174,7 +174,7 @@ dba.createReplicaSet("myrs", {adoptFromAR:true});
 
 // cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
 
 //@ broken repl (should fail)
 shell.connect(__sandbox_uri2);
@@ -301,10 +301,10 @@ dba.createReplicaSet("myrs", {adoptFromAR:true});
 
 
 testutil.destroySandbox(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004"});
 session1 = mysql.getSession(__sandbox_uri1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130005"});
 shell.connect(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 testutil.restartSandbox(__mysql_sandbox_port3);
@@ -429,9 +429,36 @@ EXPECT_JSON_EQ(snap1, repl_snapshot(session));
 
 EXPECT_JSON_EQ(clean(snap2), clean(repl_snapshot(session2)));
 
-
 reset_instance(session);
 reset_instance(session2);
+
+//@<> Check if instances are ignored if report-host isn't set
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "report_host");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "report_host");
+
+testutil.restartSandbox(__mysql_sandbox_port1);
+testutil.restartSandbox(__mysql_sandbox_port2);
+
+shell.connect(__sandbox_uri1);
+
+var rs;
+EXPECT_NO_THROWS(function(){
+    rs = dba.createReplicaSet("myrs", {gtidSetIsComplete: true});
+    rs.addInstance(__sandbox_uri2);
+});
+
+EXPECT_EQ("", session.runSql("show replicas").fetchOne().Host);
+
+dba.dropMetadataSchema({force:true});
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
+EXPECT_THROWS(function(){
+    rs = dba.createReplicaSet("myrs", {gtidSetIsComplete: true, adoptFromAR: true});
+}, "Target server is not part of an async replication topology");
+
+EXPECT_OUTPUT_CONTAINS(`Instance 'cd93e780-b558-11ea-b3de-0242ac130005' (a replica of '${hostname}:${__mysql_sandbox_port1}') doesn't have the 'report_host' variable properly configured: ':${__mysql_sandbox_port2}'`);
+EXPECT_OUTPUT_CONTAINS(`In order to discover all available replicas, each one must have the 'report_host' variable set, otherwise they can't be uniquely identified and reached from '${hostname}:${__mysql_sandbox_port1}'. Please configure the 'report_host' variable of instance 'cd93e780-b558-11ea-b3de-0242ac130005'.`);
+EXPECT_OUTPUT_CONTAINS(`ERROR: Ignoring replica 'cd93e780-b558-11ea-b3de-0242ac130005', connected to '${hostname}:${__mysql_sandbox_port1}', because its address can't be resolved: ':${__mysql_sandbox_port2}'`)
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

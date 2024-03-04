@@ -140,6 +140,17 @@ get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
     std::string channel_name;
     bool ghost_slave = true;
 
+    // if the instances hasn't report-host or report-port configured, the slave
+    // will have an empty "host" (and possibly port with 0). In this case, we
+    // should ignore the slave rather than connect to the incorrect instance (no
+    // host defaults to localhost)
+    if (!ch.has_valid_endpoint()) {
+      log_info("Ignoring '%s' (%s), which is listed as a replica for '%s'",
+               endpoint.c_str(), ch.uuid.c_str(), instance->descr().c_str());
+      real_slaves.push_back({ch, ""});
+      continue;
+    }
+
     try {
       Scoped_instance slave(ipool->connect_unchecked_endpoint(endpoint));
 
@@ -188,7 +199,14 @@ void validate_instance_is_standalone(Instance *target_server,
           mysqlshdk::utils::make_host_and_port(ch.host, ch.port));
     }
     for (const auto &sl : slaves) {
-      if (sl.second.empty())
+      if (!sl.first.has_valid_endpoint())
+        console->print_info(shcore::str_format(
+            "- %s replicates from this instance but has an address that can't "
+            "be reached: '%s'",
+            sl.first.uuid.c_str(),
+            mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port)
+                .c_str()));
+      else if (sl.second.empty())
         console->print_info(
             "- " +
             mysqlshdk::utils::make_host_and_port(sl.first.host, sl.first.port) +
