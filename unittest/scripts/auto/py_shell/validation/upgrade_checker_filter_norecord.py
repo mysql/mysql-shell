@@ -150,9 +150,13 @@ Excluded:
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
+  Condition: When the upgrade reaches any of the following versions: 8.0.0,
+    8.2.0
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
+  Condition: When the upgrade reaches any of the following versions: 8.0.31,
+    8.0.34, 8.2.0
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system
@@ -340,9 +344,13 @@ Included:
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
+  Condition: When the upgrade reaches any of the following versions: 8.0.0,
+    8.2.0
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
+  Condition: When the upgrade reaches any of the following versions: 8.0.31,
+    8.0.34, 8.2.0
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system

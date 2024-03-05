@@ -78,6 +78,9 @@
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
 #include "modules/util/upgrade_check.h"
+#include "modules/util/upgrade_checker/common.h"
+#include "modules/util/upgrade_checker/upgrade_check_config.h"
+#include "modules/util/upgrade_checker/upgrade_check_options.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -4541,6 +4544,9 @@ bool Dumper::check_for_upgrade_errors() const {
 
   upgrade_checker::Upgrade_check_options options;
   options.target_version = m_options.target_version();
+  // It is pointless to perform this check should not be executed in the context
+  // of D&L since the mysql schema is excluded all the time.
+  options.exclude_list.emplace(upgrade_checker::ids::k_mysql_schema_check);
   upgrade_checker::Upgrade_check_config config{options};
 
   config.set_session(session());

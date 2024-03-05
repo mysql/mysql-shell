@@ -315,9 +315,15 @@ Upgrade_check_registry::create_checklist(const Upgrade_check_config &config,
   for (const auto &c : s_available_checks) {
     if (include_all || config.targets().is_set(c.target)) {
       auto check = c.creator(config.upgrade_info());
-      check->set_condition(c.condition.get());
 
-      if ((include_all || cond_accepted(c)) &&
+      // If a condition is defined in the creator, updates the check with it for
+      // listing purposes, some cases (Feature like checks) have an inner
+      // condition
+      if (c.condition) {
+        check->set_condition(c.condition.get());
+      }
+
+      if ((include_all || (cond_accepted(c) && check->enabled())) &&
           list_accepted(check->get_name())) {
         result.emplace_back(std::move(check));
       } else if (rejected) {

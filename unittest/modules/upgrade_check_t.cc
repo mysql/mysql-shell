@@ -2998,7 +2998,10 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
         found_def_auth_check_id = true;
     }
     EXPECT_TRUE(found_dep_auth_check_id);
-    EXPECT_TRUE(found_def_auth_check_id);
+    // 8.0.2 is the last version that activates the deprecatedDefaultAuth check
+    if (Version(_test_context) < Version(8, 2, 0)) {
+      EXPECT_TRUE(found_def_auth_check_id);
+    }
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
