@@ -916,7 +916,7 @@ bool Connection_options::uses_local_transport() const {
         return true;
     } else {
       // classic connections connect via socket by default
-      if (has_port())
+      if (has_port() || get_host() != "localhost")
         return false;
       else
         return true;
