@@ -38,7 +38,7 @@ function create_instance_record(id, hostport, uuid, server_id) {
 function prepare_1_0_1_metadata_from_template(file, replication_group_id, instances, topology = "pm", schema = "mysql_innodb_cluster_metadata") {
  var ports = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 
-  var script = os.load_text_file(get_1_0_1_template_file());
+  var script = os.loadTextFile(get_1_0_1_template_file());
   var s1 = update_var(script, "__schema__", schema)
   var s1 = update_var(script, "__replication_group_uuid__", replication_group_id)
   var s2 = update_var(s1, "__hostname__", hostname)
