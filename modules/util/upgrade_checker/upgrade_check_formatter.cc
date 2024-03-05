@@ -79,7 +79,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     print_paragraph(
         shcore::str_format(
             "The MySQL server at %s, version %s, will now be checked for "
-            "compatibility issues for upgrade to MySQL %s%s...",
+            "compatibility issues for upgrade to MySQL %s%s.",
             server_address.c_str(), server_version.c_str(),
             target_version.c_str(),
             explicit_target_version
@@ -117,7 +117,6 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
-    print_title(check.get_title(), check.get_name());
     m_console->print("  ");
     if (runtime_error) m_console->print_diag("Check failed: ");
     m_console->println(description);

@@ -25,6 +25,7 @@
 
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
+#include <mysqld_error.h>
 #include <forward_list>
 #include <regex>
 #include <vector>
@@ -436,8 +437,18 @@ class Check_table_command : public Upgrade_check {
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Upgrade_info &server_info) override {
     // Needed for warnings related to triggers, incompatible types in 5.7
-    if (server_info.server_version < Version(8, 0, 0))
-      session->execute("FLUSH LOCAL TABLES;");
+    if (server_info.server_version < Version(8, 0, 0)) {
+      try {
+        session->execute("FLUSH LOCAL TABLES;");
+      } catch (const mysqlshdk::db::Error &error) {
+        if (error.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
+          throw Check_configuration_error(
+              "To run this check the RELOAD grant is required.");
+        } else {
+          throw;
+        }
+      }
+    }
 
     std::vector<std::pair<std::string, std::string>> tables;
     auto result = session->query(

@@ -284,6 +284,7 @@ TEST_F(Shell_core_test, autocache_use_command_node) {
   execute("print(db.country_info)");
   MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
   wipe_all();
+  execute("\\sql drop schema simple_schema");
   execute("session.close();");
 }
 
@@ -303,6 +304,7 @@ TEST_F(Shell_core_test, autocache_connect_command_node) {
   execute("print(db.country_info)");
   MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
   wipe_all();
+  execute("\\sql drop schema simple_schema");
   execute("session.close();");
 }
 
@@ -322,6 +324,7 @@ TEST_F(Shell_core_test, autocache_shell_connect_node) {
   execute("print(db.country_info)");
   MY_EXPECT_STDOUT_CONTAINS("<Collection:country_info>");
   wipe_all();
+  execute("\\sql drop schema simple_schema");
   execute("session.close();");
 }
 }  // namespace shell_core_tests

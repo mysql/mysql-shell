@@ -134,14 +134,15 @@ Sys_var_allowed_values_check::Sys_var_allowed_values_check(
                                              "DHE-RSA-AES256-GCM-SHA384",
                                              "DHE-RSA-AES256-CCM",
                                              "DHE-RSA-AES128-CCM",
-                                             "DHE-RSA-CHACHA20-POLY1305"};
+                                             "DHE-RSA-CHACHA20-POLY1305",
+                                             ""};
 
   add_sys_var(version, "ssl_cipher", valid_ssl_ciphers);
   add_sys_var(version, "admin_ssl_cipher", valid_ssl_ciphers);
 
   std::vector<std::string> valid_tls_cipherssuites{
       "TLS_AES_128_GCM_SHA256", "TLS_AES_256_GCM_SHA384",
-      "TLS_CHACHA20_POLY1305_SHA256", "TLS_AES_128_CCM_SHA256"};
+      "TLS_CHACHA20_POLY1305_SHA256", "TLS_AES_128_CCM_SHA256", ""};
   add_sys_var(version, "tls_ciphersuites", valid_tls_cipherssuites);
   add_sys_var(version, "admin_tls_ciphersuites", valid_tls_cipherssuites);
 }

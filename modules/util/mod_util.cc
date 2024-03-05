@@ -98,73 +98,55 @@ Util::Util(shcore::IShell_core *owner)
 }
 
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_BRIEF,
-              "Performs series of tests on specified MySQL server to check if "
-              "the upgrade process will succeed.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_PARAM,
-              "@param connectionData Optional the connection data to server to "
-              "be checked");
-REGISTER_HELP(
-    UTIL_CHECKFORSERVERUPGRADE_PARAM1,
-    "@param options Optional dictionary of options to modify tool behaviour.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL,
-              "If no connectionData is specified tool will try to establish "
-              "connection using data from current session.");
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL1,
-              "Tool behaviour can be modified with following options:");
+REGISTER_HELP_FUNCTION_TEXT(UTIL_CHECKFORSERVERUPGRADE, R"*(
+Performs series of tests on specified MySQL server to check if 
+the upgrade process will succeed.
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL2,
-              "@li configPath - full path to MySQL server configuration file.");
+@param connectionData Optional the connection data to server to 
+be checked
+@param options Optional dictionary of options to modify tool behaviour.
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL3,
-              "@li outputFormat - value can be either TEXT (default) or JSON.");
+If no connectionData is specified tool will try to establish 
+connection using data from current session. See <b>\\? connection</b> for
+additional details.
+              
+Tool behaviour can be modified with following options:
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL4,
-              "@li targetVersion - version to which upgrade will be checked "
-              "(default=" MYSH_VERSION ")");
+@li <b>configPath</b> - full path to MySQL server configuration file.
+@li <b>outputFormat</b> - value can be either TEXT (default) or JSON.
+@li <b>targetVersion</b> - version to which upgrade will be checked.
+@li <b>password</b> - password for connection.
+@li <b>include</b> - comma separated list containing the check 
+identifiers to be included in the operation.
+@li <b>exclude</b> - comma separated list containing the check 
+identifiers to be excluded from the operation.
+@li <b>list</b> - bool value to indicate the operation should only 
+list the checks.
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL5,
-              "@li password - password for connection.");
+If <b>targetVersion</b> is not specified, the current shell version
+will be used as target version.
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL6,
-              "@li include - comma separated list containing the check "
-              "identifiers to be included in the operation");
+<b>Limitations</b>
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL7,
-              "@li exclude - comma separated list containing the check "
-              "identifiers to be excluded from the operation");
+When running this tool with a server older than 8.0, some checks have
+additional requirements:
 
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL8,
-              "@li list - bool value to indicate the operation should only "
-              "list the checks");
-
-REGISTER_HELP(UTIL_CHECKFORSERVERUPGRADE_DETAIL9, "${TOPIC_CONNECTION_DATA}");
+@li The checks related to system variables require the full path to the
+configuration file to be provided through the <b>configPath</b> option.
+@li The <b>checkTableCommand</b> check requires the user executing the
+tool has the RELOAD grant.
+)*");
 
 /**
  * \ingroup util
  * $(UTIL_CHECKFORSERVERUPGRADE_BRIEF)
  *
- * $(UTIL_CHECKFORSERVERUPGRADE_PARAM)
- * $(UTIL_CHECKFORSERVERUPGRADE_PARAM1)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_RETURNS)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL)
- *
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL1)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL2)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL3)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL4)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL5)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL6)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL7)
- * $(UTIL_CHECKFORSERVERUPGRADE_DETAIL8)
+ * $(UTIL_CHECKFORSERVERUPGRADE)
  *
  * \copydoc connection_options
  *
  * Detailed description of the connection data format is available at \ref
  * connection_data
- *
  */
 #if DOXYGEN_JS
 Undefined Util::checkForServerUpgrade(ConnectionData connectionData,

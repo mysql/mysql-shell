@@ -2165,10 +2165,20 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
                std::runtime_error);
 
-  // Privileges check out we should succeed
-  EXPECT_NO_THROW(
-      session->execute("grant RELOAD, PROCESS on *.* to 'percent'@'%';"));
+  // Enough privileges to run, but there's a check requiring RELOAD
+  output_handler.wipe_all();
+  EXPECT_NO_THROW(session->execute("grant PROCESS on *.* to 'percent'@'%';"));
   EXPECT_NO_THROW(util.check_for_server_upgrade(percent_connection_options));
+  MY_EXPECT_OUTPUT_CONTAINS("To run this check the RELOAD grant is required.",
+                            output_handler.std_out);
+
+  // Now all privileges in place
+  output_handler.wipe_all();
+  EXPECT_NO_THROW(session->execute("grant RELOAD on *.* to 'percent'@'%';"));
+  EXPECT_NO_THROW(util.check_for_server_upgrade(percent_connection_options));
+  MY_EXPECT_OUTPUT_NOT_CONTAINS(
+      "To run this check the RELOAD grant is required.",
+      output_handler.std_out);
 
   EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
 
