@@ -33,19 +33,87 @@
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
+namespace suggested_version {
+std::optional<Version> get_next_suggested_lts_version(
+    const Version &version, std::string *out_key = nullptr) {
+  std::optional<Version> next_lts;
+  decltype(k_latest_versions)::const_iterator item = k_latest_versions.end();
+
+  if (version < Version(8, 0, 0)) {
+    item = k_latest_versions.find("8.0");
+  } else {
+    // This would be the case for LTS releases
+    item = k_latest_versions.find(version.get_short());
+    if (item == k_latest_versions.end()) {
+      // This would be the case for innovation releases
+      auto first_lts = get_first_lts_version(version);
+      item = k_latest_versions.find(first_lts.get_short());
+    }
+    // We might be already on the latest release in the series, so it jumps to
+    // the LTS in the next series (If they exist)
+    if (item != k_latest_versions.end() && item->second == version) {
+      if (version.get_major() == 8 and version.get_minor() == 0) {
+        // The next LTS for the 8.0 series is the latest LTS in the  8.4 series
+        auto first_lts = get_first_lts_version(version);
+        item = k_latest_versions.find(first_lts.get_short());
+      } else {
+        // In any other case, it is the latest LTS in the next major
+        auto first_lts =
+            get_first_lts_version(Version(version.get_major() + 1, 0));
+        item = k_latest_versions.find(first_lts.get_short());
+      }
+    }
+  }
+
+  if (item != k_latest_versions.end()) {
+    if (out_key) {
+      *out_key = item->first;
+      return item->second;
+    }
+  }
+
+  return {};
+}
+
+std::string format_suggested_version_message(
+    const Version &serverVersion, const Version &targetVersion,
+    const std::string &suggestedTargetVersion) {
+  return shcore::str_format(
+      "Upgrading MySQL Server from version %s to %s is not supported. Please "
+      "consider running the check using the following option: targetVersion=%s",
+      serverVersion.get_base().c_str(), targetVersion.get_base().c_str(),
+      suggestedTargetVersion.c_str());
+}
+}  // namespace suggested_version
+
+std::string check_for_version_suggestion(const Version &serverVersion,
+                                         const Version &targetVersion) {
+  std::string suggested_target_version;
+  auto suggested = suggested_version::get_next_suggested_lts_version(
+      serverVersion, &suggested_target_version);
+  if (suggested.has_value() && *suggested >= targetVersion) return {};
+
+  return suggested_version::format_suggested_version_message(
+      serverVersion, targetVersion, suggested_target_version);
+}
 
 bool run_checks_for_upgrade(const Upgrade_check_config &config,
                             Upgrade_check_output_formatter &print) {
   assert(config.session());
-  print.check_info(config.session()->get_connection_options().uri_endpoint(),
-                   config.upgrade_info().server_version_long,
-                   config.upgrade_info().target_version.get_base(),
-                   config.upgrade_info().explicit_target_version);
+
+  print.check_info(
+      config.session()->get_connection_options().uri_endpoint(),
+      config.upgrade_info().server_version_long,
+      config.upgrade_info().target_version.get_base(),
+      config.upgrade_info().explicit_target_version,
+      check_for_version_suggestion(config.upgrade_info().server_version,
+                                   config.upgrade_info().target_version));
   config.upgrade_info().validate();
 
   Upgrade_check_registry::Upgrade_check_vec rejected;

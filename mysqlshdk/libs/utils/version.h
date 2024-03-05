@@ -136,6 +136,16 @@ int major_version_difference(const Version &source, const Version &target);
  */
 std::vector<Version> corresponding_versions(Version version);
 
+/**
+ * Get first LTS version in the same major version as the given version
+ */
+Version get_first_lts_version(Version version);
+
+/**
+ * Get first innovation version in the same major version as the given version
+ */
+Version get_first_innovation_version(Version version);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 
