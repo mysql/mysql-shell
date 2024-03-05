@@ -47,11 +47,6 @@ class SHCORE_PUBLIC Os : public shcore::Cpp_object_bridge {
   String getenv(String name);
   String loadTextFile(String path);
   Undefined sleep(Number seconds);
-  Bool file_exists(String path);
-  String get_binary_folder();
-  String get_mysqlx_home_path();
-  String get_user_config_path();
-  String load_text_file(String path);
 #endif
 
   Os();
@@ -65,11 +60,6 @@ class SHCORE_PUBLIC Os : public shcore::Cpp_object_bridge {
   std::string getcwd() const;
   void sleep(double sec) const;
   std::string load_text_file(const std::string &path) const;
-  std::string get_user_config_path() const;
-  std::string get_mysqlx_home_path() const;
-  std::string get_binary_folder() const;
-  bool file_exists(const std::string &path) const;
-  std::string load_text_file_(const std::string &path) const;
 
   std::shared_ptr<Path> m_path;
 };
