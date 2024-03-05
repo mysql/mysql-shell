@@ -241,5 +241,21 @@ std::vector<Version> corresponding_versions(Version version) {
   return result;
 }
 
+Version get_first_lts_version(Version version) {
+  // This function should not be called with versions lower than 8.0.0
+  assert(version >= Version(8, 0, 0));
+
+  auto major = version.get_major();
+  return major == 8 ? Version(8, 4, 0) : Version(major, 7, 0);
+}
+
+Version get_first_innovation_version(Version version) {
+  // This function should not be called with versions lower than 8.0.0
+  assert(version >= Version(8, 0, 0));
+
+  auto major = version.get_major();
+  return major == 8 ? Version(8, 1, 0) : Version(major, 0, 0);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk
