@@ -33,6 +33,7 @@
 
 #include "modules/util/upgrade_checker/common.h"
 #include "modules/util/upgrade_checker/upgrade_check.h"
+#include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -109,6 +110,12 @@ class Feature_life_cycle_check : public Upgrade_check {
       const std::string &item = "") const;
 
   Grouping m_grouping;
+
+  // Feature checks contains a complex condition to restrictive about when to
+  // executed the check as well as accurate about what the output should be, for
+  // the purpose of listing the checks, what really matters is when the check is
+  // activated, so we store that here
+  Version_condition m_list_condition;
 };
 
 class Auth_method_usage_check : public Feature_life_cycle_check {

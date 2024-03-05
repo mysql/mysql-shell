@@ -61,11 +61,13 @@ class Condition {
  */
 class Version_condition : public Condition {
  public:
+  Version_condition() = default;
   explicit Version_condition(std::forward_list<Version> versions);
   explicit Version_condition(Version version);
   ~Version_condition() override = default;
 
   bool evaluate(const Upgrade_info &info) override;
+  void add_version(const Version &version);
 
   std::string description() const override;
 
