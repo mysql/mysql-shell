@@ -237,7 +237,7 @@ shell.connect(__sandbox_uri2)
 # WL14841-TSFR_2_1
 # will fail because tables already exist
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/dataonly",
-                                     {"dryRun": True}), "Error: Shell Error (53021): Util.load_dump: While 'Scanning metadata': Duplicate objects found in destination database")
+                                     {"dryRun": True}), "Error: Shell Error (53021): Util.load_dump: While 'Checking for pre-existing objects': Duplicate objects found in destination database")
 
 # will pass because we're explicitly only loading data
 util.load_dump(outdir+"/dataonly", {"dryRun": True, "loadDdl": False})
@@ -2065,7 +2065,7 @@ util.dump_instance(dump_dir, { "showProgress": False })
 shell.connect(__sandbox_uri2)
 
 # BUG#36197620 - summary should contain more details regarding all executed stages
-indexes_summary = "indexes were recreated in "
+indexes_summary = "indexes were built in "
 
 # load with various values of deferTableIndexes
 for deferred in [ ("off", 0), ("fulltext", 1), ("all", 13) ]:
@@ -2091,7 +2091,7 @@ wipeout_server(session2)
 testutil.set_trap("mysql", ["sql == ALTER TABLE `test_schema`.`test_table2` ADD SPATIAL KEY `location` (`location`)"], { "code": 1045, "msg": "Access denied for user `root`@`%` (using password: YES)", "state": "28000" })
 
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "Error: Shell Error (53005): Util.load_dump: Error loading dump")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: While recreating indexes for table `test_schema`.`test_table2`: Access denied for user `root`@`%` \(using password: YES\)"))
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: While building indexes for table `test_schema`.`test_table2`: Access denied for user `root`@`%` \(using password: YES\)"))
 
 testutil.clear_traps("mysql")
 
@@ -2136,9 +2136,9 @@ testutil.set_trap("mysql", ["sql regex ALTER TABLE `test_schema`.`test_table` .*
 WIPE_OUTPUT()
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "showProgress": False }), "Error loading dump")
 # first error is silent
-EXPECT_STDOUT_NOT_CONTAINS("ERROR: While recreating indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.: ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`),ADD UNIQUE KEY `data` (`data`)")
+EXPECT_STDOUT_NOT_CONTAINS("ERROR: While building indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.: ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`),ADD UNIQUE KEY `data` (`data`)")
 # second error is fatal and reported
-EXPECT_STDOUT_CONTAINS("ERROR: While recreating indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.: ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`)")
+EXPECT_STDOUT_CONTAINS("ERROR: While building indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.: ALTER TABLE `test_schema`.`test_table` ADD FULLTEXT KEY `description` (`description`)")
 
 testutil.clear_traps("mysql")
 
@@ -2151,7 +2151,7 @@ testutil.set_trap("mysql", ["sql regex ALTER TABLE `test_schema`.`test_table` .*
 WIPE_OUTPUT()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "loadUsers": False, "resetProgress": True, "showProgress": False }), "load should succeed")
 # no errors are reported
-EXPECT_STDOUT_NOT_CONTAINS("ERROR: While recreating indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.")
+EXPECT_STDOUT_NOT_CONTAINS("ERROR: While building indexes for table `test_schema`.`test_table`: MySQL Error 1878 (HY000): Temporary file write failure.")
 
 testutil.clear_traps("mysql")
 

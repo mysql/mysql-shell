@@ -41,8 +41,9 @@ void translate_current_exception(const Progress_thread &progress) {
   if (exception) {
     const auto stage = progress.current_stage();
 
-    if (!stage) {
-      // no context is available, just rethrow
+    if (!stage || !stage->has_terminated()) {
+      // no context is available, or exception happened after stage has
+      // finished, just rethrow
       std::rethrow_exception(exception);
     }
 

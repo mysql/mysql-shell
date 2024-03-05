@@ -305,7 +305,7 @@ session.runSql("SET GLOBAL local_infile=1");
 //@<> Try to load the dump with sql_require_primary_key enabled (should fail)
 if(__version_num>80013) {
   session.runSql("set @@global.sql_require_primary_key=ON;");
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: While 'Scanning metadata': sql_require_primary_key enabled at destination server");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: sql_require_primary_key enabled at destination server");
   EXPECT_STDOUT_CONTAINS_MULTILINE(`ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump:
 schema \`all_features\`: \`findextable3\`, \`findextable\`
 schema \`xtest\`: \`t_bigint\`, \`t_bit\`, \`t_char\`, \`t_date\`, \`t_decimal1\`, \`t_decimal2\`, \`t_decimal3\`, \`t_double\`, \`t_enum\`, \`t_float\`, \`t_geom_all\`, \`t_geom\`, \`t_int\`, \`t_integer\`, \`t_json\`, \`t_lchar\`, \`t_lob\`, \`t_mediumint\`, \`t_numeric1\`, \`t_numeric2\`, \`t_real\`, \`t_set\`, \`t_smallint\`, \`t_tinyint\`
@@ -362,11 +362,11 @@ WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump");
 
 EXPECT_STDOUT_MATCHES(/Loading DDL and Data from '.*ldtest\/dump' using 4 threads\./);
-EXPECT_STDOUT_CONTAINS("Executing common preamble SQL");
+EXPECT_SHELL_LOG_CONTAINS("Executing common preamble SQL");
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for schema");
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `xtest`.`t_tinyint`");
 EXPECT_SHELL_LOG_CONTAINS("Executing triggers SQL for `sakila`.`payment`");
-EXPECT_STDOUT_CONTAINS("Executing common postamble SQL");
+EXPECT_SHELL_LOG_CONTAINS("Executing common postamble SQL");
 EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.");
 
 // users not loaded, so don't compare accounts list
@@ -410,7 +410,7 @@ EXPECT_OUTPUT_CONTAINS("Resetting GTID_PURGED to dumped gtid set");
 
 wipe_instance(session);
 util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, loadIndexes: false, skipBinlog: true, updateGtidSet: "replace"})
-EXPECT_OUTPUT_CONTAINS("GTID_PURGED already updated");
+EXPECT_OUTPUT_CONTAINS("GTID_PURGED already updated, skipping");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -617,7 +617,7 @@ session.runSql("CREATE FUNCTION mysqlaas_compat.func2 () RETURNS INT NO SQL SQL 
 session.runSql("CREATE PROCEDURE mysqlaas_compat.proc2 () NO SQL SQL SECURITY DEFINER BEGIN END;");
 session.runSql("CREATE EVENT mysqlaas_compat.event2 ON SCHEDULE EVERY 1 DAY DO BEGIN END;");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "Util.loadDump: While 'Checking for pre-existing objects': Duplicate objects found in destination database");
 
 //@<> load dump where some objects already exist, but exclude them from the load
 util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, excludeSchemas: ["sakila", "mysqlaas_compat"]});
@@ -836,7 +836,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump");
 //@<> load again using a different progress file should assume a fresh load
 // in practice this means the load will fail because of duplicate objects from the previous attempt
 // TSFR12_2
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "Util.loadDump: While 'Checking for pre-existing objects': Duplicate objects found in destination database");
 
 EXPECT_STDOUT_NOT_CONTAINS("Load progress file detected.");
 
@@ -960,7 +960,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump-big");
 
 //@<> try loading an already loaded dump after resetting progress (will fail because of duplicate objects)
 WIPE_SHELL_LOG();
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: While 'Checking for pre-existing objects': Duplicate objects found in destination database");
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Schema `sakila` already contains a view named ");
@@ -1057,9 +1057,9 @@ analyze_tables_summary = "tables were analyzed in ";
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off", deferTableIndexes:"all"});
 EXPECT_SHELL_LOG_CONTAINS("(indexes removed for deferred creation)");
-EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`store`");
-EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`inventory`");
-EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
+EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`store`");
+EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`inventory`");
+EXPECT_SHELL_LOG_CONTAINS("Restoring FOREIGN KEY constraints for schema `sakila`");
 
 EXPECT_OUTPUT_NOT_CONTAINS(analyze_tables_summary);
 
@@ -1096,8 +1096,8 @@ WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: "off"});
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("indexes removed for deferred creation");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Building indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Restoring FOREIGN KEY constraints");
 
 if(__version_num>80000) {
   EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`film`");
@@ -1118,10 +1118,10 @@ WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila");
 
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`film_text` (indexes removed for deferred creation)")
-EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`film_text`");
+EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`film_text`");
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`city`");
 EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for `sakila`.`city` (indexes removed for deferred creation)");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Restoring FOREIGN KEY constraints");
 
 //@<> Load DDL first (indexes recreated), then data
 wipe_instance(session);
@@ -1129,14 +1129,14 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: true});
 EXPECT_SHELL_LOG_CONTAINS("indexes removed for deferred creation");
-EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for");
-EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("Building indexes for");
+EXPECT_SHELL_LOG_CONTAINS("Restoring FOREIGN KEY constraints");
 
 testutil.wipeAllOutput();
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Building indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Restoring FOREIGN KEY constraints");
 
 //@<> Load DDL first then data with indexes recreation
 wipe_instance(session);
@@ -1144,13 +1144,13 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: false});
 EXPECT_SHELL_LOG_CONTAINS("indexes removed for deferred creation");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Building indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Restoring FOREIGN KEY constraints");
 
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
-EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for");
-EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("Building indexes for");
+EXPECT_SHELL_LOG_CONTAINS("Restoring FOREIGN KEY constraints");
 
 //@<> Ensure tables with no PK are truncated before reloading during a resume
 session.runSql("set global local_infile=1");

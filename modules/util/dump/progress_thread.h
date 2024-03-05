@@ -171,6 +171,8 @@ class Progress_thread final {
 
     /**
      * Finishes execution of this stage.
+     * If there's an exception pending, interrupts execution of this stage and
+     * forces wait = false.
      *
      * @param wait If true, it will wait for the display loop to end.
      */
@@ -189,6 +191,13 @@ class Progress_thread final {
      * @return description of this stage
      */
     const std::string &description() const { return m_config.description; }
+
+    /**
+     * Checks if this stage was terminated prematurely.
+     *
+     * @return true if stage was terminated
+     */
+    bool has_terminated() const noexcept { return m_terminated; }
 
    protected:
     /**
@@ -244,13 +253,13 @@ class Progress_thread final {
     // display-related variables
     std::mutex m_finished_mutex;
     std::condition_variable m_finished_cv;
-    volatile bool m_finished = false;
+    std::atomic_bool m_finished = false;
 
     std::mutex m_display_done_mutex;
     std::condition_variable m_display_done_cv;
-    volatile bool m_display_done = false;
+    std::atomic_bool m_display_done = false;
 
-    volatile bool m_terminated = false;
+    std::atomic_bool m_terminated = false;
     bool m_started = false;
   };
 
@@ -276,6 +285,10 @@ class Progress_thread final {
      * tilde.
      */
     std::function<bool()> is_total_known;
+    /**
+     * Text to be displayed after 'current / total', optional.
+     */
+    std::function<std::string()> right_label;
   };
 
   /**
@@ -486,15 +499,11 @@ class Progress_thread final {
 
   /**
    * Finishes any pending stages and waits for their completion.
+   * If there's an exception pending, interrupts execution of all stages.
    *
    * @throws any exception reported by the stages
    */
   void finish();
-
-  /**
-   * Interrupts execution of all stages.
-   */
-  void terminate();
 
   /**
    * Provides duration of all the registered stages.
@@ -546,6 +555,8 @@ class Progress_thread final {
   void kill_thread();
 
   void toggle_visibility(bool show);
+
+  void terminate();
 
   // configuration
   std::string m_description;

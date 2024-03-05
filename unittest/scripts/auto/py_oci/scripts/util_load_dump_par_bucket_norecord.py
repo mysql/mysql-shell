@@ -74,7 +74,7 @@ all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-re
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
@@ -93,7 +93,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite"
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -127,7 +127,7 @@ all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObje
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#33332080 - load a dump which is still in progress

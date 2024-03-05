@@ -27,7 +27,6 @@ Util.loadDump: Argument #2: Option 'updateGtidSet' is expected to be of type Str
 
 //@# progressFile errors should be reported before opening the dump
 |Loading DDL and Data from '<<<__tmp_dir>>>/ldtest/dump' using 4 threads.|
-|Opening dump...|
 |Target is MySQL |
 ||
 ||Util.loadDump: Cannot open file '<<<__os_type=="windows"?'\\\\?\\invalid\\unwritable':'/invalid/unwritable'>>>': No such file or directory

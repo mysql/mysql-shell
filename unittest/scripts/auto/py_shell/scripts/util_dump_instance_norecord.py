@@ -1233,7 +1233,7 @@ EXPECT_FAIL("ValueError", "Argument #2: Malformed hostname. Cannot use \"'\" or 
 session.run_sql("CREATE USER IF NOT EXISTS 'foo''bar'@'localhost' IDENTIFIED BY 'pwd';")
 
 # WL14841-TSFR_1_1
-EXPECT_FAIL("Error: Shell Error (52036)", "While 'Gathering information': Account 'foo\\'bar'@'localhost' contains the ' character, which is not supported", test_output_absolute, {}, True)
+EXPECT_FAIL("Error: Shell Error (52036)", "Account 'foo\\'bar'@'localhost' contains the ' character, which is not supported", test_output_absolute, {}, True)
 
 # ok if we exclude it
 EXPECT_SUCCESS([test_schema], test_output_absolute, {"excludeUsers":["foo'bar@localhost"]})
@@ -1620,7 +1620,7 @@ for table in missing_pks[test_schema]:
 
 recreate_verification_schema()
 target_version = "8.1.0"
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
 
 # BUG#35663805 print a note to always use the lastest shell
 EXPECT_STDOUT_CONTAINS("NOTE: When migrating to MySQL HeatWave Service, please always use the latest available version of MySQL Shell.")
@@ -1719,7 +1719,7 @@ session.run_sql(f"CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql(f"CREATE TABLE !.! ({', '.join(f'col{i} int' for i in range(columns_count))}) ENGINE=MyISAM;", [ tested_schema, tested_table ])
 
 # test
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True })
 EXPECT_STDOUT_CONTAINS(too_many_columns(tested_schema, tested_table, columns_count).error())
 
 # cleanup
@@ -1764,7 +1764,7 @@ EXPECT_STDOUT_CONTAINS("""
 """)
 
 #@<> BUG#31403104: if users is false, errors about the users should not be included
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
 EXPECT_STDOUT_NOT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
 for plugin in disallowed_authentication_plugins:
@@ -1835,7 +1835,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, t
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
@@ -1849,7 +1849,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1864,7 +1864,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1881,7 +1881,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1976,7 +1976,7 @@ class PrivilegeError:
 # if this list ever changes, online docs need to be updated
 required_privileges = {
     "EVENT": PrivilegeError(  # database-level privilege
-        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user_account)),
+        re.compile(r"User {0} is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user_account)),
         exception_type = "Error: Shell Error (52008)"
     ),
     "RELOAD": PrivilegeError(  # global privilege; if this privilege is missing, FTWRL will fail and dump will fallback to LOCK TABLES
@@ -1985,7 +1985,7 @@ required_privileges = {
         exception_type = "Error: Shell Error (52002)"
     ),
     "SELECT": PrivilegeError(  # table-level privilege
-        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: SELECT.".format(test_user_account)),
+        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: SELECT.".format(test_user_account)),
         exception_type = "Error: Shell Error (52009)"
     ),
     "SHOW VIEW": PrivilegeError(  # table-level privilege
@@ -1995,7 +1995,7 @@ required_privileges = {
         exception_type = "Error: Shell Error (52006)"
     ),
     "TRIGGER": PrivilegeError(  # table-level privilege
-        re.compile(r"While 'Gathering information': User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user_account)),
+        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user_account)),
         exception_type = "Error: Shell Error (52009)"
     ),
     "REPLICATION CLIENT": PrivilegeError(  # global privilege
@@ -3568,7 +3568,7 @@ schema_level_grant_with_unescaped_percent = f"GRANT SELECT ON `{schema_name_with
 session.run_sql(schema_level_grant_with_escaped_percent)
 
 #@<> BUG#34952027 - dumping with ocimds fails
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
 
 EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more accounts with database level grants containing wildcard characters were found.
@@ -3599,7 +3599,7 @@ EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_e
 EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_percent).warning())
 
 #@<> BUG#36524862 - unescape_wildcard_grants is used, escaped wildcards are replaced with wildcard characters
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "compatibility": [ "unescape_wildcard_grants" ], "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "compatibility": [ "unescape_wildcard_grants" ], "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
 
 EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more accounts with database level grants containing wildcard characters were found.
@@ -3758,7 +3758,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error())
@@ -3790,7 +3790,7 @@ EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning())
 for account in [ account_name, "`invalid-account`@`localhost`" ]:
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "includeUsers": [ test_user_account ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "includeUsers": [ test_user_account ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_event, "Event", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_function, "Function", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_procedure, "Procedure", account).warning())

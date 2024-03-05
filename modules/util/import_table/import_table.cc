@@ -131,13 +131,7 @@ void Import_table::progress_setup() {
   m_progress_thread.start_stage("Parallel load data", std::move(config));
 }
 
-void Import_table::progress_shutdown() {
-  if (interrupted()) {
-    m_progress_thread.terminate();
-  } else {
-    m_progress_thread.finish();
-  }
-}
+void Import_table::progress_shutdown() { m_progress_thread.finish(); }
 
 void Import_table::spawn_workers(bool skip_rows) {
   if (!skip_rows) {

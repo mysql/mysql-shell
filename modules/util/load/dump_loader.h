@@ -575,6 +575,10 @@ class Dump_loader {
 
   uint64_t rows_throughput_rate();
 
+  void on_add_index_start(uint64_t count);
+
+  void on_add_index_result(bool success, uint64_t count);
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
@@ -708,7 +712,7 @@ class Dump_loader {
   bool m_workers_killed = false;
 
   // tables and partitions loaded
-  std::unordered_set<std::string> m_unique_tables_loaded;
+  std::atomic<std::size_t> m_unique_tables_loaded = 0;
   size_t m_total_tables_with_data = 0;
 
   size_t m_data_bytes_previously_loaded = 0;
@@ -723,9 +727,17 @@ class Dump_loader {
   uint64_t m_total_ddl_executed = 0;
   double m_total_ddl_execution_seconds = 0;
 
-  std::atomic<uint64_t> m_indexes_recreated;
+  // these variables are used to display the progress
+  std::mutex m_indexes_display_mutex;
+  double m_indexes_progress = 0.0;
+  uint64_t m_indexes_recreated;
+  // (this variable does not change once DDL finishes loading)
   uint64_t m_indexes_to_recreate = 0;
-  bool m_index_count_is_known = false;
+  // these variables are used to track the progress
+  std::mutex m_indexes_progress_mutex;
+  uint64_t m_indexes_completed = 0;
+  uint64_t m_indexes_in_progress = 0;
+  uint64_t m_index_statements_in_progress = 0;
 
   std::atomic<uint64_t> m_tables_analyzed;
   uint64_t m_tables_to_analyze = 0;
@@ -734,6 +746,10 @@ class Dump_loader {
   uint64_t m_checksum_tasks_completed = 0;
   uint64_t m_checksum_tasks_to_complete = 0;
   bool m_all_checksum_tasks_scheduled = false;
+
+  uint64_t m_data_load_tasks_completed = 0;
+  uint64_t m_data_load_tasks_scheduled = 0;
+  bool m_all_data_load_tasks_scheduled = false;
 
   std::unordered_map<std::string, bool> m_schema_ddl_ready;
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;

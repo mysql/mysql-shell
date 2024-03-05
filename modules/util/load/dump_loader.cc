@@ -28,6 +28,7 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <condition_variable>
 #include <functional>
@@ -398,6 +399,125 @@ std::string use_schema(const std::string &schema, const std::string &script) {
   result += script;
 
   return result;
+}
+
+double add_index_progress(const Session_ptr &session, uint64_t statements,
+                          uint64_t indexes) {
+  // there are seven stages of ALTER TABLE:
+  // - stage/innodb/alter table (read PK and internal sort)
+  // - stage/innodb/alter table (merge sort) - repeated for each index added
+  // - stage/innodb/alter table (insert)     - repeated for each index added
+  // - stage/innodb/alter table (log apply index)
+  // - stage/innodb/alter table (flush)
+  // - stage/innodb/alter table (log apply table)
+  // - stage/innodb/alter table (end)
+  constexpr std::size_t k_stage_count = 7;
+  std::array<uint64_t, k_stage_count> stages{};
+
+  {
+    // prefix is 'stage/innodb/alter table (' - 26 characters
+    constexpr std::size_t k_prefix_length = 26;
+    const auto result =
+        sql::query(session,
+                   "SELECT EVENT_NAME, COUNT(*) FROM "
+                   "performance_schema.events_stages_current WHERE EVENT_NAME "
+                   "LIKE 'stage/innodb/alter table (%' GROUP BY EVENT_NAME");
+
+    while (const auto row = result->fetch_one()) {
+      const auto full_stage = row->get_string(0);
+      const auto stage = full_stage.substr(
+          k_prefix_length, full_stage.length() - k_prefix_length - 1);
+      assert(!stage.empty());
+
+      auto idx = k_stage_count;
+
+      switch (stage[0]) {
+        case 'r':
+          assert("read PK and internal sort" == stage);
+          idx = 0;
+          break;
+
+        case 'm':
+          assert("merge sort" == stage);
+          idx = 1;
+          break;
+
+        case 'i':  // insert
+          assert("insert" == stage);
+          idx = 2;
+          break;
+
+        case 'l':  // log apply ...
+          assert("log apply index" == stage || "log apply table" == stage);
+          idx = stage.back() == 'x' ? 3 : 5;
+          break;
+
+        case 'f':  // flush
+          assert("flush" == stage);
+          idx = 4;
+          break;
+
+        case 'e':  // end
+          assert("end" == stage);
+          idx = 6;
+          break;
+      }
+
+      if (idx < k_stage_count) {
+        stages[idx] = row->get_uint(1);
+      }
+    }
+  }
+
+  std::array<double, k_stage_count> weights;
+  weights.fill(1.0);
+  // stages which have repeated entries for each index have a higher weight -
+  // first three stages take most of the time
+  weights[1] = weights[2] = static_cast<double>(indexes) / statements;
+
+  // compute cumulative weight
+  for (std::size_t i = 1; i < k_stage_count; ++i) {
+    weights[i] += weights[i - 1];
+  }
+
+  // information provided by PFS is unreliable:
+  //  - when multiple indexes are added in a single statement, NESTING_EVENT_ID
+  //    is NULL, so if there are multiple statements executed in parallel,
+  //    there's no way to say which entry belongs to which statement (stages
+  //    second and third)
+  //  - after some time both WORK_COMPLETED and WORK_ESTIMATED stop, and are no
+  //    longer updated
+  //  - when multiple indexes are added in a single statement, PFS can return
+  //    less entries than there are indexes (stages second and third)
+  //  - when multiple indexes are added in a single statement, a stage that was
+  //    completed can still be present in results
+  // we're searching for the highest stage and assume that all stages before are
+  // complete
+
+  double progress = 0.0;
+
+  for (uint64_t s = 0; s < statements; ++s) {
+    std::size_t idx = k_stage_count - 1;
+
+    for (std::size_t i = 0; i < k_stage_count; ++i) {
+      if (stages[idx]) {
+        --stages[idx];
+
+        if (idx > 0) {
+          progress += weights[idx - 1];
+        }
+
+        break;
+      }
+
+      --idx;
+    }
+  }
+
+  progress *= 100;
+  progress /= weights.back() * statements;
+
+  return progress;
 }
 
 }  // namespace
@@ -1372,6 +1492,7 @@ void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
 
     options.skip_bytes = m_bytes_to_skip;
     stats.total_data_bytes += m_bytes_to_skip;
+    loader->m_stats.total_data_bytes += m_bytes_to_skip;
 
     op.execute(worker->session(), extract_file(), options);
   }
@@ -1522,8 +1643,6 @@ bool Dump_loader::Worker::Analyze_table_task::execute(Worker *worker,
   log_debug("%swill analyze table `%s`.`%s`", log_id(), schema().c_str(),
             table().c_str());
 
-  auto console = current_console();
-
   if (m_histograms.empty() ||
       !histograms_supported(loader->m_options.target_server_version()))
     log_info("Analyzing table `%s`.`%s`", schema().c_str(), table().c_str());
@@ -1574,130 +1693,135 @@ bool Dump_loader::Worker::Analyze_table_task::execute(Worker *worker,
 
 bool Dump_loader::Worker::Index_recreation_task::execute(Worker *worker,
                                                          Dump_loader *loader) {
-  log_debug("%swill recreate %zu indexes for table %s", log_id(),
+  log_debug("%swill build %zu indexes for table %s", log_id(),
             m_indexes->size(), key().c_str());
 
-  const auto console = current_console();
-
   if (!m_indexes->empty())
-    log_info("%sRecreating indexes for %s", log_id(), key().c_str());
+    log_info("%sBuilding indexes for %s", log_id(), key().c_str());
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
-  // do work
-  if (!loader->m_options.dry_run()) {
-    loader->m_num_threads_recreating_indexes++;
-    shcore::on_leave_scope cleanup(
-        [loader]() { loader->m_num_threads_recreating_indexes--; });
+  loader->m_num_threads_recreating_indexes++;
+  shcore::on_leave_scope cleanup(
+      [loader]() { loader->m_num_threads_recreating_indexes--; });
 
-    // for the analysis of various index types and their impact on the parallel
-    // index creation see: BUG#33976718
-    std::list<std::vector<std::string_view>> batches;
+  // for the analysis of various index types and their impact on the parallel
+  // index creation see: BUG#33976718
+  std::list<std::vector<std::string_view>> batches;
 
-    {
-      const auto append = [](const std::vector<std::string> &what,
-                             std::vector<std::string_view> *where) {
-        where->insert(where->end(), what.begin(), what.end());
-      };
-      auto &first_batch = batches.emplace_back();
+  {
+    const auto append = [](const std::vector<std::string> &what,
+                           std::vector<std::string_view> *where) {
+      where->insert(where->end(), what.begin(), what.end());
+    };
+    auto &first_batch = batches.emplace_back();
 
-      // BUG#34787778 - fulltext indexes need to be added one at a time
-      if (!m_indexes->fulltext.empty()) {
-        first_batch.emplace_back(m_indexes->fulltext.front());
-      }
-
-      if (!m_indexes->spatial.empty()) {
-        // we load all indexes at once if:
-        //  - server does not support parallel index creation
-        auto single_batch =
-            loader->m_options.target_server_version() < Version(8, 0, 27);
-        //  - table has a virtual column
-        single_batch |= m_indexes->has_virtual_columns;
-        //  - table has a fulltext index
-        single_batch |= !m_indexes->fulltext.empty();
-
-        // if server supports parallel index creation and table does not have
-        // virtual columns or fulltext indexes, we add spatial indexes in
-        // another batch
-        append(m_indexes->spatial,
-               single_batch ? &first_batch : &batches.emplace_back());
-      }
-
-      append(m_indexes->regular, &first_batch);
-
-      // BUG#34787778 - fulltext indexes need to be added one at a time
-      if (!m_indexes->fulltext.empty()) {
-        for (auto it = std::next(m_indexes->fulltext.begin()),
-                  end = m_indexes->fulltext.end();
-             it != end; ++it) {
-          batches.emplace_back().emplace_back(*it);
-        }
-      }
+    // BUG#34787778 - fulltext indexes need to be added one at a time
+    if (!m_indexes->fulltext.empty()) {
+      first_batch.emplace_back(m_indexes->fulltext.front());
     }
 
-    try {
-      const auto &session = worker->session();
-      auto current = batches.begin();
-      const auto end = batches.end();
+    if (!m_indexes->spatial.empty()) {
+      // we load all indexes at once if:
+      //  - server does not support parallel index creation
+      auto single_batch =
+          loader->m_options.target_server_version() < Version(8, 0, 27);
+      //  - table has a virtual column
+      single_batch |= m_indexes->has_virtual_columns;
+      //  - table has a fulltext index
+      single_batch |= !m_indexes->fulltext.empty();
 
-      while (end != current) {
-        auto query = "ALTER TABLE " + key() + " ";
+      // if server supports parallel index creation and table does not have
+      // virtual columns or fulltext indexes, we add spatial indexes in another
+      // batch
+      append(m_indexes->spatial,
+             single_batch ? &first_batch : &batches.emplace_back());
+    }
 
-        for (const auto &definition : *current) {
-          query += "ADD ";
-          query += definition;
-          query += ',';
-        }
+    append(m_indexes->regular, &first_batch);
 
-        // remove last comma
-        query.pop_back();
+    // BUG#34787778 - fulltext indexes need to be added one at a time
+    if (!m_indexes->fulltext.empty()) {
+      for (auto it = std::next(m_indexes->fulltext.begin()),
+                end = m_indexes->fulltext.end();
+           it != end; ++it) {
+        batches.emplace_back().emplace_back(*it);
+      }
+    }
+  }
 
-        auto retry = false;
+  try {
+    const auto &session = worker->session();
+    auto current = batches.begin();
+    const auto end = batches.end();
 
-        try {
+    while (end != current) {
+      auto query = "ALTER TABLE " + key() + " ";
+
+      for (const auto &definition : *current) {
+        query += "ADD ";
+        query += definition;
+        query += ',';
+      }
+
+      // remove last comma
+      query.pop_back();
+
+      auto retry = false;
+
+      try {
+        bool success = false;
+        loader->on_add_index_start(current->size());
+        shcore::on_leave_scope report_result{
+            [loader, &success, size = current->size()]() {
+              loader->on_add_index_result(success, size);
+            }};
+
+        if (!loader->m_options.dry_run()) {
           // statement is not idempotent - do not reconnect
           execute_statement(
-              session, query, "While recreating indexes for table " + key(),
+              session, query, "While building indexes for table " + key(),
               current->size() <= 1 ? -1 : ER_TEMP_FILE_WRITE_FAILURE);
-          loader->m_indexes_recreated += current->size();
-        } catch (const shcore::Error &e) {
-          if (e.code() == ER_TEMP_FILE_WRITE_FAILURE) {
-            if (current->size() <= 1) {
-              // we cannot split any more, report the error
-              throw;
-            } else {
-              log_info(
-                  "Failed to add indexes: the innodb_tmpdir is full, failed "
-                  "query: %s",
-                  query.c_str());
-
-              // split this batch in two and retry
-              const auto new_size = current->size() / 2;
-              std::vector<std::string_view> new_batch;
-
-              std::move(std::next(current->begin(), new_size), current->end(),
-                        std::back_inserter(new_batch));
-              current->resize(new_size);
-              batches.insert(std::next(current), std::move(new_batch));
-              retry = true;
-              ++loader->m_num_index_retries;
-            }
-          } else {
-            throw;
-          }
         }
 
-        if (!retry) {
-          ++current;
+        success = true;
+      } catch (const shcore::Error &e) {
+        if (e.code() == ER_TEMP_FILE_WRITE_FAILURE) {
+          if (current->size() <= 1) {
+            // we cannot split any more, report the error
+            throw;
+          } else {
+            log_info(
+                "Failed to add indexes: the innodb_tmpdir is full, failed "
+                "query: %s",
+                query.c_str());
+
+            // split this batch in two and retry
+            const auto new_size = current->size() / 2;
+            std::vector<std::string_view> new_batch;
+
+            std::move(std::next(current->begin(), new_size), current->end(),
+                      std::back_inserter(new_batch));
+            current->resize(new_size);
+            batches.insert(std::next(current), std::move(new_batch));
+            retry = true;
+            ++loader->m_num_index_retries;
+          }
+        } else {
+          throw;
         }
       }
-    } catch (const std::exception &e) {
-      handle_current_exception(
-          worker, loader,
-          shcore::str_format("While recreating indexes for table %s: %s",
-                             key().c_str(), e.what()));
-      return false;
+
+      if (!retry) {
+        ++current;
+      }
     }
+  } catch (const std::exception &e) {
+    handle_current_exception(
+        worker, loader,
+        shcore::str_format("While building indexes for table %s: %s",
+                           key().c_str(), e.what()));
+    return false;
   }
 
   log_debug("%sdone", log_id());
@@ -1757,8 +1881,6 @@ void Dump_loader::Worker::run() {
 }
 
 void Dump_loader::Worker::do_run() {
-  auto console = current_console();
-
   try {
     m_reconnect_callback = [this]() { connect(); };
     m_reconnect_callback();
@@ -2054,41 +2176,44 @@ Dump_loader::filter_user_script_for_mds() const {
 }
 
 void Dump_loader::on_dump_begin() {
-  std::string pre_script = m_dump->begin_script();
-
-  current_console()->print_status("Executing common preamble SQL");
+  const auto stage =
+      m_progress_thread.start_stage("Executing common preamble SQL");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   if (!m_options.dry_run())
-    execute_script(m_reconnect_callback, m_session, pre_script,
+    execute_script(m_reconnect_callback, m_session, m_dump->begin_script(),
                    "While executing preamble SQL", m_default_sql_transforms);
 }
 
 void Dump_loader::on_dump_end() {
-  std::string post_script = m_dump->end_script();
-
   // Execute schema end scripts
   for (const std::string &schema : m_dump->schemas()) {
     on_schema_end(schema);
   }
 
-  const auto console = current_console();
-  console->print_status("Executing common postamble SQL");
+  {
+    const auto stage =
+        m_progress_thread.start_stage("Executing common postamble SQL");
+    shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
-  if (!m_options.dry_run())
-    execute_script(m_reconnect_callback, m_session, post_script,
-                   "While executing postamble SQL", m_default_sql_transforms);
+    if (!m_options.dry_run())
+      execute_script(m_reconnect_callback, m_session, m_dump->end_script(),
+                     "While executing postamble SQL", m_default_sql_transforms);
+  }
+
+  const auto console = current_console();
 
   // Update GTID_PURGED only when requested by the user
   if (m_options.update_gtid_set() != Load_dump_options::Update_gtid_set::OFF) {
     auto status = m_load_log->status(progress::Gtid_update{});
     if (status == Load_progress_log::Status::DONE) {
-      console->print_status("GTID_PURGED already updated");
+      console->print_status("GTID_PURGED already updated, skipping");
       log_info("GTID_PURGED already updated");
     } else if (!m_dump->gtid_executed().empty()) {
       if (m_dump->gtid_executed_inconsistent()) {
         console->print_warning(
-            "The gtid update requested, but gtid_executed was not guaranteed "
-            "to be consistent during the dump");
+            "gtid update requested, but gtid_executed was not guaranteed to be "
+            "consistent during the dump");
       }
 
       try {
@@ -2125,7 +2250,7 @@ void Dump_loader::on_dump_end() {
       }
     } else {
       console->print_warning(
-          "gtid update requested but, gtid_executed not set in dump");
+          "gtid update requested, but gtid_executed not set in dump");
     }
   }
 
@@ -2148,7 +2273,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
   if (m_options.load_deferred_indexes()) {
     const auto &fks = m_dump->deferred_schema_fks(schema);
     if (!fks.empty()) {
-      log_info("Recreating FOREIGN KEY constraints for schema %s",
+      log_info("Restoring FOREIGN KEY constraints for schema %s",
                shcore::quote_identifier(schema).c_str());
       if (!m_options.dry_run()) {
         for (const auto &q : fks) {
@@ -2271,6 +2396,13 @@ bool Dump_loader::handle_table_data() {
       }
     }
   } while (!scheduled);
+
+  if (scheduled) {
+    ++m_data_load_tasks_scheduled;
+  } else if (!m_all_data_load_tasks_scheduled &&
+             Dump_reader::Status::COMPLETE == m_dump->status()) {
+    m_all_data_load_tasks_scheduled = true;
+  }
 
   return scheduled;
 }
@@ -2588,10 +2720,6 @@ bool Dump_loader::schedule_next_task() {
     if (m_options.load_deferred_indexes()) {
       setup_create_indexes_progress();
 
-      if (is_data_load_complete()) {
-        m_index_count_is_known = true;
-      }
-
       compatibility::Deferred_statements::Index_info *indexes = nullptr;
 
       if (m_dump->next_deferred_index(&schema, &table, &indexes)) {
@@ -2608,18 +2736,24 @@ bool Dump_loader::schedule_next_task() {
 
       std::vector<Dump_reader::Histogram> histograms;
 
-      if (m_dump->next_table_analyze(&schema, &table, &histograms)) {
-        // if Analyze_table_mode is HISTOGRAM, only analyze tables with
-        // histogram info in the dump
-        if (Load_dump_options::Analyze_table_mode::ON == analyze_tables ||
-            !histograms.empty()) {
-          ++m_tables_to_analyze;
-          push_pending_task(analyze_table(schema, table, histograms));
-          return true;
+      do {
+        if (m_dump->next_table_analyze(&schema, &table, &histograms)) {
+          // if Analyze_table_mode is HISTOGRAM, only analyze tables with
+          // histogram info in the dump
+          if (Load_dump_options::Analyze_table_mode::ON == analyze_tables ||
+              !histograms.empty()) {
+            ++m_tables_to_analyze;
+            push_pending_task(analyze_table(schema, table, histograms));
+            return true;
+          }
+        } else {
+          if (!m_all_analyze_tasks_scheduled && is_data_load_complete()) {
+            m_all_analyze_tasks_scheduled = true;
+          }
+
+          break;
         }
-      } else if (is_data_load_complete()) {
-        m_all_analyze_tasks_scheduled = true;
-      }
+      } while (true);
     }
 
     if (m_options.checksum()) {
@@ -2638,7 +2772,8 @@ bool Dump_loader::schedule_next_task() {
                                     checksum->partition());
           }
         } else {
-          if (m_dump->all_data_verification_scheduled()) {
+          if (!m_all_checksum_tasks_scheduled &&
+              m_dump->all_data_verification_scheduled()) {
             m_all_checksum_tasks_scheduled = true;
           }
 
@@ -2681,13 +2816,8 @@ void Dump_loader::abort() {
 void Dump_loader::run() {
   try {
     m_progress_thread.start();
-    shcore::on_leave_scope cleanup_progress([this]() {
-      if (m_worker_interrupt) {
-        m_progress_thread.terminate();
-      } else {
-        m_progress_thread.finish();
-      }
-    });
+    shcore::on_leave_scope cleanup_progress(
+        [this]() { m_progress_thread.finish(); });
 
     open_dump();
 
@@ -2797,17 +2927,17 @@ void Dump_loader::show_summary() {
         "Data load duration: %s", format_seconds(load_seconds, false).c_str()));
   }
 
-  if (m_indexes_recreated) {
+  if (m_indexes_completed) {
     assert(m_create_indexes_stage);
 
     console->print_info(shcore::str_format(
-        "%" PRIu64 " indexes were recreated in %s.", m_indexes_recreated.load(),
+        "%" PRIu64 " indexes were built in %s.", m_indexes_completed,
         format_seconds(m_create_indexes_stage->duration().seconds(), false)
             .c_str()));
 
     if (m_num_index_retries) {
       console->print_info(
-          shcore::str_format("There were %zi retries to create indexes.",
+          shcore::str_format("There were %zi retries to build indexes.",
                              m_num_index_retries.load()));
     }
   }
@@ -2871,11 +3001,17 @@ void Dump_loader::open_dump() { open_dump(m_options.create_dump_handle()); }
 
 void Dump_loader::open_dump(
     std::unique_ptr<mysqlshdk::storage::IDirectory> dumpdir) {
-  auto console = current_console();
   m_dump = std::make_unique<Dump_reader>(std::move(dumpdir), m_options);
+  Dump_reader::Status status;
 
-  console->print_status("Opening dump...");
-  auto status = m_dump->open();
+  {
+    const auto stage = m_progress_thread.start_stage("Opening dump");
+    shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
+    status = m_dump->open();
+  }
+
+  const auto console = current_console();
 
   if (m_dump->dump_version().get_major() > k_supported_dump_version_major ||
       (m_dump->dump_version().get_major() == k_supported_dump_version_major &&
@@ -3291,9 +3427,9 @@ bool Dump_loader::report_duplicates(
 }
 
 void Dump_loader::check_existing_objects() {
-  auto console = current_console();
-
-  console->print_status("Checking for pre-existing objects...");
+  const auto stage =
+      m_progress_thread.start_stage("Checking for pre-existing objects");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   bool has_duplicates = false;
 
@@ -3402,6 +3538,8 @@ void Dump_loader::check_existing_objects() {
   }
 
   if (has_duplicates) {
+    const auto console = current_console();
+
     if (m_options.ignore_existing_objects()) {
       console->print_note(
           "One or more objects in the dump already exist in the destination "
@@ -4148,10 +4286,12 @@ void Dump_loader::on_chunk_load_end(std::size_t,
       chunk.schema, chunk.table, chunk.partition, chunk.index,
       data_bytes_loaded, file_bytes_loaded, stats.total_records});
 
-  m_dump->on_chunk_loaded(chunk);
+  if (m_dump->on_chunk_loaded(chunk)) {
+    // all data for this table/partition was loaded
+    ++m_unique_tables_loaded;
+  }
 
-  m_unique_tables_loaded.insert(
-      schema_table_object_key(chunk.schema, chunk.table, chunk.partition));
+  ++m_data_load_tasks_completed;
 
   log_debug("Ended loading chunk %s (%s, %s)", format_table(chunk).c_str(),
             std::to_string(data_bytes_loaded).c_str(),
@@ -4207,9 +4347,8 @@ void Dump_loader::on_bulk_load_end(std::size_t,
       file_bytes_loaded, stats.total_records});
 
   m_dump->on_table_loaded(chunk);
-
-  m_unique_tables_loaded.insert(
-      schema_table_object_key(chunk.schema, chunk.table, chunk.partition));
+  ++m_unique_tables_loaded;
+  ++m_data_load_tasks_completed;
 
   log_debug("Ended bulk loading table %s (%s, %s)", format_table(chunk).c_str(),
             std::to_string(data_bytes_loaded).c_str(),
@@ -4571,7 +4710,7 @@ void Dump_loader::setup_load_data_progress() {
 
     return shcore::str_format(
         "%s, %zu / %zu tables%s done", rows_throughput.c_str(),
-        m_unique_tables_loaded.size(), m_total_tables_with_data,
+        m_unique_tables_loaded.load(), m_total_tables_with_data,
         m_dump->has_partitions() ? " and partitions" : "");
   };
   config.on_display_started = []() {
@@ -4588,15 +4727,58 @@ void Dump_loader::setup_create_indexes_progress() {
   }
 
   m_indexes_recreated = 0;
-  m_index_count_is_known = false;
+
+  m_monitoring->add([this](const Session_ptr &session) {
+    if (m_indexes_to_recreate == m_indexes_recreated) {
+      return;
+    }
+
+    uint64_t indexes_completed = 0;
+    uint64_t indexes_in_progress = 0;
+    uint64_t index_statements_in_progress = 0;
+
+    {
+      std::lock_guard lock{m_indexes_progress_mutex};
+      indexes_completed = m_indexes_completed;
+      indexes_in_progress = m_indexes_in_progress;
+      index_statements_in_progress = m_index_statements_in_progress;
+    }
+
+    double updated_progress = 100.0 * indexes_completed / m_indexes_to_recreate;
+
+    if (index_statements_in_progress) {
+      updated_progress +=
+          add_index_progress(session, index_statements_in_progress,
+                             indexes_in_progress) *
+          indexes_in_progress / m_indexes_to_recreate;
+    }
+
+    if (updated_progress > m_indexes_progress) {
+      std::lock_guard lock{m_indexes_display_mutex};
+      m_indexes_progress = updated_progress;
+      m_indexes_recreated = indexes_completed;
+    }
+  });
 
   dump::Progress_thread::Progress_config config;
-  config.current = [this]() -> uint64_t { return m_indexes_recreated; };
+  config.current = [this]() -> uint64_t {
+    std::lock_guard lock{m_indexes_display_mutex};
+    return m_indexes_recreated;
+  };
   config.total = [this]() { return m_indexes_to_recreate; };
-  config.is_total_known = [this]() { return m_index_count_is_known; };
+  config.right_label = [this]() {
+    double current_progress;
+
+    {
+      std::lock_guard lock{m_indexes_display_mutex};
+      current_progress = m_indexes_progress;
+    }
+
+    return shcore::str_format("(%.2f%%)", current_progress);
+  };
 
   m_create_indexes_stage =
-      m_progress_thread.push_stage("Recreating indexes", std::move(config));
+      m_progress_thread.push_stage("Building indexes", std::move(config));
 }
 
 void Dump_loader::setup_analyze_tables_progress() {
@@ -4651,8 +4833,8 @@ void Dump_loader::on_ddl_done_for_schema(const std::string &schema) {
 }
 
 bool Dump_loader::is_data_load_complete() const {
-  return Dump_reader::Status::COMPLETE == m_dump->status() &&
-         m_stats.total_data_bytes >= m_dump->filtered_data_size();
+  return m_all_data_load_tasks_scheduled &&
+         m_data_load_tasks_scheduled == m_data_load_tasks_completed;
 }
 
 void Dump_loader::log_server_version() const {
@@ -4707,7 +4889,7 @@ Dump_loader::Task_ptr Dump_loader::bulk_load_table(
 Dump_loader::Task_ptr Dump_loader::recreate_indexes(
     const std::string &schema, const std::string &table,
     compatibility::Deferred_statements::Index_info *indexes) const {
-  log_debug("Recreating indexes for `%s`.`%s`", schema.c_str(), table.c_str());
+  log_debug("Building indexes for `%s`.`%s`", schema.c_str(), table.c_str());
   assert(!schema.empty());
   assert(!table.empty());
 
@@ -4755,10 +4937,9 @@ void Dump_loader::load_users() {
     return;
   }
 
-  const auto script = m_dump->users_script();
-  const auto console = current_console();
-
-  console->print_status("Executing user accounts SQL...");
+  const auto stage =
+      m_progress_thread.start_stage("Executing user accounts SQL");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   std::function<bool(const std::string &, const std::string &)>
       strip_revoked_privilege;
@@ -4768,7 +4949,7 @@ void Dump_loader::load_users() {
   }
 
   const auto statements = dump::Schema_dumper::preprocess_users_script(
-      script,
+      m_dump->users_script(),
       [this](const std::string &account) {
         return m_options.filters().users().is_included(account);
       },
@@ -4790,6 +4971,8 @@ void Dump_loader::load_users() {
     all_accounts.clear();
     ignored_accounts.clear();
   };
+
+  const auto console = current_console();
 
   sql::ar::run(reconnect, [&]() {
     std::string new_stmt;
@@ -5063,6 +5246,26 @@ void Dump_loader::update_rows_throughput(uint64_t rows) {
 uint64_t Dump_loader::rows_throughput_rate() {
   std::lock_guard lock{m_rows_throughput_mutex};
   return m_rows_throughput.rate();
+}
+
+void Dump_loader::on_add_index_start(uint64_t count) {
+  std::lock_guard lock{m_indexes_progress_mutex};
+  ++m_index_statements_in_progress;
+  m_indexes_in_progress += count;
+}
+
+void Dump_loader::on_add_index_result(bool success, uint64_t count) {
+  std::lock_guard lock{m_indexes_progress_mutex};
+
+  assert(m_index_statements_in_progress > 0);
+  --m_index_statements_in_progress;
+
+  assert(m_indexes_in_progress >= count);
+  m_indexes_in_progress -= count;
+
+  if (success) {
+    m_indexes_completed += count;
+  }
 }
 
 #if defined(__clang__)
