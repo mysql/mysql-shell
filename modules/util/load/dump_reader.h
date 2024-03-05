@@ -294,7 +294,10 @@ class Dump_reader {
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
-  void on_chunk_loaded(const Table_chunk &chunk);
+  /**
+   * Returns true if all data for this table/partition was loaded.
+   */
+  bool on_chunk_loaded(const Table_chunk &chunk);
 
   void on_table_loaded(const Table_chunk &chunk);
 

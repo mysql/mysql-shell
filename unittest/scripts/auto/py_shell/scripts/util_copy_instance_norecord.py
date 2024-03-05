@@ -377,16 +377,16 @@ TEST_STRING_OPTION("deferTableIndexes")
 #@<> WL15298_TSFR_4_5_14
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "all" })
 # NOTE: functionality is checked in load tests
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_15
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "fulltext" })
 # NOTE: functionality is checked in load tests
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_16
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "off" })
-EXPECT_STDOUT_NOT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_NOT_CONTAINS("Building indexes")
 
 #@<> WL15298 - test invalid values of handleGrantErrors option
 TEST_STRING_OPTION("handleGrantErrors")
@@ -428,11 +428,11 @@ EXPECT_FAIL("ValueError", f"Argument #{options_arg_no} 'deferTableIndexes' optio
 
 #@<> WL15298_TSFR_4_5_24
 EXPECT_SUCCESS(__sandbox_uri2, { "loadIndexes": False, "deferTableIndexes": "all" })
-EXPECT_STDOUT_NOT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_NOT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_25
 EXPECT_SUCCESS(__sandbox_uri2, { "loadIndexes": True, "deferTableIndexes": "all" })
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_26
 TEST_STRING_OPTION("schema")
@@ -630,7 +630,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error(True))
@@ -662,7 +662,7 @@ EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning(True))
 for account in [ account_name, "`invalid-account`@`localhost`" ]:
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", __sandbox_uri2, { "includeUsers": [ test_user_account ], "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", __sandbox_uri2, { "includeUsers": [ test_user_account ], "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_event, "Event", account).warning(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_function, "Function", account).warning(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_procedure, "Procedure", account).warning(True))

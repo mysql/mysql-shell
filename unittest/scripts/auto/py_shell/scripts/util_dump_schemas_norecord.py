@@ -1288,7 +1288,7 @@ for table in missing_pks[test_schema]:
 excluded_tables.append(quote_identifier(test_schema, test_view))
 
 target_version = "8.1.0"
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema, test_schema], test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeTables": excluded_tables })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema, test_schema], test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeTables": excluded_tables })
 EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {target_version}")
 
 if __version_num < 80000:
@@ -1445,7 +1445,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, t
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
@@ -1459,7 +1459,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1474,7 +1474,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -1491,7 +1491,7 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
@@ -2244,7 +2244,7 @@ session.run_sql("CREATE TABLE !.! (a int primary key, e enum('aaaaaaaaaaaaaaaaaa
 session.run_sql("CREATE TABLE !.not_so_large (a int primary key, e enum('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccccccccc','ccccccccccccccccccccccccccccccccccccffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddeeeeee', 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'))", [ tested_schema ])
 
 # dumping the whole schema should fail
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [ tested_schema ], test_output_absolute, { "ocimds": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [ tested_schema ], test_output_absolute, { "ocimds": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS(f"""
 8) ENUM/SET column definitions containing elements longer than 255 characters
 (enumSetElementLength)
@@ -2553,7 +2553,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [ schema_name ], test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error())

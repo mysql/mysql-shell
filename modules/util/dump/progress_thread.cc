@@ -27,6 +27,7 @@
 
 #include <cassert>
 #include <cinttypes>
+#include <exception>
 #include <limits>
 #include <utility>
 
@@ -81,13 +82,17 @@ class Numeric_progress : public Spinner_progress {
     const auto total = m_config.total();
     const auto total_ready =
         m_config.is_total_known ? m_config.is_total_known() : true;
+    const auto right_label = m_config.right_label ? m_config.right_label() : "";
+    const auto max_size =
+        k_max_size + (right_label.empty() ? 0 : right_label.size() + 1);
 
-    m_label.resize(k_max_size);
+    m_label.resize(max_size);
     // space at the end is there to compensate for the optional tilde before the
     // total value
     const auto size = snprintf(
-        &m_label[0], k_max_size, "%" PRIu64 " / %s%" PRIu64 "%s", current,
-        total_ready ? "" : "~", total, total_ready ? " " : "");
+        m_label.data(), max_size, "%" PRIu64 " / %s%" PRIu64 "%s%s%s", current,
+        total_ready ? "" : "~", total, right_label.empty() ? "" : " ",
+        right_label.c_str(), total_ready ? " " : "");
     m_label.resize(size);
 
     m_spinner.set_right_label(m_label);
@@ -260,6 +265,11 @@ void Progress_thread::Stage::start() {
 }
 
 void Progress_thread::Stage::finish(bool wait) {
+  if (!m_terminated && std::uncaught_exceptions()) {
+    terminate();
+    return;
+  }
+
   bool has_finished = false;
 
   {
@@ -333,16 +343,20 @@ void Progress_thread::Stage::wait_for_finish() {
   std::unique_lock<std::mutex> lock(m_finished_mutex);
 
   m_finished_cv.wait_for(lock, std::chrono::milliseconds(k_update_every_ms),
-                         [this]() { return m_finished; });
+                         [this]() { return m_finished.load(); });
 }
 
 void Progress_thread::Stage::wait_for_display_done() {
   std::unique_lock<std::mutex> lock(m_display_done_mutex);
 
-  m_display_done_cv.wait(lock, [this]() { return m_display_done; });
+  m_display_done_cv.wait(lock, [this]() { return m_display_done.load(); });
 }
 
 void Progress_thread::Stage::terminate() {
+  if (m_finished) {
+    return;
+  }
+
   m_terminated = true;
   finish(false);
 }
@@ -443,10 +457,14 @@ Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
 }
 
 void Progress_thread::finish() {
-  shutdown();
-  wait_for_thread();
-  m_total_duration.finish();
-  rethrow();
+  if (std::uncaught_exceptions()) {
+    terminate();
+  } else {
+    shutdown();
+    wait_for_thread();
+    m_total_duration.finish();
+    rethrow();
+  }
 }
 
 void Progress_thread::terminate() {
