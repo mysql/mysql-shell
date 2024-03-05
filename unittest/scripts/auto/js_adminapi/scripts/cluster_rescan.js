@@ -1069,11 +1069,10 @@ cluster.disconnect();
 //@<> check metadata repair when report_host is changed  {VER(>=8.0.27)}
 shell.connect(__sandbox_uri1);
 reset_instance(session);
+
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: instance3_uuid, server_id: instance3_id, report_host: hostname_ip});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
-
-disable_auto_rejoin(__mysql_sandbox_port3);
 
 c = dba.createCluster("cluster" , {gtidSetIsComplete:1});
 c.addInstance(__sandbox_uri3);
@@ -1083,6 +1082,7 @@ c.status();
 shell.connect(__sandbox_uri3);
 testutil.changeSandboxConf(__mysql_sandbox_port3, "report_host", hostname);
 testutil.restartSandbox(__mysql_sandbox_port3);
+
 shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
@@ -1111,8 +1111,8 @@ s = c.status();
 EXPECT_EQ(hostname+":"+__mysql_sandbox_port3, s["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port3]["address"]);
 
 //@<> ensure setPrimary works now {VER(>=8.0.27)}
-c.setPrimaryInstance(__sandbox_uri3);
-c.setPrimaryInstance(__sandbox_uri1);
+EXPECT_NO_THROWS(function(){ c.setPrimaryInstance(__sandbox_uri3); });
+EXPECT_NO_THROWS(function(){ c.setPrimaryInstance(__sandbox_uri1); });
 
 //@<> check that label is not changed if it's not the default  {VER(>=8.0.27)}
 c.setInstanceOption(hostname+":"+__mysql_sandbox_port3, "label", "hooray");
