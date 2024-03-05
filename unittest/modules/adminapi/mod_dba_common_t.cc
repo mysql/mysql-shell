@@ -1316,7 +1316,8 @@ TEST(mod_dba_common, is_option_supported) {
           Version(9, 0, 0), mysqlsh::dba::kExitStateAction,
           mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
-      "Unexpected version found for option support check: '9.0.0'.");
+      "Unsupported server version '9.0.0': AdminAPI operations in this version "
+      "of MySQL Shell support MySQL Server up to version 8.4");
 
   // testing the result of exit-state action case since it has requirements
   // for 8.0 MySQL versions.
@@ -1331,7 +1332,8 @@ TEST(mod_dba_common, is_option_supported) {
           Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
           mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
-      "Unexpected version found for option support check: '5.7.23'.");
+      "Unsupported server version '5.7.23': AdminAPI operations in this "
+      "version of MySQL Shell are supported on MySQL Server 8.0 and above");
 
   // testing the result of autoRejoinRetries which is only supported on 8.0.16
   // onwards (BUG#29246657)
@@ -1346,7 +1348,8 @@ TEST(mod_dba_common, is_option_supported) {
           Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
           mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
-      "Unexpected version found for option support check: '5.7.23'.");
+      "Unsupported server version '5.7.23': AdminAPI operations in this "
+      "version of MySQL Shell are supported on MySQL Server 8.0 and above");
 }
 
 TEST(mod_dba_common, validate_local_address_option) {
