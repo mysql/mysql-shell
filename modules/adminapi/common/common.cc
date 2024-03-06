@@ -217,16 +217,26 @@ bool is_option_supported(
   // if no version was supplied, options can be used regardless of version
   if (!opt_avail.support) return true;
 
-  if (version.get_major() >=
-          Precondition_checker::k_min_adminapi_server_version.get_major() &&
-      version.get_major() <=
-          Precondition_checker::k_max_adminapi_server_version.get_major()) {
-    return version >= opt_avail.support;
+  // Check if the version is supported by the AdminAPI
+  if (version < Precondition_checker::k_min_adminapi_server_version) {
+    throw std::runtime_error(shcore::str_format(
+        "Unsupported server version '%s': AdminAPI operations in this version "
+        "of MySQL Shell are supported on MySQL Server %s and above ",
+        version.get_full().c_str(),
+        Precondition_checker::k_min_adminapi_server_version.get_short()
+            .c_str()));
   }
 
-  throw std::runtime_error(shcore::str_format(
-      "Unexpected version found for option support check: '%s'.",
-      version.get_full().c_str()));
+  if (version > Precondition_checker::k_max_adminapi_server_version) {
+    throw std::runtime_error(shcore::str_format(
+        "Unsupported server version '%s': AdminAPI operations in this version "
+        "of MySQL Shell support MySQL Server up to version %s",
+        version.get_full().c_str(),
+        Precondition_checker::k_max_adminapi_server_version.get_short()
+            .c_str()));
+  }
+
+  return version >= opt_avail.support;
 }
 
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
