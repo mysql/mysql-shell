@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <cassert>
 #include <condition_variable>
+#include <functional>
 #include <iterator>
 #include <list>
 #include <mutex>
@@ -49,6 +50,7 @@
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
+#include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
@@ -98,23 +100,96 @@ static constexpr const auto k_chunk_size_overshoot_tolerance = 1.5;
 namespace {
 
 using Session_ptr = std::shared_ptr<mysqlshdk::db::mysql::Session>;
+using Reconnect = Dump_loader::Reconnect;
 
 constexpr auto k_temp_table_comment =
     "mysqlsh-tmp-218ffeec-b67b-4886-9a8c-d7812a1f93eb";
 
-bool histograms_supported(const Version &version) {
-  return version > Version(8, 0, 0);
+namespace sql {
+
+inline std::shared_ptr<mysqlshdk::db::IResult> query(const Session_ptr &session,
+                                                     std::string_view sql) {
+  return session->query(sql);
 }
 
-bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
-             const std::string &table) {
-  // Return true if the table has a PK or equivalent (UNIQUE NOT NULL)
-  auto res = session->queryf("SHOW INDEX IN !.!", schema, table);
-  while (auto row = res->fetch_one_named()) {
-    if (row.get_int("Non_unique") == 0 && row.get_string("Null").empty())
-      return true;
+template <typename... Args>
+inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
+    const Session_ptr &session, const char *sql, Args &&... args) {
+  return session->queryf(sql, std::forward<Args>(args)...);
+}
+
+inline void execute(const Session_ptr &session, std::string_view sql) {
+  session->execute(sql);
+}
+
+template <typename... Args>
+inline void executef(const Session_ptr &session, const char *sql,
+                     Args &&... args) {
+  session->executef(sql, std::forward<Args>(args)...);
+}
+
+namespace ar {  // auto-reconnect
+
+template <typename F, typename... Args>
+auto run(const Reconnect &reconnect, const F &execute, Args &&... args) {
+  bool reconnected = false;
+
+  while (true) {
+    try {
+      return execute(std::forward<Args>(args)...);
+    } catch (const mysqlshdk::db::Error &e) {
+      if (reconnect && !reconnected &&
+          mysqlshdk::db::is_server_connection_error(e.code())) {
+        log_warning("Session disconnected: %s, attempting to reconnect...",
+                    e.format().c_str());
+        reconnect();
+        reconnected = true;
+      } else {
+        throw;
+      }
+    }
   }
-  return false;
+}
+
+inline std::shared_ptr<mysqlshdk::db::IResult> query(const Reconnect &reconnect,
+                                                     const Session_ptr &session,
+                                                     std::string_view sql) {
+  return run(reconnect, [&session, sql]() { return session->query(sql); });
+}
+
+template <typename... Args>
+inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
+    const Reconnect &reconnect, const Session_ptr &session, std::string sql,
+    Args &&... args) {
+  return run(
+      reconnect,
+      [&session, sql = std::move(sql)](auto &&... a) {
+        return session->queryf(std::move(sql), std::forward<decltype(a)>(a)...);
+      },
+      std::forward<Args>(args)...);
+}
+
+inline void execute(const Reconnect &reconnect, const Session_ptr &session,
+                    std::string_view sql) {
+  return run(reconnect, [&session, sql]() { session->execute(sql); });
+}
+
+template <typename... Args>
+inline void executef(const Reconnect &reconnect, const Session_ptr &session,
+                     std::string sql, Args &&... args) {
+  return run(
+      reconnect,
+      [&session, sql = std::move(sql)](auto &&... a) {
+        session->executef(std::move(sql), std::forward<decltype(a)>(a)...);
+      },
+      std::forward<Args>(args)...);
+}
+
+}  // namespace ar
+}  // namespace sql
+
+bool histograms_supported(const Version &version) {
+  return version > Version(8, 0, 0);
 }
 
 compatibility::Deferred_statements preprocess_table_script_for_indexes(
@@ -178,9 +253,12 @@ void add_invisible_pk(std::string *script, const std::string &key) {
       });
 }
 
-void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
-                       std::string_view stmt, const std::string &error_prefix,
-                       int silent_error = -1) {
+/**
+ * Note: statement is going to be executed without a reconnection in case of a
+ * lost connection.
+ */
+void execute_statement(const Session_ptr &session, std::string_view stmt,
+                       const std::string &error_prefix, int silent_error = -1) {
   assert(!error_prefix.empty());
 
   constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
@@ -189,7 +267,7 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
 
   while (true) {
     try {
-      session->executes(stmt.data(), stmt.length());
+      sql::execute(session, stmt);
       return;
     } catch (const mysqlshdk::db::Error &e) {
       const std::string stmt_str{stmt};
@@ -233,29 +311,37 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
   }
 }
 
+/**
+ * Note: this assumes that script is idempotent and can be executed again in
+ * case of a reconnection.
+ */
 void execute_script(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session,
+    const Reconnect &reconnect, const Session_ptr &session,
     const std::string &script, const std::string &error_prefix,
     const std::function<bool(std::string_view, std::string *)> &process_stmt) {
-  std::stringstream stream(script);
+  assert(reconnect);
 
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, 1024 * 64,
-      [&error_prefix, &session, &process_stmt](
-          std::string_view s, std::string_view, size_t, size_t) {
-        std::string new_stmt;
+  sql::ar::run(reconnect, [&]() {
+    std::stringstream stream(script);
+    std::string new_stmt;
 
-        if (process_stmt && process_stmt(s, &new_stmt)) s = new_stmt;
+    mysqlshdk::utils::iterate_sql_stream(
+        &stream, 1024 * 64,
+        [&](std::string_view s, std::string_view, size_t, size_t) {
+          if (process_stmt && process_stmt(s, &new_stmt)) {
+            s = std::move(new_stmt);
+          }
 
-        if (!s.empty()) {
-          execute_statement(session, s, error_prefix);
-        }
+          if (!s.empty()) {
+            execute_statement(session, s, error_prefix);
+          }
 
-        return true;
-      },
-      [](std::string_view err) {
-        current_console()->print_error(std::string{err});
-      });
+          return true;
+        },
+        [](std::string_view err) {
+          current_console()->print_error(std::string{err});
+        });
+  });
 }
 
 std::string format_table(std::string_view schema, std::string_view table,
@@ -295,15 +381,23 @@ std::string worker_id(size_t id) {
   return shcore::str_format("[Worker%03zu]: ", id);
 }
 
-void mark_temp_table(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+void mark_temp_table(const Reconnect &reconnect, const Session_ptr &session,
                      const std::string &schema, const std::string &table) {
-  session->executef("ALTER TABLE !.! COMMENT=?", schema, table,
-                    k_temp_table_comment);
+  sql::ar::executef(reconnect, session, "ALTER TABLE !.! COMMENT=?", schema,
+                    table, k_temp_table_comment);
 }
 
 std::string format_rows_throughput(const uint64_t rows, double seconds) {
   return mysqlshdk::utils::format_throughput_items("row", "rows", rows, seconds,
                                                    true);
+}
+
+std::string use_schema(const std::string &schema, const std::string &script) {
+  auto result = shcore::sqlformat("USE !;", schema);
+  result += '\n';
+  result += script;
+
+  return result;
 }
 
 }  // namespace
@@ -361,8 +455,10 @@ class Dump_loader::Monitoring final {
 
     for (const auto worker : m_workers) {
       try {
-        Dump_loader::execute(
-            session, "KILL QUERY " + std::to_string(worker->connection_id()));
+        // this is a monitoring session, which should be in continuous use, no
+        // need to reconnect here
+        sql::execute(session,
+                     "KILL QUERY " + std::to_string(worker->connection_id()));
       } catch (const std::exception &e) {
         log_warning("Error canceling SQL connection %" PRIu64 ": %s",
                     worker->connection_id(), e.what());
@@ -544,9 +640,9 @@ class Dump_loader::Bulk_load_support {
     return result;
   }
 
-  bool ensure_table_compatible(
-      const Dump_reader::Table_chunk &chunk,
-      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  bool ensure_table_compatible(const Dump_reader::Table_chunk &chunk,
+                               const Reconnect &reconnect,
+                               const Session_ptr &session) {
     // check in cache first
     if (const auto s = m_compatibility_status.find(chunk.schema);
         m_compatibility_status.end() != s) {
@@ -560,17 +656,18 @@ class Dump_loader::Bulk_load_support {
 
     if (!chunk.partition.empty()) {
       cleanup = shcore::on_leave_scope{
-          copy_table_remove_partition(chunk, session, &table_name)};
+          copy_table_remove_partition(chunk, reconnect, session, &table_name)};
 
       // bulk load requires non-empty tables, we're creating a new one here to
       // run the compatibility test and need to make sure that if original table
       // has some data, copied has it as well
-      Dump_loader::executef(
-          session, "INSERT INTO !.! SELECT * FROM !.! LIMIT 1", chunk.schema,
-          table_name, chunk.schema, chunk.table);
+      sql::ar::executef(reconnect, session,
+                        "INSERT IGNORE INTO !.! SELECT * FROM !.! LIMIT 1",
+                        chunk.schema, table_name, chunk.schema, chunk.table);
     }
 
-    const auto compatible = is_table_compatible(chunk, session, table_name);
+    const auto compatible =
+        is_table_compatible(chunk, reconnect, session, table_name);
 
     m_compatibility_status[chunk.schema][chunk.table] = compatible;
 
@@ -582,9 +679,8 @@ class Dump_loader::Bulk_load_support {
   }
 
   std::function<void()> copy_table_remove_partition(
-      const Dump_reader::Table_chunk &chunk,
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      std::string *new_table) const {
+      const Dump_reader::Table_chunk &chunk, const Reconnect &reconnect,
+      const Session_ptr &session, std::string *new_table) const {
     assert(new_table);
 
     auto copied = m_loader->temp_table_name();
@@ -593,23 +689,27 @@ class Dump_loader::Bulk_load_support {
     // table options, nor foreign key definitions, but DIRECTORY options are not
     // supported in OCI, while partitioned InnoDB tables cannot have foreign
     // keys
-    Dump_loader::executef(session, "CREATE TABLE !.! LIKE !.!", chunk.schema,
-                          copied, chunk.schema, chunk.table);
+    // statement is not idempotent - do not reconnect
+    sql::executef(session, "CREATE TABLE !.! LIKE !.!", chunk.schema, copied,
+                  chunk.schema, chunk.table);
 
     log_info("Created a temporary table for BULK LOAD: `%s`.`%s`",
              chunk.schema.c_str(), copied.c_str());
 
-    auto drop_table = [session, schema = chunk.schema, table = copied]() {
-      Dump_loader::executef(session, "DROP TABLE IF EXISTS !.!", schema, table);
+    auto drop_table = [reconnect, session, schema = chunk.schema,
+                       table = copied]() {
+      sql::ar::executef(reconnect, session, "DROP TABLE IF EXISTS !.!", schema,
+                        table);
 
       log_info("Deleted the temporary table for BULK LOAD: `%s`.`%s`",
                schema.c_str(), table.c_str());
     };
     shcore::on_leave_scope cleanup{drop_table};
 
-    mark_temp_table(session, chunk.schema, copied);
-    Dump_loader::executef(session, "ALTER TABLE !.! REMOVE PARTITIONING",
-                          chunk.schema, copied);
+    mark_temp_table(reconnect, session, chunk.schema, copied);
+    // statement is not idempotent - do not reconnect
+    sql::executef(session, "ALTER TABLE !.! REMOVE PARTITIONING", chunk.schema,
+                  copied);
 
     *new_table = std::move(copied);
 
@@ -678,11 +778,12 @@ class Dump_loader::Bulk_load_support {
     }
 
     // we don't filter here, we should be the only ones to BULK LOAD
-    const auto result = Dump_loader::query(
-        session,
-        "SELECT THREAD_ID, WORK_ESTIMATED, WORK_COMPLETED FROM "
-        "performance_schema.events_stages_current WHERE "
-        "EVENT_NAME='stage/bulk_load_sorted/loading'");
+    // no reconnection - we're using the monitoring session
+    const auto result =
+        sql::query(session,
+                   "SELECT THREAD_ID, WORK_ESTIMATED, WORK_COMPLETED FROM "
+                   "performance_schema.events_stages_current WHERE "
+                   "EVENT_NAME='stage/bulk_load_sorted/loading'");
 
     std::size_t data_bytes_update = 0;
     std::size_t file_bytes_update = 0;
@@ -748,12 +849,12 @@ class Dump_loader::Bulk_load_support {
     return delta;
   }
 
-  bool is_table_compatible(
-      const Dump_reader::Table_chunk &chunk,
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const std::string &table) const {
+  bool is_table_compatible(const Dump_reader::Table_chunk &chunk,
+                           const Reconnect &reconnect,
+                           const Session_ptr &session,
+                           const std::string &table) const {
     try {
-      Dump_loader::execute(session, load_statement(chunk, table, true));
+      sql::ar::execute(reconnect, session, load_statement(chunk, table, true));
       return true;
     } catch (const mysqlshdk::db::Error &e) {
       log_info("Table %s is not compatible with BULK LOAD: %s",
@@ -789,8 +890,7 @@ void Dump_loader::Worker::Task::handle_current_exception(
   worker->handle_current_exception(loader, error);
 }
 
-bool Dump_loader::Worker::Schema_ddl_task::execute(const Session_ptr &session,
-                                                   Worker *worker,
+bool Dump_loader::Worker::Schema_ddl_task::execute(Worker *worker,
                                                    Dump_loader *loader) {
   log_debug("%swill execute DDL for schema %s", log_id(), schema().c_str());
 
@@ -818,7 +918,8 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(const Session_ptr &session,
             });
 
         // execute sql
-        execute_script(session, m_script,
+        execute_script(worker->reconnect_callback(), worker->session(),
+                       m_script,
                        shcore::str_format("While processing schema `%s`",
                                           schema().c_str()),
                        transforms);
@@ -850,8 +951,7 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(const Session_ptr &session,
   return true;
 }
 
-bool Dump_loader::Worker::Table_ddl_task::execute(const Session_ptr &session,
-                                                  Worker *worker,
+bool Dump_loader::Worker::Table_ddl_task::execute(Worker *worker,
                                                   Dump_loader *loader) {
   log_debug("%swill execute DDL file for table %s", log_id(), key().c_str());
 
@@ -862,12 +962,13 @@ bool Dump_loader::Worker::Table_ddl_task::execute(const Session_ptr &session,
 
     if (!loader->m_options.dry_run()) {
       // this is here to detect if data is loaded into a non-existing schema
-      Dump_loader::executef(session, "use !", m_schema.c_str());
+      sql::ar::executef(worker->reconnect_callback(), worker->session(),
+                        "use !", m_schema.c_str());
     }
 
-    load_ddl(session, loader);
+    load_ddl(worker, loader);
 
-    post_process(session, loader);
+    post_process(worker, loader);
   } catch (const std::exception &e) {
     handle_current_exception(
         worker, loader,
@@ -910,17 +1011,17 @@ void Dump_loader::Worker::Table_ddl_task::extract_deferred_statements(
                                           fulltext_only));
 }
 
-void Dump_loader::Worker::Table_ddl_task::post_process(
-    const Session_ptr &session, Dump_loader *loader) {
+void Dump_loader::Worker::Table_ddl_task::post_process(Worker *worker,
+                                                       Dump_loader *loader) {
   if ((m_status == Load_progress_log::DONE ||
        loader->m_options.ignore_existing_objects()) &&
       m_deferred_statements && !m_deferred_statements->empty()) {
-    remove_duplicate_deferred_statements(session, loader);
+    remove_duplicate_deferred_statements(worker, loader);
   }
 }
 
 void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
-    const Session_ptr &session, Dump_loader *loader) {
+    Worker *worker, Dump_loader *loader) {
   // this handles the case where the table was already created (either in a
   // previous run or by the user) and some indexes may already have been
   // re-created
@@ -932,7 +1033,8 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
   std::string ct;
 
   try {
-    ct = Dump_loader::query(session, "show create table " + table_name)
+    ct = sql::ar::query(worker->reconnect_callback(), worker->session(),
+                        "show create table " + table_name)
              ->fetch_one()
              ->get_string(1);
   } catch (const mysqlshdk::db::Error &e) {
@@ -990,7 +1092,7 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
   }
 }
 
-void Dump_loader::Worker::Table_ddl_task::load_ddl(const Session_ptr &session,
+void Dump_loader::Worker::Table_ddl_task::load_ddl(Worker *worker,
                                                    Dump_loader *loader) {
   if (m_status == Load_progress_log::DONE || !loader->m_options.load_ddl()) {
     return;
@@ -1018,7 +1120,7 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(const Session_ptr &session,
   if (!loader->m_options.dry_run()) {
     try {
       // execute sql
-      execute_script(session, m_script,
+      execute_script(worker->reconnect_callback(), worker->session(), m_script,
                      shcore::str_format("%sError processing table %s", log_id(),
                                         key().c_str()),
                      loader->m_default_sql_transforms);
@@ -1039,8 +1141,7 @@ std::string Dump_loader::Worker::Table_data_task::query_comment() const {
   return query_comment;
 }
 
-bool Dump_loader::Worker::Load_data_task::execute(const Session_ptr &session,
-                                                  Worker *worker,
+bool Dump_loader::Worker::Load_data_task::execute(Worker *worker,
                                                   Dump_loader *loader) {
   const auto masked_path = m_chunk.file->full_path().masked();
 
@@ -1048,16 +1149,16 @@ bool Dump_loader::Worker::Load_data_task::execute(const Session_ptr &session,
             key().c_str());
 
   try {
-    on_load_start(session, worker, loader);
+    on_load_start(worker, loader);
 
     // do work
     if (!loader->m_options.dry_run()) {
       // load the data
-      load(session, loader, worker);
+      load(loader, worker);
     }
 
     log_debug("%sdone", log_id());
-    on_load_end(session, worker, loader);
+    on_load_end(worker, loader);
   } catch (const std::exception &e) {
     handle_current_exception(worker, loader,
                              shcore::str_format("While loading %s: %s",
@@ -1068,8 +1169,7 @@ bool Dump_loader::Worker::Load_data_task::execute(const Session_ptr &session,
   return true;
 }
 
-void Dump_loader::Worker::Load_data_task::load(const Session_ptr &session,
-                                               Dump_loader *loader,
+void Dump_loader::Worker::Load_data_task::load(Dump_loader *loader,
                                                Worker *worker) {
   loader->m_num_threads_loading++;
 
@@ -1087,7 +1187,7 @@ void Dump_loader::Worker::Load_data_task::load(const Session_ptr &session,
     loader->m_num_threads_loading--;
   });
 
-  do_load(session, worker, loader);
+  do_load(worker, loader);
 
   if (loader->m_thread_exceptions[id()]) {
     std::rethrow_exception(loader->m_thread_exceptions[id()]);
@@ -1103,8 +1203,7 @@ void Dump_loader::Worker::Load_data_task::load(const Session_ptr &session,
   loader->m_stats.total_files_processed += stats.total_files_processed;
 }
 
-void Dump_loader::Worker::Load_chunk_task::on_load_start(const Session_ptr &,
-                                                         Worker *worker,
+void Dump_loader::Worker::Load_chunk_task::on_load_start(Worker *worker,
                                                          Dump_loader *loader) {
   FI_TRIGGER_TRAP(dump_loader, mysqlshdk::utils::FI::Trigger_options(
                                    {{"op", "BEFORE_LOAD_START"},
@@ -1121,8 +1220,7 @@ void Dump_loader::Worker::Load_chunk_task::on_load_start(const Session_ptr &,
                                     {"chunk", std::to_string(chunk().index)}}));
 }
 
-void Dump_loader::Worker::Load_chunk_task::do_load(const Session_ptr &session,
-                                                   Worker *worker,
+void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
                                                    Dump_loader *loader) {
   auto import_options =
       import_table::Import_table_options::unpack(chunk().options);
@@ -1134,14 +1232,30 @@ void Dump_loader::Worker::Load_chunk_task::do_load(const Session_ptr &session,
   import_options.set_partition(chunk().partition);
 
   if (resume()) {
-    // Truncate the table if its not chunked, but if it's chunked leave it
-    // and rely on duplicate rows being ignored.
-    if (chunk().index < 0 && !has_pke(session.get(), schema(), table())) {
+    const auto has_pke = [worker, this]() {
+      // Return true if the table has a PK or equivalent (UNIQUE NOT NULL)
+      auto res =
+          sql::ar::queryf(worker->reconnect_callback(), worker->session(),
+                          "SHOW INDEX IN !.!", schema(), table());
+
+      while (auto row = res->fetch_one_named()) {
+        if (row.get_int("Non_unique") == 0 && row.get_string("Null").empty()) {
+          return true;
+        }
+      }
+
+      return false;
+    };
+
+    // Truncate the table if does not have a PKE, otherwise leave it and rely on
+    // duplicate rows being ignored.
+    if (!has_pke()) {
       current_console()->print_note(shcore::str_format(
           "Truncating table `%s`.`%s` because of resume and it "
           "has no PK or equivalent key",
           schema().c_str(), table().c_str()));
-      Dump_loader::executef(session, "TRUNCATE TABLE !.!", schema(), table());
+      sql::ar::executef(worker->reconnect_callback(), worker->session(),
+                        "TRUNCATE TABLE !.!", schema(), table());
 
       m_bytes_to_skip = 0;
     }
@@ -1257,12 +1371,11 @@ void Dump_loader::Worker::Load_chunk_task::do_load(const Session_ptr &session,
     options.skip_bytes = m_bytes_to_skip;
     stats.total_data_bytes += m_bytes_to_skip;
 
-    op.execute(session, extract_file(), options);
+    op.execute(worker->session(), extract_file(), options);
   }
 }
 
-void Dump_loader::Worker::Load_chunk_task::on_load_end(const Session_ptr &,
-                                                       Worker *worker,
+void Dump_loader::Worker::Load_chunk_task::on_load_end(Worker *worker,
                                                        Dump_loader *loader) {
   FI_TRIGGER_TRAP(dump_loader, mysqlshdk::utils::FI::Trigger_options(
                                    {{"op", "BEFORE_LOAD_END"},
@@ -1274,15 +1387,17 @@ void Dump_loader::Worker::Load_chunk_task::on_load_end(const Session_ptr &,
   loader->post_worker_event(worker, Worker_event::LOAD_END);
 }
 
-void Dump_loader::Worker::Bulk_load_task::on_load_start(
-    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
+void Dump_loader::Worker::Bulk_load_task::on_load_start(Worker *worker,
+                                                        Dump_loader *loader) {
   loader->post_worker_event(worker, Worker_event::BULK_LOAD_START);
 
   // if table is partitioned, we load into a temporary table, in that case
   // there's no need to check if table is empty
   if (resume() && !partitioned()) {
-    const auto result =
-        Dump_loader::query(session, "SELECT 1 FROM " + key() + " LIMIT 1");
+    const auto &reconnect = worker->reconnect_callback();
+    const auto &session = worker->session();
+    const auto result = sql::ar::query(reconnect, session,
+                                       "SELECT 1 FROM " + key() + " LIMIT 1");
 
     if (result->fetch_one()) {
       // this should not happen, as BULK LOAD is atomic
@@ -1290,13 +1405,12 @@ void Dump_loader::Worker::Bulk_load_task::on_load_start(
           shcore::str_format("Truncating table %s because of resume and it is "
                              "being loaded using BULK LOAD",
                              key().c_str()));
-      Dump_loader::execute(session, "TRUNCATE TABLE " + key());
+      sql::ar::execute(reconnect, session, "TRUNCATE TABLE " + key());
     }
   }
 }
 
-void Dump_loader::Worker::Bulk_load_task::do_load(const Session_ptr &session,
-                                                  Worker *,
+void Dump_loader::Worker::Bulk_load_task::do_load(Worker *worker,
                                                   Dump_loader *loader) {
   log_info("Loading %zu files into table %s using BULK LOAD",
            chunk().chunks_total, key().c_str());
@@ -1306,26 +1420,27 @@ void Dump_loader::Worker::Bulk_load_task::do_load(const Session_ptr &session,
 
     if (partitioned()) {
       cleanup = shcore::on_leave_scope{
-          loader->m_bulk_load->copy_table_remove_partition(chunk(), session,
-                                                           &m_target_table)};
+          loader->m_bulk_load->copy_table_remove_partition(
+              chunk(), worker->reconnect_callback(), worker->session(),
+              &m_target_table)};
     }
 
-    bulk_load(session, loader);
+    bulk_load(worker, loader);
 
     if (partitioned()) {
-      Dump_loader::executef(session,
-                            "ALTER TABLE !.! EXCHANGE PARTITION ! WITH TABLE "
-                            "!.! WITHOUT VALIDATION",
-                            schema(), table(), chunk().partition, schema(),
-                            m_target_table);
+      // statement is not idempotent - do not reconnect
+      sql::executef(worker->session(),
+                    "ALTER TABLE !.! EXCHANGE PARTITION ! WITH TABLE !.! "
+                    "WITHOUT VALIDATION",
+                    schema(), table(), chunk().partition, schema(),
+                    m_target_table);
     }
   } catch (...) {
     loader->m_thread_exceptions[id()] = std::current_exception();
   }
 }
 
-void Dump_loader::Worker::Bulk_load_task::on_load_end(const Session_ptr &,
-                                                      Worker *worker,
+void Dump_loader::Worker::Bulk_load_task::on_load_end(Worker *worker,
                                                       Dump_loader *loader) {
   // signal for more work
   loader->post_worker_event(worker, Worker_event::BULK_LOAD_END);
@@ -1335,10 +1450,11 @@ bool Dump_loader::Worker::Bulk_load_task::partitioned() const {
   return !chunk().partition.empty();
 }
 
-void Dump_loader::Worker::Bulk_load_task::bulk_load(const Session_ptr &session,
+void Dump_loader::Worker::Bulk_load_task::bulk_load(Worker *worker,
                                                     Dump_loader *loader) {
   const auto import_options =
       Bulk_load_support::import_options(chunk(), m_target_table);
+  const auto &session = worker->session();
 
   import_table::Load_data_worker::init_session(session, import_options);
   const auto statement = query_comment() + loader->m_bulk_load->load_statement(
@@ -1351,7 +1467,8 @@ void Dump_loader::Worker::Bulk_load_task::bulk_load(const Session_ptr &session,
   while (true) {
     try {
       log_debug("%sExecuting bulk load", log_id());
-      Dump_loader::execute(session, statement);
+      // this statement has a precondition above, no reconnection
+      sql::execute(session, statement);
       break;
     } catch (const mysqlshdk::db::Error &e) {
       log_debug("%sBulk load error: %s", log_id(), e.format().c_str());
@@ -1387,8 +1504,8 @@ void Dump_loader::Worker::Bulk_load_task::bulk_load(const Session_ptr &session,
   }
 }
 
-bool Dump_loader::Worker::Analyze_table_task::execute(
-    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Analyze_table_task::execute(Worker *worker,
+                                                      Dump_loader *loader) {
   log_debug("%swill analyze table `%s`.`%s`", log_id(), schema().c_str(),
             table().c_str());
 
@@ -1407,9 +1524,13 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 
   try {
     if (!loader->m_options.dry_run()) {
+      const auto &reconnect = worker->reconnect_callback();
+      const auto &session = worker->session();
+
       if (m_histograms.empty() ||
           !histograms_supported(loader->m_options.target_server_version())) {
-        Dump_loader::executef(session, "ANALYZE TABLE !.!", schema(), table());
+        sql::ar::executef(reconnect, session, "ANALYZE TABLE !.!", schema(),
+                          table());
       } else {
         for (const auto &h : m_histograms) {
           shcore::sqlstring q(
@@ -1418,7 +1539,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 
           std::string sql = q.str();
           log_debug("Executing %s", sql.c_str());
-          Dump_loader::execute(session, sql);
+          sql::ar::execute(reconnect, session, sql);
         }
       }
     }
@@ -1438,8 +1559,8 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
   return true;
 }
 
-bool Dump_loader::Worker::Index_recreation_task::execute(
-    const Session_ptr &session, Worker *worker, Dump_loader *loader) {
+bool Dump_loader::Worker::Index_recreation_task::execute(Worker *worker,
+                                                         Dump_loader *loader) {
   log_debug("%swill recreate %zu indexes for table %s", log_id(),
             m_indexes->size(), key().c_str());
 
@@ -1502,6 +1623,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
     }
 
     try {
+      const auto &session = worker->session();
       auto current = batches.begin();
       const auto end = batches.end();
 
@@ -1520,6 +1642,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
         auto retry = false;
 
         try {
+          // statement is not idempotent - do not reconnect
           execute_statement(
               session, query, "While recreating indexes for table " + key(),
               current->size() <= 1 ? -1 : ER_TEMP_FILE_WRITE_FAILURE);
@@ -1571,8 +1694,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   return true;
 }
 
-bool Dump_loader::Worker::Checksum_task::execute(const Session_ptr &session,
-                                                 Worker *worker,
+bool Dump_loader::Worker::Checksum_task::execute(Worker *worker,
                                                  Dump_loader *loader) {
   log_debug("%swill verify checksum for: %s, chunk: %zi", log_id(),
             key().c_str(), chunk_index());
@@ -1586,7 +1708,7 @@ bool Dump_loader::Worker::Checksum_task::execute(const Session_ptr &session,
         [loader]() { --loader->m_num_threads_checksumming; });
 
     try {
-      m_result = m_checksum->validate(session, query_comment());
+      m_result = m_checksum->validate(worker->session(), query_comment());
     } catch (const std::exception &e) {
       handle_current_exception(
           worker, loader,
@@ -1625,7 +1747,8 @@ void Dump_loader::Worker::do_run() {
   auto console = current_console();
 
   try {
-    connect();
+    m_reconnect_callback = [this]() { connect(); };
+    m_reconnect_callback();
   } catch (const shcore::Error &e) {
     handle_current_exception("Error opening connection to MySQL: " +
                              e.format());
@@ -1646,7 +1769,7 @@ void Dump_loader::Worker::do_run() {
 
     assert(std::numeric_limits<size_t>::max() != m_task->id());
 
-    if (!m_task->execute(m_session, this, m_owner)) break;
+    if (!m_task->execute(this, m_owner)) break;
   }
 }
 
@@ -1660,10 +1783,11 @@ void Dump_loader::Worker::connect() {
 
 uint64_t Dump_loader::Worker::current_thread_id() const {
   const auto query = [this](std::string_view q) {
-    return Dump_loader::query(m_session, q)->fetch_one_or_throw()->get_uint(0);
+    // no reconnection - session setup step
+    return sql::query(session(), q)->fetch_one_or_throw()->get_uint(0);
   };
 
-  if (m_session->get_server_version() >= Version(8, 0, 16)) {
+  if (session()->get_server_version() >= Version(8, 0, 16)) {
     return query("SELECT PS_CURRENT_THREAD_ID()");
   }
 
@@ -1750,41 +1874,43 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
 Dump_loader::~Dump_loader() = default;
 
 Session_ptr Dump_loader::create_session() {
-  auto session = establish_session(m_options.connection_options(), false);
+  // no reconnection here - this is a session setup
+  auto session = std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+      establish_session(m_options.connection_options(), false));
 
   // Make sure we don't get affected by user customizations of sql_mode
-  execute(session, "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
+  sql::execute(session, "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
 
   // Set timeouts to larger values since worker threads may get stuck
   // downloading data for some time before they have a chance to get back to
   // doing MySQL work.
-  executef(session, "SET SESSION net_read_timeout = ?",
-           k_mysql_server_net_read_timeout);
+  sql::executef(session, "SET SESSION net_read_timeout = ?",
+                k_mysql_server_net_read_timeout);
 
   // This is the time until the server kicks out idle connections. Our
   // connections should last for as long as the dump lasts even if they're
   // idle.
-  executef(session, "SET SESSION wait_timeout = ?",
-           k_mysql_server_wait_timeout);
+  sql::executef(session, "SET SESSION wait_timeout = ?",
+                k_mysql_server_wait_timeout);
 
   // Disable binlog if requested by user
   if (m_options.skip_binlog()) {
     try {
-      execute(session, "SET sql_log_bin=0");
+      sql::execute(session, "SET sql_log_bin=0");
     } catch (const mysqlshdk::db::Error &e) {
       THROW_ERROR(SHERR_LOAD_FAILED_TO_DISABLE_BINLOG, e.format().c_str());
     }
   }
 
-  execute(session, "SET sql_quote_show_create = 1");
+  sql::execute(session, "SET sql_quote_show_create = 1");
 
-  execute(session, "SET foreign_key_checks = 0");
-  execute(session, "SET unique_checks = 0");
+  sql::execute(session, "SET foreign_key_checks = 0");
+  sql::execute(session, "SET unique_checks = 0");
 
   if (!m_character_set.empty())
-    executef(session, "SET NAMES ?", m_character_set);
+    sql::executef(session, "SET NAMES ?", m_character_set);
 
-  if (m_dump->tz_utc()) execute(session, "SET TIME_ZONE='+00:00'");
+  if (m_dump->tz_utc()) sql::execute(session, "SET TIME_ZONE='+00:00'");
 
   if (m_options.load_ddl() && m_options.auto_create_pks_supported()) {
     // target server supports automatic creation of primary keys, we need to
@@ -1799,22 +1925,23 @@ Session_ptr Dump_loader::create_session() {
     // compatibility option during the dump and this variable is not going to be
     // toggled
     if (m_options.sql_generate_invisible_primary_key() != create_pks) {
-      executef(session, "SET @@SESSION.sql_generate_invisible_primary_key=?",
-               create_pks);
+      sql::executef(session,
+                    "SET @@SESSION.sql_generate_invisible_primary_key=?",
+                    create_pks);
     }
   }
 
   try {
     for (const auto &s : m_options.session_init_sql()) {
       log_info("Executing custom session init SQL: %s", s.c_str());
-      session->execute(s);
+      sql::execute(session, s);
     }
   } catch (const shcore::Error &e) {
     throw shcore::Exception::runtime_error(
         "Error while executing sessionInitSql: " + e.format());
   }
 
-  return std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session);
+  return session;
 }
 
 std::function<bool(const std::string &, const std::string &)>
@@ -1899,8 +2026,8 @@ void Dump_loader::on_dump_begin() {
   current_console()->print_status("Executing common preamble SQL");
 
   if (!m_options.dry_run())
-    execute_script(m_session, pre_script, "While executing preamble SQL",
-                   m_default_sql_transforms);
+    execute_script(m_reconnect_callback, m_session, pre_script,
+                   "While executing preamble SQL", m_default_sql_transforms);
 }
 
 void Dump_loader::on_dump_end() {
@@ -1915,8 +2042,8 @@ void Dump_loader::on_dump_end() {
   console->print_status("Executing common postamble SQL");
 
   if (!m_options.dry_run())
-    execute_script(m_session, post_script, "While executing postamble SQL",
-                   m_default_sql_transforms);
+    execute_script(m_reconnect_callback, m_session, post_script,
+                   "While executing postamble SQL", m_default_sql_transforms);
 
   // Update GTID_PURGED only when requested by the user
   if (m_options.update_gtid_set() != Load_dump_options::Update_gtid_set::OFF) {
@@ -1944,7 +2071,8 @@ void Dump_loader::on_dump_end() {
                    m_dump->gtid_executed().c_str());
 
           if (!m_options.dry_run()) {
-            executef(query, m_dump->gtid_executed());
+            // statement is not idempotent - do not reconnect
+            sql::executef(m_session, query, m_dump->gtid_executed());
           }
         } else {
           console->print_status("Appending dumped gtid set to GTID_PURGED");
@@ -1952,7 +2080,8 @@ void Dump_loader::on_dump_end() {
                    m_dump->gtid_executed().c_str());
 
           if (!m_options.dry_run()) {
-            executef(query, "+" + m_dump->gtid_executed());
+            // statement is not idempotent - do not reconnect
+            sql::executef(m_session, query, "+" + m_dump->gtid_executed());
           }
         }
         m_load_log->log(progress::end::Gtid_update{});
@@ -1968,10 +2097,10 @@ void Dump_loader::on_dump_end() {
   }
 
   // check if redo log is disabled and print a reminder if so
-  auto res = query(
-      "SELECT VARIABLE_VALUE = 'OFF' FROM "
-      "performance_schema.global_status "
-      "WHERE variable_name = 'Innodb_redo_log_enabled'");
+  auto res = sql::ar::query(m_reconnect_callback, m_session,
+                            "SELECT VARIABLE_VALUE = 'OFF' FROM "
+                            "performance_schema.global_status "
+                            "WHERE variable_name = 'Innodb_redo_log_enabled'");
   if (auto row = res->fetch_one()) {
     if (row->get_int(0, 0)) {
       console->print_note(
@@ -1991,7 +2120,8 @@ void Dump_loader::on_schema_end(const std::string &schema) {
       if (!m_options.dry_run()) {
         for (const auto &q : fks) {
           try {
-            execute(q);
+            // statement is not idempotent - do not reconnect
+            sql::execute(m_session, q);
           } catch (const std::exception &e) {
             current_console()->print_error(
                 "Error while restoring FOREIGN KEY constraint in schema `" +
@@ -2023,12 +2153,10 @@ void Dump_loader::on_schema_end(const std::string &schema) {
                  table.c_str());
 
         it.second->open(mysqlshdk::storage::Mode::READ);
-        std::string script = mysqlshdk::storage::read_file(it.second.get());
+        const auto script = mysqlshdk::storage::read_file(it.second.get());
         it.second->close();
 
         if (!m_options.dry_run()) {
-          executef("USE !", schema);
-
           auto transforms = m_default_sql_transforms;
 
           transforms.add_execute_conditionally(
@@ -2038,8 +2166,9 @@ void Dump_loader::on_schema_end(const std::string &schema) {
                 return m_dump->include_trigger(schema, table, name);
               });
 
-          execute_script(m_session, script, "While executing triggers SQL",
-                         transforms);
+          execute_script(m_reconnect_callback, m_session,
+                         use_schema(schema, script),
+                         "While executing triggers SQL", transforms);
         }
       }
 
@@ -2057,7 +2186,8 @@ void Dump_loader::on_schema_end(const std::string &schema) {
       if (!m_options.dry_run()) {
         for (const auto &q : queries) {
           try {
-            execute(q);
+            // statement is not idempotent - do not reconnect
+            sql::execute(m_session, q);
           } catch (const std::exception &e) {
             current_console()->print_error(
                 "Error while executing finalization queries for schema `" +
@@ -2066,25 +2196,6 @@ void Dump_loader::on_schema_end(const std::string &schema) {
           }
         }
       }
-    }
-  }
-}
-
-void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
-  if (!m_options.dry_run()) {
-    try {
-      executef("use !", schema.c_str());
-    } catch (const std::exception &e) {
-      current_console()->print_error(shcore::str_format(
-          "Unable to use schema `%s`%s, error message: %s", schema.c_str(),
-          load_done ? " that according to load status was already created, "
-                      "consider resetting progress"
-                    : "",
-          e.what()));
-
-      if (!m_options.force()) throw;
-
-      add_skipped_schema(schema);
     }
   }
 }
@@ -2800,6 +2911,8 @@ void Dump_loader::check_server_version() {
   const auto &source_server = m_dump->server_version();
   const auto &target_server = m_options.target_server_version();
   const auto mds = m_options.is_mds();
+
+  // no reconnection here - we're using the global session
   mysqlshdk::mysql::Instance session(m_options.base_session());
 
   std::string msg = "Target is MySQL " + target_server.get_full();
@@ -3008,7 +3121,8 @@ void Dump_loader::check_tables_without_primary_key() {
     return;
   }
 
-  if (query("show variables like 'sql_require_primary_key';")
+  if (sql::ar::query(m_reconnect_callback, m_session,
+                     "show variables like 'sql_require_primary_key';")
           ->fetch_one()
           ->get_string(1) != "ON")
     return;
@@ -3050,7 +3164,8 @@ std::vector<std::string> fetch_names(mysqlshdk::db::IResult *result) {
 }
 
 std::shared_ptr<mysqlshdk::db::IResult> query_names(
-    mysqlshdk::db::ISession *session, const std::string &schema,
+    const Reconnect &reconnect, const Session_ptr &session,
+    const std::string &schema,
     const std::list<Dump_reader::Object_info *> &names,
     const std::string &query_prefix) {
   if (!names.empty()) {
@@ -3058,7 +3173,8 @@ std::shared_ptr<mysqlshdk::db::IResult> query_names(
       return shcore::quote_sql_string(s->name);
     });
 
-    return session->queryf(query_prefix + '(' + set + ')', schema);
+    return sql::ar::queryf(reconnect, session, query_prefix + '(' + set + ')',
+                           schema);
   } else {
     return {};
   }
@@ -3141,7 +3257,8 @@ void Dump_loader::check_existing_objects() {
             shcore::str_format("'%s'@'%s'", a.user.c_str(), a.host.c_str())));
     }
 
-    auto result = query(
+    auto result = sql::ar::query(
+        m_reconnect_callback, m_session,
         "SELECT DISTINCT grantee FROM information_schema.user_privileges");
     for (auto row = result->fetch_one(); row; row = result->fetch_one()) {
       auto grantee = row->get_string(0);
@@ -3170,10 +3287,11 @@ void Dump_loader::check_existing_objects() {
       [](const std::string &s) { return shcore::quote_sql_string(s); });
   if (set.empty()) return;
 
-  auto result = query(
-      "SELECT schema_name FROM information_schema.schemata"
-      " WHERE schema_name in (" +
-      set + ")");
+  auto result =
+      sql::ar::query(m_reconnect_callback, m_session,
+                     "SELECT schema_name FROM information_schema.schemata "
+                     "WHERE schema_name in (" +
+                         set + ")");
   std::vector<std::string> dup_schemas = fetch_names(result.get());
 
   for (const auto &schema : dup_schemas) {
@@ -3188,21 +3306,21 @@ void Dump_loader::check_existing_objects() {
                                 &procedures, &events))
       continue;
 
-    result = query_names(m_session.get(), schema, tables,
+    result = query_names(m_reconnect_callback, m_session, schema, tables,
                          "SELECT table_name FROM information_schema.tables"
                          " WHERE table_schema = ? AND table_name in ");
     if (result)
       has_duplicates |=
           report_duplicates("a table", schema, &tables, result.get());
 
-    result = query_names(m_session.get(), schema, views,
+    result = query_names(m_reconnect_callback, m_session, schema, views,
                          "SELECT table_name FROM information_schema.views"
                          " WHERE table_schema = ? AND table_name in ");
     if (result)
       has_duplicates |=
           report_duplicates("a view", schema, &views, result.get());
 
-    result = query_names(m_session.get(), schema, triggers,
+    result = query_names(m_reconnect_callback, m_session, schema, triggers,
                          "SELECT trigger_name FROM information_schema.triggers"
                          " WHERE trigger_schema = ? AND trigger_name in ");
     if (result)
@@ -3210,7 +3328,7 @@ void Dump_loader::check_existing_objects() {
           report_duplicates("a trigger", schema, &triggers, result.get());
 
     result =
-        query_names(m_session.get(), schema, functions,
+        query_names(m_reconnect_callback, m_session, schema, functions,
                     "SELECT routine_name FROM information_schema.routines"
                     " WHERE routine_schema = ? AND routine_type = 'FUNCTION'"
                     " AND routine_name in ");
@@ -3219,7 +3337,7 @@ void Dump_loader::check_existing_objects() {
           report_duplicates("a function", schema, &functions, result.get());
 
     result =
-        query_names(m_session.get(), schema, procedures,
+        query_names(m_reconnect_callback, m_session, schema, procedures,
                     "SELECT routine_name FROM information_schema.routines"
                     " WHERE routine_schema = ? AND routine_type = 'PROCEDURE'"
                     " AND routine_name in ");
@@ -3227,7 +3345,7 @@ void Dump_loader::check_existing_objects() {
       has_duplicates |=
           report_duplicates("a procedure", schema, &procedures, result.get());
 
-    result = query_names(m_session.get(), schema, events,
+    result = query_names(m_reconnect_callback, m_session, schema, events,
                          "SELECT event_name FROM information_schema.events"
                          " WHERE event_schema = ? AND event_name in ");
     if (result)
@@ -3645,11 +3763,9 @@ void Dump_loader::execute_view_ddl_tasks() {
                          schema.c_str(), view.c_str());
 
                 if (!m_options.dry_run()) {
-                  executef("use !", schema.c_str());
-
-                  // execute sql
                   execute_script(
-                      m_session, script,
+                      m_reconnect_callback, m_session,
+                      use_schema(schema, script),
                       shcore::str_format(
                           "Error executing DDL script for view `%s`.`%s`",
                           schema.c_str(), view.c_str()),
@@ -3691,7 +3807,8 @@ void Dump_loader::execute_tasks(bool testing) {
 
   check_server_version();
 
-  m_session = create_session();
+  m_reconnect_callback = [this]() { m_session = create_session(); };
+  m_reconnect_callback();
 
   log_server_version();
 
@@ -4388,11 +4505,12 @@ void Dump_loader::setup_load_data_progress() {
         });
   } else {
     m_monitoring->add([this](const Session_ptr &session) {
+      // no reconnection - we're using the monitoring session
       update_rows_throughput(
-          session
-              ->query("SELECT CAST(VARIABLE_VALUE AS UNSIGNED) FROM "
-                      "performance_schema.global_status WHERE "
-                      "VARIABLE_NAME='Innodb_rows_inserted'")
+          sql::query(session,
+                     "SELECT CAST(VARIABLE_VALUE AS UNSIGNED) FROM "
+                     "performance_schema.global_status WHERE "
+                     "VARIABLE_NAME='Innodb_rows_inserted'")
               ->fetch_one_or_throw()
               ->get_uint(0));
     });
@@ -4491,7 +4609,8 @@ bool Dump_loader::is_data_load_complete() const {
 
 void Dump_loader::log_server_version() const {
   log_info("Destination server: %s",
-           query("SELECT CONCAT(@@version, ' ', @@version_comment)")
+           sql::ar::query(m_reconnect_callback, m_session,
+                          "SELECT CONCAT(@@version, ' ', @@version_comment)")
                ->fetch_one()
                ->get_string(0)
                .c_str());
@@ -4607,71 +4726,84 @@ void Dump_loader::load_users() {
       },
       strip_revoked_privilege);
 
-  std::unordered_set<std::string> all_accounts;
-  std::unordered_set<std::string> ignored_accounts;
-  std::string new_stmt;
-
   if (m_options.dry_run()) {
     return;
   }
 
-  for (const auto &group : statements) {
-    if (!group.account.empty()) {
-      all_accounts.emplace(group.account);
-    }
+  std::unordered_set<std::string> all_accounts;
+  std::unordered_set<std::string> ignored_accounts;
 
-    if (ignored_accounts.count(group.account) > 0) {
-      continue;
-    }
+  const auto reconnect = [&, this]() {
+    m_reconnect_callback();
 
-    for (std::string_view stmt : group.statements) {
-      // repeated to stop executing statements if one of the grants fails
+    m_dropped_accounts = 0;
+    m_ignored_grant_errors = 0;
+    all_accounts.clear();
+    ignored_accounts.clear();
+  };
+
+  sql::ar::run(reconnect, [&]() {
+    std::string new_stmt;
+
+    for (const auto &group : statements) {
+      if (!group.account.empty()) {
+        all_accounts.emplace(group.account);
+      }
+
       if (ignored_accounts.count(group.account) > 0) {
         continue;
       }
 
-      if (m_default_sql_transforms(stmt, &new_stmt)) {
-        stmt = new_stmt;
-      }
-
-      if (stmt.empty()) {
-        continue;
-      }
-
-      try {
-        execute_statement(m_session, stmt, "While executing user accounts SQL");
-      } catch (const mysqlshdk::db::Error &e) {
-        if (dump::Schema_dumper::User_statements::Type::GRANT != group.type) {
-          throw;
+      for (std::string_view stmt : group.statements) {
+        // repeated to stop executing statements if one of the grants fails
+        if (ignored_accounts.count(group.account) > 0) {
+          continue;
         }
 
-        switch (m_options.on_grant_errors()) {
-          case Load_dump_options::Handle_grant_errors::ABORT:
+        if (m_default_sql_transforms(stmt, &new_stmt)) {
+          stmt = std::move(new_stmt);
+        }
+
+        if (stmt.empty()) {
+          continue;
+        }
+
+        try {
+          execute_statement(m_session, stmt,
+                            "While executing user accounts SQL");
+        } catch (const mysqlshdk::db::Error &e) {
+          if (dump::Schema_dumper::User_statements::Type::GRANT != group.type) {
             throw;
-
-          case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT: {
-            console->print_note(
-                "Due to the above error the account " + group.account +
-                " was dropped, the load operation will continue.");
-            ignored_accounts.emplace(group.account);
-
-            const auto drop = "DROP USER IF EXISTS " + group.account;
-            execute_statement(m_session, drop,
-                              "While dropping the account " + group.account);
-            ++m_dropped_accounts;
-            break;
           }
 
-          case Load_dump_options::Handle_grant_errors::IGNORE:
-            console->print_note(
-                "The above error was ignored, the load operation will "
-                "continue.");
-            ++m_ignored_grant_errors;
-            break;
+          switch (m_options.on_grant_errors()) {
+            case Load_dump_options::Handle_grant_errors::ABORT:
+              throw;
+
+            case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT: {
+              console->print_note(
+                  "Due to the above error the account " + group.account +
+                  " was dropped, the load operation will continue.");
+              ignored_accounts.emplace(group.account);
+
+              const auto drop = "DROP USER IF EXISTS " + group.account;
+              execute_statement(m_session, drop,
+                                "While dropping the account " + group.account);
+              ++m_dropped_accounts;
+              break;
+            }
+
+            case Load_dump_options::Handle_grant_errors::IGNORE:
+              console->print_note(
+                  "The above error was ignored, the load operation will "
+                  "continue.");
+              ++m_ignored_grant_errors;
+              break;
+          }
         }
       }
     }
-  }
+  });
 
   m_loaded_accounts = all_accounts.size() - ignored_accounts.size();
 }
@@ -4729,7 +4861,8 @@ bool Dump_loader::bulk_load_supported(
   }
 
   // check if this table is compatible with BULK LOAD
-  if (!m_bulk_load->ensure_table_compatible(chunk, m_session)) {
+  if (!m_bulk_load->ensure_table_compatible(chunk, m_reconnect_callback,
+                                            m_session)) {
     no_bulk_load("not compatible");
     return false;
   }
@@ -4805,7 +4938,8 @@ void Dump_loader::setup_temp_tables() {
 
   {
     // drop all existing temporary tables
-    const auto result = m_session->queryf(
+    const auto result = sql::ar::queryf(
+        m_reconnect_callback, m_session,
         "SELECT TABLE_SCHEMA, TABLE_NAME FROM information_schema.tables WHERE "
         "TABLE_COMMENT=?",
         k_temp_table_comment);
@@ -4820,7 +4954,8 @@ void Dump_loader::setup_temp_tables() {
       log_info("Dropping temporary table: `%s`.`%s`", table.first.c_str(),
                table.second.c_str());
 
-      m_session->queryf("DROP TABLE !.!", table.first, table.second);
+      sql::ar::executef(m_reconnect_callback, m_session,
+                        "DROP TABLE IF EXISTS !.!", table.first, table.second);
     }
   }
 
@@ -4831,10 +4966,10 @@ void Dump_loader::setup_temp_tables() {
 
     do {
       suffix = shcore::get_random_string(5, "0123456789ABCDEF");
-    } while (m_session
-                 ->queryf("SELECT 1 FROM information_schema.tables WHERE "
-                          "TABLE_NAME LIKE ? '%'",
-                          m_temp_table_prefix + suffix)
+    } while (sql::ar::queryf(m_reconnect_callback, m_session,
+                             "SELECT 1 FROM information_schema.tables WHERE "
+                             "TABLE_NAME LIKE ? '%'",
+                             m_temp_table_prefix + suffix)
                  ->fetch_one());
 
     m_temp_table_prefix += suffix;
