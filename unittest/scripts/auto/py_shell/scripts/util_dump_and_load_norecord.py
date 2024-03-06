@@ -3166,6 +3166,57 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "L
 # cleanup
 session.run_sql("SET @@global.sql_mode = @saved_sql_mode")
 
+#@<> BUG#36127633 - reconnect session when connection is lost {not __dbug_off}
+# setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(outdir, "bug_36127633")
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("""CREATE TABLE !.! (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    data BIGINT
+)""", [ tested_schema, tested_table ])
+
+# dump data
+util.dump_instance(dump_dir, { "includeSchemas": [ tested_schema ], "users": False, "showProgress": False })
+
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+# wipe the destination server
+wipeout_server(session2)
+# trap on a comment that's a line in all of the SQL files, trap will hit after the third file (order of SQL files is: pre, schema, table, post)
+testutil.set_trap("mysql", ["sql regex -- -+", "++match_counter > 3"], { "code": 2013, "msg": "Server lost", "state": "HY000" })
+
+# try to load, comment fails each time, load fails as well
+WIPE_OUTPUT()
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "DBError: MySQL Error (2013): Util.load_dump: Server lost")
+EXPECT_STDOUT_CONTAINS("ERROR: While executing postamble SQL: MySQL Error 2013 (HY000): Server lost")
+# log mentions reconnections
+EXPECT_SHELL_LOG_CONTAINS("Session disconnected: ")
+
+testutil.clear_traps("mysql")
+
+# wipe the destination server once again
+wipeout_server(session2)
+# trap on a comment that's a line in all of the SQL files, trap will hit on the fourth file, once
+testutil.set_trap("mysql", ["sql regex -- -+", "++match_counter == 4"], { "code": 2013, "msg": "Server lost", "state": "HY000" })
+
+# try to load, comment fails once, but then succeeds
+WIPE_OUTPUT()
+WIPE_SHELL_LOG()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "resetProgress": True, "showProgress": False }), "load should succeed")
+# log mentions reconnections
+EXPECT_SHELL_LOG_CONTAINS("Session disconnected: ")
+
+testutil.clear_traps("mysql")
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

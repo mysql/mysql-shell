@@ -28,6 +28,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <limits>
 #include <list>
 #include <memory>
@@ -60,6 +61,8 @@ namespace mysqlsh {
 
 class Dump_loader {
  public:
+  using Reconnect = std::function<void()>;
+
   Dump_loader() = delete;
   explicit Dump_loader(const Load_dump_options &options);
 
@@ -94,9 +97,7 @@ class Dump_loader {
             m_key(schema_object_key(schema, table)) {}
       virtual ~Task() {}
 
-      virtual bool execute(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *,
-          Dump_loader *) = 0;
+      virtual bool execute(Worker *, Dump_loader *) = 0;
 
       size_t id() const { return m_id; }
       const char *log_id() const { return m_log_id.c_str(); }
@@ -134,8 +135,7 @@ class Dump_loader {
             m_script(std::move(script)),
             m_resuming(resuming) {}
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
      private:
       std::string m_script;
@@ -153,8 +153,7 @@ class Dump_loader {
             m_status(status),
             m_exists(exists) {}
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
       std::unique_ptr<compatibility::Deferred_statements>
       steal_deferred_statements() {
@@ -166,19 +165,14 @@ class Dump_loader {
      private:
       void pre_process(Dump_loader *loader);
 
-      void load_ddl(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          Dump_loader *loader);
+      void load_ddl(Worker *worker, Dump_loader *loader);
 
-      void post_process(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          Dump_loader *loader);
+      void post_process(Worker *worker, Dump_loader *loader);
 
       void extract_deferred_statements(Dump_loader *loader);
 
-      void remove_duplicate_deferred_statements(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          Dump_loader *loader);
+      void remove_duplicate_deferred_statements(Worker *worker,
+                                                Dump_loader *loader);
 
      private:
       std::string m_script;
@@ -222,8 +216,7 @@ class Dump_loader {
 
       import_table::Stats stats;
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
       const Dump_reader::Table_chunk &chunk() const { return m_chunk; }
 
@@ -235,20 +228,13 @@ class Dump_loader {
       }
 
      private:
-      void load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                Dump_loader *, Worker *);
+      void load(Dump_loader *, Worker *);
 
-      virtual void on_load_start(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *,
-          Dump_loader *) = 0;
+      virtual void on_load_start(Worker *, Dump_loader *) = 0;
 
-      virtual void do_load(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *,
-          Dump_loader *) = 0;
+      virtual void do_load(Worker *, Dump_loader *) = 0;
 
-      virtual void on_load_end(
-          const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *,
-          Dump_loader *) = 0;
+      virtual void on_load_end(Worker *, Dump_loader *) = 0;
 
       Dump_reader::Table_chunk m_chunk;
       bool m_resume = false;
@@ -262,14 +248,11 @@ class Dump_loader {
             m_bytes_to_skip(bytes_to_skip) {}
 
      private:
-      void on_load_start(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                         Worker *, Dump_loader *) override;
+      void on_load_start(Worker *, Dump_loader *) override;
 
-      void do_load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      void do_load(Worker *, Dump_loader *) override;
 
-      void on_load_end(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                       Worker *, Dump_loader *) override;
+      void on_load_end(Worker *, Dump_loader *) override;
 
       uint64_t m_bytes_to_skip = 0;
     };
@@ -284,19 +267,15 @@ class Dump_loader {
       }
 
      private:
-      void on_load_start(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                         Worker *, Dump_loader *) override;
+      void on_load_start(Worker *, Dump_loader *) override;
 
-      void do_load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      void do_load(Worker *, Dump_loader *) override;
 
-      void on_load_end(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                       Worker *, Dump_loader *) override;
+      void on_load_end(Worker *, Dump_loader *) override;
 
       bool partitioned() const;
 
-      void bulk_load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                     Dump_loader *);
+      void bulk_load(Worker *, Dump_loader *);
 
       std::string m_target_table;
     };
@@ -307,8 +286,7 @@ class Dump_loader {
                          const std::vector<Dump_reader::Histogram> &histograms)
           : Task(schema, table), m_histograms(histograms) {}
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
      private:
       std::vector<Dump_reader::Histogram> m_histograms;
@@ -324,8 +302,7 @@ class Dump_loader {
         set_weight(weight);
       }
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
       const compatibility::Deferred_statements::Index_info *indexes() const {
         return m_indexes;
@@ -345,8 +322,7 @@ class Dump_loader {
                             checksum->partition(), checksum->chunk()),
             m_checksum(checksum) {}
 
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
+      bool execute(Worker *, Dump_loader *) override;
 
       const dump::common::Checksums::Checksum_data *checksum_info()
           const noexcept {
@@ -375,6 +351,15 @@ class Dump_loader {
 
     uint64_t thread_id() const noexcept { return m_thread_id; }
 
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session()
+        const noexcept {
+      return m_session;
+    }
+
+    const Reconnect &reconnect_callback() const noexcept {
+      return m_reconnect_callback;
+    }
+
    private:
     void handle_current_exception(Dump_loader *loader,
                                   const std::string &error);
@@ -395,6 +380,7 @@ class Dump_loader {
     std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
     uint64_t m_connection_id = 0;
     uint64_t m_thread_id = 0;
+    Reconnect m_reconnect_callback;
 
     std::unique_ptr<Task> m_task;
 
@@ -452,8 +438,6 @@ class Dump_loader {
 
   bool handle_table_data();
   void handle_schema_post_scripts();
-
-  void switch_schema(const std::string &schema, bool load_done);
 
   bool should_fetch_table_ddl(bool placeholder) const;
 
@@ -553,46 +537,6 @@ class Dump_loader {
   void on_ddl_done_for_schema(const std::string &schema);
 
   bool is_data_load_complete() const;
-
-  static inline std::shared_ptr<mysqlshdk::db::IResult> query(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      std::string_view sql) {
-    return session->query(sql);
-  }
-
-  template <typename... Args>
-  static inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
-      Args &&... args) {
-    return session->queryf(sql, std::forward<Args>(args)...);
-  }
-
-  static inline void execute(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      std::string_view sql) {
-    session->execute(sql);
-  }
-
-  template <typename... Args>
-  static inline void executef(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
-      Args &&... args) {
-    session->executef(sql, std::forward<Args>(args)...);
-  }
-
-  inline std::shared_ptr<mysqlshdk::db::IResult> query(
-      std::string_view sql) const {
-    return query(m_session, sql);
-  }
-
-  inline void execute(std::string_view sql) const {
-    return execute(m_session, sql);
-  }
-
-  template <typename... Args>
-  inline void executef(const char *sql, Args &&... args) {
-    executef(m_session, sql, std::forward<Args>(args)...);
-  }
 
   void log_server_version() const;
 
@@ -733,7 +677,7 @@ class Dump_loader {
   std::unique_ptr<Load_progress_log> m_load_log;
   bool m_resuming = false;
 
-  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
 
   std::vector<std::thread> m_worker_threads;
   std::list<Worker> m_workers;
@@ -813,6 +757,8 @@ class Dump_loader {
   std::atomic<uint64_t> m_temp_table_suffix{0};
 
   std::unique_ptr<Monitoring> m_monitoring;
+
+  Reconnect m_reconnect_callback;
 
   // BULK LOAD
   std::unique_ptr<Bulk_load_support> m_bulk_load;

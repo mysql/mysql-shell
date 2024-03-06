@@ -707,7 +707,7 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
   Dump_loader loader(options);
 
-  loader.m_session = options.base_session();
+  loader.m_session = mock_main_session;
 
   shcore::iterdir(
       shcore::path::join_path(g_test_home,
