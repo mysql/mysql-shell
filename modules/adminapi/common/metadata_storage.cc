@@ -3346,14 +3346,12 @@ void MetadataStorage::set_routing_option(Cluster_type type,
                                          const std::string &cluster_id,
                                          const std::string &option,
                                          const shcore::Value &value) {
-  std::string option_name = option;
-
-  auto [router_address, router_name] = shcore::str_partition(router, "::");
   auto res = execute_sqlf(
       R"*(SELECT count(*) FROM mysql_innodb_cluster_metadata.routers r
-        WHERE (r.clusterset_id = ? or r.cluster_id = ?) and
-          r.address = ? and r.router_name = ?)*",
-      cluster_id, cluster_id, router_address, router_name);
+        WHERE (r.clusterset_id = ? or r.cluster_id = ?)
+          AND CONCAT(
+            CONVERT(r.address using utf8mb4), '::', r.router_name) = ?)*",
+      cluster_id, cluster_id, router);
   if (auto row = res->fetch_one(); row->get_int(0) == 0) {
     throw_router_not_found("Router '" + router +
                            "' is not part of this topology");
@@ -3364,14 +3362,16 @@ void MetadataStorage::set_routing_option(Cluster_type type,
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
         SET r.options = JSON_REMOVE(r.options, concat('$.', ?))
         WHERE r.clusterset_id = ?
-          AND r.address = ? AND r.router_name = ?)*",
-                   option_name, cluster_id, router_address, router_name);
+          AND CONCAT(
+            CONVERT(r.address using utf8mb4), '::', r.router_name) = ?)*",
+                   option, cluster_id, router);
     } else {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
         SET r.options = JSON_REMOVE(r.options, concat('$.', ?))
         WHERE r.cluster_id = ?
-          AND r.address = ? AND r.router_name = ?)*",
-                   option_name, cluster_id, router_address, router_name);
+          AND CONCAT(
+            CONVERT(r.address using utf8mb4), '::', r.router_name) = ?)*",
+                   option, cluster_id, router);
     }
   } else {
     if (type == Cluster_type::REPLICATED_CLUSTER) {
@@ -3379,17 +3379,17 @@ void MetadataStorage::set_routing_option(Cluster_type type,
         SET r.options =
           JSON_SET(IFNULL(r.options, '{}'), concat('$.', ?), CAST(? as JSON))
         WHERE r.clusterset_id = ?
-          AND r.address = ? AND r.router_name = ?)*",
-                   option_name, value.json(false), cluster_id, router_address,
-                   router_name);
+          AND CONCAT(
+            CONVERT(r.address using utf8mb4), '::', r.router_name) = ?)*",
+                   option, value.json(false), cluster_id, router);
     } else {
       execute_sqlf(R"*(UPDATE mysql_innodb_cluster_metadata.routers r
         SET r.options =
           JSON_SET(IFNULL(r.options, '{}'), concat('$.', ?), CAST(? as JSON))
         WHERE r.cluster_id = ?
-          AND r.address = ? AND r.router_name = ?)*",
-                   option_name, value.json(false), cluster_id, router_address,
-                   router_name);
+          AND CONCAT(
+            CONVERT(r.address using utf8mb4), '::', r.router_name) = ?)*",
+                   option, value.json(false), cluster_id, router);
     }
   }
 }
