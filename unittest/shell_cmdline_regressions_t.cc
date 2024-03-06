@@ -23,9 +23,10 @@
 
 #include <string>
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/test_utils/command_line_test.h"
-#include "utils/utils_file.h"
-#include "utils/utils_path.h"
 
 #ifndef MAX_PATH
 const int MAX_PATH = 4096;
@@ -672,7 +673,8 @@ TEST_F(Command_line_test, default_is_xproto_via_tcp) {
     execute({_mysqlsh, "-utestuser1", "-ppass1", "--js", "-e",
              "print(shell.status())", NULL},
             nullptr, nullptr,
-            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+            {"MYSQL_TCP_PORT=", "MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=",
+             "MYSQLX_SOCKET="});
     // either succeeds connecting to xport or fails because server is in a
     // different port
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("localhost via TCP/IP",
@@ -684,7 +686,8 @@ TEST_F(Command_line_test, default_is_xproto_via_tcp) {
     execute({_mysqlsh, "-utestuser1", "-hlocalhost", "-ppass1", "--js", "-e",
              "print(shell.status())", NULL},
             nullptr, nullptr,
-            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+            {"MYSQL_TCP_PORT=", "MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=",
+             "MYSQLX_SOCKET="});
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("localhost via TCP/IP",
                                          "Can't connect to MySQL server on");
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF("X protocol",
@@ -698,7 +701,8 @@ TEST_F(Command_line_test, default_is_xproto_via_tcp) {
     execute({_mysqlsh, "-utestuser1", "-ppass1", "-S", "--js", "-e",
              "print(shell.status())", NULL},
             nullptr, nullptr,
-            {"MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=", "MYSQLX_SOCKET="});
+            {"MYSQL_TCP_PORT=", "MYSQL_UNIX_PORT=", "MYSQLX_UNIX_PORT=",
+             "MYSQLX_SOCKET="});
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
         "UNIX socket", "Can't connect to local MySQL server through socket");
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
@@ -707,7 +711,8 @@ TEST_F(Command_line_test, default_is_xproto_via_tcp) {
   {
     execute({_mysqlsh, "-utestuser1", "-hlocalhost", "-ppass1", "-S", "--js",
              "-e", "print(shell.status())", NULL},
-            nullptr, nullptr, {"MYSQL_UNIX_PORT=", "MYSQLX_SOCKET="});
+            nullptr, nullptr,
+            {"MYSQL_TCP_PORT=", "MYSQL_UNIX_PORT=", "MYSQLX_SOCKET="});
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
         "UNIX socket", "Can't connect to local MySQL server through socket");
     MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
@@ -767,27 +772,31 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
 #define SOCKET_MSG "Localhost via UNIX socket"
 #endif
 
-  // root@localhost -> TCP (mysqlx)
-  execute({_mysqlsh, "root@localhost", "--interactive", "--no-password", "-e",
-           "\\s", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("X protocol");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  // only run if server listening for mysqlx connections on default port
+  // (can't override with an environment var)
+  if (_port == "33060") {
+    // root@localhost -> TCP (mysqlx)
+    execute({_mysqlsh, "root@localhost", "--interactive", "--no-password", "-e",
+             "\\s", nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("X protocol");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
 
-  // root@127.0.0.1 -> TCP (mysqlx)
-  execute({_mysqlsh, "root@127.0.0.1", "--interactive", "--no-password", "-e",
-           "\\s", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("X protocol");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
+    // root@127.0.0.1 -> TCP (mysqlx)
+    execute({_mysqlsh, "root@127.0.0.1", "--interactive", "--no-password", "-e",
+             "\\s", nullptr});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("X protocol");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
+  }
 
   // root@localhost:3306 -> TCP
-  execute({_mysqlsh, "root@localhost:3306", "--interactive", "--no-password",
-           "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("root@localhost:" + _mysql_port).c_str(), "--interactive",
+           "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
 
   // root@127.0.0.1:3306 -> TCP
-  execute({_mysqlsh, "root@127.0.0.1:3306", "--interactive", "--no-password",
-           "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("root@127.0.0.1:" + _mysql_port).c_str(), "--interactive",
+           "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
@@ -804,14 +813,14 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // --mysql root@localhost:3306 -> TCP
-  execute({_mysqlsh, "--mysql", "root@localhost:3306", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, "--mysql", ("root@localhost:" + _mysql_port).c_str(),
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
 
   // --mysql root@127.0.0.1:3306 -> TCP
-  execute({_mysqlsh, "--mysql", "root@127.0.0.1:3306", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, "--mysql", ("root@127.0.0.1:" + _mysql_port).c_str(),
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
@@ -828,14 +837,14 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // root@localhost:3306 --mysql -> TCP
-  execute({_mysqlsh, "root@localhost:3306", "--mysql", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("root@localhost:" + _mysql_port).c_str(), "--mysql",
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
 
   // root@127.0.0.1:3306 --mysql -> TCP
-  execute({_mysqlsh, "root@127.0.0.1:3306", "--mysql", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("root@127.0.0.1:" + _mysql_port).c_str(), "--mysql",
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
@@ -852,14 +861,14 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // mysql://root@localhost:3306 -> TCP
-  execute({_mysqlsh, "mysql://root@localhost:3306", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("mysql://root@localhost:" + _mysql_port).c_str(),
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
 
   // mysql://root@127.0.0.1:3306 -> TCP
-  execute({_mysqlsh, "mysql://root@127.0.0.1:3306", "--interactive",
-           "--no-password", "-e", "\\s", nullptr});
+  execute({_mysqlsh, ("mysql://root@127.0.0.1:" + _mysql_port).c_str(),
+           "--interactive", "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 }

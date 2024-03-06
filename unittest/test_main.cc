@@ -314,16 +314,26 @@ void detect_mysql_environment(int port, const char *pwd) {
     // compiled-in socket path with the actual path in use
     shcore::setenv("MYSQL_UNIX_PORT", socket_absolute);
   }
+  {
+    // This environment variable makes libmysqlclient override the default
+    // compiled-in TCP port with the actual one in use
+    if (!shcore::setenv("MYSQL_TCP_PORT", std::to_string(port))) {
+      std::cerr << "MYSQL_TCP_PORT putenv failed to set it\n";
+      exit(1);
+    }
+  }
 
   {
+    // does not affect libmysqlx
     if (!shcore::setenv("MYSQLX_SOCKET", xsocket_absolute)) {
       std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
       exit(1);
     }
   }
   {
+    // does not affect libmysqlx
     if (!shcore::setenv("MYSQLX_PORT", std::to_string(xport))) {
-      std::cerr << "MYSQLX_SOCKET putenv failed to set it\n";
+      std::cerr << "MYSQLX_PORT putenv failed to set it\n";
       exit(1);
     }
   }
