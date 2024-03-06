@@ -37,7 +37,7 @@ exports.prepare_2_0_0_metadata_from_template = function(file, cluster_id, replic
  var ports = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 
 
-  var script = os.load_text_file(get_2_0_0_template_file());
+  var script = os.loadTextFile(get_2_0_0_template_file());
 
   var s1 = update_script(script, schema, replication_group_id, topology)
   var s2 = update_var(s1, "__cluster_id__", cluster_id)
