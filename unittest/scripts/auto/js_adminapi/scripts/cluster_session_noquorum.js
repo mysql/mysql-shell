@@ -37,15 +37,15 @@ cluster.status();
 cluster.disconnect();
 
 //@<OUT> Connect shell to surviving member with --redirect-primary (fail)
-var rc = testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "-e", "shell.status()"]);
+var rc = testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "--js", "-e", "shell.status()"]);
 EXPECT_EQ(1, rc);
 
 //@<OUT> Connect shell to surviving member with --redirect-secondary (fail)
-var rc = testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "-e", "shell.status()"]);
+var rc = testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 EXPECT_EQ(1, rc);
 
 //@<OUT> Connect shell to surviving member with --cluster (ok)
-var rc = testutil.callMysqlsh([__sandbox_uri1, "--cluster", "-e", "println(cluster.status())"]);
+var rc = testutil.callMysqlsh([__sandbox_uri1, "--cluster", "--js", "-e", "println(cluster.status())"]);
 EXPECT_EQ(0, rc);
 
 //@ Create new cluster and now kill the primary
@@ -82,15 +82,15 @@ var cluster = dba.getCluster(null);
 cluster.status();
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-primary (fail)
-var rc = testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "-e", "shell.status()"]);
+var rc = testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "--js", "-e", "shell.status()"]);
 EXPECT_EQ(1, rc);
 
 //@<OUT> 2 Connect shell to surviving member with --redirect-secondary (fail)
-var rc = testutil.callMysqlsh([__sandbox_uri2, "--redirect-secondary", "-e", "shell.status()"]);
+var rc = testutil.callMysqlsh([__sandbox_uri2, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 EXPECT_EQ(1, rc);
 
 //@<OUT> 2 Connect shell to surviving member with --cluster (ok)
-var rc = testutil.callMysqlsh([__sandbox_uri2, "--cluster", "-e", "println(cluster.status())"]);
+var rc = testutil.callMysqlsh([__sandbox_uri2, "--cluster", "--js", "-e", "println(cluster.status())"]);
 EXPECT_EQ(0, rc);
 
 

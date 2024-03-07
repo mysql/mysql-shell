@@ -333,7 +333,7 @@ def run_collect(uri, path, options={}, *, password="root", **kwargs):
         path = os.path.join(outdir, f"diag.{g_fn_serial}.zip")
         g_fn_serial += 1
     args = [uri] if uri else []
-    args += ["--passwords-from-stdin", "-e", f"util.debug.collectDiagnostics({repr(path)}, {repr(options)})"]
+    args += ["--passwords-from-stdin", "--js", "-e", f"util.debug.collectDiagnostics({repr(path)}, {repr(options)})"]
     print(args)
     testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path], mysqlshrec)
     return path
@@ -349,7 +349,7 @@ def run_collect_hl(uri, path, options={}, *, password="root",env=[],**kwargs):
         path = os.path.join(outdir, f"diag_hl.{g_fn_serial}.zip")
         g_fn_serial += 1
     args = [uri] if uri else []
-    args += ["-e", f"util.debug.collectHighLoadDiagnostics({repr(path)}, {repr(options)})"]
+    args += ["--js", "-e", f"util.debug.collectHighLoadDiagnostics({repr(path)}, {repr(options)})"]
     print(args)
     testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path
@@ -367,7 +367,7 @@ def run_collect_sq(uri, path, query="select * from mysql.user join mysql.db", op
     if isinstance(query, str):
         query = query.replace("'", "''")
     args = [uri] if uri else []
-    args += ["-e", f"util.debug.collectSlowQueryDiagnostics({repr(path)}, {repr(query)}, {repr(options)})"]
+    args += ["--js", "-e", f"util.debug.collectSlowQueryDiagnostics({repr(path)}, {repr(query)}, {repr(options)})"]
     print(args)
     testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path

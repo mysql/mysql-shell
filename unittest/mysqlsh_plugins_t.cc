@@ -75,7 +75,8 @@ class Mysqlsh_extension_test : public Command_line_test {
   void run(const std::vector<std::string> &extra = {}) {
     shcore::create_file(k_file, shcore::str_join(m_test_input, "\n"));
 
-    std::vector<const char *> args = {_mysqlsh, _uri.c_str(), "--interactive"};
+    std::vector<const char *> args = {_mysqlsh, _uri.c_str(), "--interactive",
+                                      "--js"};
 
     for (const auto &e : extra) {
       args.emplace_back(e.c_str());

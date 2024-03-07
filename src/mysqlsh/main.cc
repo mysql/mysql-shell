@@ -77,6 +77,7 @@ static int enable_x_protocol(
   std::string temp_uri =
       connection_options.as_uri(mysqlshdk::db::uri::formats::full());
 
+  shell->switch_shell_mode(shcore::Shell_core::Mode::JavaScript, {});
   shell->process_line("var uri_template = '" + temp_uri + "'");
 
   // clang-format off

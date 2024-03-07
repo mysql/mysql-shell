@@ -49,6 +49,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   shell_env.utils()->deploy_sandbox(shell_env.sb_port(1), "root", sandbox_opts);
   shell_env.utils()->deploy_sandbox(shell_env.sb_port(2), "root", sandbox_opts);
 
+  shell_env.execute("\\js");
   shell_env.execute(
       "shell.connect('root:root@localhost:" + shell_env.sb_port_str(0) + "')");
 

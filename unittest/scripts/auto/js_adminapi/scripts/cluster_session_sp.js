@@ -125,77 +125,77 @@ cluster.status();
 cluster.disconnect();
 
 //@ SP - Connect with no options and ensure it will connect to the specified member
-testutil.callMysqlsh([__sandbox_uri1, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with no options and ensure it will connect to the specified member 2
-testutil.callMysqlsh([__sandbox_uri2, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri2, "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-primary while connected to the primary
-testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-primary while connected to a secondary
-testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-primary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_uri3, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri3, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-secondary while connected to the primary
-testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-secondary while connected to a secondary
-testutil.callMysqlsh([__sandbox_uri2, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri2, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --redirect-secondary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_uri3, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri3, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member
-testutil.callMysqlsh([__sandbox_xuri1, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with no options and ensure it will connect to the specified member 2
-testutil.callMysqlsh([__sandbox_xuri2, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2, "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-primary while connected to the primary
-testutil.callMysqlsh([__sandbox_xuri1, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-primary while connected to a secondary
-testutil.callMysqlsh([__sandbox_xuri2, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-primary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_xuri3, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri3, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-secondary while connected to the primary
-testutil.callMysqlsh([__sandbox_xuri1, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-secondary while connected to a secondary
-testutil.callMysqlsh([__sandbox_xuri2, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX - Connect with --redirect-secondary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_xuri3, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri3, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member
-testutil.callMysqlsh([__sandbox_xuri1_, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1_, "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with no options and ensure it will connect to the specified member 2
-testutil.callMysqlsh([__sandbox_xuri2_, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2_, "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-primary while connected to the primary
-testutil.callMysqlsh([__sandbox_xuri1_, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1_, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a secondary
 // Also ensures the redirected session type is the right type
-testutil.callMysqlsh([__sandbox_xuri2_, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2_, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-primary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_xuri3_, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri3_, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to the primary
-testutil.callMysqlsh([__sandbox_xuri1_, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1_, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a secondary
-testutil.callMysqlsh([__sandbox_xuri2_, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2_, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SPX implicit - Connect with --redirect-secondary while connected to a non-cluster member (error)
-testutil.callMysqlsh([__sandbox_xuri3_, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri3_, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ SP - Connect with --cluster 1
 testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "println(cluster.status())", "--cluster"]);

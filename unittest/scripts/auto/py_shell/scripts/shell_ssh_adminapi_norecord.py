@@ -79,7 +79,7 @@ funcs = ["checkInstanceConfiguration","configureInstance","configureReplicaSetIn
 for fun in funcs:
     with open(dba_test, "w") as file:
         file.write("dba.{}();".format(fun))
-    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-f", dba_test], "", None, os.path.join(__bin_dir, "mysqlsh"))
+    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--js", "-f", dba_test], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
     WIPE_STDOUT()
 
@@ -87,7 +87,7 @@ funcs = ["createCluster","createReplicaSet"]
 for fun in funcs:
     with open(dba_test, "w") as file:
         file.write("dba.{}('test');".format(fun))
-    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-f", dba_test], "", None, os.path.join(__bin_dir, "mysqlsh"))
+    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--js", "-f", dba_test], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
     WIPE_STDOUT()
 
@@ -97,12 +97,12 @@ if os.path.exists(dba_test):
 #@<> WL#14246 TSFR_5_5 Call the AdminAPI functions from the command line using the execute option (-e) while creating a SSH connection.
 funcs = ["checkInstanceConfiguration","configureInstance","configureReplicaSetInstance","dropMetadataSchema","getCluster","getReplicaSet","rebootClusterFromCompleteOutage","upgradeMetadata"]
 for fun in funcs:
-    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-e", "dba.{}();".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
+    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--js", "-e", "dba.{}();".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
     WIPE_STDOUT()
 
 funcs = ["createCluster","createReplicaSet"]
 for fun in funcs:
-    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "-e", "dba.{}('test');".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
+    testutil.call_mysqlsh(["--credential-store-helper=plaintext", "--ssh", SSH_URI_NOPASS, MYSQL_OVER_SSH_URI, "--ssh-config-file", config_file, "--js", "-e", "dba.{}('test');".format(fun)], "", None, os.path.join(__bin_dir, "mysqlsh"))
     EXPECT_STDOUT_CONTAINS("InnoDB cluster functionality is not available through SSH tunneling")
     WIPE_STDOUT()

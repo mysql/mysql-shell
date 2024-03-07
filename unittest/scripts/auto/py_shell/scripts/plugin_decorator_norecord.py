@@ -184,7 +184,7 @@ def __call_mysqlsh(cmdline_args):
     return testutil.call_mysqlsh(["--quiet-start=2"] + cmdline_args, "", shell_env)
 
 def call_mysqlsh_e(e_arg, py=False):
-    return __call_mysqlsh((["--py"] if py else []) + ["-ifull", "-e"] + [e_arg])
+    return __call_mysqlsh((["--py"] if py else ["--js"]) + ["-ifull", "-e"] + [e_arg])
 
 def call_mysqlsh_py_e(e_arg):
     return call_mysqlsh_e(e_arg, True)

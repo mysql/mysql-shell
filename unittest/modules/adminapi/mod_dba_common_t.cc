@@ -316,6 +316,7 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
   testutil->deploy_sandbox(_mysql_sandbox_ports[0], "root", sandbox_opts);
   testutil->deploy_sandbox(_mysql_sandbox_ports[1], "root", sandbox_opts);
+  execute("\\js");
   execute("shell.connect('root:root@localhost:" +
           std::to_string(_mysql_sandbox_ports[0]) + "')");
 

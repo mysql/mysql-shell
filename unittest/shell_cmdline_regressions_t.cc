@@ -23,9 +23,6 @@
 
 #include <string>
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
 #include "unittest/test_utils/command_line_test.h"
 
 #ifndef MAX_PATH
@@ -108,7 +105,7 @@ TEST_F(Command_line_test, bug23508428) {
         "enableXProtocol: successfully installed the X protocol plugin!");
   }
 
-  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
+  execute({_mysqlsh, uri.c_str(), "--interactive=full", "--js", "-e",
            "session.runSql('SELECT COUNT(*) FROM information_schema.plugins "
            "WHERE PLUGIN_NAME in (\"mysqlx\", \"mysqlx_cache_cleaner\")')."
            "fetchOne()",
@@ -121,7 +118,8 @@ TEST_F(Command_line_test, bug23508428) {
   }
   MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
 
-  execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
+  execute({_mysqlsh, uri.c_str(), "--mysql", "--js", "--dba", "enableXProtocol",
+           NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "enableXProtocol: The X Protocol plugin is already enabled and listening "
       "for connections on port " +
@@ -339,7 +337,8 @@ TEST_F(Command_line_test, bug25653170) {
 TEST_F(Command_line_test, bug28814112_js) {
   // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
   // SESSION
-  int rc = execute({_mysqlsh, "-e", "shell.setCurrentSchema('mysql')", NULL});
+  int rc = execute(
+      {_mysqlsh, "--js", "-e", "shell.setCurrentSchema('mysql')", NULL});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "Shell.setCurrentSchema: An open session is required to perform this "

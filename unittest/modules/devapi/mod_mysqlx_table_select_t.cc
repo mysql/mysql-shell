@@ -85,6 +85,7 @@ class Table_select : public Shell_core_test_wrapper {
 
   static void SetUpTestCase() {
     tests::Shell_test_wrapper global_shell;
+    global_shell.execute("\\js");
     global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
 
     // preparation

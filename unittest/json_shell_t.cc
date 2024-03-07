@@ -122,6 +122,7 @@ TEST(Json_shell, valid_commands) {
   auto options = std::make_shared<Shell_options>();
   options->set_gui_mode(true);
   mysqlsh::Json_shell shell(options);
+  shell.process_line({"{\"execute\":\"\\\\js\"}"});
 
   std::string capture;
   shcore::Interpreter_print_handler handler{&capture, print_capture,

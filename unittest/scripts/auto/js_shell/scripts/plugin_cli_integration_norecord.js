@@ -569,7 +569,7 @@ WIPE_OUTPUT()
 
 
 //@<> Tests default values are used even in API calls
-rc = callMysqlsh(["-e", "custom_plugin.printElement('two')"])
+rc = callMysqlsh(["--js", "-e", "custom_plugin.printElement('two')"])
 EXPECT_STDOUT_CONTAINS("default value for two")
 WIPE_OUTPUT()
 
