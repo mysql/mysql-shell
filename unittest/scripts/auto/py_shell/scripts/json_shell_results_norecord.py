@@ -4,7 +4,6 @@ import base64
 
 shell.connect(__mysqluripwd)
 
-
 session.run_sql("drop schema if exists json_shell")
 session.run_sql("create schema json_shell")
 session.run_sql("create table json_shell.sample(id int, data varchar(30))")
@@ -14,7 +13,6 @@ session.run_sql("insert into json_shell.sample values (2, ?)", ["jane doe"])
 def mysqlsh(args):
     testutil.call_mysqlsh(["--interactive=full","--quiet-start=2"] + args, "", ["MYSQLSH_JSON_SHELL=1", "MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
-
 #@<> Validating result from SQL execution in SQL mode
 mysqlsh(["--sql", "-e", '{"execute":"SELECT * FROM json_shell.sample"}', __mysqluripwd])
 EXPECT_STDOUT_CONTAINS('{"Field 1":{"Name":"`id`"')
@@ -22,7 +20,7 @@ EXPECT_STDOUT_CONTAINS(',"Field 2":{"Name":"`data`"')
 EXPECT_STDOUT_CONTAINS('{"hasData":true,"rows":[{"id":1,"data":"john doe"},{"id":2,"data":"jane doe"}]')
 
 #@<> Validating result from SQL execution through the session object JS
-mysqlsh(["-e", '{"execute":"session.runSql(\'SELECT * FROM json_shell.sample\');"}', __mysqluripwd])
+mysqlsh(["--js", "-e", '{"execute":"session.runSql(\'SELECT * FROM json_shell.sample\');"}', __mysqluripwd])
 EXPECT_STDOUT_CONTAINS('{"Field 1":{"Name":"`id`"')
 EXPECT_STDOUT_CONTAINS(',"Field 2":{"Name":"`data`"')
 EXPECT_STDOUT_CONTAINS('{"hasData":true,"rows":[{"id":1,"data":"john doe"},{"id":2,"data":"jane doe"}]')
@@ -34,14 +32,14 @@ EXPECT_STDOUT_CONTAINS(',"Field 2":{"Name":"`data`"')
 EXPECT_STDOUT_CONTAINS('{"hasData":true,"rows":[{"id":1,"data":"john doe"},{"id":2,"data":"jane doe"}]')
 
 #@<> Validating result from shell dumpRows
-mysqlsh(["-e", '{"execute":"let res = session.runSql(\'SELECT * FROM json_shell.sample\'); shell.dumpRows(res);"}', __mysqluripwd])
+mysqlsh(["--js", "-e", '{"execute":"let res = session.runSql(\'SELECT * FROM json_shell.sample\'); shell.dumpRows(res);"}', __mysqluripwd])
 EXPECT_STDOUT_CONTAINS('{"Field 1":{"Name":"`id`"')
 EXPECT_STDOUT_CONTAINS(',"Field 2":{"Name":"`data`"')
 EXPECT_STDOUT_CONTAINS('{"hasData":true,"rows":[{"id":1,"data":"john doe"},{"id":2,"data":"jane doe"}]')
 
 
 #@<> Validating result from \show report
-mysqlsh(["-e", '{"execute":"\\\\show threads"}', __mysqluripwd])
+mysqlsh(["--js", "-e", '{"execute":"\\\\show threads"}', __mysqluripwd])
 EXPECT_STDOUT_CONTAINS('{"Field 1":{"Name":"`tid`"')
 EXPECT_STDOUT_CONTAINS(',"Field 2":{"Name":"`cid`"')
 EXPECT_STDOUT_CONTAINS(',"Field 3":{"Name":"`user`"')

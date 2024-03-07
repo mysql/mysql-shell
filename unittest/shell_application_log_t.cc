@@ -25,14 +25,10 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
 #include <string>
 
-#include "mysqlshdk/include/scripting/common.h"
-#include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-#include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
@@ -61,6 +57,8 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
     m_logger->attach_log_hook(my_hook);
 
     _interactive_shell->process_line("\\js");
+    // Clear out "Switching to JavaScript mode...\n" from stdout
+    output_handler.wipe_all();
 
     exec_and_out_equals("var mysql = require('mysql');");
     exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri +

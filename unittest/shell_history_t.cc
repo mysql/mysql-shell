@@ -31,10 +31,8 @@
 #include <sys/stat.h>
 #endif
 #include "ext/linenoise-ng/include/linenoise.h"
-#include "modules/mod_shell.h"
 #include "modules/mod_shell_options.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
@@ -129,6 +127,8 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ("*IDENTIFIED*:*PASSWORD*",
             shell.get_options()->get("history.sql.ignorePattern").descr());
 
+  // \js command should be filtered according to SQL mode rules
+  shell.process_line("\\js");
   EXPECT_EQ(0, linenoiseHistorySize());
 
   // \sql command should be filtered according to SQL mode rules
@@ -381,6 +381,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   EXPECT_EQ(1, linenoiseHistorySize());
 
   shell.process_line(to_scripting);
+  shell.process_line("shell.options['defaultMode'] = 'js'");
   shell.process_line(
       "shell.options['history.sql.ignorePattern'] = '?? ??;:?\?'");
   shell.process_line("\\sql");
@@ -423,8 +424,10 @@ TEST_F(Shell_history, history_set_option) {
 }
 
 TEST_F(Shell_history, history_ignore_pattern_js) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   shell.process_line("shell.options['history.sql.ignorePattern'] = '*SELECT*'");
   shell.process_line("// SELECT");
@@ -459,8 +462,10 @@ TEST_F(Shell_history, history_linenoise) {
   // TS_HM#1 only commands interactively typed by the user in the shell prompt
   // are saved to history file: ~/.mysqlsh/history file
 
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
   const std::string hist_file = shell.history_file();
   shcore::delete_file(hist_file);
 
@@ -616,8 +621,10 @@ TEST_F(Shell_history, check_help_shows_history) {
   // My preference is a global one but I'm not the one to maintain the UTs so
   // I'll just do something and let the owners of the UTs decide.
 
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   {
     // Expecting the Shell mention \history in \help
@@ -632,8 +639,10 @@ TEST_F(Shell_history, check_help_shows_history) {
 }
 
 TEST_F(Shell_history, history_autosave_int) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
   shcore::delete_file(shell.history_file());
 
   {
@@ -865,8 +874,11 @@ TEST_F(Shell_history, check_history_overflow_del) {
   // overflows, entries are dropped and renumbering might take place.
 
   {
+    char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                    nullptr};
     mysqlsh::Command_line_shell shell(
-        std::make_shared<Shell_options>(0, nullptr, _options_file));
+        std::make_shared<Shell_options>(2, args, _options_file));
+
     shell._history.set_limit(3);
 
     EXPECT_NO_THROW(shell.load_state());
@@ -1063,8 +1075,10 @@ TEST_F(Shell_history, history_sizes) {
   // This test shall cover internal list management (grow, shrink, overflow).
   // No crash is good enough.
   // See also src/mysqlsh/history.cc|h
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   enable_capture();
 
@@ -1159,8 +1173,10 @@ TEST_F(Shell_history, history_source_history) {
   // using \source. \source shall not add any executed commands to history
   // but preserve the history state from after save.
 
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   enable_capture();
 
@@ -1186,8 +1202,10 @@ TEST_F(Shell_history, history_source_history) {
 }
 
 TEST_F(Shell_history, history_del_range) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   enable_capture();
 
@@ -1236,8 +1254,10 @@ TEST_F(Shell_history, history_entry_number_reset) {
   // Numbering shall only be reset when Shell is restarted
   // or when \\history clear is called
 
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   enable_capture();
 
@@ -1460,8 +1480,11 @@ TEST_F(Shell_history, history_delete_range) {
 }
 
 TEST_F(Shell_history, history_numbering) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
+
   enable_capture();
   using strv = std::vector<std::string>;
 
@@ -1680,8 +1703,10 @@ TEST_F(Shell_history, migrate_old_history) {
 }
 
 TEST_F(Shell_history, get_entry) {
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(2, args, _options_file));
 
   const auto &history = shell._history;
 

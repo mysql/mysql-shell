@@ -151,26 +151,26 @@ outpath = run_collect_hl(hostname_uri, None, {"delay":{}})
 EXPECT_STDOUT_CONTAINS("'delay' is expected to be an integer")
 
 #@<> bogus value for options TSFR_1_1_3, TSFR_9_0_3, TSFR_9_0_4
-args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectDiagnostics('x', false)"]
+args = [hostname_uri, "--passwords-from-stdin", "--js", "-e", "util.debug.collectDiagnostics('x', false)"]
 testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
 EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a map")
 RESET()
 
-args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectHighLoadDiagnostics('x', false)"]
+args = [hostname_uri, "--passwords-from-stdin", "--js", "-e", "util.debug.collectHighLoadDiagnostics('x', false)"]
 testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
 EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a map")
 RESET()
 
-args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectSlowQueryDiagnostics('x', 'x', false)"]
+args = [hostname_uri, "--passwords-from-stdin", "--js", "-e", "util.debug.collectSlowQueryDiagnostics('x', 'x', false)"]
 testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
 EXPECT_STDOUT_CONTAINS("Argument #3 is expected to be a map")
 
 RESET()
 
-args = [hostname_uri, "--passwords-from-stdin", "-e", "util.debug.collectSlowQueryDiagnostics('x', {}, false)"]
+args = [hostname_uri, "--passwords-from-stdin", "--js", "-e", "util.debug.collectSlowQueryDiagnostics('x', {}, false)"]
 testutil.call_mysqlsh(args, "\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
 EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a string")

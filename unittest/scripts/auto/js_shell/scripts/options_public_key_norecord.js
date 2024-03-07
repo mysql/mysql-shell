@@ -18,131 +18,131 @@ const public_key_non_pem = sandbox_path + '/sandboxdata/private_key.pem';
 //@ classic, get-server-public-key yes,false,true in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=yes', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=yes', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Invalid URI: Invalid value 'yes' for 'get-server-public-key'. Allowed values: true, false, 1, 0.");
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=false', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=false', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=true', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=true', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 //@ classic, get-server-public-key no,0,1 in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=no', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=no', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Invalid URI: Invalid value 'no' for 'get-server-public-key'. Allowed values: true, false, 1, 0.");
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=0', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=0', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
-var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=1', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&get-server-public-key=1', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 //@ X, get-server-public-key yes,false,true in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=yes', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=yes', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Invalid URI: Invalid value 'yes' for 'get-server-public-key'. Allowed values: true, false, 1, 0.");
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=false', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=false', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=true', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=true', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 //@ X, get-server-public-key no,0,1 in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=no', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=no', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Invalid URI: Invalid value 'no' for 'get-server-public-key'. Allowed values: true, false, 1, 0.");
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=0', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=0', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
-var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=1', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&get-server-public-key=1', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 //@ classic, --get-server-public-key in command option {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
-var rc = testutil.callMysqlsh([uri_nossl, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--get-server-public-key', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 //@ X, --get-server-public-key in command option {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
 
-var rc = testutil.callMysqlsh([x_uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' (using password: YES)");
 
-var rc = testutil.callMysqlsh([x_uri_nossl, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl, '--get-server-public-key', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 
 //@ classic, server-public-key-path in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
-var rc = testutil.callMysqlsh([uri_nossl + '&server-public-key-path=(' + public_key + ')', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl + '&server-public-key-path=(' + public_key + ')', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 
 //@ X, server-public-key-path in URI {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([x_uri_nossl + '&server-public-key-path=(' + public_key + ')', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl + '&server-public-key-path=(' + public_key + ')', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option server-public-key-path is not supported.");
 
 
 //@ classic, --server-public-key-path in command option {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
-var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 
 //@ X, --server-public-key-path in command option {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([x_uri_nossl, '--server-public-key-path=' + public_key, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([x_uri_nossl, '--server-public-key-path=' + public_key, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option server-public-key-path is not supported.");
 
 //@ classic, non existing public key path (F10) {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 if (testutil.versionCheck(__version, ">=", "8.0.13"))
   EXPECT_STDOUT_CONTAINS("[Warning] Failed to locate server public key '" + public_key_non_existing_path + "'");
@@ -151,7 +151,7 @@ else
 
 // fallback to --get-server-public-key
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_existing_path, '--get-server-public-key', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 if (testutil.versionCheck(__version, ">=", "8.0.13"))
   EXPECT_STDOUT_CONTAINS("[Warning] Failed to locate server public key '" + public_key_non_existing_path + "'");
@@ -162,7 +162,7 @@ EXPECT_STDOUT_CONTAINS("ClassicSession:local_pass");
 
 //@ classic, invalid pem file in public key path (F11) {VER(>=8.0.4)}
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 if (testutil.versionCheck(__version, ">=", "8.0.13"))
   EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in Privacy Enhanced Mail format: '" + public_key_non_pem + "'");
@@ -171,7 +171,7 @@ else
 
 // fallback to --get-server-public-key
 rootsess.runSql('flush privileges');
-var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--get-server-public-key', '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--server-public-key-path=' + public_key_non_pem, '--get-server-public-key', '--password=pass', "--js", '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 if (testutil.versionCheck(__version, ">=", "8.0.13"))
   EXPECT_STDOUT_CONTAINS("[Warning] Public key is not in Privacy Enhanced Mail format: '" + public_key_non_pem + "'");

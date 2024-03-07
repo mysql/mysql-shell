@@ -224,6 +224,7 @@ class Shell_api_tester : public Helper_tester {
     SCOPED_TRACE("Shell_api_tester::select_helper()");
 
     m_wrapper.reset(new Shell_test_wrapper{false});
+    m_wrapper->execute("\\js");
 
     execute("shell.options[\"credentialStore.helper\"] = " +
             shcore::quote_string(name, '\"') + ";");

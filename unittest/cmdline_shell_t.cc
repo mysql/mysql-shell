@@ -22,15 +22,12 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "unittest/gprod_clean.h"
-#include "unittest/gtest_clean.h"
+
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
-#include "ext/linenoise-ng/include/linenoise.h"
-#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -231,6 +228,7 @@ TEST(Cmdline_shell, cmd_edit_with_history) {
     // execute \edit without arguments and an empty history
     capture.clear();
 
+    shell.process_line("\\js");
     shell.process_line("\\edit");
     shell.process_line("");
     EXPECT_THAT(capture,
