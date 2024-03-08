@@ -72,7 +72,7 @@ EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port5}' does
 //@<> The replication sources for read-replica must belong to the cluster, must be non read-replicas, not itself, reachable and with a valid state
 
 EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri6); });
-EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri6); });
+EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri6, {recoveryMethod: "clone"}); });
 
 EXPECT_THROWS(function(){
     cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint3]);

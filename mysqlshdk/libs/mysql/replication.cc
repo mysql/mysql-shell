@@ -515,11 +515,14 @@ Replication_channel_master_info unserialize_channel_master_info(
   minfo.port = row.get_int("port");
   minfo.connect_retry = row.get_uint(
       from_perf_schema ? "connection_retry_interval" : "connect_retry");
-  {
-    auto value =
-        row.get_string(from_perf_schema ? "ssl_allowed" : "enabled_ssl");
+
+  if (from_perf_schema) {
+    auto value = row.get_string("ssl_allowed");
     minfo.enabled_ssl = shcore::str_caseeq(value, "yes");
+  } else {
+    minfo.enabled_ssl = static_cast<int>(row.get_int("enabled_ssl"));
   }
+
   minfo.ssl_ca = row.get_string(from_perf_schema ? "ssl_ca_file" : "ssl_ca");
   minfo.ssl_capath =
       row.get_string(from_perf_schema ? "ssl_ca_path" : "ssl_capath");
@@ -527,12 +530,14 @@ Replication_channel_master_info unserialize_channel_master_info(
       row.get_string(from_perf_schema ? "ssl_certificate" : "ssl_cert");
   minfo.ssl_cipher = row.get_string("ssl_cipher");
   minfo.ssl_key = row.get_string("ssl_key");
-  {
-    auto value =
-        row.get_string(from_perf_schema ? "ssl_verify_server_certificate"
-                                        : "ssl_verify_server_cert");
+
+  if (from_perf_schema) {
+    auto value = row.get_string("ssl_verify_server_certificate");
     minfo.ssl_verify_server_cert = shcore::str_caseeq(value, "yes");
+  } else {
+    minfo.ssl_verify_server_cert = row.get_int("ssl_verify_server_cert");
   }
+
   minfo.heartbeat_period =
       row.get_double(from_perf_schema ? "heartbeat_interval" : "heartbeat");
   minfo.bind = row.get_string(from_perf_schema ? "network_interface" : "bind");
@@ -541,11 +546,14 @@ Replication_channel_master_info unserialize_channel_master_info(
   minfo.ssl_crl = row.get_string(from_perf_schema ? "ssl_crl_file" : "ssl_crl");
   minfo.ssl_crlpath =
       row.get_string(from_perf_schema ? "ssl_crl_path" : "ssl_crlpath");
-  {
-    auto value = row.get_string(from_perf_schema ? "auto_position"
-                                                 : "enabled_auto_position");
+
+  if (from_perf_schema) {
+    auto value = row.get_string("auto_position");
     minfo.enabled_auto_position = !shcore::str_caseeq(value, "0");
+  } else {
+    minfo.enabled_auto_position = row.get_int("enabled_auto_position");
   }
+
   minfo.channel_name = row.get_string("channel_name");
   minfo.tls_version = row.get_string("tls_version");
 
