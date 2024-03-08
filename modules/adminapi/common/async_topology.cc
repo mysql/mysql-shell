@@ -193,7 +193,6 @@ void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
 
 void async_remove_replica(mysqlshdk::mysql::IInstance *target,
                           const std::string &channel_name, bool dry_run) {
-  // stop slave and clear credentials from slave_master_info
   remove_channel(*target, channel_name, dry_run);
 
   log_info("Fencing removed instance %s", target->descr().c_str());

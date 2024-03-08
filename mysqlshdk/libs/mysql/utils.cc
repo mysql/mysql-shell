@@ -24,16 +24,18 @@
  */
 
 #include "mysqlshdk/libs/mysql/utils.h"
+
 #include <mysqld_error.h>
 #include <rapidjson/document.h>
+
 #include <algorithm>
 #include <map>
 #include <memory>
 #include <random>
 #include <set>
 #include <string>
-#include <tuple>
 #include <vector>
+
 #include "mysqlshdk/libs/db/row_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -795,7 +797,7 @@ void copy_data(const mysql::IInstance &instance, const std::string &name,
  * - local to the instance only
  */
 void create_indicator_tag(const mysql::IInstance &instance,
-                          const std::string &name) {
+                          std::string_view name) {
   assert(name.length() <= 64);
 
   std::string source_term_cmd =
@@ -810,13 +812,16 @@ void create_indicator_tag(const mysql::IInstance &instance,
   // - if the DB object is inside a schema the user owns, then that wouldn't
   //   be atomic, since we'd have to create the schema and then the object
   // - doesn't require additional plugins/UDFs
-  instance.executef("CHANGE " + source_term_cmd + " TO " + source_term +
-                        "_USER=/*(*/ ? /*)*/ FOR CHANNEL ?",
-                    mysqlshdk::utils::isotime(), name);
+  instance.executef(
+      shcore::str_format("CHANGE %s TO %s_USER=/*(*/ ? /*)*/, "
+                         "%s_HOST=\"foo.bar\" FOR CHANNEL ?",
+                         source_term_cmd.c_str(), source_term.c_str(),
+                         source_term.c_str()),
+      mysqlshdk::utils::isotime(), name);
 }
 
 void drop_indicator_tag(const mysql::IInstance &instance,
-                        const std::string &name) {
+                        std::string_view name) {
   std::string replica_term =
       mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
@@ -831,15 +836,19 @@ void drop_indicator_tag(const mysql::IInstance &instance,
 }
 
 bool check_indicator_tag(const mysql::IInstance &instance,
-                         const std::string &name) {
-  if (instance
-          .queryf("SELECT * FROM mysql.slave_master_info"
-                  " WHERE channel_name = ?",
-                  name)
-          ->fetch_one())
-    return true;
-  else
-    return false;
+                         std::string_view name) {
+  if (instance.get_version() < k_perf_schema_channels_min_version)
+    return (
+        instance.queryf_one_int(0, 0,
+                                "SELECT count(*) FROM mysql.slave_master_info "
+                                "WHERE channel_name = ?",
+                                name) > 0);
+
+  return (instance.queryf_one_int(0, 0,
+                                  "SELECT count(*) FROM "
+                                  "performance_schema.replication_connection_"
+                                  "configuration WHERE channel_name = ?",
+                                  name) > 0);
 }
 
 /**

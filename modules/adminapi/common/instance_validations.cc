@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -672,24 +673,24 @@ void ensure_instance_not_belong_to_cluster(
 
 size_t check_illegal_async_channels(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::unordered_set<std::string> &allowed_channels_) {
+    std::unordered_set<std::string> allowed_channels) {
+  auto channels = get_incoming_channels(instance);
+  if (channels.empty()) return 0;
+
   auto console = mysqlsh::current_console();
-  std::unordered_set<std::string> allowed_channels(allowed_channels_);
 
   allowed_channels.insert("group_replication_applier");
   allowed_channels.insert("group_replication_recovery");
   allowed_channels.insert("mysqlsh.test");
+  allowed_channels.insert(metadata::kClusterSetupIndicatorTag);
 
-  auto channels = get_incoming_channels(instance);
-  size_t illegal_channels = channels.size();
-
+  size_t illegal_channels = 0;
   for (const auto &ch : channels) {
-    if (std::find(allowed_channels.begin(), allowed_channels.end(),
-                  ch.channel_name) != allowed_channels.end())
-      illegal_channels--;
-    else
-      console->print_note("Found unexpected replication channel '" +
-                          ch.channel_name + "' at " + instance.descr());
+    if (allowed_channels.count(ch.channel_name) > 0) continue;
+
+    illegal_channels++;
+    console->print_note("Found unexpected replication channel '" +
+                        ch.channel_name + "' at " + instance.descr());
   }
 
   return illegal_channels;

@@ -506,73 +506,89 @@ bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
 
 namespace {
 
-void unserialize_channel_master_info(
-    const mysqlshdk::db::Row_ref_by_name &row,
-    Replication_channel_master_info *out_master_info) {
-  out_master_info->master_log_name = row.get_string("Master_log_name");
-  out_master_info->master_log_pos = row.get_uint("Master_log_pos");
-  out_master_info->host = row.get_string("Host");
-  out_master_info->user_name = row.get_string("User_name");
-  out_master_info->port = row.get_int("Port");
-  out_master_info->connect_retry = row.get_uint("Connect_retry");
-  out_master_info->enabled_ssl = row.get_int("Enabled_ssl");
-  out_master_info->ssl_ca = row.get_string("Ssl_ca");
-  out_master_info->ssl_capath = row.get_string("Ssl_capath");
-  out_master_info->ssl_cert = row.get_string("Ssl_cert");
-  out_master_info->ssl_cipher = row.get_string("Ssl_cipher");
-  out_master_info->ssl_key = row.get_string("Ssl_key");
-  out_master_info->ssl_verify_server_cert =
-      row.get_int("Ssl_verify_server_cert");
-  out_master_info->heartbeat_period = row.get_double("Heartbeat");
-  out_master_info->bind = row.get_string("Bind");
-  out_master_info->ignored_server_ids = row.get_string("Ignored_server_ids");
-  out_master_info->uuid = row.get_string("Uuid");
-  out_master_info->retry_count = row.get_uint("Retry_count");
-  out_master_info->ssl_crl = row.get_string("Ssl_crl");
-  out_master_info->ssl_crlpath = row.get_string("Ssl_crlpath");
-  out_master_info->enabled_auto_position = row.get_int("Enabled_auto_position");
-  out_master_info->channel_name = row.get_string("Channel_name");
-  out_master_info->tls_version = row.get_string("Tls_version");
+Replication_channel_master_info unserialize_channel_master_info(
+    const mysqlshdk::db::Row_ref_by_name &row, bool from_perf_schema) {
+  Replication_channel_master_info minfo;
 
-  if (row.has_field("Public_key_path") && !row.is_null("Public_key_path"))
-    out_master_info->public_key_path = row.get_string("Public_key_path");
-  if (row.has_field("Get_public_key") && !row.is_null("Get_public_key"))
-    out_master_info->get_public_key = row.get_int("Get_public_key");
-  if (row.has_field("Network_namespace") && !row.is_null("Network_namespace"))
-    out_master_info->network_namespace = row.get_string("Network_namespace");
-  if (row.has_field("Master_compression_algorithm") &&
-      !row.is_null("Master_compression_algorithm"))
-    out_master_info->compression_algorithm =
-        row.get_string("Master_compression_algorithm");
-  if (row.has_field("Master_zstd_compression_level") &&
-      !row.is_null("Master_zstd_compression_level"))
-    out_master_info->zstd_compression_level =
-        row.get_uint("Master_zstd_compression_level");
-  if (row.has_field("Tls_ciphersuites") && !row.is_null("Tls_ciphersuites"))
-    out_master_info->tls_ciphersuites = row.get_string("Tls_ciphersuites");
+  minfo.host = row.get_string("host");
+  minfo.user_name = row.get_string(from_perf_schema ? "user" : "user_name");
+  minfo.port = row.get_int("port");
+  minfo.connect_retry = row.get_uint(
+      from_perf_schema ? "connection_retry_interval" : "connect_retry");
+  {
+    auto value =
+        row.get_string(from_perf_schema ? "ssl_allowed" : "enabled_ssl");
+    minfo.enabled_ssl = shcore::str_caseeq(value, "yes");
+  }
+  minfo.ssl_ca = row.get_string(from_perf_schema ? "ssl_ca_file" : "ssl_ca");
+  minfo.ssl_capath =
+      row.get_string(from_perf_schema ? "ssl_ca_path" : "ssl_capath");
+  minfo.ssl_cert =
+      row.get_string(from_perf_schema ? "ssl_certificate" : "ssl_cert");
+  minfo.ssl_cipher = row.get_string("ssl_cipher");
+  minfo.ssl_key = row.get_string("ssl_key");
+  {
+    auto value =
+        row.get_string(from_perf_schema ? "ssl_verify_server_certificate"
+                                        : "ssl_verify_server_cert");
+    minfo.ssl_verify_server_cert = shcore::str_caseeq(value, "yes");
+  }
+  minfo.heartbeat_period =
+      row.get_double(from_perf_schema ? "heartbeat_interval" : "heartbeat");
+  minfo.bind = row.get_string(from_perf_schema ? "network_interface" : "bind");
+  minfo.retry_count =
+      row.get_uint(from_perf_schema ? "connection_retry_count" : "retry_count");
+  minfo.ssl_crl = row.get_string(from_perf_schema ? "ssl_crl_file" : "ssl_crl");
+  minfo.ssl_crlpath =
+      row.get_string(from_perf_schema ? "ssl_crl_path" : "ssl_crlpath");
+  {
+    auto value = row.get_string(from_perf_schema ? "auto_position"
+                                                 : "enabled_auto_position");
+    minfo.enabled_auto_position = !shcore::str_caseeq(value, "0");
+  }
+  minfo.channel_name = row.get_string("channel_name");
+  minfo.tls_version = row.get_string("tls_version");
+
+  if (row.has_field("public_key_path") && !row.is_null("public_key_path"))
+    minfo.public_key_path = row.get_string("public_key_path");
+  if (row.has_field("network_namespace") && !row.is_null("network_namespace"))
+    minfo.network_namespace = row.get_string("network_namespace");
+  {
+    auto column_name = from_perf_schema ? "compression_algorithm"
+                                        : "master_compression_algorithm";
+    if (row.has_field(column_name) && !row.is_null(column_name))
+      minfo.compression_algorithm = row.get_string(column_name);
+  }
+  {
+    auto column_name = from_perf_schema ? "zstd_compression_level"
+                                        : "master_zstd_compression_level";
+    if (row.has_field(column_name) && !row.is_null(column_name))
+      minfo.zstd_compression_level = row.get_uint(column_name);
+  }
+  if (row.has_field("tls_ciphersuites") && !row.is_null("tls_ciphersuites"))
+    minfo.tls_ciphersuites = row.get_string("tls_ciphersuites");
+
+  return minfo;
 }
 
-void unserialize_channel_relay_log_info(
-    const mysqlshdk::db::Row_ref_by_name &row,
-    Replication_channel_relay_log_info *out_relay_log_info) {
-  out_relay_log_info->relay_log_name = row.get_string("Relay_log_name", "");
-  out_relay_log_info->relay_log_pos = row.get_uint("Relay_log_pos", 0);
-  out_relay_log_info->master_log_name = row.get_string("Master_log_name");
-  out_relay_log_info->master_log_pos = row.get_uint("Master_log_pos");
-  out_relay_log_info->sql_delay = row.get_uint("Sql_delay");
-  out_relay_log_info->number_of_workers = row.get_uint("Number_of_workers");
-  out_relay_log_info->id = row.get_uint("Id");
-  out_relay_log_info->channel_name = row.get_string("Channel_name");
-  if (row.has_field("Privilege_checks_username") &&
-      !row.is_null("Privilege_checks_username"))
-    out_relay_log_info->privilege_checks_username =
-        row.get_string("Privilege_checks_username");
-  if (row.has_field("Privilege_checks_hostname") &&
-      !row.is_null("Privilege_checks_hostname"))
-    out_relay_log_info->privilege_checks_hostname =
-        row.get_string("Privilege_checks_hostname");
-  if (row.has_field("Require_row_format") && !row.is_null("Require_row_format"))
-    out_relay_log_info->require_row_format = row.get_int("Require_row_format");
+Replication_channel_relay_log_info unserialize_channel_relay_log_info(
+    const mysqlshdk::db::Row_ref_by_name &row, bool from_perf_schema) {
+  Replication_channel_relay_log_info rinfo;
+
+  rinfo.sql_delay =
+      row.get_uint(from_perf_schema ? "desired_delay" : "Sql_delay");
+  rinfo.number_of_workers = row.get_uint("number_of_workers");
+  rinfo.channel_name = row.get_string("channel_name");
+
+  {
+    auto column_name = from_perf_schema ? "privilege_checks_user"
+                                        : "privilege_checks_username";
+
+    if (row.has_field(column_name) && !row.is_null(column_name))
+      rinfo.privilege_checks_user = row.get_string(column_name);
+  }
+
+  return rinfo;
 }
 
 }  // namespace
@@ -583,25 +599,44 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
                       Replication_channel_relay_log_info *out_relay_log_info) {
   if (!out_master_info && !out_relay_log_info) return false;
 
+  auto from_perf_schema =
+      instance.get_version() >= k_perf_schema_channels_min_version;
+
   if (out_master_info) {
-    auto result = instance.queryf(
-        "SELECT * FROM mysql.slave_master_info"
-        " WHERE channel_name = ?",
-        channel_name);
-    if (auto row = result->fetch_one_named()) {
-      unserialize_channel_master_info(row, out_master_info);
+    std::string query;
+    if (!from_perf_schema)
+      query = "SELECT * FROM mysql.slave_master_info WHERE channel_name = ?";
+    else
+      query =
+          "SELECT * FROM "
+          "performance_schema.replication_connection_configuration WHERE "
+          "channel_name = ?";
+
+    auto result = instance.queryf(query, channel_name);
+    if (auto row = result->fetch_one_named(); row) {
+      *out_master_info = unserialize_channel_master_info(row, from_perf_schema);
     } else {
       return false;
     }
   }
 
   if (out_relay_log_info) {
-    auto result = instance.queryf(
-        "SELECT * FROM mysql.slave_relay_log_info"
-        " WHERE channel_name = ?",
-        channel_name);
-    if (auto row = result->fetch_one_named()) {
-      unserialize_channel_relay_log_info(row, out_relay_log_info);
+    std::string query;
+    if (!from_perf_schema)
+      query = "SELECT * FROM mysql.slave_relay_log_info WHERE channel_name = ?";
+    else
+      query =
+          "SELECT tconfig.*, tworker.number_of_workers FROM "
+          "performance_schema.replication_applier_configuration tconfig INNER "
+          "JOIN (SELECT channel_name, count(*) AS number_of_workers FROM "
+          "performance_schema.replication_applier_status_by_worker GROUP BY 1) "
+          "tworker ON (tconfig.channel_name = tworker.channel_name) WHERE "
+          "(tconfig.channel_name = ?);";
+
+    auto result = instance.queryf(query, channel_name);
+    if (auto row = result->fetch_one_named(); row) {
+      *out_relay_log_info =
+          unserialize_channel_relay_log_info(row, from_perf_schema);
     }
   }
 
@@ -731,10 +766,17 @@ Replication_channel::Status Replication_channel::applier_status() const {
 
 std::string get_replication_user(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &channel_name) {
-  return instance.queryf_one_string(
-      0, "",
-      "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = ?",
-      channel_name);
+  if (instance.get_version() < k_perf_schema_channels_min_version)
+    return instance.queryf_one_string(
+        0, "",
+        "SELECT User_name FROM mysql.slave_master_info WHERE Channel_name = ?",
+        channel_name);
+
+  return instance.queryf_one_string(0, "",
+                                    "SELECT user FROM "
+                                    "performance_schema.replication_connection_"
+                                    "configuration WHERE channel_name = ?",
+                                    channel_name);
 }
 
 Replication_channel wait_replication_done_connecting(

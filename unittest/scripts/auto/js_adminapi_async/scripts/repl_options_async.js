@@ -289,7 +289,7 @@ begin_dba_log_sql();
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri2); });
 end_dba_log_sql();
 
-//because we add a NULL option, the channel should have been reset
+//because we added a NULL option, the channel should have been reset
 EXPECT_SHELL_LOG_CONTAINS("RESET REPLICA ALL FOR CHANNEL ''");
 
 //they should now be on both and the null gone
@@ -304,11 +304,19 @@ EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri2); });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' is ONLINE and replicating from '${hostname}:${__mysql_sandbox_port1}'.`)
 
 //@<> FR11.4 simple change, no reset of the channel needed
+shell.options["dba.logSql"] = 1;
+WIPE_SHELL_LOG();
+
 EXPECT_NO_THROWS(function() { rs.setInstanceOption(__sandbox_uri2, "replicationRetryCount", 17); });
 EXPECT_NO_THROWS(function() { rs.setInstanceOption(__sandbox_uri2, "replicationConnectRetry", 33); });
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri2); });
 EXPECT_OUTPUT_CONTAINS(`The replication channel of instance '${hostname}:${__mysql_sandbox_port2}' was updated.`);
 EXPECT_OUTPUT_CONTAINS(`The instance is replicating from '${hostname}:${__mysql_sandbox_port1}'.`);
+
+if (__version_num >= 80400) {
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_master_info");
+    EXPECT_SHELL_LOG_NOT_CONTAINS("mysql.slave_relay_log_info");
+}
 
 //@<> FR12 when switching the primary, the new replica instance must be configured properly
 
