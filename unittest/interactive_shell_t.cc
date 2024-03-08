@@ -3141,7 +3141,7 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
       shcore::path::join_path(g_test_home, "data", "sql", "sakila-schema.sql") +
       ";");
   EXPECT_TRUE(output_handler.std_err.empty());
-  EXPECT_NO_THROW(execute("drop database sakila"));
+  EXPECT_NO_THROW(execute("drop database sakila;"));
   wipe_all();
 }
 
