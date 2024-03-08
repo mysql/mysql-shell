@@ -84,6 +84,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
                     &Ddl_dumper_options::set_compatibility_options)
           .optional("targetVersion",
                     &Ddl_dumper_options::set_target_version_str)
+          .optional("skipUpgradeChecks",
+                    &Ddl_dumper_options::m_skip_upgrade_checks)
           .include(&Ddl_dumper_options::m_filtering_options,
                    &mysqlshdk::db::Filtering_options::triggers)
           .optional("where", &Ddl_dumper_options::set_where_clause)

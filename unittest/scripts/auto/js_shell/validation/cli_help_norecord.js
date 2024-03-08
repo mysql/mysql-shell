@@ -886,6 +886,12 @@ OPTIONS
             Specifies version of the destination MySQL server. Default: current
             version of Shell.
 
+--skipUpgradeChecks=<bool>
+            Do not execute the upgrade check utility. Compatibility issues
+            related to MySQL version upgrades will not be checked. Use this
+            option only when executing the Upgrade Checker separately. Default:
+            false.
+
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
             schema.table (all triggers from the specified table) or
@@ -1128,6 +1134,12 @@ OPTIONS
             Specifies version of the destination MySQL server. Default: current
             version of Shell.
 
+--skipUpgradeChecks=<bool>
+            Do not execute the upgrade check utility. Compatibility issues
+            related to MySQL version upgrades will not be checked. Use this
+            option only when executing the Upgrade Checker separately. Default:
+            false.
+
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of
             schema.table (all triggers from the specified table) or
@@ -1350,6 +1362,12 @@ OPTIONS
 --targetVersion=<str>
             Specifies version of the destination MySQL server. Default: current
             version of Shell.
+
+--skipUpgradeChecks=<bool>
+            Do not execute the upgrade check utility. Compatibility issues
+            related to MySQL version upgrades will not be checked. Use this
+            option only when executing the Upgrade Checker separately. Default:
+            false.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the dump in the format of

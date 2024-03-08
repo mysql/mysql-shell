@@ -59,9 +59,9 @@ class Copy_options {
             .template ignore<import_table::Dialect>()
             .ignore({"backgroundThreads", "characterSet", "compression",
                      "createInvisiblePKs", "disableBulkLoad", "loadData",
-                     "loadDdl", "loadUsers", "ocimds", "progressFile",
-                     "resetProgress", "showMetadata", "targetVersion",
-                     "waitDumpTimeout"})
+                     "loadDdl", "loadUsers", "ocimds", "skipUpgradeChecks",
+                     "progressFile", "resetProgress", "showMetadata",
+                     "targetVersion", "waitDumpTimeout"})
             .include(&Copy_options::m_dump_options)
             .include(&Copy_options::m_load_options)
             .on_done(&Copy_options::on_unpacked_options);

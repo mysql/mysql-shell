@@ -1538,7 +1538,11 @@ values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
 "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
 "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
 @li <b>targetVersion</b>: string (default: current version of Shell) - Specifies
-version of the destination MySQL server.)*");
+version of the destination MySQL server.
+@li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
+upgrade check utility. Compatibility issues related to MySQL version upgrades
+will not be checked. Use this option only when executing the Upgrade Checker
+separately.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables or

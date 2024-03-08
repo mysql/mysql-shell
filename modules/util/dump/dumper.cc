@@ -4542,6 +4542,11 @@ bool Dumper::check_for_upgrade_errors() const {
     return false;
   }
 
+  if (m_options.skip_upgrade_checks()) {
+    current_console()->print_note("Skipping upgrade compatibility checks");
+    return false;
+  }
+
   upgrade_checker::Upgrade_check_options options;
   options.target_version = m_options.target_version();
   // It is pointless to perform this check should not be executed in the context
