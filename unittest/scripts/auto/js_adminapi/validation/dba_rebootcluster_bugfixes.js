@@ -275,16 +275,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.23)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
-                    "value": "AUTOMATIC",
-?{}
-?{VER(<8.0.23)}
                     "value": "<<<ip_allow_list80>>>",
-?{}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
+?{(VER(>=8.0.23) && VER(<8.0.37)) || VER(>=8.1.0)}
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address1>>>",
@@ -376,16 +380,20 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.23)}
                 {
                     "option": "ipWhitelist",
-?{VER(>=8.0.23)}
-                    "value": "AUTOMATIC",
-?{}
-?{VER(<8.0.23)}
                     "value": "<<<ip_allow_list80>>>",
-?{}
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
+?{(VER(>=8.0.23) && VER(<8.0.37)) || VER(>=8.1.0)}
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+?{}
                 {
                     "option": "localAddress",
                     "value": "<<<local_address2>>>",
@@ -722,17 +730,17 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.23)}
                 {
                     "option": "ipWhitelist",
-?{}
-?{VER(>=8.0.23) && VER(<8.3.0)}
-                    "value": "AUTOMATIC",
-?{}
-?{VER(<8.0.23)}
                     "value": "<<<ip_allow_list80>>>",
+                    "variable": "group_replication_ip_whitelist"
+                },
 ?{}
-?{VER(<8.3.0)}
+?{(VER(>=8.0.23) && VER(<8.0.37)) || VER(>=8.1.0)}
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
 ?{}
@@ -829,17 +837,17 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.23)}
                 {
                     "option": "ipWhitelist",
-?{}
-?{VER(>=8.0.23) && VER(<8.3.0)}
-                    "value": "AUTOMATIC",
-?{}
-?{VER(<8.0.23)}
                     "value": "<<<ip_allow_list80>>>",
+                    "variable": "group_replication_ip_whitelist"
+                },
 ?{}
-?{VER(<8.3.0)}
+?{(VER(>=8.0.23) && VER(<8.0.37)) || VER(>=8.1.0)}
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
 ?{}

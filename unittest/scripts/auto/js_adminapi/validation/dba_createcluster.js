@@ -562,11 +562,13 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipAllowlist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -845,11 +847,13 @@ Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipAllowlist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",

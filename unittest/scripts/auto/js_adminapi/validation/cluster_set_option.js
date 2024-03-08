@@ -398,11 +398,13 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -494,11 +496,13 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -590,11 +594,13 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -992,11 +998,13 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -1088,11 +1096,13 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
@@ -1184,11 +1194,13 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
+?{VER(<8.0.37) || VER(>=8.1.0)}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
                 },
+?{}
                 {
                     "option": "localAddress",
                     "value": "[[*]]",
