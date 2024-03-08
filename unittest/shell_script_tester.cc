@@ -1733,6 +1733,15 @@ void Shell_script_tester::set_defaults() {
          mysqlshdk::utils::Version(MYSH_VERSION).get_base() + "'";
   exec_and_out_equals(code);
 
+  int64_t version_num =
+      mysqlshdk::utils::Version(MYSH_VERSION).get_major() * 10000 +
+      mysqlshdk::utils::Version(MYSH_VERSION).get_minor() * 100 +
+      mysqlshdk::utils::Version(MYSH_VERSION).get_patch();
+
+  code = get_variable_prefix() +
+         "__mysh_version_num = " + std::to_string(version_num);
+  exec_and_out_equals(code);
+
   code = get_variable_prefix() + "__version = '" +
          _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
@@ -1741,9 +1750,9 @@ void Shell_script_tester::set_defaults() {
          _target_server_version.get_full() + "'";
   exec_and_out_equals(code);
 
-  int64_t version_num = _target_server_version.get_major() * 10000 +
-                        _target_server_version.get_minor() * 100 +
-                        _target_server_version.get_patch();
+  version_num = _target_server_version.get_major() * 10000 +
+                _target_server_version.get_minor() * 100 +
+                _target_server_version.get_patch();
 
   code =
       get_variable_prefix() + "__version_num = " + std::to_string(version_num);

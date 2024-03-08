@@ -75,6 +75,8 @@ class Ddl_dumper_options : public Dump_options {
     return m_skip_consistency_checks;
   }
 
+  bool skip_upgrade_checks() const override { return m_skip_upgrade_checks; }
+
   bool dump_triggers() const override { return m_dump_triggers; }
 
   bool use_timezone_utc() const override { return m_timezone_utc; }
@@ -126,6 +128,7 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_consistent_dump = true;
   bool m_skip_consistency_checks = false;
+  bool m_skip_upgrade_checks = false;
   bool m_checksum = false;
 };
 

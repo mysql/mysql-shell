@@ -531,6 +531,10 @@ DESCRIPTION
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
+      - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
+        check utility. Compatibility issues related to MySQL version upgrades
+        will not be checked. Use this option only when executing the Upgrade
+        Checker separately.
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -1152,6 +1156,10 @@ DESCRIPTION
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
+      - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
+        check utility. Compatibility issues related to MySQL version upgrades
+        will not be checked. Use this option only when executing the Upgrade
+        Checker separately.
       - events: bool (default: true) - Include events from each dumped schema.
       - excludeEvents: list of strings (default: empty) - List of events to be
         excluded from the dump in the format of schema.event.
@@ -1751,6 +1759,10 @@ DESCRIPTION
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
+      - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
+        check utility. Compatibility issues related to MySQL version upgrades
+        will not be checked. Use this option only when executing the Upgrade
+        Checker separately.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
