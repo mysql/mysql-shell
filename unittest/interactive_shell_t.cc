@@ -79,7 +79,7 @@ TEST_F(Interactive_shell_test, test_quit_command) {
       {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
        "/prompt_classic.json"});
   MY_EXPECT_MULTILINE_OUTPUT("Testing \\quit",
-                             multiline({"mysql-js> \\quit", "Bye!"}),
+                             multiline({"mysql-sql> \\quit", "Bye!"}),
                              output_handler.std_out);
   wipe_all();
   testutil->call_mysqlsh_c(
@@ -87,7 +87,7 @@ TEST_F(Interactive_shell_test, test_quit_command) {
       {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
        "/prompt_classic.json"});
   MY_EXPECT_MULTILINE_OUTPUT("Testing \\q",
-                             multiline({"mysql-js> \\q", "Bye!"}),
+                             multiline({"mysql-sql> \\q", "Bye!"}),
                              output_handler.std_out);
   wipe_all();
   testutil->call_mysqlsh_c(
@@ -95,14 +95,14 @@ TEST_F(Interactive_shell_test, test_quit_command) {
       {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
        "/prompt_classic.json"});
   MY_EXPECT_MULTILINE_OUTPUT("Testing \\exit",
-                             multiline({"mysql-js> \\exit", "Bye!"}),
+                             multiline({"mysql-sql> \\exit", "Bye!"}),
                              output_handler.std_out);
   wipe_all();
 }
 
 TEST_F(Interactive_shell_test, test_swicth_mode_commands) {
   testutil->call_mysqlsh_c(
-      {"-ifull"}, "\\sql\n",
+      {"--js", "-ifull"}, "\\sql\n",
       {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
        "/prompt_classic.json"});
   MY_EXPECT_MULTILINE_OUTPUT(
@@ -120,12 +120,12 @@ TEST_F(Interactive_shell_test, test_swicth_mode_commands) {
   MY_EXPECT_MULTILINE_OUTPUT(
       "Testing \\py",
       multiline(
-          {"mysql-js> \\py", "Switching to Python mode...", "mysql-py> Bye!"}),
+          {"mysql-sql> \\py", "Switching to Python mode...", "mysql-py> Bye!"}),
       output_handler.std_out);
   wipe_all();
 
   testutil->call_mysqlsh_c(
-      {"--sql", "-ifull"}, "\\js\n",
+      {"-ifull"}, "\\js\n",
       {"MYSQLSH_PROMPT_THEME=" + shcore::get_binary_folder() +
        "/prompt_classic.json"});
   MY_EXPECT_MULTILINE_OUTPUT(
@@ -3141,7 +3141,7 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
       shcore::path::join_path(g_test_home, "data", "sql", "sakila-schema.sql") +
       ";");
   EXPECT_TRUE(output_handler.std_err.empty());
-  EXPECT_NO_THROW(execute("drop database sakila"));
+  EXPECT_NO_THROW(execute("drop database sakila;"));
   wipe_all();
 }
 

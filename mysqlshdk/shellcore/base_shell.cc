@@ -24,18 +24,13 @@
  */
 #include "shellcore/base_shell.h"
 
-#include <tuple>
-
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
-#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/threads.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
-#include "shellcore/shell_resultset_dumper.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
@@ -62,7 +57,7 @@ const std::map<std::string, std::string> k_shell_hooks = {
     {"TableInsert", "execute"},      {"TableSelect", "execute"},
     {"TableUpdate", "execute"},      {"SqlExecute", "execute"},
 };
-}
+}  // namespace
 
 namespace {
 void print_diag(const std::string &s) { current_console()->print_diag(s); }
@@ -105,15 +100,7 @@ void Base_shell::finish_init() {
 
   shcore::IShell_core::Mode initial_mode = options().initial_mode;
   if (initial_mode == shcore::IShell_core::Mode::None) {
-#ifdef HAVE_V8
-    initial_mode = shcore::IShell_core::Mode::JavaScript;
-#else
-#ifdef HAVE_PYTHON
-    initial_mode = shcore::IShell_core::Mode::Python;
-#else
     initial_mode = shcore::IShell_core::Mode::SQL;
-#endif
-#endif
   }
 
   // If we're not in the main thread, it means the shell object is created

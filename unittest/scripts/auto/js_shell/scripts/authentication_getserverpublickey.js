@@ -100,16 +100,16 @@ var uri_nossl = 'mysql://local_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ss
 var uri_nossl_getpubkey = 'mysql://local_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect once more without SSL - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
@@ -118,17 +118,17 @@ var uri_nossl = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://local_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--get-server-public-key', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--get-server-public-key', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
@@ -191,16 +191,16 @@ var uri_nossl = 'mysql://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ssl
 var uri_nossl_getpubkey = 'mysql://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect once more without SSL - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_pass / password:pass (SUCCESS)  {VER(>=8.0.4)}
@@ -209,7 +209,7 @@ var uri_nossl = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?s
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
@@ -276,15 +276,15 @@ var uri_nossl = 'mysql://local_blank:@localhost:'+__mysql_sandbox_port1+'/?ssl-m
 var uri_nossl_getpubkey = 'mysql://local_blank:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should succeed b/c nopass
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect once more without SSL - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_blank / password: (SUCCESS)  {VER(>=8.0.4)}
@@ -293,7 +293,7 @@ var uri_nossl = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl
 var uri_nossl_getpubkey = 'mysqlx://local_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
@@ -360,15 +360,15 @@ var uri_nossl = 'mysql://remo_blank:@localhost:'+__mysql_sandbox_port1+'/?ssl-mo
 var uri_nossl_getpubkey = 'mysql://remo_blank:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should succeed b/c blank password
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect again without SSL and --get-server-public-key - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 // Connect once more without SSL - should (SUCCESS)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_blank / password: (SUCCESS)  {VER(>=8.0.4)}
@@ -377,7 +377,7 @@ var uri_nossl = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
@@ -444,17 +444,17 @@ var uri_nossl = 'mysql://local_blank:pass@localhost:'+__mysql_sandbox_port1+'/?s
 var uri_nossl_getpubkey = 'mysql://local_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
@@ -464,7 +464,7 @@ var uri_nossl = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/
 var uri_nossl_getpubkey = 'mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
@@ -474,7 +474,7 @@ EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
@@ -541,17 +541,17 @@ var uri_nossl = 'mysql://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ss
 var uri_nossl_getpubkey = 'mysql://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Authentication plugin 'caching_sha2_password' reported error: Authentication requires secure connection.");
 
@@ -561,17 +561,17 @@ var uri_nossl = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?
 var uri_nossl_getpubkey = 'mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=pass', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
@@ -638,17 +638,17 @@ var uri_nossl = 'mysql://local_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mo
 var uri_nossl_getpubkey = 'mysql://local_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' ");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost' ");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
@@ -658,17 +658,17 @@ var uri_nossl = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-
 var uri_nossl_getpubkey = 'mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
@@ -735,17 +735,17 @@ var uri_nossl = 'mysql://remo_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mod
 var uri_nossl_getpubkey = 'mysql://remo_pass:@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
@@ -755,17 +755,17 @@ var uri_nossl = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-m
 var uri_nossl_getpubkey = 'mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED&get-server-public-key=true';
 
 // First connect without SSL - should fail
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 // Connect again without SSL and --get-server-public-key - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl_getpubkey, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("X Protocol: Option get-server-public-key is not supported.");
 
 // Connect once more without SSL - should (FAIL)
-var rc = testutil.callMysqlsh([uri_nossl, '--password=', '-e', 'println(session)']);
+var rc = testutil.callMysqlsh([uri_nossl, '--password=', '--js', '-e', 'println(session)']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 

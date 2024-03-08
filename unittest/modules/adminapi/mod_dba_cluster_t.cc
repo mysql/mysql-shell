@@ -57,6 +57,7 @@ class Admin_api_cluster_test : public Admin_api_test {
     reset_replayable_shell(
         ::testing::UnitTest::GetInstance()->current_test_info()->name());
 
+    execute("\\js");
     execute("shell.connect('root:root@localhost:" +
             std::to_string(_mysql_sandbox_ports[0]) + "')");
 

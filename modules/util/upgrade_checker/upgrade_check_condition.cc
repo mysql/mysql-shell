@@ -34,6 +34,13 @@ Version_condition::Version_condition(Version version) {
   m_versions.emplace_front(std::move(version));
 }
 
+void Version_condition::add_version(const Version &version) {
+  if (std::find(m_versions.begin(), m_versions.end(), version) ==
+      std::end(m_versions)) {
+    m_versions.emplace_front(version);
+  }
+}
+
 std::string Version_condition::description() const {
   return "When the upgrade reaches any of the following versions: " +
          shcore::str_join(m_versions, ", ",

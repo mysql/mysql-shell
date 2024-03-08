@@ -139,7 +139,7 @@ TEST_F(Command_line_connection_test, classic_port) {
 
 TEST_F(Command_line_connection_test, bug25268670) {
   execute(
-      {_mysqlsh, "-e",
+      {_mysqlsh, "--js", "-e",
        "shell.connect({'user':'root','password':'','host':'localhost','invalid_"
        "option':'wahtever'})",
        NULL});
@@ -153,14 +153,14 @@ TEST_F(Command_line_connection_test, bug28899522) {
   static constexpr auto expected =
       "Shell.connect: Argument #1: Host value cannot be an empty string.";
 
-  execute(
-      {_mysqlsh, "-e", "shell.connect({'user':'root','host':''})", nullptr});
+  execute({_mysqlsh, "--js", "-e", "shell.connect({'user':'root','host':''})",
+           nullptr});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
 
   wipe_out();
 
-  execute({_mysqlsh, "-e",
+  execute({_mysqlsh, "--js", "-e",
            "shell.connect({'user':'root','host':'','password':''})", nullptr});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
@@ -522,8 +522,8 @@ TEST_F(Command_line_connection_test, expired_account) {
 
   uri = "expired:@" + shcore::str_partition(_mysql_uri, "@").second;
   _output.clear();
-  execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e", "print('DONE')",
-           nullptr});
+  execute({_mysqlsh, uri.c_str(), "--interactive=full", "--js", "-e",
+           "print('DONE')", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("DONE");
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("ERROR");
 }
@@ -532,7 +532,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   const std::string prefix =
       "Shell.connect: Argument #1: Invalid values in connection options: ";
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslMode':"
              "'whatever'})",
@@ -542,7 +542,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }  // namespace tests
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCa':'"
              "whatever'})",
@@ -552,7 +552,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCaPath':'"
              "whatever'})",
@@ -562,7 +562,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCrl':'"
              "whatever'})",
@@ -572,7 +572,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCrlPath':"
              "'whatever'})",
@@ -582,7 +582,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCert':'"
              "whatever'})",
@@ -592,7 +592,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslKey':'"
              "whatever'})",
@@ -602,7 +602,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"
              "sslCipher':"
              "'whatever'})",
@@ -612,7 +612,7 @@ TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   }
 
   {
-    execute({_mysqlsh, "-e",
+    execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost',"
              "'sslTlsVersion':'whatever'})",
              NULL});
@@ -626,7 +626,7 @@ TEST_F(Command_line_connection_test, socket_connection) {
   {
     std::string cmd = "shell.connect(\"" + _user + ":" + _pwd + "@(" +
                       _mysql_socket + ")\");shell.status()";
-    execute({_mysqlsh, "-e", cmd.c_str(), nullptr});
+    execute({_mysqlsh, "--js", "-e", cmd.c_str(), nullptr});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Connection:                   Localhost via UNIX socket");
@@ -636,7 +636,7 @@ TEST_F(Command_line_connection_test, socket_connection) {
   {
     std::string cmd = "shell.connect(\"" + _user + ":" + _pwd + "@(" + _socket +
                       ")\");shell.status()";
-    execute({_mysqlsh, "-e", cmd.c_str(), nullptr});
+    execute({_mysqlsh, "--js", "-e", cmd.c_str(), nullptr});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "Connection:                   Localhost via UNIX socket");
@@ -654,8 +654,8 @@ TEST_F(Command_line_connection_test, socket_connection_with_default_path) {
   std::string cmd = "shell.status()";
   std::string pwd = "--password=" + _pwd;
   {
-    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "--socket", "-e",
-             cmd.c_str(), nullptr});
+    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "--socket", "--js",
+             "-e", cmd.c_str(), nullptr});
 
     if (_output.find("Can't connect to local MySQL server through socket") ==
         std::string::npos) {
@@ -665,8 +665,8 @@ TEST_F(Command_line_connection_test, socket_connection_with_default_path) {
     }
   }
   {
-    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "-S", "--mc", "-e",
-             cmd.c_str(), nullptr});
+    execute({_mysqlsh, "-u", _user.c_str(), pwd.c_str(), "-S", "--mc", "--js",
+             "-e", cmd.c_str(), nullptr});
 
     if (_output.find("Can't connect to local MySQL server through socket") ==
         std::string::npos) {

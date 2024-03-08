@@ -105,8 +105,8 @@ session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 
 //@ async mysqlsh
-var pid1 = testutil.callMysqlshAsync(["-e", "print('Cadabra')"]);
-var pid2 = testutil.callMysqlshAsync(["-e", "print('Abra')"]);
+var pid1 = testutil.callMysqlshAsync(["--js", "-e", "print('Cadabra')"]);
+var pid2 = testutil.callMysqlshAsync(["--js", "-e", "print('Abra')"]);
 EXPECT_EQ(0, testutil.waitMysqlshAsync(pid2, 10));
 EXPECT_EQ(0, testutil.waitMysqlshAsync(pid1, 10));
 var pid3 = testutil.callMysqlshAsync(["--js"]);

@@ -228,11 +228,12 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   wipe_out();
 
 #ifdef HAVE_V8
-  // will exec using JS - OK
+  // will exec using SQL (default) - ERROR
   execute({_mysqlsh, "-f", "js.foo", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
   wipe_out();
 
+  // will exec using JS - OK
   execute({_mysqlsh, "--js", "-f", "js.foo", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
   wipe_out();

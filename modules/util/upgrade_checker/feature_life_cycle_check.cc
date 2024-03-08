@@ -39,7 +39,9 @@ using mysqlshdk::utils::Version;
 
 Feature_life_cycle_check::Feature_life_cycle_check(std::string_view name,
                                                    Grouping grouping)
-    : Upgrade_check(name), m_grouping(grouping) {}
+    : Upgrade_check(name), m_grouping(grouping) {
+  set_condition(&m_list_condition);
+}
 
 bool Feature_life_cycle_check::enabled() const {
   for (const auto &entry : m_features) {
@@ -108,6 +110,17 @@ void Feature_life_cycle_check::add_feature(const Feature_definition &feature,
       feature,
       Life_cycle_condition(feature.start, feature.deprecated, feature.removed)
           .evaluate(server_info)};
+
+  // Any of these versions must be defined, the earlier one turns on the feature
+  // check so we add that to the global feature condition for listing purposes.
+  if (feature.deprecated.has_value()) {
+    m_list_condition.add_version(*feature.deprecated);
+  } else if (feature.removed.has_value()) {
+    m_list_condition.add_version(*feature.removed);
+  } else {
+    throw std::logic_error(
+        "A feature being verified should be either deprecated or removed.");
+  }
 }
 
 bool Feature_life_cycle_check::has_feature(

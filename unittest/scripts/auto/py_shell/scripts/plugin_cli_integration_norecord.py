@@ -147,7 +147,7 @@ call_mysqlsh(["--", "cli_tester", "test-interactive", "--help"])
 call_mysqlsh(["--", "cli_tester", "test-interactive", "-h"])
 
 #@ Interactive plugin function help
-call_mysqlsh(["-i", "-e", "cli_tester.help(\"testInteractive\")"])
+call_mysqlsh(["-i", "--js", "-e", "cli_tester.help(\"testInteractive\")"])
 
 #@ CLI plugin nested child --help
 call_mysqlsh(["--", "cli_tester", "emptyChild", "--help"])
@@ -193,7 +193,7 @@ call_mysqlsh(["--", "cli_tester", "test", "\\=1,2,3,4,5", "1\\=2", "3", "4\\=5",
 call_mysqlsh(["--", "cli_tester", "emptyChild", "grandChild", "grand-child-function", "Success!!"])
 
 #<> Calling non CLI plugin function
-call_mysqlsh(["-i", "-e" "cli_tester.testInteractive()"])
+call_mysqlsh(["-i", "--js", "-e" "cli_tester.testInteractive()"])
 EXPECT_STDOUT_CONTAINS("Interactive mode function success!!!")
 
 #<> Calling non CLI plugin function from CLI
@@ -201,7 +201,7 @@ call_mysqlsh(["--", "cli_tester", "test-interactive"])
 EXPECT_STDOUT_CONTAINS("ERROR: Invalid operation for cli_tester object: test-interactive")
 
 #<> Calling non CLI nested plugin function
-call_mysqlsh(["-i", "-e" "cli_tester.emptyChild.grandChild.printMoreNestedInfo('Success!')"])
+call_mysqlsh(["-i", "--js", "-e" "cli_tester.emptyChild.grandChild.printMoreNestedInfo('Success!')"])
 EXPECT_STDOUT_CONTAINS("Interactive Parameter In Nested Function: Success!")
 
 #<> Calling non CLI nested plugin function from CLI
@@ -350,7 +350,7 @@ WIPE_OUTPUT()
 
 
 #@<> Tests default values are used even in API calls
-rc = call_mysqlsh(["-e", "custom_plugin.printElement('two')"])
+rc = call_mysqlsh(["--js", "-e", "custom_plugin.printElement('two')"])
 EXPECT_STDOUT_CONTAINS("default value for two (two)")
 WIPE_OUTPUT()
 

@@ -228,8 +228,7 @@ TEST(Upgrade_check_registry, create_checklist) {
       {Version(8, 0, 29), {ids::k_deprecated_temporal_delimiter_check}},
       {Version(8, 0, 31), {ids::k_dollar_sign_name_check}},
       {Version(8, 4, 0),
-       {ids::k_column_definition, ids::k_invalid_privileges_check,
-        ids::k_partitions_with_prefix_keys}}};
+       {ids::k_column_definition, ids::k_partitions_with_prefix_keys}}};
 
   auto v5_7_0 = Version(5, 7, 0);
   for (const auto &version_check : single_version_checks) {
@@ -247,6 +246,16 @@ TEST(Upgrade_check_registry, create_checklist) {
            {version_check.first, after_version(version_check.first)}});
     }
   }
+
+  // Check is only available if > 8.0
+  test_check_availability(ids::k_invalid_privileges_check, false,
+                          {{v5_7_0, Version(5, 7, 99)},
+                           {v5_7_0, Version(8, 4, 0)},
+                           {v5_7_0, Version(8, 4, 1)}});
+
+  test_check_availability(ids::k_invalid_privileges_check, true,
+                          {{Version(8, 0, 11), Version(8, 4, 0)},
+                           {Version(8, 0, 11), Version(8, 4, 1)}});
 
   auto vShell = Version(MYSH_VERSION);
   test_check_availability(ids::k_changed_functions_generated_columns_check,

@@ -131,34 +131,34 @@ cluster.disconnect();
 session.close();
 
 //@ MP - Connect with no options and ensure it will connect to the specified member
-testutil.callMysqlsh([__sandbox_uri1, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "shell.status()"]);
 
 //@ MP - Connect with no options and ensure it will connect to the specified member 2
-testutil.callMysqlsh([__sandbox_uri2, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri2, "--js", "-e", "shell.status()"]);
 
 //@ MP - Connect with --redirect-primary while connected to the primary
-testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ MP - Connect with --redirect-primary while connected to another primary
-testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri2, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ MP - Connect with --redirect-secondary (error)
-testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_uri1, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 //@ MPX - Connect with no options and ensure it will connect to the specified member
-testutil.callMysqlsh([__sandbox_xuri1, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--js", "-e", "shell.status()"]);
 
 //@ MPX - Connect with no options and ensure it will connect to the specified member 2
-testutil.callMysqlsh([__sandbox_xuri2, "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2, "--js", "-e", "shell.status()"]);
 
 //@ MPX - Connect with --redirect-primary while connected to the primary
-testutil.callMysqlsh([__sandbox_xuri1, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ MPX - Connect with --redirect-primary while connected to another primary
-testutil.callMysqlsh([__sandbox_xuri2, "--redirect-primary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri2, "--redirect-primary", "--js", "-e", "shell.status()"]);
 
 //@ MPX - Connect with --redirect-secondary (error)
-testutil.callMysqlsh([__sandbox_xuri1, "--redirect-secondary", "-e", "shell.status()"]);
+testutil.callMysqlsh([__sandbox_xuri1, "--redirect-secondary", "--js", "-e", "shell.status()"]);
 
 
 //@<> MP - Connect with --cluster 1

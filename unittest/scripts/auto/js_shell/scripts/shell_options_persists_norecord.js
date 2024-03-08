@@ -457,7 +457,7 @@ function callMysqlsh(command_line_args) {
  * @param {*} test_value : the value to be used in the test
  */
 function test_cli_option_update(option, default_value, test_value) {
-    callMysqlsh(['-i', '-e', 'shell.options'])
+    callMysqlsh(['-i', '--js', '-e', 'shell.options'])
     if (typeof(test_value) == "string") {
       EXPECT_STDOUT_CONTAINS(`"${option}": "${default_value}"`);
     } else {
@@ -465,7 +465,7 @@ function test_cli_option_update(option, default_value, test_value) {
     }
     WIPE_OUTPUT();
     callMysqlsh(['--', 'shell', 'options', 'set-persist', option, `${test_value}`])
-    callMysqlsh(['-i', '-e', 'shell.options'])
+    callMysqlsh(['-i', '--js', '-e', 'shell.options'])
 
     if (typeof(test_value) == "string") {
       EXPECT_STDOUT_CONTAINS(`"${option}": "${test_value}"`);
@@ -475,7 +475,7 @@ function test_cli_option_update(option, default_value, test_value) {
 
     WIPE_OUTPUT();
     callMysqlsh(['--', 'shell', 'options', 'unset-persist', option])
-    callMysqlsh(['-i', '-e', 'shell.options'])
+    callMysqlsh(['-i', '--js', '-e', 'shell.options'])
     if (typeof(test_value) == "string") {
       EXPECT_STDOUT_CONTAINS(`"${option}": "${default_value}"`);
     } else {
@@ -491,7 +491,6 @@ test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
 test_cli_option_update('dba.logSql', 0, 2);
 test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
 test_cli_option_update('defaultCompress', false, true);
-test_cli_option_update('defaultMode', 'none', 'py');
 test_cli_option_update('devapi.dbObjectHandles', true, false);
 test_cli_option_update('history.autoSave', false, true);
 test_cli_option_update('history.maxSize', 1000, 20);
@@ -519,14 +518,14 @@ function test_option_update(option, default_value, test_value) {
     const expected_test_value = quote(test_value);
 
     WIPE_OUTPUT();
-    callMysqlsh(['-i', '-e', `println("Value of '${option}' (before): " + shell.options["${option}"]);shell.options["${option}"] = ${expected_test_value};println("Value of '${option}' (after): " + shell.options["${option}"]);`])
+    callMysqlsh(['-i', '--js', '-e', `println("Value of '${option}' (before): " + shell.options["${option}"]);shell.options["${option}"] = ${expected_test_value};println("Value of '${option}' (after): " + shell.options["${option}"]);`])
     EXPECT_STDOUT_CONTAINS(`
 Value of '${option}' (before): ${expected_default_value}
 Value of '${option}' (after): ${expected_test_value}
 `);
 
     WIPE_OUTPUT();
-    callMysqlsh(['-i', '-e', `println("Value of '${option}' (restarted): " + shell.options["${option}"]);`])
+    callMysqlsh(['-i', '--js', '-e', `println("Value of '${option}' (restarted): " + shell.options["${option}"]);`])
     EXPECT_STDOUT_CONTAINS(`
 Value of '${option}' (restarted): ${expected_default_value}
 `);

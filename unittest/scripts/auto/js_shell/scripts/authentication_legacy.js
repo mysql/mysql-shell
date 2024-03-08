@@ -82,11 +82,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:local_pass / password:pass / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_pass / password:pass / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:remo_blank / password:pass / ssl:DISABLED (FAIL)
@@ -140,11 +140,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:remo_pass / password:pass / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_pass / password:pass / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:local_blank / password: / ssl:DISABLED (SUCCESS)
@@ -170,11 +170,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:local_blank / password: / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_blank / password: / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:local_pass / password: / ssl:DISABLED (FAIL)
@@ -196,12 +196,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://local_pass:@localhost:'+__mysq
 EXPECT_THROWS(function() { shell.connect('mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:local_pass / password: / ssl:DISABLED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 //@ shell x -- user:local_pass / password: / ssl:DISABLED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
@@ -228,11 +228,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:remo_blank / password: / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_blank / password: / ssl:DISABLED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:remo_pass / password: / ssl:DISABLED (FAIL)
@@ -254,12 +254,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://remo_pass:@localhost:'+__mysql
 EXPECT_THROWS(function() { shell.connect('mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED')}, auth_fail_exc);
 
 //@ shell classic -- user:remo_pass / password: / ssl:DISABLED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell x -- user:remo_pass / password: / ssl:DISABLED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=DISABLED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
@@ -282,12 +282,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://local_blank:pass@localhost:'+_
 EXPECT_THROWS(function() { shell.connect('mysqlx://local_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED')}, auth_fail_exc);
 
 //@ shell classic -- user:local_blank / password:pass / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_blank'@'localhost'");
 
 //@ shell x -- user:local_blank / password:pass / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
@@ -314,11 +314,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:local_pass / password:pass / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_pass / password:pass / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:remo_blank / password:pass / ssl:REQUIRED (FAIL)
@@ -340,12 +340,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://remo_blank:pass@localhost:'+__
 EXPECT_THROWS(function() { shell.connect('mysqlx://remo_blank:pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED')}, auth_fail_exc);
 
 //@ shell classic -- user:remo_blank / password:pass / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_blank'@'localhost'");
 
 //@ shell x -- user:remo_blank / password:pass / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
@@ -372,11 +372,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:remo_pass / password:pass / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_pass / password:pass / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=pass', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:local_blank / password: / ssl:REQUIRED (SUCCESS)
@@ -402,11 +402,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:local_blank / password: / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:local_blank / password: / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:local_pass / password: / ssl:REQUIRED (FAIL)
@@ -428,12 +428,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://local_pass:@localhost:'+__mysq
 EXPECT_THROWS(function() { shell.connect('mysqlx://local_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED')}, auth_fail_exc);
 
 //@ shell classic -- user:local_pass / password: / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://local_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'local_pass'@'localhost'");
 
 //@ shell x -- user:local_pass / password: / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://local_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
@@ -460,11 +460,11 @@ EXPECT_TRUE(session.isOpen());
 session.close();
 
 //@ shell classic -- user:remo_blank / password: / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_blank@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 //@ shell x -- user:remo_blank / password: / ssl:REQUIRED (SUCCESS)
-var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_blank@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_EQ(0, rc);
 
 // ==== user:remo_pass / password: / ssl:REQUIRED (FAIL)
@@ -486,12 +486,12 @@ EXPECT_THROWS(function() { shell.connect('mysql://remo_pass:@localhost:'+__mysql
 EXPECT_THROWS(function() { shell.connect('mysqlx://remo_pass:@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED')}, auth_fail_exc);
 
 //@ shell classic -- user:remo_pass / password: / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysql://remo_pass@localhost:'+__mysql_sandbox_port1+'/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS("Access denied for user 'remo_pass'@'localhost'");
 
 //@ shell x -- user:remo_pass / password: / ssl:REQUIRED (FAIL)
-var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '-e', 'shell.status()']);
+var rc = testutil.callMysqlsh(['mysqlx://remo_pass@localhost:'+__mysql_sandbox_port1+'0/?ssl-mode=REQUIRED', '--password=', '--js', '-e', 'shell.status()']);
 EXPECT_NE(0, rc);
 EXPECT_STDOUT_CONTAINS(auth_fail_exc);
 
