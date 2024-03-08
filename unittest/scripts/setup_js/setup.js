@@ -943,11 +943,29 @@ function EXPECT_GT(value1, value2, note) {
   }
 }
 
+function EXPECT_GE(value1, value2, note) {
+  if (note === undefined)
+    note = "";
+  if (value1 < value2) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_GE failed:</red> " + note + "\n\t"+repr(value1)+" expected to be >= "+repr(value2)+" but isn't.";
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_LT(value1, value2, note) {
   if (note === undefined)
     note = "";
   if (value1 >= value2) {
     var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_LT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be < "+repr(value2)+" but isn't.";
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_LE(value1, value2, note) {
+  if (note === undefined)
+    note = "";
+  if (value1 > value2) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_LE failed:</red> " + note + "\n\t"+repr(value1)+" expected to be <= "+repr(value2)+" but isn't.";
     testutil.fail(context);
   }
 }

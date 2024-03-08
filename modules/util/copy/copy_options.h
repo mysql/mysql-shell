@@ -58,9 +58,10 @@ class Copy_options {
             .template ignore<mysqlshdk::azure::Blob_storage_options>()
             .template ignore<import_table::Dialect>()
             .ignore({"backgroundThreads", "characterSet", "compression",
-                     "createInvisiblePKs", "loadData", "loadDdl", "loadUsers",
-                     "ocimds", "progressFile", "resetProgress", "showMetadata",
-                     "targetVersion", "waitDumpTimeout"})
+                     "createInvisiblePKs", "disableBulkLoad", "loadData",
+                     "loadDdl", "loadUsers", "ocimds", "progressFile",
+                     "resetProgress", "showMetadata", "targetVersion",
+                     "waitDumpTimeout"})
             .include(&Copy_options::m_dump_options)
             .include(&Copy_options::m_load_options)
             .on_done(&Copy_options::on_unpacked_options);

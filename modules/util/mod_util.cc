@@ -1049,6 +1049,10 @@ assigned more threads.
 LOAD DATA LOCAL INFILE is used to load table data and thus, the 'local_infile'
 MySQL global setting must be enabled.
 
+If target MySQL server supports BULK LOAD, the load operation of compatible
+tables can be offloaded to the target server, which parallelizes and loads data
+directly from the Cloud storage.
+
 <b>Resuming</b>
 
 The load command will store progress information into a file for each step of
@@ -1099,6 +1103,8 @@ compatibility option, false otherwise. Requires server 8.0.24 or newer.
 If "all", creation of "all" indexes except PRIMARY is deferred until after
 table data is loaded, which in many cases can reduce load times. If "fulltext",
 only full-text indexes will be deferred.
+@li <b>disableBulkLoad</b>: bool (default: false) - Do not use BULK LOAD
+feature to load the data, even when available.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
 @li <b>excludeEvents</b>: array of strings (default not set) - Skip loading
@@ -1170,7 +1176,8 @@ the maximum number of bytes that can be loaded from a dump data file per single
 LOAD DATA statement. Supports unit suffixes: k (kilobytes), M (Megabytes), G
 (Gigabytes). Minimum value: 4096. If this option is not specified explicitly,
 the value of the <b>bytesPerChunk</b> dump option is used, but only in case of
-the files with data size greater than <b>1.5 * bytesPerChunk</b>.
+the files with data size greater than <b>1.5 * bytesPerChunk</b>. Not used if
+table is BULK LOADED.
 @li <b>progressFile</b>: path (default: load-progress.@<server_uuid@>.progress)
 - Stores load progress information in the given local file path.
 @li <b>resetProgress</b>: bool (default: false) - Discards progress information
@@ -1197,8 +1204,6 @@ being created. Once all uploaded tables are processed the command will either
 wait for more data, the dump is marked as completed or the given timeout (in
 seconds) passes.
 <= 0 disables waiting.
-@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
-list of SQL statements in each session about to load data.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 ${TOPIC_UTIL_AWS_COMMON_OPTIONS}
 ${TOPIC_UTIL_AZURE_COMMON_OPTIONS}

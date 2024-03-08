@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "unittest/gtest_clean.h"
 #include "unittest/modules/dummy_dumpdir.h"
@@ -431,6 +432,8 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           EXPECT_CALL(*mock, get_connection_id())
               .WillRepeatedly(Return(m_session_count));
           EXPECT_CALL(*mock, is_open()).WillRepeatedly(Return(false));
+          EXPECT_CALL(*mock, get_server_version())
+              .WillRepeatedly(Return(Version(m_version)));
 
           if (m_auto_generate_pk_value &&
               *m_auto_generate_pk_value != m_create_invisible_pks) {
@@ -491,6 +494,27 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                   auto r = std::make_shared<testing::Mock_result>();
                   EXPECT_CALL(*r, get_warning_count())
                       .WillRepeatedly(Return(0));
+                  return r;
+                } else if ("SELECT PS_CURRENT_THREAD_ID()" == sql ||
+                           shcore::str_beginswith(
+                               sql,
+                               "SELECT THREAD_ID FROM "
+                               "performance_schema.threads ")) {
+                  auto r = std::make_shared<testing::Mock_result>();
+                  r->add_result({"THREAD_ID"},
+                                std::vector<mysqlshdk::db::Type>(
+                                    1, mysqlshdk::db::Type::String))
+                      .add_row({"1"});
+                  return r;
+                } else if (shcore::str_beginswith(
+                               sql,
+                               "SELECT CAST(VARIABLE_VALUE AS UNSIGNED) "
+                               "FROM performance_schema.global_status ")) {
+                  auto r = std::make_shared<testing::Mock_result>();
+                  r->add_result({"VARIABLE_VALUE"},
+                                std::vector<mysqlshdk::db::Type>(
+                                    1, mysqlshdk::db::Type::String))
+                      .add_row({"0"});
                   return r;
                 }
                 return {};
@@ -614,7 +638,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         loader.m_progress_thread.finish();
       });
 
-      loader.execute_tasks();
+      loader.execute_tasks(true);
     }
   }
 
@@ -683,7 +707,7 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
   Dump_loader loader(options);
 
-  loader.m_session = options.base_session();
+  loader.m_session = mock_main_session;
 
   shcore::iterdir(
       shcore::path::join_path(g_test_home,

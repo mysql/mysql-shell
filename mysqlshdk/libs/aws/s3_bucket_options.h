@@ -70,6 +70,10 @@ class S3_bucket_options
 
   std::shared_ptr<S3_bucket_config> s3_config() const;
 
+  const std::string &endpoint_override() const noexcept {
+    return m_endpoint_override;
+  }
+
  private:
   friend class S3_bucket_config;
 

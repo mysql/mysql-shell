@@ -373,6 +373,12 @@ EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_excluded_s
 shell.connect(__sandbox_uri2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 
+# BUG#36197620 - summary should contain more details regarding all executed stages
+EXPECT_STDOUT_CONTAINS("59 DDL files were executed in ")
+EXPECT_STDOUT_CONTAINS("6 accounts were loaded")
+EXPECT_STDOUT_CONTAINS("Data load duration: ")
+EXPECT_STDOUT_CONTAINS("Total duration: ")
+
 # root is not re-created
 actual_accounts = snapshot_accounts(session2)
 del actual_accounts["root@%"]
@@ -2049,12 +2055,20 @@ util.dump_instance(dump_dir, { "showProgress": False })
 # connect to the destination server
 shell.connect(__sandbox_uri2)
 
+# BUG#36197620 - summary should contain more details regarding all executed stages
+indexes_summary = "indexes were recreated in "
+
 # load with various values of deferTableIndexes
-for deferred in [ "off", "fulltext", "all" ]:
+for deferred in [ ("off", 0), ("fulltext", 1), ("all", 13) ]:
     # wipe the destination server
     wipeout_server(session2)
+    WIPE_OUTPUT()
     # load
-    util.load_dump(dump_dir, { "deferTableIndexes": deferred, "loadUsers": False, "resetProgress": True, "showProgress": False })
+    util.load_dump(dump_dir, { "deferTableIndexes": deferred[0], "loadUsers": False, "resetProgress": True, "showProgress": False })
+    if deferred[1]:
+        EXPECT_STDOUT_CONTAINS(f"{deferred[1]} {indexes_summary}")
+    else:
+        EXPECT_STDOUT_NOT_CONTAINS(indexes_summary)
     # verify correctness
     compare_servers(session1, session2, check_users=False)
 
@@ -2457,7 +2471,7 @@ session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
 shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
 
 WIPE_SHELL_LOG()
-EXPECT_THROWS(lambda: util.load_dump(dump_dir), "Error loading dump")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir), "User 'admin' has exceeded the 'max_questions' resource (current value: 70)")
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
 
 #@<> BUG#33788895 - cleanup
@@ -3151,6 +3165,57 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "L
 
 # cleanup
 session.run_sql("SET @@global.sql_mode = @saved_sql_mode")
+
+#@<> BUG#36127633 - reconnect session when connection is lost {not __dbug_off}
+# setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(outdir, "bug_36127633")
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("""CREATE TABLE !.! (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    data BIGINT
+)""", [ tested_schema, tested_table ])
+
+# dump data
+util.dump_instance(dump_dir, { "includeSchemas": [ tested_schema ], "users": False, "showProgress": False })
+
+# connect to the destination server
+shell.connect(__sandbox_uri2)
+# wipe the destination server
+wipeout_server(session2)
+# trap on a comment that's a line in all of the SQL files, trap will hit after the third file (order of SQL files is: pre, schema, table, post)
+testutil.set_trap("mysql", ["sql regex -- -+", "++match_counter > 3"], { "code": 2013, "msg": "Server lost", "state": "HY000" })
+
+# try to load, comment fails each time, load fails as well
+WIPE_OUTPUT()
+WIPE_SHELL_LOG()
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "DBError: MySQL Error (2013): Util.load_dump: Server lost")
+EXPECT_STDOUT_CONTAINS("ERROR: While executing postamble SQL: MySQL Error 2013 (HY000): Server lost")
+# log mentions reconnections
+EXPECT_SHELL_LOG_CONTAINS("Session disconnected: ")
+
+testutil.clear_traps("mysql")
+
+# wipe the destination server once again
+wipeout_server(session2)
+# trap on a comment that's a line in all of the SQL files, trap will hit on the fourth file, once
+testutil.set_trap("mysql", ["sql regex -- -+", "++match_counter == 4"], { "code": 2013, "msg": "Server lost", "state": "HY000" })
+
+# try to load, comment fails once, but then succeeds
+WIPE_OUTPUT()
+WIPE_SHELL_LOG()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "resetProgress": True, "showProgress": False }), "load should succeed")
+# log mentions reconnections
+EXPECT_SHELL_LOG_CONTAINS("Session disconnected: ")
+
+testutil.clear_traps("mysql")
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

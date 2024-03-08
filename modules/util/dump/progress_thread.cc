@@ -256,6 +256,7 @@ void Progress_thread::Stage::start() {
   }
 
   m_duration.start();
+  m_started = true;
 }
 
 void Progress_thread::Stage::finish(bool wait) {
@@ -424,6 +425,23 @@ Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
                                           &m_progress_mutex);
 }
 
+Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config) {
+  return push_stage<Spinner_progress>(std::move(stage_config), m_json_output);
+}
+
+Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
+                                                    Progress_config config) {
+  return push_stage<Numeric_progress>(std::move(stage_config), m_json_output,
+                                      std::move(config));
+}
+
+Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
+                                                    Throughput_config config) {
+  return push_stage<Throughput_progress>(std::move(stage_config),
+                                         std::move(config), m_progress.get(),
+                                         &m_progress_mutex);
+}
+
 void Progress_thread::finish() {
   shutdown();
   wait_for_thread();
@@ -443,6 +461,15 @@ void Progress_thread::hide() { toggle_visibility(false); }
 template <class T, class... Args>
 Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
                                                      Args &&... args) {
+  auto stage =
+      push_stage<T>(std::move(stage_config), std::forward<Args>(args)...);
+  stage->start();
+  return stage;
+}
+
+template <class T, class... Args>
+Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
+                                                    Args &&... args) {
   if (!m_progress_thread) {
     start();
   }
@@ -457,7 +484,6 @@ Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
 
   m_stages.emplace_back(std::move(stage_ptr));
 
-  stage->start();
   m_schedule.push(stage);
 
   return stage;
