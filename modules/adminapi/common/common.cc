@@ -25,6 +25,7 @@
 
 #include "modules/adminapi/common/common.h"
 
+#include <sys/stat.h>
 #include <algorithm>
 #include <iterator>
 #include <map>
@@ -929,7 +930,8 @@ Instance_rejoinability validate_instance_rejoinable(
     bool *out_uuid_mistmatch) {
   // Ensure that:
   // 1 - instance is part of the given cluster
-  // 2 - instance is not ONLINE or RECOVERING
+  // 2 - instance is ONLINE or RECOVERING
+  // 3 - instance it not in ERROR state
   Instance_metadata imd;
   bool uuid_in_md = false;
   try {
@@ -954,11 +956,19 @@ Instance_rejoinability validate_instance_rejoinable(
     return Instance_rejoinability::READ_REPLICA;
   }
 
-  auto state = mysqlshdk::gr::get_member_state(instance);
-  if (state == mysqlshdk::gr::Member_state::ONLINE)
-    return Instance_rejoinability::ONLINE;
-  if (state == mysqlshdk::gr::Member_state::RECOVERING)
-    return Instance_rejoinability::RECOVERING;
+  switch (mysqlshdk::gr::get_member_state(instance)) {
+    case mysqlshdk::gr::Member_state::ONLINE:
+      return Instance_rejoinability::ONLINE;
+    case mysqlshdk::gr::Member_state::RECOVERING:
+      return Instance_rejoinability::RECOVERING;
+    case mysqlshdk::gr::Member_state::ERROR:
+      return Instance_rejoinability::ERROR;
+    case mysqlshdk::gr::Member_state::UNREACHABLE:
+    case mysqlshdk::gr::Member_state::MISSING:
+    case mysqlshdk::gr::Member_state::OFFLINE:
+      break;
+  }
+
   return Instance_rejoinability::REJOINABLE;
 }
 

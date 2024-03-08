@@ -348,4 +348,35 @@ cluster.rejoinInstance(__sandbox_uri2);
 shell.connect(__sandbox_uri2);
 check_auto_increment_multi_primary(session, 8);
 
+//@<> rejoin instance in ERROR state (should succeed)
+
+// Make instance2 go into ERROR state
+shell.connect(__sandbox_uri2);
+session.runSql("SET GLOBAL super_read_only = 0");
+session.runSql("SET GLOBAL read_only = 0");
+session.runSql("SET sql_log_bin = 0");
+session.runSql("CREATE DATABASE error_trx_db");
+session.runSql("SET sql_log_bin = 1");
+session.runSql("SET GLOBAL super_read_only = 1");
+
+shell.connect(__sandbox_uri1);
+session.runSql("CREATE DATABASE error_trx_db");
+
+shell.connect(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ERROR");
+
+// rejoin with clone (errant transactions) - dryRun test
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2, {dryRun: 1}); });
+
+EXPECT_OUTPUT_CONTAINS(`NOTE: '${__endpoint2}' is in an ERROR state. Attempting to stop Group Replication to proceed with the rejoin.`);
+EXPECT_OUTPUT_CONTAINS(`Rejoining instance '${__endpoint2}' to cluster 'cluster'...`);
+EXPECT_OUTPUT_CONTAINS(`The instance '${__endpoint2}' was successfully rejoined to the cluster.`);
+EXPECT_OUTPUT_CONTAINS(`dryRun finished.`);
+
+// rejoin with clone (errant transactions)
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2, {recoveryMethod: "clone"}); });
+
+shell.connect(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 scene.destroy();
