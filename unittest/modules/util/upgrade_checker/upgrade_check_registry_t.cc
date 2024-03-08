@@ -400,8 +400,8 @@ TEST(Upgrade_check_registry, create_checklist) {
     // Not included after feature removal
     test_check_availability(
         ids::k_auth_method_usage_check, false,
-        {{Version(8, 4, 0), Version(8, 4, 1)},   // Start on feature removal
-         {Version(8, 4, 1), Version(8, 4, 2)}},  // Start on feature deprecation
+        {{Version(9, 0, 0), Version(9, 1, 0)},   // Start on feature removal
+         {Version(9, 1, 0), Version(9, 2, 0)}},  // Start on feature deprecation
         method);
   }
 

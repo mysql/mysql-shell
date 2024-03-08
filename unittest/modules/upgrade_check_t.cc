@@ -3563,19 +3563,30 @@ TEST_F(MySQL_upgrade_check_test, privileges_check_enabled) {
     info.target_version = Version(8, 4, 0);
     Invalid_privileges_check check(info);
     EXPECT_TRUE(check.enabled());
+    EXPECT_FALSE(check.has_privilege("SUPER"));
+    EXPECT_TRUE(check.has_privilege("SET_USER_ID"));
+  }
+
+  {
+    // Before 8.4.0 and reaching 9.0.0 the check should be enabled, with both
+    // privileges available
+    info.server_version = Version(8, 3, 0);
+    info.target_version = Version(9, 0, 0);
+    Invalid_privileges_check check(info);
+    EXPECT_TRUE(check.enabled());
     EXPECT_TRUE(check.has_privilege("SUPER"));
     EXPECT_TRUE(check.has_privilege("SET_USER_ID"));
   }
 
   {
-    // Before 8.4.0 the check should be done as the variables were registered
-    // for an upgrade to 8.4.0
-    info.server_version = Version(8, 3, 0);
-    info.target_version = Version(8, 4, 1);
+    // Before 9.0.0 and reaching 9.0.0 the check should be enabled, with the
+    // SUPER privilege available
+    info.server_version = Version(8, 4, 0);
+    info.target_version = Version(9, 0, 0);
     Invalid_privileges_check check(info);
     EXPECT_TRUE(check.enabled());
     EXPECT_TRUE(check.has_privilege("SUPER"));
-    EXPECT_TRUE(check.has_privilege("SET_USER_ID"));
+    EXPECT_FALSE(check.has_privilege("SET_USER_ID"));
   }
 }
 

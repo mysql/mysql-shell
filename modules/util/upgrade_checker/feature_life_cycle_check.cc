@@ -244,13 +244,13 @@ Auth_method_usage_check::Auth_method_usage_check(
   add_feature({"sha256_password",
                {},
                Version(8, 0, 0),
-               Version(8, 4, 0),
+               Version(9, 0, 0),
                "caching_sha2_password"},
               server_info);
   add_feature({"mysql_native_password",
                {},
                Version(8, 0, 0),
-               Version(8, 4, 0),
+               Version(9, 0, 0),
                "caching_sha2_password"},
               server_info);
 }

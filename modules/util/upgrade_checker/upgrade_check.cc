@@ -344,10 +344,10 @@ Invalid_privileges_check::Invalid_privileges_check(
     : Upgrade_check(ids::k_invalid_privileges_check),
       m_upgrade_info(server_info) {
   if (m_upgrade_info.server_version > Version(8, 0, 0)) {
-    add_privileges(Version(8, 4, 0), {"SUPER", "SET_USER_ID"});
-  } else {
-    add_privileges(Version(8, 4, 0), {"SUPER"});
+    add_privileges(Version(8, 4, 0), {"SET_USER_ID"});
   }
+
+  add_privileges(Version(9, 0, 0), {"SUPER"});
 }
 
 void Invalid_privileges_check::add_privileges(

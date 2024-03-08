@@ -143,7 +143,7 @@ TEST(Auth_method_usage_check, enabled_and_features) {
   {
     // UC Start version is after all registered features were removed
     Upgrade_info info;
-    info.server_version = Version(8, 4, 0);
+    info.server_version = Version(9, 0, 0);
     Auth_method_usage_check check(info);
     EXPECT_FALSE(check.enabled());
   }
