@@ -101,7 +101,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -210,7 +210,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -319,7 +319,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -501,7 +501,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -637,6 +637,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(<8.4.0)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+?{}
                 {
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
@@ -869,7 +875,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1005,6 +1011,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(<8.4.0)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+?{}
                 {
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
@@ -1237,7 +1249,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1373,6 +1385,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(<8.4.0)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+?{}
                 {
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
@@ -1674,7 +1692,7 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1758,7 +1776,7 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1842,7 +1860,7 @@
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1997,7 +2015,7 @@
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{VER(<8.0.37) || (VER(>=8.1.0) && VER(<8.3.0))}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
