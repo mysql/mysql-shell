@@ -42,6 +42,9 @@ group_replication_paxos_single_leader = <<<__default_gr_paxos_single_leader>>>
 group_replication_recovery_use_ssl = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.27) && VER(<8.3.0)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 {
     "clusterName": "C",
     "defaultReplicaSet": {

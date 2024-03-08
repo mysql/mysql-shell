@@ -410,7 +410,7 @@
                 {
                     "value": "XXHASH64",
                     "variable": "transaction_write_set_extraction"
-                }
+                },
 ?{}
                 {
                     "option": "certSubject",
