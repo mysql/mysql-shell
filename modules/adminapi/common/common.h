@@ -505,7 +505,8 @@ enum class Instance_rejoinability {
   NOT_MEMBER,
   ONLINE,
   RECOVERING,
-  READ_REPLICA
+  READ_REPLICA,
+  ERROR
 };
 
 Instance_rejoinability validate_instance_rejoinable(

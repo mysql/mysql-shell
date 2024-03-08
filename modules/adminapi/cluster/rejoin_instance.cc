@@ -82,6 +82,23 @@ bool Rejoin_instance::check_rejoinable() {
       }
     }
 
+    case Instance_rejoinability::ERROR: {
+      current_console()->print_note(shcore::str_format(
+          "'%s' is in an ERROR state. Attempting to stop Group Replication to "
+          "proceed with the rejoin.",
+          m_target_instance->descr().c_str()));
+      if (!m_options.dry_run) {
+        try {
+          mysqlshdk::gr::stop_group_replication(*m_target_instance);
+        } catch (const std::exception &err) {
+          current_console()->print_error(shcore::str_format(
+              "Unable to stop Group Replication on '%s': %s",
+              m_target_instance->descr().c_str(), err.what()));
+          return false;
+        }
+      }
+    }
+
     case Instance_rejoinability::REJOINABLE:
       break;
   }
