@@ -534,6 +534,12 @@ session.run_sql("INSERT INTO !.! (`id`, `data`) VALUES (1, 1), (NULL, NULL);", [
 for table in [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]:
     session.run_sql("ANALYZE TABLE !.!;", [ test_schema, table ])
 
+#@<> skipUpgradeChecks {__version_num < __mysh_version_num and __version_num < 80000}
+# NOTE: this should be called for 8.0 to 8.4 upgrades (and others) too
+EXPECT_SUCCESS([], test_output_absolute, { "ocimds":True, "dryRun":True, "excludeSchemas":[test_schema, "xtest"], "users":False, "skipUpgradeChecks": True })
+EXPECT_STDOUT_CONTAINS("Skipping upgrade compatibility checks")
+EXPECT_STDOUT_NOT_CONTAINS("will now be checked for compatibility issues")
+
 #@<> schema with MySQLaaS incompatibilities
 session.run_sql("ALTER DATABASE ! CHARACTER SET latin1;", [ incompatible_schema ])
 session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM DEFAULT CHARSET=latin1 ROW_FORMAT=FIXED;", [ incompatible_schema, incompatible_table_wrong_engine ])
