@@ -46,7 +46,8 @@ class Upgrade_check_output_formatter {
   virtual void check_info(const std::string &server_address,
                           const std::string &server_version,
                           const std::string &target_version,
-                          bool explicit_target_version) = 0;
+                          bool explicit_target_version,
+                          const std::string &warning) = 0;
   virtual void check_title(const Upgrade_check &check) = 0;
   virtual void check_results(const Upgrade_check &check,
                              const std::vector<Upgrade_issue> &results) = 0;
