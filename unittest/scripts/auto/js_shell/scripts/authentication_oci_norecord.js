@@ -3,7 +3,8 @@
 //@<> BUG#34858763 - invalid value for the config file
 testutil.callMysqlsh(["--", "shell", "options", "set-persist", "oci.configFile", os.path.join(__test_data_path, "missing.config.file")]);
 
-testutil.callMysqlsh([`${OCI_AUTH_URI}`,    "--auth-method=authentication_oci_client",     "--quiet-start=2", "--sql", "-e", "SELECT 1"]);
+testutil.callMysqlsh([`${OCI_AUTH_URI}`,    "--auth-method=authentication_oci_client",     "--quiet-start=2", "--sql", "-e", "SELECT 1"],
+    "", ["MYSQL_TCP_PORT="]);
 EXPECT_OUTPUT_CONTAINS("Failed to set the OCI config file path on authentication_oci_client plugin.");
 
 testutil.callMysqlsh(["--", "shell", "options", "unset-persist", "oci.configFile"]);
@@ -17,7 +18,8 @@ testutil.callMysqlsh(["--", "shell", "options", "set-persist", "oci.profile", "i
 testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--auth-method=authentication_oci_client",
     `--oci-config-file=${OCI_AUTH_CONFIG_FILE}`,
-    "--quiet-start=2", "--sql", "-e", "SELECT 1"]);
+    "--quiet-start=2", "--sql", "-e", "SELECT 1"],
+    "", ["MYSQL_TCP_PORT="]);
 EXPECT_OUTPUT_CONTAINS("[invalidProfile] is not present in config file");
 
 testutil.callMysqlsh(["--", "shell", "options", "unset-persist", "oci.profile"]);
@@ -36,7 +38,8 @@ testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     "--auth-method=authentication_oci_client",
     `--oci-config-file=${config_file_path}`,
     "--quiet-start=2",
-    "--sql", "-e", "SELECT current_user()"]);
+    "--sql", "-e", "SELECT current_user()"],
+    "", ["MYSQL_TCP_PORT="]);
 
 EXPECT_OUTPUT_CONTAINS(`${connection_data.user}@`);
 
@@ -55,7 +58,8 @@ testutil.callMysqlsh([`${OCI_AUTH_URI}`,
     `--oci-config-file=${config_file_path}`,
     `--authentication-oci-client-config-profile=${target_profile}`,
     "--quiet-start=2", 
-    "--sql", "-e", "SELECT current_user()"]);
+    "--sql", "-e", "SELECT current_user()"],
+    "", ["MYSQL_TCP_PORT="]);
 EXPECT_OUTPUT_CONTAINS(`${connection_data.user}@`);
 
 //@<> WL15561 Text Classic Connection OCI Authentication Plugin config file and profile {OCI_AUTH_POSITIVE_TESTS == 1}
