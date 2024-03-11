@@ -34,6 +34,22 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
+namespace {
+
+void install_plugin(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                    const char *plugin) {
+  session->execute(shcore::str_format("INSTALL PLUGIN %s SONAME '%s.%s'",
+                                      plugin, plugin,
+#ifdef _WIN32
+                                      "dll"
+#else
+                                      "so"
+#endif
+                                      ));
+}
+
+}  // namespace
+
 TEST(Upgrade_checker_test_common, get_issue_level) {
   Feature_definition feature{
       "some", Version(8, 0, 0), Version(8, 0, 30), Version(8, 2, 0), {}};
@@ -182,13 +198,21 @@ TEST_F(Upgrade_checker_test, auth_method_usage_check_query) {
 
   int sb_port = 0;
   auto uri = deploy_sandbox(
-      shcore::make_dict("plugin-load-add", "authentication_webauthn.so",
-                        "authentication-webauthn-rp-id", "mysql.com"),
+      shcore::make_dict("loose-authentication-webauthn-rp-id", "mysql.com"),
       &sb_port);
 
   ASSERT_FALSE(uri.empty());
 
+  shcore::on_leave_scope destroy_sandbox{
+      [&, this]() { testutil->destroy_sandbox(sb_port, true); }};
+
   const auto session = create_mysql_session(uri);
+
+  try {
+    install_plugin(session, "authentication_webauthn");
+  } catch (const mysqlshdk::db::Error &) {
+    SKIP_TEST("Server does not support authentication_webauthn");
+  }
 
   {
     // Test creating an auth method check, by marking "caching_sha2_password" as
@@ -250,8 +274,6 @@ TEST_F(Upgrade_checker_test, auth_method_usage_check_query) {
   }
 
   session->close();
-
-  testutil->destroy_sandbox(sb_port, true);
 }
 
 namespace {
@@ -732,13 +754,21 @@ TEST_F(Upgrade_checker_test, plugin_usage_check_query_positive) {
     // Positive case, the plugin is loaded
     int sb_port = 0;
     auto uri = deploy_sandbox(
-        shcore::make_dict("plugin-load-add", "authentication_webauthn.so",
-                          "authentication-webauthn-rp-id", "mysql.com"),
+        shcore::make_dict("loose-authentication-webauthn-rp-id", "mysql.com"),
         &sb_port);
 
     ASSERT_FALSE(uri.empty());
 
+    shcore::on_leave_scope destroy_sandbox{
+        [&, this]() { testutil->destroy_sandbox(sb_port, true); }};
+
     const auto session = create_mysql_session(uri);
+
+    try {
+      install_plugin(session, "authentication_webauthn");
+    } catch (const mysqlshdk::db::Error &) {
+      SKIP_TEST("Server does not support authentication_webauthn");
+    }
 
     Plugin_usage_check check(server_info);
     check.add_feature({"authentication_webauthn",
@@ -756,7 +786,6 @@ TEST_F(Upgrade_checker_test, plugin_usage_check_query_positive) {
     EXPECT_EQ(nullptr, result->fetch_one());
 
     session->close();
-    testutil->destroy_sandbox(sb_port, true);
   }
 }
 

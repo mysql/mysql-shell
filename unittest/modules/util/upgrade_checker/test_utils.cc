@@ -127,7 +127,7 @@ std::string Upgrade_checker_test::deploy_sandbox(
       *sb_port = port;
       return shcore::str_format("root:root@localhost:%d", port);
     } catch (const std::runtime_error &err) {
-      std::cerr << err.what();
+      std::cerr << err.what() << std::endl;
       testutil->destroy_sandbox(port, true);
     }
   }
