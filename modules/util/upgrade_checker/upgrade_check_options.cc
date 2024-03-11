@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_filtering.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -90,6 +91,9 @@ void Upgrade_check_options::verify_options() {
   if (mysqlshdk::utils::error_on_conflicts<Check_id_set, std::string>(
           include_list, exclude_list, "check", "", "")) {
     throw std::invalid_argument("Conflicting filtering options");
+  }
+  if (!config_path.empty() && !shcore::is_file(config_path)) {
+    throw std::invalid_argument("Invalid config path: " + config_path);
   }
 }
 
