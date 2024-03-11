@@ -34,10 +34,10 @@ function reset_instance(session) {
     try {
       session.runSql("SELECT asynchronous_connection_failover_reset()");
     } catch (e) {}
-    session.runSql("STOP REPLICA");
     try {
       session.runSql("STOP REPLICA FOR CHANNEL 'clusterset_replication'");
     } catch (e) {}
+    session.runSql("STOP " + get_replica_keyword());
     session.runSql("SET GLOBAL super_read_only=0");
     session.runSql("SET GLOBAL read_only=0");
     session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
@@ -59,8 +59,8 @@ function reset_instance(session) {
             continue;
         session.runSql("DROP USER ?@?", [row[0], row[1]]);
     }
-    session.runSql("RESET " + get_reset_binary_logs_keyword() );
     session.runSql("RESET " + get_replica_keyword() + " ALL");
+    session.runSql("RESET " + get_reset_binary_logs_keyword() );
 }
 
 function wipeout_cluster(psession, cluster_or_urls) {
@@ -510,6 +510,31 @@ function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values, root_pwd) {
     EXPECT_EQ(null, res.fetchOne(), uri+".failover (only 1 row expected)");
     session.close();
   }
+
+  // Check and wait for the list of failover candidates for the managed
+  // asynchronous channel is populated with the ONLINE members of the PRIMARY
+  // Cluster
+  var online_instances = [];
+  for (var instance in pcluster.status()["defaultReplicaSet"]["topology"]) {
+    var instance_status = pcluster.status()["defaultReplicaSet"]["topology"][instance]["status"];
+    if (instance_status == "ONLINE") {
+      online_instances.push(instance);
+    }
+  }
+
+  for (var instance of online_instances) {
+    var port = instance.substring(instance.indexOf(':') + 1);
+    port = parseInt(port);
+
+    // wait for instance to be added to the managed asynchronous channel
+    // failover list
+    wait(10, 0.5, function() {
+      var row = primary_session.runSql("select * from performance_schema.replication_asynchronous_connection_failover where port=?", [port]).fetchAll();
+
+      return row;
+    });
+  }
+
   primary_session.close();
 }
 
