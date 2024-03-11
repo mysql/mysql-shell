@@ -175,6 +175,8 @@ reset_instance(session4);
 
 replica = cs.createReplicaCluster(__sandbox_uri4, "replica", {recoveryMethod: "clone"});
 
+CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replica);
+
 //@<> Must not throw if there's a new cluster in the clusterset (BUG#34408687)
 testutil.killSandbox(__mysql_sandbox_port4);
 

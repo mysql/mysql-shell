@@ -87,6 +87,9 @@ class Testutils : public mysqlsh::Extensible_object {
                                   Integer timeout = 60);
   Integer waitForReplConnectionError(
       Integer port, String channel = "group_replication_recovery");
+  Undefined Testutils::waitReplicationChannelState(Integer port,
+                                                   String channelName,
+                                                   String[] states);
   Undefined expectPrompt(String prompt, String answer, Dictionary options);
   Undefined expectPassword(String prompt, String password, Dictionary options);
   Undefined assertNoPrompts();
@@ -151,6 +154,8 @@ class Testutils : public mysqlsh::Extensible_object {
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
   int wait_for_repl_connection_error(
       int port, str channel = "group_replication_recovery");
+  None Testutils::wait_replication_channel_state(int port, str channel_name,
+                                                 str[] states);
   None expect_prompt(str prompt, str answer, dict options);
   None expect_password(str prompt, str password, dict options);
   None assert_no_prompts();
