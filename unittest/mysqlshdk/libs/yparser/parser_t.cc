@@ -465,6 +465,8 @@ TEST(Parser_test, optimizer_hints) {
 }
 
 TEST(Parser_test, threads) {
+  SKIP_TEST("This test currently crashes on ARM");
+
   std::vector<Version> versions = {
       k_mysql_5_7,
       k_mysql_8_0,

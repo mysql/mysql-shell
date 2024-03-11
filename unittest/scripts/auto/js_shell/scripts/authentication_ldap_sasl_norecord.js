@@ -136,7 +136,7 @@ for (variant_index in ok_variants) {
     // WL14553-TSFR_4_9
     if (ok_variants[variant_index][2].length != 0) {
         testutil.callMysqlsh(['--', "shell", "options", "set-persist", "mysqlPluginDir", ok_variants[variant_index][2]]);
-        testutil.callMysqlsh(['-i', '-e', "shell.options"]);
+        testutil.callMysqlsh(['--js', '-i', '-e', "shell.options"]);
         EXPECT_OUTPUT_CONTAINS(`"mysqlPluginDir": "${escape_string(ok_variants[variant_index][2])}"`);
         WIPE_OUTPUT();
     }
@@ -155,7 +155,7 @@ for (variant_index in ok_variants) {
     }
     // WL14553-TSFR_5_2 - Ensures despite the value used for plugin dirs, the persisted value is still the same
     if (ok_variants[variant_index][2].length != 0) {
-        testutil.callMysqlsh(['-i', '-e', "shell.options"]);
+        testutil.callMysqlsh(['--js', '-i', '-e', "shell.options"]);
         EXPECT_OUTPUT_CONTAINS(`"mysqlPluginDir": "${escape_string(ok_variants[variant_index][2])}"`);
         WIPE_OUTPUT();
     }
@@ -163,7 +163,7 @@ for (variant_index in ok_variants) {
 
 //@<> WL14553-TSFR_4_9 - Testing the Unset Persist {ldap_sasl_available}
 testutil.callMysqlsh(['--', "shell", "options", "unset-persist", "mysqlPluginDir"]);
-testutil.callMysqlsh(['-i', '-e', "shell.options"]);
+testutil.callMysqlsh(['--js', '-i', '-e', "shell.options"]);
 EXPECT_OUTPUT_CONTAINS(`"mysqlPluginDir": "${escape_string(shell.options.mysqlPluginDir)}"`);
 
 //@<> Test loading the plugin {!ldap_sasl_available}
