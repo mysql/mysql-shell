@@ -288,9 +288,9 @@ function getAuthServerConfig(context) {
   if (context == 'LDAP_SIMPLE') {
     var server_conf = {
       "plugin-load-add": `authentication_ldap_simple.${ext}`,
-      "authentication_ldap_simple_server_host": `${LDAP_SIMPLE_SERVER_HOST}`,
-      "authentication_ldap_simple_server_port": parseInt(`${LDAP_SIMPLE_SERVER_PORT}`),
-      "authentication_ldap_simple_bind_base_dn": `${LDAP_SIMPLE_BIND_BASE_DN}`
+      "loose-authentication_ldap_simple_server_host": `${LDAP_SIMPLE_SERVER_HOST}`,
+      "loose-authentication_ldap_simple_server_port": parseInt(`${LDAP_SIMPLE_SERVER_PORT}`),
+      "loose-authentication_ldap_simple_bind_base_dn": `${LDAP_SIMPLE_BIND_BASE_DN}`
     };
 
     if (__os_type == 'windows') {
@@ -302,25 +302,25 @@ function getAuthServerConfig(context) {
   } else if (context == 'LDAP_SASL') {
     return {
       "plugin-load-add": `authentication_ldap_sasl.${ext}`,
-      "authentication_ldap_sasl_server_host": `${LDAP_SASL_SERVER_HOST}`,
-      "authentication_ldap_sasl_server_port": parseInt(`${LDAP_SASL_SERVER_PORT}`),
-      "authentication_ldap_sasl_group_search_filter": `${LDAP_SASL_GROUP_SEARCH_FILTER}`,
-      "authentication_ldap_sasl_bind_base_dn": `${LDAP_SASL_BIND_BASE_DN}`,
-      "authentication_ldap_sasl_log_status": 5,
+      "loose-authentication_ldap_sasl_server_host": `${LDAP_SASL_SERVER_HOST}`,
+      "loose-authentication_ldap_sasl_server_port": parseInt(`${LDAP_SASL_SERVER_PORT}`),
+      "loose-authentication_ldap_sasl_group_search_filter": `${LDAP_SASL_GROUP_SEARCH_FILTER}`,
+      "loose-authentication_ldap_sasl_bind_base_dn": `${LDAP_SASL_BIND_BASE_DN}`,
+      "loose-authentication_ldap_sasl_log_status": 5,
       "log_error_verbosity": 3
     };
   } else if (context == 'LDAP_KERBEROS') {
     return {
       "plugin-load-add": `authentication_ldap_sasl.${ext}`,
-      "authentication_ldap_sasl_server_host": `${LDAP_KERBEROS_SERVER_HOST}`,
-      "authentication_ldap_sasl_server_port": parseInt(`${LDAP_KERBEROS_SERVER_PORT}`),
-      "authentication_ldap_sasl_bind_base_dn": `${LDAP_KERBEROS_BIND_BASE_DN}`,
-      "authentication_ldap_sasl_user_search_attr": `${LDAP_KERBEROS_USER_SEARCH_ATTR}`,
-      "authentication_ldap_sasl_bind_root_dn": `${LDAP_KERBEROS_BIND_ROOT_DN}`,
-      "authentication_ldap_sasl_bind_root_pwd": `${LDAP_KERBEROS_BIND_ROOT_PWD}`,
-      "authentication_ldap_sasl_group_search_filter": `${LDAP_KERBEROS_GROUP_SEARCH_FILTER}`,
-      "authentication_ldap_sasl_auth_method_name": 'GSSAPI',
-      "authentication_ldap_sasl_log_status": 5,
+      "loose-authentication_ldap_sasl_server_host": `${LDAP_KERBEROS_SERVER_HOST}`,
+      "loose-authentication_ldap_sasl_server_port": parseInt(`${LDAP_KERBEROS_SERVER_PORT}`),
+      "loose-authentication_ldap_sasl_bind_base_dn": `${LDAP_KERBEROS_BIND_BASE_DN}`,
+      "loose-authentication_ldap_sasl_user_search_attr": `${LDAP_KERBEROS_USER_SEARCH_ATTR}`,
+      "loose-authentication_ldap_sasl_bind_root_dn": `${LDAP_KERBEROS_BIND_ROOT_DN}`,
+      "loose-authentication_ldap_sasl_bind_root_pwd": `${LDAP_KERBEROS_BIND_ROOT_PWD}`,
+      "loose-authentication_ldap_sasl_group_search_filter": `${LDAP_KERBEROS_GROUP_SEARCH_FILTER}`,
+      "loose-authentication_ldap_sasl_auth_method_name": 'GSSAPI',
+      "loose-authentication_ldap_sasl_log_status": 5,
       "log_error_verbosity": 3,
       "net_read_timeout": 360,
       "connect_timeout": 360
@@ -331,8 +331,8 @@ function getAuthServerConfig(context) {
 
     return {
       "plugin-load-add": `authentication_kerberos.${ext}`,
-      "authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${LDAP_KERBEROS_DOMAIN}`,
-      "authentication_kerberos_service_key_tab": keytab_file,
+      "loose-authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${LDAP_KERBEROS_DOMAIN}`,
+      "loose-authentication_kerberos_service_key_tab": keytab_file,
       "net_read_timeout": 360,
       "connect_timeout": 360,
       "log_error_verbosity": 3
@@ -343,7 +343,7 @@ function getAuthServerConfig(context) {
     };
   } else if (context == 'WEBAUTHN') {
     return {
-      "authentication-webauthn-rp-id": "mysql.com",
+      "loose-authentication-webauthn-rp-id": "mysql.com",
       "plugin-load-add": `authentication_webauthn.${ext}`
     };
   }
