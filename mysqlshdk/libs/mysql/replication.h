@@ -184,8 +184,7 @@ std::string to_string(const Replication_channel::Error &error);
 std::string format_status(const Replication_channel &channel,
                           bool verbose = false);
 
-inline constexpr mysqlshdk::utils::Version k_perf_schema_channels_min_version(
-    8, 4, 0);
+inline mysqlshdk::utils::Version k_perf_schema_channels_min_version(8, 4, 0);
 
 /**
  * Gets status information for a replication channel.
