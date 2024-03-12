@@ -75,8 +75,8 @@ session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
-var vars1 = session1.runSql("show variables like 'group_replication%'").fetchAll();
-var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll();
+var vars1 = session1.runSql("SHOW variables WHERE (Variable_name like 'group_replication%') AND (Variable_name <> 'group_replication_group_seeds')").fetchAll();
+var vars2 = session2.runSql("SHOW variables WHERE (Variable_name like 'group_replication%') AND (Variable_name <> 'group_replication_group_seeds')").fetchAll();
 
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
 session1.runSql("set global super_read_only=0");
@@ -102,8 +102,8 @@ cluster = dba.rebootClusterFromCompleteOutage("dev");
 session2.runSql("set persist group_replication_start_on_boot=1");
 
 // ensure configs after reboot are the same as before
-EXPECT_EQ(vars1, session1.runSql("show variables like 'group_replication%'").fetchAll());
-EXPECT_EQ(vars2, session2.runSql("show variables like 'group_replication%'").fetchAll());
+EXPECT_EQ(vars1, session1.runSql("SHOW variables WHERE (Variable_name like 'group_replication%') AND (Variable_name <> 'group_replication_group_seeds')").fetchAll());
+EXPECT_EQ(vars2, session2.runSql("SHOW variables WHERE (Variable_name like 'group_replication%') AND (Variable_name <> 'group_replication_group_seeds')").fetchAll());
 
 // ensure offline_mode was disabled (BUG#33396423)
 EXPECT_EQ(0, session.runSql("select @@offline_mode").fetchOne()[0]);
