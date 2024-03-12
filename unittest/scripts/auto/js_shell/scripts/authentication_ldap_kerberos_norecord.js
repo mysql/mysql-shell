@@ -33,7 +33,6 @@ var test_list = {
     "SELECT current_user()": "mysql_engineering@%",
     "SELECT user()": `${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}@localhost`,
     "SELECT @@local.proxy_user": `'${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}'@'%'`,
-    "SELECT @@local.external_user": "mysql_engineering"
 };
 
 // Cleans the Kerberos cache

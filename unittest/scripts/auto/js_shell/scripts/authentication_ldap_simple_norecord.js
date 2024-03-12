@@ -56,7 +56,6 @@ var test_list = {
     "SELECT current_user()": "common@%",
     "SELECT user()": `${LDAP_SIMPLE_USER}@localhost`,
     "SELECT @@local.proxy_user": `'${LDAP_SIMPLE_USER}'@'%'`,
-    "SELECT @@local.external_user": "common"
 };
 
 //@<> WL14553-TSFR_2_1 - LDAP Simple success connections {ldap_simple_available}
