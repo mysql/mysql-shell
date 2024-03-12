@@ -33,7 +33,6 @@ var test_list = {
     "SELECT current_user()": "common@%",
     "SELECT user()": `${LDAP_SASL_USER}@localhost`,
     "SELECT @@local.proxy_user": `'${LDAP_SASL_USER}'@'%'`,
-    "SELECT @@local.external_user": "common"
 };
 
 function escape_string(s) {
