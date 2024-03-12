@@ -4064,7 +4064,52 @@ TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
       check_msg_suggest(lts, Version(major, 0, 0), key);
     }
   }
-}  // namespace upgrade_checker
+}
+
+TEST_F(MySQL_upgrade_check_test, incomplete_roles_privileges) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 4, 0));
+
+  auto on_exit = shcore::on_leave_scope([&] {
+    EXPECT_NO_THROW(session->execute("drop user if exists 'priv_test'@'%';"));
+  });
+
+  EXPECT_NO_THROW(session->execute(
+      "create user if not exists 'priv_test'@'%' identified by 'priv_test';"));
+
+  EXPECT_NO_THROW(session->execute("grant usage on *.* to 'priv_test'@'%';"));
+  EXPECT_NO_THROW(
+      session->execute("grant select on `mysql`.`user` to 'priv_test'@'%';"));
+
+  const auto pos = _mysql_uri.find('@');
+  ASSERT_TRUE(pos != std::string::npos);
+  const auto test_uri = "priv_test:priv_test" + _mysql_uri.substr(pos);
+
+  auto mysql_connection_options = mysqlshdk::db::Connection_options(test_uri);
+  _interactive_shell->connect(mysql_connection_options);
+  Util util(_interactive_shell->shell_context().get());
+
+  EXPECT_THROW_LIKE(util.check_for_server_upgrade(), std::runtime_error,
+                    "The upgrade check needs to be performed by user with "
+                    "PROCESS, and SELECT privileges.");
+
+  EXPECT_NO_THROW(
+      session->execute("grant select on `mysql`.* to 'priv_test'@'%';"));
+
+  EXPECT_THROW_LIKE(util.check_for_server_upgrade(), std::runtime_error,
+                    "The upgrade check needs to be performed by user with "
+                    "PROCESS, and SELECT privileges.");
+
+  EXPECT_NO_THROW(session->execute("grant process on *.* to 'priv_test'@'%';"));
+
+  EXPECT_THROW_LIKE(util.check_for_server_upgrade(), std::runtime_error,
+                    "The upgrade check needs to be performed by user with "
+                    "PROCESS, and SELECT privileges.");
+
+  EXPECT_NO_THROW(
+      session->execute("grant select,process on *.* to 'priv_test'@'%';"));
+
+  EXPECT_NO_THROW(util.check_for_server_upgrade());
+}
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
