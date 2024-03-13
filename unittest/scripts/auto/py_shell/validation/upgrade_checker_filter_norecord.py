@@ -126,8 +126,8 @@ Excluded:
   Check for invalid table names and schema names used in 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
-- orphanedRoutines
-  Check for orphaned routines in 5.7
+- orphanedObjects
+  Check for orphaned routines and events in 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - dollarSignName
@@ -320,8 +320,8 @@ Included:
   Check for invalid table names and schema names used in 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
-- orphanedRoutines
-  Check for orphaned routines in 5.7
+- orphanedObjects
+  Check for orphaned routines and events in 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - dollarSignName

@@ -70,7 +70,7 @@ const std::set<std::string_view> all = {
     k_changed_functions_generated_columns_check,
     k_columns_which_cannot_have_defaults_check,
     k_invalid_57_names_check,
-    k_orphaned_routines_check,
+    k_orphaned_objects_check,
     k_dollar_sign_name_check,
     k_index_too_large_check,
     k_empty_dot_table_syntax_check,

@@ -1083,16 +1083,22 @@ std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check() {
       Upgrade_issue::ERROR);
 }
 
-std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check() {
+std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_orphaned_routines_check,
+      ids::k_orphaned_objects_check,
       std::vector<Check_query>{
-          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'is orphaned' AS WARNING "
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, '##routine' AS WARNING "
            "FROM information_schema.routines WHERE "
            "<<schema_and_routine_filter>> AND NOT EXISTS "
            "(SELECT SCHEMA_NAME FROM information_schema.schemata "
            "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);",
-           Upgrade_issue::Object_type::ROUTINE}},
+           Upgrade_issue::Object_type::ROUTINE},
+          {"SELECT EVENT_SCHEMA, EVENT_NAME, '##event' AS WARNING FROM "
+           "information_schema.events WHERE "
+           "<<schema_and_event_filter>> AND NOT EXISTS "
+           "(SELECT SCHEMA_NAME FROM information_schema.schemata "
+           "WHERE EVENT_SCHEMA=SCHEMA_NAME);",
+           Upgrade_issue::Object_type::EVENT}},
       Upgrade_issue::ERROR);
 }
 

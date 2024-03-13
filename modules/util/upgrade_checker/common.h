@@ -87,8 +87,7 @@ inline constexpr std::string_view k_changed_functions_generated_columns_check =
 inline constexpr std::string_view k_columns_which_cannot_have_defaults_check =
     "columnsWhichCannotHaveDefaults";
 inline constexpr std::string_view k_invalid_57_names_check = "invalid57Names";
-inline constexpr std::string_view k_orphaned_routines_check =
-    "orphanedRoutines";
+inline constexpr std::string_view k_orphaned_objects_check = "orphanedObjects";
 inline constexpr std::string_view k_dollar_sign_name_check = "dollarSignName";
 inline constexpr std::string_view k_index_too_large_check = "indexTooLarge";
 inline constexpr std::string_view k_empty_dot_table_syntax_check =
