@@ -384,7 +384,7 @@ function isAuthMethodSupported(context, uri=__mysqluripwd) {
   } catch (error) {
     plugin_supported = error.code == PLUGIN_ALREADY_EXISTS;
     if (!plugin_supported) {
-      print(`Unable to get ${plugin} installed: Error ${error.code}: ${error.message}`)
+      shell.log('warning', `Unable to get ${plugin} installed: Error ${error.code}: ${error.message}`)
     }
   }
 
