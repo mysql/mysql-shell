@@ -46,6 +46,24 @@ using mysqlshdk::db::uri_connection_attributes;
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 namespace testing {
 
+namespace {
+
+void EXPECT_TRANSPORT_TYPE(const mysqlshdk::db::Connection_options &d) {
+  SCOPED_TRACE(d.as_uri(mysqlshdk::db::uri::formats::full()));
+
+  ASSERT_TRUE(d.has_transport_type());
+
+#ifdef _WIN32
+  // on Windows, pipe is only used when host is not set, or is set to '.'
+  EXPECT_EQ(Transport_type::Tcp, d.get_transport_type());
+#else
+  EXPECT_EQ(mysqlshdk::db::k_default_local_transport_type,
+            d.get_transport_type());
+#endif
+};
+
+}  // namespace
+
 TEST(Connection_options, default_initialization) {
   Connection_options options;
 
@@ -555,13 +573,15 @@ TEST(Connection_options, set_host) {
     data.set_default_data();
     EXPECT_TRUE(data.has_transport_type());
     EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
+  }
 
-    data.clear_transport_type();
-
+  {
+    mysqlshdk::db::Connection_options data;
+    data.set_host("localhost");
     data.set_scheme("mysql");
     data.set_default_data();
-    EXPECT_TRUE(data.has_transport_type());
-    EXPECT_NE(Transport_type::Tcp, data.get_transport_type());
+
+    EXPECT_TRANSPORT_TYPE(data);
   }
 
   // Any other host would set the connection type to tcp
@@ -598,12 +618,17 @@ TEST(Connection_options, set_host) {
 TEST(Connection_options, set_socket) {
   {
     mysqlshdk::db::Connection_options data;
+#ifdef _WIN32
+    data.set_pipe("/Path/To/Socket");
+#else
     data.set_socket("/Path/To/Socket");
+#endif
     data.set_default_data();
     EXPECT_TRUE(data.has_socket());
     EXPECT_STREQ("/Path/To/Socket", data.get_socket().c_str());
     EXPECT_TRUE(data.has_transport_type());
-    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
+    EXPECT_EQ(mysqlshdk::db::k_default_local_transport_type,
+              data.get_transport_type());
   }
 
   // Using socket is allowed for localhost
@@ -614,11 +639,10 @@ TEST(Connection_options, set_socket) {
     data.set_default_data();
     EXPECT_TRUE(data.has_host());
     EXPECT_TRUE(data.has_socket());
-    EXPECT_TRUE(data.has_transport_type());
 
     EXPECT_STREQ("localhost", data.get_host().c_str());
     EXPECT_STREQ("/Path/To/Socket", data.get_socket().c_str());
-    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
+    EXPECT_TRANSPORT_TYPE(data);
   }
 
   // Using socket is now allowed for localhost if port was defined
@@ -628,11 +652,15 @@ TEST(Connection_options, set_socket) {
     data.set_port(3307);
     data.set_default_data();
     EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
+  }
 
-    data.clear_transport_type();
+  {
+    mysqlshdk::db::Connection_options data;
+    data.set_host("localhost");
+    data.set_port(3307);
     EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
     data.set_default_data();
-    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
+    EXPECT_TRANSPORT_TYPE(data);
   }
 
   // Setting socket is allowed if host is 127.0.0.1, but socket is only used if
@@ -642,17 +670,21 @@ TEST(Connection_options, set_socket) {
     data.set_host("127.0.0.1");
     EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
     data.set_default_data();
+
     EXPECT_TRUE(data.has_host());
     EXPECT_TRUE(data.has_socket());
     EXPECT_TRUE(data.has_transport_type());
-
     EXPECT_STREQ("127.0.0.1", data.get_host().c_str());
     EXPECT_EQ(Transport_type::Tcp, data.get_transport_type());
-
-    data.clear_transport_type();
+  }
+  {
+    mysqlshdk::db::Connection_options data;
+    data.set_host("127.0.0.1");
+    EXPECT_NO_THROW(data.set_socket("/Path/To/Socket"));
     data.set_host("localhost");
     data.set_default_data();
-    EXPECT_EQ(Transport_type::Socket, data.get_transport_type());
+
+    EXPECT_TRANSPORT_TYPE(data);
   }
 
   // Using socket is now allowed for 127.0.0.1 if port was defined

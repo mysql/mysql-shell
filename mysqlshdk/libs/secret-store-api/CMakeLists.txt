@@ -54,5 +54,6 @@ if(WITH_TESTS)
 
   target_link_libraries(link-test-mysql-secret-store-api
     mysql-secret-store-api
+    ${MYSQLX_LIBRARIES}
   )
 endif()

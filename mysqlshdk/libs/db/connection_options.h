@@ -48,6 +48,15 @@ namespace mysqlshdk {
 namespace db {
 
 enum class Transport_type { Tcp, Socket, Pipe };
+
+inline constexpr Transport_type k_default_local_transport_type =
+#ifdef _WIN32
+    mysqlshdk::db::Transport_type::Pipe
+#else
+    mysqlshdk::db::Transport_type::Socket
+#endif
+    ;
+
 std::string to_string(Transport_type type);
 
 inline constexpr int k_default_mysql_port = 3306;

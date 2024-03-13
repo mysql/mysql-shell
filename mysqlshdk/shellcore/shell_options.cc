@@ -399,12 +399,9 @@ Shell_options::Shell_options(
 #else
             storage.connection_data.set_socket(value);
 #endif
-        } else {
-#ifdef _WIN32
-            storage.connection_data.set_transport_type(mysqlshdk::db::Transport_type::Pipe);
-#else
-            storage.connection_data.set_transport_type(mysqlshdk::db::Transport_type::Socket);
-#endif
+          } else {
+            // NOTE: this is not used on Windows, because this option requires a value there
+            storage.connection_data.set_transport_type(mysqlshdk::db::k_default_local_transport_type);
           }
         }
       )
