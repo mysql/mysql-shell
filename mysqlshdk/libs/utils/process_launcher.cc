@@ -534,8 +534,12 @@ void Process::set_environment(const std::vector<std::string> &env) {
 
     // include equals sign to ensure that exact match is found
     vars_to_set.emplace_back(wvar.substr(0, eq + 1));
-    nsize += wvar.length() + 1;
-    wenv.emplace_back(std::move(wvar));
+
+    // no value means that variable should be removed
+    if (eq + 1 < wvar.length()) {
+      nsize += wvar.length() + 1;
+      wenv.emplace_back(std::move(wvar));
+    }
   }
 
   const auto eblock = GetEnvironmentStringsW();

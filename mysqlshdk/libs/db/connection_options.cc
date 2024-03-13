@@ -25,6 +25,8 @@
 
 #include "mysqlshdk/libs/db/connection_options.h"
 
+#include <mysql.h>
+
 #include <map>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -311,8 +313,18 @@ void Connection_options::set_host(const std::string &host) {
 
 #ifdef _WIN32
   if (host == ".") {
-    m_default_transport_type = Transport_type::Pipe;
-    return;
+    // host is set to ".", libmysql will force a pipe connection, we do the same
+    m_transport_type = Transport_type::Pipe;
+  } else {
+    m_transport_type = Transport_type::Tcp;
+  }
+#else
+  if (host == "localhost") {
+    // transport type depends on other options
+    m_transport_type.reset();
+  } else {
+    // non-localhost forces TCP
+    m_transport_type = Transport_type::Tcp;
   }
 #endif  // _WIN32
 }
@@ -685,31 +697,26 @@ void Connection_options::set_default_data() {
     set_user(shcore::get_system_user());
   }
 
-  bool has_transp = has_transport_type();
-  if (!has_host() &&
-      (!has_transp || get_transport_type() == Transport_type::Tcp)) {
+  const auto local_transport = uses_local_transport();
+
+  if (!has_host() && !local_transport) {
     set_host("localhost");
   }
-#ifdef _WIN32
-  if (!has_transp) {
-    // Windows always uses TCP by default
-    m_transport_type = Transport_type::Tcp;
+
+  if (!has_transport_type()) {
+    m_transport_type = local_transport ? k_default_local_transport_type
+                                       : mysqlshdk::db::Transport_type::Tcp;
   }
-#else
-  if (!has_transp) {
-    m_transport_type = uses_local_transport()
-                           ? mysqlshdk::db::Transport_type::Socket
-                           : mysqlshdk::db::Transport_type::Tcp;
-  }
-#endif
 
 #ifdef _WIN32
-  if (!has_pipe() && has_host() && get_host() == ".") {
-    set_pipe("MySQL");
-  }
+  if (mysqlshdk::db::Transport_type::Pipe == m_transport_type) {
+    if (!has_pipe()) {
+      set_pipe(mysql_unix_port);
+    }
 
-  if (has_pipe() && !has_scheme()) {
-    set_scheme("mysql");
+    if (!has_scheme()) {
+      set_scheme("mysql");
+    }
   }
 #endif  // _WIN32
 
@@ -898,33 +905,22 @@ bool Connection_options::uses_local_transport() const {
   if (m_transport_type.has_value())
     return *m_transport_type != Transport_type::Tcp;
 
-#ifdef _WIN32
-  if (m_default_transport_type.has_value())
-    return *m_default_transport_type != Transport_type::Tcp;
-#else
   if (m_default_transport_type.has_value()) {
-    if (has_host() && get_host() != "localhost")
-      return false;
-    else
-      return *m_default_transport_type != Transport_type::Tcp;
-  } else {
+    return *m_default_transport_type != Transport_type::Tcp;
+  }
+
+#ifdef _WIN32
+  // Windows always uses TCP by default
+  return false;
+#else
+  if (!has_scheme() || get_scheme() == "mysqlx") {
     // xproto connections connect via TCP by default
-    if (!has_scheme() || get_scheme() == "mysqlx") {
-      if (has_port() || !has_socket())
-        return false;
-      else
-        return true;
-    } else {
-      // classic connections connect via socket by default
-      if (has_port() || get_host() != "localhost")
-        return false;
-      else
-        return true;
-    }
+    return false;
+  } else {
+    // classic connections connect via socket by default
+    return true;
   }
 #endif
-
-  return false;
 }
 
 int64_t default_connect_timeout() {
