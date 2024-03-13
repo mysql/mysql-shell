@@ -334,7 +334,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       int line) {
     std::string error_message =
         "filtering for: " + check->get_name() + ", using: " + name +
-        "with: " + std::to_string(total_issue_count) + " issues.\n" + file +
+        " with: " + std::to_string(total_issue_count) + " issues.\n" + file +
         ":" + std::to_string(line);
 
     {
@@ -458,6 +458,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   const rapidjson::Value *execute_check_as_json(
       std::string_view id, const std::vector<std::string> &uc_options = {},
       bool debug_output = false) {
+    output_handler.wipe_all();
+
     if (debug_output) {
       testutil->call_mysqlsh_c({_mysql_uri, "--quiet-start=2", "--", "util",
                                 "check-for-server-upgrade", "--include",
@@ -2803,37 +2805,73 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
                        "test.t.mpoly', 'dbObjectType':'Column'}");
 }
 
-TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
+TEST_F(MySQL_upgrade_check_test, orphaned_objects_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
+  auto clean_up = [&]() {
+    ASSERT_NO_THROW(
+        session->execute("DELETE FROM mysql.proc WHERE db='no_ex_db' AND "
+                         "name='orphaned_procedure';"));
+    ASSERT_NO_THROW(
+        session->execute("DELETE FROM mysql.event WHERE db='no_ex_db' AND "
+                         "name='orphaned_event';"));
+  };
+
+  auto add_proc = [&]() {
+    ASSERT_NO_THROW(session->execute(
+        "INSERT INTO mysql.proc VALUES ("
+        "'no_ex_db',"
+        "'orphaned_procedure',"
+        "'PROCEDURE',"
+        "'orphaned_procedure',"
+        "'SQL','CONTAINS_SQL','NO','DEFINER','','',"
+        "_binary 'begin\n"
+        "select count(*) from somedb.sometable;"
+        "\nend',"
+        "'root@localhost','2022-11-23 11:46:34','2022-11-23 11:46:34',"
+        "'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
+        "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION',"
+        "'','utf8mb4','utf8mb4_general_ci','latin1_swedish_ci',"
+        "_binary 'begin\n"
+        "select count(*) from somedb.sometable;\n"
+        "end');"));
+  };
+
+  auto add_event = [&]() {
+    ASSERT_NO_THROW(session->execute(
+        "INSERT INTO mysql.event VALUES ("
+        "'no_ex_db',"
+        "'orphaned_event',"
+        "_binary 'insert into evt_test_table values()',"
+        "'root@localhost',NULL,60,'SECOND',"
+        "'2024-03-20 16:57:17','2024-03-20 16:57:17',"
+        "NULL,'2024-03-20 16:57:17',NULL,'ENABLED',"
+        "'PRESERVE','ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,"
+        "NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,"
+        "NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION','',1,'SYSTEM',"
+        "'utf8mb4','utf8mb4_general_ci','latin1_swedish_ci',"
+        "_binary 'insert into evt_test_table values()');"));
+  };
+
+  auto on_exit = shcore::on_leave_scope(clean_up);
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
 
-  const auto check = get_orphaned_routines_check();
+  clean_up();
+
+  const auto check = get_orphaned_objects_check();
 
   EXPECT_NO_ISSUES(check.get());
 
-  ASSERT_NO_THROW(session->execute(
-      "INSERT INTO mysql.proc VALUES ("
-      "'no_ex_db',"
-      "'orphaned_procedure',"
-      "'PROCEDURE',"
-      "'orphaned_procedure',"
-      "'SQL','CONTAINS_SQL','NO','DEFINER','','',"
-      "_binary 'begin\n"
-      "select count(*) from somedb.sometable;"
-      "\nend',"
-      "'root@localhost','2022-11-23 11:46:34','2022-11-23 11:46:34',"
-      "'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,"
-      "NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION',"
-      "'','utf8mb4','utf8mb4_general_ci','latin1_swedish_ci',"
-      "_binary 'begin\n"
-      "select count(*) from somedb.sometable;\n"
-      "end');"));
+  add_proc();
+  add_event();
 
-  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_ISSUES(check.get(), 2);
 
   EXPECT_EQ("no_ex_db", issues[0].schema);
   EXPECT_EQ("orphaned_procedure", issues[0].table);
+  EXPECT_EQ("no_ex_db", issues[1].schema);
+  EXPECT_EQ("orphaned_event", issues[1].table);
 
   // Backups all issues for the filtering testing
   auto all_issues = issues;
@@ -2841,19 +2879,37 @@ TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
   TEST_SCHEMA_FILTERING(check.get(), "no_ex_db", all_issues.size(), all_issues,
                         {});
 
+  clean_up();
+  add_proc();
+
+  EXPECT_ISSUES(check.get(), 1);
+  all_issues = issues;
+
   TEST_ROUTINE_FILTERING(check.get(), "no_ex_db.orphaned_procedure",
                          all_issues.size(), all_issues, {});
 
-  auto json_issues = execute_check_as_json(ids::k_orphaned_routines_check);
-  ASSERT_NE(nullptr, json_issues);
+  auto json_issues1 = execute_check_as_json(ids::k_orphaned_objects_check);
+  ASSERT_NE(nullptr, json_issues1);
 
   EXPECT_JSON_CONTAINS(
-      json_issues,
+      json_issues1,
       "{'dbObject':'no_ex_db.orphaned_procedure', 'dbObjectType':'Routine'}");
 
-  ASSERT_NO_THROW(
-      session->execute("DELETE FROM mysql.proc WHERE db='no_ex_db' AND "
-                       "name='orphaned_procedure';"));
+  clean_up();
+  add_event();
+
+  EXPECT_ISSUES(check.get(), 1);
+  all_issues = issues;
+
+  TEST_EVENT_FILTERING(check.get(), "no_ex_db.orphaned_event",
+                       all_issues.size(), all_issues, {});
+
+  auto json_issues2 = execute_check_as_json(ids::k_orphaned_objects_check);
+  ASSERT_NE(nullptr, json_issues2);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues2,
+      "{'dbObject':'no_ex_db.orphaned_event', 'dbObjectType':'Event'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {

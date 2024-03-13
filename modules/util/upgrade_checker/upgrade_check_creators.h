@@ -74,7 +74,7 @@ get_changed_functions_generated_columns_check();
 std::unique_ptr<Sql_upgrade_check>
 get_columns_which_cannot_have_defaults_check();
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();
-std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check();
+std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check();
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check();
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check();
 std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check();

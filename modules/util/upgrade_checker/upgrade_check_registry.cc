@@ -222,9 +222,9 @@ bool UNUSED_VARIABLE(register_get_invalid_57_names_check) =
         std::bind(&get_invalid_57_names_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_orphaned_routines_check) =
+bool UNUSED_VARIABLE(register_get_orphaned_objects_check) =
     Upgrade_check_registry::register_check(
-        std::bind(&get_orphaned_routines_check), Target::OBJECT_DEFINITIONS,
+        std::bind(&get_orphaned_objects_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
 bool UNUSED_VARIABLE(register_get_dollar_sign_name_check) =
