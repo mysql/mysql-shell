@@ -30,6 +30,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -217,7 +218,8 @@ class Cluster_set_impl : public Base_cluster_impl,
                       const Async_replication_options &ar_options,
                       bool primary_instance, bool dry_run);
 
-  void remove_replica(Instance *instance, bool dry_run);
+  void remove_replica(Instance *instance, bool dry_run,
+                      std::string_view primary_uuid = "");
 
   void update_replica_settings(Instance *instance, Instance *new_primary,
                                bool is_primary, bool dry_run);
