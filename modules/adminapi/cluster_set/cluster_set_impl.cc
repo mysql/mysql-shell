@@ -1275,8 +1275,11 @@ void Cluster_set_impl::remove_cluster(
       //  - the ClusterSet replication channel is stopped and reset
       //  - The managed connection failover configurations are deleted
       // ... on all members
+      const auto &primary_uuid =
+          target_cluster->get_cluster_server()->get_uuid();
+
       for (const auto &instance : cluster_reachable_members) {
-        remove_replica(instance.get(), options.dry_run);
+        remove_replica(instance.get(), options.dry_run, primary_uuid);
       }
 
       // Revert in case of failure
@@ -1849,11 +1852,20 @@ void Cluster_set_impl::update_replica(
     update_replica_settings(replica, master, primary_instance, dry_run);
 }
 
-void Cluster_set_impl::remove_replica(Instance *instance, bool dry_run) {
+void Cluster_set_impl::remove_replica(Instance *instance, bool dry_run,
+                                      std::string_view primary_uuid) {
   // Stop and reset the replication channel configuration
   remove_channel(instance, k_clusterset_async_channel_name, dry_run);
 
-  remove_replica_settings(instance, dry_run);
+  // Enabling automatic super_read_only management is a Group Replication member
+  // action and those must be executed on the primary member OR in OFFLINE
+  // members. When executed in the primary member, Group Replication will then
+  // propagate the action to the other members. We can assume that as soon as
+  // the UDF returns successfully the action change was accepted in the Group
+  // and will be processed, likewise a regular transaction.
+  if (primary_uuid.empty() || instance->get_uuid() == primary_uuid) {
+    remove_replica_settings(instance, dry_run);
+  }
 
   if (!dry_run) fence_instance(instance);
 }

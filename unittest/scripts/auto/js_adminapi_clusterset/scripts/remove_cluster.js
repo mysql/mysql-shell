@@ -408,6 +408,19 @@ session4.runSql("unlock tables");
 
 clusterset.removeCluster("replicacluster");
 
+//@<> Remove cluster when its Primary member changed (must succeed)
+
+// Add a new Replica Cluster
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone"});
+
+replicacluster.addInstance(__sandbox_uri5, {recoveryMethod: "clone"});
+
+// Switch the primary
+replicacluster.setPrimaryInstance(__sandbox_uri5)
+
+// Removing the Replica Cluster should succeed
+EXPECT_NO_THROWS(function() { clusterset.removeCluster("replicacluster"); });
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port4);
