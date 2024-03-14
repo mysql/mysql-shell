@@ -129,6 +129,9 @@ EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port2} was promoted to 
 //--------------------------------
 //@ dryRun
 
+WIPE_OUTPUT();
+WIPE_SHELL_LOG();
+
 shell.options["dba.logSql"] = 2;
 
 rs.setPrimaryInstance(__sandbox1, {dryRun:true});
