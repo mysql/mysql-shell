@@ -1910,18 +1910,18 @@ void Cluster_set_impl::demote_from_primary(
       {mysqlshdk::gr::Member_state::ONLINE,
        mysqlshdk::gr::Member_state::RECOVERING},
       new_primary->get_connection_options(), {},
-      [=, this](const std::shared_ptr<Instance> &instance,
-                const mysqlshdk::gr::Member &) {
+      [=](const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &) {
         if (cluster_primary->get_uuid() == instance->get_uuid()) return true;
 
         async_create_channel(instance.get(), new_primary,
                              k_clusterset_async_channel_name, repl_options,
                              dry_run);
-        update_replica_settings(cluster_primary.get(), new_primary, false,
-                                dry_run);
 
         return true;
       });
+
+  update_replica_settings(cluster_primary.get(), new_primary, false, dry_run);
 
   update_replica(cluster_primary.get(), new_primary, repl_options, true, false,
                  dry_run);
@@ -2491,6 +2491,7 @@ void Cluster_set_impl::set_primary_cluster(
       undo_tracker.add("", [this, primary_cluster, options]() {
         promote_to_primary(primary_cluster.get(), false, options.dry_run);
       });
+
       demote_from_primary(primary_cluster.get(), repl_source.get(),
                           ar_options_demoted, options.dry_run);
     }
@@ -2529,6 +2530,7 @@ void Cluster_set_impl::set_primary_cluster(
           demote_from_primary(promoted_cluster.get(), repl_source.get(),
                               ar_options, options.dry_run);
         });
+
     promote_to_primary(promoted_cluster.get(), true, options.dry_run);
 
     console->print_info("* Updating replica clusters");

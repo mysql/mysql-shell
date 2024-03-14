@@ -165,6 +165,23 @@ session6 = mysql.get_session(__sandbox_uri6)
 for s in [session2, session3, session4, session5, session6]:
     s.run_sql("set persist super_read_only=1")
 
+shell.connect(__sandbox_uri1)
+
+c1 = dba.create_cluster("cluster1")
+c1.add_instance(__sandbox_uri2, {"recoveryMethod": "clone"})
+c1.add_instance(__sandbox_uri3, {"recoveryMethod": "clone"})
+cs = c1.create_cluster_set("cs")
+c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {"recoveryMethod": "clone"})
+c2.add_instance(__sandbox_uri5, {"recoveryMethod": "clone"})
+c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {"recoveryMethod": "clone"})
+
+session1 = mysql.get_session(__sandbox_uri1)
+session2 = mysql.get_session(__sandbox_uri2)
+session3 = mysql.get_session(__sandbox_uri3)
+session4 = mysql.get_session(__sandbox_uri4)
+session5 = mysql.get_session(__sandbox_uri5)
+session6 = mysql.get_session(__sandbox_uri6)
+
 # start a thread per sandbox and make all of them try to insert stuff at the same time
 thds = []
 thds2 = []
@@ -175,32 +192,8 @@ for sbi, uri in enumerate([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3, __san
     thds[sbi].prepare(thds[0].session)
     #thds2[sbi].prepare(thds2[0].session)
 
-
-shell.connect(__sandbox_uri1)
-if __version_num < 80027:
-    c1 = dba.create_cluster(
-        "cluster1", {"gtidSetIsComplete": 1, "ipAllowlist": "127.0.0.1," + hostname_ip})
-    c1.add_instance(__sandbox_uri2, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-    c1.add_instance(__sandbox_uri3, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-    cs = c1.create_cluster_set("cs")
-    c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {
-                                   "ipAllowlist": "127.0.0.1," + hostname_ip})
-    c2.add_instance(__sandbox_uri5, {"ipAllowlist": "127.0.0.1," + hostname_ip})
-    c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {
-                                   "ipAllowlist": "127.0.0.1," + hostname_ip})
-else:
-    c1 = dba.create_cluster(
-        "cluster1", {"gtidSetIsComplete": 1})
-    c1.add_instance(__sandbox_uri2)
-    c1.add_instance(__sandbox_uri3)
-    cs = c1.create_cluster_set("cs")
-    c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2")
-    c2.add_instance(__sandbox_uri5)
-    c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3")
-
 logs = SQLLogAnalyzer(
     [__mysql_sandbox_port1, __mysql_sandbox_port4, __mysql_sandbox_port6])
-
 
 for thd in thds + thds2:
     thd.start()
