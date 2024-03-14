@@ -392,6 +392,11 @@ EXPECT_NO_THROWS(function() {
     cluster.switchToSinglePrimaryMode();
 });
 
+// moving forward, make sure that the primary is...
+EXPECT_NO_THROWS(function() {
+    cluster.setPrimaryInstance(__sandbox_uri1);
+});
+
 session1.close();
 session2.close();
 
