@@ -504,7 +504,7 @@ class Dump_loader::Bulk_load_support {
                                            next_progress_update});
     }
 
-    if (!m_monitoring_started) {
+    if (m_bulk_load_info.monitoring && !m_monitoring_started) {
       m_loader->m_monitoring->add(
           [this](const Session_ptr &session) { report_progress(session); });
       m_monitoring_started = true;
