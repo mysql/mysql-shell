@@ -648,19 +648,6 @@ IF(LINUX)
       SET(PATCHELF_PAGE_SIZE_ARGS --page-size ${CPU_PAGE_SIZE})
     ENDIF()
   ENDIF()
-
-  FUNCTION(execute_patchelf)
-    IF(NOT PATCHELF_EXECUTABLE)
-      MESSAGE(FATAL_ERROR "Please install the patchelf(1) utility.")
-    ENDIF()
-
-    MESSAGE(STATUS "  Executing: ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN}")
-    EXECUTE_PROCESS(COMMAND ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN} RESULT_VARIABLE COMMAND_RESULT)
-
-    IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
-      MESSAGE(FATAL_ERROR "Failed to execute: ${PATCHELF_EXECUTABLE} ${PATCHELF_PAGE_SIZE_ARGS} ${ARGN}")
-    ENDIF()
-  ENDFUNCTION()
 ENDIF()
 
 include(fuzzer)
@@ -759,10 +746,11 @@ if(HAVE_PYTHON)
     ENDIF()
 
     IF(PYTHON_PATH AND PYTHON_FOLDER)
-      SET(PYTHON_LIBRARY_PATH "${PYTHON_PATH}\\${PYTHON_FOLDER}\\Lib")
-      STRING(REPLACE "\\" "\\\\" PYTHON_LIBRARY_PATH ${PYTHON_LIBRARY_PATH})
-      STRING(REPLACE "Lib" "DLLs" PYTHON_DLLS_PATH ${PYTHON_LIBRARY_PATH})
-      STRING(REPLACE "Lib" "python.exe" PYTHON_EXECUTABLE ${PYTHON_LIBRARY_PATH})
+      SET(PYTHON_ROOT "${PYTHON_PATH}/${PYTHON_FOLDER}")
+      FILE(TO_CMAKE_PATH "${PYTHON_ROOT}" PYTHON_ROOT)
+      SET(PYTHON_LIBRARY_PATH "${PYTHON_ROOT}/Lib")
+      SET(PYTHON_DLLS_PATH "${PYTHON_ROOT}/DLLs")
+      SET(PYTHON_EXECUTABLE "${PYTHON_ROOT}/python.exe")
     ENDIF()
   ELSEIF(BUNDLED_PYTHON_DIR)
     # If we're using a Python build for bundling, ensure we build against it too
@@ -1159,45 +1147,6 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
     )
   CMAKE_POP_CHECK_STATE()
 ENDMACRO()
-
-FUNCTION(SET_BUNDLED_OPEN_SSL)
-  set(options)
-  set(oneValueArgs)
-  set(multiValueArgs BINARIES)
-  cmake_parse_arguments(SET_BUNDLED_OPEN_SSL "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-  FOREACH(OPEN_SSL_LIB_DEPENDENT ${SET_BUNDLED_OPEN_SSL_BINARIES})
-    EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT} OUTPUT_VARIABLE COMMAND_OUTPUT)
-
-    STRING(REGEX MATCHALL "[^ \t]+[ \t]" TOKENS ${COMMAND_OUTPUT})
-
-    FOREACH(TOKEN ${TOKENS})
-      STRING(STRIP "${TOKEN}" TOKEN)
-
-      IF(TOKEN MATCHES "${CRYPTO_VERSION}|${OPENSSL_VERSION}|@executable_path|@loader_path")
-        SET(ENTRY "${TOKEN}")
-        STRING(FIND "${ENTRY}" "/" POS REVERSE)
-
-        IF(POS EQUAL -1)
-          SET(LIB "${ENTRY}")
-        ELSE()
-          MATH(EXPR POS "${POS} + 1")
-          STRING(SUBSTRING "${ENTRY}" ${POS} -1 LIB)
-        ENDIF()
-
-        EXECUTE_PROCESS(COMMAND install_name_tool -change
-            "${ENTRY}" "@executable_path/../${INSTALL_LIBDIR}/${LIB}"
-            ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
-
-        IF("${COMMAND_RESULT}" STREQUAL "1")
-          MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${LIB} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
-        ENDIF()
-      ENDIF()
-    ENDFOREACH()
-
-    EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT})
-  ENDFOREACH()
-ENDFUNCTION()
 
 # By default the shell uses Multi-threaded Dynamic RunTime
 # Only sets Static if needed

@@ -55,5 +55,12 @@ IF(BUNDLED_MYSQL_CONFIG_EDITOR)
   ELSE()
     SET(WRITE_RPATH FALSE)
   ENDIF()
-  install_bundled_binaries(BINARIES "${BUNDLED_MYSQL_CONFIG_EDITOR}" DESTINATION "${INSTALL_LIBEXECDIR}" TARGET mysql-secret-store-login-path WRITE_RPATH ${WRITE_RPATH})
+
+  install_bundled_binaries(
+      DESCRIPTION "mysql_config_editor binary"
+      BINARIES "${BUNDLED_MYSQL_CONFIG_EDITOR}"
+      DESTINATION "${INSTALL_LIBEXECDIR}"
+      TARGET mysql-secret-store-login-path
+      WRITE_RPATH ${WRITE_RPATH}
+  )
 ENDIF()

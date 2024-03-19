@@ -21,29 +21,15 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-ADD_CUSTOM_COMMAND(OUTPUT copy_external_plugins
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/lib/mysqlsh
-    COMMENT "Copying External Plugins"
-)
-
-ADD_CUSTOM_TARGET(external_plugins ALL DEPENDS copy_external_plugins)
-
 ###
 ### Handle external plugin packaging (Either JS/PY)
 ### Each plugin must be self contained into a folder in plugins/external
-### They will be copied into the shell build folder and so bundled into the
-### shell package
 ###
 
-# Copies any folder in the current to the build plugins folder
-FILE(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
-SET(PLUGIN_LIST "")
-FOREACH(child ${children})
-  IF(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
-    ADD_CUSTOM_COMMAND(TARGET external_plugins
-        PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/${child} ${CONFIG_BINARY_DIR}/lib/mysqlsh/plugins/${child}
-        COMMENT "Copying External Shell Plugin"
-    )
-  ENDIF()
-ENDFOREACH()
+# Installs any folder in the current directory to the plugins folder
+add_custom_target(external_plugins ALL)
+install_bundled_plugins(
+    DESCRIPTION "external Shell plugin"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    TARGET external_plugins
+)

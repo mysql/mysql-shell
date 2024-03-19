@@ -21,15 +21,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-file(GLOB UPGRADE_CHECKER_RESOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg)
-
-add_custom_command(OUTPUT upgrade_checker_msg
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
-    DEPENDS ${UPGRADE_CHECKER_RESOURCES}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
+add_custom_target(upgrade_checker_resources ALL)
+install_bundled_files(
+    DESCRIPTION "upgrade checker resource"
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg"
+    DESTINATION "${INSTALL_SHAREDIR}"
+    TARGET upgrade_checker_resources
 )
-
-add_custom_target(uc_res ALL DEPENDS upgrade_checker_msg)
-
-install(FILES ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

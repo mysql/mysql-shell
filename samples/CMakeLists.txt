@@ -21,12 +21,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-add_custom_command(OUTPUT copy_prompt_files
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/prompt ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/prompt
-    COMMENT "Copying prompt files"
+add_custom_target(prompt_files ALL)
+install_bundled_directory(
+    DESCRIPTION "Shell prompt files"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/prompt"
+    DESTINATION "${INSTALL_SHAREDIR}"
+    TARGET prompt_files
 )
-
-add_custom_target(prompt_files ALL DEPENDS copy_prompt_files)
-
-install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/prompt COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
