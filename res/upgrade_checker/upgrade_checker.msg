@@ -462,13 +462,6 @@ InnoDB tables with non-default row format
 The following tables use a non-default InnoDB row format
 
 
-* zerofill.title
-Usage of use ZEROFILL/display length type attributes
-
-* zerofill.description
-The following table columns specify a ZEROFILL/display length attributes.
-Please be aware that they will be ignored in the latest MySQL version.
-
 * authMethodUsage.title
 Check for deprecated or invalid user authentication methods.
 

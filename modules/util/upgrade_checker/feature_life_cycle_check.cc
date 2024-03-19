@@ -135,9 +135,10 @@ const Feature_definition &Feature_life_cycle_check::get_feature(
   return m_features.at(feature_id).feature;
 }
 
-void Feature_life_cycle_check::add_issue(const std::string &feature,
-                                         const std::string &item) {
-  m_feature_issues[feature].emplace_back(std::move(item));
+void Feature_life_cycle_check::add_issue(
+    const std::string &feature, const std::string &item,
+    Upgrade_issue::Object_type object_type) {
+  m_feature_issues[feature].emplace_back(item, object_type);
 }
 
 std::vector<const Feature_definition *> Feature_life_cycle_check::get_features(
@@ -173,7 +174,8 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
 
         for (const auto &item : issues.second) {
           Upgrade_issue issue;
-          std::string desc = resolve_feature_description(feature, level, item);
+          std::string desc =
+              resolve_feature_description(feature, level, item.first);
           issue.description = shcore::str_format(
               "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
 
@@ -181,6 +183,7 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
           issue.doclink = get_text(feature_doclink_tag.c_str());
 
           issue.level = level;
+          issue.object_type = item.second;
           upgrade_issues.push_back(issue);
         }
       }
@@ -193,7 +196,7 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
             resolve_feature_description(feature, level)};
 
         for (const auto &item : issues.second) {
-          desc.push_back(item);
+          desc.push_back(item.first);
         }
         desc.push_back("");  // Forces double \n at the end
 
@@ -206,6 +209,9 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
         issue.doclink = get_text(feature_doclink_tag.c_str());
 
         issue.level = level;
+        // TODO(rennox): Here we simply assume all the issues are of the same
+        // type, created Bug#36405653 for a proper fix
+        issue.object_type = issues.second.at(0).second;
         upgrade_issues.push_back(issue);
       }
       break;
@@ -219,7 +225,7 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
           level = this_level;
         }
         for (const auto &item : issues.second) {
-          desc.push_back(item);
+          desc.push_back(item.first);
         }
       }
       Upgrade_issue issue;
@@ -227,6 +233,9 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
           shcore::str_format("%s: %s", Upgrade_issue::level_to_string(level),
                              shcore::str_join(desc, "\n").c_str());
       issue.level = level;
+      // TODO(rennox): Here we simply assume all the issues are of the same
+      // type Bug#36405653
+      issue.object_type = m_feature_issues.at(0).at(0).second;
       upgrade_issues.push_back(issue);
       break;
   }
@@ -314,7 +323,7 @@ void Auth_method_usage_check::process_row(const mysqlshdk::db::IRow *row) {
   for (const rapidjson::Value &plugin : doc.GetArray()) {
     std::string name = plugin.GetString();
     if (m_features.find(name) != m_features.end()) {
-      add_issue(name, account);
+      add_issue(name, account, Upgrade_issue::Object_type::USER);
     }
   }
 }
@@ -369,7 +378,7 @@ std::string Plugin_usage_check::build_query(
 void Plugin_usage_check::process_row(const mysqlshdk::db::IRow *row) {
   const auto plugin = row->get_string(0);
   if (m_features.find(plugin) != m_features.end()) {
-    add_issue(plugin, plugin);
+    add_issue(plugin, plugin, Upgrade_issue::Object_type::PLUGIN);
   }
 }
 

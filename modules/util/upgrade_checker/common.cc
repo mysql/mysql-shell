@@ -47,7 +47,6 @@ const std::set<std::string_view> all = {
     k_routine_syntax_check,
     k_utf8mb3_check,
     k_innodb_rowformat_check,
-    k_zerofill_check,
     k_nonnative_partitioning_check,
     k_mysql_schema_check,
     k_old_temporal_check,
@@ -177,6 +176,39 @@ const char *Upgrade_issue::level_to_string(const Upgrade_issue::Level level) {
       return "Notice";
   }
   return "Notice";
+}
+
+std::string_view Upgrade_issue::type_to_string(
+    const Upgrade_issue::Object_type type) {
+  switch (type) {
+    case Object_type::SCHEMA:
+      return "Schema";
+    case Object_type::TABLE:
+      return "Table";
+    case Object_type::VIEW:
+      return "View";
+    case Object_type::COLUMN:
+      return "Column";
+    case Object_type::INDEX:
+      return "Index";
+    case Object_type::FOREIGN_KEY:
+      return "ForeignKey";
+    case Object_type::ROUTINE:
+      return "Routine";
+    case Object_type::EVENT:
+      return "Event";
+    case Object_type::TRIGGER:
+      return "Trigger";
+    case Object_type::SYSVAR:
+      return "SystemVariable";
+    case Object_type::USER:
+      return "User";
+    case Object_type::TABLESPACE:
+      return "Tablespace";
+    case Object_type::PLUGIN:
+      return "Plugin";
+  }
+  throw std::logic_error("Unexpected Object Type");
 }
 
 std::string Upgrade_issue::get_db_object() const {

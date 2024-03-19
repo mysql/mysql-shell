@@ -63,7 +63,6 @@ TEST(Upgrade_check_registry, messages) {
 
   // If not the case, the correct info should be set
   additional_checks[ids::k_innodb_rowformat_check] = {false, {}};
-  additional_checks[ids::k_zerofill_check] = {false, {}};
   additional_checks[ids::k_table_command_check] = {false, {}};
   additional_checks[ids::k_removed_sys_vars_check] = {true,
                                                       {"issue", "replacement"}};
@@ -498,7 +497,6 @@ TEST(Upgrade_check_registry, create_checklist) {
 
   {
     // Tests without positive verification are marked as done
-    positive.insert(ids::k_zerofill_check);          // Not used
     positive.insert(ids::k_innodb_rowformat_check);  // Not used
 
     std::set<std::string_view> missing;
@@ -516,7 +514,6 @@ TEST(Upgrade_check_registry, create_checklist) {
   {
     // Tests without negative verification are marked as done
     negative.insert(ids::k_table_command_check);     // Always enabled
-    negative.insert(ids::k_zerofill_check);          // Not used
     negative.insert(ids::k_innodb_rowformat_check);  // Not used
 
     std::set<std::string_view> missing;

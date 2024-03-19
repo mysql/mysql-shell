@@ -42,7 +42,7 @@ namespace upgrade_checker {
 using mysqlshdk::utils::Version;
 
 Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
-                                     std::vector<std::string> &&queries,
+                                     std::vector<Check_query> &&queries,
                                      Upgrade_issue::Level level,
                                      const char *minimal_version,
                                      std::forward_list<std::string> &&set_up,
@@ -68,7 +68,7 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
   std::vector<Upgrade_issue> issues;
   for (const auto &query : m_queries) {
     auto final_query = shcore::str_subvars(
-        query,
+        query.first,
         [&cache](std::string_view key) {
           const auto qh = cache->query_helper();
           std::string filter;
@@ -106,7 +106,7 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     auto result = session->query(final_query);
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
-      add_issue(row, &issues);
+      add_issue(row, query.second, &issues);
     }
   }
 
@@ -116,13 +116,16 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
 }
 
 void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
+                                  Upgrade_issue::Object_type object_type,
                                   std::vector<Upgrade_issue> *issues) {
-  Upgrade_issue issue = parse_row(row);
+  Upgrade_issue issue = parse_row(row, object_type);
   if (!issue.empty()) issues->emplace_back(std::move(issue));
 }
 
-Upgrade_issue Sql_upgrade_check::parse_row(const mysqlshdk::db::IRow *row) {
+Upgrade_issue Sql_upgrade_check::parse_row(
+    const mysqlshdk::db::IRow *row, Upgrade_issue::Object_type object_type) {
   Upgrade_issue problem;
+  problem.object_type = object_type;
   auto fields_count = row->num_fields();
   std::string issue_details;
   problem.schema = row->get_as_string(0);
