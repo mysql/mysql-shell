@@ -48,10 +48,11 @@ namespace upgrade_checker {
 std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_old_temporal_check,
-      std::vector<std::string>{
-          "SELECT table_schema, table_name,column_name,column_type "
-          "FROM information_schema.columns WHERE column_type LIKE "
-          "'%5.5 binary format%';"},
+      std::vector<Check_query>{
+          {"SELECT table_schema, table_name,column_name,column_type "
+           "FROM information_schema.columns WHERE column_type LIKE "
+           "'%5.5 binary format%';",
+           Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::ERROR, nullptr,
       std::forward_list<std::string>{"SET show_old_temporals = ON;"},
       std::forward_list<std::string>{"SET show_old_temporals = OFF;"});
@@ -82,35 +83,43 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
   keywords = "(" + keywords + ");";
   return std::make_unique<Sql_upgrade_check>(
       ids::k_reserved_keywords_check,
-      std::vector<std::string>{
-          "select SCHEMA_NAME, 'Schema name' as WARNING from "
-          "INFORMATION_SCHEMA.SCHEMATA where <<schema_filter>> and SCHEMA_NAME "
-          "in" +
-              keywords,
-          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' as WARNING FROM "
-          "INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE != 'VIEW' and "
-          "<<schema_and_table_filter>> and TABLE_NAME in " +
-              keywords,
-          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, 'Column "
-          "name' as WARNING FROM information_schema.columns WHERE "
-          "<<schema_and_table_filter>> and COLUMN_NAME in " +
-              keywords,
-          "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
-          "FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
-          "<<schema_and_trigger_filter>> and TRIGGER_NAME in " +
-              keywords,
-          "SELECT TABLE_SCHEMA, TABLE_NAME, 'View name' as WARNING FROM "
-          "INFORMATION_SCHEMA.VIEWS WHERE <<schema_and_table_filter>> and "
-          "TABLE_NAME in " +
-              keywords,
-          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'Routine name' as WARNING "
-          "FROM INFORMATION_SCHEMA.ROUTINES WHERE "
-          "<<schema_and_routine_filter>> and ROUTINE_NAME in " +
-              keywords,
-          "SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
-          "INFORMATION_SCHEMA.EVENTS WHERE <<schema_and_event_filter>> and "
-          "EVENT_NAME in " +
-              keywords},
+      std::vector<Check_query>{
+          {"select SCHEMA_NAME, 'Schema name' as WARNING from "
+           "INFORMATION_SCHEMA.SCHEMATA where <<schema_filter>> and "
+           "SCHEMA_NAME "
+           "in" +
+               keywords,
+           Upgrade_issue::Object_type::SCHEMA},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' as WARNING FROM "
+           "INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE != 'VIEW' and "
+           "<<schema_and_table_filter>> and TABLE_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::TABLE},
+          {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, 'Column "
+           "name' as WARNING FROM information_schema.columns WHERE "
+           "<<schema_and_table_filter>> and COLUMN_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::COLUMN},
+          {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
+           "FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
+           "<<schema_and_trigger_filter>> and TRIGGER_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::TRIGGER},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, 'View name' as WARNING FROM "
+           "INFORMATION_SCHEMA.VIEWS WHERE <<schema_and_table_filter>> and "
+           "TABLE_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::VIEW},
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'Routine name' as WARNING "
+           "FROM INFORMATION_SCHEMA.ROUTINES WHERE "
+           "<<schema_and_routine_filter>> and ROUTINE_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::ROUTINE},
+          {"SELECT EVENT_SCHEMA, EVENT_NAME, 'Event name' as WARNING FROM "
+           "INFORMATION_SCHEMA.EVENTS WHERE <<schema_and_event_filter>> and "
+           "EVENT_NAME in " +
+               keywords,
+           Upgrade_issue::Object_type::EVENT}},
       Upgrade_issue::WARNING);
 }
 
@@ -134,6 +143,7 @@ class Routine_syntax_check : public Upgrade_check {
       std::string names_query;
       std::string show_query;
       int code_field;
+      Upgrade_issue::Object_type object_type;
     };
     // Don't need to check views because they get auto-quoted
     const auto &qh = cache->query_helper();
@@ -143,22 +153,22 @@ class Routine_syntax_check : public Upgrade_check {
          " FROM information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE'"
          " AND " +
              qh.schema_and_routine_filter(),
-         "SHOW CREATE PROCEDURE !.!", 2},
+         "SHOW CREATE PROCEDURE !.!", 2, Upgrade_issue::Object_type::ROUTINE},
         {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
          " FROM information_schema.routines WHERE ROUTINE_TYPE = 'FUNCTION'"
          " AND " +
              qh.schema_and_routine_filter(),
-         "SHOW CREATE FUNCTION !.!", 2},
+         "SHOW CREATE FUNCTION !.!", 2, Upgrade_issue::Object_type::ROUTINE},
         {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME"
          " FROM information_schema.triggers"
          " WHERE " +
              qh.schema_and_trigger_filter(),
-         "SHOW CREATE TRIGGER !.!", 2},
+         "SHOW CREATE TRIGGER !.!", 2, Upgrade_issue::Object_type::TRIGGER},
         {"SELECT EVENT_SCHEMA, EVENT_NAME"
          " FROM information_schema.events"
          " WHERE " +
              qh.schema_and_event_filter(),
-         "SHOW CREATE EVENT !.!", 3}};
+         "SHOW CREATE EVENT !.!", 3, Upgrade_issue::Object_type::EVENT}};
 
     std::vector<Upgrade_issue> issues;
     for (const auto &obj : object_info) {
@@ -168,8 +178,8 @@ class Routine_syntax_check : public Upgrade_check {
       result->buffer();
 
       while (auto row = result->fetch_one()) {
-        auto issue =
-            process_item(row, obj.show_query, obj.code_field, session.get());
+        auto issue = process_item(row, obj.show_query, obj.code_field,
+                                  obj.object_type, session.get());
         if (!issue.description.empty()) issues.push_back(std::move(issue));
       }
     }
@@ -206,12 +216,14 @@ class Routine_syntax_check : public Upgrade_check {
   Upgrade_issue process_item(const mysqlshdk::db::IRow *row,
                              const std::string &show_template,
                              int show_sql_field,
+                             Upgrade_issue::Object_type object_type,
                              mysqlshdk::db::ISession *session) {
     Upgrade_issue issue;
 
     issue.schema = row->get_as_string(0);
     issue.table = row->get_as_string(1);
     issue.level = Upgrade_issue::ERROR;
+    issue.object_type = object_type;
 
     // we need to get routine definitions with the SHOW command
     // because INFORMATION_SCHEMA will eat up things like backslashes
@@ -234,117 +246,105 @@ std::unique_ptr<Upgrade_check> get_routine_syntax_check() {
 std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_utf8mb3_check,
-      std::vector<std::string>{
-          "select SCHEMA_NAME, concat('schema''s default character set: ',  "
-          "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
-          "<<schema_filter>> "
-          "and DEFAULT_CHARACTER_SET_NAME in ('utf8', 'utf8mb3');",
-          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column''s "
-          "default character set: ',CHARACTER_SET_NAME) from "
-          "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
-          "'utf8mb3') and <<schema_and_table_filter>>;"},
+      std::vector<Check_query>{
+          {"select SCHEMA_NAME, concat('schema''s default character set: ',  "
+           "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
+           "<<schema_filter>> "
+           "and DEFAULT_CHARACTER_SET_NAME in ('utf8', 'utf8mb3');",
+           Upgrade_issue::Object_type::SCHEMA},
+          // TODO (rennox): Isn this missing a table check??
+          {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column''s "
+           "default character set: ',CHARACTER_SET_NAME) from "
+           "information_schema.columns where CHARACTER_SET_NAME in ('utf8', "
+           "'utf8mb3') and <<schema_and_table_filter>>;",
+           Upgrade_issue::Object_type::COLUMN},
+      },
       Upgrade_issue::WARNING);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_mysql_schema_check,
-      std::vector<std::string>{
-          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql schema.' "
-          "as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
-          "LOWER(TABLE_SCHEMA) = 'mysql' and LOWER(TABLE_NAME) IN "
-          "('catalogs', 'character_sets', 'collations', 'column_type_elements',"
-          " 'columns', 'dd_properties', 'events', 'foreign_key_column_usage', "
-          "'foreign_keys', 'index_column_usage', 'index_partitions', "
-          "'index_stats', 'indexes', 'parameter_type_elements', 'parameters', "
-          "'routines', 'schemata', 'st_spatial_reference_systems', "
-          "'table_partition_values', 'table_partitions', 'table_stats', "
-          "'tables', 'tablespace_files', 'tablespaces', 'triggers', "
-          "'view_routine_usage', 'view_table_usage', 'component', "
-          "'default_roles', 'global_grants', 'innodb_ddl_log', "
-          "'innodb_dynamic_metadata', 'password_history', 'role_edges');"},
+      std::vector<Check_query>{
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql "
+           "schema.' "
+           "as WARNING FROM INFORMATION_SCHEMA.TABLES WHERE "
+           "LOWER(TABLE_SCHEMA) = 'mysql' and LOWER(TABLE_NAME) IN "
+           "('catalogs', 'character_sets', 'collations', "
+           "'column_type_elements',"
+           " 'columns', 'dd_properties', 'events', 'foreign_key_column_usage', "
+           "'foreign_keys', 'index_column_usage', 'index_partitions', "
+           "'index_stats', 'indexes', 'parameter_type_elements', 'parameters', "
+           "'routines', 'schemata', 'st_spatial_reference_systems', "
+           "'table_partition_values', 'table_partitions', 'table_stats', "
+           "'tables', 'tablespace_files', 'tablespaces', 'triggers', "
+           "'view_routine_usage', 'view_table_usage', 'component', "
+           "'default_roles', 'global_grants', 'innodb_ddl_log', "
+           "'innodb_dynamic_metadata', 'password_history', 'role_edges');",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_innodb_rowformat_check,
-      std::vector<std::string>{
-          "select table_schema, table_name, row_format from "
-          "information_schema.tables where engine = 'innodb' "
-          "and row_format != 'Dynamic';"},
+      std::vector<Check_query>{
+          {"select table_schema, table_name, row_format from "
+           "information_schema.tables where engine = 'innodb' "
+           "and row_format != 'Dynamic';",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::WARNING);
 }
-
-std::unique_ptr<Sql_upgrade_check> get_zerofill_check() {
-  return std::make_unique<Sql_upgrade_check>(
-      ids::k_zerofill_check,
-      std::vector<std::string>{
-          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, COLUMN_TYPE from "
-          "information_schema.columns where TABLE_SCHEMA not in ('sys', "
-          "'performance_schema', 'information_schema', 'mysql') and "
-          "(COLUMN_TYPE REGEXP 'zerofill' or (COLUMN_TYPE like 'tinyint%' and "
-          "COLUMN_TYPE not like 'tinyint(4)%' and COLUMN_TYPE not like "
-          "'tinyint(3) unsigned%') or (COLUMN_TYPE like 'smallint%' and "
-          "COLUMN_TYPE not like 'smallint(6)%' and COLUMN_TYPE not like "
-          "'smallint(5) unsigned%') or (COLUMN_TYPE like 'mediumint%' and "
-          "COLUMN_TYPE not like 'mediumint(9)%' and COLUMN_TYPE not like "
-          "'mediumint(8) unsigned%') or (COLUMN_TYPE like 'int%' and "
-          "COLUMN_TYPE not like 'int(11)%' and COLUMN_TYPE not like 'int(10) "
-          "unsigned%') or (COLUMN_TYPE like 'bigint%' and COLUMN_TYPE not like "
-          "'bigint(20)%'));"},
-      Upgrade_issue::NOTICE);
-}
-
-// Zerofill is still available in 8.0.11
-// namespace {
-// bool UNUSED_VARIABLE(register_zerofill) =
-// Upgrade_check_registry::register_check(
-//    std::bind(&get_zerofill_check), "8.0.11");
-//}
 
 std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_nonnative_partitioning_check,
-      std::vector<std::string>{
-          "select table_schema, table_name, concat(engine, ' engine does not "
-          "support native partitioning') from information_schema.Tables where "
-          "<<schema_and_table_filter>> and create_options like '%partitioned%' "
-          "and upper(engine) not in ('INNODB', 'NDB', 'NDBCLUSTER');"},
+      std::vector<Check_query>{
+          {"select table_schema, table_name, concat(engine, ' engine does not "
+           "support native partitioning') from information_schema.Tables where "
+           "<<schema_and_table_filter>> and create_options like "
+           "'%partitioned%' "
+           "and upper(engine) not in ('INNODB', 'NDB', 'NDBCLUSTER');",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_foreign_key_length_check,
-      std::vector<std::string>{
-          "select table_schema, table_name, 'Foreign key longer than 64 "
-          "characters' as description from information_schema.tables where "
-          "<<schema_and_table_filter>> and table_name in (select "
-          "left(substr(id,instr(id,'/')+1), "
-          "instr(substr(id,instr(id,'/')+1),'_ibfk_')-1) from "
-          "information_schema.innodb_sys_foreign where "
-          "length(substr(id,instr(id,'/')+1))>64);"},
+      std::vector<Check_query>{
+          {"select table_schema, table_name, 'Foreign key longer than 64 "
+           "characters' as description from information_schema.tables where "
+           "<<schema_and_table_filter>> and table_name in (select "
+           "left(substr(id,instr(id,'/')+1), "
+           "instr(substr(id,instr(id,'/')+1),'_ibfk_')-1) from "
+           "information_schema.innodb_sys_foreign where "
+           "length(substr(id,instr(id,'/')+1))>64);",
+           Upgrade_issue::Object_type::FOREIGN_KEY}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_maxdb_sql_mode_flags_check,
-      std::vector<std::string>{
-          "select routine_schema, routine_name, concat(routine_type, ' uses "
-          "obsolete MAXDB sql_mode') from information_schema.routines where "
-          "<<schema_and_routine_filter>> and find_in_set('MAXDB', sql_mode);",
-          "select event_schema, event_name, 'EVENT uses obsolete MAXDB "
-          "sql_mode' from information_schema.EVENTS where "
-          "<<schema_and_event_filter>> and find_in_set('MAXDB', sql_mode);",
-          "select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
-          "sql_mode' from information_schema.TRIGGERS where "
-          "<<schema_and_trigger_filter>> and find_in_set('MAXDB', sql_mode);",
-          "select concat('global system variable ', variable_name), 'defined "
-          "using obsolete MAXDB option' as reason from "
-          "performance_schema.global_variables where variable_name = "
-          "'sql_mode' and find_in_set('MAXDB', variable_value);"},
+      std::vector<Check_query>{
+          {"select routine_schema, routine_name, concat(routine_type, ' uses "
+           "obsolete MAXDB sql_mode') from information_schema.routines where "
+           "<<schema_and_routine_filter>> and find_in_set('MAXDB', sql_mode);",
+           Upgrade_issue::Object_type::ROUTINE},
+          {"select event_schema, event_name, 'EVENT uses obsolete MAXDB "
+           "sql_mode' from information_schema.EVENTS where "
+           "<<schema_and_event_filter>> and find_in_set('MAXDB', sql_mode);",
+           Upgrade_issue::Object_type::EVENT},
+          {"select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
+           "sql_mode' from information_schema.TRIGGERS where "
+           "<<schema_and_trigger_filter>> and find_in_set('MAXDB', sql_mode);",
+           Upgrade_issue::Object_type::TRIGGER},
+          {"select concat('@@global.', variable_name), 'defined "
+           "using obsolete MAXDB option' as reason from "
+           "performance_schema.global_variables where variable_name = "
+           "'sql_mode' and find_in_set('MAXDB', variable_value);",
+           Upgrade_issue::Object_type::SYSVAR}},
       Upgrade_issue::WARNING);
 }
 
@@ -353,30 +353,40 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
       {"DB2", "MSSQL", "MYSQL323", "MYSQL40", "NO_AUTO_CREATE_USER",
        "NO_FIELD_OPTIONS", "NO_KEY_OPTIONS", "NO_TABLE_OPTIONS", "ORACLE",
        "POSTGRESQL"}};
-  std::vector<std::string> queries;
+  std::vector<Check_query> queries;
   for (const char *mode : modes) {
-    queries.emplace_back(shcore::str_format(
-        "select routine_schema, routine_name, concat(routine_type, ' uses "
-        "obsolete %s sql_mode') from information_schema.routines where "
-        "<<schema_and_routine_filter>> and find_in_set('%s', sql_mode);",
-        mode, mode));
-    queries.emplace_back(shcore::str_format(
-        "select event_schema, event_name, 'EVENT uses obsolete %s sql_mode' "
-        "from information_schema.EVENTS where <<schema_and_event_filter>> and "
-        "find_in_set('%s', sql_mode);",
-        mode, mode));
-    queries.emplace_back(shcore::str_format(
-        "select trigger_schema, trigger_name, 'TRIGGER uses obsolete %s "
-        "sql_mode' from information_schema.TRIGGERS where "
-        "<<schema_and_trigger_filter>> and find_in_set('%s', "
-        "sql_mode);",
-        mode, mode));
-    queries.emplace_back(shcore::str_format(
-        "select concat('global system variable ', variable_name), 'defined "
-        "using obsolete %s option' as reason from "
-        "performance_schema.global_variables where variable_name = 'sql_mode' "
-        "and find_in_set('%s', variable_value);",
-        mode, mode));
+    queries.emplace_back(
+        shcore::str_format(
+            "select routine_schema, routine_name, concat(routine_type, ' uses "
+            "obsolete %s sql_mode') from information_schema.routines where "
+            "<<schema_and_routine_filter>> and find_in_set('%s', sql_mode);",
+            mode, mode),
+        Upgrade_issue::Object_type::ROUTINE);
+    queries.emplace_back(
+        shcore::str_format("select event_schema, event_name, 'EVENT uses "
+                           "obsolete %s sql_mode' "
+                           "from information_schema.EVENTS where "
+                           "<<schema_and_event_filter>> and "
+                           "find_in_set('%s', sql_mode);",
+                           mode, mode),
+        Upgrade_issue::Object_type::EVENT);
+    queries.emplace_back(
+        shcore::str_format(
+            "select trigger_schema, trigger_name, 'TRIGGER uses obsolete %s "
+            "sql_mode' from information_schema.TRIGGERS where "
+            "<<schema_and_trigger_filter>> and find_in_set('%s', "
+            "sql_mode);",
+            mode, mode),
+        Upgrade_issue::Object_type::TRIGGER);
+    queries.emplace_back(
+        shcore::str_format(
+            "select concat('@@global.', variable_name), 'defined "
+            "using obsolete %s option' as reason from "
+            "performance_schema.global_variables where variable_name = "
+            "'sql_mode' "
+            "and find_in_set('%s', variable_value);",
+            mode, mode),
+        Upgrade_issue::Object_type::SYSVAR);
   }
 
   return std::make_unique<Sql_upgrade_check>(
@@ -389,15 +399,18 @@ class Enum_set_element_length_check : public Sql_upgrade_check {
   Enum_set_element_length_check()
       : Sql_upgrade_check(
             ids::k_enum_set_element_length_check,
-            {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, UPPER(DATA_TYPE), "
-             "COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH from "
-             "information_schema.columns where <<schema_and_table_filter>> and "
-             "data_type in ('enum','set') and "
-             "CHARACTER_MAXIMUM_LENGTH > 255 and table_schema not in "
-             "('information_schema');"},
+            {{"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, UPPER(DATA_TYPE), "
+              "COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH from "
+              "information_schema.columns where <<schema_and_table_filter>> "
+              "and "
+              "data_type in ('enum','set') and "
+              "CHARACTER_MAXIMUM_LENGTH > 255 and table_schema not in "
+              "('information_schema');",
+              Upgrade_issue::Object_type::COLUMN}},
             Upgrade_issue::ERROR) {}
 
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
     Upgrade_issue res;
     std::string type = row->get_as_string(3);
     if (type == "SET") {
@@ -420,6 +433,7 @@ class Enum_set_element_length_check : public Sql_upgrade_check {
     res.table = row->get_as_string(1);
     res.column = row->get_as_string(2);
     res.description = type + " contains element longer than 255 characters";
+    res.object_type = object_type;
     res.level = m_level;
     return res;
   }
@@ -481,6 +495,7 @@ class Check_table_command : public Upgrade_check {
           issue.level = Upgrade_issue::NOTICE;
         issue.schema = pair.first;
         issue.table = pair.second;
+        issue.object_type = Upgrade_issue::Object_type::TABLE;
         issue.description = row->get_string(3);
 
         // Native partitioning warning has been promoted to error in context of
@@ -505,36 +520,39 @@ std::unique_ptr<Sql_upgrade_check>
 get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_partitioned_tables_in_shared_tablespaces_check,
-      std::vector<std::string>{
-          info.server_version < Version(8, 0, 0)
-              ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
-                "concat('Partition ', PARTITION_NAME, "
-                "' is in shared tablespace ', TABLESPACE_NAME) "
-                "as description FROM "
-                "information_schema.PARTITIONS WHERE "
-                "PARTITION_NAME IS NOT NULL AND "
-                "(TABLESPACE_NAME IS NOT NULL AND "
-                "TABLESPACE_NAME!='innodb_file_per_table');"
-              : "select SUBSTRING_INDEX(it.name, '/', 1), "
-                "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
-                "concat('Partition ', SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, "
-                "'/', -1), '#', -1), ' is in shared tablespce ', itb.name) "
-                "from information_schema.INNODB_TABLES it, "
-                "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
-                "itb.space and it.name like '%#P#%' and it.space_type != "
-                "'Single';"},
+      std::vector<Check_query>{
+          {info.server_version < Version(8, 0, 0)
+               ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
+                 "concat('Partition ', PARTITION_NAME, "
+                 "' is in shared tablespace ', TABLESPACE_NAME) "
+                 "as description FROM "
+                 "information_schema.PARTITIONS WHERE "
+                 "PARTITION_NAME IS NOT NULL AND "
+                 "(TABLESPACE_NAME IS NOT NULL AND "
+                 "TABLESPACE_NAME!='innodb_file_per_table');"
+               : "select SUBSTRING_INDEX(it.name, '/', 1), "
+                 "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
+                 "concat('Partition ', "
+                 "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, "
+                 "'/', -1), '#', -1), ' is in shared tablespce ', itb.name) "
+                 "from information_schema.INNODB_TABLES it, "
+                 "information_schema.INNODB_TABLESPACES itb where it.SPACE = "
+                 "itb.space and it.name like '%#P#%' and it.space_type != "
+                 "'Single';",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_circular_directory_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_circular_directory_check,
-      std::vector<std::string>{
-          "SELECT tablespace_name, concat('circular reference in datafile "
-          "path: "
-          R"(\'', file_name, '\'') FROM INFORMATION_SCHEMA.FILES where )"
-          R"(file_type='TABLESPACE' and (file_name rlike '[^\\.]/\\.\\./' or )"
-          R"(file_name rlike '[^\\.]\\\\\\.\\.\\\\');)"},
+      std::vector<Check_query>{
+          {"SELECT tablespace_name, concat('circular reference in datafile "
+           "path: "
+           R"(\'', file_name, '\'') FROM INFORMATION_SCHEMA.FILES where )"
+           R"(file_type='TABLESPACE' and (file_name rlike '[^\\.]/\\.\\./' or )"
+           R"(file_name rlike '[^\\.]\\\\\\.\\.\\\\');)",
+           Upgrade_issue::Object_type::TABLESPACE}},
       Upgrade_issue::ERROR);
 }
 
@@ -618,26 +636,32 @@ class Removed_functions_check : public Sql_upgrade_check {
   Removed_functions_check()
       : Sql_upgrade_check(
             ids::k_removed_functions_check,
-            {"select table_schema, table_name, '', 'VIEW', "
-             "UPPER(view_definition) from information_schema.views where "
-             "<<schema_and_table_filter>>",
-             "select routine_schema, routine_name, '', routine_type, "
-             "UPPER(routine_definition) from information_schema.routines where"
-             " <<schema_and_routine_filter>>",
-             "select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
-             ", UPPER(GENERATION_EXPRESSION) from "
-             "information_schema.columns where extra regexp 'generated' and "
-             "<<schema_and_table_filter>>",
-             "select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
-             "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
-             "<<schema_and_trigger_filter>>",
-             "select event_schema, event_name, '', 'EVENT', "
-             "UPPER(EVENT_DEFINITION) from information_schema.events where "
-             "<<schema_and_event_filter>>"},
+            {{"select table_schema, table_name, '', 'VIEW', "
+              "UPPER(view_definition) from information_schema.views where "
+              "<<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::VIEW},
+             {"select routine_schema, routine_name, '', routine_type, "
+              "UPPER(routine_definition) from information_schema.routines where"
+              " <<schema_and_routine_filter>>",
+              Upgrade_issue::Object_type::ROUTINE},
+             {"select TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME, 'COLUMN'"
+              ", UPPER(GENERATION_EXPRESSION) from "
+              "information_schema.columns where extra regexp 'generated' and "
+              "<<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::COLUMN},
+             {"select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
+              "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
+              "<<schema_and_trigger_filter>>",
+              Upgrade_issue::Object_type::TRIGGER},
+             {"select event_schema, event_name, '', 'EVENT', "
+              "UPPER(EVENT_DEFINITION) from information_schema.events where "
+              "<<schema_and_event_filter>>",
+              Upgrade_issue::Object_type::EVENT}},
             Upgrade_issue::ERROR) {}
 
  protected:
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
     Upgrade_issue res;
     std::vector<std::pair<std::string, const char *>> flagged_functions;
     std::string definition = row->get_as_string(4);
@@ -663,6 +687,7 @@ class Removed_functions_check : public Sql_upgrade_check {
     res.column = row->get_as_string(2);
     res.description = ss.str();
     res.level = m_level;
+    res.object_type = object_type;
     return res;
   }
 };
@@ -676,29 +701,37 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
   Groupby_asc_syntax_check()
       : Sql_upgrade_check(
             ids::k_groupby_asc_syntax_check,
-            {"select table_schema, table_name, 'VIEW', "
-             "UPPER(view_definition) from information_schema.views where "
-             "<<schema_and_table_filter>> and "
-             "(UPPER(view_definition) like '%ASC%' or UPPER(view_definition) "
-             "like '%DESC%');",
-             "select routine_schema, routine_name, routine_type, "
-             "UPPER(routine_definition) from information_schema.routines where "
-             "<<schema_and_routine_filter>> and "
-             "(UPPER(routine_definition) like '%ASC%' or "
-             "UPPER(routine_definition) like '%DESC%');",
-             "select TRIGGER_SCHEMA, TRIGGER_NAME, 'TRIGGER', "
-             "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
-             "<<schema_and_trigger_filter>> and "
-             "(UPPER(ACTION_STATEMENT) like '%ASC%' or UPPER(ACTION_STATEMENT) "
-             "like '%DESC%');",
-             "select event_schema, event_name, 'EVENT', "
-             "UPPER(EVENT_DEFINITION) from information_schema.events where "
-             "<<schema_and_event_filter>> and "
-             "(UPPER(event_definition) like '%ASC%' or UPPER(event_definition) "
-             "like '%DESC%');"},
+            {{"select table_schema, table_name, 'VIEW', "
+              "UPPER(view_definition) from information_schema.views where "
+              "<<schema_and_table_filter>> and "
+              "(UPPER(view_definition) like '%ASC%' or UPPER(view_definition) "
+              "like '%DESC%');",
+              Upgrade_issue::Object_type::VIEW},
+             {"select routine_schema, routine_name, routine_type, "
+              "UPPER(routine_definition) from information_schema.routines "
+              "where "
+              "<<schema_and_routine_filter>> and "
+              "(UPPER(routine_definition) like '%ASC%' or "
+              "UPPER(routine_definition) like '%DESC%');",
+              Upgrade_issue::Object_type::ROUTINE},
+             {"select TRIGGER_SCHEMA, TRIGGER_NAME, 'TRIGGER', "
+              "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
+              "<<schema_and_trigger_filter>> and "
+              "(UPPER(ACTION_STATEMENT) like '%ASC%' or "
+              "UPPER(ACTION_STATEMENT) "
+              "like '%DESC%');",
+              Upgrade_issue::Object_type::TRIGGER},
+             {"select event_schema, event_name, 'EVENT', "
+              "UPPER(EVENT_DEFINITION) from information_schema.events where "
+              "<<schema_and_event_filter>> and "
+              "(UPPER(event_definition) like '%ASC%' or "
+              "UPPER(event_definition) "
+              "like '%DESC%');",
+              Upgrade_issue::Object_type::EVENT}},
             Upgrade_issue::ERROR) {}
 
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
     Upgrade_issue res;
     std::string definition = row->get_as_string(3);
     mysqlshdk::utils::SQL_iterator it(definition);
@@ -735,6 +768,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
       res.schema = row->get_as_string(0);
       res.table = row->get_as_string(1);
       res.level = m_level;
+      res.object_type = object_type;
     }
 
     return res;
@@ -842,28 +876,31 @@ std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check(
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_zero_dates_check,
-      std::vector<std::string>{
-          "select 'global.sql_mode', 'does not contain either NO_ZERO_DATE "
-          "or "
-          "NO_ZERO_IN_DATE which allows insertion of zero dates' from "
-          "(SELECT "
-          "@@global.sql_mode like '%NO_ZERO_IN_DATE%' and @@global.sql_mode "
-          "like '%NO_ZERO_DATE%' as zeroes_enabled) as q where "
-          "q.zeroes_enabled = 0;",
-          "select 'session.sql_mode', concat(' of ', q.thread_count, ' "
-          "session(s) does not contain either NO_ZERO_DATE or "
-          "NO_ZERO_IN_DATE "
-          "which allows insertion of zero dates') FROM (select "
-          "count(thread_id) as thread_count from "
-          "performance_schema.variables_by_thread WHERE variable_name = "
-          "'sql_mode' and (variable_value not like '%NO_ZERO_IN_DATE%' or "
-          "variable_value not like '%NO_ZERO_DATE%')) as q where "
-          "q.thread_count > 0;",
-          "select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column has "
-          "zero default value: ', COLUMN_DEFAULT) from "
-          "information_schema.columns where <<schema_and_table_filter>> and "
-          "DATA_TYPE in ('timestamp', 'datetime', 'date') and COLUMN_DEFAULT "
-          "like '0000-00-00%';"},
+      std::vector<Check_query>{
+          {"select 'global.sql_mode', 'does not contain either NO_ZERO_DATE "
+           "or "
+           "NO_ZERO_IN_DATE which allows insertion of zero dates' from "
+           "(SELECT "
+           "@@global.sql_mode like '%NO_ZERO_IN_DATE%' and @@global.sql_mode "
+           "like '%NO_ZERO_DATE%' as zeroes_enabled) as q where "
+           "q.zeroes_enabled = 0;",
+           Upgrade_issue::Object_type::SYSVAR},
+          {"select 'session.sql_mode', concat(' of ', q.thread_count, ' "
+           "session(s) does not contain either NO_ZERO_DATE or "
+           "NO_ZERO_IN_DATE "
+           "which allows insertion of zero dates') FROM (select "
+           "count(thread_id) as thread_count from "
+           "performance_schema.variables_by_thread WHERE variable_name = "
+           "'sql_mode' and (variable_value not like '%NO_ZERO_IN_DATE%' or "
+           "variable_value not like '%NO_ZERO_DATE%')) as q where "
+           "q.thread_count > 0;",
+           Upgrade_issue::Object_type::SYSVAR},
+          {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column has "
+           "zero default value: ', COLUMN_DEFAULT) from "
+           "information_schema.columns where <<schema_and_table_filter>> and "
+           "DATA_TYPE in ('timestamp', 'datetime', 'date') and COLUMN_DEFAULT "
+           "like '0000-00-00%';",
+           Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::WARNING);
 }
 
@@ -879,7 +916,7 @@ std::unique_ptr<Sql_upgrade_check>
 get_schema_inconsistency_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_schema_inconsistency_check,
-      std::vector<std::string>{
+      std::vector<Check_query>{{
        "select A.schema_name, A.table_name, 'present in INFORMATION_SCHEMA''s "
        "INNODB_SYS_TABLES table but missing from TABLES table' from (select "
        "distinct "
@@ -891,7 +928,8 @@ get_schema_inconsistency_check() {
        "join information_schema.tables I on A.table_name = I.table_name and "
        "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
        "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
-       "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';"},
+       "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 // clang-format on
@@ -899,10 +937,11 @@ get_schema_inconsistency_check() {
 std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_fts_in_tablename_check,
-      std::vector<std::string>{
-          "select table_schema, table_name , 'table name contains ''FTS''' "
-          "from information_schema.tables where <<schema_and_table_filter>> "
-          "and table_name like binary '%FTS%';"},
+      std::vector<Check_query>{
+          {"select table_schema, table_name , 'table name contains ''FTS''' "
+           "from information_schema.tables where <<schema_and_table_filter>> "
+           "and table_name like binary '%FTS%';",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 
@@ -910,7 +949,7 @@ std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check() {
 std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_engine_mixup_check,
-      std::vector<std::string>{
+      std::vector<Check_query>{{
           "select a.table_schema, a.table_name, concat('recognized by the "
           "InnoDB engine but belongs to ', a.engine) from "
           "information_schema.tables a join (select "
@@ -920,7 +959,8 @@ std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
           " as table_name from "
           "information_schema.innodb_sys_tables where NAME like '%/%') b on "
           "a.table_schema = b.table_schema and a.table_name = b.table_name "
-          "where <<a.schema_and_table_filter>> and a.engine != 'Innodb';"},
+          "where <<a.schema_and_table_filter>> and a.engine != 'Innodb';",
+      Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 // clang-format on
@@ -928,7 +968,7 @@ std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
 std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_old_geometry_types_check,
-      std::vector<std::string>{
+      std::vector<Check_query>{{
           R"(select t.table_schema, t.table_name, c.column_name,
               concat(c.data_type, " column") as 'advice'
               from information_schema.innodb_sys_tables as st,
@@ -943,7 +983,8 @@ std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
                 c.column_name = sc.name and
                 c.data_type in ('point', 'geometry', 'polygon', 'linestring',
                   'multipoint', 'multilinestring', 'multipolygon',
-                  'geometrycollection');)"},
+                  'geometrycollection');)",
+          Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::ERROR);
 }
 
@@ -954,20 +995,23 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
 
  public:
   Changed_functions_in_generated_columns_check()
-      : Sql_upgrade_check(ids::k_changed_functions_generated_columns_check,
-                          {"SELECT s.table_schema, s.table_name, s.column_name,"
-                           "    UPPER(c.generation_expression)"
-                           "  FROM information_schema.columns c"
-                           "  JOIN information_schema.statistics s"
-                           "    ON c.table_schema = s.table_schema"
-                           "    AND c.table_name = s.table_name"
-                           "    AND c.column_name = s.column_name"
-                           "  WHERE <<s.schema_and_table_filter>>"
-                           "    AND c.generation_expression <> ''"},
-                          Upgrade_issue::WARNING) {}
+      : Sql_upgrade_check(
+            ids::k_changed_functions_generated_columns_check,
+            {{"SELECT s.table_schema, s.table_name, s.column_name,"
+              "    UPPER(c.generation_expression)"
+              "  FROM information_schema.columns c"
+              "  JOIN information_schema.statistics s"
+              "    ON c.table_schema = s.table_schema"
+              "    AND c.table_name = s.table_name"
+              "    AND c.column_name = s.column_name"
+              "  WHERE <<s.schema_and_table_filter>>"
+              "    AND c.generation_expression <> ''",
+              Upgrade_issue::Object_type::COLUMN}},
+            Upgrade_issue::WARNING) {}
 
  protected:
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
     Upgrade_issue res;
     bool match = false;
     std::string definition = row->get_as_string(3);
@@ -987,6 +1031,7 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
     res.column = row->get_as_string(2);
     res.description = definition;
     res.level = m_level;
+    res.object_type = object_type;
     return res;
   }
 };
@@ -1005,13 +1050,15 @@ class Columns_which_cannot_have_defaults_check : public Sql_upgrade_check {
   Columns_which_cannot_have_defaults_check()
       : Sql_upgrade_check(
             ids::k_columns_which_cannot_have_defaults_check,
-            {"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM "
-             "INFORMATION_SCHEMA.COLUMNS WHERE <<schema_and_table_filter>> AND "
-             "COLUMN_DEFAULT IS NOT NULL AND LOWER(DATA_TYPE) IN ('point', "
-             "'linestring', 'polygon', 'geometry', 'multipoint', "
-             "'multilinestring', 'multipolygon', 'geometrycollection', "
-             "'geomcollection', 'json', 'tinyblob', 'blob', 'mediumblob', "
-             "'longblob', 'tinytext', 'text', 'mediumtext', 'longtext')"},
+            {{"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM "
+              "INFORMATION_SCHEMA.COLUMNS WHERE <<schema_and_table_filter>> "
+              "AND "
+              "COLUMN_DEFAULT IS NOT NULL AND LOWER(DATA_TYPE) IN ('point', "
+              "'linestring', 'polygon', 'geometry', 'multipoint', "
+              "'multilinestring', 'multipolygon', 'geometrycollection', "
+              "'geomcollection', 'json', 'tinyblob', 'blob', 'mediumblob', "
+              "'longblob', 'tinytext', 'text', 'mediumtext', 'longtext')",
+              Upgrade_issue::Object_type::COLUMN}},
             Upgrade_issue::ERROR) {}
 };
 
@@ -1023,72 +1070,88 @@ get_columns_which_cannot_have_defaults_check() {
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_invalid_57_names_check,
-      std::vector<std::string>{
-          "SELECT SCHEMA_NAME, 'Schema name' AS WARNING FROM "
-          "INFORMATION_SCHEMA.SCHEMATA WHERE <<schema_filter>> AND SCHEMA_NAME "
-          "LIKE '#mysql50#%';",
-          "SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' AS WARNING FROM "
-          "INFORMATION_SCHEMA.TABLES WHERE <<schema_and_table_filter>> AND "
-          "TABLE_NAME LIKE '#mysql50#%';"},
+      std::vector<Check_query>{
+          {"SELECT SCHEMA_NAME, 'Schema name' AS WARNING FROM "
+           "INFORMATION_SCHEMA.SCHEMATA WHERE <<schema_filter>> AND "
+           "SCHEMA_NAME "
+           "LIKE '#mysql50#%';",
+           Upgrade_issue::Object_type::SCHEMA},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name' AS WARNING FROM "
+           "INFORMATION_SCHEMA.TABLES WHERE <<schema_and_table_filter>> AND "
+           "TABLE_NAME LIKE '#mysql50#%';",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_orphaned_routines_check,
-      std::vector<std::string>{
-          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'is orphaned' AS WARNING "
-          "FROM information_schema.routines WHERE "
-          "<<schema_and_routine_filter>> AND NOT EXISTS "
-          "(SELECT SCHEMA_NAME FROM information_schema.schemata "
-          "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);"},
+      std::vector<Check_query>{
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, 'is orphaned' AS WARNING "
+           "FROM information_schema.routines WHERE "
+           "<<schema_and_routine_filter>> AND NOT EXISTS "
+           "(SELECT SCHEMA_NAME FROM information_schema.schemata "
+           "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);",
+           Upgrade_issue::Object_type::ROUTINE}},
       Upgrade_issue::ERROR);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_dollar_sign_name_check,
-      std::vector<std::string>{
-          "SELECT SCHEMA_NAME, 'name starts with a $ sign.' FROM "
-          "information_schema.schemata WHERE SCHEMA_NAME LIKE '$_%' AND "
-          "SCHEMA_NAME NOT LIKE '$_%$' AND <<schema_filter>>",
-          "SELECT TABLE_SCHEMA, TABLE_NAME, ' name starts with $ sign.' FROM "
-          "information_schema.tables WHERE <<schema_and_table_filter>> AND "
-          "TABLE_NAME LIKE '$_%' AND TABLE_NAME NOT LIKE '$_%$';",
-          "SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, ' name starts with $ "
-          "sign.' FROM information_schema.columns WHERE "
-          "<<schema_and_table_filter>> AND "
-          "COLUMN_NAME LIKE ('$_%') AND COLUMN_NAME NOT LIKE ('$%_$') ORDER BY "
-          "TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME;",
-          "SELECT TABLE_SCHEMA, TABLE_NAME, INDEX_NAME, ' starts with $ sign.' "
-          "FROM information_schema.statistics WHERE "
-          "<<schema_and_table_filter>> AND "
-          "INDEX_NAME LIKE '$_%' AND INDEX_NAME NOT LIKE '$%_$' ORDER BY "
-          "TABLE_SCHEMA, TABLE_NAME, INDEX_NAME;",
-          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' name starts with $ sign.' "
-          "FROM information_schema.routines WHERE "
-          "<<schema_and_routine_filter>> AND "
-          "ROUTINE_NAME LIKE '$_%' AND ROUTINE_NAME NOT LIKE '$%_$';",
-          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' body contains identifiers "
-          "that start with $ sign.' FROM information_schema.routines WHERE "
-          "<<schema_and_routine_filter>> AND ROUTINE_DEFINITION REGEXP "
-          "'[[:blank:],.;\\\\)\\\\(]\\\\$[A-Za-z0-9\\\\_\\\\$]*[A-Za-z0-9\\\\_]"
-          "([[:blank:],;\\\\)]|(\\\\.[^0-9]))';"});
+      std::vector<Check_query>{
+          {"SELECT SCHEMA_NAME, 'name starts with a $ sign.' FROM "
+           "information_schema.schemata WHERE SCHEMA_NAME LIKE '$_%' AND "
+           "SCHEMA_NAME NOT LIKE '$_%$' AND <<schema_filter>>",
+           Upgrade_issue::Object_type::SCHEMA},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, ' name starts with $ sign.' FROM "
+           "information_schema.tables WHERE <<schema_and_table_filter>> AND "
+           "TABLE_NAME LIKE '$_%' AND TABLE_NAME NOT LIKE '$_%$';",
+           Upgrade_issue::Object_type::TABLE},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, ' name starts with $ "
+           "sign.' FROM information_schema.columns WHERE "
+           "<<schema_and_table_filter>> AND "
+           "COLUMN_NAME LIKE ('$_%') AND COLUMN_NAME NOT LIKE ('$%_$') ORDER "
+           "BY "
+           "TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME;",
+           Upgrade_issue::Object_type::COLUMN},
+          {"SELECT TABLE_SCHEMA, TABLE_NAME, INDEX_NAME, ' starts with $ "
+           "sign.' "
+           "FROM information_schema.statistics WHERE "
+           "<<schema_and_table_filter>> AND "
+           "INDEX_NAME LIKE '$_%' AND INDEX_NAME NOT LIKE '$%_$' ORDER BY "
+           "TABLE_SCHEMA, TABLE_NAME, INDEX_NAME;",
+           Upgrade_issue::Object_type::INDEX},
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' name starts with $ sign.' "
+           "FROM information_schema.routines WHERE "
+           "<<schema_and_routine_filter>> AND "
+           "ROUTINE_NAME LIKE '$_%' AND ROUTINE_NAME NOT LIKE '$%_$';",
+           Upgrade_issue::Object_type::ROUTINE},
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' body contains identifiers "
+           "that start with $ sign.' FROM information_schema.routines WHERE "
+           "<<schema_and_routine_filter>> AND ROUTINE_DEFINITION REGEXP "
+           "'[[:blank:],.;\\\\)\\\\(]\\\\$[A-Za-z0-9\\\\_\\\\$]*[A-Za-z0-9\\\\_"
+           "]"
+           "([[:blank:],;\\\\)]|(\\\\.[^0-9]))';",
+           Upgrade_issue::Object_type::ROUTINE}});
 }
 
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_index_too_large_check,
-      std::vector<std::string>{
-          "select s.table_schema, s.table_name, s.index_name, 'index too "
-          "large.' as warning from information_schema.statistics s, "
-          "information_schema.columns c, information_schema.innodb_sys_tables "
-          "i where <<s.schema_and_table_filter>> and s.table_name=c.table_name "
-          "and s.table_schema=c.table_schema "
-          "and c.column_name=s.column_name and concat(s.table_schema, '/', "
-          "s.table_name) = i.name and i.row_format in ('Redundant', 'Compact') "
-          "and (s.sub_part is null or s.sub_part > 255) and "
-          "c.character_octet_length > 767;"},
+      std::vector<Check_query>{
+          {"select s.table_schema, s.table_name, s.index_name, 'index too "
+           "large.' as warning from information_schema.statistics s, "
+           "information_schema.columns c, information_schema.innodb_sys_tables "
+           "i where <<s.schema_and_table_filter>> and "
+           "s.table_name=c.table_name "
+           "and s.table_schema=c.table_schema "
+           "and c.column_name=s.column_name and concat(s.table_schema, '/', "
+           "s.table_name) = i.name and i.row_format in ('Redundant', "
+           "'Compact') "
+           "and (s.sub_part is null or s.sub_part > 255) and "
+           "c.character_octet_length > 767;",
+           Upgrade_issue::Object_type::INDEX}},
       Upgrade_issue::ERROR);
 }
 
@@ -1104,19 +1167,22 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
 
   return std::make_unique<Sql_upgrade_check>(
       ids::k_empty_dot_table_syntax_check,
-      std::vector<std::string>{
-          "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' routine body contains "
-          "deprecated identifiers.' FROM information_schema.routines WHERE "
-          "<<schema_and_routine_filter>> AND ROUTINE_DEFINITION REGEXP '" +
-              regex + "';",
-          "SELECT EVENT_SCHEMA, EVENT_NAME, ' event body contains deprecated "
-          "identifiers.' FROM information_schema.events WHERE "
-          "<<schema_and_event_filter>> AND EVENT_DEFINITION REGEXP '" +
-              regex + "';",
-          "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, ' trigger body contains "
-          "deprecated identifiers.' FROM information_schema.triggers WHERE "
-          "<<schema_and_trigger_filter>> AND ACTION_STATEMENT REGEXP '" +
-              regex + "';"},
+      std::vector<Check_query>{
+          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' routine body contains "
+           "deprecated identifiers.' FROM information_schema.routines WHERE "
+           "<<schema_and_routine_filter>> AND ROUTINE_DEFINITION REGEXP '" +
+               regex + "';",
+           Upgrade_issue::Object_type::ROUTINE},
+          {"SELECT EVENT_SCHEMA, EVENT_NAME, ' event body contains deprecated "
+           "identifiers.' FROM information_schema.events WHERE "
+           "<<schema_and_event_filter>> AND EVENT_DEFINITION REGEXP '" +
+               regex + "';",
+           Upgrade_issue::Object_type::EVENT},
+          {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, ' trigger body contains "
+           "deprecated identifiers.' FROM information_schema.triggers WHERE "
+           "<<schema_and_trigger_filter>> AND ACTION_STATEMENT REGEXP '" +
+               regex + "';",
+           Upgrade_issue::Object_type::TRIGGER}},
       Upgrade_issue::ERROR);
 }
 
@@ -1227,20 +1293,23 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
   Deprecated_default_auth_check(mysqlshdk::utils::Version target_ver)
       : Sql_upgrade_check(
             ids::k_deprecated_default_auth_check,
-            std::vector<std::string>{
-                "show variables where variable_name = "
-                "'default_authentication_plugin' AND value IN (" +
-                    deprecated_auth_funcs::get_auth_list() + ");",
-                "show variables where variable_name = 'authentication_policy' "
-                "AND (" +
-                    deprecated_auth_funcs::get_auth_or_like_list("value") +
-                    ");"},
+            std::vector<Check_query>{
+                {"show variables where variable_name = "
+                 "'default_authentication_plugin' AND value IN (" +
+                     deprecated_auth_funcs::get_auth_list() + ");",
+                 Upgrade_issue::Object_type::SYSVAR},
+                {"show variables where variable_name = 'authentication_policy' "
+                 "AND (" +
+                     deprecated_auth_funcs::get_auth_or_like_list("value") +
+                     ");",
+                 Upgrade_issue::Object_type::SYSVAR}},
             Upgrade_issue::WARNING),
         m_target_version(target_ver) {}
 
   ~Deprecated_default_auth_check() override = default;
 
   void parse_var(const std::string &item, const std::string &auth,
+                 Upgrade_issue::Object_type object_type,
                  std::vector<Upgrade_issue> *issues) {
     auto list = shcore::split_string(auth, ",", true);
     if (list.empty()) return;
@@ -1251,6 +1320,7 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
 
       auto issue =
           deprecated_auth_funcs::parse_item(item, value, m_target_version);
+      issue.object_type = object_type;
       if (!issue.empty()) issues->emplace_back(std::move(issue));
     }
   }
@@ -1259,11 +1329,12 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
 
  protected:
   void add_issue(const mysqlshdk::db::IRow *row,
+                 Upgrade_issue::Object_type object_type,
                  std::vector<Upgrade_issue> *issues) override {
     auto item = row->get_as_string(0);
     auto auth = row->get_as_string(1);
 
-    parse_var(item, auth, issues);
+    parse_var(item, auth, object_type, issues);
   }
 
  private:
@@ -1279,12 +1350,13 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
     const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_deprecated_router_auth_method_check,
-      std::vector<std::string>{
-          "SELECT CONCAT(user, '@', host), ' - router user "
-          "with deprecated authentication method.' FROM "
-          "mysql.user WHERE plugin IN (" +
-          deprecated_auth_funcs::get_auth_list() +
-          ") AND user LIKE 'mysql_router%';"},
+      std::vector<Check_query>{
+          {"SELECT CONCAT(user, '@', host), ' - router user "
+           "with deprecated authentication method.' FROM "
+           "mysql.user WHERE plugin IN (" +
+               deprecated_auth_funcs::get_auth_list() +
+               ") AND user LIKE 'mysql_router%';",
+           Upgrade_issue::Object_type::USER}},
       info.target_version >= Version(8, 4, 0) ? Upgrade_issue::ERROR
                                               : Upgrade_issue::WARNING);
 }
@@ -1353,8 +1425,9 @@ class Deprecated_partition_temporal_delimiter_check : public Sql_upgrade_check {
   Deprecated_partition_temporal_delimiter_check()
       : Sql_upgrade_check(
             ids::k_deprecated_temporal_delimiter_check,
-            std::vector<std::string>{
-                R"(select 
+            std::vector<Check_query>{
+                {
+                    R"(select 
   p.table_schema, 
   p.table_name, 
   column_name, 
@@ -1369,9 +1442,10 @@ from
 where 
   <<p.schema_and_table_filter>> and
   (not partition_description REGEXP ')" +
-                    deprecated_delimiter_funcs::k_date_regex_multi_str +
-                    R"(') and c.column_type = 'date';)",
-                R"(select 
+                        deprecated_delimiter_funcs::k_date_regex_multi_str +
+                        R"(') and c.column_type = 'date';)",
+                    Upgrade_issue::Object_type::COLUMN},
+                {R"(select 
   p.table_schema, 
   p.table_name, 
   column_name, 
@@ -1386,11 +1460,13 @@ from
 where 
   <<p.schema_and_table_filter>> and
   (not p.partition_description REGEXP ')" +
-                    deprecated_delimiter_funcs::k_time_regex_multi_str + R"(') 
-  and (c.column_type = 'datetime' or c.column_type = 'timestamp');)"},
+                     deprecated_delimiter_funcs::k_time_regex_multi_str + R"(') 
+  and (c.column_type = 'datetime' or c.column_type = 'timestamp');)",
+                 Upgrade_issue::Object_type::COLUMN}},
             Upgrade_issue::ERROR) {}
 
-  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
+  Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
     static const auto date_regex =
         std::regex(deprecated_delimiter_funcs::k_date_regex_str);
     static const auto time_regex =
@@ -1402,6 +1478,7 @@ where
     problem.table = row->get_as_string(1);
     problem.column = row->get_as_string(2);
     problem.description = row->get_as_string(3);
+    problem.object_type = object_type;
     problem.level = m_level;
 
     auto part_expr = row->get_as_string(4);
@@ -1444,11 +1521,12 @@ get_deprecated_partition_temporal_delimiter_check() {
 std::unique_ptr<Sql_upgrade_check> get_column_definition_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_column_definition,
-      std::vector<std::string>{
-          "SELECT table_schema,table_name,column_name,concat('##', "
-          "column_type, 'AutoIncrement') as tag FROM "
-          "information_schema.columns WHERE <<schema_and_table_filter>> AND "
-          "column_type IN ('float', 'double') and extra = 'auto_increment'"},
+      std::vector<Check_query>{
+          {"SELECT table_schema,table_name,column_name,concat('##', "
+           "column_type, 'AutoIncrement') as tag FROM "
+           "information_schema.columns WHERE <<schema_and_table_filter>> AND "
+           "column_type IN ('float', 'double') and extra = 'auto_increment'",
+           Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::ERROR);
 }
 
@@ -1465,16 +1543,17 @@ std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
 
   return std::make_unique<Sql_upgrade_check>(
       ids::k_partitions_with_prefix_keys,
-      std::vector<std::string>{
-          "SELECT s.table_schema, s.table_name, group_concat(distinct "
-          "s.column_name) AS COLUMNS FROM information_schema.statistics s "
-          "INNER JOIN information_schema.partitions p ON s.table_schema = "
-          "p.table_schema AND s.table_name = p.table_name WHERE s.sub_part IS "
-          "NOT NULL AND p.partition_method='KEY' AND "
-          "(" +
-          shcore::str_join(pe_conditions, " OR ") +
-          ") AND <<s.schema_and_table_filter>> GROUP BY s.table_schema, "
-          "s.table_name"},
+      std::vector<Check_query>{
+          {"SELECT s.table_schema, s.table_name, group_concat(distinct "
+           "s.column_name) AS COLUMNS FROM information_schema.statistics s "
+           "INNER JOIN information_schema.partitions p ON s.table_schema = "
+           "p.table_schema AND s.table_name = p.table_name WHERE s.sub_part IS "
+           "NOT NULL AND p.partition_method='KEY' AND "
+           "(" +
+               shcore::str_join(pe_conditions, " OR ") +
+               ") AND <<s.schema_and_table_filter>> GROUP BY s.table_schema, "
+               "s.table_name",
+           Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
 

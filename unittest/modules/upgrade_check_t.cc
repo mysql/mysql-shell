@@ -238,7 +238,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     EXPECT_EQ(level, actual.level);
   }
 
-  void EXPECT_NO_FIND_ISSUE(const Upgrade_issue &issue) {
+  void EXPECT_NOT_FIND_ISSUE(const Upgrade_issue &issue) {
     for (const auto &actual : issues) {
       if (actual.schema == issue.schema && actual.table == issue.table &&
           actual.column == issue.column && actual.level == issue.level) {
@@ -345,7 +345,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       EXPECT_ISSUES(check, total_issue_count - filtered_issues.size(),
                     &options);
       for (const auto &issue : filtered_issues) {
-        EXPECT_NO_FIND_ISSUE(issue);
+        EXPECT_NOT_FIND_ISSUE(issue);
       }
       for (const auto &issue : non_filtered_issue) {
         EXPECT_FIND_ISSUE(issue);
@@ -363,10 +363,10 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
                         non_filtered_issue.size(),
                     &options);
       for (const auto &issue : filtered_issues) {
-        EXPECT_NO_FIND_ISSUE(issue);
+        EXPECT_NOT_FIND_ISSUE(issue);
       }
       for (const auto &issue : non_filtered_issue) {
-        EXPECT_NO_FIND_ISSUE(issue);
+        EXPECT_NOT_FIND_ISSUE(issue);
       }
     }
 
@@ -381,7 +381,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
         EXPECT_FIND_ISSUE(issue);
       }
       for (const auto &issue : non_filtered_issue) {
-        EXPECT_NO_FIND_ISSUE(issue);
+        EXPECT_NOT_FIND_ISSUE(issue);
       }
     }
   }
@@ -455,12 +455,34 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
                           filtered_issues, other_issues, file, line);
   }
 
+  const rapidjson::Value *execute_check_as_json(
+      std::string_view id, const std::vector<std::string> &uc_options = {}) {
+    testutil->call_mysqlsh_c({_mysql_uri, "--quiet-start=2", "--json=pretty",
+                              "--", "util", "check-for-server-upgrade",
+                              "--include", std::string(id)});
+    output_handler.wipe_all();
+
+    std::vector<std::string> options = {
+        _mysql_uri, "--quiet-start=2",          "--json=raw", "--",
+        "util",     "check-for-server-upgrade", "--include",  std::string(id)};
+
+    for (const auto &option : uc_options) {
+      options.push_back(option);
+    }
+
+    testutil->call_mysqlsh_c(options);
+
+    m_json_output = output_handler.stdout_as_json();
+    return m_json_output.get_object("/checksPerformed/0/detectedProblems");
+  }
+
   Upgrade_info info;
   Upgrade_check_config config;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::vector<std::string> temporal_schemas;
   std::vector<Upgrade_issue> issues;
   mysqlsh::upgrade_checker::Checker_cache cache;
+  Shell_test_json_validator m_json_output;
 };
 
 TEST(Upgrade_check_cache, cache_tables) {
@@ -766,6 +788,15 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUES(check.get(), 14);
   EXPECT_ISSUE(issues[0], "grouping");
   EXPECT_ISSUE(issues[1], "grouping", "System");
+#ifdef __APPLE__
+  EXPECT_ISSUE(issues[2], "grouping", "System", "JSON_TABLE");
+  EXPECT_ISSUE(issues[3], "grouping", "System", "cube");
+  EXPECT_ISSUE(issues[4], "grouping", "ntile", "JSON_TABLE");
+  EXPECT_ISSUE(issues[5], "grouping", "ntile", "cube");
+  EXPECT_ISSUE(issues[6], "grouping", "first_value");
+  EXPECT_ISSUE(issues[7], "grouping", "lateral");
+  EXPECT_ISSUE(issues[8], "grouping", "ntile");
+#else
   EXPECT_ISSUE(issues[2], "grouping", "NTile", "JSON_TABLE");
   EXPECT_ISSUE(issues[3], "grouping", "NTile", "cube");
   EXPECT_ISSUE(issues[4], "grouping", "System", "JSON_TABLE");
@@ -773,6 +804,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUE(issues[6], "grouping", "first_value");
   EXPECT_ISSUE(issues[7], "grouping", "LATERAL");
   EXPECT_ISSUE(issues[8], "grouping", "NTile");
+#endif
   EXPECT_ISSUE(issues[9], "grouping", "Array");
   EXPECT_ISSUE(issues[10], "grouping", "full");
   EXPECT_ISSUE(issues[11], "grouping", "inteRsect");
@@ -803,10 +835,18 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   std::vector<Upgrade_issue> object_issues;
   std::vector<Upgrade_issue> other_issues;
 
-  // Issues associated to the System table (including the trigger)
+// Issues associated to the System table (including the trigger)
+#ifdef __APPLE__
+  object_issues = {all_issues[1], all_issues[2], all_issues[3], all_issues[3]};
+#else
   object_issues = {all_issues[1], all_issues[4], all_issues[5], all_issues[5]};
-  // Issues associated to the NTile and LATERAL views
+#endif
+// Issues associated to the NTile and LATERAL views
+#ifdef __APPLE__
+  other_issues = {all_issues[4], all_issues[5], all_issues[7], all_issues[8]};
+#else
   other_issues = {all_issues[2], all_issues[3], all_issues[7], all_issues[8]};
+#endif
   TEST_TABLE_FILTERING(check.get(), "grouping.System", all_issues.size(),
                        object_issues, other_issues);
 
@@ -820,6 +860,37 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
 
   TEST_TRIGGER_FILTERING(check.get(), "grouping.first_value", all_issues.size(),
                          {all_issues[6]}, {});
+
+  auto json_issues = execute_check_as_json(ids::k_reserved_keywords_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'grouping', 'dbObjectType':'Schema'}");
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'grouping.System', 'dbObjectType':'Table'}");
+#ifdef __APPLE__
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'grouping.ntile.JSON_TABLE', 'dbObjectType':'Column'}");
+#else
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'grouping.NTile.JSON_TABLE', 'dbObjectType':'Column'}");
+#endif
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'grouping.first_value', 'dbObjectType':'Trigger'}");
+#ifdef __APPLE__
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'grouping.lateral', 'dbObjectType':'View'}");
+#else
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'grouping.LATERAL', 'dbObjectType':'View'}");
+#endif
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'grouping.Array', 'dbObjectType':'Routine'}");
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'grouping.LEAD', 'dbObjectType':'Event'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, syntax_check) {
@@ -932,6 +1003,20 @@ END)*",
   // Table filtering will excludes the issues on the associated trigger
   TEST_TABLE_FILTERING(check.get(), "testdb.testbl", all_issues.size(),
                        {all_issues[3]}, {});
+
+  auto json_issues = execute_check_as_json(ids::k_routine_syntax_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'testdb.testsp1', 'dbObjectType':'Routine'}");
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'testdb.testsp2', 'dbObjectType':'Routine'}");
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'testdb.testf1', 'dbObjectType':'Routine'}");
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'testdb.mytrigger', 'dbObjectType':'Trigger'}");
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'testdb.myevent', 'dbObjectType':'Event'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
@@ -961,6 +1046,16 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
 
   TEST_TABLE_FILTERING(check.get(), "aaaaaaaaaaaaaaaa_utf8mb3.utf83",
                        all_issues.size(), {all_issues[1]}, {});
+
+  auto json_issues = execute_check_as_json(ids::k_utf8mb3_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'aaaaaaaaaaaaaaaa_utf8mb3', 'dbObjectType':'Schema'}");
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaaaaaaaaaaaaaaa_utf8mb3.utf83.s3', "
+                       "'dbObjectType':'Column'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, mysql_schema) {
@@ -983,6 +1078,15 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
 #endif
   EXPECT_EQ("triggers", issues[1].table);
   EXPECT_EQ(Upgrade_issue::ERROR, issues[0].level);
+
+  auto json_issues = execute_check_as_json(ids::k_mysql_schema_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'mysql.Role_edges', 'dbObjectType':'Table'}");
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'mysql.triggers', 'dbObjectType':'Table'}");
+
   EXPECT_NO_THROW(session->execute("drop table triggers;"));
   EXPECT_NO_THROW(session->execute("drop table Role_edges;"));
 }
@@ -999,36 +1103,15 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   EXPECT_ISSUES(check.get(), 1);
   EXPECT_EQ("compact", issues[0].table);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
-}
 
-TEST_F(MySQL_upgrade_check_test, zerofill) {
-  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+  // auto json_issues = execute_check_as_json(ids::k_innodb_rowformat_check);
+  // ASSERT_NE(nullptr, json_issues);
 
-  PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
-  std::unique_ptr<Sql_upgrade_check> check = get_zerofill_check();
-  EXPECT_ISSUES(check.get());
-  // some tables in mysql schema use () syntax
-  size_t old_count = issues.size();
-
-  ASSERT_NO_THROW(session->execute(
-      "create table zero_fill (zf INT zerofill, ti TINYINT(3), tu tinyint(2) "
-      "unsigned, si smallint(3), su smallint(3) unsigned, mi mediumint(5), mu "
-      "mediumint(5) unsigned, ii INT(4), iu INT(4) unsigned, bi bigint(10), bu "
-      "bigint(12) unsigned);"));
-
-  EXPECT_ISSUES(check.get(), 11 + old_count);
-  EXPECT_EQ(Upgrade_issue::NOTICE, issues[0].level);
-  EXPECT_EQ("zf", issues[0].column);
-  EXPECT_EQ("ti", issues[1].column);
-  EXPECT_EQ("tu", issues[2].column);
-  EXPECT_EQ("si", issues[3].column);
-  EXPECT_EQ("su", issues[4].column);
-  EXPECT_EQ("mi", issues[5].column);
-  EXPECT_EQ("mu", issues[6].column);
-  EXPECT_EQ("ii", issues[7].column);
-  EXPECT_EQ("iu", issues[8].column);
-  EXPECT_EQ("bi", issues[9].column);
-  EXPECT_EQ("bu", issues[10].column);
+  // TODO(rennox: We need to find out why this check is not enabled, for now,
+  // decision is just to ignore it EXPECT_JSON_CONTAINS(
+  //     json_issues,
+  //     "{'dbObject':'test_innodb_rowformat.compact',
+  //     'dbObjectType':'Table'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
@@ -1158,6 +1241,21 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   // Excluding a table, also excludes the associated trigger
   TEST_TABLE_FILTERING(check.get(), "aaa_test_maxdb_sql_mode.Clone",
                        all_issues.size(), {all_issues[2]}, {});
+
+  auto json_issues = execute_check_as_json(ids::k_maxdb_sql_mode_flags_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_maxdb_sql_mode.TEST_MAXDB', "
+                       "'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_maxdb_sql_mode.EV_MAXDB', "
+                       "'dbObjectType':'Event'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_maxdb_sql_mode.TR_MAXDB', "
+                       "'dbObjectType':'Trigger'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
@@ -1242,6 +1340,26 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       // Excluding a table, also excludes the associated triggers
       TEST_TABLE_FILTERING(check.get(), "aaa_test_obsolete_sql_modes.Clone",
                            all_issues.size(), trigger_issues, {});
+
+      auto json_issues =
+          execute_check_as_json(ids::k_obsolete_sql_mode_flags_check);
+      ASSERT_NE(nullptr, json_issues);
+
+      EXPECT_JSON_CONTAINS(json_issues,
+                           "{'dbObject':'aaa_test_obsolete_sql_modes.TEST_DB2',"
+                           " 'dbObjectType':'Routine'}");
+
+      EXPECT_JSON_CONTAINS(json_issues,
+                           "{'dbObject':'aaa_test_obsolete_sql_modes.EV_DB2', "
+                           "'dbObjectType':'Event'}");
+
+      EXPECT_JSON_CONTAINS(json_issues,
+                           "{'dbObject':'aaa_test_obsolete_sql_modes.TR_DB2', "
+                           "'dbObjectType':'Trigger'}");
+
+      EXPECT_JSON_CONTAINS(
+          json_issues,
+          "{'dbObject':'@@global.sql_mode', 'dbObjectType':'SystemVariable'}");
     }
   }
 }
@@ -1300,6 +1418,18 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
   TEST_TABLE_FILTERING(check.get(),
                        "aaa_test_enum_set_element_length.large_enum",
                        all_issues.size(), {all_issues[0]}, {all_issues[1]});
+
+  auto json_issues =
+      execute_check_as_json(ids::k_enum_set_element_length_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_enum_set_element_length.large_"
+                       "enum.e', 'dbObjectType':'Column'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_enum_set_element_length.large_"
+                       "set.s', 'dbObjectType':'Column'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
@@ -1321,6 +1451,21 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       "by range(i) (partition p0 values less than (1000), "
       "partition p1 values less than MAXVALUE);"));
   EXPECT_ISSUES(check.get(), 2);
+
+  auto json_issues = execute_check_as_json(
+      ids::k_partitioned_tables_in_shared_tablespaces_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'aaa_test_partitioned_in_shared.part', 'description': "
+      "'Partition p0 is in shared tablespace tpists', 'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'aaa_test_partitioned_in_shared.part', 'description': "
+      "'Partition p1 is in shared tablespace tpists', 'dbObjectType':'Table'}");
+
   EXPECT_NO_THROW(session->execute("drop table part"));
   EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
 }
@@ -1341,6 +1486,13 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
                        "'mysql/../circular.ibd' ENGINE=INNODB;"));
   EXPECT_ISSUES(check.get(), 1);
   EXPECT_EQ("circular", issues[0].schema);
+
+  auto json_issues = execute_check_as_json(ids::k_circular_directory_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'circular', 'dbObjectType':'Tablespace'}");
+
   EXPECT_NO_THROW(session->execute("drop tablespace circular"));
 }
 
@@ -1429,6 +1581,29 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   // Excluding a table, also excludes the associated triggers
   TEST_TABLE_FILTERING(check.get(), "aaa_test_removed_functions.geotab1",
                        all_issues.size(), {all_issues[3]}, {});
+
+  auto json_issues = execute_check_as_json(ids::k_removed_functions_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_removed_functions.contains_proc',"
+                       " 'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_removed_functions.test_astext',"
+                       " 'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_removed_functions.test_enc',"
+                       " 'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_removed_functions.contr',"
+                       " 'dbObjectType':'Trigger'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_removed_functions.e_contains',"
+                       " 'dbObjectType':'Event'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
@@ -1520,6 +1695,34 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   std::vector<Upgrade_issue> all_triggers = {all_issues[3], all_issues[4]};
   TEST_TABLE_FILTERING(check.get(), "aaa_test_group_by_asc.movies",
                        all_issues.size(), all_triggers, {all_issues[0]});
+
+  auto json_issues = execute_check_as_json(ids::k_groupby_asc_syntax_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_group_by_asc.genre_desc', "
+                       "'dbObjectType':'View'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_group_by_asc.list_genres_asc', "
+                       "'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_group_by_asc.list_genres_desc', "
+                       "'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_group_by_asc.genre_summary_asc', "
+                       "'dbObjectType':'Trigger'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'aaa_test_group_by_asc.genre_summary_desc', "
+      "'dbObjectType':'Trigger'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'aaa_test_group_by_asc.mov_sec', "
+                       "'dbObjectType':'Event'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
@@ -1646,8 +1849,9 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars_57) {
         check->run(session, info, &cache), Check_configuration_error,
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
-    info.config_path.assign(
-        shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
+    auto config_path =
+        shcore::path::join_path(g_test_home, "data", "config", "uc.cnf");
+    info.config_path = config_path;
     EXPECT_ISSUES(check.get(), 3);
     info.config_path.clear();
     EXPECT_STREQ("master-info-repository", issues[0].schema.c_str());
@@ -1665,6 +1869,22 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars_57) {
         "Error: The system variable 'query-cache-type' is set to ON (SERVER) "
         "and will be removed.",
         issues[2].description.c_str());
+
+    auto json_issues = execute_check_as_json(ids::k_removed_sys_vars_check,
+                                             {"--config-path", config_path});
+    ASSERT_NE(nullptr, json_issues);
+
+    EXPECT_JSON_CONTAINS(json_issues,
+                         "{'dbObject':'master-info-repository', "
+                         "'dbObjectType':'SystemVariable'}");
+
+    EXPECT_JSON_CONTAINS(json_issues,
+                         "{'dbObject':'max_tmp_tables', "
+                         "'dbObjectType':'SystemVariable'}");
+
+    EXPECT_JSON_CONTAINS(json_issues,
+                         "{'dbObject':'query-cache-type', "
+                         "'dbObjectType':'SystemVariable'}");
   } else {
     EXPECT_NO_ISSUES(check.get());
   }
@@ -1757,6 +1977,18 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults_57) {
   EXPECT_ISSUES(check.get(), 45);
   EXPECT_STREQ("back_log", issues[0].schema.c_str());
   EXPECT_STREQ("innodb_redo_log_capacity", issues.back().schema.c_str());
+
+  auto json_issues = execute_check_as_json(ids::k_sys_vars_new_defaults_check,
+                                           {"--config-path", info.config_path});
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues, "{'dbObject':'back_log', 'dbObjectType':'SystemVariable'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'innodb_redo_log_capacity', "
+                       "'dbObjectType':'SystemVariable'}");
+
   info.config_path.clear();
 }
 
@@ -1821,6 +2053,18 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_57) {
   EXPECT_EQ("admin_tls_ciphersuites", issues[1].schema);
   EXPECT_EQ("ssl_cipher", issues[2].schema);
   EXPECT_EQ("tls_ciphersuites", issues[3].schema);
+
+  auto json_issues = execute_check_as_json(ids::k_sysvar_allowed_values_check,
+                                           {"--config-path", info.config_path});
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'admin_ssl_cipher', 'dbObjectType':'SystemVariable'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'admin_tls_ciphersuites', 'dbObjectType':'SystemVariable'}");
 
   info.config_path.clear();
 }
@@ -1889,7 +2133,7 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
 
   // Gets the query from the check, and tweaks is to use a test schema and adds
   // order by clause for test consistency
-  std::string query = check->get_queries().at(0);
+  std::string query = check->get_queries().at(0).first;
   query = shcore::str_replace(query, "information_schema",
                               "orphan_table_query_test");
   query.pop_back();
@@ -1934,6 +2178,13 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 
   TEST_TABLE_FILTERING(check.get(), "mysql_non_native_partitioning.part",
                        all_issues.size(), all_issues, {});
+
+  auto json_issues = execute_check_as_json(ids::k_nonnative_partitioning_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'mysql_non_native_partitioning.part', "
+                       "'dbObjectType':'Table'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
@@ -2022,6 +2273,17 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
 
   TEST_TABLE_FILTERING(check.get(), "mysql_zero_dates_check_test.dt",
                        all_issues.size(), schema_issues, {});
+
+  auto json_issues = execute_check_as_json(ids::k_zero_dates_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'session.sql_mode', 'dbObjectType':'SystemVariable'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'mysql_zero_dates_check_test.dt.dt', "
+                       "'dbObjectType':'Column'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
@@ -2230,6 +2492,8 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
           ASSERT_TRUE(problems[j]["level"].IsString());
           ASSERT_TRUE(problems[j].HasMember("dbObject"));
           ASSERT_TRUE(problems[j]["dbObject"].IsString());
+          ASSERT_TRUE(problems[j].HasMember("dbObjectType"));
+          ASSERT_TRUE(problems[j]["dbObjectType"].IsString());
         }
       } else {
         ASSERT_TRUE(checks[i].HasMember("description"));
@@ -2372,7 +2636,7 @@ TEST_F(MySQL_upgrade_check_test, GTID_EXECUTED_unchanged) {
     MY_EXPECT_STDOUT_NOT_CONTAINS("Check failed");
     MY_EXPECT_STDERR_NOT_CONTAINS("Check failed");
     MY_EXPECT_STDOUT_CONTAINS(
-        "global system variable sql_mode - defined using obsolete MAXDB");
+        "@@global.sql_mode - defined using obsolete MAXDB");
     MY_EXPECT_STDOUT_CONTAINS("obsolete NO_KEY_OPTIONS");
     MY_EXPECT_STDOUT_CONTAINS(
         "global.sql_mode - does not contain either NO_ZERO_DATE");
@@ -2517,6 +2781,18 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
   TEST_TABLE_FILTERING(check.get(),
                        "columns_which_cannot_have_defaults_check_test.t",
                        all_issues.size(), all_issues, {});
+
+  auto json_issues =
+      execute_check_as_json(ids::k_columns_which_cannot_have_defaults_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'columns_which_cannot_have_defaults_check_"
+                       "test.t.p', 'dbObjectType':'Column'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'columns_which_cannot_have_defaults_check_"
+                       "test.t.mpoly', 'dbObjectType':'Column'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
@@ -2559,6 +2835,13 @@ TEST_F(MySQL_upgrade_check_test, orphaned_routines_check) {
 
   TEST_ROUTINE_FILTERING(check.get(), "no_ex_db.orphaned_procedure",
                          all_issues.size(), all_issues, {});
+
+  auto json_issues = execute_check_as_json(ids::k_orphaned_routines_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'no_ex_db.orphaned_procedure', 'dbObjectType':'Routine'}");
 
   ASSERT_NO_THROW(
       session->execute("DELETE FROM mysql.proc WHERE db='no_ex_db' AND "
@@ -2643,6 +2926,45 @@ TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {
   TEST_ROUTINE_FILTERING(check.get(),
                          "$dollar_sign_name_check$.$wrong_procedure",
                          all_issues.size(), routine_issues, {all_issues[9]});
+
+  auto json_issues = execute_check_as_json(ids::k_dollar_sign_name_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'$wrong_schema_dollar_name', 'dbObjectType':'Schema'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'$dollar_sign_name_check$.$wrong_table', "
+                       "'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'$dollar_sign_name_check$.$wrong_table', "
+                       "'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'$dollar_sign_name_check$.$wrong_view', "
+                       "'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'$dollar_sign_name_check$.$wrong_table.$wrong_column1', "
+      "'dbObjectType':'Column'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'$dollar_sign_name_check$.$wrong_table.$wrong_index', "
+      "'dbObjectType':'Index'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'$dollar_sign_name_check$.$wrong_procedure', "
+      "'dbObjectType':'Routine'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'$dollar_sign_name_check$.$wrong_procedure_body$', "
+      "'dbObjectType':'Routine'}");
 
   ASSERT_NO_THROW(
       session->execute("DROP SCHEMA IF EXISTS $wrong_schema_dollar_name;"));
@@ -2890,6 +3212,14 @@ TEST_F(MySQL_upgrade_check_test, invalid_engine_foreign_key_check) {
       "(MyISAM).",
       issues[1].description);
 
+  auto json_issues =
+      execute_check_as_json(ids::k_invalid_engine_foreign_key_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'inv_eng_db.testtable2.column_idColumn', "
+                       "'dbObjectType':'ForeignKey'}");
+
   // This must be dropped before restoring FK checks
   ASSERT_NO_THROW(session->execute("drop schema inv_eng_db_schema2"));
 
@@ -3110,7 +3440,55 @@ TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
   EXPECT_EQ(issues[1].description,
             " - router user with deprecated authentication method.");
 
+  auto json_issues =
+      execute_check_as_json(ids::k_deprecated_router_auth_method_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues, "{'dbObject':'" +
+                                        local_usr(k_router_user1) +
+                                        "', 'dbObjectType':'User'}");
+
+  EXPECT_JSON_CONTAINS(json_issues, "{'dbObject':'" +
+                                        local_usr(k_router_user2) +
+                                        "', 'dbObjectType':'User'}");
+
   ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
+}
+
+TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
+  if (_target_server_version >= mysqlshdk::utils::k_shell_version) {
+    SKIP_TEST(
+        "This test requires running against MySQL server version lower than "
+        "shell version.");
+  }
+  const std::string k_usr_sha = "user_sha_auth2";
+  const std::string k_usr_native = "usr_native_auth2";
+  const std::string k_router_user1 = "mysql_router1_79mwl0xo1ep5";
+  const std::string k_router_user2 = "mysql_router335_cb43tc6945rz";
+
+  const std::string k_auth_sha = "sha256_password";
+  const std::string k_auth_native = "mysql_native_password";
+
+  shcore::Scoped_callback cleanup(
+      [this, &k_usr_sha, &k_usr_native, &k_router_user1, &k_router_user2]() {
+        drop_user(session, k_usr_sha);
+        drop_user(session, k_usr_native);
+        drop_user(session, k_router_user1);
+        drop_user(session, k_router_user2);
+      });
+
+  add_user(session, k_usr_sha, k_auth_sha);
+  add_user(session, k_usr_native, k_auth_native);
+  add_user(session, k_router_user1, k_auth_native);
+  add_user(session, k_router_user2, k_auth_sha);
+
+  auto json_issues = execute_check_as_json(ids::k_auth_method_usage_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  // TODO(rennox): this is a feature check, includes object list in the
+  // description, some refactoring will be needed to properly fix this
+  // created BUG#36405653 to track this is a separate patch (this release)
+  EXPECT_JSON_CONTAINS(json_issues, "{'dbObjectType':'User'}");
 }
 
 namespace dep_def_auth_check {
@@ -3290,6 +3668,22 @@ TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_check) {
 
   run_check("mysql_native_password");
   run_check("sha256_password");
+
+  auto json_issues =
+      execute_check_as_json(ids::k_deprecated_default_auth_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'authentication_policy', 'description':'sha256_password "
+      "authentication method was removed and it must be corrected before "
+      "upgrading to 8.4.0 release.', 'dbObjectType':'SystemVariable'}");
+
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'authentication_policy', 'description':'authentication_fido "
+      "was replaced by authentication_webauthn as of 8.4.0 release - this must "
+      "be corrected.', 'dbObjectType':'SystemVariable'}");
 }
 
 void set_default_auth_data(testing::Mock_session *session,
@@ -3477,24 +3871,6 @@ TEST_F(MySQL_upgrade_check_test,
   EXPECT_ISSUE(issues[4], "test", "temporal_datetime_incorrect", "id",
                Upgrade_issue::ERROR);
 
-  // EXPECT_EQ(issues[0].schema, "test");
-  // EXPECT_EQ(issues[1].schema, "test");
-  // EXPECT_EQ(issues[2].schema, "test");
-  // EXPECT_EQ(issues[3].schema, "test");
-  // EXPECT_EQ(issues[4].schema, "test");
-
-  // EXPECT_EQ(issues[0].table, "temporal_date_incorrect");
-  // EXPECT_EQ(issues[1].table, "temporal_date_multi");
-  // EXPECT_EQ(issues[2].table, "temporal_date_multi");
-  // EXPECT_EQ(issues[3].table, "temporal_date_multi");
-  // EXPECT_EQ(issues[4].table, "temporal_datetime_incorrect");
-
-  // EXPECT_EQ(issues[0].column, "id");
-  // EXPECT_EQ(issues[1].column, "joi'ned");
-  // EXPECT_EQ(issues[2].column, "left,on");
-  // EXPECT_EQ(issues[3].column, "joi'ned");
-  // EXPECT_EQ(issues[4].column, "id");
-
   EXPECT_EQ(issues[0].description,
             " - partition px_2024_01 uses deprecated temporal delimiters");
   EXPECT_EQ(issues[1].description,
@@ -3516,6 +3892,17 @@ TEST_F(MySQL_upgrade_check_test,
   std::vector<Upgrade_issue> other_issues = {all_issues[0], all_issues[4]};
   TEST_TABLE_FILTERING(check.get(), "test.temporal_date_multi",
                        all_issues.size(), table_issues, other_issues);
+
+  auto json_issues =
+      execute_check_as_json(ids::k_deprecated_temporal_delimiter_check);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'test.temporal_date_incorrect.id', "
+                       "'dbObjectType':'Column'}");
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'test.temporal_date_multi.left,on', "
+                       "'dbObjectType':'Column'}");
 }
 
 TEST_F(MySQL_upgrade_check_test, privileges_check_enabled) {
@@ -3859,6 +4246,24 @@ TEST_F(MySQL_upgrade_check_test, partitions_with_prefix_keys_57) {
                                              all_issues[3]};
   TEST_TABLE_FILTERING(check.get(), "myschema.t2", all_issues.size(),
                        {all_issues[1]}, other_issues);
+
+  auto json_issues = execute_check_as_json(ids::k_partitions_with_prefix_keys);
+  ASSERT_NE(nullptr, json_issues);
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'myschema.t1', 'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'myschema.t1', 'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'myschema.t2', 'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'myschema.t3', 'dbObjectType':'Table'}");
+
+  EXPECT_JSON_CONTAINS(json_issues,
+                       "{'dbObject':'myschema.t4', 'dbObjectType':'Table'}");
 }
 
 namespace suggested_version {

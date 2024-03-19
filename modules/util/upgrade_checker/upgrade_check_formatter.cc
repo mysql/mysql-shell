@@ -325,6 +325,11 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
         issue_object.AddMember("documentationLink", doclink, m_allocator);
       }
 
+      auto type = issue.type_to_string(issue.object_type);
+      rapidjson::Value object_type;
+      object_type.SetString(type.data(), type.length(), m_allocator);
+      issue_object.AddMember("dbObjectType", object_type, m_allocator);
+
       issues.PushBack(issue_object, m_allocator);
     }
 
@@ -471,6 +476,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                               m_allocator);
     print_to_output();
   }
+
+  const rapidjson::Document &get_document() const { return m_json_document; }
 
  private:
   void print_to_output() {

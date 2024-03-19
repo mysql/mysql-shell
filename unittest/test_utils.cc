@@ -24,10 +24,15 @@
  */
 
 #include "unittest/test_utils.h"
+
 #include <cinttypes>
 #include <memory>
 #include <random>
 #include <string>
+
+#include <rapidjson/document.h>
+#include <rapidjson/pointer.h>
+
 #include "db/replay/setup.h"
 #include "db/uri_encoder.h"
 #include "mysqlshdk/libs/textui/textui.h"
@@ -46,6 +51,88 @@ std::vector<std::string> Shell_test_output_handler::log;
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern int g_profile_test_scripts;
+
+namespace testing {
+namespace {
+bool match_json_object(const rapidjson::Value *object,
+                       const shcore::Dictionary_t &expected) {
+  bool matched_all = false;
+
+  if (object->IsObject()) {
+    matched_all = true;
+  } else {
+    return false;
+  }
+
+  for (const auto &iter : *expected) {
+    if (!object->HasMember(iter.first.c_str()) ||
+        (*object)[iter.first.c_str()].GetString() != iter.second.as_string()) {
+      matched_all = false;
+      break;
+    }
+  }
+
+  return matched_all;
+}
+
+bool check_json_array_contains(const rapidjson::Value *object,
+                               const shcore::Value &expected) {
+  if (object->IsArray()) {
+    auto array = object->GetArray();
+    for (const auto &element : array) {
+      if (expected.get_type() == shcore::Map) {
+        if (match_json_object(&element, expected.as_map())) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+bool check_json_contains(const rapidjson::Value *object,
+                         const shcore::Value &expected) {
+  if (object->IsArray()) {
+    return check_json_array_contains(object, expected);
+  } else if (object->IsObject()) {
+    if (expected.get_type() == shcore::Value_type::Map) {
+      return match_json_object(object, expected.as_map());
+    }
+  }
+
+  return false;
+}
+}  // namespace
+
+void expect_json_contains(const rapidjson::Value *object,
+                          const std::string &expected_json, bool contains,
+                          const char *file, int line) {
+  std::string error_message =
+      "Expected JSON element not found: " + expected_json + "\n\tAt " + file +
+      ":" + std::to_string(line);
+  SCOPED_TRACE(error_message);
+
+  auto expected = shcore::Value::parse(expected_json);
+  EXPECT_EQ(contains, testing::check_json_contains(object, expected));
+}
+
+}  // namespace testing
+
+Shell_test_json_validator::Shell_test_json_validator(const std::string &json) {
+  m_document.Parse(json.c_str());
+}
+
+/**
+ * @brief Gets a JSON element using Pointer notation
+ *
+ * @param path The path to the element being searched
+ * @return const rapidjson::Value* the found element or null
+ */
+const rapidjson::Value *Shell_test_json_validator::get_object(
+    const std::string &path) const {
+  return rapidjson::Pointer(path.c_str()).Get(m_document);
+}
 
 Shell_test_output_handler::Shell_test_output_handler()
     : deleg(this, &Shell_test_output_handler::deleg_print,
@@ -345,6 +432,11 @@ void Shell_test_output_handler::flush_debug_log() {
 
   full_output.str(std::string());
   full_output.clear();
+}
+
+Shell_test_json_validator Shell_test_output_handler::stdout_as_json() {
+  std::lock_guard<std::mutex> lock(stdout_mutex);
+  return Shell_test_json_validator(std_out);
 }
 
 void Shell_core_test_wrapper::connect_classic(const std::string &schema) {
