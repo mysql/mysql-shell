@@ -623,6 +623,15 @@ TEST_F(Completer_frontend, sql_table_o3) {
   EXPECT_AFTER_TAB("describe `pl", "describe `plugin`");
 }
 
+TEST_F(Completer_frontend, sql_inline) {
+  execute("\\py");
+  connect_classic();
+
+  EXPECT_AFTER_TAB("\\sql sel", "\\sql SELECT");
+  EXPECT_AFTER_TAB("\\sql SELECT * fr", "\\sql SELECT * FROM");
+  EXPECT_AFTER_TAB("\\sql set gl", "\\sql set GLOBAL");
+}
+
 #ifdef HAVE_V8
 TEST_F(Completer_frontend, js_keywords) {
   execute("\\js");
@@ -1561,6 +1570,16 @@ TEST_F(Completer_frontend, py_classic) {
 
   // TS_FR5.2_C03
   CHECK_OBJECT_COMPLETIONS("mysql");
+}
+
+TEST_F(Completer_frontend, help_py) {
+  execute("\\py");
+
+  EXPECT_AFTER_TAB("\\help dba.cr", "\\help dba.create_");
+  EXPECT_AFTER_TAB("\\help dba.create_c", "\\help dba.create_cluster");
+  EXPECT_AFTER_TAB("\\h util.lo", "\\h util.load_dump");
+  EXPECT_AFTER_TAB("\\? sh", "\\? shell");
+  EXPECT_AFTER_TAB("\\? shell.co", "\\? shell.connect");
 }
 
 TEST_F(Completer_frontend, WL13397_TSFR_1_1) {

@@ -206,8 +206,7 @@ class Shell_command_provider : public shcore::completer::Provider {
     if (line[0] == '\\' && (cmdend = line.find(' ')) != std::string::npos) {
       // check if we're completing params for a \command
 
-      options =
-          complete_command(line.substr(0, cmdend), line.substr(*compl_offset));
+      options = complete_command(line, cmdend, compl_offset);
     } else if ((*compl_offset > 0 && *compl_offset < line.length() &&
                 line[*compl_offset - 1] == '\\') ||
                (*compl_offset == 0 && line.length() > 1 && line[0] == '\\')) {
@@ -240,8 +239,13 @@ class Shell_command_provider : public shcore::completer::Provider {
  private:
   Mysql_shell *shell_;
 
-  shcore::completer::Completion_list complete_command(const std::string &cmd,
-                                                      const std::string &arg) {
+  shcore::completer::Completion_list complete_command(const std::string &line,
+                                                      size_t cmdend,
+                                                      size_t *compl_offset) {
+    auto cmd = line.substr(0, cmdend);
+    auto arg_pos = mysqlshdk::utils::span_spaces(line, cmdend);
+    auto arg = line.substr(arg_pos);
+
     if (cmd == "\\u" || cmd == "\\use") {
       // complete schema names
       auto provider = shell_->provider_sql();
@@ -249,8 +253,13 @@ class Shell_command_provider : public shcore::completer::Provider {
       return provider->complete_schema(arg);
     } else if (cmd == "\\h" || cmd == "\\help" || cmd == "\\?") {
       auto help = shcore::Help_registry::get();
-
       return help->search_topic_names(arg, shell_->interactive_mode());
+    } else if (cmd == "\\sql") {
+      *compl_offset -= arg_pos;
+      auto l = shell_->completer()->complete(shcore::IShell_core::Mode::SQL, "",
+                                             arg, compl_offset);
+      *compl_offset += arg_pos;
+      return l;
     }
 
     return {};
