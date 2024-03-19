@@ -92,7 +92,10 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
 
   const mysqlshdk::db::IRow *row = nullptr;
   while ((row = result->fetch_one())) {
-    auto table = cache->get_table(row->get_string(1));
+    // FK sreferences may be stored in different case sensitivity depending on
+    // the OS and the MySQL configuration, so we need to search for table
+    // references disabling case sensitivity
+    auto table = cache->get_table(row->get_string(1), false);
     auto ref_table = cache->get_table(row->get_string(2));
     assert(table);
 
