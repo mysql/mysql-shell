@@ -2942,8 +2942,10 @@ void Dumper::checksum_task_started() {
 void Dumper::checksum_task_finished() {
   ++m_checksum_tasks_completed;
 
-  if (all_tasks_produced() &&
-      m_checksum_tasks_total == m_checksum_tasks_completed) {
+  if (m_checksum_tasks_total == m_checksum_tasks_completed) {
+    // we don't check here if all tasks were produced, there can be i.e. only
+    // a single checksum task that finishes executing before all tasks are
+    // produced, while calling finish() multiple times is harmless
     m_checksum_duration.finish();
   }
 }
