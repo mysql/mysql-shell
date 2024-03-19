@@ -207,7 +207,8 @@ class Checker_cache {
     std::string source;
   };
 
-  const Table_info *get_table(const std::string &schema_table) const;
+  const Table_info *get_table(const std::string &schema_table,
+                              bool case_sensitive = true) const;
   const Sysvar_info *get_sysvar(const std::string &name) const;
 
   void cache_tables(mysqlshdk::db::ISession *session);

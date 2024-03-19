@@ -199,10 +199,19 @@ Checker_cache::Checker_cache(Filtering_options *db_filters)
 }
 
 const Checker_cache::Table_info *Checker_cache::get_table(
-    const std::string &schema_table) const {
-  auto t = m_tables.find(schema_table);
-  if (t != m_tables.end()) return &t->second;
-  return nullptr;
+    const std::string &schema_table, bool case_sensitive) const {
+  decltype(m_tables)::const_iterator t;
+  if (case_sensitive) {
+    t = m_tables.find(schema_table);
+
+  } else {
+    t = std::find_if(m_tables.begin(), m_tables.end(),
+                     [&schema_table](decltype(m_tables)::value_type it) {
+                       return shcore::str_caseeq(it.first, schema_table);
+                     });
+  }
+
+  return (t != m_tables.end()) ? &t->second : nullptr;
 }
 
 void Checker_cache::cache_tables(mysqlshdk::db::ISession *session) {
