@@ -578,6 +578,13 @@ The <b>s3CredentialsFile</b>, <b>s3ConfigFile</b>, <b>s3Profile</b>,
 <b>s3Region</b> and <b>s3EndpointOverride</b> options cannot be used if the
 <b>s3BucketName</b> option is not set or set to an empty string.
 
+All failed connections to AWS S3 are retried three times, with a 1 second delay
+between retries. If a failure occurs 10 minutes after the connection was
+created, the delay is changed to an exponential back-off strategy:
+@li first delay: 3-6 seconds
+@li second delay: 18-36 seconds
+@li third delay: 40-80 seconds
+
 <b>Handling of the AWS settings</b>
 
 The AWS options are evaluated in the order of precedence, the first available
