@@ -71,6 +71,7 @@
 #include <stdlib.h>
 #include <array>
 #include <iostream>
+#include <list>
 #include <memory>
 #include <optional>
 #include <string>
@@ -127,8 +128,6 @@ class Shell_options final : public shcore::Options {
     bool interactive = false;
     bool full_interactive = false;
     bool passwords_from_stdin = false;
-    bool prompt_password = false;
-    bool no_password = false;  //< Do not ask for password
     bool show_warnings = true;
     bool trace_protocol = false;
     bool log_to_stderr = false;
@@ -203,8 +202,8 @@ class Shell_options final : public shcore::Options {
     mysqlshdk::db::Connection_options connection_options() const;
 
     bool has_multi_passwords() const {
-      auto &mfa_passwords = connection_data.get_mfa_passwords();
-      return (mfa_passwords[1].has_value() || mfa_passwords[2].has_value());
+      return (connection_data.has_mfa_password(1) ||
+              connection_data.has_mfa_password(2));
     }
 
     void set_uri(const std::string &uri);

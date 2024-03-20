@@ -135,9 +135,11 @@ void Connection_options::override_with(const Connection_options &options) {
   m_default_transport_type = options.m_default_transport_type;
   m_transport_type = options.m_transport_type;
 
-  for (int i = 0; i < 3; i++) {
-    if (options.m_mfa_passwords[i].has_value())
-      set_mfa_password(i, *options.m_mfa_passwords[i]);
+  for (int f = 0; f < k_max_auth_factors; f++) {
+    if (options.has_needs_password(f))
+      set_needs_password(f, options.needs_password(f));
+    if (options.has_mfa_password(f))
+      set_mfa_password(f, options.get_mfa_password(f));
   }
 }
 
@@ -147,13 +149,10 @@ void Connection_options::set_login_options_from(
   if (options.has_user()) {
     set_user(options.get_user());
   }
-  clear_password();
-  if (options.has_password()) {
-    set_password(options.get_password());
-  }
-  clear_mfa_passwords();
-  if (options.has_mfa_passwords()) {
-    set_mfa_passwords(options.get_mfa_passwords());
+  for (int f = 0; f < k_max_auth_factors; f++) {
+    clear_mfa_password(f);
+    if (options.has_mfa_password(f))
+      set_mfa_password(f, options.get_mfa_password(f));
   }
 
   m_ssl_options.clear_ca();
@@ -185,29 +184,105 @@ void Connection_options::set_ssl_options(const Ssl_options &options) {
 
 void Connection_options::set_password(const std::string &password) {
   IConnection::set_password(password);
-  m_mfa_passwords[0] = password;
 }
 
 void Connection_options::set_mfa_password(int factor,
                                           const std::string &password) {
-  if (factor < 0 || factor >= 3)
-    throw std::invalid_argument("invalid factor #");
-  if (factor == 0) set_password(password);
-  m_mfa_passwords[factor] = password;
+  switch (factor) {
+    case 0:
+      set_password(password);
+      break;
+    case 1:
+      m_mfa_password_2 = password;
+      break;
+    case 2:
+      m_mfa_password_3 = password;
+      break;
+    default:
+      assert(!"invalid factor #");
+      break;
+  }
 }
 
-void Connection_options::set_mfa_passwords(const Mfa_passwords &mfa_passwords) {
-  m_mfa_passwords = mfa_passwords;
-  if (mfa_passwords[0].has_value()) set_password(*mfa_passwords[0]);
+void Connection_options::set_needs_password(int factor, bool flag) {
+  assert(factor >= 0 && factor < k_max_auth_factors);
+
+  m_needs_password[factor] = flag;
 }
 
 const std::string &Connection_options::get_password() const {
   return get_value(kPassword);
 }
 
-void Connection_options::clear_password() {
-  IConnection::clear_password();
-  m_mfa_passwords[0].reset();
+const std::string &Connection_options::get_mfa_password(int factor) const {
+  assert(has_mfa_password(factor));
+
+  switch (factor) {
+    case 0:
+      return get_password();
+    case 1:
+      return *m_mfa_password_2;
+    case 2:
+      return *m_mfa_password_3;
+    default:
+      assert(0);
+      throw std::logic_error("invalid factor #");
+  }
+}
+
+bool Connection_options::has_mfa_password(int factor) const {
+  switch (factor) {
+    case 0:
+      return has_password();
+    case 1:
+      return m_mfa_password_2.has_value();
+    case 2:
+      return m_mfa_password_3.has_value();
+    default:
+      assert(0);
+      throw std::logic_error("invalid factor #");
+  }
+}
+
+bool Connection_options::has_needs_password(int factor) const {
+  assert(factor >= 0 && factor < k_max_auth_factors);
+
+  return m_needs_password[factor].has_value();
+}
+
+bool Connection_options::needs_password(int factor) const {
+  assert(has_needs_password(factor));
+
+  return *m_needs_password[factor];
+}
+
+void Connection_options::clear_password() { IConnection::clear_password(); }
+
+void Connection_options::clear_mfa_password(int factor) {
+  if (!has_mfa_password(factor)) return;
+
+  switch (factor) {
+    case 0:
+      clear_password();
+      break;
+    case 1:
+      shcore::clear_buffer(&*m_mfa_password_2);
+      m_mfa_password_2.reset();
+      break;
+    case 2:
+      shcore::clear_buffer(&*m_mfa_password_3);
+      m_mfa_password_3.reset();
+      break;
+    default:
+      assert(!"invalid factor #");
+      break;
+  }
+}
+
+void Connection_options::clear_needs_password(int factor) {
+  assert(factor >= 0 && factor < k_max_auth_factors);
+
+  m_needs_password[factor].reset();
 }
 
 void Connection_options::set_ssh_options(
@@ -245,9 +320,9 @@ ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
 }
 
 bool Connection_options::has_data() const {
-  return IConnection::has_data() || has_mfa_passwords() || has_port() ||
-         has_value(kSocket) || m_ssh_options.has_data() ||
-         m_ssl_options.has_data();
+  return IConnection::has_data() || has_mfa_password(1) ||
+         has_mfa_password(2) || has_port() || has_value(kSocket) ||
+         m_ssh_options.has_data() || m_ssl_options.has_data();
 }
 
 void Connection_options::_set_fixed(const std::string &key,
@@ -598,12 +673,6 @@ int64_t Connection_options::get_compression_level() const {
   return *m_compress_level;
 }
 
-const Connection_options::Mfa_passwords &Connection_options::get_mfa_passwords()
-    const {
-  if (has_password()) m_mfa_passwords[0] = get_password();
-  return m_mfa_passwords;
-}
-
 const std::string &Connection_options::get(const std::string &name) const {
   if (m_ssl_options.has(name)) return m_ssl_options.get_value(name);
   if (m_extra_options.has(name)) return m_extra_options.get_value(name);
@@ -622,20 +691,6 @@ int Connection_options::get_numeric(const std::string &name) const {
 
   throw std::invalid_argument(
       shcore::str_format("Invalid URI property: %s", name.c_str()));
-}
-
-bool Connection_options::has_mfa_passwords() const {
-  for (const auto &p : m_mfa_passwords) {
-    if (p.has_value()) return true;
-  }
-  return has_password();
-}
-
-void Connection_options::clear_mfa_passwords() {
-  clear_password();
-  for (auto &p : m_mfa_passwords) {
-    p.reset();
-  }
 }
 
 void Connection_options::clear_transport_type() { m_transport_type.reset(); }

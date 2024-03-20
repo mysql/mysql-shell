@@ -397,11 +397,10 @@ void Session_impl::connect(
 
   // If this fails Mfa_passwords definition has to be changed
   static_assert(MAX_AUTH_FACTORS == 3);
-  auto passwords = _connection_options.get_mfa_passwords();
-  for (unsigned int factor = 1; factor <= passwords.size(); factor++) {
-    if (passwords[factor - 1]) {
+  for (int factor = 1; factor <= 3; factor++) {
+    if (_connection_options.has_mfa_password(factor - 1)) {
       mysql_options4(_mysql, MYSQL_OPT_USER_PASSWORD, &factor,
-                     passwords[factor - 1]->c_str());
+                     _connection_options.get_mfa_password(factor - 1).c_str());
     }
   }
 
