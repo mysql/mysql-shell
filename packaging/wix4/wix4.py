@@ -319,6 +319,7 @@ file(APPEND "${{output_json}}" "  \\"ignore\\":\\"me\\"\\n}}\\n")
 
 class Wix4():
     extensions = ["WixToolset.UI.wixext", "WixToolset.Util.wixext"]
+    version = "4.0.1"
 
     def __init__(self, cpack):
         self.__cpack = cpack
@@ -527,7 +528,7 @@ class Wix4():
         # output is: wix             x.y.z        wix
         if "wix " not in tools and " wix" not in tools:
             log("wix not installed, installing...")
-            run_process("dotnet", "tool", "install", "--global", "wix")
+            run_process("dotnet", "tool", "install", "--global", "wix", "--version", Wix4.version)
 
         log(f"wix version: {run_process('wix', '--version')}")
 
@@ -540,7 +541,7 @@ class Wix4():
         for ext in Wix4.extensions:
             if ext not in extensions:
                 log(f"Installing wix extension '{ext}'...")
-                run_process("wix", "extension", "add", "--global", ext)
+                run_process("wix", "extension", "add", "--global", f"{ext}/{Wix4.version}")
 
         log(f"Installed wix extensions:\n{wix_extensions()}")
 
