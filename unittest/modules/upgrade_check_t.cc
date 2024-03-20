@@ -456,11 +456,19 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   }
 
   const rapidjson::Value *execute_check_as_json(
-      std::string_view id, const std::vector<std::string> &uc_options = {}) {
-    testutil->call_mysqlsh_c({_mysql_uri, "--quiet-start=2", "--json=pretty",
-                              "--", "util", "check-for-server-upgrade",
-                              "--include", std::string(id)});
-    output_handler.wipe_all();
+      std::string_view id, const std::vector<std::string> &uc_options = {},
+      bool debug_output = false) {
+    if (debug_output) {
+      testutil->call_mysqlsh_c({_mysql_uri, "--quiet-start=2", "--", "util",
+                                "check-for-server-upgrade", "--include",
+                                std::string(id)});
+      output_handler.wipe_all();
+
+      testutil->call_mysqlsh_c({_mysql_uri, "--quiet-start=2", "--json=pretty",
+                                "--", "util", "check-for-server-upgrade",
+                                "--include", std::string(id)});
+      output_handler.wipe_all();
+    }
 
     std::vector<std::string> options = {
         _mysql_uri, "--quiet-start=2",          "--json=raw", "--",
@@ -3455,7 +3463,7 @@ TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
   ASSERT_NO_THROW(session->execute("drop schema if exists test;"));
 }
 
-TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
+TEST_F(MySQL_upgrade_check_test, auth_method_usage_check) {
   if (_target_server_version >= mysqlshdk::utils::k_shell_version) {
     SKIP_TEST(
         "This test requires running against MySQL server version lower than "
@@ -3485,10 +3493,19 @@ TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_check) {
   auto json_issues = execute_check_as_json(ids::k_auth_method_usage_check);
   ASSERT_NE(nullptr, json_issues);
 
-  // TODO(rennox): this is a feature check, includes object list in the
-  // description, some refactoring will be needed to properly fix this
-  // created BUG#36405653 to track this is a separate patch (this release)
-  EXPECT_JSON_CONTAINS(json_issues, "{'dbObjectType':'User'}");
+  EXPECT_JSON_CONTAINS(json_issues, "{'dbObject':'" + local_usr(k_usr_sha) +
+                                        "', 'dbObjectType':'User'}");
+  EXPECT_JSON_CONTAINS(json_issues, "{'dbObject':'" + local_usr(k_usr_native) +
+                                        "', 'dbObjectType':'User'}");
+
+  // The router users are not reported by this check
+  EXPECT_JSON_NOT_CONTAINS(json_issues, "{'dbObject':'" +
+                                            local_usr(k_router_user1) +
+                                            "', 'dbObjectType':'User'}");
+
+  EXPECT_JSON_NOT_CONTAINS(json_issues, "{'dbObject':'" +
+                                            local_usr(k_router_user2) +
+                                            "', 'dbObjectType':'User'}");
 }
 
 namespace dep_def_auth_check {

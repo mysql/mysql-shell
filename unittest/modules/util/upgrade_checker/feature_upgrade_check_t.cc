@@ -290,7 +290,13 @@ void set_expectation(testing::Mock_session *session, const std::string &query,
 }
 
 // Level, Description, Link
-using Issue_expect = std::tuple<Upgrade_issue::Level, std::string, std::string>;
+struct Issue_expect {
+  Upgrade_issue::Level level;
+  std::string description;
+  std::string doclink;
+  std::string dbobject;
+};
+
 using Issue_expect_list = std::vector<Issue_expect>;
 using Versions = std::vector<std::pair<Version, Version>>;
 
@@ -319,13 +325,13 @@ void test_feature_check(
 
     EXPECT_EQ(expect.size(), issues.size());
     for (size_t index = 0; index < expect.size(); index++) {
-      const auto level = std::get<0>(expect[index]);
-      const auto &message = std::get<1>(expect[index]);
-      const auto &doclink = std::get<2>(expect[index]);
-
-      EXPECT_EQ(level, issues[index].level);
-      EXPECT_STREQ(message.c_str(), issues[index].description.c_str());
-      EXPECT_STREQ(doclink.c_str(), issues[index].doclink.c_str());
+      EXPECT_EQ(expect[index].level, issues[index].level);
+      EXPECT_STREQ(expect[index].description.c_str(),
+                   issues[index].description.c_str());
+      EXPECT_STREQ(expect[index].doclink.c_str(),
+                   issues[index].doclink.c_str());
+      EXPECT_STREQ(expect[index].dbobject.c_str(),
+                   issues[index].get_db_object().c_str());
     }
   }
 }
@@ -518,10 +524,7 @@ TEST(Auth_method_usage_check, notices) {
           "Notice: The following users are using the '%s' "
           "authentication method which will be deprecated as of MySQL %s.\n"
           "Consider switching the users to a different authentication method "
-          "(i.e. %s).\n"
-          "\n"
-          "sample@localhost\n"
-          "another@localhost\n",
+          "(i.e. %s).\n",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -530,7 +533,9 @@ TEST(Auth_method_usage_check, notices) {
           shcore::str_format("Notice in %s", feature->id.c_str()),
           &get_auth_method_usage_check, versions, records,
           {{Upgrade_issue::Level::NOTICE, notice,
-            k_plugin_doclink.at(feature->id)}});
+            k_plugin_doclink.at(feature->id), "sample@localhost"},
+           {Upgrade_issue::Level::NOTICE, notice,
+            k_plugin_doclink.at(feature->id), "another@localhost"}});
     }
   }
 
@@ -568,10 +573,7 @@ TEST(Auth_method_usage_check, warnings) {
           "authentication method which is deprecated as of MySQL %s and will "
           "be removed in a future release.\n"
           "Consider switching the users to a different authentication method "
-          "(i.e. %s).\n"
-          "\n"
-          "sample@localhost\n"
-          "another@localhost\n",
+          "(i.e. %s).\n",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -580,7 +582,9 @@ TEST(Auth_method_usage_check, warnings) {
           shcore::str_format("Warning in %s", feature->id.c_str()),
           &get_auth_method_usage_check, versions, records,
           {{Upgrade_issue::Level::WARNING, warning,
-            k_plugin_doclink.at(feature->id)}});
+            k_plugin_doclink.at(feature->id), "sample@localhost"},
+           {Upgrade_issue::Level::WARNING, warning,
+            k_plugin_doclink.at(feature->id), "another@localhost"}});
     }
   }
 
@@ -613,17 +617,17 @@ TEST(Auth_method_usage_check, errors) {
           "Error: The following users are using the '%s' "
           "authentication method which is removed as of MySQL %s.\n"
           "The users must be deleted or re-created with a different "
-          "authentication method (i.e. %s).\n"
-          "\n"
-          "sample@localhost\n"
-          "another@localhost\n",
+          "authentication method (i.e. %s).\n",
           feature->id.c_str(), (*feature->removed).get_base().c_str(),
           (*feature->replacement).c_str());
 
-      test_feature_check(shcore::str_format("Error in %s", feature->id.c_str()),
-                         &get_auth_method_usage_check, versions, records,
-                         {{Upgrade_issue::Level::ERROR, error,
-                           k_plugin_doclink.at(feature->id)}});
+      test_feature_check(
+          shcore::str_format("Error in %s", feature->id.c_str()),
+          &get_auth_method_usage_check, versions, records,
+          {{Upgrade_issue::Level::ERROR, error,
+            k_plugin_doclink.at(feature->id), "sample@localhost"},
+           {Upgrade_issue::Level::ERROR, error,
+            k_plugin_doclink.at(feature->id), "another@localhost"}});
     }
   }
 
@@ -648,31 +652,32 @@ TEST(Auth_method_usage_check, mixed) {
            "Notice: The following users are using the 'authentication_fido' "
            "authentication method which will be deprecated as of MySQL 8.2.0.\n"
            "Consider switching the users to a different authentication method "
-           "(i.e. authentication_webauthn).\n"
-           "\n"
-           "another@localhost\n",
+           "(i.e. authentication_webauthn).\n",
            "https://dev.mysql.com/doc/refman/8.3/en/"
-           "webauthn-pluggable-authentication.html"},
-          {Upgrade_issue::Level::WARNING,
-           "Warning: The following users are using the 'mysql_native_password' "
-           "authentication method which is deprecated as of MySQL 8.0.0 and "
-           "will be removed in a future release.\n"
-           "Consider switching the users to a different authentication method "
-           "(i.e. caching_sha2_password).\n"
-           "\n"
-           "another@localhost\n",
-           "https://dev.mysql.com/doc/refman/8.0/en/"
-           "caching-sha2-pluggable-authentication.html"},
+           "webauthn-pluggable-authentication.html",
+           "another@localhost"},
+          {
+              Upgrade_issue::Level::WARNING,
+              "Warning: The following users are using the "
+              "'mysql_native_password' "
+              "authentication method which is deprecated as of MySQL 8.0.0 and "
+              "will be removed in a future release.\n"
+              "Consider switching the users to a different authentication "
+              "method "
+              "(i.e. caching_sha2_password).\n",
+              "https://dev.mysql.com/doc/refman/8.0/en/"
+              "caching-sha2-pluggable-authentication.html",
+              "another@localhost",
+          },
           {Upgrade_issue::Level::WARNING,
            "Warning: The following users are using the 'sha256_password' "
            "authentication method which is deprecated as of MySQL 8.0.0 and "
            "will be removed in a future release.\n"
            "Consider switching the users to a different authentication method "
-           "(i.e. caching_sha2_password).\n"
-           "\n"
-           "sample@localhost\n",
+           "(i.e. caching_sha2_password).\n",
            "https://dev.mysql.com/doc/refman/8.0/en/"
-           "caching-sha2-pluggable-authentication.html"},
+           "caching-sha2-pluggable-authentication.html",
+           "sample@localhost"},
       });
 }
 
@@ -819,7 +824,7 @@ TEST(Plugin_usage_check, notices) {
           shcore::str_format("Notice in %s", feature->id.c_str()),
           &get_plugin_usage_check, versions, records,
           {{Upgrade_issue::Level::NOTICE, notice,
-            k_plugin_doclink.at(feature->id)}});
+            k_plugin_doclink.at(feature->id), feature->id}});
     }
   }
 
@@ -862,7 +867,7 @@ TEST(Plugin_usage_check, warnings) {
           shcore::str_format("Warning in %s", feature->id.c_str()),
           &get_plugin_usage_check, versions, records,
           {{Upgrade_issue::Level::WARNING, notice,
-            k_plugin_doclink.at(feature->id)}});
+            k_plugin_doclink.at(feature->id), feature->id}});
     }
   }
 
@@ -904,7 +909,7 @@ TEST(Plugin_usage_check, errors) {
       test_feature_check(shcore::str_format("Error in %s", feature->id.c_str()),
                          &get_plugin_usage_check, versions, records,
                          {{Upgrade_issue::Level::ERROR, notice,
-                           k_plugin_doclink.at(feature->id)}});
+                           k_plugin_doclink.at(feature->id), feature->id}});
     }
   }
 
@@ -935,25 +940,29 @@ TEST(Plugin_usage_check, mixed) {
         "MySQL 8.2.0.\nConsider using 'authentication_webauthn' plugin "
         "instead.\n",
         "https://dev.mysql.com/doc/refman/8.3/en/"
-        "webauthn-pluggable-authentication.html"},
+        "webauthn-pluggable-authentication.html",
+        "authentication_fido"},
        {Upgrade_issue::Level::WARNING,
         "Warning: The 'keyring_encrypted_file' plugin is deprecated as of "
         "MySQL 8.0.34 and will be removed in a future release.\n"
         "Consider using the 'component_encrypted_keyring_file' component "
         "instead.\n",
         "https://dev.mysql.com/doc/refman/8.0/en/"
-        "keyring-encrypted-file-component.html"},
+        "keyring-encrypted-file-component.html",
+        "keyring_encrypted_file"},
        {Upgrade_issue::Level::WARNING,
         "Warning: The 'keyring_file' plugin is deprecated as of MySQL "
         "8.0.34 and will be removed in a future release.\n"
         "Consider using the 'component_keyring_file' component instead.\n",
-        "https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html"},
+        "https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html",
+        "keyring_file"},
        {Upgrade_issue::Level::WARNING,
         "Warning: The 'keyring_oci' plugin is deprecated as of "
         "MySQL 8.0.31 and will be removed in a future release.\n"
         "Consider using the 'component_keyring_oci' component instead.\n",
         "https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/"
-        "keyring-oci-plugin.html"}});
+        "keyring-oci-plugin.html",
+        "keyring_oci"}});
 }
 
 }  // namespace upgrade_checker
