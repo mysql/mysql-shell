@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/upgrade_checker/feature_life_cycle_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_condition.h"
 
 namespace mysqlsh {
@@ -105,19 +106,28 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         upgrade_issue_to_string);
     if (results.empty()) {
       print_paragraph("No issues found");
-    } else if (!check.get_description().empty()) {
-      print_paragraph(check.get_description());
-      print_doc_links(check.get_doc_link());
-      m_console->println();
-
-      if (check.is_multi_lvl_check()) issue_formater = multi_lvl_format_issue;
     } else {
-      issue_formater = format_upgrade_issue;
-    }
+      const Feature_life_cycle_check *feature_check =
+          dynamic_cast<const Feature_life_cycle_check *>(&check);
+      if (feature_check && feature_check->grouping() != Grouping::NONE) {
+        print_grouped_issues(results);
+      } else {
+        if (!check.get_description().empty()) {
+          print_paragraph(check.get_description());
+          print_doc_links(check.get_doc_link());
+          m_console->println();
 
-    for (const auto &issue : results) {
-      print_paragraph(issue_formater(issue));
-      print_doc_links(issue.doclink);
+          if (check.is_multi_lvl_check())
+            issue_formater = multi_lvl_format_issue;
+        } else {
+          issue_formater = format_upgrade_issue;
+        }
+
+        for (const auto &issue : results) {
+          print_paragraph(issue_formater(issue));
+          print_doc_links(issue.doclink);
+        }
+      }
     }
   }
 
@@ -242,6 +252,28 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       std::string indent(2, ' ');
       m_console->println(indent + "More information:");
       print_paragraph(links, 4, 0);
+    }
+  }
+
+  void print_grouped_issues(const std::vector<Upgrade_issue> &results) {
+    std::map<std::string, std::set<std::string>> groups;
+    std::map<std::string, std::string> doclinks;
+
+    for (const auto &issue : results) {
+      groups[issue.description].insert(issue.get_db_object());
+      doclinks[issue.description] = issue.doclink;
+    }
+
+    for (const auto &group : groups) {
+      print_paragraph(group.first, 2, 0);
+      m_console->println();
+
+      for (const auto &item : group.second) {
+        print_paragraph("- " + item, 2, 0);
+      }
+      m_console->println();
+      print_doc_links(doclinks[group.first]);
+      m_console->println();
     }
   }
 

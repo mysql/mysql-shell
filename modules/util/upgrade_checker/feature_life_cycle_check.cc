@@ -165,79 +165,26 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
   // Now creates the issue list
   std::vector<Upgrade_issue> upgrade_issues;
 
-  switch (m_grouping) {
-    case Grouping::NONE:
-      // Each item found will create a separate issue
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto level = get_issue_level(feature, server_info);
+  // Each item found will create a separate issue
+  for (const auto &issues : m_feature_issues) {
+    const auto &feature = m_features.at(issues.first).feature;
+    auto level = get_issue_level(feature, server_info);
 
-        for (const auto &item : issues.second) {
-          Upgrade_issue issue;
-          std::string desc =
-              resolve_feature_description(feature, level, item.first);
-          issue.description = shcore::str_format(
-              "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
-
-          auto feature_doclink_tag = feature.id + ".docLink";
-          issue.doclink = get_text(feature_doclink_tag.c_str());
-
-          issue.level = level;
-          issue.object_type = item.second;
-          upgrade_issues.push_back(issue);
-        }
-      }
-      break;
-    case Grouping::FEATURE:
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto level = get_issue_level(feature, server_info);
-        std::vector<std::string> desc = {
-            resolve_feature_description(feature, level)};
-
-        for (const auto &item : issues.second) {
-          desc.push_back(item.first);
-        }
-        desc.push_back("");  // Forces double \n at the end
-
-        Upgrade_issue issue;
-        issue.description =
-            shcore::str_format("%s: %s", Upgrade_issue::level_to_string(level),
-                               shcore::str_join(desc, "\n").c_str());
-
-        auto feature_doclink_tag = feature.id + ".docLink";
-        issue.doclink = get_text(feature_doclink_tag.c_str());
-
-        issue.level = level;
-        // TODO(rennox): Here we simply assume all the issues are of the same
-        // type, created Bug#36405653 for a proper fix
-        issue.object_type = issues.second.at(0).second;
-        upgrade_issues.push_back(issue);
-      }
-      break;
-    case Grouping::ALL:
-      std::vector<std::string> desc = {resolve_check_description()};
-      Upgrade_issue::Level level = Upgrade_issue::NOTICE;
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto this_level = get_issue_level(feature, server_info);
-        if (this_level < level) {
-          level = this_level;
-        }
-        for (const auto &item : issues.second) {
-          desc.push_back(item.first);
-        }
-      }
+    for (const auto &item : issues.second) {
       Upgrade_issue issue;
-      issue.description =
-          shcore::str_format("%s: %s", Upgrade_issue::level_to_string(level),
-                             shcore::str_join(desc, "\n").c_str());
+      std::string desc =
+          resolve_feature_description(feature, level, item.first);
+      issue.description = shcore::str_format(
+          "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
+
+      auto feature_doclink_tag = feature.id + ".docLink";
+      issue.doclink = get_text(feature_doclink_tag.c_str());
+
+      issue.schema = item.first;
       issue.level = level;
-      // TODO(rennox): Here we simply assume all the issues are of the same
-      // type Bug#36405653
-      issue.object_type = m_feature_issues.at(0).at(0).second;
+      issue.object_type = item.second;
       upgrade_issues.push_back(issue);
-      break;
+    }
   }
 
   return upgrade_issues;
