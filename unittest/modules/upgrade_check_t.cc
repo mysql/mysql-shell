@@ -190,6 +190,11 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_NE(nullptr, check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
+  auto drop_database = [&]() {
+    ASSERT_NO_THROW(session->execute("drop database if exists grouping;"));
+  };
+  auto on_exit = shcore::on_leave_scope(drop_database);
+
   PrepareTestDatabase("grouping");
   ASSERT_NO_THROW(
       session->execute("create table System(JSON_TABLE integer, cube int);"));
@@ -242,6 +247,35 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       upgrade_info(Version(5, 7, 0), Version(8, 0, 11)));
   ASSERT_NO_THROW(issues = check->run(session, info));
   ASSERT_EQ(10, issues.size());
+
+  drop_database();
+
+  auto on_exit2 = shcore::on_leave_scope([&]() {
+    ASSERT_NO_THROW(session->execute("drop database if exists db_test;"));
+  });
+  PrepareTestDatabase("db_test");
+
+  ASSERT_NO_THROW(session->execute("create table `array`(id int);"));
+  ASSERT_NO_THROW(session->execute("create table `full`(id int);"));
+  ASSERT_NO_THROW(session->execute("create table `intersect`(id int);"));
+  ASSERT_NO_THROW(session->execute("create table `lateral`(id int);"));
+  ASSERT_NO_THROW(session->execute("create table `member`(id int);"));
+
+  check = Sql_upgrade_check::get_reserved_keywords_check(
+      upgrade_info(Version(5, 7, 44), Version(8, 0, 35)));
+
+  EXPECT_ISSUES(check.get(), 5);
+
+  EXPECT_EQ(issues[0].schema, "db_test");
+  EXPECT_EQ(issues[0].table, "array");
+  EXPECT_EQ(issues[1].schema, "db_test");
+  EXPECT_EQ(issues[1].table, "full");
+  EXPECT_EQ(issues[2].schema, "db_test");
+  EXPECT_EQ(issues[2].table, "intersect");
+  EXPECT_EQ(issues[3].schema, "db_test");
+  EXPECT_EQ(issues[3].table, "lateral");
+  EXPECT_EQ(issues[4].schema, "db_test");
+  EXPECT_EQ(issues[4].table, "member");
 }
 
 TEST_F(MySQL_upgrade_check_test, syntax_check) {
