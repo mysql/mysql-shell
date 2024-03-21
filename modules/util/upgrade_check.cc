@@ -510,7 +510,8 @@ std::unique_ptr<Upgrade_check> Sql_upgrade_check::get_routine_syntax_check() {
 namespace {
 bool UNUSED_VARIABLE(register_reserved) = Upgrade_check::register_check(
     &Sql_upgrade_check::get_reserved_keywords_check,
-    Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.11", "8.0.14", "8.0.17");
+    Upgrade_check::Target::OBJECT_DEFINITIONS, "8.0.11", "8.0.14", "8.0.17",
+    "8.0.31");
 }
 
 /// In this check we are only interested if any such table/database exists
