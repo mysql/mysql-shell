@@ -123,6 +123,7 @@ class Named_pipe_test : public Command_line_test {
       args.emplace_back(a.c_str());
     }
 
+    args.emplace_back("--py");
     args.emplace_back("-e");
     args.emplace_back(c.c_str());
     args.emplace_back(nullptr);
@@ -142,18 +143,10 @@ std::string Named_pipe_test::s_named_pipe;
     if (!s_named_pipe_enabled) {                                              \
       FAIL() << "Named Pipe connections are disabled, they must be enabled."; \
     } else {                                                                  \
-      const auto code = call;                                                 \
-                                                                              \
-      if (s_is_default_named_pipe) {                                          \
-        EXPECT_EQ(0, code);                                                   \
-        MY_EXPECT_CMD_OUTPUT_CONTAINS(                                        \
-            "Connection:                   Named pipe: " + expected_pipe());  \
-        MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Unix socket:");                    \
-      } else {                                                                \
-        EXPECT_EQ(1, code);                                                   \
-        MY_EXPECT_CMD_OUTPUT_CONTAINS(                                        \
-            "Can't open named pipe to host: .  pipe: MySQL");                 \
-      }                                                                       \
+      EXPECT_EQ(0, call);                                                     \
+      MY_EXPECT_CMD_OUTPUT_CONTAINS(                                          \
+          "Connection:                   Named pipe: " + expected_pipe());    \
+      MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Unix socket:");                      \
     }                                                                         \
   }
 
@@ -171,13 +164,22 @@ std::string Named_pipe_test::s_named_pipe;
     }                                                                         \
   }
 
+#define TCP_TEST(name, call)                                   \
+  TEST_F(Named_pipe_test, name) {                              \
+    const auto code = call;                                    \
+                                                               \
+    EXPECT_EQ(0, code);                                        \
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(                             \
+        "Connection:                   localhost via TCP/IP"); \
+  }
+
 DEFAULT_PIPE_TEST(cmdline_default_named_pipe, status({user(), pwd(), host()}));
 DEFAULT_PIPE_TEST(cmdline_default_named_pipe_uri,
                   status({uri_userinfo() + "."}));
 
 PIPE_TEST(cmdline_socket, status({user(), pwd(), host(), socket()}));
-PIPE_TEST(cmdline_localhost_socket,
-          status({user(), pwd(), localhost(), socket()}));
+TCP_TEST(cmdline_localhost_socket,
+         status({user(), pwd(), localhost(), socket()}));
 PIPE_TEST(cmdline_uri_socket, status({uri_userinfo() + ".", socket()}));
 PIPE_TEST(cmdline_uri, status({uri_userinfo() + "(\\\\.\\" + pipe() + ")"}));
 PIPE_TEST(cmdline_encoded_uri,
@@ -188,7 +190,7 @@ DEFAULT_PIPE_TEST(default_named_pipe_uri,
 DEFAULT_PIPE_TEST(default_named_pipe_options, connect_and_status(".", ""));
 
 PIPE_TEST(options_socket, connect_and_status(".", pipe()));
-PIPE_TEST(options_localhost_socket, connect_and_status("localhost", pipe()));
+TCP_TEST(options_localhost_socket, connect_and_status("localhost", pipe()));
 
 PIPE_TEST(uri,
           connect_and_status(uri_userinfo() + "(\\\\\\\\.\\\\" + pipe() + ")"));

@@ -754,7 +754,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
     if (instance_def.has_port()) connect_opts.set_port(instance_def.get_port());
   }
   connect_opts.clear_transport_type();
-  if (connect_opts.has_transport_type())
+  if (instance_def.has_transport_type())
     connect_opts.set_transport_type(instance_def.get_transport_type());
 
   // is user has specified the connect-timeout connection option, use that

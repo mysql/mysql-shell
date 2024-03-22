@@ -450,7 +450,7 @@ void Session_impl::connect(
       // If connection was not through TCP/IP it means either the default
       // socket path or windows named pipe was used
 #ifdef _WIN32
-      _connection_options.set_pipe("MySQL");
+      _connection_options.set_pipe(mysql_unix_port);
 #else
       _connection_options.set_socket(mysql_unix_port);
 #endif

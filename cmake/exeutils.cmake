@@ -144,7 +144,14 @@ function(install_bundled_binaries)
 
   if(WIN32 AND (ARG_DESTINATION STREQUAL INSTALL_LIBDIR OR ARG_DESTINATION MATCHES "^${INSTALL_LIBDIR}/.*"))
     # on Windows, if files should be installed in the 'lib' directory, we install them in the 'bin' directory instead
-    set(ARG_DESTINATION "${INSTALL_BINDIR}")
+    set(NEW_DESTINATION "${INSTALL_BINDIR}")
+    # change destination directory, keep the suffix
+    string(LENGTH "${INSTALL_LIBDIR}" _len)
+    string(SUBSTRING "${ARG_DESTINATION}" ${_len} -1 _suffix)
+    string(APPEND NEW_DESTINATION "${_suffix}")
+
+    message(STATUS "Changing destination from ${ARG_DESTINATION} to ${NEW_DESTINATION}")
+    set(ARG_DESTINATION "${NEW_DESTINATION}")
   endif()
 
   SET(NORMALIZED_BINARIES "")

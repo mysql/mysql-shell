@@ -503,26 +503,23 @@ TEST_F(Command_line_test, socket_and_port) {
   const char *pwd = "-ppass1";
 
 #ifdef _WIN32
-  // just a plain successful connect to make caching_sha2_password work
-
-  {
-    execute({_mysqlsh, user, pwd, "-h.", socket, "--js", "-e",
-             "print(shell.status())", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
-        "MySQL Error 2061 (HY000): Authentication plugin "
-        "'caching_sha2_password' reported error: Authentication requires "
-        "secure connection.",
-        "Named pipe:");
-  }
-#endif
-
-#ifdef _WIN32
-#define CONNECT_TO_DOT_HOST_MESSAGE \
-  "MySQL Error 2017 (HY000): Can't open named pipe to host: ."
+#define CONNECT_TO_SOCKET_MESSAGE "Named pipe: "
+#define CONNECT_TO_DOT_HOST_MESSAGE CONNECT_TO_SOCKET_MESSAGE
 #else
+#define CONNECT_TO_SOCKET_MESSAGE "Localhost via UNIX socket"
 #define CONNECT_TO_DOT_HOST_MESSAGE \
   "MySQL Error 2005: No such host is known '.'"
 #endif
+
+#ifdef _WIN32
+  // just a plain successful connect to make caching_sha2_password work
+  {
+    execute({_mysqlsh, user, pwd, port, "--js", "-e", "print(shell.status())",
+             NULL});
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  }
+#endif
+
   {
     execute({_mysqlsh, user, pwd, "-h.", port, "--js", "-e",
              "print(shell.status())", NULL});
@@ -531,23 +528,13 @@ TEST_F(Command_line_test, socket_and_port) {
   {
     execute({_mysqlsh, user, pwd, socket, "-h.", "--js", "-e",
              "print(shell.status())", NULL});
-#ifdef _WIN32
-    MY_EXPECT_CMD_OUTPUT_CONTAINS_ONE_OF(
-        "MySQL Error 2061 (HY000): Authentication plugin "
-        "'caching_sha2_password' reported error: Authentication requires "
-        "secure connection.",
-        "Named pipe:");
-#else
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "MySQL Error 2005: No such host is known '.'");
-#endif
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
   {
     execute({_mysqlsh, user, pwd, port, "-h.", "--js", "-e",
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
-
   {
     execute({_mysqlsh, user, pwd, socket, port, "--js", "-e",
              "print(shell.status())", NULL});
@@ -556,11 +543,7 @@ TEST_F(Command_line_test, socket_and_port) {
   {
     execute({_mysqlsh, user, pwd, port, socket, "--js", "-e",
              "print(shell.status())", NULL});
-#ifdef _WIN32
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe:");
-#else
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
-#endif
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
   }
   {
     execute({_mysqlsh, user, pwd, "-h.", socket, port, "--js", "-e",
@@ -577,33 +560,21 @@ TEST_F(Command_line_test, socket_and_port) {
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
-#ifdef _WIN32
-  // -h. is not supported in linux, just treat it as undefined behaviour
   {
     execute({_mysqlsh, user, pwd, "-h.", port, socket, "--js", "-e",
              "print(shell.status())", NULL});
-
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe: ");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
   {
     execute({_mysqlsh, user, pwd, port, "-h.", socket, "--js", "-e",
              "print(shell.status())", NULL});
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("Named pipe: ");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
-#endif
-#undef CONNECT_TO_DOT_HOST_MESSAGE
-#ifdef _WIN32
-#define CONNECT_TO_DOT_HOST_MESSAGE "Named pipe: "
-#else
-#define CONNECT_TO_DOT_HOST_MESSAGE \
-  "MySQL Error 2005: No such host is known '.'"
-#endif
   {
     execute({_mysqlsh, user, pwd, port, socket, "-h.", "--js", "-e",
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_DOT_HOST_MESSAGE);
   }
-
   {
     execute({_mysqlsh, user, pwd, "-hlocalhost", socket, port, "--js", "-e",
              "print(shell.status())", NULL});
@@ -619,11 +590,8 @@ TEST_F(Command_line_test, socket_and_port) {
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
   }
-#ifdef _WIN32
-#define CONNECT_TO_SOCKET_MESSAGE "Named pipe: "
-#else
-#define CONNECT_TO_SOCKET_MESSAGE "Localhost via UNIX socket"
-#endif
+#ifndef _WIN32
+  // using -hlocalhost and -S connects to a socket only in case of non-Windows
   {
     execute({_mysqlsh, user, pwd, "-hlocalhost", port, socket, "--js", "-e",
              "print(shell.status())", NULL});
@@ -634,13 +602,16 @@ TEST_F(Command_line_test, socket_and_port) {
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
   }
-#ifndef _WIN32
   {
     execute({_mysqlsh, user, pwd, port, socket, "-hlocalhost", "--js", "-e",
              "print(shell.status())", NULL});
     MY_EXPECT_CMD_OUTPUT_CONTAINS(CONNECT_TO_SOCKET_MESSAGE);
   }
 #endif
+
+#undef CONNECT_TO_SOCKET_MESSAGE
+#undef CONNECT_TO_DOT_HOST_MESSAGE
+#undef CONNECT_TO_DEFAULT_PIPE_MESSAGE
 
   session->execute("drop user testuser1@'%'");
 }
@@ -729,9 +700,18 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket) {
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("broken");
 
   // socket, then TCP host, then localhost => socket
-  execute({_mysqlsh, "-S/tmp/broken", "-uroot", "-h127.0.0.1", "-hlocalhost",
+  execute({_mysqlsh, "-S/tmp/broken", "-uroot", "-h127.0.0.1",
+#ifdef _WIN32
+           "-h.",
+#else
+           "-hlocalhost",
+#endif
            "-pbla", "--verbose", nullptr});
+#ifdef _WIN32
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: mysql://root@");
+#else
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Connecting to MySQL at: root@");
+#endif
   MY_EXPECT_CMD_OUTPUT_CONTAINS("broken");
 
   // TCP host, then socket => TCP
@@ -766,8 +746,10 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket) {
 
 TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
 #ifdef _WIN32
-#define SOCKET_MSG "Localhost via Named pipe"
+#define SOCKET_HOST "."
+#define SOCKET_MSG "Named pipe: "
 #else
+#define SOCKET_HOST "localhost"
 #define SOCKET_MSG "Localhost via UNIX socket"
 #endif
 
@@ -800,7 +782,7 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // --mysql root@localhost -> socket
-  execute({_mysqlsh, "--mysql", "root@localhost", "--interactive",
+  execute({_mysqlsh, "--mysql", "root@" SOCKET_HOST, "--interactive",
            "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(SOCKET_MSG);
@@ -824,7 +806,7 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // root@localhost --mysql -> socket
-  execute({_mysqlsh, "root@localhost", "--mysql", "--interactive",
+  execute({_mysqlsh, "root@" SOCKET_HOST, "--mysql", "--interactive",
            "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(SOCKET_MSG);
@@ -848,8 +830,8 @@ TEST_F(Command_line_test, bug35751281_tcp_override_socket_uri) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("127.0.0.1 via TCP/IP");
 
   // mysql://root@localhost -> socket
-  execute({_mysqlsh, "mysql://root@localhost", "--interactive", "--no-password",
-           "-e", "\\s", nullptr});
+  execute({_mysqlsh, "mysql://root@" SOCKET_HOST, "--interactive",
+           "--no-password", "-e", "\\s", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(SOCKET_MSG);
 
