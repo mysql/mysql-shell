@@ -95,11 +95,16 @@ class Feature_life_cycle_check : public Upgrade_check {
   std::vector<const Feature_definition *> get_features(
       bool only_enabled = false) const;
 
+  Grouping grouping() const { return m_grouping; }
+
  protected:
-  void add_issue(const std::string &feature, const std::string &item);
+  void add_issue(const std::string &feature, const std::string &item,
+                 Upgrade_issue::Object_type object_type);
 
   std::map<std::string, Feature_entry> m_features;
-  std::map<std::string, std::vector<std::string>> m_feature_issues;
+  std::map<std::string,
+           std::vector<std::pair<std::string, Upgrade_issue::Object_type>>>
+      m_feature_issues;
 
  private:
   virtual void process_row(const mysqlshdk::db::IRow *row) = 0;

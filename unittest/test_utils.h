@@ -34,6 +34,9 @@
 #include <typeinfo>
 #include <utility>
 #include <vector>
+
+#include <rapidjson/document.h>
+
 #include "gtest_clean.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -84,7 +87,45 @@ struct SharedDoNotDelete {
   template <typename T>
   void operator()(T *) {}
 };
+
+void expect_json_contains(const rapidjson::Value *object,
+                          const std::string &expected_json, bool contains,
+                          const char *file, int line);
+
 }  // namespace testing
+
+#define EXPECT_JSON_CONTAINS(object, expected_json) \
+  testing::expect_json_contains(object, expected_json, true, __FILE__, __LINE__)
+
+#define EXPECT_JSON_NOT_CONTAINS(object, expected_json)                 \
+  testing::expect_json_contains(object, expected_json, false, __FILE__, \
+                                __LINE__)
+
+/**
+ * Helper class for JSON validation
+ *
+ * This class could be extended to do any kind of JSON validation over a
+ * rapidjson Document.
+ *
+ * An instance of this class is returned when calling
+ * output_handler.stdout_as_json()
+ * which should be ideally done by ensuring the available stdout is valid JSON.
+ */
+class Shell_test_json_validator {
+ public:
+  Shell_test_json_validator() = default;
+  explicit Shell_test_json_validator(const std::string &json);
+
+  /**
+   * Gets a value pointer to a value inside of this JSON document identified by
+   * a path given in standard pointer syntax.
+   * (https://rapidjson.org/md_doc_pointer.html)
+   */
+  const rapidjson::Value *get_object(const std::string &path) const;
+
+ private:
+  rapidjson::Document m_document;
+};
 
 /**
  * \ingroup UTFramework
@@ -171,6 +212,8 @@ class Shell_test_output_handler {
   void set_internal(bool value) { m_internal = value; }
   void set_answers_to_stdout(bool value) { m_answers_to_stdout = value; }
   void set_errors_to_stderr(bool value) { m_errors_on_stderr = value; }
+
+  Shell_test_json_validator stdout_as_json();
 
  protected:
   std::shared_ptr<shcore::Logger> m_logger;

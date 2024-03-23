@@ -63,7 +63,6 @@ TEST(Upgrade_check_registry, messages) {
 
   // If not the case, the correct info should be set
   additional_checks[ids::k_innodb_rowformat_check] = {false, {}};
-  additional_checks[ids::k_zerofill_check] = {false, {}};
   additional_checks[ids::k_table_command_check] = {false, {}};
   additional_checks[ids::k_removed_sys_vars_check] = {true,
                                                       {"issue", "replacement"}};
@@ -72,7 +71,8 @@ TEST(Upgrade_check_registry, messages) {
   additional_checks[ids::k_fts_in_tablename_check] = {false, {}};
   additional_checks[ids::k_engine_mixup_check] = {false, {}};
   additional_checks[ids::k_old_geometry_types_check] = {false, {}};
-  additional_checks[ids::k_orphaned_routines_check] = {false, {}};
+  additional_checks[ids::k_orphaned_objects_check] = {false,
+                                                      {"routine", "event"}};
   additional_checks[ids::k_dollar_sign_name_check] = {false, {}};
   additional_checks[ids::k_index_too_large_check] = {false, {}};
   additional_checks[ids::k_empty_dot_table_syntax_check] = {false, {}};
@@ -207,7 +207,7 @@ void test_check_availability(
 TEST(Upgrade_check_registry, create_checklist) {
   std::map<Version, std::set<std::string_view>> single_version_checks = {
       {Version(8, 0, 0),
-       {ids::k_invalid_57_names_check, ids::k_orphaned_routines_check,
+       {ids::k_invalid_57_names_check, ids::k_orphaned_objects_check,
         ids::k_index_too_large_check, ids::k_empty_dot_table_syntax_check,
         ids::k_invalid_engine_foreign_key_check}},
       {Version(8, 0, 11),
@@ -506,7 +506,6 @@ TEST(Upgrade_check_registry, create_checklist) {
 
   {
     // Tests without positive verification are marked as done
-    positive.insert(ids::k_zerofill_check);          // Not used
     positive.insert(ids::k_innodb_rowformat_check);  // Not used
 
     std::set<std::string_view> missing;
@@ -524,7 +523,6 @@ TEST(Upgrade_check_registry, create_checklist) {
   {
     // Tests without negative verification are marked as done
     negative.insert(ids::k_table_command_check);     // Always enabled
-    negative.insert(ids::k_zerofill_check);          // Not used
     negative.insert(ids::k_innodb_rowformat_check);  // Not used
 
     std::set<std::string_view> missing;

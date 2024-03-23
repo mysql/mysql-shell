@@ -109,6 +109,8 @@ std::vector<Upgrade_issue> Removed_sys_var_check::run(
           "%s: %s", Upgrade_issue::level_to_string(Upgrade_issue::ERROR),
           description.c_str());
 
+      issue.object_type = Upgrade_issue::Object_type::SYSVAR;
+
       issues.push_back(std::move(issue));
     }
   }
@@ -194,6 +196,7 @@ std::vector<Upgrade_issue> Sys_var_allowed_values_check::run(
         issue.description = shcore::str_format(
             "%s: %s", Upgrade_issue::level_to_string(Upgrade_issue::ERROR),
             description.c_str());
+        issue.object_type = Upgrade_issue::Object_type::SYSVAR;
 
         issues.push_back(std::move(issue));
       }
@@ -331,6 +334,8 @@ std::vector<Upgrade_issue> Sysvar_new_defaults::run(
 
         issue.level = Upgrade_issue::WARNING;
 
+        issue.object_type = Upgrade_issue::Object_type::SYSVAR;
+
         issues.push_back(std::move(issue));
       }
     }
@@ -411,6 +416,7 @@ std::vector<Upgrade_issue> Invalid_privileges_check::run(
             raw_description,
             {{"account", issue.schema},
              {"privileges", shcore::str_join(invalid_list, ", ")}});
+        issue.object_type = Upgrade_issue::Object_type::USER;
         issues.push_back(issue);
       }
     }

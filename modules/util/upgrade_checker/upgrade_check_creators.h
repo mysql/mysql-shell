@@ -44,7 +44,6 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
 std::unique_ptr<Upgrade_check> get_routine_syntax_check();
 std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
 std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
-std::unique_ptr<Sql_upgrade_check> get_zerofill_check();
 std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check();
 std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check();
 std::unique_ptr<Sql_upgrade_check> get_old_temporal_check();
@@ -75,12 +74,10 @@ get_changed_functions_generated_columns_check();
 std::unique_ptr<Sql_upgrade_check>
 get_columns_which_cannot_have_defaults_check();
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check();
-std::unique_ptr<Sql_upgrade_check> get_orphaned_routines_check();
+std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check();
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check();
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check();
 std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check();
-std::unique_ptr<Sql_upgrade_check> get_deprecated_auth_method_check(
-    const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
     const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(

@@ -47,8 +47,7 @@ inline constexpr std::string_view k_reserved_keywords_check =
     "reservedKeywords";
 inline constexpr std::string_view k_routine_syntax_check = "routineSyntax";
 inline constexpr std::string_view k_utf8mb3_check = "utf8mb3";
-inline constexpr std::string_view k_innodb_rowformat_check = "innodbRowformat";
-inline constexpr std::string_view k_zerofill_check = "zerofill";
+inline constexpr std::string_view k_innodb_rowformat_check = "innodbRowFormat";
 inline constexpr std::string_view k_nonnative_partitioning_check =
     "nonNativePartitioning";
 inline constexpr std::string_view k_mysql_schema_check = "mysqlSchema";
@@ -88,8 +87,7 @@ inline constexpr std::string_view k_changed_functions_generated_columns_check =
 inline constexpr std::string_view k_columns_which_cannot_have_defaults_check =
     "columnsWhichCannotHaveDefaults";
 inline constexpr std::string_view k_invalid_57_names_check = "invalid57Names";
-inline constexpr std::string_view k_orphaned_routines_check =
-    "orphanedRoutines";
+inline constexpr std::string_view k_orphaned_objects_check = "orphanedObjects";
 inline constexpr std::string_view k_dollar_sign_name_check = "dollarSignName";
 inline constexpr std::string_view k_index_too_large_check = "indexTooLarge";
 inline constexpr std::string_view k_empty_dot_table_syntax_check =
@@ -159,6 +157,24 @@ struct Upgrade_info {
 
 struct Upgrade_issue {
   enum Level { ERROR = 0, WARNING, NOTICE };
+  enum class Object_type {
+    SCHEMA = 0,
+    TABLE,
+    VIEW,
+    COLUMN,
+    INDEX,
+    FOREIGN_KEY,
+    ROUTINE,
+    EVENT,
+    TRIGGER,
+    SYSVAR,
+    USER,
+    TABLESPACE,
+    PLUGIN,
+  };
+
+  static std::string_view type_to_string(
+      const Upgrade_issue::Object_type level);
   static const char *level_to_string(const Upgrade_issue::Level level);
 
   std::string schema;
@@ -166,6 +182,7 @@ struct Upgrade_issue {
   std::string column;
   std::string description;
   Level level = ERROR;
+  Object_type object_type;
 
   // To be used for links related to the issue, rather than the check
   std::string doclink;

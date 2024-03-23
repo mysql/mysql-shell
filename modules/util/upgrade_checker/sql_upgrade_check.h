@@ -38,11 +38,14 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+// Check_query represents a query used in the upgrade checker to identify issues
+// of the associated object type
+using Check_query = std::pair<std::string, Upgrade_issue::Object_type>;
 
 class Sql_upgrade_check : public Upgrade_check {
  public:
   Sql_upgrade_check(const std::string_view name,
-                    std::vector<std::string> &&queries,
+                    std::vector<Check_query> &&queries,
                     Upgrade_issue::Level level = Upgrade_issue::WARNING,
                     const char *minimal_version = nullptr,
                     std::forward_list<std::string> &&set_up =
@@ -54,15 +57,17 @@ class Sql_upgrade_check : public Upgrade_check {
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Upgrade_info &server_info, Checker_cache *cache) override;
 
-  const std::vector<std::string> &get_queries() const { return m_queries; }
+  const std::vector<Check_query> &get_queries() const { return m_queries; }
 
  protected:
-  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row);
+  virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
+                                  Upgrade_issue::Object_type object_type);
   virtual void add_issue(const mysqlshdk::db::IRow *row,
+                         Upgrade_issue::Object_type object_type,
                          std::vector<Upgrade_issue> *issues);
   Upgrade_issue::Level get_level() const { return m_level; }
 
-  std::vector<std::string> m_queries;
+  std::vector<Check_query> m_queries;
   std::forward_list<std::string> m_set_up;
   std::forward_list<std::string> m_clean_up;
   const Upgrade_issue::Level m_level;

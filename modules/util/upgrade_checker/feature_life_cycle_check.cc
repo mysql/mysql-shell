@@ -135,9 +135,10 @@ const Feature_definition &Feature_life_cycle_check::get_feature(
   return m_features.at(feature_id).feature;
 }
 
-void Feature_life_cycle_check::add_issue(const std::string &feature,
-                                         const std::string &item) {
-  m_feature_issues[feature].emplace_back(std::move(item));
+void Feature_life_cycle_check::add_issue(
+    const std::string &feature, const std::string &item,
+    Upgrade_issue::Object_type object_type) {
+  m_feature_issues[feature].emplace_back(item, object_type);
 }
 
 std::vector<const Feature_definition *> Feature_life_cycle_check::get_features(
@@ -164,71 +165,26 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
   // Now creates the issue list
   std::vector<Upgrade_issue> upgrade_issues;
 
-  switch (m_grouping) {
-    case Grouping::NONE:
-      // Each item found will create a separate issue
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto level = get_issue_level(feature, server_info);
+  // Each item found will create a separate issue
+  for (const auto &issues : m_feature_issues) {
+    const auto &feature = m_features.at(issues.first).feature;
+    auto level = get_issue_level(feature, server_info);
 
-        for (const auto &item : issues.second) {
-          Upgrade_issue issue;
-          std::string desc = resolve_feature_description(feature, level, item);
-          issue.description = shcore::str_format(
-              "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
-
-          auto feature_doclink_tag = feature.id + ".docLink";
-          issue.doclink = get_text(feature_doclink_tag.c_str());
-
-          issue.level = level;
-          upgrade_issues.push_back(issue);
-        }
-      }
-      break;
-    case Grouping::FEATURE:
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto level = get_issue_level(feature, server_info);
-        std::vector<std::string> desc = {
-            resolve_feature_description(feature, level)};
-
-        for (const auto &item : issues.second) {
-          desc.push_back(item);
-        }
-        desc.push_back("");  // Forces double \n at the end
-
-        Upgrade_issue issue;
-        issue.description =
-            shcore::str_format("%s: %s", Upgrade_issue::level_to_string(level),
-                               shcore::str_join(desc, "\n").c_str());
-
-        auto feature_doclink_tag = feature.id + ".docLink";
-        issue.doclink = get_text(feature_doclink_tag.c_str());
-
-        issue.level = level;
-        upgrade_issues.push_back(issue);
-      }
-      break;
-    case Grouping::ALL:
-      std::vector<std::string> desc = {resolve_check_description()};
-      Upgrade_issue::Level level = Upgrade_issue::NOTICE;
-      for (const auto &issues : m_feature_issues) {
-        const auto &feature = m_features.at(issues.first).feature;
-        auto this_level = get_issue_level(feature, server_info);
-        if (this_level < level) {
-          level = this_level;
-        }
-        for (const auto &item : issues.second) {
-          desc.push_back(item);
-        }
-      }
+    for (const auto &item : issues.second) {
       Upgrade_issue issue;
-      issue.description =
-          shcore::str_format("%s: %s", Upgrade_issue::level_to_string(level),
-                             shcore::str_join(desc, "\n").c_str());
+      std::string desc =
+          resolve_feature_description(feature, level, item.first);
+      issue.description = shcore::str_format(
+          "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
+
+      auto feature_doclink_tag = feature.id + ".docLink";
+      issue.doclink = get_text(feature_doclink_tag.c_str());
+
+      issue.schema = item.first;
       issue.level = level;
+      issue.object_type = item.second;
       upgrade_issues.push_back(issue);
-      break;
+    }
   }
 
   return upgrade_issues;
@@ -317,7 +273,7 @@ void Auth_method_usage_check::process_row(const mysqlshdk::db::IRow *row) {
   for (const rapidjson::Value &plugin : doc.GetArray()) {
     std::string name = plugin.GetString();
     if (m_features.find(name) != m_features.end()) {
-      add_issue(name, account);
+      add_issue(name, account, Upgrade_issue::Object_type::USER);
     }
   }
 }
@@ -372,7 +328,7 @@ std::string Plugin_usage_check::build_query(
 void Plugin_usage_check::process_row(const mysqlshdk::db::IRow *row) {
   const auto plugin = row->get_string(0);
   if (m_features.find(plugin) != m_features.end()) {
-    add_issue(plugin, plugin);
+    add_issue(plugin, plugin, Upgrade_issue::Object_type::PLUGIN);
   }
 }
 

@@ -156,6 +156,7 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     problem.table = fk.second.table_name;
     problem.column = fk.second.columns;
     problem.level = Upgrade_issue::ERROR;
+    problem.object_type = Upgrade_issue::Object_type::FOREIGN_KEY;
 
     issues.emplace_back(std::move(problem));
   }

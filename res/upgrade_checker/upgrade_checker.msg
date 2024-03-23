@@ -379,13 +379,19 @@ https://dev.mysql.com/doc/refman/5.7/en/identifier-mapping.html
 https://dev.mysql.com/doc/refman/5.7/en/alter-database.html
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals
 
-* orphanedRoutines.title
-Check for orphaned routines in 5.7
+* orphanedObjects.title
+Check for orphaned routines and events in 5.7
 
-* orphanedRoutines.description
-Error: The following routines have been orphaned. Schemas that they are referencing no longer
+* orphanedObjects.description
+Error: The following objects have been orphaned. Schemas that they are referencing no longer
 exists.\n
 They have to be cleaned up or the upgrade will fail.
+
+* orphanedObjects.routine
+this routine is associated to a schema that no longer exists.
+
+* orphanedObjects.event
+this event is associated to a schema that no longer exists.
 
 * dollarSignName.title
 Check for deprecated usage of single dollar signs in object names
@@ -461,13 +467,6 @@ InnoDB tables with non-default row format
 * innodbRowFormat.description
 The following tables use a non-default InnoDB row format
 
-
-* zerofill.title
-Usage of use ZEROFILL/display length type attributes
-
-* zerofill.description
-The following table columns specify a ZEROFILL/display length attributes.
-Please be aware that they will be ignored in the latest MySQL version.
 
 * authMethodUsage.title
 Check for deprecated or invalid user authentication methods.
