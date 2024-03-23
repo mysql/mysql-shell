@@ -120,7 +120,7 @@ class Feature_life_cycle_check : public Upgrade_check {
   // executed the check as well as accurate about what the output should be, for
   // the purpose of listing the checks, what really matters is when the check is
   // activated, so we store that here
-  Version_condition m_list_condition;
+  Aggregated_life_cycle_condition m_list_condition;
 };
 
 class Auth_method_usage_check : public Feature_life_cycle_check {
