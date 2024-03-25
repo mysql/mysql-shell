@@ -60,7 +60,7 @@ void EXPECT_TRANSPORT_TYPE(const mysqlshdk::db::Connection_options &d) {
   EXPECT_EQ(mysqlshdk::db::k_default_local_transport_type,
             d.get_transport_type());
 #endif
-};
+}
 
 }  // namespace
 
