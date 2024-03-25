@@ -62,10 +62,8 @@ std::string to_string(Transport_type type);
 inline constexpr int k_default_mysql_port = 3306;
 inline constexpr int k_default_mysql_x_port = 33060;
 
+inline constexpr int k_max_auth_factors = 3;
 class SHCORE_PUBLIC Connection_options : public IConnection {
- public:
-  using Mfa_passwords = std::array<std::optional<std::string>, 3>;
-
  public:
   explicit Connection_options(
       utils::nullable_options::Comparison_mode mode =
@@ -95,6 +93,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   int get_target_port() const;
 
   const std::string &get_password() const override;
+  // password1/factor 0 is an alias for regular password
+  const std::string &get_mfa_password(int factor) const;
 
   void set_transport_type(Transport_type type);
   Transport_type get_transport_type() const;
@@ -105,7 +105,6 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
     return m_extra_options.get_value(kCompressionAlgorithms);
   }
   int64_t get_compression_level() const;
-  const Mfa_passwords &get_mfa_passwords() const;
 
   const Ssl_options &get_ssl_options() const { return m_ssl_options; }
   Ssl_options &get_ssl_options() { return m_ssl_options; }
@@ -117,11 +116,17 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   ssh::Ssh_connection_options &get_ssh_options_handle(int fallback_port = 0);
 
   const std::vector<std::string> &get_warnings() const { return m_warnings; }
-  bool has_password() const override {
-    return has_value(kPassword) || m_mfa_passwords[0].has_value();
-  }
+  bool has_password() const override { return has_value(kPassword); }
+  bool has_mfa_password(int factor) const;
+  bool has_needs_password(int factor) const;
 
-  bool has_mfa_passwords() const;
+  bool needs_password(int factor) const;
+  bool should_prompt_password(int factor) const {
+    return (!has_mfa_password(factor) && has_needs_password(factor) &&
+            needs_password(factor)) ||
+           // prompt for password1 by default
+           (factor == 0 && !has_needs_password(0) && !has_password());
+  }
 
   bool has_data() const override;
   bool has_schema() const { return has_value(kSchema); }
@@ -158,7 +163,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   }
   void set_password(const std::string &password) override;
   void set_mfa_password(int factor, const std::string &password);
-  void set_mfa_passwords(const Mfa_passwords &mfa_passwords);
+  void set_needs_password(int factor, bool flag);
 
   void set(const std::string &attribute, const std::string &value) override;
   void set(const std::string &attribute, int value) override;
@@ -170,7 +175,8 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void clear_host() override;
   void clear_port() override;
   void clear_password() override;
-  void clear_mfa_passwords();
+  void clear_mfa_password(int factor);
+  void clear_needs_password(int factor);
   void clear_schema() { clear_value(kSchema); }
   void clear_socket();
   void clear_pipe();
@@ -270,7 +276,13 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   utils::Nullable_options m_extra_options;
   bool m_enable_connection_attributes;
   utils::Nullable_options m_connection_attributes;
-  mutable Mfa_passwords m_mfa_passwords;
+  // mfa_password1 is the regular password
+  std::optional<std::string> m_mfa_password_2;
+  std::optional<std::string> m_mfa_password_3;
+
+  // whether a (mfa) password is needed even if not given
+  // regular password is assumed to be required for compatibility options
+  std::array<std::optional<bool>, k_max_auth_factors> m_needs_password;
 
   std::vector<std::string> m_warnings;
 };

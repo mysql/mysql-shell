@@ -70,19 +70,19 @@ bool Shell_options::Storage::has_connection_data(
     return connection_data.has_user() || connection_data.has_host() ||
            connection_data.has_port() || connection_data.has_socket() ||
            connection_data.has_pipe() || connection_data.has_password() ||
-           prompt_password;
+           connection_data.has_needs_password(0) ||
+           connection_data.has_needs_password(1) ||
+           connection_data.has_needs_password(2);
   }
-
-  return connection_data.has_data() || prompt_password;
+  return connection_data.has_data() || connection_data.has_needs_password(0) ||
+         connection_data.has_needs_password(1) ||
+         connection_data.has_needs_password(2);
 }
 
 mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
     const {
   auto target_server = connection_data;
 
-  if (no_password && !target_server.has_password()) {
-    target_server.set_password("");
-  }
   if (!ssh.uri.empty()) {
     auto ssh_dict = shcore::make_dict();
     if (!ssh.identity_file.empty()) {
@@ -188,9 +188,7 @@ void Shell_options::Storage::set_uri(const std::string &uri) {
     connection_data.clear_schema();
     connection_data.clear_port();
     connection_data.clear_socket();
-    // don't set defaults to the parsed URI because we don't want to override
-    // options like user, pass and scheme that were specified before the URI
-    // with defaults
+
     connection_data.override_with(Connection_options(uri));
   }
 }
@@ -413,17 +411,9 @@ Shell_options::Shell_options(
     (cmdline("--password1[=<pass>]"),
       "Password for first factor authentication plugin.")
     (cmdline("--password2[=<pass>]"),
-      "Password for second factor authentication plugin.",
-      [this](const std::string&, const char* value) {
-          storage.connection_data.set_mfa_password(
-            1, value == nullptr ? "" : value);
-      })
+      "Password for second factor authentication plugin.")
     (cmdline("--password3[=<pass>]"),
-      "Password for third factor authentication plugin.",
-      [this](const std::string&, const char* value) {
-          storage.connection_data.set_mfa_password(
-              2, value == nullptr ? "" : value);
-      })
+      "Password for third factor authentication plugin.")
     (cmdline("-C", "--compress[=<value>]"),
         "Use compression in client/server protocol. Valid values: 'REQUIRED', "
         "'PREFFERED', 'DISABLED', 'True', 'False', '1', and '0'. Boolean values"
@@ -800,8 +790,12 @@ Shell_options::Shell_options(
       })
     (cmdline("--nw", "--no-wizard"), "Disables wizard mode.",
         assign_value(&storage.wizards, false))
-    (&storage.no_password, false, cmdline("--no-password"),
-        "Sets empty password and disables prompt for password.")
+    (cmdline("--no-password"),
+        "Sets empty password and disables prompt for password.",
+        [this](const std::string&, const char*) {
+          storage.connection_data.set_needs_password(0, false);
+          storage.connection_data.set_password("");
+      })
     (cmdline("-V", "--version"),
         "Prints the version of MySQL Shell.", [this](const std::string&, const char*) {
         if (print_cmd_line_version) {
@@ -914,33 +908,45 @@ Shell_options::Shell_options(
 
     mycnf_connection_data = storage.connection_data;
     // temporarily clear passwords so we can detect if we got them from cmdline
-    storage.connection_data.clear_password();
-    storage.connection_data.clear_mfa_passwords();
-
+    for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++) {
+      storage.connection_data.clear_needs_password(f);
+      storage.connection_data.clear_mfa_password(f);
+    }
     handle_cmdline_options(
         argc, argv, false,
         std::bind(&Shell_options::custom_cmdline_handler, this, _1));
 
     if (storage.connection_data.has_password() ||
-        storage.connection_data.has_mfa_passwords()) {
+        storage.connection_data.has_mfa_password(1) ||
+        storage.connection_data.has_mfa_password(2)) {
       got_cmdline_password = true;
     } else {
       // if we didn't get any password in the cmdline, restore the ones we got
       // from my.cnf (if any)
-      if (mycnf_connection_data.has_password())
-        storage.connection_data.set_password(
-            mycnf_connection_data.get_password());
-      if (mycnf_connection_data.has_mfa_passwords())
-        storage.connection_data.set_mfa_passwords(
-            mycnf_connection_data.get_mfa_passwords());
+      for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++) {
+        if (!storage.connection_data.has_needs_password(f) ||
+            !storage.connection_data.needs_password(f)) {
+          if (mycnf_connection_data.has_mfa_password(f))
+            storage.connection_data.set_mfa_password(
+                f, mycnf_connection_data.get_mfa_password(f));
+        }
+      }
     }
 
-    // default to mysql:// if we got connection options from my.cnf but we still
-    // don't know what session type to use
     if (storage.has_connection_data() &&
         !storage.connection_data.has_scheme() &&
-        mycnf_connection_data.has_data())
+        mycnf_connection_data.has_data()) {
+      // default to mysql:// if we got connection options from my.cnf but we
+      // still don't know what session type to use
       storage.connection_data.set_scheme("mysql");
+    }
+    // if connection options were specified but nothing about password, then
+    // prompt by default
+    if (storage.has_connection_data(true) &&
+        !storage.connection_data.has_password() &&
+        !storage.connection_data.has_needs_password(0)) {
+      storage.connection_data.set_needs_password(0, true);
+    }
 
     check_password_conflicts();
     check_ssh_conflicts();
@@ -1153,7 +1159,14 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
 
     iterator->next();
   } else if ("--password" == option || "-p" == option ||
-             "--password1" == option) {
+             "--password1" == option || "--password2" == option ||
+             "--password3" == option) {
+    int mfa_password = 0;
+    if (option == "--password2")
+      mfa_password = 1;
+    else if (option == "--password3")
+      mfa_password = 2;
+
     // Note that in any connection attempt, password prompt will be done if
     // the password is missing.
     // The behavior of the password cmd line argument is as follows:
@@ -1168,22 +1181,25 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     // -p<value> sets the password to <value>
     // --password=<value> sets the password to <value>
 
+    // --password1 is an alias for -p/--password
+    // --password2 and --password3 are MFA passwords and handled like -p
+
+    // if a password option is specified, it's needed
+    storage.connection_data.set_needs_password(mfa_password, true);
     if (shcore::Options::Iterator::Type::NO_VALUE == iterator->type()) {
-      storage.prompt_password = true;
+      storage.connection_data.clear_mfa_password(mfa_password);
       iterator->next_no_value();
     } else if (shcore::Options::Iterator::Type::SEPARATE_VALUE !=
                iterator->type()) {
       // --password=value || -pvalue
       const auto value = iterator->value();
-      storage.connection_data.set_mfa_password(0, value);
-
+      storage.connection_data.set_mfa_password(mfa_password, value);
       const std::string stars(strlen(value), '*');
 
       strncpy(const_cast<char *>(value), stars.c_str(), stars.length() + 1);
       iterator->next();
-      storage.prompt_password = false;
     } else {  // --password value (value is ignored)
-      storage.prompt_password = true;
+      storage.connection_data.clear_mfa_password(mfa_password);
       iterator->next_no_value();
     }
   } else if ("-m" == option) {
@@ -1225,6 +1241,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
   } else {
     return false;
   }
+
   return true;
 }
 
@@ -1271,21 +1288,6 @@ void Shell_options::check_password_conflicts() {
           "password in the SSH-URI.";
       throw std::runtime_error(error);
     }
-  }
-
-  if (storage.no_password && storage.prompt_password) {
-    const auto error =
-        "Conflicting options: --password and --no-password option cannot be "
-        "used together.";
-    throw std::runtime_error(error);
-  }
-
-  if (storage.no_password && storage.connection_data.has_password() &&
-      !storage.connection_data.get_password().empty()) {
-    const auto error =
-        "Conflicting options: --no-password cannot be used if password is "
-        "provided.";
-    throw std::runtime_error(error);
   }
 }
 

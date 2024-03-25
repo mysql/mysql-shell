@@ -101,19 +101,16 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "user")
       return options->connection_options().get_user();
     else if (option == "password" || option == "password1")
-      return options->connection_options().get_mfa_passwords()[0].has_value()
-                 ? std::string(
-                       *options->connection_options().get_mfa_passwords()[0])
+      return options->connection_options().has_password()
+                 ? options->connection_options().get_password()
                  : "";
     else if (option == "password2")
-      return options->connection_options().get_mfa_passwords()[1].has_value()
-                 ? std::string(
-                       *options->connection_options().get_mfa_passwords()[1])
+      return options->connection_options().has_mfa_password(1)
+                 ? options->connection_options().get_mfa_password(1)
                  : "";
     else if (option == "password3")
-      return options->connection_options().get_mfa_passwords()[2].has_value()
-                 ? std::string(
-                       *options->connection_options().get_mfa_passwords()[2])
+      return options->connection_options().has_mfa_password(2)
+                 ? options->connection_options().get_mfa_password(2)
                  : "";
     else if (option == "port")
       return AS__STRING(options->connection_options().get_port());
@@ -162,7 +159,14 @@ class Shell_cmdline_options : public tests::Shell_base_test {
     else if (option == "passwords_from_stdin")
       return AS__STRING(options->passwords_from_stdin);
     else if (option == "prompt_password")
-      return AS__STRING(options->prompt_password);
+      return AS__STRING(
+          options->connection_options().should_prompt_password(0));
+    else if (option == "prompt_password2")
+      return AS__STRING(
+          options->connection_options().should_prompt_password(1));
+    else if (option == "prompt_password3")
+      return AS__STRING(
+          options->connection_options().should_prompt_password(2));
     else if (option == "trace_protocol")
       return AS__STRING(options->trace_protocol);
     else if (option == "log_level")
@@ -772,11 +776,14 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_EQ(options.log_level, shcore::Logger::LOG_INFO);
   EXPECT_EQ("table", options.result_format);
   EXPECT_EQ("off", options.wrap_json);
-  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[0].has_value());
-  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[1].has_value());
-  EXPECT_FALSE(options.connection_options().get_mfa_passwords()[2].has_value());
+  EXPECT_FALSE(options.connection_options().has_password());
+  EXPECT_FALSE(options.connection_options().has_mfa_password(1));
+  EXPECT_FALSE(options.connection_options().has_mfa_password(2));
   EXPECT_FALSE(options.passwords_from_stdin);
-  EXPECT_FALSE(options.prompt_password);
+  // prompt password1 by default
+  EXPECT_TRUE(options.connection_options().should_prompt_password(0));
+  EXPECT_FALSE(options.connection_options().should_prompt_password(1));
+  EXPECT_FALSE(options.connection_options().should_prompt_password(2));
   EXPECT_TRUE(options.protocol.empty());
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(!options.connection_options().has_schema());
@@ -836,8 +843,11 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("-C", "compress", "REQUIRED");
   test_option_with_no_value("--compress", "compress", "REQUIRED");
   test_option_with_no_value("-p", "prompt_password", "1");
+
   test_option_with_no_value("--password", "prompt_password", "1");
   test_option_with_no_value("--password1", "prompt_password", "1");
+  test_option_with_no_value("--password2", "prompt_password2", "1");
+  test_option_with_no_value("--password3", "prompt_password3", "1");
 
   test_option_equal_value("password1", "mypwd", IS_CONNECTION_DATA, "password");
   test_option_equal_value("password2", "mypwd", IS_CONNECTION_DATA);
@@ -845,8 +855,11 @@ TEST_F(Shell_cmdline_options, app) {
 
   test_option_space_value("password1", "mypwd", IS_CONNECTION_DATA,
                           "prompt_password", "1");
-  test_option_space_value("password2", "mypwd", IS_CONNECTION_DATA);
-  test_option_space_value("password3", "mypwd", IS_CONNECTION_DATA);
+  test_option_space_value("password2", "mypwd", IS_CONNECTION_DATA,
+                          "prompt_password2", "1");
+  test_option_space_value("password3", "mypwd", IS_CONNECTION_DATA,
+                          "prompt_password3", "1");
+
   test_option_with_value("ssl-ca", "", "some_value", "", IS_CONNECTION_DATA,
                          false);
   test_option_with_value("ssl-cert", "", "some_value", "", IS_CONNECTION_DATA,
@@ -1536,8 +1549,10 @@ TEST_F(Shell_cmdline_options, mfa_tests) {
     EXPECT_NO_THROW(so.get().connection_options());
   }
   {
-    char *passwords[] = {const_cast<char *>("--password2=whatever"),
-                         const_cast<char *>("--password3=whatever")};
+    char password2[] = "--password2=whatever";
+    char password3[] = "--password3=whatever";
+    char *passwords[] = {const_cast<char *>(password2),
+                         const_cast<char *>(password3)};
     char *x_proto_args[] = {const_cast<char *>("--mysqlx"),
                             const_cast<char *>("--mx"),
                             const_cast<char *>("--sqlx")};
@@ -1730,6 +1745,329 @@ port=3232
 
     EXPECT_FALSE(so.get().connection_options().has_port());
     EXPECT_EQ("/tmp/sock", so.get().connection_options().get_socket());
+  }
+}
+
+TEST_F(Shell_cmdline_options, force_password_prompt) {
+  // force password prompt
+  // override port with socket
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+host=localhost
+port=3232
+password=bla
+)*");
+
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri,
+                     const_cast<char *>("-p"), NULL};
+    Shell_options so(4, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri,
+                     const_cast<char *>("--password"), NULL};
+    Shell_options so(4, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  {
+    char uri[] = "root:badpass@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri, const_cast<char *>("-p"),
+                     NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  {
+    char uri[] = "root:goodpass@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("-p"), uri,
+                     NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+
+  {
+    char uri[] = "root@localhost";
+    char goodpass[] = "-pgoodpass";
+    char *argv0[] = {const_cast<char *>("ut"), goodpass,
+                     const_cast<char *>("-p"), uri, NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char goodpass[] = "-pgoodpass";
+    char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("-p"),
+                     goodpass, uri, NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char goodpass[] = "-pgoodpass";
+    char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("-p"), uri,
+                     goodpass, NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+
+  {
+    char uri[] = "root:goodpass@localhost";
+    char badpass[] = "-pbadpass";
+    char *argv0[] = {const_cast<char *>("ut"), badpass, uri, NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+  {
+    char uri[] = "root:baddpass@localhost";
+    char badpass[] = "-pbadpass";
+    char *argv0[] = {const_cast<char *>("ut"), badpass, uri,
+                     const_cast<char *>("-p"), NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  // mfa
+  {
+    char uri[] = "root:goodpass@localhost";
+    char *argv0[] = {const_cast<char *>("ut"),
+                     const_cast<char *>("--password2"), uri, NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(1));
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(2));
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+  {
+    char uri[] = "root:goodpass@localhost";
+    char *argv0[] = {const_cast<char *>("ut"),
+                     const_cast<char *>("--password3"), uri, NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(1));
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(2));
+    EXPECT_EQ("goodpass", so.get().connection_options().get_password());
+  }
+}
+
+TEST_F(Shell_cmdline_options, no_password) {
+  make_mycnf(R"*([mysqlsh]
+user=rooot
+host=localhost
+port=3232
+password=bla
+)*");
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), &defaults_file[0], uri,
+                     const_cast<char *>("--no-password"), NULL};
+    Shell_options so(4, argv0, "",
+                     mysqlsh::Shell_options::Option_flags_set(
+                         mysqlsh::Shell_options::Option_flags::READ_MYCNF));
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(1));
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(2));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(1));
+    EXPECT_FALSE(so.get().connection_options().has_mfa_password(2));
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char badpass[] = "-pbadpass";
+    char *argv0[] = {const_cast<char *>("ut"), uri, badpass,
+                     const_cast<char *>("--no-password"), NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char badpass[] = "-pbadpass";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--no-password"), badpass, NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("badpass", so.get().connection_options().get_password());
+  }
+
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--no-password"),
+                     const_cast<char *>("-p"), NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_FALSE(so.get().connection_options().has_password());
+  }
+  {
+    char uri[] = "root@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri, const_cast<char *>("-p"),
+                     const_cast<char *>("--no-password"), NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+
+  // no password and empty password
+  {
+    char uri[] = "root@localhost";
+    char emptypass[] = "--password=";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--no-password"), emptypass, NULL};
+    Shell_options so(4, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+
+  // no password and URI empty password
+  {
+    char uri[] = "root:@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--no-password"), NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+
+  // no password and URI password
+  {
+    char uri[] = "root:pass@localhost";
+    char *argv0[] = {const_cast<char *>("ut"), uri,
+                     const_cast<char *>("--no-password"), NULL};
+    Shell_options so(3, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+    EXPECT_TRUE(so.get().connection_options().has_password());
+    EXPECT_EQ("", so.get().connection_options().get_password());
+  }
+}
+
+TEST_F(Shell_cmdline_options, password_prompt_default) {
+  // don't prompt for password if no connection options specified
+  {
+    char *argv0[] = {const_cast<char *>("ut"), NULL};
+    Shell_options so(1, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+    EXPECT_FALSE(so.get().has_connection_data());
+    EXPECT_FALSE(so.get().has_connection_data(true));
+    // this should not be relevant because has_connection_data() is called 1st
+    // EXPECT_FALSE(so.get().connection_options().should_prompt_password(0));
+  }
+  // prompt if prompt specifically requested
+  {
+    char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("-p"), NULL};
+    Shell_options so(2, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
+  }
+
+  // prompt if there's any connection option
+  {
+    char *argv0[] = {const_cast<char *>("ut"), const_cast<char *>("-uroot"),
+                     NULL};
+    Shell_options so(2, argv0, "", {});
+    EXPECT_EQ(0, so.get().exit_code);
+    EXPECT_NO_THROW(so.get().connection_options());
+
+    EXPECT_TRUE(so.get().connection_options().should_prompt_password(0));
   }
 }
 

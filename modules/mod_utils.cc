@@ -470,14 +470,19 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
 void password_prompt(Connection_options *options) {
   const std::string uri =
       options->as_uri(mysqlshdk::db::uri::formats::user_transport());
-  const std::string prompt = "Please provide the password for '" + uri + "': ";
-  std::string answer;
-  const auto result = current_console()->prompt_password(prompt, &answer);
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; factor++) {
+    if (!options->should_prompt_password(factor)) continue;
+    const std::string prompt = "Please provide the password" +
+                               (factor == 0 ? "" : std::to_string(factor + 1)) +
+                               " for '" + uri + "': ";
+    std::string answer;
+    const auto result = current_console()->prompt_password(prompt, &answer);
 
-  if (result == shcore::Prompt_result::Ok) {
-    options->set_password(answer);
-  } else {
-    throw shcore::cancelled("Cancelled");
+    if (result == shcore::Prompt_result::Ok) {
+      options->set_mfa_password(factor, answer);
+    } else {
+      throw shcore::cancelled("Cancelled");
+    }
   }
 }
 
@@ -499,6 +504,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
       mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
     }
 
+    // TODO(alfredo) - password storage for MFA needs to be figured out
     if (!copy.has_password() && copy.has_user()) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
         try {
@@ -507,7 +513,10 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
           if (e.code() != ER_ACCESS_DENIED_ERROR) {
             throw;
           } else {
-            copy.clear_password();
+            // we don't which password was wrong, so assume all of them were
+            for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++)
+              copy.clear_mfa_password(f);
+
             shcore::Credential_manager::get().remove_password(copy);
             log_info(
                 "Connection to \"%s\" could not be established using the "
@@ -523,8 +532,17 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     if (prompt_for_password) {
       do {
         bool prompted_for_password = false;
+        bool should_prompt = false;
+        for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++) {
+          if (copy.should_prompt_password(f)) {
+            should_prompt = true;
+            break;
+          }
+        }
 
-        if (!copy.has_password() && copy.has_user() &&
+        // TODO(alfredo) - kerberos/oci should disable password prompt in
+        // shell_options
+        if (should_prompt && copy.has_user() &&
             !copy.is_auth_method(mysqlshdk::db::kAuthMethodKerberos) &&
             !copy.is_auth_method(mysqlshdk::db::kAuthMethodOci)) {
           password_prompt(&copy);
