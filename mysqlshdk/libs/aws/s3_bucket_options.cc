@@ -27,6 +27,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"

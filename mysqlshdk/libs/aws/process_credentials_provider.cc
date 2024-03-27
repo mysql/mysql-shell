@@ -149,47 +149,44 @@ std::string run_process(const std::string &process) {
 }  // namespace
 
 Process_credentials_provider::Process_credentials_provider(
-    const std::string &path, const Aws_config_file::Profile *profile)
+    const Settings &settings, const std::string &profile)
     : Aws_credentials_provider(
-          {"output of 'credential_process' (config file " + path + ")",
-           "AccessKeyId", "SecretAccessKey"}),
-      m_profile(profile) {}
+          {"output of 'credential_process' (config file: " +
+               settings.get_string(Setting::CONFIG_FILE) +
+               ", profile: " + profile + ")",
+           "AccessKeyId", "SecretAccessKey"}) {
+  if (const auto p = settings.config_profile(profile)) {
+    if (const auto s = p->get("credential_process"); s && !s->empty()) {
+      m_process = s;
+    } else {
+      log_info("Profile '%s' does not have the 'credential_process' setting.",
+               profile.c_str());
+    }
+  } else {
+    log_warning(
+        "The config file at '%s' does not contain a profile named: '%s'.",
+        settings.get_string(Setting::CONFIG_FILE).c_str(), profile.c_str());
+  }
+}
 
 bool Process_credentials_provider::available() const noexcept {
-  return m_profile->settings.count("credential_process") > 0;
+  return m_process;
 }
 
 Aws_credentials_provider::Credentials
 Process_credentials_provider::fetch_credentials() {
-  const auto credential_process =
-      m_profile->settings.find("credential_process");
-
-  if (m_profile->settings.end() == credential_process ||
-      credential_process->second.empty()) {
-    return {};
-  }
-
-  return parse_json(run_process(credential_process->second));
+  return parse_json(run_process(*m_process));
 }
 
 Aws_credentials_provider::Credentials Process_credentials_provider::parse_json(
     const std::string &json) const {
   try {
-    const auto doc = shcore::json::parse_object_or_throw(json);
-
-    if (1 != shcore::json::required_uint(doc, "Version")) {
-      throw std::runtime_error{"got unsupported version, expected: 1"};
-    }
-
-    Credentials creds;
-
-    creds.access_key_id = shcore::json::required(doc, access_key_id(), true);
-    creds.secret_access_key =
-        shcore::json::required(doc, secret_access_key(), true);
-    creds.session_token = shcore::json::optional(doc, "SessionToken", true);
-    creds.expiration = shcore::json::optional(doc, "Expiration", true);
-
-    return creds;
+    return parse_json_credentials(
+        json, "SessionToken", 2, [](const shcore::json::JSON &doc) {
+          if (1 != shcore::json::required_uint(doc, "Version")) {
+            throw std::runtime_error{"got unsupported version, expected: 1"};
+          }
+        });
   } catch (const std::exception &e) {
     log_debug("Output of the AWS credential process:\n%s",
               hide_secret(json, secret_access_key()).c_str());

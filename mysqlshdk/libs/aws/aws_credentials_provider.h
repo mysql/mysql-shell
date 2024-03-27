@@ -26,11 +26,13 @@
 #ifndef MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_PROVIDER_H_
 #define MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_PROVIDER_H_
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/rest/signed/credentials_provider.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 #include "mysqlshdk/libs/aws/aws_credentials.h"
 
@@ -82,6 +84,21 @@ class Aws_credentials_provider
   };
 
   explicit Aws_credentials_provider(Context context);
+
+  /**
+   * Parses a JSON string with credentials.
+   *
+   * @param json String to parse.
+   * @param token_key Name of the key holding a value of session token.
+   * @param required How many of the credential values are required (order as in
+   *                 the Credentials structure).
+   * @param validation Extra validation.
+   *
+   * @returns Parsed credentials.
+   */
+  Credentials parse_json_credentials(
+      const std::string &json, const char *token_key, int required = 0,
+      std::function<void(const shcore::json::JSON &)> validation = {}) const;
 
  private:
   Context m_context;

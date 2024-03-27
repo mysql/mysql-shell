@@ -67,6 +67,8 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             r'^/20180711/resourcePrincipalTokenV2/(.+)$': self.handle_rpt_v2,
             r'^/v1/resourcePrincipalSessionToken$': self.handle_rpst,
             r'^/nested_rpt/([1-9][0-9]*)$': self.handle_nested_rpt,
+            r'^/ecs?.+$': self.handle_ecs,
+            r'^/imds(.+)$': self.handle_imds,
         }
 
         try:
@@ -180,6 +182,58 @@ class TestRequestHandler(BaseHTTPRequestHandler):
                 "res_type": "rpst"}
             ),
         })
+        return True
+
+    def handle_ecs(self, args):
+        extra_response = dict(parse_qsl(urlparse(self.path).query, keep_blank_values = True))
+        authorization = self.getheader('Authorization', None)
+        if authorization is not None:
+            extra_response['Token'] = authorization
+        for k, v in extra_response.items():
+            if v.isnumeric():
+                extra_response[k] = int(v)
+        self.reply(extra_response = extra_response)
+        return True
+
+    def handle_imds(self, args):
+        handled = False
+        def reply(response):
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.send_header('Content-Length', str(len(response)))
+            self.end_headers()
+            self.wfile.write(response.encode('ascii'))
+            nonlocal handled
+            handled = True
+
+        request = {}
+        p = args[0].find('/path/')
+        request['path'] = args[0][p + 5:]
+        args = args[0][:p].split('/')[1:]
+
+        for i in range(0, len(args), 2):
+            request[args[i]] = args[i + 1]
+
+        for k, v in request.items():
+            if v.isnumeric():
+                request[k] = int(v)
+
+        token_path = '/latest/api/token'
+        credentials_path = '/latest/meta-data/iam/security-credentials/'
+
+        if self.command == 'PUT' and request['path'] == token_path:
+            if self.getheader('x-aws-ec2-metadata-token-ttl-seconds', None):
+                reply(request['security'])
+        elif self.command == 'GET' and request['path'].startswith(credentials_path):
+            if self.getheader('x-aws-ec2-metadata-token', None) == (request['security'] if request['security'] else None):
+                if request['path'] == credentials_path:
+                    reply(request['role'])
+                elif request['path'] == credentials_path + request['role']:
+                    reply(json.dumps(request))
+
+        if not handled:
+            reply('{"Code": "UnexpectedError", "Message": "This was unexpected"}')
+
         return True
 
     def invoke_handler(self):

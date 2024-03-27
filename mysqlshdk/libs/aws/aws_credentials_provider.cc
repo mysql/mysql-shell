@@ -77,5 +77,30 @@ Aws_credentials_provider_traits::convert(
   return {};
 }
 
+Aws_credentials_provider::Credentials
+Aws_credentials_provider::parse_json_credentials(
+    const std::string &json, const char *token_key, int cnt_required,
+    std::function<void(const shcore::json::JSON &)> validation) const {
+  const auto doc = shcore::json::parse_object_or_throw(json);
+
+  if (validation) {
+    validation(doc);
+  }
+
+  int cnt = 0;
+  const auto value = [&](const char *name) -> std::optional<std::string> {
+    return ++cnt <= cnt_required ? shcore::json::required(doc, name, true)
+                                 : shcore::json::optional(doc, name, true);
+  };
+
+  Credentials creds;
+  creds.access_key_id = value(access_key_id());
+  creds.secret_access_key = value(secret_access_key());
+  creds.session_token = value(token_key);
+  creds.expiration = value("Expiration");
+
+  return creds;
+}
+
 }  // namespace aws
 }  // namespace mysqlshdk

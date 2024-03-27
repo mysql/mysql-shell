@@ -26,17 +26,23 @@ IF(OPENSSL_INCLUDE_DIR)
 ENDIF()
 
 set(aws_SOURCES
+  assume_role_credentials_provider.cc
   aws_config_file.cc
   aws_credentials.cc
   aws_credentials_provider.cc
   aws_credentials_resolver.cc
+  aws_profiles.cc
+  aws_settings.cc
   aws_signer.cc
   config_credentials_provider.cc
+  container_credentials_provider.cc
   env_credentials_provider.cc
+  imds_credentials_provider.cc
   process_credentials_provider.cc
   s3_bucket.cc
   s3_bucket_config.cc
   s3_bucket_options.cc
+  sts_client.cc
 )
 
 set(aws_LINK_LIBRARIES utils)

@@ -80,13 +80,7 @@ aws_secret_access_key=key1
 TEST_F(Aws_config_file_test, missing_file) {
   Aws_config_file config{"some-random-non-existing-file.txt"};
 
-  EXPECT_FALSE(config.has_profile("default"));
-  EXPECT_EQ(nullptr, config.get_profile("default"));
-
   EXPECT_FALSE(config.load());
-
-  EXPECT_FALSE(config.has_profile("default"));
-  EXPECT_EQ(nullptr, config.get_profile("default"));
 }
 
 TEST_F(Aws_config_file_test, existing_file) {
@@ -94,80 +88,78 @@ TEST_F(Aws_config_file_test, existing_file) {
   create_config(path);
   Aws_config_file config{path};
 
-  EXPECT_TRUE(config.load());
+  const auto profiles = config.load();
+  ASSERT_TRUE(profiles);
 
   {
     const std::string profile_name = "default";
-    EXPECT_TRUE(config.has_profile(profile_name));
+    EXPECT_TRUE(profiles->exists(profile_name));
 
-    const auto profile = config.get_profile(profile_name);
+    const auto profile = profiles->get(profile_name);
     ASSERT_NE(nullptr, profile);
 
-    const auto end = profile->settings.end();
-    EXPECT_TRUE(profile->access_key_id);
-    EXPECT_EQ("id", *profile->access_key_id);
-    EXPECT_EQ(end, profile->settings.find("aws_access_key_id"));
+    EXPECT_TRUE(profile->access_key_id());
+    EXPECT_EQ("id", *profile->access_key_id());
+    EXPECT_FALSE(profile->has("aws_access_key_id"));
 
-    EXPECT_TRUE(profile->secret_access_key);
-    EXPECT_EQ("key", *profile->secret_access_key);
-    EXPECT_EQ(end, profile->settings.find("aws_secret_access_key"));
+    EXPECT_TRUE(profile->secret_access_key());
+    EXPECT_EQ("key", *profile->secret_access_key());
+    EXPECT_FALSE(profile->has("aws_secret_access_key"));
 
-    EXPECT_EQ(end, profile->settings.find("aws_session_token"));
-    EXPECT_FALSE(profile->session_token);
+    EXPECT_FALSE(profile->session_token());
+    EXPECT_FALSE(profile->has("aws_session_token"));
 
-    EXPECT_EQ(end, profile->settings.find("region"));
+    EXPECT_FALSE(profile->has("region"));
 
-    ASSERT_NE(end, profile->settings.find("max_attempts"));
-    EXPECT_EQ("7", profile->settings.find("max_attempts")->second);
+    ASSERT_TRUE(profile->has("max_attempts"));
+    EXPECT_EQ("7", *profile->get("max_attempts"));
   }
 
   {
     const std::string profile_name = "oci";
-    EXPECT_TRUE(config.has_profile(profile_name));
+    EXPECT_TRUE(profiles->exists(profile_name));
 
-    const auto profile = config.get_profile(profile_name);
+    const auto profile = profiles->get(profile_name);
     ASSERT_NE(nullptr, profile);
 
-    const auto end = profile->settings.end();
-    EXPECT_TRUE(profile->access_key_id);
-    EXPECT_EQ("id1", *profile->access_key_id);
-    EXPECT_EQ(end, profile->settings.find("aws_access_key_id"));
+    EXPECT_TRUE(profile->access_key_id());
+    EXPECT_EQ("id1", *profile->access_key_id());
+    EXPECT_FALSE(profile->has("aws_access_key_id"));
 
-    EXPECT_TRUE(profile->secret_access_key);
-    EXPECT_EQ("key1", *profile->secret_access_key);
-    EXPECT_EQ(end, profile->settings.find("aws_secret_access_key"));
+    EXPECT_TRUE(profile->secret_access_key());
+    EXPECT_EQ("key1", *profile->secret_access_key());
+    EXPECT_FALSE(profile->has("aws_secret_access_key"));
 
-    EXPECT_TRUE(profile->session_token);
-    EXPECT_EQ("token", *profile->session_token);
-    EXPECT_EQ(end, profile->settings.find("aws_session_token"));
+    EXPECT_TRUE(profile->session_token());
+    EXPECT_EQ("token", *profile->session_token());
+    EXPECT_FALSE(profile->has("aws_session_token"));
 
-    EXPECT_EQ(end, profile->settings.find("region"));
+    EXPECT_FALSE(profile->has("region"));
   }
 
   {
     const std::string profile_name = "xyz";
-    EXPECT_TRUE(config.has_profile(profile_name));
+    EXPECT_TRUE(profiles->exists(profile_name));
 
-    const auto profile = config.get_profile(profile_name);
+    const auto profile = profiles->get(profile_name);
     ASSERT_NE(nullptr, profile);
 
-    const auto end = profile->settings.end();
-    EXPECT_FALSE(profile->access_key_id);
-    EXPECT_EQ(end, profile->settings.find("aws_access_key_id"));
+    EXPECT_FALSE(profile->access_key_id());
+    EXPECT_FALSE(profile->has("aws_access_key_id"));
 
-    EXPECT_FALSE(profile->secret_access_key);
-    EXPECT_EQ(end, profile->settings.find("aws_secret_access_key"));
+    EXPECT_FALSE(profile->secret_access_key());
+    EXPECT_FALSE(profile->has("aws_secret_access_key"));
 
-    EXPECT_TRUE(profile->session_token);
-    EXPECT_EQ("", *profile->session_token);
-    EXPECT_EQ(end, profile->settings.find("aws_session_token"));
+    EXPECT_TRUE(profile->session_token());
+    EXPECT_EQ("", *profile->session_token());
+    EXPECT_FALSE(profile->has("aws_session_token"));
 
-    ASSERT_NE(end, profile->settings.find("region"));
-    EXPECT_EQ("eu-central-1", profile->settings.find("region")->second);
+    ASSERT_TRUE(profile->has("region"));
+    EXPECT_EQ("eu-central-1", *profile->get("region"));
   }
 
-  EXPECT_FALSE(config.has_profile("missing"));
-  EXPECT_EQ(nullptr, config.get_profile("missing"));
+  EXPECT_FALSE(profiles->exists("missing"));
+  EXPECT_EQ(nullptr, profiles->get("missing"));
 }
 
 TEST_F(Aws_config_file_test, malformed_files) {

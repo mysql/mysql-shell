@@ -27,14 +27,13 @@
 #define MYSQLSHDK_LIBS_AWS_S3_BUCKET_CONFIG_H_
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"
 
-#include "mysqlshdk/libs/aws/aws_config_file.h"
 #include "mysqlshdk/libs/aws/aws_credentials.h"
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include "mysqlshdk/libs/aws/aws_settings.h"
 #include "mysqlshdk/libs/aws/aws_signer.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 
@@ -76,13 +75,27 @@ class S3_bucket_config
 
   const std::string &host() const override { return Host::host(); }
 
-  const std::string &region() const override { return m_region; }
+  const std::string &region() const override {
+    return m_settings.get_string(Setting::REGION);
+  }
 
   Aws_credentials_provider *credentials_provider() const override {
     return m_credentials_provider.get();
   }
 
   const std::string &service() const override { return m_service; }
+
+  const std::string &credentials_file() const {
+    return m_settings.get_string(Setting::CREDENTIALS_FILE);
+  }
+
+  const std::string &config_file() const {
+    return m_settings.get_string(Setting::CONFIG_FILE);
+  }
+
+  const std::string &config_profile() const {
+    return m_settings.get_string(Setting::PROFILE);
+  }
 
  private:
 #ifdef FRIEND_TEST
@@ -94,34 +107,16 @@ class S3_bucket_config
 
   std::string describe_self() const override;
 
-  void load_profile(std::optional<Aws_config_file::Profile> *target);
-
-  void validate_profile() const;
-
   void use_path_style_access();
-
-  void setup_profile_name();
-
-  void setup_credentials_file();
-
-  void setup_config_file();
-
-  void setup_config_file(std::string *target);
-
-  void setup_region_name();
 
   void setup_endpoint_uri();
 
   void setup_credentials_provider();
 
-  bool m_explicit_profile = false;
-  std::string m_region;
+  Settings m_settings;
 
   std::string m_service = "s3";
   bool m_path_style_access = false;
-
-  std::optional<Aws_config_file::Profile> m_profile_from_credentials_file;
-  std::optional<Aws_config_file::Profile> m_profile_from_config_file;
 
   std::unique_ptr<Aws_credentials_provider> m_credentials_provider;
 

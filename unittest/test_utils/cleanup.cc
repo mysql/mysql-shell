@@ -34,12 +34,7 @@
 
 namespace tests {
 
-Cleanup::~Cleanup() {
-  while (!m_steps.empty()) {
-    m_steps.back()();
-    m_steps.pop_back();
-  }
-}
+Cleanup::~Cleanup() { cleanup(); }
 
 Cleanup &Cleanup::add(Step step) {
   m_steps.emplace_back(std::move(step));
@@ -57,6 +52,13 @@ Cleanup &Cleanup::add(Cleanup c) {
 }
 
 Cleanup &Cleanup::operator+=(Cleanup c) { return add(std::move(c)); }
+
+void Cleanup::cleanup() {
+  while (!m_steps.empty()) {
+    m_steps.back()();
+    m_steps.pop_back();
+  }
+}
 
 [[nodiscard]] Cleanup Cleanup::unset_env_var(const char *name) {
   Cleanup c;

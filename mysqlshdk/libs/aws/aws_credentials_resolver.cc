@@ -25,11 +25,25 @@
 
 #include "mysqlshdk/libs/aws/aws_credentials_resolver.h"
 
+#include <memory>
+
+#include "mysqlshdk/libs/aws/config_credentials_provider.h"
+#include "mysqlshdk/libs/aws/process_credentials_provider.h"
+
 namespace mysqlshdk {
 namespace aws {
 
 Aws_credentials_resolver::Aws_credentials_resolver()
     : Credentials_resolver("The AWS access and secret keys were not found") {}
+
+void Aws_credentials_resolver::add_profile_providers(
+    const Settings &settings, const std::string &profile) {
+  add(std::make_unique<Config_credentials_provider>(
+      settings, profile, Config_credentials_provider::Type::CREDENTIALS));
+  add(std::make_unique<Process_credentials_provider>(settings, profile));
+  add(std::make_unique<Config_credentials_provider>(
+      settings, profile, Config_credentials_provider::Type::CONFIG));
+}
 
 }  // namespace aws
 }  // namespace mysqlshdk

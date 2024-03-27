@@ -1903,6 +1903,7 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("MYSQLSH_AWS_CONFIG_FILE");
   def_string_var_from_env("MYSQLSH_AWS_PROFILE");
   def_string_var_from_env("MYSQLSH_AWS_REGION");
+  def_string_var_from_env("MYSQLSH_AWS_ROLE");
   def_string_var_from_env("MYSQLSH_S3_ENDPOINT_OVERRIDE");
 
   def_var("__libmysql_version_id",

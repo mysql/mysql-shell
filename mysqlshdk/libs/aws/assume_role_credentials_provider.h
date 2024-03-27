@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,50 +23,64 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
+#ifndef MYSQLSHDK_LIBS_AWS_ASSUME_ROLE_CREDENTIALS_PROVIDER_H_
+#define MYSQLSHDK_LIBS_AWS_ASSUME_ROLE_CREDENTIALS_PROVIDER_H_
 
+#include <memory>
 #include <string>
 
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
-#include "mysqlshdk/libs/aws/aws_profiles.h"
+#include "mysqlshdk/libs/aws/aws_credentials_resolver.h"
 #include "mysqlshdk/libs/aws/aws_settings.h"
+#include "mysqlshdk/libs/aws/sts_client.h"
 
 namespace mysqlshdk {
 namespace aws {
 
 /**
- * Provides static credentials stored in `config` or `credentials` file.
+ * Provider which allows to assume a role to gain additional (or different)
+ * permissions, or get permissions to perform actions in a different AWS
+ * account.
  */
-class Config_credentials_provider : public Aws_credentials_provider {
+class Assume_role_credentials_provider : public Aws_credentials_provider {
  public:
-  enum class Type {
-    CONFIG,
-    CREDENTIALS,
-  };
+  Assume_role_credentials_provider(const Settings &settings,
+                                   const std::string &profile);
 
-  Config_credentials_provider(const Settings &settings,
-                              const std::string &profile, Type type);
-
-  Config_credentials_provider(const Config_credentials_provider &) = delete;
-  Config_credentials_provider(Config_credentials_provider &&) = delete;
-
-  Config_credentials_provider &operator=(const Config_credentials_provider &) =
+  Assume_role_credentials_provider(const Assume_role_credentials_provider &) =
       delete;
-  Config_credentials_provider &operator=(Config_credentials_provider &&) =
+  Assume_role_credentials_provider(Assume_role_credentials_provider &&) =
       delete;
 
-  ~Config_credentials_provider() override = default;
+  Assume_role_credentials_provider &operator=(
+      const Assume_role_credentials_provider &) = delete;
+  Assume_role_credentials_provider &operator=(
+      Assume_role_credentials_provider &&) = delete;
+
+  ~Assume_role_credentials_provider() override = default;
 
   bool available() const noexcept override;
 
  private:
   Credentials fetch_credentials() override;
 
+  void handle_source_profile(const Profile *profile, const Settings &settings);
+
+  void handle_credential_source(const Profile *profile,
+                                const Settings &settings);
+
+  void initialize_sts();
+
+  Credentials assume_role();
+
+  std::string m_region;
   const Profile *m_profile = nullptr;
+  Aws_credentials_resolver m_resolver;
+  std::unique_ptr<Aws_credentials_provider> m_provider;
+  std::unique_ptr<Sts_client> m_sts;
 };
 
 }  // namespace aws
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
+#endif  // MYSQLSHDK_LIBS_AWS_ASSUME_ROLE_CREDENTIALS_PROVIDER_H_

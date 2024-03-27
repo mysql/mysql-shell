@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,53 +23,48 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_AWS_CONFIG_FILE_H_
-#define MYSQLSHDK_LIBS_AWS_AWS_CONFIG_FILE_H_
-
-#include <optional>
-#include <string>
-
 #include "mysqlshdk/libs/aws/aws_profiles.h"
+
+#include <utility>
 
 namespace mysqlshdk {
 namespace aws {
 
-/**
- * Handles both credentials and config files.
- */
-class Aws_config_file final {
- public:
-  Aws_config_file() = delete;
+Profile::Profile(std::string name) : m_name(std::move(name)) {}
 
-  explicit Aws_config_file(const std::string &path);
+void Profile::set(std::string name, std::string value) {
+  if ("aws_access_key_id" == name) {
+    m_access_key_id = std::move(value);
+  } else if ("aws_secret_access_key" == name) {
+    m_secret_access_key = std::move(value);
+  } else if ("aws_session_token" == name) {
+    m_session_token = std::move(value);
+  } else {
+    m_settings.emplace(std::move(name), std::move(value));
+  }
+}
 
-  Aws_config_file(const Aws_config_file &) = default;
-  Aws_config_file(Aws_config_file &&) = default;
+const std::string *Profile::get(const std::string &name) const {
+  const auto setting = m_settings.find(name);
+  return m_settings.end() == setting ? nullptr : &setting->second;
+}
 
-  Aws_config_file &operator=(const Aws_config_file &) = default;
-  Aws_config_file &operator=(Aws_config_file &&) = default;
+bool Profile::has(const std::string &name) const {
+  return m_settings.end() != m_settings.find(name);
+}
 
-  ~Aws_config_file() = default;
+bool Profiles::exists(const std::string &name) const {
+  return m_profiles.end() != m_profiles.find(name);
+}
 
-  /**
-   * Provides path to this file.
-   */
-  const std::string &path() const noexcept { return m_path; }
+const Profile *Profiles::get(const std::string &name) const {
+  const auto profile = m_profiles.find(name);
+  return m_profiles.end() == profile ? nullptr : &profile->second;
+}
 
-  /**
-   * Loads the configuration from the file.
-   *
-   * @returns Loaded profiles, if the requested file exists
-   *
-   * @throws std::runtime_error if file is malformed
-   */
-  std::optional<Profiles> load() const;
-
- private:
-  std::string m_path;
-};
+Profile *Profiles::get_or_create(const std::string &name) {
+  return &m_profiles.try_emplace(name, name).first->second;
+}
 
 }  // namespace aws
 }  // namespace mysqlshdk
-
-#endif  // MYSQLSHDK_LIBS_AWS_AWS_CONFIG_FILE_H_

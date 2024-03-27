@@ -132,7 +132,7 @@ with write_profile(default_aws_config_file, "profile " + local_aws_profile, { "r
 #@<> WL14387-TSFR_4_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
-        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found, tried: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found, tried: credentials file ({local_aws_credentials_file}, profile: {local_aws_profile}), config file ({local_aws_config_file}, profile: {local_aws_profile}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_4_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
@@ -163,7 +163,7 @@ with write_profile(default_aws_config_file, "profile " + local_aws_profile, aws_
 # BUG#34604763 - partial credentials are an error
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region), "aws_access_key_id": aws_settings["aws_access_key_id"] }):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
-        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}, profile: {local_aws_profile}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_3
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region), "aws_access_key_id": "invalid", "aws_secret_access_key": "invalid" }):
@@ -173,7 +173,7 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "reg
 #@<> WL14387-TSFR_5_1_1
 with write_profile(default_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_secret_access_key": aws_settings["aws_secret_access_key"] }):
-        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}, profile: {local_aws_profile}), missing the value of 'aws_access_key_id'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_2_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "aws_secret_access_key": "", "aws_access_key_id": "invalid" }):
@@ -184,7 +184,7 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "aws
 #@<> WL14387-TSFR_5_2_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region) }):
     with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"] }):
-        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}), missing the value of 'aws_secret_access_key'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"Partial AWS credentials found in credentials file ({local_aws_credentials_file}, profile: {local_aws_profile}), missing the value of 'aws_secret_access_key'", { "s3Profile": local_aws_profile, "s3ConfigFile": "", "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_5_3_1
 current_log_level = shell.options["logLevel"]

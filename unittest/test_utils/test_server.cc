@@ -102,9 +102,9 @@ bool find_free_port(int *port, bool use_env_var) {
 
 }  // namespace
 
-Test_server::Test_server() { setup_env_vars(); }
-
 bool Test_server::start_server(int start_port, bool use_env_var, bool https) {
+  setup_env_vars();
+
   const auto tag = https ? "HTTPS" : "HTTP";
   m_port = start_port;
 
@@ -212,6 +212,8 @@ void Test_server::stop_server() {
 
   m_server->kill();
   m_server.reset();
+
+  clear_env_vars();
 }
 
 bool Test_server::is_alive() { return m_server && !m_server->check(); }
@@ -219,7 +221,31 @@ bool Test_server::is_alive() { return m_server && !m_server->check(); }
 void Test_server::setup_env_vars() {
   debug_env_vars();
 
-  m_cleanup = Cleanup::set_env_var("no_proxy", "*");
+  if (!m_env_vars.empty()) {
+    if (debug()) {
+      std::cerr << "The 'no_proxy' env var is already set" << std::endl;
+    }
+
+    return;
+  }
+
+  if (debug()) {
+    std::cerr << "Setting 'no_proxy' env var to: '*'" << std::endl;
+  }
+
+  m_env_vars = Cleanup::set_env_var("no_proxy", "*");
+
+  debug_env_vars();
+}
+
+void Test_server::clear_env_vars() {
+  debug_env_vars();
+
+  if (debug()) {
+    std::cerr << "Clearing 'no_proxy' env var" << std::endl;
+  }
+
+  m_env_vars.cleanup();
 
   debug_env_vars();
 }

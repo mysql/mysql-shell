@@ -50,22 +50,68 @@ namespace aws {
     }                                \
   } while (false)
 
-class Aws_s3_tests : public testing::Test,
-                     public ::testing::WithParamInterface<std::string> {
+class Aws_tests : public testing::Test {
  protected:
   void SetUp() override {
     Test::SetUp();
-
     setup_test();
+  }
+
+  virtual void setup_test() {
+    const auto read_var = [this](const char *name, std::string *out,
+                                 bool required = true) {
+      const auto var = getenv(name);
+
+      if (var) {
+        *out = var;
+      } else if (required) {
+        skip("Missing environment variable: " + std::string(name));
+      }
+    };
+
+    read_var("MYSQLSH_S3_BUCKET_NAME", &m_bucket_name);
+    read_var("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", &m_credentials_file, false);
+    read_var("MYSQLSH_AWS_CONFIG_FILE", &m_config_file, false);
+    read_var("MYSQLSH_AWS_PROFILE", &m_profile, false);
+    read_var("MYSQLSH_AWS_REGION", &m_region, false);
+    read_var("MYSQLSH_AWS_ROLE", &m_role, false);
+    read_var("MYSQLSH_S3_ENDPOINT_OVERRIDE", &m_endpoint_override, false);
+  }
+
+  void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }
+
+  bool should_skip() const { return !m_skip_reasons.empty(); }
+
+  std::string skip_reason() const {
+    return shcore::str_join(m_skip_reasons, "\n");
+  }
+
+  std::vector<std::string> m_skip_reasons;
+  std::string m_bucket_name;
+  std::string m_credentials_file;
+  std::string m_config_file;
+  std::string m_profile;
+  std::string m_region;
+  std::string m_endpoint_override;
+  std::string m_role;
+};
+
+class Aws_s3_tests : public Aws_tests,
+                     public ::testing::WithParamInterface<std::string> {
+ protected:
+  void SetUp() override {
+    Aws_tests::SetUp();
     clean_bucket();
   }
 
   void TearDown() override {
     clean_bucket();
-    Test::TearDown();
+    Aws_tests::TearDown();
   }
 
-  void setup_test() {
+  void setup_test() override {
+    Aws_tests::setup_test();
+
     // Note that these object names are in alphabetical order on purpose
     m_objects = {
         "sakila.sql",
@@ -81,27 +127,9 @@ class Aws_s3_tests : public testing::Test,
         "uncommon's name.txt",
     };
 
-    const auto read_var = [this](const char *name, std::string *out,
-                                 bool required = true) {
-      const auto var = getenv(name);
-
-      if (var) {
-        *out = var;
-      } else if (required) {
-        skip("Missing environment variable: " + std::string(name));
-      }
-    };
-
-    read_var("MYSQLSH_S3_BUCKET_NAME", &m_bucket_name);
     // we add a suffix to the bucket name, to test virtual-style and path-style
     // access
     m_bucket_name += GetParam();
-
-    read_var("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", &m_credentials_file, false);
-    read_var("MYSQLSH_AWS_CONFIG_FILE", &m_config_file, false);
-    read_var("MYSQLSH_AWS_PROFILE", &m_profile, false);
-    read_var("MYSQLSH_AWS_REGION", &m_region, false);
-    read_var("MYSQLSH_S3_ENDPOINT_OVERRIDE", &m_endpoint_override, false);
 
     if (!should_skip()) {
       try {
@@ -161,14 +189,6 @@ class Aws_s3_tests : public testing::Test,
     }
   }
 
-  void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }
-
-  bool should_skip() const { return !m_skip_reasons.empty(); }
-
-  std::string skip_reason() const {
-    return shcore::str_join(m_skip_reasons, "\n");
-  }
-
   std::string multipart_file_data() const {
     return shcore::get_random_string(k_multipart_file_size, "0123456789ABCDEF");
   }
@@ -187,14 +207,6 @@ class Aws_s3_tests : public testing::Test,
       clean_bucket(bucket);
     }
   }
-
-  std::vector<std::string> m_skip_reasons;
-  std::string m_bucket_name;
-  std::string m_credentials_file;
-  std::string m_config_file;
-  std::string m_profile;
-  std::string m_region;
-  std::string m_endpoint_override;
 };
 
 inline std::string endpoint_override() {

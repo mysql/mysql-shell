@@ -26,9 +26,12 @@
 #ifndef MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_RESOLVER_H_
 #define MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_RESOLVER_H_
 
+#include <string>
+
 #include "mysqlshdk/libs/rest/signed/credentials_resolver.h"
 
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include "mysqlshdk/libs/aws/aws_settings.h"
 
 namespace mysqlshdk {
 namespace aws {
@@ -46,6 +49,9 @@ class Aws_credentials_resolver final
   Aws_credentials_resolver &operator=(Aws_credentials_resolver &&) = default;
 
   ~Aws_credentials_resolver() = default;
+
+  void add_profile_providers(const Settings &settings,
+                             const std::string &profile);
 };
 
 }  // namespace aws

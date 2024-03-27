@@ -28,16 +28,21 @@
 
 #include <string>
 
-#include "mysqlshdk/libs/aws/aws_config_file.h"
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include "mysqlshdk/libs/aws/aws_profiles.h"
+#include "mysqlshdk/libs/aws/aws_settings.h"
 
 namespace mysqlshdk {
 namespace aws {
 
+/**
+ * Provides credentials by invoking a process configured in the `config` file
+ * for the given profile.
+ */
 class Process_credentials_provider : public Aws_credentials_provider {
  public:
-  Process_credentials_provider(const std::string &path,
-                               const Aws_config_file::Profile *profile);
+  Process_credentials_provider(const Settings &settings,
+                               const std::string &profile);
 
   Process_credentials_provider(const Process_credentials_provider &) = delete;
   Process_credentials_provider(Process_credentials_provider &&) = delete;
@@ -56,7 +61,7 @@ class Process_credentials_provider : public Aws_credentials_provider {
 
   Credentials parse_json(const std::string &json) const;
 
-  const Aws_config_file::Profile *m_profile;
+  const std::string *m_process = nullptr;
 };
 
 }  // namespace aws

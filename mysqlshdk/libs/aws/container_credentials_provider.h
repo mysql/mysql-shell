@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,50 +23,55 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
+#ifndef MYSQLSHDK_LIBS_AWS_CONTAINER_CREDENTIALS_PROVIDER_H_
+#define MYSQLSHDK_LIBS_AWS_CONTAINER_CREDENTIALS_PROVIDER_H_
 
+#include <memory>
 #include <string>
 
+#include "mysqlshdk/libs/rest/rest_service.h"
+
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
-#include "mysqlshdk/libs/aws/aws_profiles.h"
-#include "mysqlshdk/libs/aws/aws_settings.h"
 
 namespace mysqlshdk {
 namespace aws {
 
 /**
- * Provides static credentials stored in `config` or `credentials` file.
+ * Provides credentials available in Amazon Elastic Container Service (Amazon
+ * ECS) environment.
  */
-class Config_credentials_provider : public Aws_credentials_provider {
+class Container_credentials_provider : public Aws_credentials_provider {
  public:
-  enum class Type {
-    CONFIG,
-    CREDENTIALS,
-  };
+  Container_credentials_provider();
 
-  Config_credentials_provider(const Settings &settings,
-                              const std::string &profile, Type type);
-
-  Config_credentials_provider(const Config_credentials_provider &) = delete;
-  Config_credentials_provider(Config_credentials_provider &&) = delete;
-
-  Config_credentials_provider &operator=(const Config_credentials_provider &) =
+  Container_credentials_provider(const Container_credentials_provider &) =
       delete;
-  Config_credentials_provider &operator=(Config_credentials_provider &&) =
+  Container_credentials_provider(Container_credentials_provider &&) = delete;
+
+  Container_credentials_provider &operator=(
+      const Container_credentials_provider &) = delete;
+  Container_credentials_provider &operator=(Container_credentials_provider &&) =
       delete;
 
-  ~Config_credentials_provider() override = default;
+  ~Container_credentials_provider() override = default;
 
   bool available() const noexcept override;
+
+  const std::string &full_uri() const noexcept { return m_full_uri; }
 
  private:
   Credentials fetch_credentials() override;
 
-  const Profile *m_profile = nullptr;
+  std::string execute_request() const;
+
+  Credentials parse_credentials(const std::string &json) const;
+
+  std::string m_full_uri;
+  std::string m_authorization_token;
+  std::unique_ptr<rest::Rest_service> m_service;
 };
 
 }  // namespace aws
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_AWS_CONFIG_CREDENTIALS_PROVIDER_H_
+#endif  // MYSQLSHDK_LIBS_AWS_CONTAINER_CREDENTIALS_PROVIDER_H_

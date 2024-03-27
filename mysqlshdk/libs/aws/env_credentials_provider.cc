@@ -25,7 +25,11 @@
 
 #include "mysqlshdk/libs/aws/env_credentials_provider.h"
 
-#include <cstdlib>
+#include <utility>
+
+#include "mysqlshdk/libs/utils/utils_general.h"
+
+#include "mysqlshdk/libs/aws/aws_settings.h"
 
 namespace mysqlshdk {
 namespace aws {
@@ -38,16 +42,16 @@ Aws_credentials_provider::Credentials
 Env_credentials_provider::fetch_credentials() {
   Credentials creds;
 
-  if (const auto value = ::getenv(access_key_id())) {
-    creds.access_key_id = value;
+  if (auto value = shcore::get_env(access_key_id()); value.has_value()) {
+    creds.access_key_id = std::move(value);
   }
 
-  if (const auto value = ::getenv(secret_access_key())) {
-    creds.secret_access_key = value;
+  if (auto value = shcore::get_env(secret_access_key()); value.has_value()) {
+    creds.secret_access_key = std::move(value);
   }
 
-  if (const auto value = ::getenv("AWS_SESSION_TOKEN")) {
-    creds.session_token = value;
+  if (auto value = shcore::get_env("AWS_SESSION_TOKEN"); value.has_value()) {
+    creds.session_token = std::move(value);
   }
 
   return creds;

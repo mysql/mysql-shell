@@ -37,7 +37,7 @@ namespace tests {
 
 class Test_server {
  public:
-  Test_server();
+  Test_server() = default;
 
   Test_server(const Test_server &) = delete;
   Test_server(Test_server &&) = default;
@@ -60,10 +60,12 @@ class Test_server {
  private:
   void setup_env_vars();
 
+  void clear_env_vars();
+
   std::unique_ptr<shcore::Process_launcher> m_server;
   std::string m_address;
   int m_port;
-  Cleanup m_cleanup;
+  Cleanup m_env_vars;
 };
 
 }  // namespace tests

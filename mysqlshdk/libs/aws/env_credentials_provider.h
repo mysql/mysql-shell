@@ -31,6 +31,9 @@
 namespace mysqlshdk {
 namespace aws {
 
+/**
+ * Provides credentials stored in environment variables.
+ */
 class Env_credentials_provider : public Aws_credentials_provider {
  public:
   Env_credentials_provider();

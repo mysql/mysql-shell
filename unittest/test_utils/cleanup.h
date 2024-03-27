@@ -52,6 +52,10 @@ class Cleanup final {
 
   Cleanup &operator+=(Cleanup c);
 
+  inline bool empty() const noexcept { return m_steps.empty(); }
+
+  void cleanup();
+
   [[nodiscard]] static Cleanup unset_env_var(const char *name);
 
   [[nodiscard]] static Cleanup set_env_var(const char *name,

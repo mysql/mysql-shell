@@ -1051,30 +1051,41 @@ DESCRIPTION
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
 
-      2. Settings from the credentials file for the specified profile:
+      2. Assuming a role
+      3. Settings from the credentials file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
 
-      3. Process specified by the credential_process setting from the config
-         file for the specified profile:
-
-      - AccessKeyId
-      - SecretAccessKey
-      - SessionToken
-
-      4. Settings from the config file for the specified profile:
+      4. Process specified by the credential_process setting from the config
+         file for the specified profile
+      5. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
+
+      6. Amazon Elastic Container Service (Amazon ECS) credentials
+      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
 
       The items specified above correspond to the following credentials:
 
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      Role is assumed using the following settings from the AWS config file:
+
+      - credential_source
+      - duration_seconds
+      - external_id
+      - role_arn
+      - role_session_name
+      - source_profile
+
+      The multi-factor authentication is not supported. For more information on
+      assuming a role, please consult the AWS documentation.
 
       The process/command line specified by the credential_process setting must
       write a JSON object to the standard output in the following form:
@@ -1086,8 +1097,42 @@ DESCRIPTION
         "Expiration": "RFC3339 timestamp, optional"
       }
 
-      The Expiration key, if given, specifies when the credentials are going to
-      expire, they will be automatically refreshed before this happens.
+      The Amazon ECS credentials are fetched from a URI specified by an
+      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
+      appended to 'http://169.254.170.2'). If this environment variable is not
+      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
+      is used instead. If neither of these environment variables are set, ECS
+      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable is set, its value is sent in the request in the
+      'Authorization' header. The reply is expected to be a JSON object in the
+      following form:
+      {
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "Token": "temporary AWS session token",
+        "Expiration": "RFC3339 timestamp"
+      }
+
+      The Amazon IMDS credential provider is configured using the following
+      environment variables:
+
+      - AWS_EC2_METADATA_DISABLED
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_METADATA_SERVICE_TIMEOUT
+      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+      and the following settings from the AWS config file:
+
+      - ec2_metadata_service_endpoint
+      - ec2_metadata_service_endpoint_mode
+      - metadata_service_timeout
+      - metadata_service_num_attempts
+
+      For more information on IMDS, please consult the AWS documentation.
+
+      The Expiration value, if given, specifies when the credentials are going
+      to expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -1113,8 +1158,8 @@ DESCRIPTION
 
       Handling of the Azure settings
 
-      1. The following settings are read from the storage section in the config
-         file:
+      The following settings are read from the storage section in the config
+      file:
 
       - connection_string
       - account
@@ -1701,30 +1746,41 @@ DESCRIPTION
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
 
-      2. Settings from the credentials file for the specified profile:
+      2. Assuming a role
+      3. Settings from the credentials file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
 
-      3. Process specified by the credential_process setting from the config
-         file for the specified profile:
-
-      - AccessKeyId
-      - SecretAccessKey
-      - SessionToken
-
-      4. Settings from the config file for the specified profile:
+      4. Process specified by the credential_process setting from the config
+         file for the specified profile
+      5. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
+
+      6. Amazon Elastic Container Service (Amazon ECS) credentials
+      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
 
       The items specified above correspond to the following credentials:
 
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      Role is assumed using the following settings from the AWS config file:
+
+      - credential_source
+      - duration_seconds
+      - external_id
+      - role_arn
+      - role_session_name
+      - source_profile
+
+      The multi-factor authentication is not supported. For more information on
+      assuming a role, please consult the AWS documentation.
 
       The process/command line specified by the credential_process setting must
       write a JSON object to the standard output in the following form:
@@ -1736,8 +1792,42 @@ DESCRIPTION
         "Expiration": "RFC3339 timestamp, optional"
       }
 
-      The Expiration key, if given, specifies when the credentials are going to
-      expire, they will be automatically refreshed before this happens.
+      The Amazon ECS credentials are fetched from a URI specified by an
+      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
+      appended to 'http://169.254.170.2'). If this environment variable is not
+      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
+      is used instead. If neither of these environment variables are set, ECS
+      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable is set, its value is sent in the request in the
+      'Authorization' header. The reply is expected to be a JSON object in the
+      following form:
+      {
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "Token": "temporary AWS session token",
+        "Expiration": "RFC3339 timestamp"
+      }
+
+      The Amazon IMDS credential provider is configured using the following
+      environment variables:
+
+      - AWS_EC2_METADATA_DISABLED
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_METADATA_SERVICE_TIMEOUT
+      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+      and the following settings from the AWS config file:
+
+      - ec2_metadata_service_endpoint
+      - ec2_metadata_service_endpoint_mode
+      - metadata_service_timeout
+      - metadata_service_num_attempts
+
+      For more information on IMDS, please consult the AWS documentation.
+
+      The Expiration value, if given, specifies when the credentials are going
+      to expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -1763,8 +1853,8 @@ DESCRIPTION
 
       Handling of the Azure settings
 
-      1. The following settings are read from the storage section in the config
-         file:
+      The following settings are read from the storage section in the config
+      file:
 
       - connection_string
       - account
@@ -2345,30 +2435,41 @@ DESCRIPTION
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
 
-      2. Settings from the credentials file for the specified profile:
+      2. Assuming a role
+      3. Settings from the credentials file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
 
-      3. Process specified by the credential_process setting from the config
-         file for the specified profile:
-
-      - AccessKeyId
-      - SecretAccessKey
-      - SessionToken
-
-      4. Settings from the config file for the specified profile:
+      4. Process specified by the credential_process setting from the config
+         file for the specified profile
+      5. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
+
+      6. Amazon Elastic Container Service (Amazon ECS) credentials
+      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
 
       The items specified above correspond to the following credentials:
 
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      Role is assumed using the following settings from the AWS config file:
+
+      - credential_source
+      - duration_seconds
+      - external_id
+      - role_arn
+      - role_session_name
+      - source_profile
+
+      The multi-factor authentication is not supported. For more information on
+      assuming a role, please consult the AWS documentation.
 
       The process/command line specified by the credential_process setting must
       write a JSON object to the standard output in the following form:
@@ -2380,8 +2481,42 @@ DESCRIPTION
         "Expiration": "RFC3339 timestamp, optional"
       }
 
-      The Expiration key, if given, specifies when the credentials are going to
-      expire, they will be automatically refreshed before this happens.
+      The Amazon ECS credentials are fetched from a URI specified by an
+      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
+      appended to 'http://169.254.170.2'). If this environment variable is not
+      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
+      is used instead. If neither of these environment variables are set, ECS
+      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable is set, its value is sent in the request in the
+      'Authorization' header. The reply is expected to be a JSON object in the
+      following form:
+      {
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "Token": "temporary AWS session token",
+        "Expiration": "RFC3339 timestamp"
+      }
+
+      The Amazon IMDS credential provider is configured using the following
+      environment variables:
+
+      - AWS_EC2_METADATA_DISABLED
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_METADATA_SERVICE_TIMEOUT
+      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+      and the following settings from the AWS config file:
+
+      - ec2_metadata_service_endpoint
+      - ec2_metadata_service_endpoint_mode
+      - metadata_service_timeout
+      - metadata_service_num_attempts
+
+      For more information on IMDS, please consult the AWS documentation.
+
+      The Expiration value, if given, specifies when the credentials are going
+      to expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -2407,8 +2542,8 @@ DESCRIPTION
 
       Handling of the Azure settings
 
-      1. The following settings are read from the storage section in the config
-         file:
+      The following settings are read from the storage section in the config
+      file:
 
       - connection_string
       - account
@@ -2722,30 +2857,41 @@ DESCRIPTION
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
 
-      2. Settings from the credentials file for the specified profile:
+      2. Assuming a role
+      3. Settings from the credentials file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
 
-      3. Process specified by the credential_process setting from the config
-         file for the specified profile:
-
-      - AccessKeyId
-      - SecretAccessKey
-      - SessionToken
-
-      4. Settings from the config file for the specified profile:
+      4. Process specified by the credential_process setting from the config
+         file for the specified profile
+      5. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
+
+      6. Amazon Elastic Container Service (Amazon ECS) credentials
+      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
 
       The items specified above correspond to the following credentials:
 
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      Role is assumed using the following settings from the AWS config file:
+
+      - credential_source
+      - duration_seconds
+      - external_id
+      - role_arn
+      - role_session_name
+      - source_profile
+
+      The multi-factor authentication is not supported. For more information on
+      assuming a role, please consult the AWS documentation.
 
       The process/command line specified by the credential_process setting must
       write a JSON object to the standard output in the following form:
@@ -2757,8 +2903,42 @@ DESCRIPTION
         "Expiration": "RFC3339 timestamp, optional"
       }
 
-      The Expiration key, if given, specifies when the credentials are going to
-      expire, they will be automatically refreshed before this happens.
+      The Amazon ECS credentials are fetched from a URI specified by an
+      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
+      appended to 'http://169.254.170.2'). If this environment variable is not
+      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
+      is used instead. If neither of these environment variables are set, ECS
+      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable is set, its value is sent in the request in the
+      'Authorization' header. The reply is expected to be a JSON object in the
+      following form:
+      {
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "Token": "temporary AWS session token",
+        "Expiration": "RFC3339 timestamp"
+      }
+
+      The Amazon IMDS credential provider is configured using the following
+      environment variables:
+
+      - AWS_EC2_METADATA_DISABLED
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_METADATA_SERVICE_TIMEOUT
+      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+      and the following settings from the AWS config file:
+
+      - ec2_metadata_service_endpoint
+      - ec2_metadata_service_endpoint_mode
+      - metadata_service_timeout
+      - metadata_service_num_attempts
+
+      For more information on IMDS, please consult the AWS documentation.
+
+      The Expiration value, if given, specifies when the credentials are going
+      to expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -2784,8 +2964,8 @@ DESCRIPTION
 
       Handling of the Azure settings
 
-      1. The following settings are read from the storage section in the config
-         file:
+      The following settings are read from the storage section in the config
+      file:
 
       - connection_string
       - account
@@ -3145,30 +3325,41 @@ DESCRIPTION
       - AWS_SECRET_ACCESS_KEY
       - AWS_SESSION_TOKEN
 
-      2. Settings from the credentials file for the specified profile:
+      2. Assuming a role
+      3. Settings from the credentials file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
 
-      3. Process specified by the credential_process setting from the config
-         file for the specified profile:
-
-      - AccessKeyId
-      - SecretAccessKey
-      - SessionToken
-
-      4. Settings from the config file for the specified profile:
+      4. Process specified by the credential_process setting from the config
+         file for the specified profile
+      5. Settings from the config file for the specified profile:
 
       - aws_access_key_id
       - aws_secret_access_key
       - aws_session_token
+
+      6. Amazon Elastic Container Service (Amazon ECS) credentials
+      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
 
       The items specified above correspond to the following credentials:
 
       - the AWS access key
       - the secret key associated with the AWS access key
       - the AWS session token for the temporary security credentials
+
+      Role is assumed using the following settings from the AWS config file:
+
+      - credential_source
+      - duration_seconds
+      - external_id
+      - role_arn
+      - role_session_name
+      - source_profile
+
+      The multi-factor authentication is not supported. For more information on
+      assuming a role, please consult the AWS documentation.
 
       The process/command line specified by the credential_process setting must
       write a JSON object to the standard output in the following form:
@@ -3180,8 +3371,42 @@ DESCRIPTION
         "Expiration": "RFC3339 timestamp, optional"
       }
 
-      The Expiration key, if given, specifies when the credentials are going to
-      expire, they will be automatically refreshed before this happens.
+      The Amazon ECS credentials are fetched from a URI specified by an
+      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
+      appended to 'http://169.254.170.2'). If this environment variable is not
+      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
+      is used instead. If neither of these environment variables are set, ECS
+      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable is set, its value is sent in the request in the
+      'Authorization' header. The reply is expected to be a JSON object in the
+      following form:
+      {
+        "AccessKeyId": "AWS access key",
+        "SecretAccessKey": "secret key associated with the AWS access key",
+        "Token": "temporary AWS session token",
+        "Expiration": "RFC3339 timestamp"
+      }
+
+      The Amazon IMDS credential provider is configured using the following
+      environment variables:
+
+      - AWS_EC2_METADATA_DISABLED
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT
+      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_METADATA_SERVICE_TIMEOUT
+      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+      and the following settings from the AWS config file:
+
+      - ec2_metadata_service_endpoint
+      - ec2_metadata_service_endpoint_mode
+      - metadata_service_timeout
+      - metadata_service_num_attempts
+
+      For more information on IMDS, please consult the AWS documentation.
+
+      The Expiration value, if given, specifies when the credentials are going
+      to expire, they will be automatically refreshed before this happens.
 
       The following credential handling rules apply:
 
@@ -3217,8 +3442,8 @@ DESCRIPTION
 
       Handling of the Azure settings
 
-      1. The following settings are read from the storage section in the config
-         file:
+      The following settings are read from the storage section in the config
+      file:
 
       - connection_string
       - account

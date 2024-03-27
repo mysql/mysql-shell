@@ -868,6 +868,9 @@ void setup_test_environment() {
                    shcore::path::join_path(getenv("TMPDIR"), ".mylogin.cnf"));
   }
 
+  // explicitly disable IMDS credentials
+  shcore::setenv("AWS_EC2_METADATA_DISABLED", "true");
+
 #ifdef __APPLE__
   setup_test_keychain();
 #endif  // __APPLE__

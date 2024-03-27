@@ -106,6 +106,7 @@ default_aws_region = "us-east-1"
 local_aws_credentials_file = os.path.join(__tmp_dir, "aws_credentials")
 local_aws_config_file = os.path.join(__tmp_dir, "aws_config")
 local_aws_profile = random_string(10)
+local_aws_role_profile = local_aws_profile + "-role"
 
 dump_dir = "world"
 
@@ -116,6 +117,7 @@ def cleanup_variables():
     del_global_variable("MYSQLSH_AWS_CONFIG_FILE")
     del_global_variable("MYSQLSH_AWS_PROFILE")
     del_global_variable("MYSQLSH_AWS_REGION")
+    del_global_variable("MYSQLSH_AWS_ROLE")
     del_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE")
 
 # call it to initialize the AWS options
@@ -125,6 +127,7 @@ set_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", default_aws_credentia
 set_global_variable("MYSQLSH_AWS_CONFIG_FILE", default_aws_config_file)
 set_global_variable("MYSQLSH_AWS_PROFILE", default_aws_profile)
 set_global_variable("MYSQLSH_AWS_REGION", default_aws_region)
+set_global_variable("MYSQLSH_AWS_ROLE", None)
 set_global_variable("MYSQLSH_S3_ENDPOINT_OVERRIDE", default_s3_endpoint_override)
 
 aws_settings = read_profile()

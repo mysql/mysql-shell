@@ -42,7 +42,7 @@ const std::string k_profile_prefix = "profile ";
 
 Aws_config_file::Aws_config_file(const std::string &path) : m_path(path) {}
 
-bool Aws_config_file::load() {
+std::optional<Profiles> Aws_config_file::load() const {
   const auto &path =
 #ifdef _WIN32
       shcore::utf8_to_wide
@@ -51,10 +51,10 @@ bool Aws_config_file::load() {
   std::ifstream config(path);
 
   if (!config.is_open()) {
-    return false;
+    return {};
   }
 
-  m_profiles.clear();
+  Profiles profiles;
   Profile *current_profile = nullptr;
 
   // lines which are not a profile name, a key-value pair or a comment result in
@@ -95,7 +95,7 @@ bool Aws_config_file::load() {
           profile = profile.substr(k_profile_prefix.length());
         }
 
-        current_profile = &m_profiles[profile];
+        current_profile = profiles.get_or_create(profile);
       } else {
         fail("missing closing square bracket");
       }
@@ -106,15 +106,7 @@ bool Aws_config_file::load() {
         auto key = shcore::str_strip(line.substr(0, equals));
         auto value = shcore::str_strip(line.substr(equals + 1));
 
-        if (access_key_id() == key) {
-          current_profile->access_key_id = value;
-        } else if (secret_access_key() == key) {
-          current_profile->secret_access_key = value;
-        } else if (session_token() == key) {
-          current_profile->session_token = value;
-        } else {
-          current_profile->settings.emplace(std::move(key), std::move(value));
-        }
+        current_profile->set(std::move(key), std::move(value));
       } else {
         fail("expected setting-name=value");
       }
@@ -125,17 +117,7 @@ bool Aws_config_file::load() {
 
   config.close();
 
-  return true;
-}
-
-bool Aws_config_file::has_profile(const std::string &name) const {
-  return m_profiles.end() != m_profiles.find(name);
-}
-
-const Aws_config_file::Profile *Aws_config_file::get_profile(
-    const std::string &name) const {
-  const auto profile = m_profiles.find(name);
-  return m_profiles.end() == profile ? nullptr : &profile->second;
+  return profiles;
 }
 
 }  // namespace aws
