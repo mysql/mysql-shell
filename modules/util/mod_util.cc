@@ -1034,10 +1034,12 @@ some cases the access method to the dump, i.e. for dumps to be loaded using
 pre-authenticated requests (PAR). Allowed values:
 
 @li <b>/path/to/folder</b> - to load a dump from local storage
-@li <b>/oci/bucket/path</b> - to load a dump from OCI Object Storage using an
+@li <b>oci/bucket/path</b> - to load a dump from OCI Object Storage using an
 OCI profile
-@li <b>/aws/bucket/path</b> - to load a dump from AWS S3 Object Storage using
+@li <b>aws/bucket/path</b> - to load a dump from AWS S3 Object Storage using
 the AWS settings stored in the <b>credentials</b> and <b>config</b> files
+@li <b>azure/contaier/path</b> - to load a dump from Azure container using
+either the configuration file or SAS token
 @li <b>PAR to the dump location</b> - to load a dump from OCI Object Storage
 using a single PAR
 
@@ -1585,7 +1587,7 @@ compression, ssl-mode, etc., to establish additional connections.
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS, R"*(
 <b>Requirements</b>
 @li MySQL Server 5.7 or newer is required.
-@li Size limit for individual files uploaded to the OCI or AWS S3 bucket is 1.2 TiB.
+@li Size limit for individual files uploaded to the cloud storage is 1.2 TiB.
 @li Columns with data types which are not safe to be stored in text form (i.e.
 BLOB) are converted to Base64, hence the size of such columns cannot exceed
 approximately 0.74 * <b>max_allowed_packet</b> bytes, as configured through that

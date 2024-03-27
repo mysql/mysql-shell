@@ -38,7 +38,10 @@ namespace aws {
 class S3_bucket_config;
 
 class S3_bucket_options
-    : public storage::backend::object_storage::Bucket_options {
+    : public storage::backend::object_storage::Object_storage_options,
+      public storage::backend::object_storage::mixin::Config_file,
+      public storage::backend::object_storage::mixin::Credentials_file,
+      public storage::backend::object_storage::mixin::Config_profile {
  public:
   S3_bucket_options() = default;
 
@@ -86,7 +89,6 @@ class S3_bucket_options
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
       const override;
 
-  std::string m_credentials_file;
   std::string m_region;
   std::string m_endpoint_override;
 };

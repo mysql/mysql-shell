@@ -1367,4 +1367,12 @@ void parse_schema_and_object(const std::string &str, const std::string &context,
   }
 }
 
+std::optional<const char *> get_env(const char *name) {
+  if (const auto value = ::getenv(name); value && value[0]) {
+    return value;
+  } else {
+    return {};
+  }
+}
+
 }  // namespace shcore

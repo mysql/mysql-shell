@@ -41,8 +41,6 @@
 namespace mysqlshdk {
 namespace rest {
 
-std::string type_name(Type t);
-
 /**
  * A REST service. By default, requests will follow redirections and
  * keep the connections alive.
@@ -91,11 +89,11 @@ class Rest_service {
   Rest_service &set_default_headers(const Headers &headers);
 
   /**
-   * Sets the maximum time in milliseconds the execution of a request can take.
-   * By default, timeout is set to two seconds. Use 0 for an infinite timeout.
+   * Sets the maximum time in seconds the execution of a request can take.
+   * By default, timeout is set to 30 seconds. Use 0 for an infinite timeout.
    *
-   * @param timeout Maximum allowed time for the execution of HEAD/DELETE
-   * requests.
+   * @param timeout Maximum allowed time in seconds for the execution of
+   * HEAD/DELETE requests.
    * @param low_speed_limit Lowest transfer rate in bytes/second.
    * @param low_speed_time Number of seconds to meter the low_speed_limit before
    * timing out.
@@ -103,12 +101,23 @@ class Rest_service {
    * @returns Reference to self.
    *
    * A timeout will occurs in two situations:
-   * - A HEAD or DELETE request took more than timeout milliseconds to complete.
+   * - A HEAD or DELETE request took more than timeout seconds to complete.
    * - The transfer/rate has been lower than low_speed_limit for more than
    *   low_speed_time.
    */
   Rest_service &set_timeout(long timeout, long low_speed_limit,
                             long low_speed_time);
+
+  /**
+   * Sets the maximum time in seconds the connection phase to the server can
+   * take. By default, timeout is set to 300 seconds. Use 0 for the default
+   * timeout.
+   *
+   * @param timeout Maximum allowed time in seconds for the connection phase
+   *
+   * @returns Reference to self.
+   */
+  Rest_service &set_connect_timeout(long timeout);
 
   /**
    * Executes a GET request, blocks until response is available.

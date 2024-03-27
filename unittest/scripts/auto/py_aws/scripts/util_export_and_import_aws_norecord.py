@@ -1,8 +1,8 @@
 #@ {has_aws_environment()}
 
-#@<> INCLUDE aws_utils.inc
-
 #@<> INCLUDE dump_utils.inc
+
+#@<> INCLUDE aws_utils.inc
 
 #@<> setup
 setup_tests(load_tests = True)
@@ -132,7 +132,7 @@ with write_profile(default_aws_config_file, "profile " + local_aws_profile, { "r
 #@<> WL14387-TSFR_4_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
-        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found in: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found, tried: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_4_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):

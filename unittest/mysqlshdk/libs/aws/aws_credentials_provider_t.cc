@@ -49,6 +49,8 @@ TEST(Aws_credentials_provider_test, temporary_credentials) {
 
     int called() const { return m_called; }
 
+    bool available() const noexcept override { return true; }
+
    private:
     Credentials fetch_credentials() override {
       Credentials result;
@@ -69,6 +71,7 @@ TEST(Aws_credentials_provider_test, temporary_credentials) {
       const auto tp = time_point_cast<milliseconds>(
           Aws_credentials::Clock::now() + milliseconds(100));
       auto result = shcore::time_point_to_rfc3339(tp);
+
       if (std::string::npos == result.find('.')) {
         // add milliseconds
         auto ms = std::to_string(tp.time_since_epoch().count() %
@@ -76,6 +79,7 @@ TEST(Aws_credentials_provider_test, temporary_credentials) {
         ms = "." + std::string(3 - ms.length(), '0') + ms;
         result = result.substr(0, 19) + ms + result.substr(19);
       }
+
       return result;
     }
 

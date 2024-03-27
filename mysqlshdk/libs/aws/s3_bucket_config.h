@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/aws/aws_config_file.h"
 #include "mysqlshdk/libs/aws/aws_credentials.h"
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include "mysqlshdk/libs/aws/aws_signer.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 
 namespace mysqlshdk {
@@ -43,7 +44,12 @@ namespace aws {
 class S3_bucket;
 
 class S3_bucket_config
-    : public storage::backend::object_storage::Bucket_config {
+    : public storage::backend::object_storage::Bucket_config,
+      public Aws_signer_config,
+      public storage::backend::object_storage::mixin::Config_file,
+      public storage::backend::object_storage::mixin::Credentials_file,
+      public storage::backend::object_storage::mixin::Config_profile,
+      public storage::backend::object_storage::mixin::Host {
  public:
   S3_bucket_config() = delete;
 
@@ -59,11 +65,7 @@ class S3_bucket_config
 
   bool path_style_access() const { return m_path_style_access; }
 
-  const std::string &service_endpoint() const override { return m_endpoint; }
-
-  const std::string &service_label() const override { return m_label; }
-
-  std::unique_ptr<rest::Signer> signer() const override;
+  std::unique_ptr<rest::ISigner> signer() const override;
 
   std::unique_ptr<rest::IRetry_strategy> retry_strategy() const override;
 
@@ -74,19 +76,15 @@ class S3_bucket_config
 
   const std::string &hash() const override;
 
-  const std::string &host() const { return m_host; }
+  const std::string &host() const override { return Host::host(); }
 
-  const std::string &profile() const { return m_config_profile; }
+  const std::string &region() const override { return m_region; }
 
-  const std::string &credentials_file() const { return m_credentials_file; }
-
-  const std::string &config_file() const { return m_config_file; }
-
-  const std::string &region() const { return m_region; }
-
-  Aws_credentials_provider *credentials_provider() const {
+  Aws_credentials_provider *credentials_provider() const override {
     return m_credentials_provider.get();
   }
+
+  const std::string &service() const override { return m_service; }
 
  private:
   std::string describe_self() const override;
@@ -111,14 +109,10 @@ class S3_bucket_config
 
   void setup_credentials_provider();
 
-  std::string m_label = "AWS-S3-OS";
-
   bool m_explicit_profile = false;
-  std::string m_credentials_file;
   std::string m_region;
-  std::string m_endpoint;
 
-  std::string m_host;
+  std::string m_service = "s3";
   bool m_path_style_access = false;
 
   std::optional<Aws_config_file::Profile> m_profile_from_credentials_file;

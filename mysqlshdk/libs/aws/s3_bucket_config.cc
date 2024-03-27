@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
+#include "mysqlshdk/libs/aws/aws_credentials_resolver.h"
 #include "mysqlshdk/libs/aws/aws_signer.h"
 #include "mysqlshdk/libs/aws/config_credentials_provider.h"
 #include "mysqlshdk/libs/aws/env_credentials_provider.h"
@@ -80,14 +81,6 @@ bool valid_as_virtual_path(const std::string &bucket_name) {
 std::string config_file_path(const std::string &filename) {
   static const auto s_home_dir = shcore::get_home_dir();
   return shcore::path::join_path(s_home_dir, ".aws", filename);
-}
-
-std::optional<const char *> get_env(const char *name) {
-  if (const auto value = ::getenv(name); value && value[0]) {
-    return value;
-  } else {
-    return {};
-  }
 }
 
 /**
@@ -377,9 +370,13 @@ class Aws_retry_strategy : public rest::IRetry_strategy {
 
 S3_bucket_config::S3_bucket_config(const S3_bucket_options &options)
     : Bucket_config(options),
-      m_credentials_file(options.m_credentials_file),
-      m_region(options.m_region),
-      m_endpoint(options.m_endpoint_override) {
+      Config_file(options),
+      Credentials_file(options),
+      Config_profile(options),
+      m_region(options.m_region) {
+  m_label = "AWS-S3-OS";
+  m_endpoint = options.m_endpoint_override;
+
   setup_profile_name();
 
   setup_credentials_file();
@@ -395,7 +392,7 @@ S3_bucket_config::S3_bucket_config(const S3_bucket_options &options)
   setup_credentials_provider();
 }
 
-std::unique_ptr<rest::Signer> S3_bucket_config::signer() const {
+std::unique_ptr<rest::ISigner> S3_bucket_config::signer() const {
   return std::make_unique<Aws_signer>(*this);
 }
 
@@ -482,7 +479,7 @@ void S3_bucket_config::setup_profile_name() {
   }
 
   for (const auto name : {"AWS_PROFILE", "AWS_DEFAULT_PROFILE"}) {
-    if (const auto value = get_env(name)) {
+    if (const auto value = shcore::get_env(name); value.has_value()) {
       m_config_profile = *value;
       return;
     }
@@ -506,8 +503,9 @@ void S3_bucket_config::setup_config_file(std::string *target) {
 
   const auto is_config_file = target == &m_config_file;
 
-  if (const auto value = get_env(
-          is_config_file ? "AWS_CONFIG_FILE" : "AWS_SHARED_CREDENTIALS_FILE")) {
+  if (const auto value = shcore::get_env(
+          is_config_file ? "AWS_CONFIG_FILE" : "AWS_SHARED_CREDENTIALS_FILE");
+      value.has_value()) {
     *target = *value;
     return;
   }
@@ -521,7 +519,7 @@ void S3_bucket_config::setup_region_name() {
   }
 
   for (const auto name : {"AWS_REGION", "AWS_DEFAULT_REGION"}) {
-    if (const auto value = get_env(name)) {
+    if (const auto value = shcore::get_env(name); value.has_value()) {
       m_region = *value;
       return;
     }
@@ -564,7 +562,7 @@ void S3_bucket_config::setup_endpoint_uri() {
 }
 
 void S3_bucket_config::setup_credentials_provider() {
-  std::vector<std::unique_ptr<Aws_credentials_provider>> providers;
+  Aws_credentials_resolver resolver;
 
   if (m_explicit_profile) {
     // profile was set by an option, don't use credentials from environment
@@ -574,11 +572,11 @@ void S3_bucket_config::setup_credentials_provider() {
         "credentials, because the '%s' option is set.",
         S3_bucket_options::profile_option());
   } else {
-    providers.emplace_back(std::make_unique<Env_credentials_provider>());
+    resolver.add(std::make_unique<Env_credentials_provider>());
   }
 
   if (m_profile_from_credentials_file.has_value()) {
-    providers.emplace_back(std::make_unique<Config_credentials_provider>(
+    resolver.add(std::make_unique<Config_credentials_provider>(
         m_credentials_file, "credentials file",
         &*m_profile_from_credentials_file));
   }
@@ -586,34 +584,14 @@ void S3_bucket_config::setup_credentials_provider() {
   if (m_profile_from_config_file.has_value()) {
     const auto &profile = *m_profile_from_config_file;
 
-    if (Process_credentials_provider::available(profile)) {
-      providers.emplace_back(std::make_unique<Process_credentials_provider>(
-          m_config_file, &profile));
-    }
+    resolver.add(std::make_unique<Process_credentials_provider>(m_config_file,
+                                                                &profile));
 
-    providers.emplace_back(std::make_unique<Config_credentials_provider>(
+    resolver.add(std::make_unique<Config_credentials_provider>(
         m_config_file, "config file", &profile));
   }
 
-  if (providers.empty()) {
-    throw std::runtime_error(
-        "Could not select the AWS credentials provider, please see log for "
-        "more details");
-  }
-
-  for (auto &provider : providers) {
-    if (provider->initialize()) {
-      m_credentials_provider = std::move(provider);
-      break;
-    }
-  }
-
-  if (!m_credentials_provider) {
-    throw std::runtime_error(
-        "The AWS access and secret keys were not found in: " +
-        shcore::str_join(providers, ", ",
-                         [](const auto &p) { return p->name(); }));
-  }
+  m_credentials_provider = resolver.resolve();
 }
 
 }  // namespace aws

@@ -38,7 +38,9 @@ namespace oci {
 class Oci_bucket_config;
 
 class Oci_bucket_options
-    : public storage::backend::object_storage::Bucket_options {
+    : public storage::backend::object_storage::Object_storage_options,
+      public storage::backend::object_storage::mixin::Config_file,
+      public storage::backend::object_storage::mixin::Config_profile {
  public:
   Oci_bucket_options() = default;
 

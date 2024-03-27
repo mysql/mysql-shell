@@ -23,7 +23,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 
 #include <string>
 #include <utility>
@@ -60,32 +60,15 @@ mysqlshdk::rest::Rest_service *get_rest_service(const std::string &uri,
 
 }  // namespace
 
-const Headers &Signed_request::headers() const {
-  if (m_service && m_service->m_signer->should_sign_request(this)) {
-    auto self = const_cast<Signed_request *>(this);
-    const auto now = time(nullptr);
-
-    if (!m_signed_headers.empty() && !m_service->valid_headers(this, now)) {
-      self->m_signed_headers.clear();
-    }
-
-    if (m_signed_headers.empty()) {
-      self->m_signed_headers = m_service->make_headers(this, now);
-    }
-
-    return m_signed_headers;
-  } else {
-    return m_headers;
-  }
-}
-
 Signed_rest_service::Signed_rest_service(
     const Signed_rest_service_config &config)
     : m_endpoint{config.service_endpoint()},
       m_label{config.service_label()},
       m_signer{config.signer()},
       m_enable_signature_caching(config.signature_caching_enabled()),
-      m_default_retry_strategy(config.retry_strategy()) {}
+      m_default_retry_strategy(config.retry_strategy()) {
+  m_signer->initialize();
+}
 
 Response::Status_code Signed_rest_service::get(Signed_request *request,
                                                Response *response) {
@@ -161,10 +144,10 @@ void Signed_rest_service::invalidate_cache() {
   m_cache_cleared_at = 0;
 }
 
-bool Signed_rest_service::valid_headers(const Signed_request *request,
+bool Signed_rest_service::valid_headers(const Signed_request &request,
                                         time_t now) const {
-  const auto &path = request->full_path().real();
-  const auto method = request->type;
+  const auto &path = request.full_path().real();
+  const auto method = request.type;
   const auto methods = m_signed_header_cache_time.find(path);
 
   if (m_signed_header_cache_time.end() == methods) {
@@ -181,12 +164,12 @@ bool Signed_rest_service::valid_headers(const Signed_request *request,
   return now - time->second <= k_header_cache_ttl;
 }
 
-Headers Signed_rest_service::make_headers(const Signed_request *request,
+Headers Signed_rest_service::make_headers(const Signed_request &request,
                                           time_t now) {
   clear_cache(now);
 
-  const auto &path = request->full_path().real();
-  const auto method = request->type;
+  const auto &path = request.full_path().real();
+  const auto method = request.type;
   const auto cached_time = m_signed_header_cache_time[path][method];
 
   // Maximum Allowed Client Clock Skew from the server's clock for OCI requests
@@ -195,7 +178,7 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
   //
   // Any requests with body are exceptions as the signature may include the body
   // sha256
-  if (now - cached_time > k_header_cache_ttl || request->size ||
+  if (now - cached_time > k_header_cache_ttl || request.size ||
       !m_enable_signature_caching) {
     // make sure the credentials are up to date
     if (m_signer->auth_data_expired(now) && m_signer->refresh_auth_data()) {
@@ -209,7 +192,7 @@ Headers Signed_rest_service::make_headers(const Signed_request *request,
   auto final_headers = m_cached_header[path][method];
 
   // Adds any additional headers
-  for (const auto &header : request->m_headers) {
+  for (const auto &header : request.m_headers) {
     final_headers[header.first] = header.second;
   }
 

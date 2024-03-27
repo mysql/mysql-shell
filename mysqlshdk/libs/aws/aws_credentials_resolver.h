@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,34 +23,32 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#ifndef MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_RESOLVER_H_
+#define MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_RESOLVER_H_
+
+#include "mysqlshdk/libs/rest/signed/credentials_resolver.h"
 
 #include "mysqlshdk/libs/aws/aws_credentials_provider.h"
 
 namespace mysqlshdk {
 namespace aws {
 
-class Env_credentials_provider : public Aws_credentials_provider {
+class Aws_credentials_resolver final
+    : public rest::Credentials_resolver<Aws_credentials_provider> {
  public:
-  Env_credentials_provider();
+  Aws_credentials_resolver();
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+  Aws_credentials_resolver(const Aws_credentials_resolver &) = delete;
+  Aws_credentials_resolver(Aws_credentials_resolver &&) = default;
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
+  Aws_credentials_resolver &operator=(const Aws_credentials_resolver &) =
       delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+  Aws_credentials_resolver &operator=(Aws_credentials_resolver &&) = default;
 
-  ~Env_credentials_provider() override = default;
-
-  bool available() const noexcept override { return true; }
-
- private:
-  Credentials fetch_credentials() override;
+  ~Aws_credentials_resolver() = default;
 };
 
 }  // namespace aws
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#endif  // MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_RESOLVER_H_

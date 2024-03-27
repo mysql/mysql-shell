@@ -30,6 +30,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -123,6 +124,89 @@ class SHCORE_PUBLIC JSON_dumper final {
 
   std::unique_ptr<Writer_base> _writer;
 };
+
+namespace json {
+
+using JSON = rapidjson::Document;
+
+/**
+ * Parses a JSON string.
+ *
+ * NOTE: this does not throw exceptions, parsed document can be potentially
+ * invalid.
+ *
+ * @param json JSON to be parsed.
+ *
+ * @returns parsed document
+ */
+JSON parse(std::string_view json);
+
+/**
+ * Parses a JSON string, input is expected to be a JSON object.
+ *
+ * @param json JSON to be parsed.
+ *
+ * @returns parsed document
+ *
+ * @throws std::runtime_error if parsing fails, or result is not a JSON object.
+ */
+JSON parse_object_or_throw(std::string_view json);
+
+/**
+ * Fetches a string value of a required field.
+ *
+ * @param json JSON object.
+ * @param name Name of the field.
+ * @param allow_empty Don't throw if value is an empty string.
+ *
+ * @returns string value
+ *
+ * @throws std::runtime_error if field does not exist or its value is not a
+ * string
+ */
+std::string required(const JSON &json, const char *name,
+                     bool allow_empty = false);
+
+/**
+ * Fetches an unsigned integer value of a required field.
+ *
+ * @param json JSON object.
+ * @param name Name of the field.
+ *
+ * @returns unsigned integer value
+ *
+ * @throws std::runtime_error if field does not exist or its value is not an
+ * unsigned integer
+ */
+uint64_t required_uint(const JSON &json, const char *name);
+
+/**
+ * Fetches a string value of an optional field.
+ *
+ * @param json JSON object.
+ * @param name Name of the field.
+ * @param allow_empty Don't throw if value is an empty string.
+ *
+ * @returns string value if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not a string
+ */
+std::optional<std::string> optional(const JSON &json, const char *name,
+                                    bool allow_empty = false);
+
+/**
+ * Fetches an unsigned integer value of an optional field.
+ *
+ * @param json JSON object.
+ * @param name Name of the field.
+ *
+ * @returns unsigned integer value if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not an unsigned integer
+ */
+std::optional<uint64_t> optional_uint(const JSON &json, const char *name);
+
+}  // namespace json
 
 }  // namespace shcore
 

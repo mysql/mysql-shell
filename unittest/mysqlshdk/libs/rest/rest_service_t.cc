@@ -29,207 +29,28 @@
 #include <unordered_set>
 #include <vector>
 
-#ifndef _WIN32
-#include <unistd.h>
-extern char **environ;
-#endif
-
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_test_env.h"
+#include "unittest/test_utils/test_server.h"
 
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
-#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/profiling.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_net.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
-
-extern "C" const char *g_test_home;
 
 namespace mysqlshdk {
 namespace rest {
 namespace test {
 
-namespace {
-
-bool debug() {
-  const static bool s_debug = getenv("TEST_DEBUG") != nullptr;
-  return s_debug;
-}
-
-void debug_env_vars() {
-  if (debug()) {
-    std::cerr << "Environment variables:" << std::endl;
-
-#ifdef _WIN32
-    auto env = GetEnvironmentStringsA();
-    const auto env_head = env;
-
-    while (*env) {
-      std::cerr << '\t' << env << std::endl;
-      env += strlen(env) + 1;
-    }
-
-    if (env_head) {
-      FreeEnvironmentStringsA(env_head);
-    }
-#else
-    auto env = environ;
-
-    while (*env) {
-      std::cerr << '\t' << *env << std::endl;
-      ++env;
-    }
-#endif
-  }
-}
-
-}  // namespace
-
-class Test_server {
- public:
-  bool start_server(int start_port, bool use_env_var) {
-    m_port = start_port;
-
-    if (!find_free_port(&m_port, use_env_var)) {
-      std::cerr << "Could not find an available port for HTTPS server"
-                << std::endl;
-      return false;
-    }
-
-    const auto shell_executable =
-        shcore::path::join_path(shcore::get_binary_folder(), "mysqlsh");
-    const auto script =
-        shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
-    const auto port_number = std::to_string(m_port);
-    m_address = "https://127.0.0.1:" + port_number;
-
-    bool server_ready = false;
-
-    const std::vector<const char *> args = {
-        shell_executable.c_str(), "--py",  "--file", script.c_str(),
-        port_number.c_str(),      nullptr,
-    };
-
-    if (debug()) {
-      std::cerr << "executing: ";
-
-      for (const auto arg : args) {
-        if (arg) {
-          std::cerr << arg << ' ';
-        }
-      }
-
-      std::cerr << std::endl;
-    }
-
-    m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
-    m_server->enable_reader_thread();
-#ifdef _WIN32
-    m_server->set_create_process_group();
-#endif  // _WIN32
-    m_server->start();
-
-    static constexpr uint32_t sleep_time = 100;   // 100ms
-    static constexpr uint32_t wait_time = 10100;  // 10s
-    uint32_t current_time = 0;
-    Rest_service rest{m_address, false};
-
-    if (debug()) {
-      std::cerr << "Trying to connect to: " << m_address << std::endl;
-    }
-
-    while (!server_ready) {
-      shcore::sleep_ms(sleep_time);
-      current_time += sleep_time;
-
-      // Server not running or time exceeded
-      if (m_server->check() || current_time > wait_time) break;
-
-      try {
-        auto request = Request("/ping");
-        const auto response = rest.head(&request);
-
-        if (debug()) {
-          std::cerr << "HTTPS server replied with: "
-                    << Response::status_code(response.status)
-                    << ", body: " << response.buffer.raw()
-                    << ", waiting time: " << current_time << "ms" << std::endl;
-        }
-
-        server_ready = response.status == Response::Status_code::OK;
-      } catch (const std::exception &e) {
-        std::cerr << "HTTPS server not ready after " << current_time << "ms";
-
-        if (debug()) {
-          std::cerr << ": " << e.what() << std::endl;
-          std::cerr << "Output so far:" << std::endl;
-          std::cerr << m_server->read_all();
-        }
-
-        std::cerr << std::endl;
-      }
-    }
-
-    return server_ready;
-  }
-
-  void stop_server() {
-    if (debug()) {
-      std::cerr << m_server->read_all() << std::endl;
-    }
-
-    m_server->kill();
-    m_server.reset();
-  }
-
-  const std::string &get_address() const { return m_address; }
-  int get_port() const { return m_port; }
-
-  bool is_alive() { return m_server && !m_server->check(); }
-
- private:
-  std::unique_ptr<shcore::Process_launcher> m_server;
-  std::string m_address;
-  int m_port;
-
-  bool find_free_port(int *port, bool use_env_var) {
-    bool port_found = false;
-
-    if (use_env_var && getenv("MYSQLSH_TEST_HTTP_PORT")) {
-      *port = std::stod(getenv("MYSQLSH_TEST_HTTP_PORT"));
-      port_found = true;
-    } else {
-      for (int i = 0; !port_found && i < 100; ++i) {
-        if (!utils::Net::is_port_listening("127.0.0.1", *port + i)) {
-          *port += i;
-          port_found = true;
-        }
-      }
-    }
-    return port_found;
-  }
-};
-
 class Rest_service_test : public ::testing::Test {
  public:
-  Rest_service_test() : m_service(s_test_server->get_address(), false) {}
+  Rest_service_test() : m_service(s_test_server->address(), false) {}
 
  protected:
   static void SetUpTestCase() {
-    setup_env_vars();
+    s_test_server = std::make_unique<tests::Test_server>();
 
-    s_test_server = std::make_unique<Test_server>();
-
-    if (s_test_server->start_server(8080, true)) {
-      std::cerr << "HTTPS server is running: " << s_test_server->get_address()
-                << std::endl;
-    } else {
-      // server is not running, find out what went wrong
-      std::cerr << "HTTPS server failed to start:\n" << std::endl;
+    if (!s_test_server->start_server(8080)) {
       // kill the process (if it's there), all test cases will fail with
       // appropriate message
       TearDownTestCase();
@@ -238,7 +59,7 @@ class Rest_service_test : public ::testing::Test {
 
   void SetUp() override {
     if (!s_test_server->is_alive()) {
-      s_test_server->start_server(s_test_server->get_port(), true);
+      s_test_server->start_server(s_test_server->port());
     }
   }
 
@@ -246,51 +67,14 @@ class Rest_service_test : public ::testing::Test {
     if (s_test_server && s_test_server->is_alive()) {
       s_test_server->stop_server();
     }
-
-    restore_env_vars();
   }
 
-  static void setup_env_vars() {
-    debug_env_vars();
-
-    const auto no_proxy = ::getenv(s_no_proxy);
-
-    if (no_proxy) {
-      s_no_proxy_env = no_proxy;
-    }
-
-    shcore::setenv(s_no_proxy, "*");
-
-    debug_env_vars();
-  }
-
-  static void restore_env_vars() {
-    debug_env_vars();
-
-    if (s_no_proxy_env.empty()) {
-      shcore::unsetenv(s_no_proxy);
-    } else {
-      shcore::setenv(s_no_proxy, s_no_proxy_env);
-      s_no_proxy_env.clear();
-    }
-
-    debug_env_vars();
-  }
-
-  static std::unique_ptr<Test_server> s_test_server;
-
-  static constexpr auto s_no_proxy = "no_proxy";
-
-  static std::string s_no_proxy_env;
-
-  // static std::string s_test_server_address;
+  static std::unique_ptr<tests::Test_server> s_test_server;
 
   Rest_service m_service;
-};  // namespace test
+};
 
-std::unique_ptr<Test_server> Rest_service_test::s_test_server;
-std::string Rest_service_test::s_no_proxy_env;
-// std::string Rest_service_test::s_test_server_address;
+std::unique_ptr<tests::Test_server> Rest_service_test::s_test_server;
 
 #define FAIL_IF_NO_SERVER                                \
   if (!s_test_server->is_alive()) {                      \
@@ -669,7 +453,7 @@ TEST_F(Rest_service_test, timeout) {
   FAIL_IF_NO_SERVER
 
   // reduce the timeout
-  m_service.set_timeout(1000, 1, 1);
+  m_service.set_timeout(1, 1, 1);
 
   auto request = Request("/timeout/2.1");
 
@@ -704,7 +488,7 @@ TEST_F(Rest_service_test, timeout) {
   }
 
   // increase the timeout
-  m_service.set_timeout(3000, 0, 0);
+  m_service.set_timeout(3, 0, 0);
 
   // request should be completed without any issues
   EXPECT_EQ(Response::Status_code::OK, m_service.get(&request).status);

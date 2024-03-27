@@ -32,7 +32,8 @@
 #include <vector>
 
 #include "mysqlshdk/libs/oci/oci_par.h"
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_request.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
 
 #include "mysqlshdk/libs/oci/oci_bucket_config.h"

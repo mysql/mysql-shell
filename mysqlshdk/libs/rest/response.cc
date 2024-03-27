@@ -173,7 +173,8 @@ std::string Response::status_code(Status_code c) {
     case Status_code::NETWORK_AUTHENTICATION_REQUIRED:
       return std::string{"Network Authentication Required"};
   }
-  return std::string{"Unknown HTTP status code"};
+  return std::string{"Unknown HTTP status code: " +
+                     std::to_string(static_cast<int>(c))};
 }
 
 bool Response::is_json(const Headers &hdrs) {

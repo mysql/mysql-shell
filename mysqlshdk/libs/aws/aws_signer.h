@@ -26,17 +26,35 @@
 #ifndef MYSQLSHDK_LIBS_AWS_AWS_SIGNER_H_
 #define MYSQLSHDK_LIBS_AWS_AWS_SIGNER_H_
 
-#include <optional>
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signer.h"
 
 #include "mysqlshdk/libs/aws/aws_credentials.h"
-#include "mysqlshdk/libs/aws/s3_bucket_config.h"
+#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
 
 namespace mysqlshdk {
 namespace aws {
+
+class Aws_signer_config : public rest::Signer_config<Aws_credentials_provider> {
+ public:
+  Aws_signer_config() = default;
+
+  Aws_signer_config(const Aws_signer_config &) = default;
+  Aws_signer_config(Aws_signer_config &&) = default;
+
+  Aws_signer_config &operator=(const Aws_signer_config &) = default;
+  Aws_signer_config &operator=(Aws_signer_config &&) = default;
+
+  ~Aws_signer_config() override = default;
+
+  virtual const std::string &host() const = 0;
+
+  virtual const std::string &region() const = 0;
+
+  virtual const std::string &service() const = 0;
+};
 
 /**
  * Handles signing of the AWS requests.
@@ -49,9 +67,9 @@ namespace aws {
  * Signer also assumes that query string parameters of the URI are listed
  * alphabetically and are already URI-encoded.
  */
-class Aws_signer : public rest::Signer {
+class Aws_signer : public rest::Signer<Aws_credentials_provider> {
  public:
-  explicit Aws_signer(const S3_bucket_config &config);
+  explicit Aws_signer(const Aws_signer_config &config);
 
   Aws_signer(const Aws_signer &) = default;
   Aws_signer(Aws_signer &&) = default;
@@ -61,14 +79,8 @@ class Aws_signer : public rest::Signer {
 
   ~Aws_signer() override = default;
 
-  bool should_sign_request(const rest::Signed_request *) const override;
-
-  rest::Headers sign_request(const rest::Signed_request *request,
+  rest::Headers sign_request(const rest::Signed_request &request,
                              time_t now) const override;
-
-  bool refresh_auth_data() override;
-
-  bool auth_data_expired(time_t now) const override;
 
   bool is_authorization_error(const rest::Signed_request &request,
                               const rest::Response &response) const override;
@@ -78,18 +90,12 @@ class Aws_signer : public rest::Signer {
   friend class Aws_signer_test;
 #endif  // FRIEND_TEST
 
-  Aws_signer() = default;
-
-  bool update_credentials();
-
-  void set_credentials(std::shared_ptr<Aws_credentials> credentials);
+  void on_credentials_set() override;
 
   std::string m_host;
   std::string m_region;
-  std::string m_service = "s3";
+  std::string m_service;
   bool m_sign_all_headers = false;
-  Aws_credentials_provider *m_credentials_provider;
-  std::shared_ptr<Aws_credentials> m_credentials;
   std::vector<unsigned char> m_secret_access_key;
 };
 

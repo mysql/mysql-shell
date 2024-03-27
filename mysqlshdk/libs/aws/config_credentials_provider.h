@@ -40,14 +40,16 @@ class Config_credentials_provider : public Aws_credentials_provider {
                               const Aws_config_file::Profile *profile);
 
   Config_credentials_provider(const Config_credentials_provider &) = delete;
-  Config_credentials_provider(Config_credentials_provider &&) = default;
+  Config_credentials_provider(Config_credentials_provider &&) = delete;
 
   Config_credentials_provider &operator=(const Config_credentials_provider &) =
       delete;
   Config_credentials_provider &operator=(Config_credentials_provider &&) =
-      default;
+      delete;
 
   ~Config_credentials_provider() override = default;
+
+  bool available() const noexcept override;
 
  private:
   Credentials fetch_credentials() override;

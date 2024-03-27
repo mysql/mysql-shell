@@ -1,9 +1,11 @@
 from contextlib import ExitStack
+from http.server import HTTPServer
 import json
 import os
 import os.path
 import random
 import re
+import threading
 import urllib.parse
 
 def md5_table(session, schema, table, where = "", partitions = []):
@@ -585,6 +587,44 @@ def disable_bulk_load(sess):
         sess.run_sql("UNINSTALL COMPONENT 'file://component_bulk_loader'")
     except:
         pass
+
+def set_env_var(name, value):
+    stack = ExitStack()
+    if name in os.environ:
+        old_value = os.environ[name]
+        stack.callback(lambda: os.environ.update({name: old_value}))
+    os.environ[name] = value
+    stack.callback(lambda: os.environ.pop(name, None))
+    return stack
+
+def set_global_variable(name, default_value):
+    value = globals().get(name)
+    if value is None:
+        globals()[name] = default_value
+
+def del_global_variable(name):
+    value = globals().get(name)
+    if value is not None:
+        del globals()[name]
+
+class Http_test_server:
+    def __init__(self, handler):
+        self.__handler = handler
+        self.__port = self.__server = self.__thread = None
+    def start(self):
+        while True:
+            self.__port = random.randint(50000, 60000)
+            if not testutil.is_tcp_port_listening("127.0.0.1", self.__port):
+                break
+        self.__server = HTTPServer(("127.0.0.1", self.__port), self.__handler)
+        self.__thread = threading.Thread(target = self.__server.serve_forever)
+        self.__thread.start()
+    def stop(self):
+        self.__server.shutdown()
+        self.__server.server_close()
+        self.__thread.join()
+    def url(self):
+        return f"http://127.0.0.1:{self.__port}"
 
 # constants
 test_user = "sample_user"

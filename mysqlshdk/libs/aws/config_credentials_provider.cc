@@ -36,6 +36,10 @@ Config_credentials_provider::Config_credentials_provider(
                                 Aws_config_file::secret_access_key()}),
       m_profile(profile) {}
 
+bool Config_credentials_provider::available() const noexcept {
+  return m_profile;
+}
+
 Aws_credentials_provider::Credentials
 Config_credentials_provider::fetch_credentials() {
   Credentials creds;

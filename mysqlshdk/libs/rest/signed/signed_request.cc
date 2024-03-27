@@ -23,34 +23,33 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#include "mysqlshdk/libs/rest/signed/signed_request.h"
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <ctime>
+
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 
 namespace mysqlshdk {
-namespace aws {
+namespace rest {
 
-class Env_credentials_provider : public Aws_credentials_provider {
- public:
-  Env_credentials_provider();
+const Headers &Signed_request::headers() const {
+  if (m_service && m_service->should_sign_request(*this)) {
+    auto self = const_cast<Signed_request *>(this);
+    const auto now = time(nullptr);
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+    if (!m_signed_headers.empty() && !m_service->valid_headers(*this, now)) {
+      self->m_signed_headers.clear();
+    }
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+    if (m_signed_headers.empty()) {
+      self->m_signed_headers = m_service->make_headers(*this, now);
+    }
 
-  ~Env_credentials_provider() override = default;
+    return m_signed_headers;
+  } else {
+    return m_headers;
+  }
+}
 
-  bool available() const noexcept override { return true; }
-
- private:
-  Credentials fetch_credentials() override;
-};
-
-}  // namespace aws
+}  // namespace rest
 }  // namespace mysqlshdk
-
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_

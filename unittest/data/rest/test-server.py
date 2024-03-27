@@ -141,6 +141,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         return False
 
     def handle_request(self):
+        self.get_request_body()
         if not self.invoke_handler():
             self.reply()
 
@@ -149,7 +150,8 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         response['method'] = self.command
         response['path'] = self.path
         response['headers'] = self.getheaders()
-        response['data'], response['json'] = self.get_request_body()
+        response['data'] = self.body
+        response['json'] = self.json_body
         response.update(extra_response)
         response = json.dumps(response)
 
@@ -167,16 +169,14 @@ class TestRequestHandler(BaseHTTPRequestHandler):
 
     def get_request_body(self):
         content_length = int(self.getheader('Content-Length', 0))
-        content = None
-        json_content = None
+        self.body = None
+        self.json_body = None
 
         if content_length > 0:
-            content = self.rfile.read(content_length).decode('ascii')
+            self.body = self.rfile.read(content_length).decode('ascii')
 
             if self.getheader('Content-Type', 'unknown') == 'application/json':
-                json_content = json.loads(content)
-
-        return content, json_content
+                self.json_body = json.loads(self.body)
 
     def log_message(self, format, *args):
         BaseHTTPRequestHandler.log_message(self, format, *args)
@@ -200,23 +200,29 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 def usage():
     print('Usage:')
     print('')
-    print(' ', os.path.basename(__file__), 'port')
+    print(' ', os.path.basename(__file__), 'port', '[no-https]')
     print('')
 
 
-def test_server(port):
+def test_server(port, https):
     server = ThreadedHTTPServer(('127.0.0.1', port), TestRequestHandler)
-    ssl_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ssl')
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.verify_mode = ssl.CERT_NONE
-    context.load_cert_chain(os.path.join(ssl_dir, 'cert.pem'), os.path.join(ssl_dir, 'key.pem'))
-    server.socket = context.wrap_socket(server.socket, server_side=True)
+    server_type = 'HTTP'
 
-    print('HTTPS test server running on 127.0.0.1:%d' % port)
-    print('Environment variables:')
-    for k, v in os.environ.items():
-        print(f'\tos.environ[{k}] = {v}')
-    sys.stdout.flush()
+    if https:
+        server_type += 'S'
+        ssl_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ssl')
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.verify_mode = ssl.CERT_NONE
+        context.load_cert_chain(os.path.join(ssl_dir, 'cert.pem'), os.path.join(ssl_dir, 'key.pem'))
+        server.socket = context.wrap_socket(server.socket, server_side=True)
+
+    print(f'{server_type} test server running on 127.0.0.1:{port}')
+
+    if 'TEST_DEBUG' in os.environ:
+        print('Environment variables:')
+        for k, v in os.environ.items():
+            print(f'\tos.environ[{k}] = {v}')
+        sys.stdout.flush()
 
     try:
         server.serve_forever()
@@ -224,15 +230,18 @@ def test_server(port):
         pass
 
     server.server_close()
-    print('HTTPS test server stopped')
+    print(f'{server_type} test server stopped')
     sys.stdout.flush()
 
 
 def main(args):
-    if len(args) != 1:
+    cargs = len(args)
+
+    if cargs < 1 or cargs > 2:
         usage()
     else:
-        test_server(int(args[0]))
+        https = True if cargs == 1 else False
+        test_server(int(args[0]), https)
 
 
 if __name__ == '__main__':

@@ -31,7 +31,8 @@
 #include <unordered_map>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_request.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 #include "mysqlshdk/shellcore/private_key_manager.h"
 
 #include "mysqlshdk/libs/oci/oci_bucket.h"
@@ -42,7 +43,12 @@ namespace mysqlshdk {
 namespace oci {
 
 Oci_bucket_config::Oci_bucket_config(const Oci_bucket_options &options)
-    : Bucket_config(options), m_namespace(options.m_namespace) {
+    : Bucket_config(options),
+      Config_file(options),
+      Config_profile(options),
+      m_namespace(options.m_namespace) {
+  m_label = "OCI-OS";
+
   if (m_config_file.empty()) {
     m_config_file = mysqlsh::current_shell_options()->get().oci_config_file;
   }
@@ -127,7 +133,7 @@ void Oci_bucket_config::fetch_namespace() {
   }
 }
 
-std::unique_ptr<rest::Signer> Oci_bucket_config::signer() const {
+std::unique_ptr<rest::ISigner> Oci_bucket_config::signer() const {
   return std::make_unique<Oci_signer>(*this);
 }
 

@@ -23,34 +23,39 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#ifndef MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REQUEST_H_
+#define MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REQUEST_H_
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <utility>
+
+#include "mysqlshdk/libs/rest/headers.h"
+#include "mysqlshdk/libs/rest/request.h"
 
 namespace mysqlshdk {
-namespace aws {
+namespace rest {
 
-class Env_credentials_provider : public Aws_credentials_provider {
+class Signed_rest_service;
+
+struct Signed_request : public Request {
  public:
-  Env_credentials_provider();
+  explicit Signed_request(Masked_string path, Headers headers = {},
+                          Query query = {}, bool include_empty_values = false)
+      : Request(std::move(path), std::move(headers), std::move(query),
+                include_empty_values) {}
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+  const Headers &headers() const override;
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
-
-  ~Env_credentials_provider() override = default;
-
-  bool available() const noexcept override { return true; }
+  const Headers &unsigned_headers() const { return m_headers; }
 
  private:
-  Credentials fetch_credentials() override;
+  friend class Signed_rest_service;
+
+  Signed_rest_service *m_service = nullptr;
+
+  Headers m_signed_headers;
 };
 
-}  // namespace aws
+}  // namespace rest
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#endif  // MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REQUEST_H_

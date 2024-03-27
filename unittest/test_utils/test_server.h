@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,34 +23,49 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#ifndef UNITTEST_TEST_UTILS_TEST_SERVER_H_
+#define UNITTEST_TEST_UTILS_TEST_SERVER_H_
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <memory>
+#include <string>
 
-namespace mysqlshdk {
-namespace aws {
+#include "mysqlshdk/libs/utils/process_launcher.h"
 
-class Env_credentials_provider : public Aws_credentials_provider {
+#include "unittest/test_utils/cleanup.h"
+
+namespace tests {
+
+class Test_server {
  public:
-  Env_credentials_provider();
+  Test_server();
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+  Test_server(const Test_server &) = delete;
+  Test_server(Test_server &&) = default;
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+  Test_server &operator=(const Test_server &) = delete;
+  Test_server &operator=(Test_server &&) = default;
 
-  ~Env_credentials_provider() override = default;
+  ~Test_server() = default;
 
-  bool available() const noexcept override { return true; }
+  bool start_server(int start_port, bool use_env_var = true, bool https = true);
+
+  void stop_server();
+
+  const std::string &address() const { return m_address; }
+
+  int port() const { return m_port; }
+
+  bool is_alive();
 
  private:
-  Credentials fetch_credentials() override;
+  void setup_env_vars();
+
+  std::unique_ptr<shcore::Process_launcher> m_server;
+  std::string m_address;
+  int m_port;
+  Cleanup m_cleanup;
 };
 
-}  // namespace aws
-}  // namespace mysqlshdk
+}  // namespace tests
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#endif  // UNITTEST_TEST_UTILS_TEST_SERVER_H_

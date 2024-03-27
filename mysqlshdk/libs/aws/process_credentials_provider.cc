@@ -30,11 +30,9 @@
 #include <optional>
 #include <string_view>
 
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -101,9 +99,11 @@ std::string hide_secret(const std::string &s, std::string_view secret) {
   return s.substr(0, start + 1) + "****" + s.substr(end - 1);
 }
 
-void throw_error(const std::string &string) {
-  throw std::runtime_error{"AWS credential process: " + string};
+auto error(const std::string &string) {
+  return std::runtime_error{"AWS credential process: " + string};
 }
+
+void throw_error(const std::string &string) { throw error(string); }
 
 std::string run_process(const std::string &process) {
   log_debug("Running AWS credential process: %s", process.c_str());
@@ -155,9 +155,8 @@ Process_credentials_provider::Process_credentials_provider(
            "AccessKeyId", "SecretAccessKey"}),
       m_profile(profile) {}
 
-bool Process_credentials_provider::available(
-    const Aws_config_file::Profile &profile) {
-  return profile.settings.count("credential_process") > 0;
+bool Process_credentials_provider::available() const noexcept {
+  return m_profile->settings.count("credential_process") > 0;
 }
 
 Aws_credentials_provider::Credentials
@@ -175,70 +174,27 @@ Process_credentials_provider::fetch_credentials() {
 
 Aws_credentials_provider::Credentials Process_credentials_provider::parse_json(
     const std::string &json) const {
-  rapidjson::Document doc;
-  doc.Parse(json.c_str(), json.length());
+  try {
+    const auto doc = shcore::json::parse_object_or_throw(json);
 
-  const auto handle_error = [this, &json](const std::string &string) {
+    if (1 != shcore::json::required_uint(doc, "Version")) {
+      throw std::runtime_error{"got unsupported version, expected: 1"};
+    }
+
+    Credentials creds;
+
+    creds.access_key_id = shcore::json::required(doc, access_key_id(), true);
+    creds.secret_access_key =
+        shcore::json::required(doc, secret_access_key(), true);
+    creds.session_token = shcore::json::optional(doc, "SessionToken", true);
+    creds.expiration = shcore::json::optional(doc, "Expiration", true);
+
+    return creds;
+  } catch (const std::exception &e) {
     log_debug("Output of the AWS credential process:\n%s",
               hide_secret(json, secret_access_key()).c_str());
-    throw_error("AWS credential process: " + string);
-  };
-
-  if (doc.HasParseError()) {
-    handle_error(std::string{"failed to parse JSON: "} +
-                 rapidjson::GetParseError_En(doc.GetParseError()));
+    throw error(e.what());
   }
-
-  if (!doc.IsObject()) {
-    handle_error("output should be a JSON object");
-  }
-
-  const auto version = doc.FindMember("Version");
-
-  if (doc.MemberEnd() == version || !version->value.IsInt()) {
-    handle_error(
-        "JSON object should contain a 'Version' key with an integer value");
-  }
-
-  if (1 != version->value.GetInt()) {
-    handle_error("got unsupported version, expected: 1");
-  }
-
-  const auto required = [&doc, &handle_error](const char *name) {
-    const auto it = doc.FindMember(name);
-
-    if (doc.MemberEnd() == it || !it->value.IsString()) {
-      handle_error(shcore::str_format(
-          "JSON object should contain a '%s' key with a string value", name));
-    }
-
-    return it->value.GetString();
-  };
-
-  const auto optional =
-      [&doc, &handle_error](const char *name) -> std::optional<std::string> {
-    const auto it = doc.FindMember(name);
-
-    if (doc.MemberEnd() == it) {
-      return {};
-    }
-
-    if (!it->value.IsString()) {
-      handle_error(shcore::str_format(
-          "JSON object should contain a '%s' key with a string value", name));
-    }
-
-    return it->value.GetString();
-  };
-
-  Credentials creds;
-
-  creds.access_key_id = required(access_key_id());
-  creds.secret_access_key = required(secret_access_key());
-  creds.session_token = optional("SessionToken");
-  creds.expiration = optional("Expiration");
-
-  return creds;
 }
 
 }  // namespace aws

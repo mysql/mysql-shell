@@ -1,11 +1,11 @@
 #@ {has_aws_environment()}
 
-#@<> INCLUDE aws_utils.inc
-
 #@<> INCLUDE dump_utils.inc
 
+#@<> INCLUDE aws_utils.inc
+
 #@<> imports
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 import os.path
 import random
 import threading
@@ -71,24 +71,6 @@ class FailHTTPRequest(BaseHTTPRequestHandler):
         self.close_connection = True
     def log_message(self, format, *args):
         pass
-
-def start_test_server(handler):
-    while True:
-        http_port = random.randint(50000, 60000)
-        if not testutil.is_tcp_port_listening("127.0.0.1", http_port):
-            break
-    http_server = HTTPServer(("127.0.0.1", http_port), handler)
-    http_thread = threading.Thread(target = http_server.serve_forever)
-    http_thread.start()
-    return (http_port, http_server, http_thread)
-
-def test_server_url(server):
-    return f"http://127.0.0.1:{server[0]}"
-
-def stop_test_server(server):
-    server[1].shutdown()
-    server[1].server_close()
-    server[2].join()
 
 #@<> WL14387-TSFR_1
 help_text = """
@@ -165,7 +147,7 @@ shell.options["logLevel"] = current_log_level
 #@<> WL14387-TSFR_4_1
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
-        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found in: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
+        EXPECT_FAIL("RuntimeError", f"The AWS access and secret keys were not found, tried: credentials file ({local_aws_credentials_file}), config file ({local_aws_config_file}", { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file })
 
 #@<> WL14387-TSFR_4_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
@@ -328,7 +310,8 @@ class RejectGet(FailHTTPRequest):
     status_code = 403
     response = "<Error><Message>Access forbidden!</Message></Error>"
 
-http_server = start_test_server(RejectGet)
+http_server = Http_test_server(RejectGet)
+http_server.start()
 
 current_log_level = shell.options["logLevel"]
 shell.options["logLevel"] = 8
@@ -338,12 +321,12 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { **aw
     setup_session(__sandbox_uri1)
     clean_bucket()
     WIPE_SHELL_LOG()
-    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Access forbidden! (403)")
-    EXPECT_SHELL_LOG_CONTAINS(f"{test_server_url(http_server)} GET")
+    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": http_server.url(), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), "Access forbidden! (403)")
+    EXPECT_SHELL_LOG_CONTAINS(f"{http_server.url()} GET")
 
 shell.options["logLevel"] = current_log_level
 
-stop_test_server(http_server)
+http_server.stop()
 
 #@<> WL14387-TSFR_6_3_2
 current_log_level = shell.options["logLevel"]
@@ -512,7 +495,7 @@ class TokenRefreshRequired(FailHTTPRequest):
 
 def TEST_BUG35027093(http_server, expected_error):
     WIPE_SHELL_LOG()
-    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
+    EXPECT_THROWS(lambda: util.dump_instance(dump_dir, get_options({ "s3EndpointOverride": http_server.url(), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Refreshing authentication data", 2)
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Retrying a request which failed due to an authorization error", 2)
 
@@ -530,13 +513,18 @@ class FailHeadRequest(BaseHTTPRequestHandler):
 
 def TEST_BUG35468541(http_server, expected_error):
     WIPE_SHELL_LOG()
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, get_options({ "s3EndpointOverride": test_server_url(http_server), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, get_options({ "s3EndpointOverride": http_server.url(), "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file })), expected_error)
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Refreshing authentication data", 2)
     EXPECT_SHELL_LOG_CONTAINS_COUNT("Retrying a request which failed due to an authorization error", 2)
 
-expired_token_server = start_test_server(ExpiredToken)
-token_refresh_server = start_test_server(TokenRefreshRequired)
-fail_head_server = start_test_server(FailHeadRequest)
+expired_token_server = Http_test_server(ExpiredToken)
+expired_token_server.start()
+
+token_refresh_server = Http_test_server(TokenRefreshRequired)
+token_refresh_server.start()
+
+fail_head_server = Http_test_server(FailHeadRequest)
+fail_head_server.start()
 
 #@<> BUG#35027093 + BUG#35468541 - test
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "credential_process": f"{__mysqlsh} --py --file {creds_script}" }):
@@ -545,9 +533,9 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "cre
     TEST_BUG35468541(fail_head_server, "Bad Request (400)")
 
 #@<> BUG#35027093 + BUG#35468541 - cleanup
-stop_test_server(expired_token_server)
-stop_test_server(token_refresh_server)
-stop_test_server(fail_head_server)
+expired_token_server.stop()
+token_refresh_server.stop()
+fail_head_server.stop()
 
 if os.path.exists(creds_script):
     os.remove(creds_script)

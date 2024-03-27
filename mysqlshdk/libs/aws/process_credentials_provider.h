@@ -40,16 +40,16 @@ class Process_credentials_provider : public Aws_credentials_provider {
                                const Aws_config_file::Profile *profile);
 
   Process_credentials_provider(const Process_credentials_provider &) = delete;
-  Process_credentials_provider(Process_credentials_provider &&) = default;
+  Process_credentials_provider(Process_credentials_provider &&) = delete;
 
   Process_credentials_provider &operator=(
       const Process_credentials_provider &) = delete;
   Process_credentials_provider &operator=(Process_credentials_provider &&) =
-      default;
+      delete;
 
   ~Process_credentials_provider() override = default;
 
-  static bool available(const Aws_config_file::Profile &profile);
+  bool available() const noexcept override;
 
  private:
   Credentials fetch_credentials() override;

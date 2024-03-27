@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,34 +23,63 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#include "unittest/test_utils/cleanup.h"
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <string>
+#include <utility>
 
-namespace mysqlshdk {
-namespace aws {
+#include "mysqlshdk/libs/utils/utils_general.h"
 
-class Env_credentials_provider : public Aws_credentials_provider {
- public:
-  Env_credentials_provider();
+namespace tests {
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+Cleanup::~Cleanup() {
+  while (!m_steps.empty()) {
+    m_steps.back()();
+    m_steps.pop_back();
+  }
+}
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+Cleanup &Cleanup::add(Step step) {
+  m_steps.emplace_back(std::move(step));
+  return *this;
+}
 
-  ~Env_credentials_provider() override = default;
+Cleanup &Cleanup::add(Cleanup c) {
+  for (auto &s : c.m_steps) {
+    add(std::move(s));
+  }
 
-  bool available() const noexcept override { return true; }
+  c.m_steps.clear();
 
- private:
-  Credentials fetch_credentials() override;
-};
+  return *this;
+}
 
-}  // namespace aws
-}  // namespace mysqlshdk
+Cleanup &Cleanup::operator+=(Cleanup c) { return add(std::move(c)); }
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+[[nodiscard]] Cleanup Cleanup::unset_env_var(const char *name) {
+  Cleanup c;
+
+  if (const auto v = ::getenv(name)) {
+    c.add([name, old_value = std::string{v}]() {
+      shcore::setenv(name, old_value);
+    });
+
+    shcore::unsetenv(name);
+  }
+
+  return c;
+}
+
+[[nodiscard]] Cleanup Cleanup::set_env_var(const char *name,
+                                           const std::string &value) {
+  Cleanup c;
+
+  c += unset_env_var(name);
+
+  shcore::setenv(name, value);
+  c.add([name]() { shcore::unsetenv(name); });
+
+  return c;
+}
+
+}  // namespace tests

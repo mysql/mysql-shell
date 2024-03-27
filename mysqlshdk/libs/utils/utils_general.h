@@ -548,6 +548,15 @@ bool setenv(const std::string &name_value);
 bool unsetenv(const char *name);
 bool unsetenv(const std::string &name);
 
+/**
+ * Fetches the environment variable called 'name'.
+ *
+ * @param name - name of the environment variable to fetch
+ *
+ * @returns Value of the environment variable if it's set and not empty.
+ */
+std::optional<const char *> get_env(const char *name);
+
 void parse_schema_and_object(const std::string &str, const std::string &context,
                              const std::string &object_type,
                              std::string *out_schema, std::string *out_table);

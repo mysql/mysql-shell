@@ -40,7 +40,10 @@ class Oci_bucket;
 class Oci_setup;
 
 class Oci_bucket_config
-    : public storage::backend::object_storage::Bucket_config {
+    : public storage::backend::object_storage::Bucket_config,
+      public storage::backend::object_storage::mixin::Config_file,
+      public storage::backend::object_storage::mixin::Config_profile,
+      public storage::backend::object_storage::mixin::Host {
  public:
   Oci_bucket_config() = delete;
 
@@ -56,11 +59,7 @@ class Oci_bucket_config
 
   const std::string &oci_namespace() const { return m_namespace; }
 
-  const std::string &service_endpoint() const override { return m_endpoint; }
-
-  const std::string &service_label() const override { return m_label; }
-
-  std::unique_ptr<rest::Signer> signer() const override;
+  std::unique_ptr<rest::ISigner> signer() const override;
 
   std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
@@ -81,10 +80,7 @@ class Oci_bucket_config
 
   void configure_endpoint();
 
-  std::string m_label = "OCI-OS";
   std::string m_namespace;
-  std::string m_host;
-  std::string m_endpoint;
   std::string m_region;
   std::string m_tenancy_id;
   std::string m_user;

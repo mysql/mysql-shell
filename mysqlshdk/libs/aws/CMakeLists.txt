@@ -29,6 +29,7 @@ set(aws_SOURCES
   aws_config_file.cc
   aws_credentials.cc
   aws_credentials_provider.cc
+  aws_credentials_resolver.cc
   aws_signer.cc
   config_credentials_provider.cc
   env_credentials_provider.cc

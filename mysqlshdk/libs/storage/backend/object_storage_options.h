@@ -23,12 +23,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_BUCKET_OPTIONS_H_
-#define MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_BUCKET_OPTIONS_H_
+#ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_OPTIONS_H_
+#define MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_OPTIONS_H_
 
+#include <algorithm>
+#include <array>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -88,7 +91,6 @@ class Object_storage_options {
       "set.";
 
   std::string m_container_name;
-  std::string m_config_file;
 
  private:
   friend class Config;
@@ -98,20 +100,48 @@ class Object_storage_options {
   virtual bool has_value(const char *option) const = 0;
 };
 
-class Bucket_options : public Object_storage_options {
- public:
-  Bucket_options() = default;
+/**
+ * Calls Object_storage_options::throw_on_conflict() for all combinations of
+ * pairs in `options`.
+ */
+template <std::size_t N>
+void throw_on_conflict(
+    const std::array<const Object_storage_options *, N> &options) {
+  static_assert(N >= 2, "need at least two options");
 
-  Bucket_options(const Bucket_options &) = default;
+  // options at indexes where values of mask are true are selected as pair
+  std::array<bool, N> mask{false};
+  // we start with the first two options
+  mask[0] = mask[1] = true;
+  // mask now consists of values: true, true, false, ...; it is the last
+  // permutation (lexicographically) of the whole range; we then go through all
+  // permutations of these Boolean values, at each step of the loop we get a
+  // different pair of options, generating all pairs among the given options
 
-  virtual ~Bucket_options() = default;
+  const Object_storage_options *left;
+  const Object_storage_options *right = nullptr;
 
-  std::string m_config_profile;
-};
+  do {
+    left = nullptr;
+
+    for (std::size_t i = 0; i < N; ++i) {
+      if (mask[i]) {
+        if (!left) {
+          left = options[i];
+        } else {
+          right = options[i];
+          break;
+        }
+      }
+    }
+
+    left->throw_on_conflict(*right);
+  } while (std::prev_permutation(mask.begin(), mask.end()));
+}
 
 }  // namespace object_storage
 }  // namespace backend
 }  // namespace storage
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_BUCKET_OPTIONS_H_
+#endif  // MYSQLSHDK_LIBS_STORAGE_BACKEND_OBJECT_STORAGE_OPTIONS_H_

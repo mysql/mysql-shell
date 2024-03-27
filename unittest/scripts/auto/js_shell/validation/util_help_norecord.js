@@ -651,8 +651,8 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
-        1.2 TiB.
+      - Size limit for individual files uploaded to the cloud storage is 1.2
+        TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -1275,8 +1275,8 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
-        1.2 TiB.
+      - Size limit for individual files uploaded to the cloud storage is 1.2
+        TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -1876,8 +1876,8 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
-        1.2 TiB.
+      - Size limit for individual files uploaded to the cloud storage is 1.2
+        TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -2427,8 +2427,8 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
-      - Size limit for individual files uploaded to the OCI or AWS S3 bucket is
-        1.2 TiB.
+      - Size limit for individual files uploaded to the cloud storage is 1.2
+        TiB.
       - Columns with data types which are not safe to be stored in text form
         (i.e. BLOB) are converted to Base64, hence the size of such columns
         cannot exceed approximately 0.74 * max_allowed_packet bytes, as
@@ -3169,10 +3169,12 @@ DESCRIPTION
       loaded using pre-authenticated requests (PAR). Allowed values:
 
       - /path/to/folder - to load a dump from local storage
-      - /oci/bucket/path - to load a dump from OCI Object Storage using an OCI
+      - oci/bucket/path - to load a dump from OCI Object Storage using an OCI
         profile
-      - /aws/bucket/path - to load a dump from AWS S3 Object Storage using the
+      - aws/bucket/path - to load a dump from AWS S3 Object Storage using the
         AWS settings stored in the credentials and config files
+      - azure/contaier/path - to load a dump from Azure container using either
+        the configuration file or SAS token
       - PAR to the dump location - to load a dump from OCI Object Storage using
         a single PAR
 

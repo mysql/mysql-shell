@@ -38,7 +38,8 @@ namespace azure {
 class Blob_storage_config;
 
 class Blob_storage_options
-    : public storage::backend::object_storage::Object_storage_options {
+    : public storage::backend::object_storage::Object_storage_options,
+      public storage::backend::object_storage::mixin::Config_file {
  public:
   enum class Operation { READ, WRITE };
   explicit Blob_storage_options(Operation operation)

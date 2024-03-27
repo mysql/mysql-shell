@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,34 +23,44 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#ifndef UNITTEST_TEST_UTILS_CLEANUP_H_
+#define UNITTEST_TEST_UTILS_CLEANUP_H_
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <deque>
+#include <functional>
+#include <string>
 
-namespace mysqlshdk {
-namespace aws {
+namespace tests {
 
-class Env_credentials_provider : public Aws_credentials_provider {
+class Cleanup final {
  public:
-  Env_credentials_provider();
+  using Step = std::function<void()>;
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+  Cleanup() = default;
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+  Cleanup(const Cleanup &) = delete;
+  Cleanup(Cleanup &&) = default;
 
-  ~Env_credentials_provider() override = default;
+  Cleanup &operator=(const Cleanup &) = delete;
+  Cleanup &operator=(Cleanup &&) = default;
 
-  bool available() const noexcept override { return true; }
+  ~Cleanup();
+
+  Cleanup &add(Step step);
+
+  Cleanup &add(Cleanup c);
+
+  Cleanup &operator+=(Cleanup c);
+
+  [[nodiscard]] static Cleanup unset_env_var(const char *name);
+
+  [[nodiscard]] static Cleanup set_env_var(const char *name,
+                                           const std::string &value);
 
  private:
-  Credentials fetch_credentials() override;
+  std::deque<Step> m_steps;
 };
 
-}  // namespace aws
-}  // namespace mysqlshdk
+}  // namespace tests
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#endif  // UNITTEST_TEST_UTILS_CLEANUP_H_

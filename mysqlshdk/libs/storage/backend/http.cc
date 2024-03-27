@@ -66,7 +66,7 @@ Rest_service *get_rest_service(const Masked_string &base) {
     // Timeout conditions:
     // - 30 seconds for HEAD and DELETE requests
     // - The rest will timeout if less than 1K is received in 60 seconds
-    service->set_timeout(30000, 1024, 60);
+    service->set_timeout(30, 1024, 60);
   }
 
   return service.get();

@@ -27,6 +27,7 @@
 
 #include <errno.h>
 #include <algorithm>
+#include <array>
 #include <limits>
 #include <stack>
 #include <utility>
@@ -404,9 +405,11 @@ void Import_table_option_pack::set_max_rate(const std::string &value) {
 }
 
 void Import_table_option_pack::on_unpacked_options() {
-  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
-  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
-  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
+  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
+      std::array<const mysqlshdk::storage::backend::object_storage::
+                     Object_storage_options *,
+                 3>{&m_s3_bucket_options, &m_blob_storage_options,
+                    &m_oci_bucket_options});
 
   if (m_oci_bucket_options) {
     m_storage_config = m_oci_bucket_options.config();

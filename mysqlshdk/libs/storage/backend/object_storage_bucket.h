@@ -32,7 +32,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_request.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"

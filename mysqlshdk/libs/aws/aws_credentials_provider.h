@@ -30,25 +30,41 @@
 #include <optional>
 #include <string>
 
+#include "mysqlshdk/libs/rest/signed/credentials_provider.h"
+
 #include "mysqlshdk/libs/aws/aws_credentials.h"
 
 namespace mysqlshdk {
 namespace aws {
 
-class Aws_credentials_provider {
+class Aws_credentials_provider;
+
+struct Aws_credentials_provider_traits {
+  using Provider_t = Aws_credentials_provider;
+  using Credentials_t = Aws_credentials;
+
+  struct Intermediate_credentials {
+    std::optional<std::string> access_key_id;
+    std::optional<std::string> secret_access_key;
+    std::optional<std::string> session_token;
+    std::optional<std::string> expiration;
+  };
+
+  static std::shared_ptr<Credentials_t> convert(
+      const Provider_t &self, const Intermediate_credentials &credentials);
+};
+
+class Aws_credentials_provider
+    : public rest::Credentials_provider<Aws_credentials_provider_traits> {
  public:
+  static constexpr auto s_storage_name = "AWS";
+
   Aws_credentials_provider(const Aws_credentials_provider &) = delete;
-  Aws_credentials_provider(Aws_credentials_provider &&) = default;
+  Aws_credentials_provider(Aws_credentials_provider &&) = delete;
 
   Aws_credentials_provider &operator=(const Aws_credentials_provider &) =
       delete;
-  Aws_credentials_provider &operator=(Aws_credentials_provider &&) = default;
-
-  virtual ~Aws_credentials_provider();
-
-  std::shared_ptr<Aws_credentials> credentials() const;
-
-  inline const std::string &name() const noexcept { return m_context.name; }
+  Aws_credentials_provider &operator=(Aws_credentials_provider &&) = delete;
 
   inline const char *access_key_id() const noexcept {
     return m_context.access_key_id;
@@ -58,16 +74,7 @@ class Aws_credentials_provider {
     return m_context.secret_access_key;
   }
 
-  bool initialize();
-
  protected:
-  struct Credentials {
-    std::optional<std::string> access_key_id;
-    std::optional<std::string> secret_access_key;
-    std::optional<std::string> session_token;
-    std::optional<std::string> expiration;
-  };
-
   struct Context {
     std::string name;
     const char *access_key_id;
@@ -77,16 +84,7 @@ class Aws_credentials_provider {
   explicit Aws_credentials_provider(Context context);
 
  private:
-  class Updater;
-
-  virtual Credentials fetch_credentials() = 0;
-
-  std::shared_ptr<Aws_credentials> get_credentials();
-
-  std::shared_ptr<Aws_credentials> m_credentials;
   Context m_context;
-  bool m_initialized = false;
-  std::unique_ptr<Updater> m_updater;
 };
 
 }  // namespace aws

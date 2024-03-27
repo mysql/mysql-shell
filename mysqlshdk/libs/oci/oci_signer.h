@@ -31,14 +31,14 @@
 #include <memory>
 #include <string>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signer.h"
 
 #include "mysqlshdk/libs/oci/oci_bucket_config.h"
 
 namespace mysqlshdk {
 namespace oci {
 
-class Oci_signer : public rest::Signer {
+class Oci_signer : public rest::ISigner {
  public:
   Oci_signer() = delete;
 
@@ -52,11 +52,11 @@ class Oci_signer : public rest::Signer {
 
   ~Oci_signer() override = default;
 
-  bool should_sign_request(const rest::Signed_request *) const override {
+  bool should_sign_request(const rest::Signed_request &) const override {
     return true;
   }
 
-  rest::Headers sign_request(const rest::Signed_request *request,
+  rest::Headers sign_request(const rest::Signed_request &request,
                              time_t now) const override;
 
   bool refresh_auth_data() override { return false; }

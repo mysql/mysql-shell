@@ -28,6 +28,7 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <regex>
 #include <utility>
@@ -416,9 +417,11 @@ std::string Load_dump_options::target_import_info(
 }
 
 void Load_dump_options::on_unpacked_options() {
-  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
-  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
-  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
+  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
+      std::array<const mysqlshdk::storage::backend::object_storage::
+                     Object_storage_options *,
+                 3>{&m_s3_bucket_options, &m_blob_storage_options,
+                    &m_oci_bucket_options});
 
   if (m_oci_bucket_options) {
     set_storage_config(m_oci_bucket_options.config());

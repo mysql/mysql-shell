@@ -29,9 +29,7 @@
 
 #include "unittest/gtest_clean.h"
 
-#include <deque>
-#include <functional>
-#include <utility>
+#include <memory>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -40,49 +38,15 @@
 
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
 
+#include "unittest/test_utils/cleanup.h"
+
 namespace mysqlshdk {
 namespace aws {
 
+using tests::Cleanup;
+
 class Aws_s3_bucket_config_test : public testing::Test {
  protected:
-  class Cleanup final {
-   public:
-    using Step = std::function<void()>;
-
-    Cleanup() = default;
-
-    Cleanup(const Cleanup &) = delete;
-    Cleanup(Cleanup &&) = default;
-
-    Cleanup &operator=(const Cleanup &) = delete;
-    Cleanup &operator=(Cleanup &&) = default;
-
-    void add(Step step) { m_steps.emplace_back(std::move(step)); }
-
-    void add(Cleanup c) {
-      for (auto &s : c.m_steps) {
-        add(std::move(s));
-      }
-
-      c.m_steps.clear();
-    }
-
-    Cleanup &operator+=(Cleanup c) {
-      add(std::move(c));
-      return *this;
-    }
-
-    ~Cleanup() {
-      while (!m_steps.empty()) {
-        m_steps.back()();
-        m_steps.pop_back();
-      }
-    }
-
-   private:
-    std::deque<Step> m_steps;
-  };
-
   class Config_builder final {
    public:
     Config_builder() {
@@ -134,11 +98,11 @@ class Aws_s3_bucket_config_test : public testing::Test {
 
   static std::string default_config_file() {
     return default_config_path("config");
-  };
+  }
 
   static std::string default_credentials_file() {
     return default_config_path("credentials");
-  };
+  }
 
   [[nodiscard]] static Cleanup write_default_config(
       const std::string &contents) {
@@ -182,29 +146,12 @@ class Aws_s3_bucket_config_test : public testing::Test {
   }
 
   [[nodiscard]] static Cleanup unset_env_var(const char *name) {
-    Cleanup c;
-
-    if (const auto v = ::getenv(name)) {
-      c.add([name, old_value = std::string{v}]() {
-        shcore::setenv(name, old_value);
-      });
-
-      shcore::unsetenv(name);
-    }
-
-    return c;
+    return Cleanup::unset_env_var(name);
   }
 
   [[nodiscard]] static Cleanup set_env_var(const char *name,
                                            const std::string &value) {
-    Cleanup c;
-
-    c += unset_env_var(name);
-
-    shcore::setenv(name, value);
-    c.add([name]() { shcore::unsetenv(name); });
-
-    return c;
+    return Cleanup::set_env_var(name, value);
   }
 
   [[nodiscard]] static Cleanup clear_aws_env_vars() {
@@ -335,7 +282,7 @@ class Aws_s3_bucket_config_test : public testing::Test {
   static std::string default_config_path(const std::string &filename) {
     static const auto s_home_dir = shcore::get_home_dir();
     return shcore::path::join_path(s_home_dir, ".aws", filename);
-  };
+  }
 
   Cleanup m_cleanup;
 };
@@ -352,7 +299,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.profile(k_profile_name).build();
 
-    EXPECT_EQ(k_profile_name, config->profile());
+    EXPECT_EQ(k_profile_name, config->config_profile());
   }
 
   {
@@ -363,7 +310,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.profile(k_profile_name).build();
 
-    EXPECT_EQ(k_profile_name, config->profile());
+    EXPECT_EQ(k_profile_name, config->config_profile());
   }
 
   {
@@ -373,7 +320,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.profile(k_profile_name).build();
 
-    EXPECT_EQ(k_profile_name, config->profile());
+    EXPECT_EQ(k_profile_name, config->config_profile());
   }
 
   {
@@ -385,7 +332,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.build();
 
-    EXPECT_EQ(k_profile_name, config->profile());
+    EXPECT_EQ(k_profile_name, config->config_profile());
   }
 
   {
@@ -396,7 +343,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.build();
 
-    EXPECT_EQ(k_profile_name, config->profile());
+    EXPECT_EQ(k_profile_name, config->config_profile());
   }
 
   {
@@ -407,7 +354,7 @@ TEST_F(Aws_s3_bucket_config_test, profile) {
 
     const auto config = Config_builder{}.build();
 
-    EXPECT_EQ("default", config->profile());
+    EXPECT_EQ("default", config->config_profile());
   }
 }
 
@@ -877,14 +824,12 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
   }
 
   const auto EXPECT_EXPIRATION = [](Aws_credentials::Time_point expected,
-                                    Aws_credentials::Time_point actual,
-                                    bool adjusted = false) {
+                                    Aws_credentials::Time_point actual) {
     // shcore::time_point_to_rfc3339() does not include information about
     // fractions of seconds, these need to be converted to seconds before we can
     // compare them
     EXPECT_EQ(std::chrono::floor<std::chrono::seconds>(expected),
-              std::chrono::floor<std::chrono::seconds>(actual) +
-                  std::chrono::minutes(adjusted ? 5 : 0));
+              std::chrono::floor<std::chrono::seconds>(actual));
   };
 
   {
@@ -951,7 +896,7 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
     EXPECT_EQ(k_session_token, credentials->session_token());
     EXPECT_TRUE(credentials->temporary());
     EXPECT_FALSE(credentials->expired());
-    EXPECT_EXPIRATION(expiration, credentials->expiration(), true);
+    EXPECT_EXPIRATION(expiration, credentials->expiration());
   }
 
   {
@@ -973,7 +918,7 @@ TEST_F(Aws_s3_bucket_config_test, process_credentials) {
     EXPECT_EQ("", credentials->session_token());
     EXPECT_TRUE(credentials->temporary());
     EXPECT_FALSE(credentials->expired());
-    EXPECT_EXPIRATION(expiration, credentials->expiration(), true);
+    EXPECT_EXPIRATION(expiration, credentials->expiration());
   }
 
   {

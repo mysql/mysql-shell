@@ -36,8 +36,9 @@ set(rest_SOURCES
   response.cc
   request.cc
   retry_strategy.cc
-  signed_rest_service.cc
   rest_utils.cc
+  signed/signed_request.cc
+  signed/signed_rest_service.cc
 )
 
 add_convenience_library(rest

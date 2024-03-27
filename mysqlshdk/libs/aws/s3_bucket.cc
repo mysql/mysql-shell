@@ -78,12 +78,6 @@ std::string encode_path(const std::string &data) {
   return path;
 }
 
-inline std::string encode_query(const std::string &data) {
-  // signer expects that query parameters are URL-encoded, all bytes except the
-  // unreserved characters must be encoded
-  return shcore::pctencode(data);
-}
-
 }  // namespace
 
 S3_bucket::S3_bucket(const S3_bucket_config_ptr &config)
@@ -104,7 +98,7 @@ rest::Signed_request S3_bucket::list_objects_request(
   rest::Query query = {{"list-type", "2"}};
 
   if (!prefix.empty()) {
-    query.emplace("prefix", encode_query(prefix));
+    query.emplace("prefix", prefix);
   }
 
   if (limit) {
@@ -113,16 +107,16 @@ rest::Signed_request S3_bucket::list_objects_request(
 
   if (!recursive) {
     // delimiter is '/'
-    query.emplace("delimiter", "%2F");
+    query.emplace("delimiter", "/");
   }
 
   // AWS S3 does not allow to select fields, it always returns all of them
 
   if (!start_from.empty()) {
-    query.emplace("continuation-token", encode_query(start_from));
+    query.emplace("continuation-token", start_from);
   }
 
-  return create_bucket_request(query);
+  return create_bucket_request(std::move(query));
 }
 
 std::vector<Object_details> S3_bucket::parse_list_objects(
@@ -227,7 +221,7 @@ rest::Signed_request S3_bucket::list_multipart_uploads_request(size_t limit) {
     query.emplace("max-uploads", std::to_string(limit));
   }
 
-  return create_bucket_request(query);
+  return create_bucket_request(std::move(query));
 }
 
 std::vector<Multipart_object> S3_bucket::parse_list_multipart_uploads(
@@ -277,7 +271,7 @@ rest::Signed_request S3_bucket::list_multipart_uploaded_parts_request(
     query.emplace("max-parts", std::to_string(limit));
   }
 
-  return create_object_request(object.name, query);
+  return create_object_request(object.name, std::move(query));
 }
 
 std::vector<Multipart_object_part>
@@ -330,7 +324,7 @@ rest::Signed_request S3_bucket::create_multipart_upload_request(
   // no body
   *request_body = "";
   rest::Query query = {{"uploads", {}}};
-  return create_object_request(object_name, query);
+  return create_object_request(object_name, std::move(query));
 }
 
 std::string S3_bucket::parse_create_multipart_upload(
@@ -356,7 +350,7 @@ rest::Signed_request S3_bucket::upload_part_request(
   // UploadPart
   rest::Query query = {{"partNumber", std::to_string(part_num)},
                        {"uploadId", object.upload_id}};
-  return create_object_request(object.name, query);
+  return create_object_request(object.name, std::move(query));
 }
 
 rest::Signed_request S3_bucket::commit_multipart_upload_request(
@@ -391,14 +385,14 @@ rest::Signed_request S3_bucket::commit_multipart_upload_request(
 
   *request_body = printer.CStr();
 
-  return create_object_request(object.name, query);
+  return create_object_request(object.name, std::move(query));
 }
 
 rest::Signed_request S3_bucket::abort_multipart_upload_request(
     const Multipart_object &object) {
   // AbortMultipartUpload
   rest::Query query = {{"uploadId", object.upload_id}};
-  return create_object_request(object.name, query);
+  return create_object_request(object.name, std::move(query));
 }
 
 bool S3_bucket::exists() {
@@ -475,9 +469,8 @@ void S3_bucket::copy_object_multipart(const std::string &src_name,
     range = "bytes=" + std::to_string(start) + '-' + std::to_string(end);
     part_number = std::to_string(++id);
 
-    // copy headers
-    auto request = Signed_request(
-        add_query_parameters(object_path(new_name), query), headers);
+    // copy headers & query
+    auto request = create_signed_request(object_path(new_name), headers, query);
     rest::String_response response;
     service->put(&request, &response);
 
@@ -518,43 +511,25 @@ void S3_bucket::delete_objects(const std::vector<std::string> &list) {
       [](const std::string &item) -> const std::string & { return item; });
 }
 
-rest::Signed_request S3_bucket::create_bucket_request(
-    const rest::Query &query) const {
-  return Signed_request(add_query_parameters(m_bucket_path, query));
+rest::Signed_request S3_bucket::create_bucket_request(rest::Query query) const {
+  return create_signed_request(m_bucket_path, {}, std::move(query));
 }
 
 rest::Signed_request S3_bucket::create_object_request(
     const std::string &name, rest::Headers headers) const {
-  return Signed_request(object_path(name), std::move(headers));
+  return create_signed_request(object_path(name), std::move(headers), {});
 }
 
-rest::Signed_request S3_bucket::create_object_request(
-    const std::string &name, const rest::Query &query) const {
-  return Signed_request(add_query_parameters(object_path(name), query));
+rest::Signed_request S3_bucket::create_object_request(const std::string &name,
+                                                      rest::Query query) const {
+  return create_signed_request(object_path(name), {}, std::move(query));
 }
 
-std::string S3_bucket::add_query_parameters(const std::string &path,
-                                            const rest::Query &query) const {
-  std::string p = path;
-
-  if (!query.empty()) {
-    p.reserve(256);
-    p += '?';
-
-    for (const auto &param : query) {
-      p += param.first;
-
-      p += '=';
-      p += param.second.value_or(std::string{});
-
-      p += '&';
-    }
-
-    // remove the last ampersand
-    p.pop_back();
-  }
-
-  return p;
+rest::Signed_request S3_bucket::create_signed_request(std::string path,
+                                                      rest::Headers headers,
+                                                      rest::Query query) const {
+  return Signed_request(std::move(path), std::move(headers), std::move(query),
+                        true);
 }
 
 std::string S3_bucket::object_path(const std::string &name) const {
@@ -562,7 +537,7 @@ std::string S3_bucket::object_path(const std::string &name) const {
 }
 
 std::string S3_bucket::copy_source_header(const std::string &name) const {
-  return encode_query(m_config->bucket_name() + "/" + name);
+  return shcore::pctencode(m_config->bucket_name() + "/" + name);
 }
 
 template <typename T>
@@ -607,8 +582,8 @@ void S3_bucket::delete_objects(
     const auto hash = shcore::ssl::restricted::md5(printer.CStr(), body_size);
     shcore::encode_base64(hash.data(), hash.size(), &md5);
 
-    auto request =
-        Signed_request(add_query_parameters(m_bucket_path, query), headers);
+    // copy headers & query
+    auto request = create_signed_request(m_bucket_path, headers, query);
     request.body = printer.CStr();
     request.size = body_size;
 

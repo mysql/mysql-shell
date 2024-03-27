@@ -459,4 +459,96 @@ void JSON_dumper::append_json(const std::string &data) const {
 
 const std::string &JSON_dumper::str() const { return _writer->str(); }
 
+namespace json {
+
+namespace {
+
+auto missing_value(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with a string value", name)};
+}
+
+auto missing_uint_value(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with an unsigned integer value",
+      name)};
+}
+
+}  // namespace
+
+JSON parse(std::string_view json) {
+  rapidjson::Document doc;
+
+  doc.Parse(json.data(), json.length());
+
+  return doc;
+}
+
+JSON parse_object_or_throw(std::string_view json) {
+  auto doc = parse(json);
+
+  if (doc.HasParseError()) {
+    throw std::runtime_error{std::string("failed to parse JSON: ") +
+                             rapidjson::GetParseError_En(doc.GetParseError())};
+  }
+
+  if (!doc.IsObject()) {
+    throw std::runtime_error{"expected a JSON object"};
+  }
+
+  return doc;
+}
+
+std::string required(const JSON &json, const char *name, bool allow_empty) {
+  const auto it = json.FindMember(name);
+
+  if (json.MemberEnd() == it || !it->value.IsString() ||
+      (!allow_empty && !it->value.GetStringLength())) {
+    throw missing_value(name);
+  }
+
+  return {it->value.GetString(), it->value.GetStringLength()};
+}
+
+uint64_t required_uint(const JSON &json, const char *name) {
+  const auto it = json.FindMember(name);
+
+  if (json.MemberEnd() == it || !it->value.IsUint64()) {
+    throw missing_uint_value(name);
+  }
+
+  return it->value.GetUint64();
+}
+
+std::optional<std::string> optional(const JSON &json, const char *name,
+                                    bool allow_empty) {
+  const auto it = json.FindMember(name);
+
+  if (json.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsString() || (!allow_empty && !it->value.GetStringLength())) {
+    throw missing_value(name);
+  }
+
+  return std::string{it->value.GetString(), it->value.GetStringLength()};
+}
+
+std::optional<uint64_t> optional_uint(const JSON &json, const char *name) {
+  const auto it = json.FindMember(name);
+
+  if (json.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsString()) {
+    throw missing_uint_value(name);
+  }
+
+  return it->value.GetUint64();
+}
+
+}  // namespace json
+
 }  // namespace shcore

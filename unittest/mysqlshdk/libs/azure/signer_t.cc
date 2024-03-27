@@ -71,7 +71,7 @@ class Azure_signer_test : public testing::Test {
  protected:
   std::shared_ptr<Blob_storage_options> m_options;
   std::shared_ptr<Blob_storage_config> m_config;
-  std::unique_ptr<rest::Signer> m_signer;
+  std::unique_ptr<rest::ISigner> m_signer;
   mysqlshdk::azure::Signer *m_azure_signer;
 
   // Friday, 24 May 2013 00:00:00
@@ -96,7 +96,7 @@ class Azure_signer_test : public testing::Test {
   }
 
   void test_sign_request(const std::string &context,
-                         const rest::Signed_request *request,
+                         const rest::Signed_request &request,
                          const std::string &signature,
                          const std::string &expected_signature_prefix,
                          const std::string &canonical_resource,
@@ -130,7 +130,7 @@ class Azure_signer_test : public testing::Test {
     ASSERT_NE(signer_headers.end(), signer_headers.find(k_x_ms_version));
     EXPECT_EQ(k_x_ms_version_value, signer_headers.at(k_x_ms_version));
 
-    for (const auto &header : request->headers()) {
+    for (const auto &header : request.headers()) {
       ASSERT_NE(signer_headers.end(), signer_headers.find(header.first));
       EXPECT_EQ(header.second, signer_headers.at(header.first));
     }
@@ -143,7 +143,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   auto request = container.list_objects_request("", 0, true, {}, "");
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "LIST OBJECTS", &request,
+      "LIST OBJECTS", request,
       "SharedKey "
       "devstoreaccount1:EAGKNX/hpcvYJj5Zyoe8zNu/DtS7ChpE4STrNGkaDXA=",
       "GET\n\n\n\n\n\n\n\n\n\n\n\n",
@@ -153,7 +153,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.head_object_request("sample.txt");
   request.type = mysqlshdk::rest::Type::HEAD;
   test_sign_request(
-      "HEAD OBJECT", &request,
+      "HEAD OBJECT", request,
       "SharedKey "
       "devstoreaccount1:Hdob74EiTY2Kkw19XLF2RTX8EnFpxgeG2xB3vwrKeyU=",
       "HEAD\n\n\n\n\n\n\n\n\n\n\n\n",
@@ -167,7 +167,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request.body = data.data();
   request.size = data.size();
   test_sign_request(
-      "PUT OBJECT", &request,
+      "PUT OBJECT", request,
       "SharedKey "
       "devstoreaccount1:g4WMGJTsSBzqltLGJTX7/iVF5YL0bqHhbmjDUkLFZy8=",
       "PUT\n\n\n10\n\napplication/octet-stream\n\n\n\n\n\n\n",
@@ -178,7 +178,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.delete_object_request("sample.txt");
   request.type = mysqlshdk::rest::Type::DELETE;
   test_sign_request(
-      "DELETE OBJECT", &request,
+      "DELETE OBJECT", request,
       "SharedKey "
       "devstoreaccount1:mT3CMI0wxLRWM6w/gXp85tzJKqjkQfsof045ht2OkMs=",
       "DELETE\n\n\n\n\napplication/x-www-form-urlencoded\n\n\n\n\n\n\n",
@@ -187,7 +187,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.get_object_request("sample.txt", {});
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "GET OBJECT", &request,
+      "GET OBJECT", request,
       "SharedKey "
       "devstoreaccount1:kZ3c3DgrUmJHuRDBnAJJPNvXjKR7Tqfkxk286v3E2D8=",
       "GET\n\n\n\n\n\n\n\n\n\n\n\n",
@@ -196,7 +196,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.get_object_request("sample.txt", {{"range", "bytes=5-"}});
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "GET OBJECT FROM BYTE", &request,
+      "GET OBJECT FROM BYTE", request,
       "SharedKey "
       "devstoreaccount1:6QOWvxuB39OLiIZ9KqsXSns8Rx7T+KSXmA94JjbmnL4=",
       "GET\n\n\n\n\n\n\n\n\n\n\nbytes=5-\n",
@@ -206,7 +206,7 @@ TEST_F(Azure_signer_test, azure_requests) {
       container.get_object_request("sample.txt", {{"range", "bytes=5-10"}});
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "GET OBJECT RANGE", &request,
+      "GET OBJECT RANGE", request,
       "SharedKey "
       "devstoreaccount1:S3rtRFTog4bFkOzIz5lN2q9ErnDCOCX8VphDdTVXekE=",
       "GET\n\n\n\n\n\n\n\n\n\n\nbytes=5-10\n",
@@ -215,7 +215,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.list_multipart_uploads_request(0);
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "LIST MULTIPART UPLOADS", &request,
+      "LIST MULTIPART UPLOADS", request,
       "SharedKey "
       "devstoreaccount1:nKXEe6KsgaLAwUBrWi01Xa17WFQAaLHFUCJLxGRivgs=",
       "GET\n\n\n\n\n\n\n\n\n\n\n\n",
@@ -227,7 +227,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.create_multipart_upload_request("sample.txt", &data);
   request.type = mysqlshdk::rest::Type::PUT;
   test_sign_request(
-      "CREATE MULTIPART UPLOAD", &request,
+      "CREATE MULTIPART UPLOAD", request,
       "SharedKey "
       "devstoreaccount1:fNOEmX/yjNv36GVD23riZDiWFLYBAs+tSH6GJ3irj4Y=",
       "PUT\n\n\n1\n\napplication/octet-stream\n\n\n\n\n\n\n",
@@ -242,7 +242,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request.size = data.size();
   request.type = mysqlshdk::rest::Type::PUT;
   test_sign_request(
-      "UPLOAD PART", &request,
+      "UPLOAD PART", request,
       "SharedKey "
       "devstoreaccount1:yOkmxDsgVv9JrjcFXDVB5ixPla63dWyhIMd55QTi1+0=",
       "PUT\n\n\n10\n\napplication/octet-stream\n\n\n\n\n\n\n",
@@ -252,7 +252,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request = container.list_multipart_uploaded_parts_request(object, 0);
   request.type = mysqlshdk::rest::Type::GET;
   test_sign_request(
-      "LIST MULTIPART UPLOADED PARTS", &request,
+      "LIST MULTIPART UPLOADED PARTS", request,
       "SharedKey "
       "devstoreaccount1:I75Y7dw6PJ4M0i9AI53WSgFlC3eScA1QWP2WksxeYvE=",
       "GET\n\n\n\n\n\n\n\n\n\n\n\n",
@@ -264,7 +264,7 @@ TEST_F(Azure_signer_test, azure_requests) {
   request.size = data.size();
   request.type = mysqlshdk::rest::Type::PUT;
   test_sign_request(
-      "COMMIT MULTIPART UPLOAD", &request,
+      "COMMIT MULTIPART UPLOAD", request,
       "SharedKey "
       "devstoreaccount1:cPvaqQpFSdLcQ3sfZ3qKL198n6tanURxvOLtx/UZoL8=",
       "PUT\n\n\n50\n\ntext/plain\n\n\n\n\n\n\n",

@@ -25,6 +25,7 @@
 
 #include "modules/util/dump/ddl_dumper_options.h"
 
+#include <array>
 #include <vector>
 
 #include "modules/util/common/dump/utils.h"
@@ -133,9 +134,11 @@ void Ddl_dumper_options::set_target_version_str(const std::string &value) {
 }
 
 void Ddl_dumper_options::on_unpacked_options() {
-  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
-  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
-  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
+  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
+      std::array<const mysqlshdk::storage::backend::object_storage::
+                     Object_storage_options *,
+                 3>{&m_s3_bucket_options, &m_blob_storage_options,
+                    &m_oci_bucket_options});
 
   if (m_oci_bucket_options) {
     set_storage_config(m_oci_bucket_options.config());

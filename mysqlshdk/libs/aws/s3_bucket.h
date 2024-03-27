@@ -34,7 +34,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_request.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
 
 #include "mysqlshdk/libs/aws/s3_bucket_config.h"
@@ -129,17 +130,17 @@ class S3_bucket : public storage::backend::object_storage::Container {
   rest::Signed_request abort_multipart_upload_request(
       const Multipart_object &object) override;
 
-  rest::Signed_request create_bucket_request(
-      const rest::Query &query = {}) const;
+  rest::Signed_request create_bucket_request(rest::Query query = {}) const;
 
   rest::Signed_request create_object_request(const std::string &name,
                                              rest::Headers headers = {}) const;
 
   rest::Signed_request create_object_request(const std::string &name,
-                                             const rest::Query &query) const;
+                                             rest::Query query) const;
 
-  std::string add_query_parameters(const std::string &path,
-                                   const rest::Query &query) const;
+  rest::Signed_request create_signed_request(std::string path,
+                                             rest::Headers headers,
+                                             rest::Query query) const;
 
   std::string object_path(const std::string &name) const;
 

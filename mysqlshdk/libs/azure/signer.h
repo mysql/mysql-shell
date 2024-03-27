@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signer.h"
 
 #include "mysqlshdk/libs/azure/blob_storage_config.h"
 #include "mysqlshdk/libs/db/generic_uri.h"
@@ -80,7 +80,7 @@ constexpr auto k_read_write_list = Permissions(Allowed_permissions::READ) |
 constexpr auto k_read_list =
     Permissions(Allowed_permissions::READ) | Allowed_permissions::LIST;
 
-class Signer : public rest::Signer {
+class Signer : public rest::ISigner {
  public:
   explicit Signer(const Blob_storage_config &config);
 
@@ -92,9 +92,9 @@ class Signer : public rest::Signer {
 
   ~Signer() override = default;
 
-  bool should_sign_request(const rest::Signed_request *) const override;
+  bool should_sign_request(const rest::Signed_request &) const override;
 
-  rest::Headers sign_request(const rest::Signed_request *request,
+  rest::Headers sign_request(const rest::Signed_request &request,
                              time_t now) const override;
 
   bool refresh_auth_data() override { return false; }
@@ -115,11 +115,11 @@ class Signer : public rest::Signer {
 #endif  // FRIEND_TEST
 
   Signer() = default;
-  rest::Headers get_required_headers(const rest::Signed_request *request,
+  rest::Headers get_required_headers(const rest::Signed_request &request,
                                      time_t now) const;
   std::string get_canonical_headers(const rest::Headers &headers) const;
-  std::string get_canonical_resource(const rest::Signed_request *request) const;
-  std::string get_string_to_sign(const rest::Signed_request *request,
+  std::string get_canonical_resource(const rest::Signed_request &request) const;
+  std::string get_string_to_sign(const rest::Signed_request &request,
                                  const rest::Headers &headers) const;
 
   std::string m_account_name;

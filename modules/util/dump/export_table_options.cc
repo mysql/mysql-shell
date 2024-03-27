@@ -25,6 +25,8 @@
 
 #include "modules/util/dump/export_table_options.h"
 
+#include <array>
+
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
@@ -60,9 +62,11 @@ const shcore::Option_pack_def<Export_table_options>
 }
 
 void Export_table_options::on_unpacked_options() {
-  m_s3_bucket_options.throw_on_conflict(m_oci_bucket_options);
-  m_s3_bucket_options.throw_on_conflict(m_blob_storage_options);
-  m_blob_storage_options.throw_on_conflict(m_oci_bucket_options);
+  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
+      std::array<const mysqlshdk::storage::backend::object_storage::
+                     Object_storage_options *,
+                 3>{&m_s3_bucket_options, &m_blob_storage_options,
+                    &m_oci_bucket_options});
 
   if (m_oci_bucket_options) {
     set_storage_config(m_oci_bucket_options.config());

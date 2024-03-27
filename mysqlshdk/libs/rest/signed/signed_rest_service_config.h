@@ -23,34 +23,46 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
-#define MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#ifndef MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REST_SERVICE_CONFIG_H_
+#define MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REST_SERVICE_CONFIG_H_
 
-#include "mysqlshdk/libs/aws/aws_credentials_provider.h"
+#include <memory>
+#include <string>
+
+#include "mysqlshdk/libs/rest/retry_strategy.h"
+#include "mysqlshdk/libs/rest/signed/signer.h"
 
 namespace mysqlshdk {
-namespace aws {
+namespace rest {
 
-class Env_credentials_provider : public Aws_credentials_provider {
+class Signed_rest_service_config {
  public:
-  Env_credentials_provider();
+  Signed_rest_service_config() = default;
 
-  Env_credentials_provider(const Env_credentials_provider &) = delete;
-  Env_credentials_provider(Env_credentials_provider &&) = delete;
+  Signed_rest_service_config(const Signed_rest_service_config &) = default;
+  Signed_rest_service_config(Signed_rest_service_config &&) = default;
 
-  Env_credentials_provider &operator=(const Env_credentials_provider &) =
-      delete;
-  Env_credentials_provider &operator=(Env_credentials_provider &&) = delete;
+  Signed_rest_service_config &operator=(const Signed_rest_service_config &) =
+      default;
+  Signed_rest_service_config &operator=(Signed_rest_service_config &&) =
+      default;
 
-  ~Env_credentials_provider() override = default;
+  virtual ~Signed_rest_service_config() = default;
 
-  bool available() const noexcept override { return true; }
+  virtual const std::string &service_endpoint() const = 0;
 
- private:
-  Credentials fetch_credentials() override;
+  virtual const std::string &service_label() const = 0;
+
+  virtual std::unique_ptr<ISigner> signer() const = 0;
+
+  virtual bool signature_caching_enabled() const { return true; }
+
+  virtual std::unique_ptr<IRetry_strategy> retry_strategy() const {
+    return rest::default_retry_strategy();
+  }
 };
 
-}  // namespace aws
+}  // namespace rest
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_AWS_ENV_CREDENTIALS_PROVIDER_H_
+#endif  // MYSQLSHDK_LIBS_REST_SIGNED_SIGNED_REST_SERVICE_CONFIG_H_

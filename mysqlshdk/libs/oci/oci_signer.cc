@@ -92,12 +92,12 @@ Oci_signer::Oci_signer(const Oci_bucket_config &config)
                       .first->second);
 }
 
-rest::Headers Oci_signer::sign_request(const rest::Signed_request *request,
+rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
                                        time_t now) const {
   rest::Headers all_headers;
-  const auto &path = request->full_path().real();
-  const auto method = request->type;
-  const auto &headers = request->unsigned_headers();
+  const auto &path = request.full_path().real();
+  const auto method = request.type;
+  const auto &headers = request.unsigned_headers();
 
   const auto date = mysqlshdk::utils::fmttime(
       "%a, %d %b %Y %H:%M:%S GMT", mysqlshdk::utils::Time_type::GMT, &now);
@@ -114,8 +114,8 @@ rest::Headers Oci_signer::sign_request(const rest::Signed_request *request,
 
   if (method == rest::Type::POST) {
     all_headers["x-content-sha256"] =
-        encode_sha256(request->size ? request->body : "", request->size);
-    all_headers["content-length"] = std::to_string(request->size);
+        encode_sha256(request.size ? request.body : "", request.size);
+    all_headers["content-length"] = std::to_string(request.size);
     string_to_sign.append(
         "\nx-content-sha256: " + all_headers["x-content-sha256"] +
         "\ncontent-length: " + all_headers["content-length"] +

@@ -190,24 +190,6 @@ void log_failed_response(const Response &response) {
 
 }  // namespace
 
-std::string type_name(Type method) {
-  switch (method) {
-    case Type::DELETE:
-      return "delete";
-    case Type::GET:
-      return "get";
-    case Type::HEAD:
-      return "head";
-    case Type::PATCH:
-      return "patch";
-    case Type::POST:
-      return "post";
-    case Type::PUT:
-      return "put";
-  }
-  throw std::logic_error("Unknown method received");
-}
-
 class Rest_service::Impl {
  public:
   /**
@@ -244,10 +226,10 @@ class Rest_service::Impl {
 
     verify_ssl(verify);
 
-    // Default timeout for HEAD/DELETE: 30000 milliseconds
+    // Default timeout for HEAD/DELETE: 30 seconds
     // The rest of the operations will timeout if transfer rate is lower than
     // one byte in 5 minutes (300 seconds)
-    set_timeout(30000, 1, 300);
+    set_timeout(30, 1, 300);
 
     // set the callbacks
     curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, nullptr);
@@ -375,10 +357,12 @@ class Rest_service::Impl {
 
   void set_timeout(long timeout, long low_speed_limit, long low_speed_time) {
     m_default_timeout = timeout;
-    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_LIMIT,
-                     static_cast<long>(low_speed_limit));
-    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_TIME,
-                     static_cast<long>(low_speed_time));
+    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_LIMIT, low_speed_limit);
+    curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_TIME, low_speed_time);
+  }
+
+  void set_connect_timeout(long timeout) {
+    curl_easy_setopt(m_handle.get(), CURLOPT_CONNECTTIMEOUT, timeout);
   }
 
   std::string get_last_request_id() const {
@@ -401,7 +385,7 @@ class Rest_service::Impl {
     // custom request overwrites any other option, make sure it's set to
     // default
     curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, nullptr);
-    curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, 0);
+    curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT, 0);
 
     switch (request->type) {
       case Type::GET:
@@ -411,7 +395,7 @@ class Rest_service::Impl {
       case Type::HEAD:
         curl_easy_setopt(m_handle.get(), CURLOPT_HTTPGET, 1L);
         curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 1L);
-        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, m_default_timeout);
+        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT, m_default_timeout);
         break;
 
       case Type::POST:
@@ -440,7 +424,7 @@ class Rest_service::Impl {
       case Type::DELETE:
         curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
         curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "DELETE");
-        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT_MS, m_default_timeout);
+        curl_easy_setopt(m_handle.get(), CURLOPT_TIMEOUT, m_default_timeout);
         break;
     }
   }
@@ -540,6 +524,11 @@ Rest_service &Rest_service::set_default_headers(const Headers &headers) {
 Rest_service &Rest_service::set_timeout(long timeout, long low_speed_limit,
                                         long low_speed_time) {
   m_impl->set_timeout(timeout, low_speed_limit, low_speed_time);
+  return *this;
+}
+
+Rest_service &Rest_service::set_connect_timeout(long timeout) {
+  m_impl->set_connect_timeout(timeout);
   return *this;
 }
 

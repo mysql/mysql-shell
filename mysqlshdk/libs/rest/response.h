@@ -33,6 +33,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "mysqlshdk/libs/rest/headers.h"
 
@@ -241,7 +242,7 @@ class String_buffer : public Base_response_buffer {
  public:
   explicit String_buffer(size_t buffer_length = 0) {
     if (buffer_length) m_buffer.reserve(buffer_length);
-  };
+  }
 
   String_buffer(const String_buffer &other) = default;
   String_buffer(String_buffer &&other) = default;
@@ -315,12 +316,20 @@ struct String_response : public Response {
   }
 
   String_response &operator=(const String_response &other) {
+    Response::operator=(other);
+
     buffer = other.buffer;
+    body = &buffer;
+
     return *this;
   }
 
   String_response &operator=(String_response &&other) noexcept {
+    Response::operator=(std::move(other));
+
     std::swap(buffer, other.buffer);
+    body = &buffer;
+
     return *this;
   }
 

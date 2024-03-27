@@ -31,7 +31,6 @@
 #include <string>
 
 #include "mysqlshdk/libs/azure/blob_storage_options.h"
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"
 
 namespace mysqlshdk {
@@ -39,9 +38,9 @@ namespace azure {
 
 class Blob_container;
 
-using storage::backend::object_storage::Config;
-
-class Blob_storage_config : public Config {
+class Blob_storage_config
+    : public storage::backend::object_storage::Config,
+      public storage::backend::object_storage::mixin::Config_file {
  public:
   Blob_storage_config() = delete;
 
@@ -56,13 +55,9 @@ class Blob_storage_config : public Config {
 
   ~Blob_storage_config() override = default;
 
-  const std::string &service_label() const override { return m_label; }
-
-  const std::string &service_endpoint() const override { return m_endpoint; }
-
   const std::string &service_endpoint_path() const { return m_endpoint_path; }
 
-  std::unique_ptr<rest::Signer> signer() const override;
+  std::unique_ptr<rest::ISigner> signer() const override;
 
   std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
@@ -100,9 +95,7 @@ class Blob_storage_config : public Config {
   std::string get_default_config_path() const;
   void throw_sas_token_error(const std::string &error) const;
 
-  std::string m_label = "AZURE-BLOBS";
   std::string m_endpoint_protocol;
-  std::string m_endpoint;
   std::string m_endpoint_suffix;
   std::string m_endpoint_path;
   std::string m_account_name;

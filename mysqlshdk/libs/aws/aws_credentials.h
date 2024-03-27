@@ -26,25 +26,19 @@
 #ifndef MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_H_
 #define MYSQLSHDK_LIBS_AWS_AWS_CREDENTIALS_H_
 
-#include <chrono>
-#include <ctime>
 #include <string>
+
+#include "mysqlshdk/libs/rest/signed/credentials.h"
 
 namespace mysqlshdk {
 namespace aws {
 
-class Aws_credentials final {
+class Aws_credentials final : public rest::Credentials {
  public:
-  using Clock = std::chrono::system_clock;
-  using Time_point = std::chrono::time_point<Clock>;
-
-  static constexpr auto NO_EXPIRATION = Time_point::max();
-
   Aws_credentials() = delete;
 
-  Aws_credentials(const std::string &access_key_id,
-                  const std::string &secret_access_key,
-                  const std::string &session_token = {},
+  Aws_credentials(std::string access_key_id, std::string secret_access_key,
+                  std::string session_token = {},
                   Time_point expiration = NO_EXPIRATION);
 
   Aws_credentials(const Aws_credentials &) = default;
@@ -53,31 +47,11 @@ class Aws_credentials final {
   Aws_credentials &operator=(const Aws_credentials &) = default;
   Aws_credentials &operator=(Aws_credentials &&) = default;
 
-  ~Aws_credentials() = default;
+  ~Aws_credentials() override = default;
 
-  bool operator==(const Aws_credentials &creds) const;
-
-  bool operator!=(const Aws_credentials &creds) const;
-
-  inline bool anonymous_access() const noexcept {
+  bool anonymous_access() const noexcept override {
     return m_access_key_id.empty() && m_secret_access_key.empty();
   }
-
-  inline bool temporary() const noexcept {
-    return NO_EXPIRATION != m_expiration;
-  }
-
-  inline bool expired() const noexcept { return expired(Clock::now()); }
-
-  inline bool expired(Time_point now) const noexcept {
-    return now > m_expiration;
-  }
-
-  inline bool expired(std::time_t now) const noexcept {
-    return expired(Clock::from_time_t(now));
-  }
-
-  inline Time_point expiration() const noexcept { return m_expiration; }
 
   inline const std::string &access_key_id() const noexcept {
     return m_access_key_id;
@@ -95,7 +69,6 @@ class Aws_credentials final {
   std::string m_access_key_id;
   std::string m_secret_access_key;
   std::string m_session_token;
-  Time_point m_expiration;
 };
 
 }  // namespace aws

@@ -80,16 +80,7 @@ def write_profile(path, profile, settings, extra_profiles = None):
     if not os.path.isdir(directory):
         os.mkdir(directory)
         stack.callback(lambda: os.rmdir(directory))
-    if os.path.isfile(path):
-        backup = path + ".backup"
-        suffix = ""
-        i = 0
-        while os.path.isfile(f"{backup}{suffix}"):
-            suffix = f".{i}"
-            i += 1
-        backup += suffix
-        os.rename(path, backup)
-        stack.callback(lambda: os.rename(backup, path))
+    stack.enter_context(backup_file(path))
     config = configparser.ConfigParser()
     config.read_dict({ profile: settings })
     if extra_profiles is not None:
@@ -97,15 +88,6 @@ def write_profile(path, profile, settings, extra_profiles = None):
     with open(path, "w") as f:
         config.write(f)
     stack.callback(lambda: os.remove(path))
-    return stack
-
-def set_env_var(name, value):
-    stack = ExitStack()
-    if name in os.environ:
-        old_value = os.environ[name]
-        stack.callback(lambda: os.environ.update({name: old_value}))
-    os.environ[name] = value
-    stack.callback(lambda: os.environ.pop(name, None))
     return stack
 
 def get_scope(region):
@@ -128,16 +110,6 @@ local_aws_profile = random_string(10)
 dump_dir = "world"
 
 ## initialization
-
-def set_global_variable(name, default_value):
-    value = globals().get(name)
-    if value is None:
-        globals()[name] = default_value
-
-def del_global_variable(name):
-    value = globals().get(name)
-    if value is not None:
-        del globals()[name]
 
 def cleanup_variables():
     del_global_variable("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE")

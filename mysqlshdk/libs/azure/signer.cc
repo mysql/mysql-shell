@@ -110,25 +110,25 @@ Signer::Signer(const Blob_storage_config &config)
   }
 }
 
-bool Signer::should_sign_request(const rest::Signed_request *) const {
+bool Signer::should_sign_request(const rest::Signed_request &) const {
   return !m_account_key.empty() || m_using_sas_token;
 }
 
-rest::Headers Signer::get_required_headers(const rest::Signed_request *request,
+rest::Headers Signer::get_required_headers(const rest::Signed_request &request,
                                            time_t now) const {
   using mysqlshdk::utils::fmttime;
   using mysqlshdk::utils::Time_type;
 
   // Gets the headers coming in the request
-  rest::Headers result = request->unsigned_headers();
+  rest::Headers result = request.unsigned_headers();
 
   // Adds additional required headers
   result[k_date_header] =
       fmttime("%a, %d %b %Y %H:%M:%S GMT", Time_type::GMT, &now);
   result[k_version_header] = k_service_version;
 
-  if (request->size) {
-    result["Content-Length"] = std::to_string(request->size);
+  if (request.size) {
+    result["Content-Length"] = std::to_string(request.size);
   }
 
   return result;
@@ -169,7 +169,7 @@ std::string Signer::get_canonical_headers(const rest::Headers &headers) const {
 }
 
 std::string Signer::get_canonical_resource(
-    const rest::Signed_request *request) const {
+    const rest::Signed_request &request) const {
   // ------------------------------
   // ---- CanonicalizedResource ---
   // ------------------------------
@@ -179,7 +179,7 @@ std::string Signer::get_canonical_resource(
   std::string canonicalized_resource = "/" + m_account_name;
 
   // 2) Append the resource's encoded URI path, without any query parameters.
-  canonicalized_resource += request->path().real();
+  canonicalized_resource += request.path().real();
 
   // 3) Retrieve all query parameters on the resource URI, including the comp
   // parameter if it exists.
@@ -189,7 +189,7 @@ std::string Signer::get_canonical_resource(
   std::map<std::string, std::string, shcore::Lexicographical_comparator>
       canonical_query;
 
-  for (const auto &item : request->query()) {
+  for (const auto &item : request.query()) {
     canonical_query[shcore::str_lower(item.first)] =
         item.second.value_or(std::string{});
   }
@@ -209,7 +209,7 @@ std::string Signer::get_canonical_resource(
   return canonicalized_resource;
 }
 
-std::string Signer::get_string_to_sign(const rest::Signed_request *request,
+std::string Signer::get_string_to_sign(const rest::Signed_request &request,
                                        const rest::Headers &headers) const {
   // 9) If a query parameter has more than one value, sort all values
   // lexicographically, then include them in a comma-separated list:
@@ -240,7 +240,7 @@ std::string Signer::get_string_to_sign(const rest::Signed_request *request,
   string_to_sign.reserve(512);
 
   // HTTPMethod
-  string_to_sign += shcore::str_upper(rest::type_name(request->type));
+  string_to_sign += shcore::str_upper(rest::type_name(request.type));
   string_to_sign += '\n';
   // Content-Encoding  +
   string_to_sign += '\n';
@@ -260,8 +260,8 @@ std::string Signer::get_string_to_sign(const rest::Signed_request *request,
   auto content_type = headers.find("content-type");
   if (content_type != headers.end()) {
     string_to_sign += content_type->second;
-  } else if (request->type == rest::Type::PUT ||
-             request->type == rest::Type::DELETE) {
+  } else if (request.type == rest::Type::PUT ||
+             request.type == rest::Type::DELETE) {
     // By default curl is setting this when no content type is specified
     string_to_sign += "application/x-www-form-urlencoded";
   }
@@ -292,7 +292,7 @@ std::string Signer::get_string_to_sign(const rest::Signed_request *request,
   return string_to_sign;
 }
 
-rest::Headers Signer::sign_request(const rest::Signed_request *request,
+rest::Headers Signer::sign_request(const rest::Signed_request &request,
                                    time_t now) const {
   auto result = get_required_headers(request, now);
 

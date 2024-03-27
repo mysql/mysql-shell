@@ -26,6 +26,7 @@
 #ifndef MYSQLSHDK_LIBS_REST_REQUEST_H_
 #define MYSQLSHDK_LIBS_REST_REQUEST_H_
 
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -43,9 +44,31 @@ namespace rest {
 
 class IRetry_strategy;
 
+#ifdef _WIN32
+#undef DELETE
+#endif
+
 enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
 
+std::string type_name(Type t);
+
 using Query = std::map<std::string, std::optional<std::string>>;
+
+/**
+ * Creates a string which can be sent as a body of
+ * application/x-www-form-urlencoded Content-Type.
+ *
+ * NOTE: keys are NOT encoded (in other words they are expected to be
+ *       alphanumeric).
+ *
+ * @param query Key-value pairs to be encoded.
+ * @param include_empty_values If set to true, empty values are written as
+ *        `key=`, otherwise empty values are written as: `key`.
+ *
+ * @returns Encoded string.
+ */
+std::string www_form_urlencoded(const Query &query,
+                                bool include_empty_values = false);
 
 /**
  * A REST request.
@@ -58,8 +81,12 @@ struct Request {
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
+   * @param query Optional query to be appended to the path.
+   * @param include_empty_values If set to true, empty query values are written
+   *        as `key=`, otherwise empty values are written as: `key`.
    */
-  explicit Request(Masked_string path, Headers headers = {}, Query query = {});
+  explicit Request(Masked_string path, Headers headers = {}, Query query = {},
+                   bool include_empty_values = false);
 
   /**
    * Type of the request.

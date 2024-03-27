@@ -25,28 +25,19 @@
 
 #include "mysqlshdk/libs/aws/aws_credentials.h"
 
+#include <utility>
+
 namespace mysqlshdk {
 namespace aws {
 
-Aws_credentials::Aws_credentials(const std::string &access_key_id,
-                                 const std::string &secret_access_key,
-                                 const std::string &session_token,
+Aws_credentials::Aws_credentials(std::string access_key_id,
+                                 std::string secret_access_key,
+                                 std::string session_token,
                                  Time_point expiration)
-    : m_access_key_id(access_key_id),
-      m_secret_access_key(secret_access_key),
-      m_session_token(session_token),
-      m_expiration(expiration) {}
-
-bool Aws_credentials::operator==(const Aws_credentials &creds) const {
-  return m_access_key_id == creds.m_access_key_id &&
-         m_secret_access_key == creds.m_secret_access_key &&
-         m_session_token == creds.m_session_token &&
-         m_expiration == creds.m_expiration;
-}
-
-bool Aws_credentials::operator!=(const Aws_credentials &creds) const {
-  return !(*this == creds);
-}
+    : Credentials(expiration),
+      m_access_key_id(std::move(access_key_id)),
+      m_secret_access_key(std::move(secret_access_key)),
+      m_session_token(std::move(session_token)) {}
 
 }  // namespace aws
 }  // namespace mysqlshdk

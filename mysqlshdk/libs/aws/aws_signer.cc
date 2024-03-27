@@ -26,10 +26,8 @@
 #include "mysqlshdk/libs/aws/aws_signer.h"
 
 #include <cassert>
-#include <memory>
 #include <utility>
 
-#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -79,18 +77,13 @@ std::string hex_sha256(const char *data, size_t size) {
 
 }  // namespace
 
-Aws_signer::Aws_signer(const S3_bucket_config &config)
-    : m_host(config.host()),
+Aws_signer::Aws_signer(const Aws_signer_config &config)
+    : Signer(config),
+      m_host(config.host()),
       m_region(config.region()),
-      m_credentials_provider(config.credentials_provider()) {
-  update_credentials();
-}
+      m_service(config.service()) {}
 
-bool Aws_signer::should_sign_request(const rest::Signed_request *) const {
-  return !m_credentials->anonymous_access();
-}
-
-rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
+rest::Headers Aws_signer::sign_request(const rest::Signed_request &request,
                                        time_t now) const {
   using mysqlshdk::utils::fmttime;
   using mysqlshdk::utils::Time_type;
@@ -102,11 +95,11 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   rest::Headers result;
 
   if (m_sign_all_headers) {
-    result = request->unsigned_headers();
+    result = request.unsigned_headers();
   } else {
     // only Host, Content-MD5, Content-Type, and headers beginning with
     // x-amz-* are included (Host is added below)
-    for (const auto &header : request->unsigned_headers()) {
+    for (const auto &header : request.unsigned_headers()) {
       if (shcore::str_caseeq(header.first, "Content-MD5") ||
           shcore::str_caseeq(header.first, "Content-Type") ||
           shcore::str_ibeginswith(header.first, "x-amz-")) {
@@ -116,8 +109,8 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   }
 
   // hash of the payload - Hex(SHA256Hash(<payload>)
-  const auto &payload_hash = request->size
-                                 ? hex_sha256(request->body, request->size)
+  const auto &payload_hash = request.size
+                                 ? hex_sha256(request.body, request.size)
                                  : k_empty_payload_hash;
 
   // add required headers
@@ -139,11 +132,11 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
   canonical_request.reserve(512);
 
   // HTTPMethod
-  canonical_request += shcore::str_upper(rest::type_name(request->type));
+  canonical_request += shcore::str_upper(rest::type_name(request.type));
   canonical_request += '\n';
 
   // CanonicalURI & CanonicalQueryString
-  const auto &path = request->full_path().real();
+  const auto &path = request.full_path().real();
   const auto query_pos = path.find('?');
 
   assert('/' == path.front());
@@ -258,17 +251,11 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request *request,
 
   result[k_authorization_header] = std::move(authorization);
 
-  if (request->size) {
-    result["Content-Length"] = std::to_string(request->size);
+  if (request.size) {
+    result["Content-Length"] = std::to_string(request.size);
   }
 
   return result;
-}
-
-bool Aws_signer::refresh_auth_data() { return update_credentials(); }
-
-bool Aws_signer::auth_data_expired(time_t now) const {
-  return m_credentials->expired(now);
 }
 
 bool Aws_signer::is_authorization_error(const rest::Signed_request &request,
@@ -293,24 +280,7 @@ bool Aws_signer::is_authorization_error(const rest::Signed_request &request,
   return Signer::is_authorization_error(request, response);
 }
 
-bool Aws_signer::update_credentials() {
-  if (auto credentials = m_credentials_provider->credentials()) {
-    if (!m_credentials || *credentials != *m_credentials) {
-      if (m_credentials) {
-        log_info("The AWS credentials have been refreshed.");
-      }
-
-      set_credentials(std::move(credentials));
-      return true;
-    }
-  }
-
-  return false;
-}
-
-void Aws_signer::set_credentials(std::shared_ptr<Aws_credentials> credentials) {
-  m_credentials = std::move(credentials);
-
+void Aws_signer::on_credentials_set() {
   static constexpr auto prefix_size = 4;
   const auto &key = m_credentials->secret_access_key();
 

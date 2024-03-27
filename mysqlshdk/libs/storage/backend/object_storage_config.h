@@ -30,7 +30,7 @@
 #include <memory>
 #include <string>
 
-#include "mysqlshdk/libs/rest/signed_rest_service.h"
+#include "mysqlshdk/libs/rest/signed/signed_rest_service_config.h"
 #include "mysqlshdk/libs/storage/config.h"
 
 namespace mysqlshdk {
@@ -40,7 +40,7 @@ namespace object_storage {
 
 class Container;
 class Object_storage_options;
-class Bucket_options;
+
 class Config : public storage::Config, public rest::Signed_rest_service_config {
  public:
   Config() = delete;
@@ -64,12 +64,18 @@ class Config : public storage::Config, public rest::Signed_rest_service_config {
 
   virtual std::unique_ptr<Container> container() const = 0;
 
+  const std::string &service_endpoint() const override { return m_endpoint; }
+
+  const std::string &service_label() const override { return m_label; }
+
  protected:
   explicit Config(const Object_storage_options &options, std::size_t part_size);
 
   std::string m_container_name;
-  std::string m_config_file;
   std::size_t m_part_size;
+
+  std::string m_label;
+  std::string m_endpoint;
 
  private:
   std::string describe_url(const std::string &url) const override;
@@ -84,7 +90,8 @@ class Config : public storage::Config, public rest::Signed_rest_service_config {
   std::string m_container_name_option;
 };
 
-class Container;
+using Config_ptr = std::shared_ptr<const Config>;
+
 class Bucket_config : public Config {
  public:
   // 128 MB
@@ -104,11 +111,91 @@ class Bucket_config : public Config {
   ~Bucket_config() override = default;
 
  protected:
-  explicit Bucket_config(const Bucket_options &options);
+  explicit Bucket_config(const Object_storage_options &options);
+};
+
+namespace mixin {
+// Various mixins, note that destuctors are not virtual.
+
+class Config_file {
+ public:
+  Config_file(const Config_file &) = default;
+  Config_file(Config_file &&) = default;
+
+  Config_file &operator=(const Config_file &) = default;
+  Config_file &operator=(Config_file &&) = default;
+
+  ~Config_file() = default;
+
+  inline const std::string &config_file() const noexcept {
+    return m_config_file;
+  }
+
+ protected:
+  Config_file() = default;
+
+  std::string m_config_file;
+};
+
+class Credentials_file {
+ public:
+  Credentials_file(const Credentials_file &) = default;
+  Credentials_file(Credentials_file &&) = default;
+
+  Credentials_file &operator=(const Credentials_file &) = default;
+  Credentials_file &operator=(Credentials_file &&) = default;
+
+  ~Credentials_file() = default;
+
+  inline const std::string &credentials_file() const noexcept {
+    return m_credentials_file;
+  }
+
+ protected:
+  Credentials_file() = default;
+
+  std::string m_credentials_file;
+};
+
+class Config_profile {
+ public:
+  Config_profile(const Config_profile &) = default;
+  Config_profile(Config_profile &&) = default;
+
+  Config_profile &operator=(const Config_profile &) = default;
+  Config_profile &operator=(Config_profile &&) = default;
+
+  ~Config_profile() = default;
+
+  inline const std::string &config_profile() const noexcept {
+    return m_config_profile;
+  }
+
+ protected:
+  Config_profile() = default;
+
   std::string m_config_profile;
 };
 
-using Config_ptr = std::shared_ptr<const Config>;
+class Host {
+ public:
+  Host(const Host &) = default;
+  Host(Host &&) = default;
+
+  Host &operator=(const Host &) = default;
+  Host &operator=(Host &&) = default;
+
+  ~Host() = default;
+
+  inline const std::string &host() const noexcept { return m_host; }
+
+ protected:
+  Host() = default;
+
+  std::string m_host;
+};
+
+}  // namespace mixin
 
 }  // namespace object_storage
 }  // namespace backend

@@ -68,9 +68,12 @@ constexpr const char k_config_sas_token[] = "sas_token";
 Blob_storage_config::Blob_storage_config(const Blob_storage_options &options,
                                          bool enable_env_vars)
     : Config(options, DEFAULT_BLOB_BLOCK_SIZE),
+      Config_file(options),
       m_account_name(options.m_storage_account),
       m_sas_token(options.m_storage_sas_token),
       m_operation(options.m_operation) {
+  m_label = "AZURE-BLOBS";
+
   m_sas_token_source =
       shcore::str_format("the '%s' option", options.storage_sas_token_option());
 
@@ -100,7 +103,7 @@ Blob_storage_config::Blob_storage_config(const Blob_storage_options &options,
   validate_config();
 }
 
-std::unique_ptr<rest::Signer> Blob_storage_config::signer() const {
+std::unique_ptr<rest::ISigner> Blob_storage_config::signer() const {
   return std::make_unique<Signer>(*this);
 }
 

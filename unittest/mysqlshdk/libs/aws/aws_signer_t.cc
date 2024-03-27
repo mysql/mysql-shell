@@ -38,21 +38,21 @@ namespace mysqlshdk {
 namespace aws {
 
 class Aws_signer_test : public testing::Test {
+ public:
+  static void SetUpTestSuite() { s_credentials_provider.initialize(); }
+
  protected:
   static Aws_signer create_signer() {
-    Aws_signer signer;
+    Aws_signer signer{Signer_config{}};
 
-    signer.m_host = k_host;
-    signer.set_credentials(std::make_shared<Aws_credentials>(
-        k_access_key_id, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"));
-    signer.m_region = k_region;
     signer.m_sign_all_headers = true;
+    signer.initialize();
 
     return signer;
   }
 
   static void test_sign_request(
-      const rest::Signed_request *request, const std::string &signature,
+      const rest::Signed_request &request, const std::string &signature,
       const std::string &sha256 =
           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855") {
     const auto headers = create_signer().sign_request(request, k_now);
@@ -74,7 +74,7 @@ class Aws_signer_test : public testing::Test {
         "x-amz-date",
     };
 
-    for (const auto &header : request->headers()) {
+    for (const auto &header : request.headers()) {
       signed_headers.emplace(shcore::str_lower(header.first));
     }
 
@@ -103,14 +103,55 @@ class Aws_signer_test : public testing::Test {
   static constexpr auto k_access_key_id = "AKIAIOSFODNN7EXAMPLE";
 
   static constexpr auto k_region = "us-east-1";
+
+  class Credentials_provider : public Aws_credentials_provider {
+   public:
+    Credentials_provider()
+        : Aws_credentials_provider(
+              {"static keys", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"}) {}
+
+    bool available() const noexcept override { return true; }
+
+   private:
+    Credentials fetch_credentials() override {
+      Credentials creds;
+
+      creds.access_key_id = k_access_key_id;
+      creds.secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+
+      return creds;
+    }
+  };
+
+  static Credentials_provider s_credentials_provider;
+
+  class Signer_config : public Aws_signer_config {
+   public:
+    const std::string &host() const override { return m_host; }
+
+    const std::string &region() const override { return m_region; }
+
+    const std::string &service() const override { return m_service; }
+
+    Aws_credentials_provider *credentials_provider() const override {
+      return &s_credentials_provider;
+    }
+
+   private:
+    std::string m_host = k_host;
+    std::string m_region = k_region;
+    std::string m_service = "s3";
+  };
 };
+
+Aws_signer_test::Credentials_provider Aws_signer_test::s_credentials_provider;
 
 TEST_F(Aws_signer_test, get_object) {
   rest::Signed_request request{"/test.txt", {{"Range", "bytes=0-9"}}};
   request.type = rest::Type::GET;
 
   test_sign_request(
-      &request,
+      request,
       "f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41");
 }
 
@@ -125,7 +166,7 @@ TEST_F(Aws_signer_test, put_object) {
   request.size = data.length();
 
   test_sign_request(
-      &request,
+      request,
       "98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd",
       "44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072");
 }
@@ -135,7 +176,7 @@ TEST_F(Aws_signer_test, get_bucket_lifecycle) {
   request.type = rest::Type::GET;
 
   test_sign_request(
-      &request,
+      request,
       "fea454ca298b7da1c68078a5d1bdbfbbe0d65c699e0f91ac7a200a0136783543");
 }
 
@@ -144,7 +185,7 @@ TEST_F(Aws_signer_test, list_objects) {
   request.type = rest::Type::GET;
 
   test_sign_request(
-      &request,
+      request,
       "34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7");
 }
 
