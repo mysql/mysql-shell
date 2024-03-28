@@ -110,5 +110,50 @@ std::string Life_cycle_condition::description() const {
   return result;
 }
 
+void Aggregated_life_cycle_condition::add_condition(
+    const Life_cycle_condition &condition) {
+  if (m_handle_start_version) {
+    // The oldest start version will be used: NOTE that a coming condition with
+    // no start version is basically the lowest start version possible, meaning,
+    // no start version version
+    if (condition.start_version().has_value()) {
+      if (!m_start_version.has_value() ||
+          condition.start_version() < m_start_version) {
+        m_start_version = condition.start_version();
+      }
+    } else {
+      // The lowest start version is present in the coming condition, so we
+      // clear the start version and stop processing start version in new
+      // conditions.
+      m_handle_start_version = false;
+      m_start_version.reset();
+    }
+  }
+
+  // In the case of deprecation versions, the lower version defined is the one
+  // that should be used
+  if (condition.deprecation_version().has_value()) {
+    if (!m_deprecation_version.has_value() ||
+        condition.deprecation_version() < m_deprecation_version) {
+      m_deprecation_version = condition.deprecation_version();
+    }
+  }
+
+  // The highest removal version will be used: NOTE that a coming condition with
+  // no removal version is basically the highest start version possible,
+  // meaning, no removal version
+  if (m_handle_removal_version) {
+    if (condition.removal_version().has_value()) {
+      if (!m_removal_version.has_value() ||
+          condition.removal_version() > m_removal_version) {
+        m_removal_version = condition.removal_version();
+      }
+    } else {
+      m_handle_removal_version = false;
+      m_removal_version.reset();
+    }
+  }
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

@@ -104,10 +104,34 @@ class Life_cycle_condition : public Condition {
 
   std::string description() const override;
 
- private:
+  const std::optional<Version> &start_version() const {
+    return m_start_version;
+  }
+
+  const std::optional<Version> &deprecation_version() const {
+    return m_deprecation_version;
+  }
+
+  const std::optional<Version> &removal_version() const {
+    return m_removal_version;
+  }
+
+ protected:
+  Life_cycle_condition() = default;
   std::optional<Version> m_start_version;
   std::optional<Version> m_deprecation_version;
   std::optional<Version> m_removal_version;
+};
+
+class Aggregated_life_cycle_condition : public Life_cycle_condition {
+ public:
+  Aggregated_life_cycle_condition() = default;
+
+  void add_condition(const Life_cycle_condition &condition);
+
+ private:
+  bool m_handle_start_version = true;
+  bool m_handle_removal_version = true;
 };
 
 }  // namespace upgrade_checker

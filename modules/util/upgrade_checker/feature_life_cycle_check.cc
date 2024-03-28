@@ -106,21 +106,12 @@ std::string Feature_life_cycle_check::resolve_feature_description(
 
 void Feature_life_cycle_check::add_feature(const Feature_definition &feature,
                                            const Upgrade_info &server_info) {
-  m_features[feature.id] = {
-      feature,
-      Life_cycle_condition(feature.start, feature.deprecated, feature.removed)
-          .evaluate(server_info)};
+  Life_cycle_condition feature_condition(feature.start, feature.deprecated,
+                                         feature.removed);
 
-  // Any of these versions must be defined, the earlier one turns on the feature
-  // check so we add that to the global feature condition for listing purposes.
-  if (feature.deprecated.has_value()) {
-    m_list_condition.add_version(*feature.deprecated);
-  } else if (feature.removed.has_value()) {
-    m_list_condition.add_version(*feature.removed);
-  } else {
-    throw std::logic_error(
-        "A feature being verified should be either deprecated or removed.");
-  }
+  m_list_condition.add_condition(feature_condition);
+
+  m_features[feature.id] = {feature, feature_condition.evaluate(server_info)};
 }
 
 bool Feature_life_cycle_check::has_feature(
