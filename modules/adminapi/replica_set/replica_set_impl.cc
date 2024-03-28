@@ -38,6 +38,7 @@
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
+#include "modules/adminapi/common/execute.h"
 #include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
@@ -2258,6 +2259,16 @@ void Replica_set_impl::rescan(const replicaset::Rescan_options &options) {
                                                    options.remove_obsolete);
 }
 
+shcore::Value Replica_set_impl::execute(
+    const std::string &cmd, const shcore::Value &instances,
+    const shcore::Option_pack_ref<Execute_options> &options) {
+  auto rs_lock = get_lock_shared();
+
+  return Topology_executor<Execute>{*this, options->dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false),
+      options->exclude, std::chrono::seconds{options->timeout});
+}
+
 shcore::Value Replica_set_impl::describe() {
   check_preconditions_and_primary_availability("describe", false);
 
@@ -2745,9 +2756,27 @@ const topology::Server *Replica_set_impl::check_target_member(
   }
 }
 
+std::shared_ptr<Instance> Replica_set_impl::get_session_to_cluster_instance(
+    const std::string &instance_address, bool raw_session) const {
+  Connection_options opts(instance_address);
+  current_ipool()->default_auth_opts().set(&opts);
+
+  log_debug("Connecting to instance '%s'", instance_address.c_str());
+  try {
+    // Try to connect to instance
+    auto instance =
+        raw_session ? Instance::connect_raw(opts) : Instance::connect(opts);
+    log_debug("Successfully connected to instance");
+    return instance;
+  } catch (const std::exception &err) {
+    log_debug("Failed to connect to instance: %s", err.what());
+    throw;
+  }
+}
+
 std::list<std::shared_ptr<Instance>> Replica_set_impl::connect_all_members(
     uint32_t read_timeout, bool skip_primary,
-    std::list<Instance_metadata> *out_unreachable, bool silent) {
+    std::list<Instance_metadata> *out_unreachable, bool silent) const {
   std::vector<Instance_metadata> instances =
       get_metadata_storage()->get_all_instances(get_id());
 

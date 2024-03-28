@@ -97,6 +97,11 @@ class Cluster_set_impl : public Base_cluster_impl,
       const clusterset::Force_primary_cluster_options &options);
   shcore::Value status(int extended);
   shcore::Value describe();
+
+  shcore::Value execute(
+      const std::string &cmd, const shcore::Value &instances,
+      const shcore::Option_pack_ref<Execute_options> &options) override;
+
   shcore::Value options();
 
   std::shared_ptr<Cluster_impl> get_primary_cluster() const;
@@ -121,8 +126,8 @@ class Cluster_set_impl : public Base_cluster_impl,
   void release_primary() override;
 
   std::list<std::shared_ptr<Cluster_impl>> connect_all_clusters(
-      uint32_t read_timeout, bool skip_primary_cluster,
-      std::list<Cluster_id> *inout_unreachable);
+      bool skip_primary_cluster, std::list<Cluster_id> *inout_unreachable,
+      bool allow_invalidated = false);
 
   std::shared_ptr<Cluster_impl> get_cluster(const std::string &name,
                                             bool allow_unavailable = false,
@@ -190,6 +195,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock_exclusive(
       std::chrono::seconds timeout = {}) override;
 
+  std::vector<Instance_metadata> get_all_instances() const;
   std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
   void ensure_compatible_clone_donor(

@@ -7,6 +7,9 @@ The following operations are available at 'clusterset':
    describe
       Describe the structure of the ClusterSet.
 
+   execute
+      Executes a SQL statement at selected instances of the ClusterSet.
+
    force-primary-cluster
       Performs a failover of the PRIMARY Cluster of the ClusterSet.
 

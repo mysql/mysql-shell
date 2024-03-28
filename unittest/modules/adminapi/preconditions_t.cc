@@ -523,11 +523,11 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
   std::set<std::string> cset_exclusive_expected = {
       "Cluster.fenceWrites",          "Cluster.getClusterSet",
       "Cluster.unfenceWrites",        "ClusterSet.createReplicaCluster",
-      "ClusterSet.listRouters",       "ClusterSet.options",
-      "ClusterSet.removeCluster",     "ClusterSet.routingOptions",
-      "ClusterSet.routerOptions",     "ClusterSet.setOption",
-      "ClusterSet.setRoutingOption",  "ClusterSet.setupAdminAccount",
-      "ClusterSet.setupRouterAccount"};
+      "ClusterSet.execute",           "ClusterSet.listRouters",
+      "ClusterSet.options",           "ClusterSet.removeCluster",
+      "ClusterSet.routingOptions",    "ClusterSet.routerOptions",
+      "ClusterSet.setOption",         "ClusterSet.setRoutingOption",
+      "ClusterSet.setupAdminAccount", "ClusterSet.setupRouterAccount"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",
@@ -549,9 +549,9 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
       "Cluster.listRouters",    "Cluster.setPrimaryInstance",
       "Cluster.options",        "Cluster.routingOptions",
       "Cluster.routerOptions",  "Cluster.status",
-      "Cluster.dissolve",       "Dba.getCluster",
-      "Dba.upgradeMetadata",    "Dba.dropMetadataSchema",
-      "Cluster.fenceAllTraffic"};
+      "Cluster.dissolve",       "Cluster.execute",
+      "Dba.getCluster",         "Dba.upgradeMetadata",
+      "Dba.dropMetadataSchema", "Cluster.fenceAllTraffic"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {
       "Cluster.addInstance",

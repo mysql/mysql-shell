@@ -29,6 +29,9 @@ FUNCTIONS
       disconnect()
             Disconnects all internal sessions used by the ClusterSet object.
 
+      execute(cmd, instances, options)
+            Executes a SQL statement at selected instances of the ClusterSet.
+
       forcePrimaryCluster(clusterName[, options])
             Performs a failover of the PRIMARY Cluster of the ClusterSet.
 
@@ -103,6 +106,53 @@ RETURNS
 DESCRIPTION
       Disconnects the internal MySQL sessions used by the ClusterSet to query
       for metadata and replication information.
+
+//@<OUT> Execute
+NAME
+      execute - Executes a SQL statement at selected instances of the
+                ClusterSet.
+
+SYNTAX
+      <ClusterSet>.execute(cmd, instances, options)
+
+WHERE
+      cmd: The SQL statement to execute.
+      instances: The instances where cmd should be executed.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A JSON object with a list of results / information regarding the
+      executing of the SQL statement on each of the target instances.
+
+DESCRIPTION
+      This function allows a single MySQL SQL statement to be executed on
+      multiple instances of the ClusterSet.
+
+      The 'instances' parameter can be either a string (keyword) or a list of
+      instance addresses where cmd should be executed. If a string, the allowed
+      keywords are:
+
+      - "all" / "a": all reachable instances.
+      - "primary" / "p": the primary instance of the primary cluster.
+      - "secondaries" / "s": the secondary instances on all clusters.
+      - "read-replicas" / "rr": the read-replicas instances on all clusters.
+
+      The options dictionary may contain the following attributes:
+
+      - exclude: similar to the instances parameter, it can be either a string
+        (keyword) or a list of instance addresses to exclude from the instances
+        specified in instances. It accepts the same keywords, except "all".
+      - timeout: integer value with the maximum number of seconds to wait for
+        cmd to execute in each target instance. Default value is 0 meaning it
+        doesn't timeout.
+      - dryRun: boolean if true, all validations and steps for executing cmd
+        are performed, but no cmd is actually executed on any instance.
+
+      To calculate the final list of instances where cmd should be executed,
+      the function starts by parsing the instances parameter and then subtract
+      from that list the ones specified in the exclude option. For example, if
+      instances is "all" and exclude is "secondaries", then all primaries (on
+      the primary and replica clusters) and all read-replicas are targeted.
 
 //@<OUT> CreateReplicaCluster
 NAME

@@ -110,6 +110,9 @@ void ReplicaSet::init() {
          "value");
   expose("setRoutingOption", &ReplicaSet::set_routing_option, "router",
          "option", "value");
+
+  expose("execute", &ReplicaSet::execute, "cmd", "instances", "?options")
+      ->cli();
 }
 
 // Documentation of the getName function
@@ -1081,7 +1084,7 @@ void ReplicaSet::set_option(const std::string &option,
 }
 
 REGISTER_HELP_FUNCTION(setInstanceOption, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(ReplicaSet_SETINSTANCEOPTION, R"*(
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETINSTANCEOPTION, R"*(
 Changes the value of an option in a ReplicaSet member.
 
 @param instance host:port of the target instance.
@@ -1147,6 +1150,57 @@ void ReplicaSet::set_instance_option(const std::string &instance_def,
       },
       false);
 }
+
+REGISTER_HELP_FUNCTION(execute, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_EXECUTE, R"*(
+Executes a SQL statement at selected instances of the ReplicaSet.
+
+@param cmd The SQL statement to execute.
+@param instances The instances where cmd should be executed.
+@param options Dictionary with options for the operation.
+
+@returns A JSON object with a list of results / information regarding the
+executing of the SQL statement on each of the target instances.
+
+This function allows a single MySQL SQL statement to be executed on
+multiple instances of the ReplicaSet.
+
+The 'instances' parameter can be either a string (keyword) or a list of
+instance addresses where cmd should be executed. If a string, the allowed
+keywords are:
+@li "all" / "a": all reachable instances.
+@li "primary" / "p": the primary instance
+@li "secondaries" / "s": the secondary instances.
+
+The options dictionary may contain the following attributes:
+
+@li exclude: similar to the instances parameter, it can be either a string
+(keyword) or a list of instance addresses to exclude from the instances
+specified in instances. It accepts the same keywords, except "all".
+@li timeout: integer value with the maximum number of seconds to wait for
+cmd to execute in each target instance. Default value is 0 meaning it
+doesn't timeout.
+@li dryRun: boolean if true, all validations and steps for executing cmd
+are performed, but no cmd is actually executed on any instance. 
+
+To calculate the final list of instances where cmd should be executed,
+the function starts by parsing the instances parameter and then subtract
+from that list the ones specified in the exclude option. For example, if
+instances is "all" and exclude is "["foo"]", then all (primary and
+secondary) instances are targeted, except for "foo".
+)*");
+
+/**
+ * $(REPLICASET_EXECUTE_BRIEF)
+ *
+ * $(REPLICASET_EXECUTE)
+ */
+#if DOXYGEN_JS
+Dictionary ReplicaSet::execute(String cmd, Object instances,
+                               Dictionary options) {}
+#elif DOXYGEN_PY
+dict ReplicaSet::execute(str cmd, Object instances, dict options);
+#endif
 
 }  // namespace dba
 }  // namespace mysqlsh

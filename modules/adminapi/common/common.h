@@ -304,6 +304,8 @@ inline constexpr const char kReplicationSources[] = "replicationSources";
 inline constexpr const char kReplicationSourcesAutoPrimary[] = "primary";
 inline constexpr const char kReplicationSourcesAutoSecondary[] = "secondary";
 inline constexpr const char kRouter[] = "router";
+inline constexpr const char kExecuteInstances[] = "instances";
+inline constexpr const char kExecuteExclude[] = "exclude";
 
 inline constexpr const int k_group_replication_members_limit = 9;
 

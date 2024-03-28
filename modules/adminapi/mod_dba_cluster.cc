@@ -150,6 +150,8 @@ void Cluster::init() {
   expose("addReplicaInstance", &Cluster::add_replica_instance, "instance",
          "?options")
       ->cli();
+
+  expose("execute", &Cluster::execute, "cmd", "instances", "?options")->cli();
 }
 
 // Documentation of the getName function
@@ -1691,6 +1693,60 @@ void Cluster::add_replica_instance(
       },
       false);
 }
+
+REGISTER_HELP_FUNCTION(execute, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_EXECUTE, R"*(
+Executes a SQL statement at selected instances of the Cluster.
+
+@param cmd The SQL statement to execute.
+@param instances The instances where cmd should be executed.
+@param options Dictionary with options for the operation.
+
+@returns A JSON object with a list of results / information regarding the
+executing of the SQL statement on each of the target instances.
+
+This function allows a single MySQL SQL statement to be executed on
+multiple instances of the Cluster.
+
+The 'instances' parameter can be either a string (keyword) or a list of
+instance addresses where cmd should be executed. If a string, the allowed
+keywords are:
+@li "all" / "a": all reachable instances.
+@li "primary" / "p": the primary instance on a single-primary Cluster or all primaries on a
+multi-primary Cluster.
+@li "secondaries" / "s": the secondary instances.
+@li "read-replicas" / "rr": the read-replicas instances.
+
+The options dictionary may contain the following attributes:
+
+@li exclude: similar to the instances parameter, it can be either a string
+(keyword) or a list of instance addresses to exclude from the instances
+specified in instances. It accepts the same keywords, except "all".
+@li timeout: integer value with the maximum number of seconds to wait for
+cmd to execute in each target instance. Default value is 0 meaning it
+doesn't timeout.
+@li dryRun: boolean if true, all validations and steps for executing cmd
+are performed, but no cmd is actually executed on any instance.
+
+The keyword "secondaries" / "s" is not permitted on a multi-primary Cluster.
+
+To calculate the final list of instances where cmd should be executed,
+the function starts by parsing the instances parameter and then subtract
+from that list the ones specified in the exclude option. For example, if
+instances is "all" and exclude is "read-replicas", then all (primary and
+secondaries) instances are targeted, except the read-replicas.
+)*");
+
+/**
+ * $(CLUSTER_EXECUTE_BRIEF)
+ *
+ * $(CLUSTER_EXECUTE)
+ */
+#if DOXYGEN_JS
+Dictionary Cluster::execute(String cmd, Object instances, Dictionary options) {}
+#elif DOXYGEN_PY
+dict Cluster::execute(str cmd, Object instances, dict options);
+#endif
 
 }  // namespace dba
 }  // namespace mysqlsh

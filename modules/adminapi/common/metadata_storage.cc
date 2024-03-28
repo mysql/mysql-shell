@@ -2003,9 +2003,7 @@ std::vector<Instance_metadata> MetadataStorage::get_all_instances(
   std::vector<Instance_metadata> ret_val;
 
   while (auto row = result->fetch_one_named()) {
-    auto instance_md = unserialize_instance(row, &m_real_md_version);
-
-    ret_val.push_back(instance_md);
+    ret_val.push_back(unserialize_instance(row, &m_real_md_version));
   }
 
   return ret_val;

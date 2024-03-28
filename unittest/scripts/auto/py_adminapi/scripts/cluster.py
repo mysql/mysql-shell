@@ -11,6 +11,7 @@ validate_members(cluster, [
     'add_instance',
     'describe',
     'dissolve',
+    'execute',
     'disconnect',
     'force_quorum_using_partition_of',
     'get_cluster_set',

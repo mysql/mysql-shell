@@ -40,9 +40,11 @@
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/execute.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
+#include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/undo.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
@@ -847,18 +849,16 @@ Async_replication_options Cluster_set_impl::get_clusterset_replication_options(
 }
 
 std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
-    uint32_t read_timeout, bool skip_primary_cluster,
-    std::list<Cluster_id> *inout_unreachable) {
+    bool skip_primary_cluster, std::list<Cluster_id> *inout_unreachable,
+    bool allow_invalidated) {
   // Connect to the PRIMARY of each cluster
   std::vector<Cluster_set_member_metadata> cs_members;
-
   if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
     throw std::runtime_error("MD not found");
   }
 
   std::list<std::shared_ptr<Cluster_impl>> r;
 
-  (void)read_timeout;
   for (const auto &m : cs_members) {
     if ((m.primary_cluster && skip_primary_cluster) || m.invalidated) {
       continue;
@@ -874,9 +874,13 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
     }
 
     try {
-      auto cluster = get_cluster_object(m);
+      auto cluster = get_cluster_object(m, allow_invalidated);
 
-      cluster->acquire_primary();
+      try {
+        cluster->acquire_primary();
+      } catch (const shcore::Error &) {
+        if (!allow_invalidated) throw;
+      }
 
       r.emplace_back(std::move(cluster));
     } catch (const shcore::Error &e) {
@@ -928,6 +932,10 @@ std::vector<Cluster_set_member_metadata> Cluster_set_impl::get_clusters()
                                           &all_clusters);
 
   return all_clusters;
+}
+
+std::vector<Instance_metadata> Cluster_set_impl::get_all_instances() const {
+  return get_metadata_storage()->get_all_instances("", true);
 }
 
 std::vector<Instance_metadata> Cluster_set_impl::get_instances_from_metadata()
@@ -2079,6 +2087,25 @@ shcore::Value Cluster_set_impl::describe() {
   return shcore::Value(clusterset::cluster_set_describe(this));
 }
 
+shcore::Value Cluster_set_impl::execute(
+    const std::string &cmd, const shcore::Value &instances,
+    const shcore::Option_pack_ref<Execute_options> &options) {
+  check_preconditions("execute");
+
+  // obtain a shared lock on the ClusterSet and on all the Clusters
+  mysqlshdk::mysql::Lock_scoped_list api_locks;
+  {
+    api_locks.push_back(get_lock_shared());
+
+    for (const auto &cluster : connect_all_clusters(false, nullptr, true))
+      api_locks.push_back(cluster->get_lock_shared());
+  }
+
+  return Topology_executor<Execute>{*this, options->dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false),
+      options->exclude, std::chrono::seconds{options->timeout});
+}
+
 shcore::Value Cluster_set_impl::options() {
   check_preconditions("options");
 
@@ -2349,7 +2376,7 @@ void Cluster_set_impl::set_primary_cluster(
   check_clusters_available(options.invalidate_replica_clusters, &unreachable);
 
   std::list<std::shared_ptr<Cluster_impl>> clusters(
-      connect_all_clusters(0, false, &unreachable));
+      connect_all_clusters(false, &unreachable));
   shcore::on_leave_scope release_cluster_primaries([&clusters] {
     for (auto &c : clusters) c->release_primary();
   });
@@ -2361,7 +2388,7 @@ void Cluster_set_impl::set_primary_cluster(
   // another set of connections for locks
   // get triggered before server-side timeouts
   std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
-      connect_all_clusters(options.timeout + 5, false, &unreachable));
+      connect_all_clusters(false, &unreachable));
   shcore::on_leave_scope release_lock_primaries(
       [this, &lock_clusters, options] {
         for (auto &c : lock_clusters) {
@@ -2917,7 +2944,7 @@ void Cluster_set_impl::force_primary_cluster(
   check_clusters_available(options.invalidate_replica_clusters, &unreachable);
 
   std::list<std::shared_ptr<Cluster_impl>> clusters(
-      connect_all_clusters(0, false, &unreachable));
+      connect_all_clusters(false, &unreachable));
   shcore::on_leave_scope release_cluster_primaries([&clusters] {
     for (auto &c : clusters) c->release_primary();
   });
@@ -2930,7 +2957,7 @@ void Cluster_set_impl::force_primary_cluster(
   // another set of connections for locks
   // get triggered before server-side timeouts
   std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
-      connect_all_clusters(lock_timeout + 5, false, &unreachable));
+      connect_all_clusters(false, &unreachable));
   shcore::on_leave_scope release_lock_primaries([&lock_clusters] {
     for (auto &c : lock_clusters) c->release_primary();
   });

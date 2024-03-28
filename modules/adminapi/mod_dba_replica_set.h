@@ -77,6 +77,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined setOption(String option, String value);
   Undefined setInstanceOption(String instance, String option, String value);
   Dictionary options(Dictionary options);
+  Dictionary execute(String cmd, Object instances, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(REPLICASET_GETNAME_BRIEF)
   None add_instance(str instance, dict options);
@@ -101,6 +102,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   dict options();
   None set_option(str option, str value);
   None set_instance_option(str instance, str option, str value);
+  dict execute(str cmd, object instances, dict options);
 #endif
 
   explicit ReplicaSet(const std::shared_ptr<Replica_set_impl> &cluster);

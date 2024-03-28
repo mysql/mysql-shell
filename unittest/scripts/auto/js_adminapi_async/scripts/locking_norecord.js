@@ -180,6 +180,20 @@ EXPECT_NO_THROWS(function() {
 });
 testutil.releaseLocks(session1, lock_rset);
 
+//@<> shared lock on replicaset.execute()
+rset_lock_check(session1, function() {
+    rs1.execute("select 1;", "p");
+}, false, `${localhost}:${__mysql_sandbox_port1}`);
+rset_lock_check(session1, function() {
+    rs2.execute("select 2;", "p");
+}, false, `${localhost}:${__mysql_sandbox_port1}`);
+
+testutil.getSharedLock(session1, lock_rset, lock_name);
+EXPECT_NO_THROWS(function() {
+    rs1.execute("select 3;", "p");
+});
+testutil.releaseLocks(session1, lock_rset);
+
 // **************
 // Instance locks
 

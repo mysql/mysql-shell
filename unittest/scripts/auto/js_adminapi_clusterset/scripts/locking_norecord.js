@@ -165,6 +165,26 @@ testutil.releaseLocks(session4, lock_cluster);
 
 session4.close();
 
+//@<> shared lock on clusterset.execute()
+
+shell.connect(__sandbox_uri1);
+
+clusterset_lock_check(function() {
+    cset.execute("select 1;", "p");
+}, false);
+
+session3 = mysql.getSession(__sandbox_uri3);
+
+testutil.getExclusiveLock(session3, lock_cluster, lock_name);
+
+EXPECT_THROWS(function() {
+    cset.execute("select 1;", "p");
+}, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port3}'`);
+EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port3}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
+
+testutil.releaseLocks(session3, lock_instance);
+
 // *************************
 // ClusterSet locks (exclusive)
 

@@ -258,6 +258,21 @@ EXPECT_THROWS(function() {
 }, "Invalid router instance 'bogus'");
 testutil.releaseLocks(session, lock_cluster);
 
+//@<> shared lock on cluster.execute()
+cluster_lock_check(function() {
+    cluster.execute("select 1", "p");
+}, false);
+
+cluster_lock_check(function() {
+    cluster2.execute("select 1", "p");
+}, false);
+
+testutil.getSharedLock(session, lock_cluster, lock_name);
+EXPECT_NO_THROWS(function() {
+    cluster.execute("select 1", "p");
+});
+testutil.releaseLocks(session, lock_cluster);
+
 // **************
 // Instance locks
 

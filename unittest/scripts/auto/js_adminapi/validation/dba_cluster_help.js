@@ -37,6 +37,9 @@ FUNCTIONS
       dissolve([options])
             Dissolves the cluster.
 
+      execute(cmd, instances, options)
+            Executes a SQL statement at selected instances of the Cluster.
+
       fenceAllTraffic()
             Fences a Cluster from All Traffic.
 
@@ -342,6 +345,56 @@ DESCRIPTION
       longer be recovered. Otherwise, the instances must be brought back ONLINE
       and the cluster dissolved without the force option to avoid errors trying
       to reuse the instances and add them back to a cluster.
+
+//@<OUT> Execute
+NAME
+      execute - Executes a SQL statement at selected instances of the Cluster.
+
+SYNTAX
+      <Cluster>.execute(cmd, instances, options)
+
+WHERE
+      cmd: The SQL statement to execute.
+      instances: The instances where cmd should be executed.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A JSON object with a list of results / information regarding the
+      executing of the SQL statement on each of the target instances.
+
+DESCRIPTION
+      This function allows a single MySQL SQL statement to be executed on
+      multiple instances of the Cluster.
+
+      The 'instances' parameter can be either a string (keyword) or a list of
+      instance addresses where cmd should be executed. If a string, the allowed
+      keywords are:
+
+      - "all" / "a": all reachable instances.
+      - "primary" / "p": the primary instance on a single-primary Cluster or
+        all primaries on a multi-primary Cluster.
+      - "secondaries" / "s": the secondary instances.
+      - "read-replicas" / "rr": the read-replicas instances.
+
+      The options dictionary may contain the following attributes:
+
+      - exclude: similar to the instances parameter, it can be either a string
+        (keyword) or a list of instance addresses to exclude from the instances
+        specified in instances. It accepts the same keywords, except "all".
+      - timeout: integer value with the maximum number of seconds to wait for
+        cmd to execute in each target instance. Default value is 0 meaning it
+        doesn't timeout.
+      - dryRun: boolean if true, all validations and steps for executing cmd
+        are performed, but no cmd is actually executed on any instance.
+
+      The keyword "secondaries" / "s" is not permitted on a multi-primary
+      Cluster.
+
+      To calculate the final list of instances where cmd should be executed,
+      the function starts by parsing the instances parameter and then subtract
+      from that list the ones specified in the exclude option. For example, if
+      instances is "all" and exclude is "read-replicas", then all (primary and
+      secondaries) instances are targeted, except the read-replicas.
 
 //@<OUT> Force Quorum Using Partition Of
 NAME

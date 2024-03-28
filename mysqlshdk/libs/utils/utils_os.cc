@@ -27,12 +27,16 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#include <processthreadsapi.h>
+#include "utils/utils_string.h"
 #elif __APPLE__
 #include <mach/mach_host.h>
 #include <mach/mach_init.h>
 #include <mach/mach_types.h>
 #include <mach/vm_statistics.h>
+#include <pthread.h>
 #else
+#include <pthread.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #endif
@@ -67,6 +71,16 @@ uint64_t available_memory() {
 #endif
 
   return 0;
+}
+
+void set_current_thread_name(const char *name) {
+#if defined _WIN32
+  SetThreadDescription(GetCurrentThread(), utf8_to_wide(name).c_str());
+#elif defined __APPLE__
+  pthread_setname_np(name);
+#else
+  pthread_setname_np(pthread_self(), name);
+#endif
 }
 
 }  // namespace shcore

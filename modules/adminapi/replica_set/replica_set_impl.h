@@ -111,6 +111,10 @@ class Replica_set_impl final : public Base_cluster_impl {
   void dissolve(const replicaset::Dissolve_options &options);
   void rescan(const replicaset::Rescan_options &options);
 
+  shcore::Value execute(
+      const std::string &cmd, const shcore::Value &instances,
+      const shcore::Option_pack_ref<Execute_options> &options) override;
+
   shcore::Value options();
 
   shcore::Value list_routers(bool only_upgrade_required) override;
@@ -124,9 +128,12 @@ class Replica_set_impl final : public Base_cluster_impl {
                             const std::string &host,
                             const Setup_account_options &options) override;
 
+  std::shared_ptr<Instance> get_session_to_cluster_instance(
+      const std::string &instance_address, bool raw_session = false) const;
+
   std::list<std::shared_ptr<Instance>> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
-      std::list<Instance_metadata> *out_unreachable, bool silent = false);
+      std::list<Instance_metadata> *out_unreachable, bool silent = false) const;
 
   std::tuple<mysqlsh::dba::Instance *, mysqlshdk::mysql::Lock_scoped>
   acquire_primary_locked(mysqlshdk::mysql::Lock_mode mode,

@@ -145,5 +145,14 @@ shcore::Dictionary_t Base_cluster::router_options(
       [&]() { return base_impl()->router_options(options); }, false);
 }
 
+shcore::Value Base_cluster::execute(
+    const std::string &cmd, const shcore::Value &instances,
+    const shcore::Option_pack_ref<Execute_options> &options) {
+  assert_valid("execute");
+
+  return execute_with_pool(
+      [&]() { return base_impl()->execute(cmd, instances, options); }, false);
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

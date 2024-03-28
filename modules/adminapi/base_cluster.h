@@ -63,6 +63,10 @@ class Base_cluster : public shcore::Cpp_object_bridge {
   shcore::Dictionary_t router_options(
       const shcore::Option_pack_ref<Router_options_options> &options);
 
+  shcore::Value execute(
+      const std::string &cmd, const shcore::Value &instances,
+      const shcore::Option_pack_ref<Execute_options> &options);
+
  public:  // User management
   void setup_admin_account(
       const std::string &user,

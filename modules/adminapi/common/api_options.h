@@ -26,8 +26,10 @@
 #ifndef MODULES_ADMINAPI_COMMON_API_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_API_OPTIONS_H_
 
+#include <chrono>
 #include <optional>
 #include <string>
+#include <variant>
 
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/clone_options.h"
@@ -89,6 +91,15 @@ struct Setup_account_options {
 
   bool dry_run = false;
   bool update = false;
+};
+
+struct Execute_options : Timeout_option {
+  static const shcore::Option_pack_def<Execute_options> &options();
+
+  void set_exclude(const shcore::Value &value);
+
+  bool dry_run{false};
+  std::variant<std::monostate, std::string, std::vector<std::string>> exclude;
 };
 
 }  // namespace dba

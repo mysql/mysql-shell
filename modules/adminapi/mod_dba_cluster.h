@@ -88,6 +88,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined fenceWrites();
   Undefined unfenceWrites();
   Undefined addReplicaInstance(InstanceDef instance, Dictionary options);
+  Dictionary execute(String cmd, Object instances, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
@@ -121,6 +122,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None fence_writes();
   None unfence_writes();
   None add_replica_instance(InstanceDef instance, dict options);
+  dict execute(str cmd, object instances, dict options);
 #endif
 
   explicit Cluster(const std::shared_ptr<Cluster_impl> &impl);

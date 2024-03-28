@@ -152,6 +152,9 @@ class Cluster_impl final : public Base_cluster_impl,
   void set_primary_instance(
       const Connection_options &instance_def,
       const cluster::Set_primary_instance_options &options);
+  shcore::Value execute(
+      const std::string &cmd, const shcore::Value &instances,
+      const shcore::Option_pack_ref<Execute_options> &options) override;
   void reset_recovery_password(std::optional<bool> force,
                                const bool interactive);
   void fence_all_traffic();
@@ -405,7 +408,7 @@ class Cluster_impl final : public Base_cluster_impl,
    * @throws Exception if the instance is not reachable.
    */
   std::shared_ptr<Instance> get_session_to_cluster_instance(
-      const std::string &instance_address) const;
+      const std::string &instance_address, bool raw_session = false) const;
 
   /**
    * Setup the clone plugin usage on the cluster (enable or disable it)

@@ -44,6 +44,12 @@ rs.help("dissolve");
 //@ Dissolve \? [USE:Dissolve]
 \? ReplicaSet.dissolve
 
+//@ Execute
+rs.help("execute");
+
+//@ Execute \? [USE:Execute]
+\? ReplicaSet.execute
+
 //@ Force Primary Instance
 rs.help("forcePrimaryInstance");
 

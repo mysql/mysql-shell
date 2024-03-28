@@ -10,6 +10,9 @@ The following operations are available at 'rs':
    dissolve
       Dissolves the ReplicaSet.
 
+   execute
+      Executes a SQL statement at selected instances of the ReplicaSet.
+
    force-primary-instance
       Performs a failover in a replicaset with an unavailable PRIMARY.
 

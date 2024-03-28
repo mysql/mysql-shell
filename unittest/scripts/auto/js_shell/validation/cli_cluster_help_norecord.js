@@ -17,6 +17,9 @@ The following operations are available at 'cluster':
    dissolve
       Dissolves the cluster.
 
+   execute
+      Executes a SQL statement at selected instances of the Cluster.
+
    fence-all-traffic
       Fences a Cluster from All Traffic.
 

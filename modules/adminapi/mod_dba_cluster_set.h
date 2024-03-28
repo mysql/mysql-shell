@@ -70,6 +70,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Dictionary listRouters(String router);
   Undefined setOption(String option, String value);
   Dictionary options();
+  Dictionary execute(String cmd, Object instances, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
   str get_name();
@@ -91,6 +92,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   dict list_routers(str router);
   None set_option(str option, str value);
   dict options();
+  dict execute(str cmd, object instances, dict options);
 #endif
 
   explicit ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset);

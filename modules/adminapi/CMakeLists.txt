@@ -30,6 +30,7 @@ file(GLOB adminapi_module_SOURCES
       "mod_dba_cluster_set.cc"
       "common/api_options.cc"
       "common/connectivity_check.cc"
+      "common/execute.cc"
       "common/metadata_storage.cc"
       "common/metadata_management_mysql.cc"
       "common/metadata_backup_handler.cc"

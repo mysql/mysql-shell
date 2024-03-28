@@ -59,6 +59,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/execute.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
@@ -1856,8 +1857,6 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
 
   auto target = get_cluster_server();
 
-  shcore::Dictionary_t dict = shcore::make_dict();
-
   bool single_primary = false;
   bool has_quorum = false;
 
@@ -2932,6 +2931,18 @@ void Cluster_impl::set_primary_instance(
 
   // Execute Set_primary_instance operation.
   op_set_primary_instance.execute();
+}
+
+shcore::Value Cluster_impl::execute(
+    const std::string &cmd, const shcore::Value &instances,
+    const shcore::Option_pack_ref<Execute_options> &options) {
+  check_preconditions("execute");
+
+  auto c_lock = get_lock_shared();
+
+  return Topology_executor<Execute>{*this, options->dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false),
+      options->exclude, std::chrono::seconds{options->timeout});
 }
 
 mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
@@ -4260,7 +4271,7 @@ Cluster_impl::get_unused_recovery_accounts(
 }
 
 std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
-    const std::string &instance_address) const {
+    const std::string &instance_address, bool raw_session) const {
   // Set login credentials to connect to instance.
   // use the host and port from the instance address
   Connection_options instance_cnx_opts(instance_address);
@@ -4272,7 +4283,8 @@ std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
   log_debug("Connecting to instance '%s'", instance_address.c_str());
   try {
     // Try to connect to instance
-    auto instance = Instance::connect(instance_cnx_opts);
+    auto instance = raw_session ? Instance::connect_raw(instance_cnx_opts)
+                                : Instance::connect(instance_cnx_opts);
     log_debug("Successfully connected to instance");
     return instance;
   } catch (const std::exception &err) {

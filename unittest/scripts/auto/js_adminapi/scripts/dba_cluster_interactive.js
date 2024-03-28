@@ -36,6 +36,7 @@ validateMembers(Cluster, [
   'status',
   'help',
   'dissolve',
+  'execute',
   'disconnect',
   'rescan',
   'listRouters',

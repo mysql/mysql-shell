@@ -28,6 +28,12 @@ cs.help("disconnect");
 //@ Disconnect \? [USE:Disconnect]
 \? ClusterSet.disconnect
 
+//@ Execute
+cs.help("execute");
+
+//@ Execute \? [USE:Execute]
+\? ClusterSet.execute
+
 //@ CreateReplicaCluster
 cs.help("createReplicaCluster");
 

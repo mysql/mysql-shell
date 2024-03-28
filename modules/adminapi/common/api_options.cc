@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/api_options.h"
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/execute.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 
@@ -183,6 +184,20 @@ void Setup_account_options::set_password_expiration(
           "' UInteger, 'NEVER' or 'DEFAULT' expected, but value is " +
           type_name(value.get_type()));
   }
+}
+
+const shcore::Option_pack_def<Execute_options> &Execute_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Execute_options>()
+          .optional(kExecuteExclude, &Execute_options::set_exclude)
+          .optional(kDryRun, &Execute_options::dry_run)
+          .include<Timeout_option>();
+
+  return opts;
+}
+
+void Execute_options::set_exclude(const shcore::Value &value) {
+  exclude = Execute::convert_to_instances_def(value, true);
 }
 
 }  // namespace mysqlsh::dba

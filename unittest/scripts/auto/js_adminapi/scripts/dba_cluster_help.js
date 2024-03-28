@@ -46,6 +46,12 @@ cluster.help("dissolve")
 //@ Dissolve, \? [USE:Dissolve]
 \? cluster.dissolve
 
+//@ Execute
+cluster.help("execute")
+
+//@ Execute, \? [USE:Execute]
+\? cluster.execute
+
 //@ Force Quorum Using Partition Of
 cluster.help("forceQuorumUsingPartitionOf")
 

@@ -35,6 +35,11 @@ namespace shcore {
  */
 uint64_t available_memory();
 
+/**
+ * Sets the name / description for the current thread (debug purposes only)
+ */
+void set_current_thread_name(const char *name);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_OS_H_
