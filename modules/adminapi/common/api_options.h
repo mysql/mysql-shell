@@ -52,10 +52,10 @@ struct Timeout_option {
 struct Recovery_progress_option {
   static const shcore::Option_pack_def<Recovery_progress_option> &options();
   void set_recovery_progress(int value);
-  Recovery_progress_style get_recovery_progress();
+  Recovery_progress_style get_recovery_progress() const;
 
  private:
-  std::optional<Recovery_progress_style> m_recovery_progress;
+  mutable std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
 struct Force_options {

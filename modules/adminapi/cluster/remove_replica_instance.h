@@ -26,7 +26,11 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_REMOVE_REPLICA_INSTANCE_H_
 #define MODULES_ADMINAPI_CLUSTER_REMOVE_REPLICA_INSTANCE_H_
 
+#include <memory>
+#include <string>
+
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/undo.h"
 
 namespace mysqlsh::dba::cluster {
@@ -37,11 +41,12 @@ class Remove_replica_instance {
 
   Remove_replica_instance(
       Cluster_impl *cluster,
-      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const cluster::Remove_instance_options &options)
+      std::shared_ptr<mysqlsh::dba::Instance> target_instance,
+      cluster::Remove_instance_options options) noexcept
       : m_cluster_impl(cluster),
-        m_target_instance(target_instance),
-        m_options(options) {
+        m_target_instance(std::move(target_instance)),
+        m_options(std::move(options)),
+        m_repl_account_mng{*m_cluster_impl} {
     assert(cluster);
   };
 
@@ -59,11 +64,12 @@ class Remove_replica_instance {
   void do_undo();
 
  private:
-  Cluster_impl *m_cluster_impl = nullptr;
+  Cluster_impl *const m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   cluster::Remove_instance_options m_options;
   std::string m_target_read_replica_address;
   Undo_tracker m_undo_tracker;
+  Replication_account m_repl_account_mng;
 };
 
 }  // namespace mysqlsh::dba::cluster

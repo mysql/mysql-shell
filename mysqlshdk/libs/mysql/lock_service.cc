@@ -50,7 +50,7 @@ void install_lock_service(mysqlshdk::mysql::IInstance *instance) {
   std::string plugin_lib =
       "locking_service" + instance->get_plugin_library_extension();
 
-  mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(*instance);
 
   auto install = [&plugin_lib, &instance](const std::string &func_name) {
     try {
@@ -96,7 +96,7 @@ bool has_lock_service(const mysqlshdk::mysql::IInstance &instance) {
 }
 
 void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance) {
-  mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(*instance);
 
   instance->execute("DROP FUNCTION IF EXISTS service_get_read_locks");
   instance->execute("DROP FUNCTION IF EXISTS service_get_write_locks");

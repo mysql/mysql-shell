@@ -87,11 +87,6 @@ inline constexpr const char k_cluster_capabilities[] = "capabilities";
 
 class Base_cluster_impl {
  public:
-  static std::string make_replication_user_name(uint32_t server_id,
-                                                std::string_view user_prefix,
-                                                bool server_id_hexa = false);
-
- public:
   Base_cluster_impl(const std::string &cluster_name,
                     std::shared_ptr<Instance> group_server,
                     std::shared_ptr<MetadataStorage> metadata_storage);

@@ -101,16 +101,13 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
                      std::optional<std::string>(const std::string &));
   MOCK_CONST_METHOD3(create_user, void(std::string_view, std::string_view,
                                        const Create_user_options &));
-  MOCK_CONST_METHOD3(drop_user,
-                     void(const std::string &, const std::string &, bool));
+  MOCK_CONST_METHOD3(drop_user, void(std::string_view, std::string_view, bool));
   MOCK_CONST_METHOD0(get_connection_options,
                      mysqlshdk::db::Connection_options());
   MOCK_CONST_METHOD2(get_current_user, void(std::string *, std::string *));
-  MOCK_CONST_METHOD2(user_exists,
-                     bool(const std::string &, const std::string &));
-  MOCK_CONST_METHOD3(set_user_password,
-                     void(const std::string &, const std::string &,
-                          const std::string &));
+  MOCK_CONST_METHOD2(user_exists, bool(std::string_view, std::string_view));
+  MOCK_CONST_METHOD3(set_user_password, void(std::string_view, std::string_view,
+                                             std::string_view));
   //   MOCK_CONST_METHOD2(get_user_privileges,
   //                      std::unique_ptr<mysqlshdk::mysql::User_privileges>(
   //                          const std::string &, const std::string &));
@@ -134,7 +131,7 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
 
   MOCK_CONST_METHOD0(get_fence_sysvars, std::vector<std::string>());
 
-  MOCK_METHOD1(suppress_binary_log, void(bool));
+  MOCK_CONST_METHOD1(suppress_binary_log, void(bool));
 
   MOCK_CONST_METHOD0(get_plugin_library_extension, std::string());
 

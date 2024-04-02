@@ -1420,27 +1420,24 @@ void MetadataStorage::update_instance_uuid(Cluster_id cluster_id,
 }
 
 std::pair<std::string, std::string> MetadataStorage::get_instance_repl_account(
-    const std::string &instance_uuid, Cluster_type type,
+    std::string_view instance_uuid, Cluster_type type,
     Replica_type replica_type) {
-  shcore::sqlstring query = shcore::sqlstring{
+  auto query =
       "SELECT (attributes->>?) as recovery_user,"
       " (attributes->>?) as recovery_host"
       " FROM mysql_innodb_cluster_metadata.instances "
-      " WHERE mysql_server_uuid = ?",
-      0};
-  query << repl_account_user_key(type, replica_type);
-  query << repl_account_host_key(type, replica_type);
-  query << instance_uuid;
+      " WHERE mysql_server_uuid = ?"_sql;
+  query << repl_account_user_key(type, replica_type)
+        << repl_account_host_key(type, replica_type) << instance_uuid;
   query.done();
-  std::string recovery_user, recovery_host;
 
   auto res = execute_sql(query);
-  auto row = res->fetch_one();
-  if (row) {
-    recovery_user = row->get_string(0, "");
-    recovery_host = row->get_string(1, "");
+
+  if (auto row = res->fetch_one(); row) {
+    return std::make_pair(row->get_string(0, ""), row->get_string(1, ""));
   }
-  return std::make_pair(recovery_user, recovery_host);
+
+  return {};
 }
 
 std::string MetadataStorage::get_instance_repl_account_user(

@@ -75,8 +75,8 @@ void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
         status.begin_time.c_str());
   }
 
-  if (m_style != Recovery_progress_style::NOWAIT &&
-      m_style != Recovery_progress_style::NOINFO) {
+  assert(m_style != Recovery_progress_style::NONE);
+  if (m_style != Recovery_progress_style::MINIMAL) {
     if (current_stage < 1) {
       // before data transfer
       update_stage(status, 0, 0);
@@ -118,7 +118,7 @@ void Clone_progress::update_stage(const mysqlshdk::mysql::Clone_status &status,
 
   int current_stage = status.current_stage();
 
-  if (m_style == Recovery_progress_style::PROGRESSBAR) {
+  if (m_style == Recovery_progress_style::PROGRESS_BAR) {
     // dynamic text
     if (current_stage > m_current_stage) {
       // clear the last seen step
@@ -162,68 +162,69 @@ void Clone_progress::update_stage(const mysqlshdk::mysql::Clone_status &status,
 
 void Clone_progress::update_transfer(
     const mysqlshdk::mysql::Clone_status &status) {
-  int current_stage = status.current_stage();
-
   if (m_style == Recovery_progress_style::TEXTUAL) {
     update_stage(status, 1, 3);
-  } else {
-    // fancy progress
-    if (!m_progress) {
-      // flush previous steps, if needed
-      update_stage(status, 0, 0);
-
-      m_progress.reset(new mysqlshdk::textui::Progress_vt100(3));
-      m_progress->set_label("** Clone Transfer");
-      m_progress->set_total(-1);  // disable main progressbar
-      m_progress->set_secondary_label(
-          0, mysqlshdk::mysql::k_CLONE_STAGE_FILE_COPY);
-      m_progress->set_secondary_right_label(
-          0, mysqlshdk::mysql::k_CLONE_STATE_NONE);
-      m_progress->set_secondary_label(
-          1, mysqlshdk::mysql::k_CLONE_STAGE_PAGE_COPY);
-      m_progress->set_secondary_right_label(
-          1, mysqlshdk::mysql::k_CLONE_STATE_NONE);
-      m_progress->set_secondary_label(
-          2, mysqlshdk::mysql::k_CLONE_STAGE_REDO_COPY);
-      m_progress->set_secondary_right_label(
-          2, mysqlshdk::mysql::k_CLONE_STATE_NONE);
-
-      m_progress->start();
-    }
-
-    // Update the 3 status bars:
-    //  - FILE COPY
-    //  - PAGE COPY
-    //  - REDO COPY
-    //
-    // It's not guaranteed that P_S will have the information for the 4 stages
-    // we want to monitor. If the dataset is very small it's possible that
-    // only 1 or 2 stages are displayed in P_S.
-    // For that reason, we must only update the progress if we have the
-    // information available from P_S otherwise we get a segmentation fault
-    // (BUG#31545728)
-    for (size_t i = 1; i <= 3 && i < status.stages.size(); i++) {
-      const auto &stage = status.stages[i];
-
-      if (stage.state == mysqlshdk::mysql::k_CLONE_STATE_SUCCESS) {
-        m_progress->set_secondary_total(i - 1, 1);
-        m_progress->set_secondary_current(i - 1, 1);
-      } else {
-        m_progress->set_secondary_total(i - 1, stage.work_estimated);
-        m_progress->set_secondary_current(i - 1, stage.work_completed);
-      }
-
-      m_progress->set_secondary_right_label(i - 1, stage.state);
-    }
-
-    m_progress->update();
-    // If the current_stage is > REDO COPY, we're done
-    if (current_stage > 3) {
-      m_progress->end();
-      m_progress.reset();
-    }
-    m_current_stage = current_stage;
+    return;
   }
+
+  int current_stage = status.current_stage();
+
+  // fancy progress
+  if (!m_progress) {
+    // flush previous steps, if needed
+    update_stage(status, 0, 0);
+
+    m_progress.reset(new mysqlshdk::textui::Progress_vt100(3));
+    m_progress->set_label("** Clone Transfer");
+    m_progress->set_total(-1);  // disable main progressbar
+    m_progress->set_secondary_label(0,
+                                    mysqlshdk::mysql::k_CLONE_STAGE_FILE_COPY);
+    m_progress->set_secondary_right_label(0,
+                                          mysqlshdk::mysql::k_CLONE_STATE_NONE);
+    m_progress->set_secondary_label(1,
+                                    mysqlshdk::mysql::k_CLONE_STAGE_PAGE_COPY);
+    m_progress->set_secondary_right_label(1,
+                                          mysqlshdk::mysql::k_CLONE_STATE_NONE);
+    m_progress->set_secondary_label(2,
+                                    mysqlshdk::mysql::k_CLONE_STAGE_REDO_COPY);
+    m_progress->set_secondary_right_label(2,
+                                          mysqlshdk::mysql::k_CLONE_STATE_NONE);
+
+    m_progress->start();
+  }
+
+  // Update the 3 status bars:
+  //  - FILE COPY
+  //  - PAGE COPY
+  //  - REDO COPY
+  //
+  // It's not guaranteed that P_S will have the information for the 4 stages we
+  // want to monitor. If the dataset is very small it's possible that only 1 or
+  // 2 stages are displayed in P_S. For that reason, we must only update the
+  // progress if we have the information available from P_S otherwise we get a
+  // segmentation fault (BUG#31545728)
+  for (size_t i = 1; i <= 3 && i < status.stages.size(); i++) {
+    const auto &stage = status.stages[i];
+
+    if (stage.state == mysqlshdk::mysql::k_CLONE_STATE_SUCCESS) {
+      m_progress->set_secondary_total(i - 1, 1);
+      m_progress->set_secondary_current(i - 1, 1);
+    } else {
+      m_progress->set_secondary_total(i - 1, stage.work_estimated);
+      m_progress->set_secondary_current(i - 1, stage.work_completed);
+    }
+
+    m_progress->set_secondary_right_label(i - 1, stage.state);
+  }
+
+  m_progress->update();
+
+  // If the current_stage is > REDO COPY, we're done
+  if (current_stage > 3) {
+    m_progress->end();
+    m_progress.reset();
+  }
+  m_current_stage = current_stage;
 }
 
 }  // namespace dba

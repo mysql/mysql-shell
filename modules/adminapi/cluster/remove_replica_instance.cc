@@ -27,7 +27,6 @@
 
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "scripting/types.h"
 
@@ -98,15 +97,18 @@ void Remove_replica_instance::do_run() {
 
   // Drop the replication user first since we need to query it from the
   // Metadata
-  Sql_undo_list sql_undo;
-  m_cluster_impl->drop_read_replica_replication_user(
-      m_target_instance.get(), m_options.dry_run, &sql_undo);
+  {
+    auto sql_undo = m_repl_account_mng.record_undo([this](auto &mng) {
+      mng.drop_read_replica_replication_user(*m_target_instance,
+                                             m_options.dry_run);
+    });
 
-  m_undo_tracker.add(
-      "Restore Read-Replica's replication account",
-      Sql_undo_list(std::move(sql_undo)), [this]() {
-        return m_cluster_impl->get_metadata_storage()->get_md_server();
-      });
+    m_undo_tracker.add(
+        "Restore Read-Replica's replication account", std::move(sql_undo),
+        [this]() {
+          return m_cluster_impl->get_metadata_storage()->get_md_server();
+        });
+  }
 
   // Remove the Read-Replica from the Metadata and wait for the transactions
   // to sync
@@ -199,11 +201,13 @@ void Remove_replica_instance::do_run() {
             m_cluster_impl->query_cluster_instance_auth_cert_subject(
                 *m_target_instance);
 
-        std::tie(ar_options.repl_credentials, repl_user_host) =
-            m_cluster_impl->create_replication_user(
-                m_target_instance.get(), auth_cert_subject,
-                Replication_account_type::READ_REPLICA, false, {}, true,
-                m_options.dry_run);
+        auto auth_host = m_repl_account_mng.create_replication_user(
+            *m_target_instance, auth_cert_subject,
+            Replication_account::Account_type::READ_REPLICA, false, {}, true,
+            m_options.dry_run);
+
+        ar_options.repl_credentials = std::move(auth_host.auth);
+        repl_user_host = std::move(auth_host.host);
 
         Replication_sources replication_sources_opts =
             m_cluster_impl->get_read_replica_replication_sources(

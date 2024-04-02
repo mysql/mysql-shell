@@ -46,8 +46,10 @@ namespace cluster {
 
 constexpr const char *k_xplugin_disabled = "<disabled>";
 
-Rescan::Rescan(const Rescan_options &options, Cluster_impl *cluster)
-    : m_options(options), m_cluster(cluster) {
+Rescan::Rescan(Rescan_options options, Cluster_impl *cluster)
+    : m_options(std::move(options)),
+      m_cluster(cluster),
+      m_repl_account_mng{*cluster} {
   assert(cluster);
   assert((m_options.auto_add && m_options.add_instances_list.empty()) ||
          !m_options.auto_add);
@@ -927,20 +929,21 @@ void Rescan::ensure_recovery_accounts_match() {
         }
 
         // Get the instance's recovery account
-        std::string recovery_user;
-        std::vector<std::string> recovery_user_hosts;
-        std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-            m_cluster->get_replication_user(*instance);
+        auto user_hosts =
+            m_repl_account_mng.get_replication_user(*instance, false);
 
         // Check if the account is using the old prefix
         auto old_prefix = shcore::str_beginswith(
-            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix);
+            user_hosts.user,
+            Replication_account::k_group_recovery_old_user_prefix);
 
         // Generate the recovery account string for this instance
-        auto recovery_user_generated = Cluster_impl::make_replication_user_name(
-            instance->get_server_id(),
-            old_prefix ? mysqlshdk::gr::k_group_recovery_old_user_prefix
-                       : mysqlshdk::gr::k_group_recovery_user_prefix);
+        auto recovery_user_generated =
+            Replication_account::make_replication_user_name(
+                instance->get_server_id(),
+                old_prefix
+                    ? Replication_account::k_group_recovery_old_user_prefix
+                    : Replication_account::k_group_recovery_user_prefix);
 
         // If the recovery user being used is different than the generated one
         // it means the instance was added using clone as the recovery method
@@ -948,46 +951,48 @@ void Rescan::ensure_recovery_accounts_match() {
         // that clone copies everything including mysql.slave_master_info where
         // the replication credentials for the recovery channel are stored. Or
         // if the recovery user has changed / created explicitly by the user.
-        if (recovery_user == recovery_user_generated) return true;
+        if (user_hosts.user == recovery_user_generated) return true;
 
         auto console = mysqlsh::current_console();
         console->print_info(shcore::str_format(
             "Fixing incorrect recovery account '%s' in instance '%s'",
-            recovery_user.c_str(), instance->descr().c_str()));
+            user_hosts.user.c_str(), instance->descr().c_str()));
 
         if (!m_cluster->get_primary_master()->user_exists(
-                recovery_user_generated, recovery_user_hosts.front())) {
+                recovery_user_generated, user_hosts.hosts.front())) {
           log_info("Recovery account '%s' does not exist in the cluster.",
                    recovery_user_generated.c_str());
 
-          recovery_user_generated = Cluster_impl::make_replication_user_name(
-              instance->get_server_id(),
-              mysqlshdk::gr::k_group_recovery_user_prefix);
+          recovery_user_generated =
+              Replication_account::make_replication_user_name(
+                  instance->get_server_id(),
+                  Replication_account::k_group_recovery_user_prefix);
 
-          auto [new_user, new_host] = m_cluster->recreate_replication_user(
-              instance,
+          auto new_user_host = m_repl_account_mng.recreate_replication_user(
+              *instance,
               m_cluster->query_cluster_instance_auth_cert_subject(*instance));
 
           m_cluster->get_metadata_storage()->update_instance_repl_account(
               instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-              Replica_type::GROUP_MEMBER, new_user, new_host);
+              Replica_type::GROUP_MEMBER, new_user_host.user,
+              new_user_host.host);
 
           console->print_warning(shcore::str_format(
               "A new recovery user for instance '%s' was created, which leaves "
               "the previous user, '%s', unused, so it should be removed.",
-              instance->descr().c_str(), recovery_user.c_str()));
+              instance->descr().c_str(), user_hosts.user.c_str()));
 
         } else {
           log_info("Updating recovery account '%s' in metadata.",
                    recovery_user_generated.c_str());
 
           m_cluster->reset_recovery_password(instance, recovery_user_generated,
-                                             recovery_user_hosts);
+                                             user_hosts.hosts);
 
           m_cluster->get_metadata_storage()->update_instance_repl_account(
               instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
               Replica_type::GROUP_MEMBER, recovery_user_generated,
-              recovery_user_hosts.front());
+              user_hosts.hosts.front());
         }
 
         return true;
@@ -1043,7 +1048,7 @@ shcore::Value Rescan::execute() {
   }
 
   // Fix all missing recovery accounts from metadata.
-  m_cluster->ensure_metadata_has_recovery_accounts(true);
+  m_repl_account_mng.ensure_metadata_has_recovery_accounts(true);
 
   // This calls ensures all of the instances have server_id as instance
   // attribute, including the case were rescan is executed and no new/updated
@@ -1150,8 +1155,9 @@ shcore::Value Rescan::execute() {
   ensure_recovery_accounts_match();
 
   // removes unused recovery accounts
-  for (const auto &[user, host] : m_cluster->get_unused_recovery_accounts(
-           m_cluster->get_mismatched_recovery_accounts())) {
+  for (const auto &[user, host] :
+       m_repl_account_mng.get_unused_recovery_accounts(
+           m_repl_account_mng.get_mismatched_recovery_accounts())) {
     try {
       console->print_info(
           shcore::str_format("Dropping unused recovery account: '%s'@'%s'",

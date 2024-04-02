@@ -51,6 +51,7 @@
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -78,9 +79,6 @@ inline constexpr std::string_view k_instance_attribute_server_id{"server_id"};
 inline constexpr std::string_view k_instance_attribute_cert_subject{
     "opt_certSubject"};
 
-inline constexpr const char *k_cluster_read_replica_user_name =
-    "mysql_innodb_replica_";
-
 inline constexpr const char
     *k_instance_attribute_read_replica_replication_sources =
         "replicationSources";
@@ -94,8 +92,6 @@ class ClusterSet;
 namespace checks {
 enum class Check_type;
 }
-
-enum class Replication_account_type { GROUP_REPLICATION, READ_REPLICA };
 
 class Cluster_impl final : public Base_cluster_impl,
                            public std::enable_shared_from_this<Cluster_impl>,
@@ -224,24 +220,11 @@ class Cluster_impl final : public Base_cluster_impl,
     m_topology_type = topology_type;
   }
 
-  std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  create_replication_user(mysqlshdk::mysql::IInstance *target,
-                          std::string_view auth_cert_subject,
-                          Replication_account_type account_type,
-                          bool only_on_target = false,
-                          mysqlshdk::mysql::Auth_options creds = {},
-                          bool print_recreate_node = true,
-                          bool dry_run = false) const;
-
   std::pair<Async_replication_options, std::string>
   create_read_replica_replication_user(mysqlshdk::mysql::IInstance *target,
                                        std::string_view auth_cert_subject,
                                        int sync_timeout,
                                        bool dry_run = false) const;
-
-  void drop_read_replica_replication_user(
-      Instance *target, bool dry_run = false,
-      mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
 
   void setup_read_replica_connection_failover(
       const Instance &replica, const Instance &source,
@@ -278,37 +261,6 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::string &recovery_account = "",
       const std::vector<std::string> &hosts = {}) const;
 
-  /**
-   * Recreate the recovery replication account for the instance instance
-   *
-   * Drops and creates a new recovery account for the target instance, ensuring
-   * the credentials for the recovery channel are updated too
-   *
-   * @param target          Target instance
-   */
-  std::pair<std::string, std::string> recreate_replication_user(
-      const std::shared_ptr<Instance> &target,
-      std::string_view auth_cert_subject, bool dry_run = false) const;
-
-  bool drop_replication_user(mysqlshdk::mysql::IInstance *target,
-                             const std::string &endpoint = "",
-                             const std::string &server_uuid = "",
-                             const uint32_t server_id = 0, bool dry_run = false,
-                             mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
-
-  void drop_replication_users(mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
-
-  /**
-   * Wipes out all replication users created/managed by the AdminAPI
-   *
-   * All accounts matching the format of users created by the AdminAPI are
-   * removed:
-   *
-   *   - mysql_innodb_cluster_%
-   *   - mysql_innodb_cs_%
-   */
-  void wipe_all_replication_users();
-
   bool contains_instance_with_address(const std::string &host_port) const;
 
   mysqlsh::dba::Instance *acquire_primary(
@@ -316,7 +268,7 @@ class Cluster_impl final : public Base_cluster_impl,
 
   Cluster_metadata get_metadata() const;
 
-  void release_primary() override;
+  void release_primary() override { m_primary_master.reset(); }
 
   shcore::Value cluster_status(int64_t extended);
   shcore::Value cluster_describe();
@@ -343,56 +295,6 @@ class Cluster_impl final : public Base_cluster_impl,
    */
   mysqlshdk::utils::Version get_lowest_instance_version(
       std::vector<std::string> *out_instances_addresses = nullptr) const;
-
-  /**
-   * Determine the replication (recovery) user being used by the target
-   * instance.
-   *
-   * A user can have several accounts (for different hostnames).
-   * This method will try to obtain the recovery user from the metadata and if
-   * the user is not found in the Metadata it will be obtained using the
-   * get_recovery_user method (in order to support older versions of the shell).
-   * It will throw an exception if the user was not created by the AdminAPI,
-   * i.e. does not start with the 'mysql_innodb_cluster_' prefix
-   * Note: The hostname values are not quoted
-   *
-   * @param target_instance Instance whose recovery user we want to know
-   * @return a tuple with the recovery user name, the list of hostnames of
-   * for recovery user and a boolean that is true if the information was
-   * retrieved from the metadata and false otherwise.
-   * @throws shcore::Exception::runtime_error if user not created by AdminAPI
-   */
-  std::tuple<std::string, std::vector<std::string>, bool> get_replication_user(
-      const mysqlshdk::mysql::IInstance &target_instance,
-      bool is_read_replica = false) const;
-
-  /**
-   * Get mismatched recovery accounts.
-   *
-   * This function returns instances for which the recovery account name doesn't
-   * match with its server id.
-   *
-   * @return a list of {server_id, user} pairs, for each mismatch account
-   * found.
-   */
-  std::unordered_map<uint32_t, std::string> get_mismatched_recovery_accounts()
-      const;
-
-  /**
-   * Get unused recovery accounts / users.
-   *
-   * This function returns recovery accounts that exist but aren't being used
-   * in either instances of a given cluster. The list excludes mismatch
-   * accounts.
-   *
-   * @param mismatched_recovery_accounts the list of mismatched account (@see
-   * get_mismatched_recovery_accounts)
-   *
-   * @return the list of unused recovery accounts: pairs of {users/hosts}
-   */
-  std::vector<std::tuple<std::string, std::string>>
-  get_unused_recovery_accounts(const std::unordered_map<uint32_t, std::string>
-                                   &mismatched_recovery_accounts) const;
 
   /**
    * Get a session to a given instance of the cluster.
@@ -526,17 +428,6 @@ class Cluster_impl final : public Base_cluster_impl,
       const mysqlshdk::mysql::IInstance &target_instance) const;
 
   /**
-   * Checks for missing metadata recovery account entries, and fix them using
-   * info from the performance schema replication tables.
-   *
-   * @param allow_non_standard_format If true, account that don't follow the
-   * AdminAPI format are stored, otherwise, a message is generated and the
-   * account ignored.
-   *
-   */
-  void ensure_metadata_has_recovery_accounts(bool allow_non_standard_format);
-
-  /**
    * Get an online instance from the cluster.
    *
    * Return an online instance from the cluster that is reachable (able
@@ -648,18 +539,6 @@ class Cluster_impl final : public Base_cluster_impl,
 
   std::optional<std::string> get_comm_stack() const;
 
-  /**
-   * Reset the password for the Cluster's replication account in use for the
-   * ClusterSet replication channel
-   *
-   * @return A mysqlshdk::mysql::Auth_options with the username and the newly
-   * generated password
-   */
-  // XXX removethis
-  mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user() const;
-
-  void update_replication_allowed_host(const std::string &host);
-
   /*
    * Enable skip_slave_start and configures the managed replication channel if
    * the target cluster is a replica.
@@ -668,46 +547,12 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance) const;
 
   /**
-   * Recreate the recovery account for each Cluster member
-   *
-   * Required when using the 'MySQL' communication stack to ensure each active
-   * member of the Cluster will use its own recovery account instead of the one
-   * created whenever a new member joined since all possible seeds had to be
-   * updated to use that same account. This ensures distributed recovery is
-   * possible at any circumstance.
-   */
-  void restore_recovery_account_all_members(bool reset_password = true) const;
-
-  /**
    * Change the recovery user credentials of all Cluster members
    *
    * @param repl_account The authentication options of the recovery account
    */
   void change_recovery_credentials_all_members(
       const mysqlshdk::mysql::Auth_options &repl_account) const;
-
-  /**
-   * Create a local recovery account for the target instance
-   *
-   * Required when using the 'MySQL' communication stack. The account is
-   * created locally only to the target instance and with binary logging
-   * disabled to not introduce errant transactions
-   */
-  void create_local_replication_user(
-      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      std::string_view auth_cert_subject,
-      const Group_replication_options &gr_options,
-      bool propagate_credentials_donors, bool dry_run = false);
-
-  /**
-   * Create all accounts present in the current members of the cluster to the
-   * target cluster
-   *
-   * Required when using the 'MySQL' communication stack and when the recovery
-   * accounts need certificates.
-   */
-  void create_replication_users_at_instance(
-      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance);
 
   void update_group_peers(const mysqlshdk::mysql::IInstance &target_instance,
                           const Group_replication_options &gr_options,
@@ -746,7 +591,6 @@ class Cluster_impl final : public Base_cluster_impl,
   void init();
 
  private:
-  std::string get_replication_user_host() const;
   void verify_topology_type_change() const;
 
   std::weak_ptr<Cluster_set_impl> m_cluster_set;
@@ -769,6 +613,8 @@ class Cluster_impl final : public Base_cluster_impl,
   mutable Cluster_set_member_metadata m_cs_md;
   // cluster was removed from clusterset but local MD is not caught up
   bool m_cs_md_remove_pending = false;
+
+  mutable Replication_account m_repl_account_mng;
 };
 
 }  // namespace dba

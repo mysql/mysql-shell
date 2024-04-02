@@ -32,6 +32,7 @@
 #include "adminapi/cluster/cluster_impl.h"
 #include "adminapi/common/cluster_types.h"
 #include "adminapi/common/dba_errors.h"
+#include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/instance_validations.h"
@@ -39,6 +40,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
@@ -488,107 +490,6 @@ void Create_cluster::prepare_metadata_schema() {
   mysqlsh::dba::prepare_metadata_schema(m_target_instance, false);
 }
 
-void Create_cluster::create_recovery_account(
-    mysqlshdk::mysql::IInstance *primary, mysqlshdk::mysql::IInstance *target,
-    Cluster_impl *cluster, std::string *out_username) {
-  // Setup recovery account for this seed instance, which will be used
-  // when/if it needs to rejoin.
-  std::string repl_account_host;
-  mysqlshdk::mysql::Auth_options repl_account;
-
-  if (cluster) {
-    std::tie(repl_account, repl_account_host) =
-        cluster->create_replication_user(
-            target, m_options.member_auth_options.cert_subject,
-            Replication_account_type::GROUP_REPLICATION);
-  } else {
-    repl_account_host = m_options.replication_allowed_host.empty()
-                            ? "%"
-                            : m_options.replication_allowed_host;
-
-    repl_account.user = Cluster_impl::make_replication_user_name(
-        m_target_instance->get_server_id(),
-        mysqlshdk::gr::k_group_recovery_user_prefix);
-
-    log_info("Creating recovery account '%s'@'%s' for instance '%s'",
-             repl_account.user.c_str(), repl_account_host.c_str(),
-             m_target_instance->descr().c_str());
-
-    auto target_version = m_target_instance->get_version();
-
-    std::vector<std::string> hosts;
-    hosts.push_back(repl_account_host);
-
-    mysqlshdk::gr::Create_recovery_user_options user_options;
-    user_options.clone_supported = supports_mysql_clone(target_version);
-    user_options.auto_failover = false;
-    user_options.mysql_comm_stack_supported =
-        supports_mysql_communication_stack(target_version);
-
-    switch (m_options.member_auth_options.member_auth_type) {
-      case Replication_auth_type::PASSWORD:
-      case Replication_auth_type::CERT_ISSUER_PASSWORD:
-      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-        user_options.requires_password = true;
-        break;
-      default:
-        user_options.requires_password = false;
-        break;
-    }
-
-    switch (m_options.member_auth_options.member_auth_type) {
-      case Replication_auth_type::CERT_SUBJECT:
-      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-        user_options.cert_subject = m_options.member_auth_options.cert_subject;
-        [[fallthrough]];
-      case Replication_auth_type::CERT_ISSUER:
-      case Replication_auth_type::CERT_ISSUER_PASSWORD:
-        user_options.cert_issuer = m_options.member_auth_options.cert_issuer;
-        break;
-      default:
-        break;
-    }
-
-    if (m_target_instance->user_exists(repl_account.user, repl_account_host)) {
-      auto pwd_section =
-          user_options.requires_password ? " with a new password" : "";
-      mysqlsh::current_console()->print_note(shcore::str_format(
-          "User '%s'@'%s' already existed at instance '%s'. It will be "
-          "deleted and created again%s.",
-          repl_account.user.c_str(), repl_account_host.c_str(),
-          m_target_instance->descr().c_str(), pwd_section));
-
-      primary->drop_user(repl_account.user, repl_account_host);
-    }
-
-    repl_account = mysqlshdk::gr::create_recovery_user(
-        repl_account.user, *primary, hosts, user_options);
-  }
-
-  if (out_username) {
-    *out_username = repl_account.user;
-  }
-
-  // Configure GR's recovery channel with the newly created account
-  log_debug("Changing GR recovery user details for '%s'",
-            target->descr().c_str());
-
-  try {
-    mysqlshdk::mysql::Replication_credentials_options options;
-    options.password = repl_account.password.value_or("");
-
-    mysqlshdk::mysql::change_replication_credentials(
-        *target, mysqlshdk::gr::k_gr_recovery_channel, repl_account.user,
-        options);
-  } catch (const std::exception &e) {
-    current_console()->print_warning(
-        shcore::str_format("Error updating recovery credentials for %s: %s",
-                           target->descr().c_str(), e.what()));
-
-    cluster->drop_replication_user(target);
-  }
-}
-
 void Create_cluster::store_recovery_account_metadata(
     mysqlshdk::mysql::IInstance *target, const Cluster_impl &cluster) {
   std::string repl_account_host = "%";
@@ -628,10 +529,9 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
         old_users.insert(mysqlshdk::mysql::get_replication_user(
             *target, mysqlshdk::gr::k_gr_recovery_channel));
 
-        std::string new_user;
+        auto new_user = Replication_account{*cluster}.create_recovery_account(
+            *target, m_options.member_auth_options.cert_subject);
 
-        create_recovery_account(m_target_instance.get(), target.get(), cluster,
-                                &new_user);
         store_recovery_account_metadata(target.get(), *cluster);
 
         new_users.insert(new_user);
@@ -648,7 +548,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
 
   for (const auto &old_user : unused_users) {
     if (shcore::str_beginswith(
-            old_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
+            old_user, Replication_account::k_group_recovery_old_user_prefix)) {
       log_info("Removing old replication user '%s'", old_user.c_str());
       try {
         mysqlshdk::mysql::drop_all_accounts_for_user(
@@ -804,16 +704,17 @@ shcore::Value Create_cluster::execute() {
         std::string repl_account;
 
         if (m_create_replica_cluster) {
-          mysqlshdk::mysql::Suppress_binary_log nobinlog(
-              m_target_instance.get());
+          mysqlshdk::mysql::Suppress_binary_log nobinlog(*m_target_instance);
 
-          create_recovery_account(m_target_instance.get(),
-                                  m_target_instance.get(), nullptr,
-                                  &repl_account);
+          repl_account = Replication_account::create_recovery_account(
+              *m_target_instance, *m_target_instance,
+              m_options.member_auth_options,
+              m_options.replication_allowed_host);
         } else {
-          create_recovery_account(m_primary_master.get(),
-                                  m_target_instance.get(), nullptr,
-                                  &repl_account);
+          repl_account = Replication_account::create_recovery_account(
+              *m_primary_master, *m_target_instance,
+              m_options.member_auth_options,
+              m_options.replication_allowed_host);
         }
 
         // Drop the recovery account if GR fails to start
@@ -1029,10 +930,9 @@ shcore::Value Create_cluster::execute() {
           !m_options.gr_options.communication_stack.has_value() ||
           (m_options.gr_options.communication_stack.value() ==
            kCommunicationStackXCom)) {
-        std::string repl_account;
-        create_recovery_account(m_target_instance.get(),
-                                m_target_instance.get(), cluster_impl.get(),
-                                &repl_account);
+        auto repl_account =
+            Replication_account{*cluster_impl}.create_recovery_account(
+                *m_target_instance, m_options.member_auth_options.cert_subject);
 
         // Drop the recovery account if GR fails to start
         undo_list.push_front([=, this]() {

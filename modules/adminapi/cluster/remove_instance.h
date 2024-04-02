@@ -26,8 +26,11 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_REMOVE_INSTANCE_H_
 #define MODULES_ADMINAPI_CLUSTER_REMOVE_INSTANCE_H_
 
+#include <memory>
+#include <string>
+
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "mysql/instance.h"
+#include "modules/adminapi/common/replication_account.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -35,24 +38,25 @@ class Remove_instance {
  public:
   Remove_instance() = delete;
 
-  Remove_instance(Cluster_impl *cluster, const Connection_options &instance_def,
-                  const cluster::Remove_instance_options &options)
+  Remove_instance(Cluster_impl *cluster, Connection_options instance_def,
+                  cluster::Remove_instance_options options)
       : m_cluster_impl(cluster),
-        m_target_cnx_opts(instance_def),
-        m_options(options) {
+        m_target_cnx_opts(std::move(instance_def)),
+        m_options(std::move(options)),
+        m_repl_account_mng{*m_cluster_impl} {
     assert(m_cluster_impl);
 
     m_target_address =
         m_target_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
   };
 
-  Remove_instance(
-      Cluster_impl *cluster,
-      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const cluster::Remove_instance_options &options)
+  Remove_instance(Cluster_impl *cluster,
+                  std::shared_ptr<mysqlsh::dba::Instance> target_instance,
+                  cluster::Remove_instance_options options)
       : m_cluster_impl(cluster),
-        m_target_instance(target_instance),
-        m_options(options) {
+        m_target_instance(std::move(target_instance)),
+        m_options(std::move(options)),
+        m_repl_account_mng{*m_cluster_impl} {
     assert(m_cluster_impl);
 
     m_target_address = m_target_instance->get_connection_options().as_uri(
@@ -119,17 +123,11 @@ class Remove_instance {
 
   void check_protocol_upgrade_possible() const;
 
-  /**
-   * Look for a leftover recovery account (not used by any member)
-   * to remove it from the cluster
-   */
-  void cleanup_leftover_recovery_account() const;
-
   void update_read_replicas_source_for_removed_target(
       const std::string &address) const;
 
  private:
-  Cluster_impl *m_cluster_impl = nullptr;
+  Cluster_impl *const m_cluster_impl = nullptr;
   std::string m_target_address;
   std::string m_instance_uuid;
   std::string m_address_in_metadata;
@@ -138,6 +136,7 @@ class Remove_instance {
   cluster::Remove_instance_options m_options;
   uint32_t m_instance_id = 0;
   bool m_skip_sync = false;
+  Replication_account m_repl_account_mng;
 };
 
 }  // namespace mysqlsh::dba::cluster

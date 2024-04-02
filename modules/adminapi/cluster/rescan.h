@@ -32,7 +32,7 @@
 
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/api_options.h"
-#include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 
@@ -42,7 +42,7 @@ namespace cluster {
 
 class Rescan : public Command_interface {
  public:
-  Rescan(const Rescan_options &options, Cluster_impl *cluster);
+  Rescan(Rescan_options options, Cluster_impl *cluster);
 
   /**
    * Prepare the rescan command for execution.
@@ -86,8 +86,9 @@ class Rescan : public Command_interface {
 
  private:
   Rescan_options m_options;
-  Cluster_impl *m_cluster = nullptr;
+  Cluster_impl *const m_cluster = nullptr;
   bool m_is_view_change_uuid_supported = false;
+  Replication_account m_repl_account_mng;
 
   /**
    * Validate existence of duplicates for the addInstances and removeInstances

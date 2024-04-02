@@ -37,7 +37,9 @@
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/server_features.h"
+#include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "shellcore/console.h"
 
@@ -150,35 +152,6 @@ std::shared_ptr<Cluster_impl> Create_replica_cluster::create_cluster_object(
           *m_cluster_set->get_primary_cluster()->get_cluster_server())));
 
   return cluster;
-}
-
-void Create_replica_cluster::recreate_recovery_account(
-    const std::shared_ptr<Cluster_impl> cluster,
-    const std::string &auth_cert_subject, std::string *recovery_user,
-    std::string *recovery_host) {
-  std::string rec_user, host;
-
-  // Get the recovery account
-  std::vector<std::string> recovery_user_hosts;
-  std::tie(rec_user, recovery_user_hosts, std::ignore) =
-      cluster->get_replication_user(*m_target_instance);
-
-  // Recovery account is coming from the Metadata
-  host = recovery_user_hosts.front();
-
-  // Ensure the replication user is deleted if exists before creating it
-  // again
-  m_primary_instance->drop_user(rec_user, host);
-
-  log_debug("Re-creating temporary recovery user '%s'@'%s' at instance '%s'.",
-            rec_user.c_str(), host.c_str(),
-            m_primary_instance->descr().c_str());
-
-  std::tie(rec_user, host) =
-      cluster->recreate_replication_user(m_target_instance, auth_cert_subject);
-
-  if (recovery_user) *recovery_user = rec_user;
-  if (recovery_host) *recovery_host = host;
 }
 
 void Create_replica_cluster::prepare() {
@@ -400,10 +373,13 @@ shcore::Value Create_replica_cluster::execute() {
         auto auth_cert_issuer =
             primary_cluster->query_cluster_auth_cert_issuer();
 
-        std::tie(ar_options.repl_credentials, repl_account_host) =
-            m_cluster_set->create_cluster_replication_user(
-                m_target_instance.get(), "", auth_type, auth_cert_issuer,
+        auto auth_host =
+            Replication_account{*m_cluster_set}.create_cluster_replication_user(
+                *m_target_instance, "", auth_type, auth_cert_issuer,
                 m_options.cert_subject, m_options.dry_run);
+
+        ar_options.repl_credentials = std::move(auth_host.auth);
+        repl_account_host = std::move(auth_host.host);
       }
 
       if (!m_options.dry_run) {
@@ -583,16 +559,16 @@ shcore::Value Create_replica_cluster::execute() {
     if (!m_options.dry_run &&
         get_communication_stack(*cluster->get_cluster_server()) ==
             kCommunicationStackMySQL) {
-      std::string repl_account_user;
+      auto user_host = Replication_account{*cluster}.recreate_recovery_account(
+          *m_primary_instance, *m_target_instance, m_options.cert_subject);
 
-      recreate_recovery_account(cluster, m_options.cert_subject,
-                                &repl_account_user, &repl_account_host);
+      repl_account_host = user_host.host;
 
-      undo_list.push_front([=, this]() {
+      undo_list.push_front([user_host = std::move(user_host), this]() {
         log_info("Revert: Dropping replication user '%s'",
-                 repl_account_user.c_str());
-        m_cluster_set->get_primary_master()->drop_user(repl_account_user,
-                                                       repl_account_host, true);
+                 user_host.user.c_str());
+        m_cluster_set->get_primary_master()->drop_user(user_host.user,
+                                                       user_host.host, true);
       });
     }
 

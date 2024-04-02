@@ -364,12 +364,12 @@ enum class ConfigureInstanceAction {
   UNDEFINED
 };
 
-// Recovery progress style:
-// - 0 no wait and no progress
-// - 1 wait without progress info
-// - 2 wait with textual info only
-// - 3 wait with progressbar
-enum class Recovery_progress_style { NOWAIT, NOINFO, TEXTUAL, PROGRESSBAR };
+enum class Recovery_progress_style {
+  NONE,         // no information whatsoever is show
+  MINIMAL,      // only a single message is shown
+  TEXTUAL,      // provide info about the progress in a textual way
+  PROGRESS_BAR  // provide info about the progress using a progress bar
+};
 
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors);

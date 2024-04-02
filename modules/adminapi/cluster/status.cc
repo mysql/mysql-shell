@@ -43,10 +43,8 @@
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -1318,9 +1316,10 @@ shcore::Array_t validate_instance_recovery_user(
   if (!recovery_user.empty()) {
     bool recovery_is_valid =
         shcore::str_beginswith(
-            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
-        shcore::str_beginswith(recovery_user,
-                               mysqlshdk::gr::k_group_recovery_user_prefix);
+            recovery_user,
+            Replication_account::k_group_recovery_old_user_prefix) ||
+        shcore::str_beginswith(
+            recovery_user, Replication_account::k_group_recovery_user_prefix);
 
     if (it->second.empty() && recovery_is_valid) {
       issues->push_back(
@@ -1495,7 +1494,7 @@ shcore::Dictionary_t Status::get_topology(
   }
 
   auto mismatched_recovery_accounts =
-      m_cluster->get_mismatched_recovery_accounts();
+      Replication_account{*m_cluster}.get_mismatched_recovery_accounts();
 
   // Flag to mark the primary instance was already feeded with rogue
   // read-replicas info. Used to avoid all members being fed with the same
@@ -1918,16 +1917,15 @@ shcore::Array_t Status::validate_recovery_accounts_unused(
         &mismatched_recovery_accounts) const {
   auto issues = shcore::make_array();
 
-  auto accounts =
-      m_cluster->get_unused_recovery_accounts(mismatched_recovery_accounts);
+  auto accounts = Replication_account{*m_cluster}.get_unused_recovery_accounts(
+      mismatched_recovery_accounts);
   if (accounts.empty()) return issues;
 
   std::string msg{accounts.size() == 1
                       ? "WARNING: Detected an unused recovery account: "
                       : "WARNING: Detected unused recovery accounts: "};
 
-  for (const auto &account : accounts)
-    msg.append(std::get<0>(account)).append(", ");
+  for (const auto &account : accounts) msg.append(account.user).append(", ");
   msg.erase(msg.size() - 2);  // remove last ", "
 
   msg.append(". Use Cluster.rescan() to clean up.");

@@ -1726,7 +1726,7 @@ TEST_F(Admin_api_common_test, set_recovery_progress) {
 
   options.set_recovery_progress(0);
   EXPECT_EQ(options.get_recovery_progress(),
-            mysqlsh::dba::Recovery_progress_style::NOINFO);
+            mysqlsh::dba::Recovery_progress_style::MINIMAL);
 
   options.set_recovery_progress(1);
   EXPECT_EQ(options.get_recovery_progress(),
@@ -1734,7 +1734,7 @@ TEST_F(Admin_api_common_test, set_recovery_progress) {
 
   options.set_recovery_progress(2);
   EXPECT_EQ(options.get_recovery_progress(),
-            mysqlsh::dba::Recovery_progress_style::PROGRESSBAR);
+            mysqlsh::dba::Recovery_progress_style::PROGRESS_BAR);
 }
 
 TEST_F(Admin_api_common_test, ip_allowlist) {

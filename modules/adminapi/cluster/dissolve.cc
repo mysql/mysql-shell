@@ -31,6 +31,7 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -381,7 +382,7 @@ shcore::Value Dissolve::execute() {
   // replication accounts
   // Note: This operation MUST be performed before leave-cluster to ensure
   // that all changed are propagated to the online instances.
-  m_cluster->wipe_all_replication_users();
+  Replication_account{*m_cluster}.drop_all_replication_users();
 
   // Drop the metadata schema
   metadata::uninstall(m_cluster->get_cluster_server());

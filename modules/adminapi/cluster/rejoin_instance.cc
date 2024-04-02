@@ -27,7 +27,6 @@
 
 #include <stdexcept>
 
-#include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/provision.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -226,7 +225,7 @@ void Rejoin_instance::do_run() {
     }
 
     if (restore_rec_accounts) {
-      m_cluster_impl->restore_recovery_account_all_members();
+      m_repl_account_mng.restore_recovery_account_all_members();
     }
 
     // Check if group_replication_clone_threshold must be restored.
@@ -289,6 +288,27 @@ void Rejoin_instance::do_run() {
         break;
     }
 
+    // Re-create the account in the cluster
+    console->print_info("Re-creating recovery account...");
+    owns_repl_user = std::invoke([this](void) {
+      // Creates the replication user ONLY if not already given.
+      // NOTE: User always created at the seed instance.
+      if (m_gr_opts.recovery_credentials &&
+          !m_gr_opts.recovery_credentials->user.empty()) {
+        return false;
+      }
+
+      auto auth_host = m_repl_account_mng.create_replication_user(
+          *m_target_instance, m_auth_cert_subject,
+          Replication_account::Account_type::GROUP_REPLICATION, false, {}, true,
+          m_options.dry_run);
+
+      m_gr_opts.recovery_credentials = std::move(auth_host.auth);
+      m_account_host = std::move(auth_host.host);
+
+      return true;
+    });
+
     // If using 'MySQL' communication stack, the account must already
     // exist in the rejoining member since authentication is based on MySQL
     // credentials so the account must exist in both ends before GR
@@ -298,35 +318,17 @@ void Rejoin_instance::do_run() {
     // For that reason, we simply re-create the account to ensure it will rejoin
     // the cluster.
     if (m_comm_stack == kCommunicationStackMySQL) {
-      console->print_info("Re-creating recovery account...");
-      // Re-create the account in the cluster
-      owns_repl_user = std::invoke([this](void) {
-        // Creates the replication user ONLY if not already given.
-        // NOTE: User always created at the seed instance.
-        if (m_gr_opts.recovery_credentials &&
-            !m_gr_opts.recovery_credentials->user.empty()) {
-          return false;
-        }
-
-        std::tie(m_gr_opts.recovery_credentials, m_account_host) =
-            m_cluster_impl->create_replication_user(
-                m_target_instance.get(), m_auth_cert_subject,
-                Replication_account_type::GROUP_REPLICATION, false, {}, true,
-                m_options.dry_run);
-
-        return true;
-      });
-
       // Re-create the account in the instance but with binlog disabled before
       // starting GR, otherwise we'd create errant transaction.
-      m_cluster_impl->create_local_replication_user(
-          m_target_instance, m_auth_cert_subject, m_gr_opts,
+      m_repl_account_mng.create_local_replication_user(
+          *m_target_instance, m_auth_cert_subject, m_gr_opts,
           !recovery_certificates, m_options.dry_run);
 
       // if recovery accounts need certificates, we must ensure that the
       // recovery accounts of all members also exist on the target instance
       if (recovery_certificates) {
-        m_cluster_impl->create_replication_users_at_instance(m_target_instance);
+        m_repl_account_mng.create_replication_users_at_instance(
+            *m_target_instance);
       }
 
       // Set the allowlist to 'AUTOMATIC' to ensure no older values are used
@@ -369,7 +371,7 @@ void Rejoin_instance::do_run() {
       // the replication channel won't match since they were already reset in
       // the Cluster. So we must wait for recovery to start before restoring
       // the recovery accounts.
-      m_cluster_impl->restore_recovery_account_all_members();
+      m_repl_account_mng.restore_recovery_account_all_members();
     }
 
     // Update group_seeds in other members

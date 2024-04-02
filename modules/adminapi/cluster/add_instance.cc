@@ -158,51 +158,6 @@ void Add_instance::refresh_target_connections() const {
   m_cluster_impl->refresh_connections();
 }
 
-void Add_instance::store_local_replication_account() const {
-  // Insert the recovery account created for the joining member in all
-  // cluster instances and also itself
-  //
-  // This is required when using clone with waitRecovery zero and the commStack
-  // in use by the Cluster is MySQL.
-  // The reason is that with this commStack when an instance joins the Cluster
-  // the recovery account created for it is set to be used by the replication
-  // channel in all Cluster members and itself. Only when the whole joining
-  // process finishes the command can reconfigure the recovery account in every
-  // single active member of the cluster to use its own GR recovery replication
-  // credentials and not the one that was created for the joining instance.
-  // However, when waitRecovery is zero this cannot be done. To avoid
-  // removeInstance() dropping an account still in use, we must insert it in the
-  // MD schema for every cluster member (similar to what's done in
-  // store_cloned_replication_account()).
-  log_debug("Adding joining member recovery account to metadata");
-  m_cluster_impl->execute_in_members(
-      [this](const std::shared_ptr<Instance> &instance,
-             const Cluster_impl::Instance_md_and_gr_member &info) {
-        if (info.second.state == mysqlshdk::gr::Member_state::ONLINE) {
-          try {
-            m_cluster_impl->get_metadata_storage()
-                ->update_instance_repl_account(
-                    instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-                    Replica_type::GROUP_MEMBER,
-                    m_gr_opts.recovery_credentials->user, m_account_host);
-          } catch (const std::exception &) {
-            log_info(
-                "Failed updating Metadata of '%s' to include the recovery "
-                "account of the joining member",
-                instance->descr().c_str());
-          }
-        }
-        return true;
-      },
-      [](const shcore::Error &,
-         const Cluster_impl::Instance_md_and_gr_member &) { return true; });
-
-  m_cluster_impl->get_metadata_storage()->update_instance_repl_account(
-      m_target_instance->get_uuid(), Cluster_type::GROUP_REPLICATION,
-      Replica_type::GROUP_MEMBER, m_gr_opts.recovery_credentials->user,
-      m_account_host);
-}
-
 void Add_instance::store_cloned_replication_account() const {
   /*
     Since clone copies all the data, including mysql.slave_master_info (where
@@ -556,10 +511,12 @@ void Add_instance::do_run() {
       return false;
     }
 
-    std::tie(m_gr_opts.recovery_credentials, m_account_host) =
-        m_cluster_impl->create_replication_user(
-            m_target_instance.get(), m_auth_cert_subject,
-            Replication_account_type::GROUP_REPLICATION);
+    auto auth_host = m_repl_account_mng.create_replication_user(
+        *m_target_instance, m_auth_cert_subject,
+        Replication_account::Account_type::GROUP_REPLICATION);
+
+    m_gr_opts.recovery_credentials = std::move(auth_host.auth);
+    m_account_host = std::move(auth_host.host);
 
     return true;
   });
@@ -588,7 +545,7 @@ void Add_instance::do_run() {
     }
 
     if (restore_rec_accounts) {
-      m_cluster_impl->restore_recovery_account_all_members();
+      m_repl_account_mng.restore_recovery_account_all_members();
     }
 
     // Check if group_replication_clone_threshold must be restored.
@@ -680,15 +637,15 @@ void Add_instance::do_run() {
           // simply fail, because in any given donor other than the new
           // instance, using the recovery user of the new instance will fail
           // (because the certificate only exists on the new instance server).
-          m_cluster_impl->create_local_replication_user(
-              m_target_instance, m_options.cert_subject, m_gr_opts,
+          m_repl_account_mng.create_local_replication_user(
+              *m_target_instance, m_options.cert_subject, m_gr_opts,
               !recovery_certificates);
 
           // if recovery accounts need certificates, we must ensure that the
           // recovery accounts of all members also exist on the target instance
           if (recovery_certificates) {
-            m_cluster_impl->create_replication_users_at_instance(
-                m_target_instance);
+            m_repl_account_mng.create_replication_users_at_instance(
+                *m_target_instance);
           }
 
           // At this point, all Cluster members got the recovery credentials
@@ -713,8 +670,8 @@ void Add_instance::do_run() {
           // credentials on them to use the new user (so that the clone leaves
           // the new instance configured properly) and then revert everything
           // back
-          m_cluster_impl->create_local_replication_user(
-              m_target_instance, m_options.cert_subject, m_gr_opts, true);
+          m_repl_account_mng.create_local_replication_user(
+              *m_target_instance, m_options.cert_subject, m_gr_opts, true);
 
           restore_recovery_accounts = true;
         }
@@ -782,13 +739,7 @@ void Add_instance::do_run() {
 
       // Store the username in the Metadata instances table
       if (owns_repl_user) {
-        if (m_comm_stack == kCommunicationStackMySQL &&
-            m_options.get_recovery_progress() ==
-                Recovery_progress_style::NOWAIT) {
-          store_local_replication_account();
-        } else {
-          store_cloned_replication_account();
-        }
+        store_cloned_replication_account();
       }
     }
 
@@ -799,11 +750,7 @@ void Add_instance::do_run() {
 
     // Re-issue the CHANGE MASTER command
     // See note in store_cloned_replication_account()
-    // NOTE: if waitRecover is zero we cannot do it since distributed recovery
-    // may be running and the change master command will fail as the slave io
-    // thread is running
-    if (owns_repl_user &&
-        m_options.get_recovery_progress() != Recovery_progress_style::NOWAIT) {
+    if (owns_repl_user) {
       restore_group_replication_account();
     }
 
@@ -840,26 +787,18 @@ void Add_instance::do_run() {
     // 5) server1 goes offline and restarts
     //  recovery kicks-in, using mysql_innodb_cluster_1 -> OK
     //
-    // NOTE: if waitRecovery is zero we cannot do it because
-    // restore_recovery_account_all_members() will happen before clone has
-    // finished so the credentials for the replication channel (that are
-    // cloned to the instance joining) won't match since they were already
-    // reset in the Cluster by restore_recovery_account_all_members().
-    //
     // Another scenario to take into account (also detailed above), where in
     // case of XCOM comm stack, the recovery users needing certificates and
     // using clone, all members are currently using the new recovery user, which
     // means that we need to restore them all back to their corresponding users.
     {
-      auto restore_accounts = (m_comm_stack == kCommunicationStackMySQL) &&
-                              !recovery_certificates &&
-                              (m_options.get_recovery_progress() !=
-                               Recovery_progress_style::NOWAIT);
+      auto restore_accounts =
+          (m_comm_stack == kCommunicationStackMySQL) && !recovery_certificates;
       restore_accounts |= (m_comm_stack != kCommunicationStackMySQL) &&
                           recovery_certificates &&
                           (restore_clone_threshold > 0);
       if (restore_accounts)
-        m_cluster_impl->restore_recovery_account_all_members(
+        m_repl_account_mng.restore_recovery_account_all_members(
             recovery_needs_password);
     }
 

@@ -26,6 +26,7 @@
 #include "modules/adminapi/cluster/reset_recovery_accounts_password.h"
 
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -33,11 +34,6 @@
 namespace mysqlsh {
 namespace dba {
 namespace cluster {
-
-Reset_recovery_accounts_password::Reset_recovery_accounts_password(
-    const bool interactive, std::optional<bool> force,
-    const Cluster_impl &cluster)
-    : m_interactive(interactive), m_force(force), m_cluster(cluster) {}
 
 bool Reset_recovery_accounts_password::prompt_to_force_reset() const {
   auto console = mysqlsh::current_console();
@@ -206,14 +202,13 @@ shcore::Value Reset_recovery_accounts_password::execute() {
   std::string primary_rpr = m_cluster.get_cluster_server()->descr();
 
   for (const auto &instance_online : m_online_instances) {
-    std::string user;
-    std::vector<std::string> hosts;
+    Replication_account::User_hosts user_hosts;
 
     std::string instance_repr = instance_online.instance->descr();
     // get recovery user for the instance
     log_debug("Getting recovery user for instance '%s'", instance_repr.c_str());
     try {
-      std::tie(user, hosts, std::ignore) = m_cluster.get_replication_user(
+      user_hosts = Replication_account{m_cluster}.get_replication_user(
           *instance_online.instance, instance_online.is_read_replica);
     } catch (const shcore::Exception &err) {
       if (!err.is_metadata()) {
@@ -231,11 +226,11 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     std::string password = mysqlshdk::mysql::generate_password();
     // Change the password on the primary for the user to the newly generated
     // password
-    for (const auto &host : hosts) {
+    for (const auto &host : user_hosts.hosts) {
       log_info("Changing the password for recovery user '%s'@'%s' on '%s'",
-               user.c_str(), host.c_str(), primary_rpr.c_str());
+               user_hosts.user.c_str(), host.c_str(), primary_rpr.c_str());
       m_cluster.get_metadata_storage()->get_md_server()->set_user_password(
-          user, host, password);
+          user_hosts.user, host, password);
     }
 
     // do a change master on the instance to user the new replication account
@@ -246,8 +241,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
 
     if (!instance_online.is_read_replica) {
       mysqlshdk::mysql::change_replication_credentials(
-          *instance_online.instance, mysqlshdk::gr::k_gr_recovery_channel, user,
-          options);
+          *instance_online.instance, mysqlshdk::gr::k_gr_recovery_channel,
+          user_hosts.user, options);
     } else {
       mysqlshdk::mysql::stop_replication_receiver(
           *instance_online.instance,
@@ -263,7 +258,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
 
       mysqlshdk::mysql::change_replication_credentials(
           *instance_online.instance,
-          mysqlsh::dba::k_read_replica_async_channel_name, user, options);
+          mysqlsh::dba::k_read_replica_async_channel_name, user_hosts.user,
+          options);
     }
   }
 
