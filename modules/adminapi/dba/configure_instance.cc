@@ -399,7 +399,7 @@ void create_cluster_admin_user(mysqlshdk::mysql::IInstance *instance,
   // privileges to create a cluster admin, one of the SQL statements below
   // will throw.
 
-  mysqlshdk::mysql::Suppress_binary_log nobinlog(instance);
+  mysqlshdk::mysql::Suppress_binary_log nobinlog(*instance);
   log_info("Creating account %s", username.c_str());
 
   Setup_account op_setup(user, host, account_options,

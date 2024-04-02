@@ -548,7 +548,8 @@ shcore::Value Set_option::execute() {
   }
 
   if (m_option == kReplicationAllowedHost) {
-    m_cluster->update_replication_allowed_host(std::get<std::string>(m_value));
+    Replication_account{*m_cluster}.update_replication_allowed_host(
+        std::get<std::string>(m_value));
 
     m_cluster->get_metadata_storage()->update_cluster_attribute(
         m_cluster->get_id(), k_cluster_attribute_replication_allowed_host,

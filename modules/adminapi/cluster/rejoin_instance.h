@@ -66,7 +66,7 @@ class Rejoin_instance : private Add_instance {
   bool check_rejoinable();
 
  private:
-  Rejoin_instance_options m_options;
+  const Rejoin_instance_options m_options;
   bool m_is_switching_comm_stack = false;
   bool m_uuid_mismatch = false;
   bool m_ignore_cluster_set = false;

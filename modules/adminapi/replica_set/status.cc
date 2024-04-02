@@ -30,14 +30,11 @@
 #include <vector>
 
 #include "modules/adminapi/common/async_topology.h"
-#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common_status.h"
-#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
-#include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -520,8 +517,9 @@ shcore::Value Status::do_run(int extended) {
         }
 
         auto intended_account_user =
-            Base_cluster_impl::make_replication_user_name(
-                i->server_id.value_or(0), k_async_cluster_user_name);
+            Replication_account::make_replication_user_name(
+                i->server_id.value_or(0),
+                Replication_account::k_async_recovery_user_prefix);
 
         if (intended_account_user != i->master_channel->master_info.user_name)
           get_instance_errors(*topo_status, i->endpoint)

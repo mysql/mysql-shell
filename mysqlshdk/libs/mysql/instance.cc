@@ -575,7 +575,7 @@ void Instance::create_user(std::string_view user, std::string_view host,
  * @param user string with the username part for the user account to drop.
  * @param host string with the host part of the user account to drop.
  */
-void Instance::drop_user(const std::string &user, const std::string &host,
+void Instance::drop_user(std::string_view user, std::string_view host,
                          bool if_exists) const {
   auto stmt = (if_exists ? "DROP USER IF EXISTS ?@?"_sql : "DROP USER ?@?"_sql);
   (stmt << user << host).done();
@@ -652,15 +652,10 @@ void Instance::get_current_user(std::string *current_user,
  * @return a boolean value which is true if the account exists or false
  * otherwise
  */
-bool Instance::user_exists(const std::string &username,
-                           const std::string &hostname) const {
-  std::string host = hostname;
-  // Host '%' is used by default if not provided in the user account.
-  if (host.empty()) host = "%";
-
-  // Query to check if the user exists
+bool Instance::user_exists(std::string_view username,
+                           std::string_view hostname) const {
   try {
-    queryf("SHOW GRANTS FOR ?@?", username, host);
+    queryf("SHOW GRANTS FOR ?@?", username, hostname.empty() ? "%" : hostname);
   } catch (const mysqlshdk::db::Error &err) {
     log_debug("=> %s", err.what());
     // the current_account doesn't have enough privileges to execute the query
@@ -696,11 +691,12 @@ bool Instance::user_exists(const std::string &username,
  * @param hostname account hostname
  * @param password password we want to set for the account
  */
-void Instance::set_user_password(const std::string &username,
-                                 const std::string &hostname,
-                                 const std::string &password) const {
-  log_debug("Changing password for user %s@%s", username.c_str(),
-            hostname.c_str());
+void Instance::set_user_password(std::string_view username,
+                                 std::string_view hostname,
+                                 std::string_view password) const {
+  log_debug("Changing password for user '%.*s@%.*s'",
+            static_cast<int>(username.size()), username.data(),
+            static_cast<int>(hostname.size()), hostname.data());
   executef("ALTER USER /*(*/ ?@? /*)*/ IDENTIFIED BY /*((*/ ? /*))*/", username,
            hostname, password);
 }
@@ -754,7 +750,7 @@ std::vector<std::string> Instance::get_fence_sysvars() const {
   return result;
 }
 
-void Instance::suppress_binary_log(bool flag) {
+void Instance::suppress_binary_log(bool flag) const {
   if (flag) {
     if (m_sql_binlog_suppress_count == 0) execute("SET SESSION sql_log_bin=0");
     m_sql_binlog_suppress_count++;

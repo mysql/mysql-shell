@@ -288,8 +288,8 @@ void Rejoin_replica_instance::do_run() {
   m_undo_tracker.add("Dropping replication account", [=, this]() {
     log_info("Dropping replication account '%s'",
              ar_options.repl_credentials->user.c_str());
-    m_cluster_impl->drop_read_replica_replication_user(m_target_instance.get(),
-                                                       m_options.dry_run);
+    Replication_account{*m_cluster_impl}.drop_read_replica_replication_user(
+        *m_target_instance, m_options.dry_run);
   });
 
   if (*m_options.clone_options.recovery_method ==

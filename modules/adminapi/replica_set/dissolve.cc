@@ -26,6 +26,7 @@
 #include "modules/adminapi/replica_set/dissolve.h"
 
 #include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/replica_set/describe.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
@@ -251,7 +252,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
 
   // drop user and metadata
   {
-    m_rset.drop_all_replication_users();
+    Replication_account{m_rset}.drop_all_replication_users();
     metadata::uninstall(m_rset.get_cluster_server());
   }
 

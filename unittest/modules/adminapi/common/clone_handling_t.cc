@@ -57,7 +57,7 @@ class Admin_api_clone_test : public Shell_core_test_wrapper {
 // Test that the function does not segfault in that scenario (BUG#31545728)
 TEST_F(Admin_api_clone_test, update_transfer) {
   reset_shell();
-  Recovery_progress_style wait_recovery = Recovery_progress_style::PROGRESSBAR;
+  Recovery_progress_style wait_recovery = Recovery_progress_style::PROGRESS_BAR;
   Clone_progress clone_progress(wait_recovery);
 
   mysqlshdk::mysql::Clone_status status;

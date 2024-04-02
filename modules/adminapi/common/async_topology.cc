@@ -870,7 +870,7 @@ void drop_clone_recovery_user_nobinlog(
            account_host.c_str(), target_instance->descr().c_str());
 
   try {
-    mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+    mysqlshdk::mysql::Suppress_binary_log nobinlog(*target_instance);
     target_instance->drop_user(account.user, account_host, true);
   } catch (const shcore::Error &) {
     auto console = current_console();

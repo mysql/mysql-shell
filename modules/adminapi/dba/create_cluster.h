@@ -29,12 +29,9 @@
 #include <memory>
 #include <string>
 
-#include "modules/adminapi/common/clone_options.h"
-#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/dba/api_options.h"
 #include "modules/command_interface.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config.h"
 
 namespace mysqlsh {
@@ -143,10 +140,7 @@ class Create_cluster : public Command_interface {
   void validate_create_cluster_options();
   void resolve_ssl_mode();
   void prepare_metadata_schema();
-  void create_recovery_account(mysqlshdk::mysql::IInstance *primary,
-                               mysqlshdk::mysql::IInstance *target,
-                               Cluster_impl *cluster = nullptr,
-                               std::string *out_username = nullptr);
+
   void store_recovery_account_metadata(mysqlshdk::mysql::IInstance *target,
                                        const Cluster_impl &cluster);
   void reset_recovery_all(Cluster_impl *cluster);

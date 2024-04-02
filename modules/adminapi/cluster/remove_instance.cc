@@ -106,8 +106,8 @@ void Remove_instance::undo_remove_instance_metadata(
   }
 
   // Recreate the recovery account previously removed too
-  m_cluster_impl->recreate_replication_user(
-      m_target_instance, instance_def.cert_subject, m_options.dry_run);
+  m_repl_account_mng.recreate_replication_user(
+      *m_target_instance, instance_def.cert_subject, m_options.dry_run);
 }
 
 bool Remove_instance::prompt_to_force_remove() const {
@@ -189,46 +189,6 @@ void Remove_instance::check_protocol_upgrade_possible() const {
         "Unable to determine the Group Replication protocol version, while "
         "verifying if a protocol upgrade would be possible: " +
         error.format());
-  }
-}
-
-void Remove_instance::cleanup_leftover_recovery_account() const {
-  // Generate the recovery account username that was created for the instance
-  std::string user = Cluster_impl::make_replication_user_name(
-      m_instance_id, mysqlshdk::gr::k_group_recovery_user_prefix);
-
-  // Get the Cluster's allowedHost
-  std::string host = "%";
-
-  if (shcore::Value allowed_host;
-      m_cluster_impl->get_metadata_storage()->query_cluster_attribute(
-          m_cluster_impl->get_id(),
-          k_cluster_attribute_replication_allowed_host, &allowed_host) &&
-      allowed_host.get_type() == shcore::String &&
-      !allowed_host.as_string().empty()) {
-    host = allowed_host.as_string();
-  }
-
-  // The account must not be in use by any other member of the cluster
-  if (m_cluster_impl->get_metadata_storage()->count_recovery_account_uses(
-          user) == 0) {
-    log_info("Dropping recovery account '%s'@'%s' for instance '%s'",
-             user.c_str(), host.c_str(), m_target_address.c_str());
-
-    try {
-      m_cluster_impl->get_primary_master()->drop_user(user, host, true);
-    } catch (...) {
-      mysqlsh::current_console()->print_warning(shcore::str_format(
-          "Error dropping recovery account '%s'@'%s' for instance '%s': "
-          "%s",
-          user.c_str(), host.c_str(), m_target_address.c_str(),
-          format_active_exception().c_str()));
-    }
-  } else {
-    log_info(
-        "Recovery account '%s'@'%s' for instance '%s' still in use in "
-        "the Cluster: Skipping its removal",
-        user.c_str(), host.c_str(), m_target_address.c_str());
   }
 }
 
@@ -623,9 +583,9 @@ void Remove_instance::do_run() {
   // to ensure the that user removal is also propagated to the target
   // instance to remove (if ONLINE), but before metadata removal, since
   // we need account info stored there.
-  m_cluster_impl->drop_replication_user(m_target_instance.get(),
-                                        m_target_address, m_instance_uuid,
-                                        m_instance_id, m_options.dry_run);
+  m_repl_account_mng.drop_replication_user(m_target_instance.get(),
+                                           m_target_address, m_instance_uuid,
+                                           m_instance_id, m_options.dry_run);
 
   // JOB: Remove instance from the MD (metadata).
   // NOTE: This operation MUST be performed before leave-cluster to ensure
@@ -808,8 +768,7 @@ void Remove_instance::do_run() {
         m_cluster_impl->set_target_server(instance);
 
         break;
-      } catch (const shcore::Error &e) {
-        continue;
+      } catch (const shcore::Error &) {
       }
     }
   }

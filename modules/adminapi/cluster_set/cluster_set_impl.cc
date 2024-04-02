@@ -94,14 +94,16 @@ Cluster_set_impl::Cluster_set_impl(
     const std::shared_ptr<MetadataStorage> &metadata,
     Global_topology_type topology_type)
     : Base_cluster_impl(domain_name, target_instance, metadata),
-      m_topology_type(topology_type) {}
+      m_topology_type(topology_type),
+      m_repl_account_mng{*this} {}
 
 Cluster_set_impl::Cluster_set_impl(
     const Cluster_set_metadata &csmd,
     const std::shared_ptr<Instance> &target_instance,
     const std::shared_ptr<MetadataStorage> &metadata)
     : Base_cluster_impl(csmd.domain_name, target_instance, metadata),
-      m_topology_type(Global_topology_type::SINGLE_PRIMARY_TREE) {
+      m_topology_type(Global_topology_type::SINGLE_PRIMARY_TREE),
+      m_repl_account_mng{*this} {
   m_id = csmd.id;
 }
 
@@ -129,196 +131,11 @@ shcore::Value Cluster_set_impl::create_cluster_set(
   return op_create_cluster_set.execute();
 }
 
-std::pair<std::string, std::string> Cluster_set_impl::get_cluster_repl_account(
-    Cluster_impl *cluster) const {
-  return get_metadata_storage()->get_cluster_repl_account(cluster->get_id());
-}
-
-std::pair<mysqlshdk::mysql::Auth_options, std::string>
-Cluster_set_impl::create_cluster_replication_user(
-    Instance *cluster_primary, const std::string &account_host,
-    Replication_auth_type member_auth_type, const std::string &auth_cert_issuer,
-    const std::string &auth_cert_subject, bool dry_run) {
-  // we use server_id as an arbitrary unique number within the clusterset. Once
-  // the user is created, no relationship between the server_id and the number
-  // should be assumed. The only way to obtain the replication user name for a
-  // cluster is through the metadata.
-  auto repl_user = make_replication_user_name(
-      cluster_primary->get_server_id(), k_cluster_set_async_user_name, true);
-  std::string repl_host = "%";
-
-  if (account_host.empty()) {
-    shcore::Value allowed_host;
-    if (get_metadata_storage()->query_cluster_set_attribute(
-            get_id(), k_cluster_attribute_replication_allowed_host,
-            &allowed_host) &&
-        allowed_host.get_type() == shcore::String &&
-        !allowed_host.as_string().empty()) {
-      repl_host = allowed_host.as_string();
-    }
-  } else {
-    repl_host = account_host;
-  }
-
-  log_info("Creating async replication account '%s'@'%s' for new cluster at %s",
-           repl_user.c_str(), repl_host.c_str(),
-           cluster_primary->descr().c_str());
-
-  auto primary = get_metadata_storage()->get_md_server();
-
-  mysqlshdk::mysql::Auth_options repl_account;
-
-  if (!dry_run) {
-    // If the user already exists, it may have a different password causing an
-    // authentication error. Also, it may have the wrong or incomplete set of
-    // required grants. For those reasons, we must simply drop the account if
-    // already exists to ensure a new one is created.
-    mysqlshdk::mysql::drop_all_accounts_for_user(*primary, repl_user);
-
-    std::vector<std::string> hosts;
-    hosts.push_back(repl_host);
-
-    mysqlshdk::gr::Create_recovery_user_options options;
-    options.clone_supported = true;
-    options.auto_failover = true;
-
-    switch (member_auth_type) {
-      case Replication_auth_type::PASSWORD:
-      case Replication_auth_type::CERT_ISSUER_PASSWORD:
-      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-        options.requires_password = true;
-        break;
-      default:
-        options.requires_password = false;
-        break;
-    }
-
-    switch (member_auth_type) {
-      case Replication_auth_type::CERT_SUBJECT:
-      case Replication_auth_type::CERT_SUBJECT_PASSWORD:
-        options.cert_subject = auth_cert_subject;
-        [[fallthrough]];
-      case Replication_auth_type::CERT_ISSUER:
-      case Replication_auth_type::CERT_ISSUER_PASSWORD:
-        options.cert_issuer = auth_cert_issuer;
-        break;
-      default:
-        break;
-    }
-
-    repl_account = mysqlshdk::gr::create_recovery_user(repl_user, *primary,
-                                                       hosts, options);
-  } else {
-    repl_account.user = repl_user;
-  }
-
-  return {repl_account, repl_host};
-}
-
 void Cluster_set_impl::record_cluster_replication_user(
     Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user,
     const std::string &repl_user_host) {
   get_metadata_storage()->update_cluster_repl_account(
       cluster->get_id(), repl_user.user, repl_user_host.c_str());
-}
-
-void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster,
-                                                     Sql_undo_list *undo) {
-  // auto primary = get_primary_master();
-  auto primary = get_metadata_storage()->get_md_server();
-
-  std::string repl_user;
-  std::string repl_user_host;
-
-  std::tie(repl_user, repl_user_host) = get_cluster_repl_account(cluster);
-
-  /*
-    Since clone copies all the data, including mysql.slave_master_info (where
-    the CHANGE MASTER credentials are stored) an instance may be using the
-    info stored in the donor's mysql.slave_master_info.
-
-    To avoid such situation, we re-issue the CHANGE MASTER query after
-    clone to ensure the right account is used. However, if the monitoring
-    process is interrupted or waitRecovery = 0, that won't be done.
-
-    The approach to tackle this issue is to store the donor recovery account
-    in the target instance MD.instances table before doing the new CHANGE
-    and only update it to the right account after a successful CHANGE MASTER.
-    With this approach we can ensure that the account is not removed if it is
-    being used.
-
-   As so were we must query the Metadata to check whether the
-    recovery user of that instance is registered for more than one instance
-    and if that's the case then it won't be dropped.
-  */
-  if (get_metadata_storage()->count_recovery_account_uses(repl_user, true) ==
-      1) {
-    log_info("Dropping replication account '%s'@'%s' for cluster '%s'",
-             repl_user.c_str(), repl_user_host.c_str(),
-             cluster->get_name().c_str());
-
-    try {
-      if (undo)
-        undo->add_snapshot_for_drop_user(*primary, repl_user, repl_user_host);
-
-      primary->drop_user(repl_user, repl_user_host.c_str(), true);
-    } catch (const std::exception &) {
-      current_console()->print_warning(shcore::str_format(
-          "Error dropping replication account '%s'@'%s' for cluster '%s'",
-          repl_user.c_str(), repl_user_host.c_str(),
-          cluster->get_name().c_str()));
-    }
-
-    // Also update metadata
-    try {
-      Transaction_undo *trx_undo = nullptr;
-      if (undo) {
-        auto u = Transaction_undo::create();
-        trx_undo = u.get();
-        undo->add(std::move(u));
-      }
-
-      get_metadata_storage()->update_cluster_repl_account(cluster->get_id(), "",
-                                                          "", trx_undo);
-    } catch (const std::exception &e) {
-      log_warning("Could not update replication account metadata for '%s': %s",
-                  cluster->get_name().c_str(), e.what());
-    }
-  }
-}
-
-mysqlshdk::mysql::Auth_options
-Cluster_set_impl::refresh_cluster_replication_user(Cluster_impl *cluster,
-                                                   bool dry_run) {
-  return refresh_cluster_replication_user(*get_primary_master(), cluster,
-                                          dry_run);
-}
-
-mysqlshdk::mysql::Auth_options
-Cluster_set_impl::refresh_cluster_replication_user(
-    const mysqlsh::dba::Instance &primary, Cluster_impl *cluster,
-    bool dry_run) {
-  std::string repl_user;
-  std::string repl_user_host;
-  std::string repl_password;
-
-  std::tie(repl_user, repl_user_host) = get_cluster_repl_account(cluster);
-
-  try {
-    log_info("Resetting password for %s@%s at %s", repl_user.c_str(),
-             repl_user_host.c_str(), primary.descr().c_str());
-    // re-create replication with a new generated password
-    if (!dry_run) {
-      mysqlshdk::mysql::set_random_password(primary, repl_user,
-                                            {repl_user_host}, &repl_password);
-    }
-  } catch (const std::exception &e) {
-    throw shcore::Exception::runtime_error(shcore::str_format(
-        "Error while resetting password for replication account: %s",
-        e.what()));
-  }
-
-  return mysqlshdk::mysql::Auth_options{repl_user, repl_password};
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
@@ -1316,8 +1133,11 @@ void Cluster_set_impl::remove_cluster(
 
       // Drop cluster replication user
       {
-        Sql_undo_list sql_undo;
-        drop_cluster_replication_user(target_cluster.get(), &sql_undo);
+        auto sql_undo =
+            m_repl_account_mng.record_undo([&target_cluster](auto &mng) {
+              mng.drop_replication_user(*target_cluster);
+            });
+
         replication_user_undo = &undo_tracker.add(
             "Restore cluster replication account", std::move(sql_undo),
             [this]() { return get_metadata_storage()->get_md_server(); });
@@ -1329,14 +1149,13 @@ void Cluster_set_impl::remove_cluster(
 
       // Remove Cluster's recovery accounts
       if (!options.dry_run && target_cluster->get_cluster_server()) {
-        Sql_undo_list undo_drop_users;
-
         // The accounts must be dropped from the ClusterSet
         // NOTE: If the replication channel is down and 'force' was used, the
         // accounts won't be dropped in the target cluster. This is expected,
         // otherwise, it wouldn't be possible to reboot the cluster from
         // complete outage later on
-        target_cluster->drop_replication_users(&undo_drop_users);
+        auto undo_drop_users = Replication_account{*target_cluster}.record_undo(
+            [](auto &mng) { mng.drop_replication_users(); });
 
         undo_tracker.add("Re-creating Cluster recovery accounts",
                          std::move(undo_drop_users),
@@ -1441,16 +1260,18 @@ void Cluster_set_impl::remove_cluster(
 
         auto repl_source = get_primary_master();
 
-        assert(auth_data_backup.primary_cert_subject.has_value());
-        auto repl_credentials = create_cluster_replication_user(
-            target_cluster->get_cluster_server().get(), "",
-            auth_data_backup.cluster_auth_type,
-            auth_data_backup.cluster_auth_cert_issuer,
-            auth_data_backup.primary_cert_subject.value_or(""),
-            options.dry_run);
-
         auto ar_channel_options = ar_options;
-        ar_channel_options.repl_credentials = repl_credentials.first;
+        {
+          assert(auth_data_backup.primary_cert_subject.has_value());
+          auto auth_host = m_repl_account_mng.create_cluster_replication_user(
+              *target_cluster->get_cluster_server(), "",
+              auth_data_backup.cluster_auth_type,
+              auth_data_backup.cluster_auth_cert_issuer,
+              auth_data_backup.primary_cert_subject.value_or(""),
+              options.dry_run);
+
+          ar_channel_options.repl_credentials = std::move(auth_host.auth);
+        }
 
         // create async channel on all secondaries, update member actions
         target_cluster->execute_in_members(
@@ -1964,11 +1785,11 @@ void Cluster_set_impl::update_replica(
     Instance *replica, Instance *master,
     const Async_replication_options &ar_options, bool primary_instance,
     bool reset_channel, bool dry_run) {
-  log_info("Updating replication source at %s", replica->descr().c_str());
-
-  auto repl_options = ar_options;
+  log_info("Updating replication source at '%s'", replica->descr().c_str());
 
   try {
+    auto repl_options = ar_options;
+
     // Enable SOURCE_CONNECTION_AUTO_FAILOVER if the instance is the primary
     if (primary_instance) {
       repl_options.auto_failover = true;
@@ -2145,31 +1966,6 @@ void Cluster_set_impl::_set_instance_option(
   throw std::logic_error("Not implemented yet.");
 }
 
-void Cluster_set_impl::update_replication_allowed_host(
-    const std::string &host) {
-  for (const Cluster_set_member_metadata &cluster : get_clusters()) {
-    auto account = get_metadata_storage()->get_cluster_repl_account(
-        cluster.cluster.cluster_id);
-
-    if (account.second != host) {
-      log_info("Re-creating account for cluster %s: %s@%s -> %s@%s",
-               cluster.cluster.cluster_name.c_str(), account.first.c_str(),
-               account.second.c_str(), account.first.c_str(), host.c_str());
-      clone_user(*get_primary_master(), account.first, account.second,
-                 account.first, host);
-
-      get_primary_master()->drop_user(account.first, account.second, true);
-
-      get_metadata_storage()->update_cluster_repl_account(
-          cluster.cluster.cluster_id, account.first, host);
-    } else {
-      log_info("Skipping account recreation for cluster %s: %s@%s == %s@%s",
-               cluster.cluster.cluster_name.c_str(), account.first.c_str(),
-               account.second.c_str(), account.first.c_str(), host.c_str());
-    }
-  }
-}
-
 void Cluster_set_impl::restore_transaction_size_limit(Cluster_impl *replica,
                                                       bool dry_run) {
   shcore::Value value;
@@ -2315,7 +2111,7 @@ void Cluster_set_impl::_set_option(const std::string &option,
   // we also need an exclusive lock on the primary cluster
   api_locks.push_back(m_primary_cluster->get_lock_exclusive());
 
-  update_replication_allowed_host(value.as_string());
+  m_repl_account_mng.update_replication_allowed_host(value.as_string());
 
   get_metadata_storage()->update_cluster_set_attribute(
       get_id(), k_cluster_attribute_replication_allowed_host, value);
@@ -2459,9 +2255,13 @@ void Cluster_set_impl::set_primary_cluster(
       get_clusterset_replication_options(primary_cluster->get_id(), nullptr);
 
   console->print_info("* Refreshing replication account of demoted cluster");
-  // Re-generate a new password for the master being demoted.
-  ar_options_demoted.repl_credentials =
-      refresh_cluster_replication_user(primary_cluster.get(), options.dry_run);
+  {
+    // Re-generate a new password for the master being demoted.
+    auto auth_host = m_repl_account_mng.refresh_replication_user(
+        *get_primary_master(), primary_cluster->get_id(), options.dry_run);
+
+    ar_options_demoted.repl_credentials = std::move(auth_host.auth);
+  }
 
   console->print_info("* Synchronizing transaction backlog at " +
                       promoted->descr());
@@ -2589,9 +2389,11 @@ void Cluster_set_impl::set_primary_cluster(
       auto repl_source = promoted_cluster->get_cluster_server();
 
       if (reset_repl_channel) {
-        ar_options.repl_credentials = refresh_cluster_replication_user(
-            *promoted_cluster->get_cluster_server(), replica.get(),
+        auto auth_host = m_repl_account_mng.refresh_replication_user(
+            *promoted_cluster->get_cluster_server(), replica->get_id(),
             options.dry_run);
+
+        ar_options.repl_credentials = std::move(auth_host.auth);
       }
 
       undo_tracker.add("", [this, &replica, primary, ar_options,
@@ -3052,9 +2854,12 @@ void Cluster_set_impl::force_primary_cluster(
 
     auto repl_source = promoted_cluster->get_cluster_server();
 
-    if (reset_repl_channel)
-      ar_options.repl_credentials =
-          refresh_cluster_replication_user(replica.get(), options.dry_run);
+    if (reset_repl_channel) {
+      auto auth_host = m_repl_account_mng.refresh_replication_user(
+          *get_primary_master(), replica->get_id(), options.dry_run);
+
+      ar_options.repl_credentials = std::move(auth_host.auth);
+    }
 
     update_replica(replica.get(), repl_source.get(), ar_options,
                    reset_repl_channel, options.dry_run);
@@ -3287,8 +3092,13 @@ void Cluster_set_impl::rejoin_cluster(
     if (rejoining_cluster->get_id() != primary_cluster->get_id()) {
       console->print_info("* Refreshing replication settings");
 
-      ar_options.repl_credentials = refresh_cluster_replication_user(
-          rejoining_cluster.get(), options.dry_run);
+      {
+        auto auth_host = m_repl_account_mng.refresh_replication_user(
+            *get_primary_master(), rejoining_cluster->get_id(),
+            options.dry_run);
+
+        ar_options.repl_credentials = std::move(auth_host.auth);
+      }
 
       update_replica(rejoining_cluster.get(), repl_source.get(), ar_options,
                      reset_repl_channel, options.dry_run);
@@ -3307,8 +3117,12 @@ void Cluster_set_impl::rejoin_cluster(
     console->print_info("* Rejoining cluster");
 
     // configure as a replica
-    ar_options.repl_credentials = refresh_cluster_replication_user(
-        rejoining_cluster.get(), options.dry_run);
+    {
+      auto auth_host = m_repl_account_mng.refresh_replication_user(
+          *get_primary_master(), rejoining_cluster->get_id(), options.dry_run);
+
+      ar_options.repl_credentials = std::move(auth_host.auth);
+    }
 
     update_replica(rejoining_cluster.get(), repl_source.get(), ar_options,
                    reset_repl_channel, options.dry_run);
@@ -3457,7 +3271,7 @@ mysqlshdk::mysql::Lock_scoped Cluster_set_impl::get_lock(
         !super_read_only) {
       // we must disable log_bin to prevent the installation from being
       // replicated
-      mysqlshdk::mysql::Suppress_binary_log nobinlog(m_primary_master.get());
+      mysqlshdk::mysql::Suppress_binary_log nobinlog(*m_primary_master);
 
       lock_service_installed =
           m_primary_master->ensure_lock_service_is_installed(false);

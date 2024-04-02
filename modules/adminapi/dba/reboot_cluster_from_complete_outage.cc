@@ -33,6 +33,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/topology_executor.h"
@@ -472,7 +473,7 @@ Reboot_cluster_from_complete_outage::pick_best_instance_gtid(
                              intended_instance.data()));
   }
 
-  // lets take care of stuff when we don't have any conflits
+  // lets take care of stuff when we don't have any conflicts
   if (conflits.empty()) {
     if (intended_instance.empty()) {
       // if the target instance is already in the candidates, use it (don't
@@ -681,6 +682,9 @@ void Reboot_cluster_from_complete_outage::check_instance_configuration() {
  */
 void Reboot_cluster_from_complete_outage::reboot_seed(
     const MetadataStorage &metadata) {
+  log_info("Rebooting cluster seed instance '%s'.",
+           m_target_instance->descr().c_str());
+
   // If GR auto-started stop it otherwise changing GR member actions will fail
   if (cluster_topology_executor_ops::is_member_auto_rejoining(
           m_target_instance)) {
@@ -849,11 +853,11 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
     }
 
     // Get the recovery account stored in the Metadata
-    std::string recovery_user;
-    std::vector<std::string> recovery_user_hosts;
+    Replication_account::User_hosts user_hosts;
+
     try {
-      std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-          m_cluster->impl()->get_replication_user(*m_target_instance);
+      user_hosts = Replication_account{*m_cluster->impl()}.get_replication_user(
+          *m_target_instance, false);
     } catch (const shcore::Exception &re) {
       if (re.is_runtime()) {
         mysqlsh::current_console()->print_error(shcore::str_format(
@@ -869,11 +873,11 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
     }
 
     mysqlshdk::mysql::Auth_options repl_account;
-    repl_account.user = recovery_user;
+    repl_account.user = user_hosts.user;
 
     // Check if the replication user already exists to delete it
     // before creating it again
-    for (const auto &hostname : recovery_user_hosts) {
+    for (const auto &hostname : user_hosts.hosts) {
       if (!m_target_instance->user_exists(repl_account.user, hostname))
         continue;
 

@@ -312,18 +312,17 @@ shcore::Value Create_cluster_set::execute() {
               *m_cluster->get_primary_master());
 
       // create and record the replication user for this cluster
-      auto repl_user = cs->create_cluster_replication_user(
-          m_cluster->get_primary_master().get(),
-          m_options.replication_allowed_host, auth_type, auth_cert_issuer,
-          auth_cert_subject, m_options.dry_run);
+      auto auth_host = Replication_account{*cs}.create_cluster_replication_user(
+          *m_cluster->get_primary_master(), m_options.replication_allowed_host,
+          auth_type, auth_cert_issuer, auth_cert_subject, m_options.dry_run);
 
-      cs->record_cluster_replication_user(m_cluster, repl_user.first,
-                                          repl_user.second);
+      cs->record_cluster_replication_user(m_cluster, auth_host.auth,
+                                          auth_host.host);
 
       undo_list.push_front([=, this]() {
         log_info("Revert: Dropping replication account '%s'",
-                 repl_user.first.user.c_str());
-        cs->drop_cluster_replication_user(m_cluster);
+                 auth_host.auth.user.c_str());
+        Replication_account{*cs}.drop_replication_user(*m_cluster);
       });
 
       // Set debug trap to test reversion of replication user creation

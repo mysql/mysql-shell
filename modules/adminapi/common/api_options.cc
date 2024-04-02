@@ -57,10 +57,11 @@ const shcore::Option_pack_def<Recovery_progress_option>
   return opts;
 }
 
-Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
+Recovery_progress_style Recovery_progress_option::get_recovery_progress()
+    const {
   if (!m_recovery_progress.has_value()) {
     m_recovery_progress = isatty(STDOUT_FILENO)
-                              ? Recovery_progress_style::PROGRESSBAR
+                              ? Recovery_progress_style::PROGRESS_BAR
                               : Recovery_progress_style::TEXTUAL;
   }
 
@@ -78,13 +79,13 @@ void Recovery_progress_option::set_recovery_progress(int value) {
 
   switch (value) {
     case 0:
-      m_recovery_progress = Recovery_progress_style::NOINFO;
+      m_recovery_progress = Recovery_progress_style::MINIMAL;
       break;
     case 1:
       m_recovery_progress = Recovery_progress_style::TEXTUAL;
       break;
     default:
-      m_recovery_progress = Recovery_progress_style::PROGRESSBAR;
+      m_recovery_progress = Recovery_progress_style::PROGRESS_BAR;
       break;
   }
 }

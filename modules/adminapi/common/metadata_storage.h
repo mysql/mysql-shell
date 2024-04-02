@@ -354,7 +354,7 @@ class MetadataStorage {
    * hostname
    */
   std::pair<std::string, std::string> get_instance_repl_account(
-      const std::string &instance_uuid, Cluster_type type,
+      std::string_view instance_uuid, Cluster_type type,
       Replica_type replica_type);
 
   std::string get_instance_repl_account_user(std::string_view instance_uuid,

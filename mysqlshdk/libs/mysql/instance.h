@@ -209,17 +209,17 @@ class IInstance {
   };
   virtual void create_user(std::string_view user, std::string_view host,
                            const Create_user_options &options) const = 0;
-  virtual void drop_user(const std::string &user, const std::string &host,
+  virtual void drop_user(std::string_view user, std::string_view host,
                          bool if_exists = false) const = 0;
 
   virtual mysqlshdk::db::Connection_options get_connection_options() const = 0;
   virtual void get_current_user(std::string *current_user,
                                 std::string *current_host) const = 0;
-  virtual bool user_exists(const std::string &username,
-                           const std::string &hostname) const = 0;
-  virtual void set_user_password(const std::string &username,
-                                 const std::string &hostname,
-                                 const std::string &password) const = 0;
+  virtual bool user_exists(std::string_view username,
+                           std::string_view hostname) const = 0;
+  virtual void set_user_password(std::string_view username,
+                                 std::string_view hostname,
+                                 std::string_view password) const = 0;
   virtual std::unique_ptr<User_privileges> get_user_privileges(
       const std::string &user, const std::string &host,
       bool allow_skip_grants_user = false) const = 0;
@@ -231,7 +231,7 @@ class IInstance {
 
   virtual std::vector<std::string> get_fence_sysvars() const = 0;
 
-  virtual void suppress_binary_log(bool) = 0;
+  virtual void suppress_binary_log(bool) const = 0;
 
   virtual std::string get_plugin_library_extension() const = 0;
 
@@ -281,18 +281,20 @@ class IInstance {
 };
 
 struct Suppress_binary_log {
-  explicit Suppress_binary_log(IInstance *inst) : m_instance(inst) {
-    m_instance->suppress_binary_log(true);
+  explicit Suppress_binary_log(const IInstance &inst) noexcept
+      : m_instance(inst) {
+    m_instance.suppress_binary_log(true);
   }
 
-  ~Suppress_binary_log() {
+  ~Suppress_binary_log() noexcept {
     try {
-      m_instance->suppress_binary_log(false);
+      m_instance.suppress_binary_log(false);
     } catch (...) {
     }
   }
 
-  IInstance *m_instance;
+ private:
+  const IInstance &m_instance;
 };
 
 class Set_variable final {
@@ -444,7 +446,7 @@ class Instance : public IInstance {
       const std::string &plugin_name) const override;
   void create_user(std::string_view user, std::string_view host,
                    const Create_user_options &options) const override;
-  void drop_user(const std::string &user, const std::string &host,
+  void drop_user(std::string_view user, std::string_view host,
                  bool if_exists = false) const override;
   mysqlshdk::db::Connection_options get_connection_options() const override {
     auto co = m_session->get_connection_options();
@@ -465,11 +467,10 @@ class Instance : public IInstance {
 
   void get_current_user(std::string *current_user,
                         std::string *current_host) const override;
-  bool user_exists(const std::string &username,
-                   const std::string &hostname) const override;
-  void set_user_password(const std::string &username,
-                         const std::string &hostname,
-                         const std::string &password) const override;
+  bool user_exists(std::string_view username,
+                   std::string_view hostname) const override;
+  void set_user_password(std::string_view username, std::string_view hostname,
+                         std::string_view password) const override;
   /**
    * Determine if SET PERSIST is supported by the instance.
    *
@@ -500,7 +501,7 @@ class Instance : public IInstance {
 
   std::vector<std::string> get_fence_sysvars() const override;
 
-  void suppress_binary_log(bool flag) override;
+  void suppress_binary_log(bool flag) const override;
 
   std::string get_plugin_library_extension() const override;
 
@@ -539,7 +540,7 @@ class Instance : public IInstance {
   mutable int m_port = 0;
   mutable std::optional<int> m_xport;
   mutable uint32_t m_server_id = 0;
-  int m_sql_binlog_suppress_count = 0;
+  mutable int m_sql_binlog_suppress_count = 0;
   Warnings_callback m_warnings_callback;
 };
 

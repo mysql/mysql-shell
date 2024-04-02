@@ -48,10 +48,6 @@ namespace mysqlshdk {
 namespace gr {
 
 inline constexpr const char k_gr_plugin_name[] = "group_replication";
-inline constexpr const char k_group_recovery_user_prefix[] =
-    "mysql_innodb_cluster_";
-inline constexpr const char k_group_recovery_old_user_prefix[] =
-    "mysql_innodb_cluster_r";
 inline constexpr const char k_gr_applier_channel[] =
     "group_replication_applier";
 inline constexpr const char k_gr_recovery_channel[] =

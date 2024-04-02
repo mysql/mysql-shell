@@ -37,13 +37,12 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-class Reset_recovery_accounts_password : public Command_interface {
+class Reset_recovery_accounts_password final : public Command_interface {
  public:
   Reset_recovery_accounts_password(const bool interactive,
                                    std::optional<bool> force,
-                                   const Cluster_impl &cluster);
-
-  ~Reset_recovery_accounts_password() override = default;
+                                   Cluster_impl &cluster) noexcept
+      : m_interactive(interactive), m_force(force), m_cluster(cluster) {}
 
   /**
    * Prepare the resetRecoveryAccountsPassword command for execution.
@@ -94,7 +93,7 @@ class Reset_recovery_accounts_password : public Command_interface {
   std::optional<bool> m_force;
   std::vector<Instance_online> m_online_instances;
   std::vector<std::string> m_skipped_instances;
-  const Cluster_impl &m_cluster;
+  Cluster_impl &m_cluster;
 
   /**
    * Auxiliar method to ask the user if he wants to continue with the operation

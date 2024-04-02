@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/replication_account.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -44,6 +45,7 @@ class Add_instance {
         m_target_instance(target_instance),
         m_gr_opts(options.gr_options),
         m_clone_opts(options.clone_options),
+        m_repl_account_mng{*cluster},
         m_options(options) {
     assert(m_cluster_impl);
   };
@@ -55,7 +57,8 @@ class Add_instance {
       : m_cluster_impl(cluster),
         m_target_instance(target_instance),
         m_gr_opts(gr_options),
-        m_clone_opts(clone_options) {
+        m_clone_opts(clone_options),
+        m_repl_account_mng{*cluster} {
     assert(m_cluster_impl);
   }
 
@@ -80,13 +83,12 @@ class Add_instance {
   void resolve_local_address(checks::Check_type check_type,
                              Group_replication_options *gr_options,
                              const Group_replication_options &user_gr_options);
-  void store_local_replication_account() const;
   void store_cloned_replication_account() const;
   void restore_group_replication_account() const;
   void refresh_target_connections() const;
 
  protected:
-  Cluster_impl *m_cluster_impl = nullptr;
+  Cluster_impl *const m_cluster_impl = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::shared_ptr<mysqlsh::dba::Instance> m_primary_instance;
   Group_replication_options m_gr_opts;
@@ -94,6 +96,7 @@ class Add_instance {
   bool m_is_autorejoining = false;
   std::string m_comm_stack;
   std::string m_auth_cert_subject;
+  Replication_account m_repl_account_mng;
 
  private:
   Add_instance_options m_options;

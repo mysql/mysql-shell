@@ -65,6 +65,7 @@ file(GLOB adminapi_module_SOURCES
       "common/setup_account.cc"
       "common/base_cluster_impl.cc"
       "common/undo.cc"
+      "common/replication_account.cc"
       "dba/check_instance.cc"
       "dba/configure_async_instance.cc"
       "dba/configure_instance.cc"

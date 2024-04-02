@@ -41,14 +41,13 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/dba/api_options.h"
 #include "modules/adminapi/replica_set/api_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
 namespace dba {
-
-inline constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
 
 class Replica_set_impl final : public Base_cluster_impl {
  public:
@@ -145,19 +144,6 @@ class Replica_set_impl final : public Base_cluster_impl {
   Cluster_metadata get_metadata() const;
 
   void release_primary() override;
-
-  std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  refresh_replication_user(mysqlshdk::mysql::IInstance *slave, bool dry_run);
-
-  void drop_replication_user(const std::string &server_uuid,
-                             mysqlshdk::mysql::IInstance *slave = nullptr);
-
-  void drop_all_replication_users();
-
-  std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  create_replication_user(mysqlshdk::mysql::IInstance *slave,
-                          std::string_view auth_cert_subject, bool dry_run,
-                          mysqlshdk::mysql::IInstance *master = nullptr);
 
   std::vector<Instance_metadata> get_instances_from_metadata() const override;
 
@@ -256,8 +242,6 @@ class Replica_set_impl final : public Base_cluster_impl {
 
   shcore::Dictionary_t get_topology_options();
 
-  void update_replication_allowed_host(const std::string &host);
-
   void check_preconditions_and_primary_availability(
       const std::string &function_name,
       bool throw_if_primary_unavailable = true);
@@ -271,6 +255,7 @@ class Replica_set_impl final : public Base_cluster_impl {
       mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});
 
   Global_topology_type m_topology_type;
+  Replication_account m_repl_account_mng;
 };
 
 }  // namespace dba

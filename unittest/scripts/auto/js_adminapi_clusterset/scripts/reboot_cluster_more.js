@@ -406,6 +406,19 @@ testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
 CHECK_CLUSTER_SET(session);
 
+//<> Make sure reboot works if GR is stopped and repl channel is reset on a replica cluster
+
+testutil.stopGroup([__mysql_sandbox_port4, __mysql_sandbox_port5, __mysql_sandbox_port6]);
+
+shell.connect(__sandbox_uri4);
+session.runSql("RESET REPLICA ALL");
+
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
+
+CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+CHECK_REPLICA_CLUSTER([__sandbox_uri5, __sandbox_uri6, __sandbox_uri4], cluster, replica);
+CHECK_CLUSTER_SET(session);
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port4);

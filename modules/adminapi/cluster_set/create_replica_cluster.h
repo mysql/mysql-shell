@@ -31,7 +31,6 @@
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/dba/create_cluster.h"
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
 
 namespace mysqlsh {
@@ -70,22 +69,6 @@ class Create_replica_cluster : public Command_interface {
   std::shared_ptr<Cluster_impl> create_cluster_object(
       const mysqlshdk::mysql::Auth_options &repl_credentials,
       const std::string &repl_account_host);
-
-  /**
-   * Recreate the recovery account at the target instance on which the Replica
-   * Cluster is being created
-   *
-   * Required for when using the 'MySQL' communication stack to ensure the
-   * account is available on all ClusterSet members
-   *
-   * @param cluster       Cluster Object
-   * @param recovery_user Username for the recreated account
-   * @param recovery_host Hostname for the recreated account
-   */
-  void recreate_recovery_account(const std::shared_ptr<Cluster_impl> cluster,
-                                 const std::string &auth_cert_subject,
-                                 std::string *recovery_user = nullptr,
-                                 std::string *recovery_host = nullptr);
 
  private:
   Cluster_set_impl *m_cluster_set = nullptr;

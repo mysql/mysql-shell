@@ -68,16 +68,6 @@ const built_in_tags_map_t k_supported_set_option_tags{
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
 }  // namespace
 
-std::string Base_cluster_impl::make_replication_user_name(
-    uint32_t server_id, std::string_view user_prefix, bool server_id_hexa) {
-  if (server_id_hexa)
-    return shcore::str_format("%.*s%x", static_cast<int>(user_prefix.length()),
-                              user_prefix.data(), server_id);
-
-  return shcore::str_format("%.*s%u", static_cast<int>(user_prefix.length()),
-                            user_prefix.data(), server_id);
-}
-
 Base_cluster_impl::Base_cluster_impl(
     const std::string &cluster_name, std::shared_ptr<Instance> group_server,
     std::shared_ptr<MetadataStorage> metadata_storage)
@@ -269,7 +259,7 @@ void Base_cluster_impl::create_clone_recovery_user_nobinlog(
   if (dry_run) return;
 
   try {
-    mysqlshdk::mysql::Suppress_binary_log nobinlog(target_instance);
+    mysqlshdk::mysql::Suppress_binary_log nobinlog(*target_instance);
 
     // Create recovery user for clone equal to the donor user
 
@@ -538,7 +528,7 @@ void Base_cluster_impl::handle_clone_provisioning(
       *recipient = *wait_server_startup(
           recipient->get_connection_options(),
           mysqlshdk::mysql::k_server_recovery_restart_timeout,
-          Recovery_progress_style::NOWAIT);
+          Recovery_progress_style::NONE);
 
       recipient->reconnect_if_needed("Target");
       m_metadata_storage->get_md_server()->reconnect_if_needed("Metadata");

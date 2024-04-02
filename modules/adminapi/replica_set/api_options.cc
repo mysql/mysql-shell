@@ -51,13 +51,13 @@ void Recovery_progress_option::set_recovery_progress(int value) {
 
   switch (value) {
     case 0:
-      m_recovery_progress = Recovery_progress_style::NOINFO;
+      m_recovery_progress = Recovery_progress_style::MINIMAL;
       break;
     case 1:
       m_recovery_progress = Recovery_progress_style::TEXTUAL;
       break;
     case 2:
-      m_recovery_progress = Recovery_progress_style::PROGRESSBAR;
+      m_recovery_progress = Recovery_progress_style::PROGRESS_BAR;
       break;
   }
 }
@@ -65,7 +65,7 @@ void Recovery_progress_option::set_recovery_progress(int value) {
 Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
   if (!m_recovery_progress.has_value()) {
     m_recovery_progress = isatty(STDOUT_FILENO)
-                              ? Recovery_progress_style::PROGRESSBAR
+                              ? Recovery_progress_style::PROGRESS_BAR
                               : Recovery_progress_style::TEXTUAL;
   }
 

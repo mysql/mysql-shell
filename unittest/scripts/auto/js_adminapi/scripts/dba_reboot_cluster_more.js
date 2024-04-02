@@ -201,6 +201,17 @@ EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 
 EXPECT_NO_THROWS(function () { cluster.switchToSinglePrimaryMode(); });
 
+//<> Make sure reboot works if GR is stopped and repl channel is reset on a replica cluster
+
+testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2,__mysql_sandbox_port3]);
+
+shell.connect(__sandbox_uri1);
+session.runSql("RESET REPLICA ALL");
+
+EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage(); });
+
+EXPECT_NO_THROWS(function() { cluster.setPrimaryInstance(__sandbox_uri1); });
+
 //@<> FR1 if a member is in ERROR and the rest is OFFLINE or in ERROR, the command must succeed stopping GR where necessary
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);

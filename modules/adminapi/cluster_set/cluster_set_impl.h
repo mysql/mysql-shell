@@ -41,6 +41,7 @@
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/replication_account.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -133,26 +134,9 @@ class Cluster_set_impl : public Base_cluster_impl,
                                             bool allow_unavailable = false,
                                             bool allow_invalidated = false);
 
-  std::pair<mysqlshdk::mysql::Auth_options, std::string>
-  create_cluster_replication_user(Instance *cluster_primary,
-                                  const std::string &account_host,
-                                  Replication_auth_type member_auth_type,
-                                  const std::string &auth_cert_issuer,
-                                  const std::string &auth_cert_subject,
-                                  bool dry_run);
-
   void record_cluster_replication_user(
       Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user,
       const std::string &repl_user_host);
-
-  void drop_cluster_replication_user(
-      Cluster_impl *cluster, mysqlshdk::mysql::Sql_undo_list *undo = nullptr);
-
-  mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
-      Cluster_impl *cluster, bool dry_run);
-  mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
-      const mysqlsh::dba::Instance &primary, Cluster_impl *cluster,
-      bool dry_run);
 
   Member_recovery_method validate_instance_recovery(
       Member_op_action op_action,
@@ -279,9 +263,6 @@ class Cluster_set_impl : public Base_cluster_impl,
   Cluster_set_member_metadata get_cluster_metadata(
       const Cluster_id &cluster_id) const;
 
-  std::pair<std::string, std::string> get_cluster_repl_account(
-      Cluster_impl *cluster) const;
-
   void ensure_transaction_set_consistent_and_recoverable(
       mysqlshdk::mysql::IInstance *replica,
       mysqlshdk::mysql::IInstance *primary, Cluster_impl *primary_cluster,
@@ -289,8 +270,6 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void primary_instance_did_change(
       const std::shared_ptr<Instance> &new_primary);
-
-  void update_replication_allowed_host(const std::string &host);
 
   void restore_transaction_size_limit(Cluster_impl *replica, bool dry_run);
 
@@ -302,6 +281,7 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;
+  Replication_account m_repl_account_mng;
 };
 
 }  // namespace dba
