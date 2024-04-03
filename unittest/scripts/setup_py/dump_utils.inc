@@ -528,7 +528,7 @@ def create_test_table(sess, schema, table, create_definition, nrows = 1000):
         return str(next_int)
     def random_int_string(n):
         return ''.join(random.choices("123456789", k = n))
-    for c in sess.run_sql("SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY='PRI' FROM information_schema.columns WHERE TABLE_SCHEMA=? AND TABLE_NAME=?", [ schema, table ]).fetch_all():
+    for c in sess.run_sql("SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY='PRI' FROM information_schema.columns WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND EXTRA NOT LIKE '% GENERATED'", [ schema, table ]).fetch_all():
         fun = None
         if c[2]:
             if c[1].endswith("int"):
