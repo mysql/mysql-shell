@@ -37,6 +37,10 @@ The following operations are available at 'rs':
    routing-options
       Lists the ReplicaSet Routers configuration options.
 
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell. Use ReplicaSet.routerOptions()
+                 instead.
+
    set-instance-option
       Changes the value of an option in a ReplicaSet member.
 

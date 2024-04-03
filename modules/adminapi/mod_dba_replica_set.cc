@@ -904,17 +904,8 @@ None ReplicaSet::setup_router_account(str user, dict options) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routingOptions, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGOPTIONS, R"*(
-Lists the ReplicaSet Routers configuration options.
-
-@param router Optional identifier of the router instance to query for the options.
-
-@returns A JSON object describing the configuration options of all router
-instances of the ReplicaSet and its global options or just the given Router.
-
-This function lists the Router configuration options of all Routers of the
-ReplicaSet or the target Router.
-)*");
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGOPTIONS,
+                            ROUTINGOPTIONS_HELP_TEXT);
 
 /**
  * $(REPLICASET_ROUTINGOPTIONS_BRIEF)

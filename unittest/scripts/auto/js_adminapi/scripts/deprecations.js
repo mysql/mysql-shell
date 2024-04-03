@@ -21,7 +21,7 @@ WIPE_OUTPUT();
 
 //@<> A deprecation warning must be emitted when using the command cluster.routingOptions()
 EXPECT_NO_THROWS(function() { cluster.routingOptions(); });
-EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <Cluster>.routerOptions() instead.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use <Cluster>.routerOptions() instead.`);
 WIPE_OUTPUT();
 
 //@<> A deprecation warning must be emitted when using the command replicaset.routingOptions()
@@ -30,7 +30,7 @@ EXPECT_NO_THROWS(function() {
   rs = dba.createReplicaSet("rs");
   rs.routingOptions();
 });
-EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <ReplicaSet>.routerOptions() instead.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use <ReplicaSet>.routerOptions() instead.`);
 WIPE_OUTPUT();
 
 //@<> A deprecation warning must be emitted when using the command clusterset.routingOptions()
@@ -40,7 +40,7 @@ EXPECT_NO_THROWS(function() {
   cs = cluster.createClusterSet("cs");
   cs.routingOptions();
 });
-EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use <ClusterSet>.routerOptions() instead.`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use <ClusterSet>.routerOptions() instead.`);
 WIPE_OUTPUT();
 
 //@<> Cleanup

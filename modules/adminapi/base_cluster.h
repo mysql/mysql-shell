@@ -228,6 +228,9 @@ Lists the <<<:Type>>> Routers configuration options.
 @returns A JSON object describing the configuration options of all router
 instances of the <<<:Type>>> and its global options or just the given Router.
 
+@attention This function is deprecated and will be removed in a future release
+of MySQL Shell. Use <<<:Type>>>.routerOptions() instead.
+
 This function lists the Router configuration options of all Routers of the
 <<<:Type>>> or the target Router.
 )*"));
