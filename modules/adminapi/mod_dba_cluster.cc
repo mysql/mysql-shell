@@ -1223,18 +1223,7 @@ None Cluster::set_routing_option(str router, str option, str value) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routingOptions, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ROUTINGOPTIONS, R"*(
-Lists the Cluster Routers configuration options.
-
-@param router Optional identifier of the router instance to query for the options.
-
-@returns A JSON object describing the configuration options of all router
-instances of the Cluster and its global options or just the given Router.
-
-This function lists the Router configuration options of all Routers of the
-Cluster or the target Router.
-)*");
-
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ROUTINGOPTIONS, ROUTINGOPTIONS_HELP_TEXT);
 /**
  * $(CLUSTER_ROUTINGOPTIONS_BRIEF)
  *

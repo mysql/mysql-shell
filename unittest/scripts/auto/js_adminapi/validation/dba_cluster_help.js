@@ -83,6 +83,10 @@ FUNCTIONS
       routingOptions([router])
             Lists the Cluster Routers configuration options.
 
+            ATTENTION: This function is deprecated and will be removed in a
+                       future release of MySQL Shell. Use
+                       Cluster.routerOptions() instead.
+
       setInstanceOption(instance, option, value)
             Changes the value of an option in a Cluster member.
 
@@ -1555,6 +1559,9 @@ RETURNS
       instances of the Cluster and its global options or just the given Router.
 
 DESCRIPTION
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell. Use Cluster.routerOptions() instead.
+
       This function lists the Router configuration options of all Routers of
       the Cluster or the target Router.
 

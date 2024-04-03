@@ -58,6 +58,10 @@ FUNCTIONS
       routingOptions([router])
             Lists the ClusterSet Routers configuration options.
 
+            ATTENTION: This function is deprecated and will be removed in a
+                       future release of MySQL Shell. Use
+                       ClusterSet.routerOptions() instead.
+
       setOption(option, value)
             Changes the value of an option for the whole ClusterSet.
 
@@ -823,6 +827,10 @@ RETURNS
       Router.
 
 DESCRIPTION
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell. Use ClusterSet.routerOptions()
+                 instead.
+
       This function lists the Router configuration options of all Routers of
       the ClusterSet or the target Router.
 
