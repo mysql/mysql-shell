@@ -130,7 +130,7 @@ const shcore::Option_pack_def<Import_table_option_pack>
                     &Import_table_option_pack::set_bytes_per_chunk)
           .optional("maxBytesPerTransaction",
                     &Import_table_option_pack::set_max_transaction_size)
-          .optional("columns", &Import_table_option_pack::m_columns)
+          .optional("columns", &Import_table_option_pack::set_columns)
           .optional("replaceDuplicates",
                     &Import_table_option_pack::set_replace_duplicates)
           .optional("maxRate", &Import_table_option_pack::set_max_rate)
@@ -205,14 +205,40 @@ void Import_table_option_pack::set_decode_columns(
     }
   }
 
-  if (!m_decode_columns.empty()) {
-    if (!m_columns) {
-      throw std::runtime_error(
-          "The 'columns' option is required when 'decodeColumns' is set.");
-    }
-    if (m_columns->empty()) {
-      throw std::runtime_error(
-          "The 'columns' option must be a non-empty list.");
+  if (!m_decode_columns.empty() && m_columns.empty()) {
+    throw std::runtime_error(
+        "The 'columns' option is required when 'decodeColumns' is set.");
+  }
+}
+
+void Import_table_option_pack::set_columns(const shcore::Array_t &columns) {
+  if (!columns || columns->empty()) {
+    throw std::runtime_error("The 'columns' option must be a non-empty list.");
+  }
+
+  for (const auto &c : *columns) {
+    if (c.get_type() == shcore::Value_type::UInteger) {
+      m_columns.emplace_back(c.as_uint());
+    } else if (c.get_type() == shcore::Value_type::Integer) {
+      const auto v = c.as_int();
+
+      // We do not want user variable to be negative: `@-1`
+      if (v < 0) {
+        throw shcore::Exception::value_error(
+            "User variable binding in 'columns' option must be non-negative "
+            "integer value");
+      }
+
+      m_columns.emplace_back(static_cast<uint64_t>(v));
+    } else if (c.get_type() == shcore::Value_type::String) {
+      m_columns.emplace_back(c.as_string());
+    } else {
+      throw shcore::Exception::type_error(
+          "Option 'columns' " + type_name(shcore::Value_type::String) +
+          " (column name) or non-negative " +
+          type_name(shcore::Value_type::Integer) +
+          " (user variable binding) expected, but value is " +
+          type_name(c.get_type()));
     }
   }
 }

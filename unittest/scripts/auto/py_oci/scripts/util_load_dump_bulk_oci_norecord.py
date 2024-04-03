@@ -376,6 +376,11 @@ with open(local_progress_file) as f:
 # there should be at least three entries, start and finish + some progress reports
 EXPECT_LE(3, len(bulk_load_entries))
 
+#@<> BUG#36477603 - loading a table which contains a virtual column generates a warning
+prepare_test_table("(first_name VARCHAR(10), last_name VARCHAR(10), full_name VARCHAR(255) AS (CONCAT(first_name,' ',last_name)), address VARCHAR(10))")
+TEST_DUMP_AND_LOAD(expect_bulk_loaded = 0)
+EXPECT_STDOUT_NOT_CONTAINS("error 1261: Row 1 doesn't contain data for all columns")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
