@@ -737,10 +737,12 @@ class Dump_loader::Bulk_load_support {
       return false;
     }
 
-    // this error is reported in case of various resource-related problems, but
-    // also in case of failed initialization/finalization, for now we don't
-    // filter error messages...
-    if (ER_BULK_EXECUTOR_ERROR != e.code()) {
+    const auto code = e.code();
+
+    // ER_BULK_EXECUTOR_ERROR is reported in case of various resource-related
+    // problems, but also in case of failed initialization/finalization, for now
+    // we don't filter error messages...
+    if (ER_BULK_EXECUTOR_ERROR != code && ER_BULK_LOAD_RESOURCE != code) {
       return false;
     }
 
