@@ -654,9 +654,9 @@ function disable_auto_rejoin(session, port) {
 
   if (__version_num > 80011) {
     try {
-      session.runSql("RESET PERSIST group_replication_start_on_boot");
+      session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
     } catch (e) {
-      if (e["code"] != 3615) {
+      if (e["code"] != 3615 && e["code"] != 1193) {
         throw e;
       }
     }
