@@ -99,6 +99,8 @@ TEST_F(Command_line_test, bug23508428) {
         {_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
 
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "WARNING: The enableXProtocol option was deprecated.");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "enableXProtocol: Installing plugin "
         "mysqlx...");
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
@@ -120,6 +122,8 @@ TEST_F(Command_line_test, bug23508428) {
 
   execute({_mysqlsh, uri.c_str(), "--mysql", "--js", "--dba", "enableXProtocol",
            NULL});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "WARNING: The enableXProtocol option was deprecated.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "enableXProtocol: The X Protocol plugin is already enabled and listening "
       "for connections on port " +

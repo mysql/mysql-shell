@@ -23,7 +23,6 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlsh/json_shell.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
@@ -32,12 +31,10 @@
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/shellcore/shell_cli_mapper.h"
 #ifdef HAVE_PYTHON
 #include "mysqlshdk/include/scripting/python_context.h"
 #endif
@@ -66,6 +63,13 @@ const char *g_mysqlsh_path;
 static int enable_x_protocol(
     std::shared_ptr<mysqlsh::Command_line_shell> shell) {
   auto shell_session = shell->shell_context()->get_dev_session();
+
+  if (!shell_session) {
+    mysqlsh::current_console()->print_error(
+        "A session to the target instance is required to execute "
+        "the enableXProtocol command.\n");
+    return 1;
+  }
 
   mysqlshdk::db::Connection_options connection_options =
       shell_session->get_connection_options();
