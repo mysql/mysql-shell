@@ -130,7 +130,7 @@ shcore::Dictionary_t Base_cluster::routing_options(const std::string &router) {
 
   mysqlsh::current_console()->print_warning(shcore::str_format(
       "This function is deprecated and will be removed in a future release of "
-      "MySQL Shell, use <%s>.<<<routerOptions()>>> instead.",
+      "MySQL Shell. Use <%s>.<<<routerOptions()>>> instead.",
       type.c_str()));
 
   return execute_with_pool(

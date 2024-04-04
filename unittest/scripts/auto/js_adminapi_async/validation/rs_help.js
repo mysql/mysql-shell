@@ -57,6 +57,10 @@ FUNCTIONS
       routingOptions([router])
             Lists the ReplicaSet Routers configuration options.
 
+            ATTENTION: This function is deprecated and will be removed in a
+                       future release of MySQL Shell. Use
+                       ReplicaSet.routerOptions() instead.
+
       setInstanceOption(instance, option, value)
             Changes the value of an option in a ReplicaSet member.
 
@@ -672,6 +676,10 @@ RETURNS
       Router.
 
 DESCRIPTION
+      ATTENTION: This function is deprecated and will be removed in a future
+                 release of MySQL Shell. Use ReplicaSet.routerOptions()
+                 instead.
+
       This function lists the Router configuration options of all Routers of
       the ReplicaSet or the target Router.
 

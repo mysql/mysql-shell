@@ -122,7 +122,7 @@ var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use dba.configureInstance() instead.
 WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
 The instance '${hostname}:${__mysql_sandbox_port1}' belongs to an InnoDB cluster.
 Persisting the cluster settings...
@@ -133,7 +133,7 @@ The instance cluster settings were successfully persisted.`);
 WIPE_OUTPUT();
 
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use dba.configureInstance() instead.
 WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
 The instance '${hostname}:${__mysql_sandbox_port2}' belongs to an InnoDB cluster.
 Persisting the cluster settings...
@@ -144,7 +144,7 @@ The instance cluster settings were successfully persisted.`);
 WIPE_OUTPUT();
 
 dba.configureInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
-EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell, use dba.configureInstance() instead.
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: This function is deprecated and will be removed in a future release of MySQL Shell. Use dba.configureInstance() instead.
 WARNING: Support for AdminAPI operations in MySQL version 5.7 is deprecated and will be removed in a future release of MySQL Shell
 The instance '${hostname}:${__mysql_sandbox_port3}' belongs to an InnoDB cluster.
 Persisting the cluster settings...
