@@ -45,6 +45,7 @@ using off64_t = off_t;
 #include <cassert>
 #include <cinttypes>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "modules/util/import_table/helpers.h"
@@ -768,42 +769,33 @@ std::string Load_data_worker::load_data_body(
   const auto &decode_columns = options.decode_columns();
 
   std::string query_columns;
-  const auto columns = options.columns().get();
 
-  if (columns && !columns->empty()) {
-    const std::vector<std::string> x(columns->size(), "!");
-    const auto placeholders = shcore::str_join(
-        *columns, ", ",
-        [&decode_columns](const shcore::Value &c) -> std::string {
-          if (c.get_type() == shcore::Value_type::UInteger) {
-            // user defined variable
-            return "@" + c.as_string();
-          } else if (c.get_type() == shcore::Value_type::Integer) {
-            // We do not want user variable to be negative: `@-1`
-            if (c.as_int() < 0) {
-              throw shcore::Exception::value_error(
-                  "User variable binding in 'columns' option must be "
-                  "non-negative integer value");
-            }
-            // user defined variable
-            return "@" + c.as_string();
-          } else if (c.get_type() == shcore::Value_type::String) {
-            const auto column_name = c.as_string();
-            std::string prefix;
+  if (const auto &columns = options.columns(); !columns.empty()) {
+    const auto placeholders =
+        shcore::str_join(columns, ", ", [&decode_columns](const auto &c) {
+          return std::visit(
+              [&decode_columns](auto &&value) {
+                using T = std::decay_t<decltype(value)>;
 
-            if (decode_columns.find(column_name) != decode_columns.end()) {
-              prefix = "@";
-            }
+                if constexpr (std::is_same_v<T, uint64_t>) {
+                  // user defined variable
+                  return "@" + std::to_string(value);
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                  // column name
+                  std::string result;
 
-            return prefix + shcore::quote_identifier(column_name);
-          } else {
-            throw shcore::Exception::type_error(
-                "Option 'columns' " + type_name(shcore::Value_type::String) +
-                " (column name) or non-negative " +
-                type_name(shcore::Value_type::Integer) +
-                " (user variable binding) expected, but value is " +
-                type_name(c.get_type()));
-          }
+                  if (decode_columns.count(value)) {
+                    result += '@';
+                  }
+
+                  result += shcore::quote_identifier(value);
+
+                  return result;
+                } else {
+                  assert(false);
+                }
+              },
+              c);
         });
 
     query_columns = " (" + placeholders + ")";

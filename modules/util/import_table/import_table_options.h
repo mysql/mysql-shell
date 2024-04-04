@@ -37,6 +37,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "modules/util/import_table/dialect.h"
@@ -103,9 +104,11 @@ class Import_table_option_pack {
     m_duplicate_handling = flag;
   }
 
-  const shcore::Array_t &columns() const { return m_columns; }
+  const std::vector<std::variant<std::string, uint64_t>> &columns() const {
+    return m_columns;
+  }
 
-  void clear_columns() { m_columns->clear(); }
+  void clear_columns() { m_columns.clear(); }
 
   const std::map<std::string, std::string> &decode_columns() const {
     return m_decode_columns;
@@ -163,6 +166,7 @@ class Import_table_option_pack {
   void on_unpacked_options();
   bool check_if_multifile();
   void set_replace_duplicates(bool flag);
+  void set_columns(const shcore::Array_t &columns);
 
  protected:
   std::vector<std::string> m_filelist_from_user;
@@ -174,7 +178,7 @@ class Import_table_option_pack {
   int64_t m_threads_size = 8;
   std::optional<uint64_t> m_bytes_per_chunk;
   size_t m_max_bytes_per_transaction = 0;
-  shcore::Array_t m_columns;
+  std::vector<std::variant<std::string, uint64_t>> m_columns;
   std::map<std::string, std::string> m_decode_columns;
   Duplicate_handling m_duplicate_handling = Duplicate_handling::Ignore;
   uint64_t m_max_rate = 0;

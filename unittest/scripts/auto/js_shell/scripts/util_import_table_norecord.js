@@ -466,7 +466,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: Option 'columns' String (column name) or non-negative Integer (user variable binding) expected, but value is Map");
+}, "Util.importTable: Argument #2: Option 'columns' String (column name) or non-negative Integer (user variable binding) expected, but value is Map");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -485,7 +485,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: User variable binding in 'columns' option must be non-negative integer value");
+}, "Util.importTable: Argument #2: User variable binding in 'columns' option must be non-negative integer value");
 
 //@<> Unbalanced brackets in transformations
 EXPECT_THROWS(function () {
@@ -495,7 +495,7 @@ EXPECT_THROWS(function () {
             1,
             2,
             3,
-            -6
+            4
         ],
         decodeColumns: {
             "a": "@1",
