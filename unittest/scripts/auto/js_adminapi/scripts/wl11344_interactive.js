@@ -207,13 +207,13 @@ WIPE_SHELL_LOG();
 cluster.addInstance(__sandbox_uri2);
 cluster.status();
 
-//@ FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
+//@<> FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
 session.close();
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 
-//@ FR2-TS-4 SETUP {VER(>=8.0.12)}
+//@<> FR2-TS-4 SETUP {VER(>=8.0.12)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 var s1 = mysql.getSession(__sandbox_uri1);
@@ -231,7 +231,7 @@ cluster = dba.getCluster("ClusterName");
 // due to the usage of ports, we must disable connectivity checks, otherwise the command would fail
 shell.options["dba.connectivityChecks"] = false;
 
-var __local_address_2 = "15679";
+var __local_address_2 = __mysql_sandbox_port2 + 20500;
 cluster.addInstance(__sandbox_uri2, {localAddress: "localhost:" + __local_address_2, ipAllowlist:"255.255.255.255/32,127.0.0.1," + hostname_ip + "," + hostname});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 

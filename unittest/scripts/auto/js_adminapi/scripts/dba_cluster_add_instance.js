@@ -101,6 +101,8 @@ var singleSession2 = session;
 single.disconnect();
 
 // Kill the seed instance
+disable_auto_rejoin(__mysql_sandbox_port1);
+
 testutil.killSandbox(__mysql_sandbox_port1);
 testutil.waitMemberState(__mysql_sandbox_port1, "(MISSING),UNREACHABLE");
 
@@ -128,7 +130,6 @@ single.removeInstance({host: localhost, port: __mysql_sandbox_port3});
 
 //@ create second cluster
 shell.connect(__sandbox_uri3);
-var multiSession = session;
 
 // We must use clearReadOnly because the instance 3 was removed from the cluster before
 // (BUG#26422638)
@@ -143,7 +144,6 @@ single.addInstance(add_instance_options);
 dba.dropMetadataSchema({force:true});
 
 //@ Failure adding instance from an unmanaged replication group into single
-add_instance_options['port'] = __mysql_sandbox_port3;
 single.addInstance(add_instance_options);
 
 //@ Failure adding instance already in the InnoDB cluster
@@ -167,7 +167,6 @@ EXPECT_NO_THROWS(function() { single.addInstance(__sandbox_uri3, {recoveryMethod
 EXPECT_STDOUT_NOT_CONTAINS("The following tables do not have a Primary Key or equivalent column:");
 
 //@<> cleanup old clusters and sessions
-multiSession.close();
 multi.disconnect();
 singleSession.close();
 singleSession2.close();

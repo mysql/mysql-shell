@@ -397,12 +397,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@ FR2-TS-3 TEARDOWN {VER(>=8.0.12)}
-||
-
-//@ FR2-TS-4 SETUP {VER(>=8.0.12)}
-||
-
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
