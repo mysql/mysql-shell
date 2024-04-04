@@ -851,7 +851,7 @@ Shell_options::Shell_options(
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.execute_dba_statement, "",
         cmdline("--dba=enableXProtocol"), "Enable the X protocol in the target "
-        "server. Requires a connection using classic session.")
+        "server. Requires a connection using classic session. Deprecated.")
 #ifndef NDEBUG
     (cmdline("--trace-proto"), assign_value(&storage.trace_protocol, true))
 #endif
@@ -1237,6 +1237,16 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     m_on_warning(
         "WARNING: The --dba-log-sql option was deprecated, "
         "please use --log-sql instead.");
+    return false;
+  } else if ("--dba" == option) {
+    if (iterator->value()) {
+      const std::string value = iterator->value();
+      if ("enableXProtocol" == value) {
+        deprecated(m_on_warning, nullptr,
+                   std::bind(&Shell_options::override_session_type, this, _1,
+                             _2))(value, nullptr);
+      }
+    }
     return false;
   } else {
     return false;

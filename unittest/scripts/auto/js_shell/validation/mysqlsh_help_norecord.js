@@ -247,6 +247,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    SHA256_MEMORY.
   --dba=enableXProtocol            Enable the X protocol in the target server.
                                    Requires a connection using classic session.
+                                   Deprecated.
   --quiet-start[={1|2}]            Avoids printing information when the shell
                                    is started. A value of 1 will prevent
                                    printing the shell version information. A
