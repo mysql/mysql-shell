@@ -1,10 +1,12 @@
 //@ {DEF(MYSQLD_SECONDARY_SERVER_A) && VER(>=8.0.13) && testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, ">=", "8.0.13")}
 
-// Deploy sandbox with current version
-testutil.deploySandbox(__mysql_sandbox_port2, "root", { report_host: localhost });
-
-// Deploy sandboxes with secondary version
-testutil.deploySandbox(__mysql_sandbox_port1, "root", { report_host: localhost }, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+if (testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, '<', __version)) {
+    testutil.deploySandbox(__mysql_sandbox_port1, "root", { report_host: localhost }, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+    testutil.deploySandbox(__mysql_sandbox_port2, "root", { report_host: localhost });
+} else {
+    testutil.deploySandbox(__mysql_sandbox_port1, "root", { report_host: localhost });
+    testutil.deploySandbox(__mysql_sandbox_port2, "root", { report_host: localhost }, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+}
 
 shell.connect(__sandbox_uri1);
 

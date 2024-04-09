@@ -79,18 +79,16 @@ var vars1 = session1.runSql("SHOW variables WHERE (Variable_name like 'group_rep
 var vars2 = session2.runSql("SHOW variables WHERE (Variable_name like 'group_replication%') AND (Variable_name <> 'group_replication_group_seeds')").fetchAll();
 
 testutil.stopGroup([__mysql_sandbox_port1,__mysql_sandbox_port2]);
+
 session1.runSql("set global super_read_only=0");
 session1.runSql("set sql_log_bin=0");
-session1.runSql("set persist group_replication_start_on_boot=0");
+disable_auto_rejoin(session1, __mysql_sandbox_port1);
 session1.runSql("uninstall plugin group_replication");
 
 session2.runSql("set global super_read_only=0");
 session2.runSql("set sql_log_bin=0");
-session2.runSql("set persist group_replication_start_on_boot=0");
+disable_auto_rejoin(session2, __mysql_sandbox_port2);
 session2.runSql("uninstall plugin group_replication");
-
-disable_auto_rejoin(__mysql_sandbox_port1);
-disable_auto_rejoin(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
 
