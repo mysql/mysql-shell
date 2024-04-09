@@ -22,10 +22,15 @@ os.chmod(myloginfile, 0o600)
 
 shell.connect(__mysqluripwd)
 session.run_sql("drop user if exists mycnfusr@'%'")
-session.run_sql("create user mycnfusr@'%' identified by 'testpwd'")
+
+with_statement = " with caching_sha2_password"
+if __version_num <= 50744:
+    with_statement = ""
+
+session.run_sql(f"create user mycnfusr@'%' identified {with_statement} by 'testpwd'")
 
 session.run_sql("drop user if exists lpathusr@'%'")
-session.run_sql("create user lpathusr@'%' identified by 'lpathusrpwd'")
+session.run_sql(f"create user lpathusr@'%' identified {with_statement} by 'lpathusrpwd'")
 
 socket = get_socket_path(session)
 
@@ -98,8 +103,8 @@ testutil.call_mysqlsh(["--no-defaults", __mysqluripwd, "--sql", "-e", "select us
 EXPECT_STDOUT_CONTAINS(f"root@localhost	{__mysql_port}")
 
 #@<> explicit params override specific defaults
-testutil.call_mysqlsh(["-ubaduser", "--passwords-from-stdin"], "\n", ["MYSQL_HOME="+homedir])
-EXPECT_STDOUT_CONTAINS("Access denied for user 'baduser'@'localhost' (using password: YES)")
+testutil.call_mysqlsh(["-ulpathusr", "--passwords-from-stdin"], "\n", ["MYSQL_HOME="+homedir])
+EXPECT_STDOUT_CONTAINS("Access denied for user 'lpathusr'@'localhost' (using password: YES)")
 
 #@<> check sessions opened with defaults use mysql protocol
 testutil.call_mysqlsh(["--sql", "-e", "select user(), @@port"], "", ["MYSQL_HOME="+homedir])

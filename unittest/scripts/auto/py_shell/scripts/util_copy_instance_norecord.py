@@ -138,8 +138,15 @@ EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ] })
 # WL15298_TSFR_4_4_13
 # WL15298_TSFR_4_4_14
 # WL15298_TSFR_4_4_15
+
+# NOTE: targetVersion cannot be lower than 8.0.25 and higher than the current version
+if __version_num < 80025 or __version_num > __mysh_version_num:
+    target_version = __mysh_version_no_extra
+else:
+    target_version = __version
+
 # this tests that compatibility mode is recognized and some of them are applied
-EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers", "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces" ] })
+EXPECT_SUCCESS(__sandbox_uri2, { "targetVersion": target_version, "compatibility": [ "force_innodb", "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers", "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces" ] })
 EXPECT_STDOUT_CONTAINS(f"User {test_user_account} had restricted privileges")
 EXPECT_STDOUT_CONTAINS("Function `sakila`.`get_customer_balance` had definer clause removed")
 EXPECT_STDOUT_CONTAINS("View `sakila`.`sales_by_store` had SQL SECURITY characteristic set to INVOKER")

@@ -136,6 +136,8 @@ def EXPECT_SUCCESS_IMPL(method, connectionData, options, src, setup, *args):
     if setup:
         setup()
     WIPE_STDOUT()
+    if "targetVersion" in options:
+        del options["targetVersion"]
     EXPECT_NO_THROWS(lambda: method(*args, connectionData, options), "copy should not throw")
     actual = snapshot_instance(tgt_session)
     # verify that dump&load created the same result as copy

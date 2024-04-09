@@ -423,6 +423,10 @@ void PrintTo(Mysqlsh_ssl::Usr r, ::std::ostream *os) {
   } while (0)
 
 TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 4, 0)) {
+    SKIP_TEST("This test requires the mysql_native_password plugin available!");
+  }
+
   // Test basic SSL support using mysql_native_password auth (default auth
   // method up to MySQL 8.0.4):
   // ssl-mode: default, disabled, required, preferred
@@ -502,6 +506,9 @@ TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password) {
 }
 
 TEST_F(Mysqlsh_ssl, ssl_basic_mysql_native_password_require_ssl) {
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 4, 0)) {
+    SKIP_TEST("This test requires the mysql_native_password plugin available!");
+  }
   // Test basic SSL support using mysql_native_password auth require ssl
   // ssl-mode: default, disabled, required, preferred
   // X and classic protocols

@@ -385,6 +385,23 @@ def EXPECT_STDOUT_CONTAINS(text, note=None):
             "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
+def EXPECT_STDOUT_CONTAINS_ONE_OF(expected_list, note=None):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+
+    found = False
+    for item in expected_list:
+        if out.find(item) != -1:
+            found = True
+
+    if not found:
+        if not note:
+            note = __caller_context()
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output (Any of the following):</red> " + "\n".join(expected_list) + \
+            "\n<yellow>Actual stdout:</yellow> " + out + \
+            "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)
+
 
 def EXPECT_STDERR_CONTAINS(text, note=None):
     out = testutil.fetch_captured_stdout(False)

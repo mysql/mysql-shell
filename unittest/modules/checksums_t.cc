@@ -644,10 +644,12 @@ TEST_F(Checksums_test, sha2_hashes_5_6) {
     SKIP_TEST("The 5.6 server is not available");
   }
 
-  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+  if (_target_server_version != mysqlshdk::utils::k_shell_version) {
     // we need to run this test only once, and we want to avoid executing it in
     // parallel
-    SKIP_TEST("Executed only when 8.0+ server is present");
+    SKIP_TEST("Executed only when " +
+              mysqlshdk::utils::k_shell_version.get_base() +
+              " server is present");
   }
 
   Lock_5_6 lock{connect_session(uri)};
