@@ -38,7 +38,8 @@ def prepare(sbport, options={}):
         "local_infile": "1",
         "tmpdir": mysql_tmpdir,
         # small sort buffer to force stray filesorts to be triggered even if we don't have much data
-        "sort_buffer_size": 32768
+        "sort_buffer_size": 32768,
+        "loose_mysql_native_password": "ON"
     })
     if __os_type == "windows":
         options.update({
@@ -2471,7 +2472,9 @@ session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
 shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
 
 WIPE_SHELL_LOG()
-EXPECT_THROWS(lambda: util.load_dump(dump_dir), "User 'admin' has exceeded the 'max_questions' resource (current value: 70)")
+# we don't specify the error message here, it can vary depending on when the error is reported
+EXPECT_THROWS(lambda: util.load_dump(dump_dir), "")
+EXPECT_STDOUT_CONTAINS("User 'admin' has exceeded the 'max_questions' resource (current value: 70)")
 EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
 
 #@<> BUG#33788895 - cleanup

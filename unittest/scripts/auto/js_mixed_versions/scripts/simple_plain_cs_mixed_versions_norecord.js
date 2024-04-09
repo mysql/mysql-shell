@@ -25,11 +25,17 @@ k_mycnf_options = {
 var pwdAdmin = "C0mPL1CAT3D_pa22w0rd_adm1n";
 var pwdExtra = "C0mPL1CAT3D_pa22w0rd_3x7ra";
 
-testutil.deployRawSandbox(__mysql_sandbox_port1, __secure_password, {report_host: hostname, ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
-testutil.deploySandbox(__mysql_sandbox_port2, __secure_password, {report_host: hostname, ...k_mycnf_options});
-testutil.deploySandbox(__mysql_sandbox_port3, __secure_password, {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options});
-
-testutil.deployRawSandbox(__mysql_sandbox_port4, __secure_password, {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options});
+if (testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, '<', __version)) {
+    testutil.deployRawSandbox(__mysql_sandbox_port1, __secure_password, {report_host: hostname, ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+    testutil.deploySandbox(__mysql_sandbox_port2, __secure_password, {report_host: hostname, ...k_mycnf_options});
+    testutil.deploySandbox(__mysql_sandbox_port3, __secure_password, {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options});
+    testutil.deployRawSandbox(__mysql_sandbox_port4, __secure_password, {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options});
+} else {
+    testutil.deployRawSandbox(__mysql_sandbox_port1, __secure_password, {report_host: hostname, ...k_mycnf_options});
+    testutil.deploySandbox(__mysql_sandbox_port2, __secure_password, {report_host: hostname, ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+    testutil.deploySandbox(__mysql_sandbox_port3, __secure_password, {report_host: hostname, log_error_verbosity:3, ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+    testutil.deployRawSandbox(__mysql_sandbox_port4, __secure_password, {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
+}
 
 shell.options.useWizards = false;
 
