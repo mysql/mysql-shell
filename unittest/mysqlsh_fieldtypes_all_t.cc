@@ -557,8 +557,8 @@ TEST_F(Mysqlsh_fieldtypes_all, Geom_types_classic) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Vector_type_X) {
-  if (_target_server_version < mysqlshdk::utils::Version(8, 4, 0))
-    SKIP_TEST("vector type for 8.4.0+");
+  if (_target_server_version < mysqlshdk::utils::Version(9, 0, 0))
+    SKIP_TEST("vector type for 9.0.0+");
 
   execute({_mysqlsh, _uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_vector;", NULL});
@@ -570,8 +570,8 @@ TEST_F(Mysqlsh_fieldtypes_all, Vector_type_X) {
 }
 
 TEST_F(Mysqlsh_fieldtypes_all, Vector_type_classic) {
-  if (_target_server_version < mysqlshdk::utils::Version(8, 4, 0))
-    SKIP_TEST("vector type for 8.4.0+");
+  if (_target_server_version < mysqlshdk::utils::Version(9, 0, 0))
+    SKIP_TEST("vector type for 9.0.0+");
 
   execute({_mysqlsh, _mysql_uri.c_str(), "--sql", "--database=xtest", "-e",
            "SELECT * FROM t_vector;", NULL});

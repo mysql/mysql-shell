@@ -305,7 +305,7 @@ session.runSql("SET GLOBAL local_infile=1");
 //@<> Try to load the dump with sql_require_primary_key enabled (should fail)
 if(__version_num>80013) {
   t_vector="";
-  if(__version_num>=80400) {
+  if(__version_num>=90000) {
     t_vector=", \`t_vector\`";
   }
   session.runSql("set @@global.sql_require_primary_key=ON;");
@@ -600,7 +600,7 @@ var snap=snapshot_instance(session);
 EXPECT_EQ(Object.keys(reference["schemas"]).sort(), Object.keys(snap["schemas"]).sort());
 EXPECT_EQ(["actor", "address", "category", "city", "country", "customer", "film_actor", "film_category", "film_text", "inventory", "language", "payment", "rental", "staff", "store"], Object.keys(snap["schemas"]["sakila"]["tables"]).sort());
 EXPECT_EQ(["customer_list", "sales_by_store", "staff_list"], Object.keys(snap["schemas"]["sakila"]["views"]).sort());
-if (__version_num >= 80400)
+if (__version_num >= 90000)
   EXPECT_EQ(["t_bigint", "t_bit", "t_char", "t_date", "t_decimal1", "t_decimal2", "t_decimal3", "t_double", "t_enum", "t_float", "t_geom", "t_geom_all", "t_int", "t_integer", "t_lchar", "t_lob", "t_mediumint", "t_numeric1", "t_numeric2", "t_real", "t_set", "t_smallint", "t_tinyint", "t_vector"], Object.keys(snap["schemas"]["xtest"]["tables"]).sort());
 else
   EXPECT_EQ(["t_bigint", "t_bit", "t_char", "t_date", "t_decimal1", "t_decimal2", "t_decimal3", "t_double", "t_enum", "t_float", "t_geom", "t_geom_all", "t_int", "t_integer", "t_lchar", "t_lob", "t_mediumint", "t_numeric1", "t_numeric2", "t_real", "t_set", "t_smallint", "t_tinyint"], Object.keys(snap["schemas"]["xtest"]["tables"]).sort());
