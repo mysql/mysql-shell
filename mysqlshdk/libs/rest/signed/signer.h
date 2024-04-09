@@ -121,7 +121,7 @@ class Signer : public ISigner {
 
   bool update_credentials() {
     if (auto credentials = m_credentials_provider->credentials()) {
-      if (!m_credentials ||
+      if (!m_credentials || credentials.get() != m_credentials.get() ||
           credentials->expiration() != m_credentials->expiration()) {
         if (m_credentials) {
           log_info("The %s credentials have been refreshed.",

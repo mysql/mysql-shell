@@ -23,22 +23,40 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_UTILS_ENCODING_H_
-#define MYSQLSHDK_LIBS_UTILS_ENCODING_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_UTILS_ENCODING_H_
+#define MYSQLSHDK_LIBS_UTILS_UTILS_ENCODING_H_
 
 #include <string>
+#include <string_view>
 
 namespace shcore {
+
 /**
  * Decodes a base64 encoded string.
  *
  * @param source the base64 string to be decoded
  * @param target a string pointer where the decoded string will be stored.
+ *
  * @returns true on success decode
  */
-bool decode_base64(const std::string &source, std::string *target);
-bool encode_base64(const unsigned char *source, int source_length,
+bool decode_base64(std::string_view source, std::string *target);
+
+bool encode_base64(std::string_view source, std::string *encoded);
+
+bool encode_base64(const unsigned char *source, std::size_t source_length,
                    std::string *encoded);
+
+bool decode_base64url(std::string_view source, std::string *target);
+
+bool encode_base64url(std::string_view source, std::string *encoded);
+
+/**
+ * Replaces '+' with '-' and '/' with '_', trims any '=' (RFC 7515, Section 2
+ * and RFC 4648, Section 5).
+ */
+bool encode_base64url(const unsigned char *source, std::size_t source_length,
+                      std::string *encoded);
+
 }  // namespace shcore
 
-#endif  // MYSQLSHDK_LIBS_UTILS_ENCODING_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_UTILS_ENCODING_H_

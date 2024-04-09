@@ -34,6 +34,8 @@
 
 #include "mysqlshdk/libs/utils/logger.h"
 
+#include "mysqlshdk/libs/rest/signed/credentials_error.h"
+
 namespace mysqlshdk {
 namespace rest {
 
@@ -79,20 +81,23 @@ class Credentials_provider {
    * @returns true If initialization was successful.
    */
   bool initialize() {
-    if (!m_initialize_called) {
-      m_credentials = get_credentials();
+    m_initialized = false;
+    m_credentials = get_credentials();
 
-      if (m_credentials) {
-        m_temporary = m_credentials->temporary();
-      }
-
-      // we don't want to try again even if we got no credentials, another try
-      // will also fail
-      m_initialize_called = true;
+    if (m_credentials) {
+      m_temporary = m_credentials->temporary();
+      m_initialized = true;
     }
 
-    return !!m_credentials;
+    return m_initialized;
   }
+
+  /**
+   * Checks if provider is initialized.
+   *
+   * @returns true If initialization was successful.
+   */
+  inline bool is_initialized() const noexcept { return m_initialized; }
 
   /**
    * Gets credentials fetched by this provider.
@@ -100,7 +105,7 @@ class Credentials_provider {
    * @returns Fetched credentials, or nullptr.
    */
   Credentials_ptr_t credentials() const {
-    assert(m_initialize_called);
+    assert(m_initialized);
 
     if (m_temporary) {
       const_cast<Credentials_provider *>(this)->maybe_refresh();
@@ -122,7 +127,14 @@ class Credentials_provider {
    *
    * @param name Name of the provider.
    */
-  explicit Credentials_provider(std::string name) : m_name(std::move(name)) {}
+  explicit Credentials_provider(std::string name) : m_name(std::move(name)) {
+    log_debug("Creating %s credentials provider named: %s",
+              Provider_t::s_storage_name, this->name().c_str());
+  }
+
+  inline Credentials_ptr_t current_credentials() const noexcept {
+    return m_credentials;
+  }
 
  private:
   /**
@@ -138,11 +150,13 @@ class Credentials_provider {
     Credentials credentials;
 
     try {
+      log_debug("Fetching %s credentials using provider: %s",
+                Provider_t::s_storage_name, name().c_str());
       credentials = fetch_credentials();
     } catch (const std::exception &e) {
       log_error("Failed to fetch %s credentials using provider: %s, error: %s",
                 Provider_t::s_storage_name, name().c_str(), e.what());
-      throw;
+      throw Credentials_error{e.what()};
     }
 
     return Traits::convert(*static_cast<Provider_t *>(this), credentials);
@@ -157,7 +171,7 @@ class Credentials_provider {
   }
 
   std::string m_name;
-  bool m_initialize_called = false;
+  bool m_initialized = false;
 
   Credentials_ptr_t m_credentials;
   bool m_temporary = false;

@@ -41,7 +41,6 @@ set(utils_SOURCE
     process_launcher.cc
     profiling.cc
     rate_limit.cc
-    ssl_keygen.cc
     strformat.cc
     syslog.cc
     syslog_level.cc
@@ -52,18 +51,22 @@ set(utils_SOURCE
     utils_file.cc
     utils_general.cc
     utils_json.cc
+    utils_jwt.cc
     utils_lexing.cc
     utils_mysql_parsing.cc
     utils_net.cc
     utils_os.cc
     utils_path.cc
+    utils_private_key.cc
     utils_process.cc
     utils_sqlstring.cc
+    utils_ssl.cc
     utils_stacktrace.cc
     utils_string.cc
     utils_time.cc
     utils_translate.cc
     utils_uuid.cc
+    utils_x509.cc
     uuid_gen.cc
     version.cc
     string_list_matcher.cc

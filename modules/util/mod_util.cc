@@ -56,7 +56,6 @@
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/profiling.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -704,6 +703,9 @@ using the tenancy id on the OCI configuration.
 shell option, to specify the path to the OCI configuration file.
 @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
 option, to specify the name of the OCI profile to use.
+@li <b>ociAuth</b>: string (default: not set) - Use the specified authentication
+method when connecting to the OCI. Allowed values: api_key (used when not
+explicitly set), instance_principal, resource_principal, security_token.
 )*");
 
 REGISTER_HELP_FUNCTION(importTable, util);
@@ -1489,7 +1491,10 @@ using the tenancy id on the OCI configuration.
 @li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
 configuration file instead of the one at the default location.
 @li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
-instead of the default one.)*");
+instead of the default one.
+@li <b>ociAuth</b>: string (default: not set) - Use the specified authentication
+method when connecting to the OCI. Allowed values: api_key (used when not
+explicitly set), instance_principal, resource_principal, security_token.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
 @li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
@@ -1701,11 +1706,22 @@ If the <b>osBucketName</b> option is used, the dump is stored in the specified
 OCI bucket, connection is established using the local OCI profile. The directory
 structure is simulated within the object name.
 
-The <b>osNamespace</b>, <b>ociConfigFile</b> and <b>ociProfile</b> options
-cannot be used if the <b>osBucketName</b> option is set to an empty string.
+The <b>osNamespace</b>, <b>ociConfigFile</b>, <b>ociProfile</b> and
+<b>ociAuth</b> options cannot be used if the <b>osBucketName</b> option is set
+to an empty string.
 
 The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
 tenancy ID from the local OCI profile.
+
+The <b>ociAuth</b> option allows to specify the authentication method used when
+connecting to the OCI:
+
+@li <b>api_key</b> - API Key-Based Authentication
+@li <b>instance_principal</b> - Instance Principal Authentication
+@li <b>resource_principal</b> - Resource Principal Authentication
+@li <b>security_token</b> - Session Token-Based Authentication
+
+For more information please see: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
 <b>Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)</b>
 

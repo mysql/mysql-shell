@@ -35,6 +35,7 @@ namespace rest {
 /**
  * Base class which represents credentials used to sign a request.
  */
+template <int Threshold = 5>
 class Credentials {
  public:
   using Clock = std::chrono::system_clock;
@@ -127,7 +128,8 @@ class Credentials {
   inline Time_point expiration() const noexcept { return m_expiration; }
 
  private:
-  static constexpr auto k_expiration_threshold = std::chrono::minutes(5);
+  static constexpr auto k_expiration_threshold =
+      std::chrono::minutes(Threshold);
   static constexpr std::chrono::minutes k_no_expiration_threshold{};
 
   Time_point m_expiration;

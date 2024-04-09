@@ -206,6 +206,24 @@ std::optional<std::string> optional(const JSON &json, const char *name,
  */
 std::optional<uint64_t> optional_uint(const JSON &json, const char *name);
 
+/**
+ * Converts a JSON object to a string.
+ *
+ * @param json A JSON object
+ *
+ * @returns String representation of a JSON object.
+ */
+std::string to_string(const JSON &json);
+
+/**
+ * Converts a JSON object to a nicely formatted string.
+ *
+ * @param json A JSON object
+ *
+ * @returns String representation of a JSON object.
+ */
+std::string to_pretty_string(const JSON &json);
+
 }  // namespace json
 
 }  // namespace shcore

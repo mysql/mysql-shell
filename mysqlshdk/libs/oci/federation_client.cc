@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,22 +23,42 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "unittest/gprod_clean.h"
+#include "mysqlshdk/libs/oci/federation_client.h"
 
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
-#include "unittest/gtest_clean.h"
+namespace mysqlshdk {
+namespace oci {
 
-namespace shcore {
-namespace ssl {
-
-TEST(ssl, md5) {
-  const std::string data = "abcABC";
-  std::vector<unsigned char> expected{0x0A, 0xCE, 0x32, 0x55, 0x45, 0x11,
-                                      0x9A, 0xC9, 0x9F, 0x35, 0xA5, 0x8E,
-                                      0x04, 0xAC, 0x2D, 0xF1};
-  EXPECT_EQ(expected, restricted::md5(data.c_str(), data.length()));
+Federation_client::Federation_client(Federation_credentials_provider *provider)
+    : Oci_client(provider, Oci_client::endpoint_for("auth", provider->region()),
+                 "OCI-X509") {
+  log_debug("OCI X509 federation client: %s", service_endpoint().c_str());
 }
 
-}  // namespace ssl
-}  // namespace shcore
+Security_token Federation_client::token(
+    const X509_federation_details &details) {
+  shcore::JSON_dumper json;
+
+  json.start_object();
+  json.append("certificate", details.certificate);
+  json.append("publicKey", details.public_key);
+
+  if (!details.intermediate_certificates.empty()) {
+    json.append("intermediateCertificates");
+    json.start_array();
+
+    for (const auto &cert : details.intermediate_certificates) {
+      json.append(cert);
+    }
+
+    json.end_array();
+  }
+
+  json.end_object();
+
+  return Security_token::from_json(post("/v1/x509", json.str()));
+}
+
+}  // namespace oci
+}  // namespace mysqlshdk

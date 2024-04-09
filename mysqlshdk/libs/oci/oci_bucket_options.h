@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_options.h"
@@ -42,6 +43,13 @@ class Oci_bucket_options
       public storage::backend::object_storage::mixin::Config_file,
       public storage::backend::object_storage::mixin::Config_profile {
  public:
+  enum class Auth {
+    API_KEY,
+    SECURITY_TOKEN,
+    INSTANCE_PRINCIPAL,
+    RESOURCE_PRINCIPAL,
+  };
+
   Oci_bucket_options() = default;
 
   Oci_bucket_options(const Oci_bucket_options &) = default;
@@ -60,9 +68,13 @@ class Oci_bucket_options
 
   static constexpr const char *profile_option() { return "ociProfile"; }
 
+  static constexpr const char *auth_option() { return "ociAuth"; }
+
   static const shcore::Option_pack_def<Oci_bucket_options> &options();
 
   std::shared_ptr<Oci_bucket_config> oci_config() const;
+
+  inline Auth auth() const noexcept { return m_auth; }
 
  protected:
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
@@ -72,11 +84,19 @@ class Oci_bucket_options
 
   const char *get_main_option() const override { return bucket_name_option(); }
 
+  void on_unpacked_options() const override;
+
  private:
   friend class Oci_bucket_config;
 
   std::vector<const char *> get_secondary_options() const override;
+
   bool has_value(const char *option) const override;
+
+  void set_auth(const std::string &auth);
+
+  Auth m_auth = Auth::API_KEY;
+  std::string m_auth_str;
 };
 
 }  // namespace oci

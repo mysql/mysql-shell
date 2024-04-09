@@ -31,7 +31,6 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -40,6 +39,9 @@
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+
+#include "mysqlshdk/libs/rest/retry_strategy.h"
+#include "mysqlshdk/libs/rest/signed/credentials_error.h"
 
 #ifdef _WIN32
 #include <openssl/ssl.h>
@@ -630,6 +632,10 @@ Response::Status_code Rest_service::execute(Request *request,
         log_failed_request(base_url, *request, format_exception(error));
         throw;
       }
+    } catch (const rest::Credentials_error &error) {
+      // this error is not recoverable
+      log_failed_request(base_url, *request, format_exception(error));
+      throw;
     } catch (const std::exception &error) {
       if (retry_strategy && retry_strategy->should_retry(Unknown_error{})) {
         // A unexpected error occurred but the retry strategy indicates we

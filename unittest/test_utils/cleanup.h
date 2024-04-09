@@ -57,6 +57,9 @@ class Cleanup final {
   [[nodiscard]] static Cleanup set_env_var(const char *name,
                                            const std::string &value);
 
+  [[nodiscard]] static Cleanup write_file(const std::string &path,
+                                          const std::string &contents);
+
  private:
   std::deque<Step> m_steps;
 };

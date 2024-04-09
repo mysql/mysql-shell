@@ -38,7 +38,6 @@ set(SHELLCORE_SOURCES
   base_session.cc
   completer.cc
   credential_manager.cc
-  private_key_manager.cc
   provider_script.cc
   ishell_core.cc
   shell_cli_operation.cc

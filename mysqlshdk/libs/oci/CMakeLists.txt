@@ -26,12 +26,27 @@ IF(OPENSSL_INCLUDE_DIR)
 ENDIF()
 
 set(oci_SOURCES
+  api_key_credentials_provider.cc
+  config_credentials_provider.cc
+  data_plane_client.cc
+  federation_client.cc
+  federation_credentials_provider.cc
+  fixed_credentials_provider.cc
+  instance_metadata_retriever.cc
+  instance_principal_credentials_provider.cc
   oci_bucket.cc
   oci_bucket_config.cc
   oci_bucket_options.cc
+  oci_client.cc
+  oci_credentials.cc
+  oci_credentials_provider.cc
   oci_par.cc
+  oci_regions.cc
   oci_setup.cc
   oci_signer.cc
+  resource_principal_credentials_provider.cc
+  security_token.cc
+  security_token_credentials_provider.cc
 )
 
 add_convenience_library(oci ${oci_SOURCES})

@@ -935,6 +935,12 @@ OPTIONS
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
+
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
             Default: not set.
@@ -1183,6 +1189,12 @@ OPTIONS
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
+
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
             Default: not set.
@@ -1412,6 +1424,12 @@ OPTIONS
             Use the specified OCI profile instead of the default one. Default:
             not set.
 
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
+
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
             Default: not set.
@@ -1534,6 +1552,12 @@ OPTIONS
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
+            not set.
+
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
             not set.
 
 --s3BucketName=<str>
@@ -1769,6 +1793,12 @@ OPTIONS
 --ociProfile=<str>
             Override oci.profile shell option, to specify the name of the OCI
             profile to use. Default: not set.
+
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
 
 --s3BucketName=<str>
             Name of the AWS S3 bucket to use. The bucket must already exist.
@@ -2025,6 +2055,12 @@ OPTIONS
 
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
+            not set.
+
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
             not set.
 
 --s3BucketName=<str>

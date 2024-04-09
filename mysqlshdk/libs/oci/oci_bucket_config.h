@@ -32,15 +32,17 @@
 #include "mysqlshdk/libs/storage/backend/object_storage_config.h"
 
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
+#include "mysqlshdk/libs/oci/oci_credentials_provider.h"
+#include "mysqlshdk/libs/oci/oci_signer.h"
 
 namespace mysqlshdk {
 namespace oci {
 
 class Oci_bucket;
-class Oci_setup;
 
 class Oci_bucket_config
     : public storage::backend::object_storage::Bucket_config,
+      public Oci_signer_config,
       public storage::backend::object_storage::mixin::Config_file,
       public storage::backend::object_storage::mixin::Config_profile,
       public storage::backend::object_storage::mixin::Host {
@@ -68,25 +70,26 @@ class Oci_bucket_config
 
   const std::string &hash() const override;
 
+  const std::string &host() const override { return m_host; }
+
+  Oci_credentials_provider *credentials_provider() const override {
+    return m_credentials_provider.get();
+  }
+
  protected:
   std::string describe_self() const override;
 
  private:
-  friend class Oci_signer;
-
-  void load_key(Oci_setup *setup);
+  void resolve_credentials(Oci_bucket_options::Auth auth);
 
   void fetch_namespace();
 
   void configure_endpoint();
 
   std::string m_namespace;
-  std::string m_region;
-  std::string m_tenancy_id;
-  std::string m_user;
-  std::string m_fingerprint;
-  std::string m_key_file;
   mutable std::string m_hash;
+
+  std::unique_ptr<Oci_credentials_provider> m_credentials_provider;
 };
 
 using Oci_bucket_config_ptr = std::shared_ptr<const Oci_bucket_config>;

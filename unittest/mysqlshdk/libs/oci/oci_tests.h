@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -54,31 +55,15 @@ namespace testing {
     }                                \
   } while (false)
 
-class Oci_os_tests : public Shell_core_test_wrapper {
- public:
+class Oci_tests : public Shell_core_test_wrapper {
+ protected:
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
 
-    // Note that these object names are in alphabetical order on purpose
-    m_objects = {"sakila.sql",
-                 "sakila/actor.csv",
-                 "sakila/actor_metadata.txt",
-                 "sakila/address.csv",
-                 "sakila/address_metadata.txt",
-                 "sakila/category.csv",
-                 "sakila/category_metadata.txt",
-                 "sakila_metadata.txt",
-                 "sakila_tables.txt",
-                 "uncommon%25%name.txt",
-                 "uncommon's name.txt"};
+    m_oci_config_file = mysqlsh::current_shell_options()->get().oci_config_file;
 
-    {
-      const auto oci_config_path =
-          mysqlsh::current_shell_options()->get().oci_config_file;
-
-      if (!shcore::path_exists(oci_config_path)) {
-        skip("OCI Configuration does not exist: " + oci_config_path);
-      }
+    if (!shcore::path_exists(m_oci_config_file)) {
+      skip("OCI Configuration does not exist: " + m_oci_config_file);
     }
 
     const auto read_var = [this](const char *name, std::string *out,
@@ -95,17 +80,47 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     read_var("OS_NAMESPACE", &m_os_namespace, false);
     read_var("OCI_COMPARTMENT_ID", &m_oci_compartment_id);
     read_var("OS_BUCKET_NAME", &m_os_bucket_name);
+  }
+
+  void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }
+
+  bool should_skip() const { return !m_skip_reasons.empty(); }
+
+  std::string skip_reason() const {
+    return shcore::str_join(m_skip_reasons, "\n");
+  }
+
+  std::string m_oci_config_file;
+  std::string m_os_namespace;
+  std::string m_os_bucket_name;
+  std::string m_oci_compartment_id;
+
+ private:
+  std::vector<std::string> m_skip_reasons;
+};
+
+class Oci_os_tests : public Oci_tests {
+ protected:
+  void SetUp() override {
+    Oci_tests::SetUp();
+
+    // Note that these object names are in alphabetical order on purpose
+    m_objects = {"sakila.sql",
+                 "sakila/actor.csv",
+                 "sakila/actor_metadata.txt",
+                 "sakila/address.csv",
+                 "sakila/address_metadata.txt",
+                 "sakila/category.csv",
+                 "sakila/category_metadata.txt",
+                 "sakila_metadata.txt",
+                 "sakila_tables.txt",
+                 "uncommon%25%name.txt",
+                 "uncommon's name.txt"};
 
     create_bucket();
   }
 
   void TearDown() override { delete_bucket(); }
-
- protected:
-  std::vector<std::string> m_objects;
-  std::string m_os_namespace;
-  std::string m_os_bucket_name;
-  std::string m_oci_compartment_id;
 
   void create_objects(mysqlshdk::oci::Oci_bucket &bucket) {
     for (const auto &name : m_objects) {
@@ -169,13 +184,7 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     }
   }
 
-  void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }
-
-  bool should_skip() const { return !m_skip_reasons.empty(); }
-
-  std::string skip_reason() const {
-    return shcore::str_join(m_skip_reasons, "\n");
-  }
+  std::vector<std::string> m_objects;
 
  private:
   void create_bucket() {
@@ -198,8 +207,6 @@ class Oci_os_tests : public Shell_core_test_wrapper {
       bucket.delete_();
     }
   }
-
-  std::vector<std::string> m_skip_reasons;
 };
 
 }  // namespace testing

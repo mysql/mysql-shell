@@ -38,12 +38,9 @@ namespace mysqlshdk {
 namespace aws {
 
 class Aws_signer_test : public testing::Test {
- public:
-  static void SetUpTestSuite() { s_credentials_provider.initialize(); }
-
  protected:
-  static Aws_signer create_signer() {
-    Aws_signer signer{Signer_config{}};
+  Aws_signer create_signer() {
+    Aws_signer signer{m_signer_config};
 
     signer.m_sign_all_headers = true;
     signer.initialize();
@@ -51,7 +48,7 @@ class Aws_signer_test : public testing::Test {
     return signer;
   }
 
-  static void test_sign_request(
+  void test_sign_request(
       const rest::Signed_request &request, const std::string &signature,
       const std::string &sha256 =
           "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855") {
@@ -123,10 +120,13 @@ class Aws_signer_test : public testing::Test {
     }
   };
 
-  static Credentials_provider s_credentials_provider;
-
   class Signer_config : public Aws_signer_config {
    public:
+    Signer_config()
+        : m_credentials_provider(std::make_unique<Credentials_provider>()) {
+      m_credentials_provider->initialize();
+    }
+
     const std::string &host() const override { return m_host; }
 
     const std::string &region() const override { return m_region; }
@@ -134,17 +134,18 @@ class Aws_signer_test : public testing::Test {
     const std::string &service() const override { return m_service; }
 
     Aws_credentials_provider *credentials_provider() const override {
-      return &s_credentials_provider;
+      return m_credentials_provider.get();
     }
 
    private:
+    std::unique_ptr<Credentials_provider> m_credentials_provider;
     std::string m_host = k_host;
     std::string m_region = k_region;
     std::string m_service = "s3";
   };
-};
 
-Aws_signer_test::Credentials_provider Aws_signer_test::s_credentials_provider;
+  Signer_config m_signer_config;
+};
 
 TEST_F(Aws_signer_test, get_object) {
   rest::Signed_request request{"/test.txt", {{"Range", "bytes=0-9"}}};

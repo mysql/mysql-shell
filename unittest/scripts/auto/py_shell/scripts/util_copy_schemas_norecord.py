@@ -536,6 +536,7 @@ for param in [
         "ociProfile",
         "ociParManifest",
         "ociParExpireTime",
+        "ociAuth",
         "s3BucketName",
         "s3CredentialsFile",
         "s3ConfigFile",

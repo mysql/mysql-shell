@@ -34,9 +34,9 @@
 #include <utility>
 
 #include "mysqlshdk/libs/db/generic_uri.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_encoding.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 

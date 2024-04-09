@@ -1,9 +1,12 @@
 import oci
+import oci.signer
+import configparser
 import datetime
 import time
 import queue
 import re
 import threading
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from oci.object_storage.models.create_preauthenticated_request_details import CreatePreauthenticatedRequestDetails
 
@@ -156,3 +159,24 @@ def convert_par(par):
     else:
         # PAR with a dedicated endpoint, return old format
         return f"https://objectstorage.{m.group(2)}.oraclecloud.com{m.group(3)}"
+
+def get_session_token(config_file=os.path.join(OCI_CONFIG_HOME, "config")):
+    config = oci.config.from_file(config_file)
+    public_key = oci.signer.load_private_key_from_file(config["key_file"], config.get("pass_phrase", None)).public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode('ascii')
+    identity_data_plane_client = oci.identity_data_plane.DataplaneClient(config)
+    response = identity_data_plane_client.generate_user_security_token(generate_user_security_token_details=oci.identity_data_plane.models.GenerateUserSecurityTokenDetails(public_key=public_key, session_expiration_in_minutes=30))
+    return response.data.token
+
+def read_config_file(path, profile="DEFAULT"):
+    config = configparser.ConfigParser()
+    config.read(path)
+    settings = {}
+    for key, value in config.items(profile):
+        settings[key] = value
+    return settings
+
+def write_config_file(path, settings, profile="DEFAULT"):
+    config = configparser.ConfigParser()
+    config.read_dict({ profile: settings })
+    with open(path, "w") as f:
+        config.write(f)

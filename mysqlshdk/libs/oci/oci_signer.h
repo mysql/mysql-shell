@@ -33,16 +33,31 @@
 
 #include "mysqlshdk/libs/rest/signed/signer.h"
 
-#include "mysqlshdk/libs/oci/oci_bucket_config.h"
+#include "mysqlshdk/libs/oci/oci_credentials_provider.h"
 
 namespace mysqlshdk {
 namespace oci {
 
-class Oci_signer : public rest::ISigner {
+class Oci_signer_config : public rest::Signer_config<Oci_credentials_provider> {
+ public:
+  Oci_signer_config() = default;
+
+  Oci_signer_config(const Oci_signer_config &) = default;
+  Oci_signer_config(Oci_signer_config &&) = default;
+
+  Oci_signer_config &operator=(const Oci_signer_config &) = default;
+  Oci_signer_config &operator=(Oci_signer_config &&) = default;
+
+  ~Oci_signer_config() override = default;
+
+  virtual const std::string &host() const = 0;
+};
+
+class Oci_signer : public rest::Signer<Oci_credentials_provider> {
  public:
   Oci_signer() = delete;
 
-  explicit Oci_signer(const Oci_bucket_config &config);
+  explicit Oci_signer(const Oci_signer_config &config);
 
   Oci_signer(const Oci_signer &) = default;
   Oci_signer(Oci_signer &&) = default;
@@ -52,30 +67,13 @@ class Oci_signer : public rest::ISigner {
 
   ~Oci_signer() override = default;
 
-  bool should_sign_request(const rest::Signed_request &) const override {
-    return true;
-  }
-
   rest::Headers sign_request(const rest::Signed_request &request,
                              time_t now) const override;
 
-  bool refresh_auth_data() override { return false; }
-
-  bool auth_data_expired(time_t) const override { return false; }
-
- protected:
-  void set_auth_key_id(const std::string &auth_key_id) {
-    m_auth_key_id = auth_key_id;
-  }
-
-  void set_private_key(const std::shared_ptr<EVP_PKEY> &private_key) {
-    m_private_key = private_key;
-  }
-
  private:
+  void on_credentials_set() override {}
+
   std::string m_host;
-  std::string m_auth_key_id;
-  std::shared_ptr<EVP_PKEY> m_private_key;
 };
 
 }  // namespace oci

@@ -25,17 +25,21 @@
 
 #include "mysqlshdk/libs/oci/oci_signer.h"
 
+#include <string_view>
 #include <utility>
 
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_encoding.h"
-#include "mysqlshdk/shellcore/private_key_manager.h"
+#include "mysqlshdk/libs/utils/utils_private_key.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 
 namespace mysqlshdk {
 namespace oci {
 
 namespace {
+
+const std::string k_empty_payload_base64 =
+    "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
 
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
 // EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
@@ -73,8 +77,8 @@ std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
   return signature_b64;
 }
 
-std::string encode_sha256(const char *data, size_t size) {
-  const auto hash = shcore::ssl::sha256(data, size);
+std::string encode_sha256(std::string_view data) {
+  const auto hash = shcore::ssl::sha256(data);
   std::string encoded;
   shcore::encode_base64(hash.data(), hash.size(), &encoded);
 
@@ -83,14 +87,8 @@ std::string encode_sha256(const char *data, size_t size) {
 
 }  // namespace
 
-Oci_signer::Oci_signer(const Oci_bucket_config &config)
-    : m_host(config.m_host) {
-  set_auth_key_id(config.m_tenancy_id + "/" + config.m_user + "/" +
-                  config.m_fingerprint);
-  set_private_key(shcore::Private_key_storage::get()
-                      .contains(config.m_key_file)
-                      .first->second);
-}
+Oci_signer::Oci_signer(const Oci_signer_config &config)
+    : Signer(config), m_host(config.host()) {}
 
 rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
                                        time_t now) const {
@@ -114,7 +112,8 @@ rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
 
   if (method == rest::Type::POST) {
     all_headers["x-content-sha256"] =
-        encode_sha256(request.size ? request.body : "", request.size);
+        request.size ? encode_sha256({request.body, request.size})
+                     : k_empty_payload_base64;
     all_headers["content-length"] = std::to_string(request.size);
     string_to_sign.append(
         "\nx-content-sha256: " + all_headers["x-content-sha256"] +
@@ -122,7 +121,8 @@ rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
         "\ncontent-type: " + all_headers["content-type"]);
   }
 
-  const std::string signature_b64 = sign(m_private_key.get(), string_to_sign);
+  const std::string signature_b64 =
+      sign(m_credentials->private_key().ptr(), string_to_sign);
   std::string auth_header =
       "Signature version=\"1\",headers=\"(request-target) host x-date";
 
@@ -130,7 +130,7 @@ rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
     auth_header.append(" x-content-sha256 content-length content-type");
   }
 
-  auth_header.append("\",keyId=\"" + m_auth_key_id +
+  auth_header.append("\",keyId=\"" + m_credentials->auth_key_id() +
                      "\",algorithm=\"rsa-sha256\",signature=\"" +
                      signature_b64 + "\"");
 

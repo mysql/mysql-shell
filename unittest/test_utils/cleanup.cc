@@ -28,7 +28,9 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 
 namespace tests {
 
@@ -78,6 +80,37 @@ Cleanup &Cleanup::operator+=(Cleanup c) { return add(std::move(c)); }
 
   shcore::setenv(name, value);
   c.add([name]() { shcore::unsetenv(name); });
+
+  return c;
+}
+
+[[nodiscard]] Cleanup Cleanup::write_file(const std::string &path,
+                                          const std::string &contents) {
+  Cleanup c;
+  const auto dir = shcore::path::dirname(path);
+
+  if (!shcore::path_exists(dir)) {
+    shcore::create_directory(dir, false);
+    c.add([dir]() { shcore::remove_directory(dir); });
+  }
+
+  if (shcore::is_file(path)) {
+    auto backup = path + ".backup";
+    std::string suffix;
+    int i = 0;
+
+    while (shcore::is_file(backup + suffix)) {
+      suffix = "." + std::to_string(i++);
+    }
+
+    backup += suffix;
+
+    shcore::rename_file(path, backup);
+    c.add([path, backup]() { shcore::rename_file(backup, path); });
+  }
+
+  shcore::create_file(path, contents);
+  c.add([path]() { shcore::delete_file(path); });
 
   return c;
 }

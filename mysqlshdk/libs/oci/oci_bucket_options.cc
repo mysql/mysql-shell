@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "mysqlshdk/libs/oci/oci_bucket_config.h"
 
@@ -44,6 +45,7 @@ const shcore::Option_pack_def<Oci_bucket_options>
           .optional(namespace_option(), &Oci_bucket_options::m_namespace)
           .optional(config_file_option(), &Oci_bucket_options::m_config_file)
           .optional(profile_option(), &Oci_bucket_options::m_config_profile)
+          .optional(auth_option(), &Oci_bucket_options::set_auth)
           .on_done(&Oci_bucket_options::on_unpacked_options);
 
   return opts;
@@ -59,7 +61,8 @@ Oci_bucket_options::create_config() const {
 }
 
 std::vector<const char *> Oci_bucket_options::get_secondary_options() const {
-  return {config_file_option(), profile_option(), namespace_option()};
+  return {config_file_option(), profile_option(), namespace_option(),
+          auth_option()};
 }
 
 bool Oci_bucket_options::has_value(const char *option) const {
@@ -71,8 +74,47 @@ bool Oci_bucket_options::has_value(const char *option) const {
     return !m_config_profile.empty();
   } else if (shcore::str_caseeq(option, namespace_option())) {
     return !m_namespace.empty();
+  } else if (shcore::str_caseeq(option, auth_option())) {
+    return !m_auth_str.empty();
   }
   return false;
+}
+
+void Oci_bucket_options::set_auth(const std::string &auth) {
+  if ("" == auth) {
+    // use the default value
+  } else if ("api_key" == auth) {
+    m_auth = Auth::API_KEY;
+  } else if ("security_token" == auth) {
+    m_auth = Auth::SECURITY_TOKEN;
+  } else if ("instance_principal" == auth) {
+    m_auth = Auth::INSTANCE_PRINCIPAL;
+  } else if ("resource_principal" == auth) {
+    m_auth = Auth::RESOURCE_PRINCIPAL;
+  } else {
+    throw std::invalid_argument(shcore::str_format(
+        "Invalid value of '%s' option, expected one of: api_key, "
+        "instance_principal, resource_principal, security_token, but got: %s.",
+        auth_option(), auth.c_str()));
+  }
+
+  m_auth_str = auth;
+}
+
+void Oci_bucket_options::on_unpacked_options() const {
+  Object_storage_options::on_unpacked_options();
+
+  if (Auth::INSTANCE_PRINCIPAL == auth() ||
+      Auth::RESOURCE_PRINCIPAL == auth()) {
+    for (const auto disallowed : {config_file_option(), profile_option()}) {
+      if (has_value(disallowed)) {
+        throw std::invalid_argument(
+            shcore::str_format("The option '%s' cannot be used when the '%s' "
+                               "option is set to: %s.",
+                               disallowed, auth_option(), m_auth_str.c_str()));
+      }
+    }
+  }
 }
 
 }  // namespace oci

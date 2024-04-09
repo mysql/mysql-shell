@@ -29,26 +29,18 @@
 #include <string>
 
 #include "mysqlshdk/libs/config/config_file.h"
-#include "mysqlshdk/shellcore/wizard.h"
 
 namespace mysqlshdk {
 namespace oci {
 
-class Oci_setup : public shcore::wizard::Wizard {
+class Oci_setup {
  public:
-  Oci_setup();
   explicit Oci_setup(const std::string &oci_config_path);
+
   Oci_setup &operator=(const Oci_setup &other) = delete;
   Oci_setup &operator=(Oci_setup &&other) = delete;
 
   ~Oci_setup() = default;
-
-  /**
-   * Creates an OCI profile if it does not already exist.
-   *
-   * @param profile The name of the profile to be created.
-   */
-  void create_profile(const std::string &profile);
 
   /**
    * Loads the private key of the profile.
@@ -71,17 +63,10 @@ class Oci_setup : public shcore::wizard::Wizard {
 
   const mysqlshdk::config::Config_file &get_cfg() const { return m_config; }
 
-  std::string get_oci_path() const { return m_oci_path; }
-  std::string get_oci_cfg_path() const { return m_oci_cfg_path; }
-
  private:
-  void init_create_profile_wizard();
-  std::string load_private_key(const std::string &path,
-                               const std::string &inital_prompt);
+  std::string load_private_key(const std::string &path);
 
   mysqlshdk::config::Config_file m_config;
-  const std::string m_oci_path;
-  const std::string m_oci_cfg_path;
 };
 
 }  // namespace oci

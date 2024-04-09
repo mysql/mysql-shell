@@ -340,6 +340,37 @@ def TEST_STRING_OPTION(option):
     EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: {}, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Map")
     EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: False, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Bool")
 
+#@<> WL15884-TSFR_1_1 - `ociAuth` help text
+help_text = """
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
+"""
+EXPECT_TRUE(help_text in util.help("import_table"))
+
+#@<> WL15884-TSFR_1_2 - `ociAuth` is a string option
+TEST_STRING_OPTION("ociAuth")
+
+#@<> WL15884-TSFR_2_1 - `ociAuth` set to an empty string is ignored
+truncate_table()
+EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "ociAuth": "", "schema": target_schema, "table": target_table }), "should not fail")
+
+#@<> WL15884-TSFR_3_1 - `ociAuth` cannot be used without `osBucketName`
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "", "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
+
+#@<> WL15884-TSFR_6_1_1 - `ociAuth` set to instance_principal cannot be used with `ociConfigFile` or `ociProfile`
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
+
+#@<> WL15884-TSFR_7_1_1 - `ociAuth` set to resource_principal cannot be used with `ociConfigFile` or `ociProfile`
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
+
+#@<> WL15884-TSFR_9_1 - `ociAuth` set to an invalid value
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "unknown", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: Invalid value of 'ociAuth' option, expected one of: api_key, instance_principal, resource_principal, security_token, but got: unknown.")
+
 #@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
 TEST_STRING_OPTION("s3BucketName")
 

@@ -33,11 +33,12 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/rest/signed/signed_request.h"
 #include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
-#include "mysqlshdk/shellcore/private_key_manager.h"
 
+#include "mysqlshdk/libs/oci/api_key_credentials_provider.h"
+#include "mysqlshdk/libs/oci/instance_principal_credentials_provider.h"
 #include "mysqlshdk/libs/oci/oci_bucket.h"
-#include "mysqlshdk/libs/oci/oci_setup.h"
-#include "mysqlshdk/libs/oci/oci_signer.h"
+#include "mysqlshdk/libs/oci/resource_principal_credentials_provider.h"
+#include "mysqlshdk/libs/oci/security_token_credentials_provider.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -57,80 +58,77 @@ Oci_bucket_config::Oci_bucket_config(const Oci_bucket_options &options)
     m_config_profile = mysqlsh::current_shell_options()->get().oci_profile;
   }
 
-  Oci_setup oci_setup(m_config_file);
-
-  if (!oci_setup.has_profile(m_config_profile)) {
-    throw std::runtime_error("The indicated OCI Profile does not exist.");
-  }
-
-  const auto &config = oci_setup.get_cfg();
-
-  m_region = *config.get(m_config_profile, "region");
-  m_tenancy_id = *config.get(m_config_profile, "tenancy");
-  m_user = *config.get(m_config_profile, "user");
-  m_fingerprint = *config.get(m_config_profile, "fingerprint");
-  m_key_file = *config.get(m_config_profile, "key_file");
-
+  resolve_credentials(options.auth());
   configure_endpoint();
-
-  load_key(&oci_setup);
   fetch_namespace();
 }
 
-void Oci_bucket_config::load_key(Oci_setup *setup) {
-  auto key = shcore::Private_key_storage::get().contains(m_key_file);
+void Oci_bucket_config::resolve_credentials(Oci_bucket_options::Auth auth) {
+  switch (auth) {
+    case Oci_bucket_options::Auth::API_KEY:
+      m_credentials_provider = std::make_unique<Api_key_credentials_provider>(
+          m_config_file, m_config_profile);
+      break;
 
-  if (!key.second) {
-    setup->load_profile(m_config_profile);
+    case Oci_bucket_options::Auth::INSTANCE_PRINCIPAL:
+      m_credentials_provider =
+          std::make_unique<Instance_principal_credentials_provider>();
+      break;
 
-    // Check if load_profile() opened successfully private key and put it into
-    // private key storage.
-    key = shcore::Private_key_storage::get().contains(m_key_file);
+    case Oci_bucket_options::Auth::RESOURCE_PRINCIPAL:
+      m_credentials_provider =
+          std::make_unique<Resource_principal_credentials_provider>();
+      break;
 
-    if (!key.second) {
-      throw std::runtime_error("Cannot load \"" + m_key_file +
-                               "\" private key associated with OCI "
-                               "configuration profile named \"" +
-                               m_config_profile + "\".");
-    }
+    case Oci_bucket_options::Auth::SECURITY_TOKEN:
+      m_credentials_provider =
+          std::make_unique<Security_token_credentials_provider>(
+              m_config_file, m_config_profile);
+      break;
   }
+
+  m_credentials_provider->initialize();
 }
 
 void Oci_bucket_config::fetch_namespace() {
-  if (m_namespace.empty()) {
-    static std::mutex s_mutex;
-    static std::unordered_map<std::string, std::string> s_tenancy_names;
-
-    std::lock_guard<std::mutex> lock(s_mutex);
-    auto tenancy_name = s_tenancy_names.find(m_tenancy_id);
-
-    if (s_tenancy_names.end() == tenancy_name) {
-      rest::Signed_rest_service service(*this);
-      rest::Signed_request request("/n/");
-      rest::String_response response;
-
-      service.get(&request, &response);
-
-      const auto &raw_data = response.buffer;
-
-      try {
-        tenancy_name =
-            s_tenancy_names
-                .emplace(m_tenancy_id, shcore::Value::parse(
-                                           {raw_data.data(), raw_data.size()})
-                                           .as_string())
-                .first;
-      } catch (const shcore::Exception &error) {
-        log_debug2("%s\n%.*s", error.what(), static_cast<int>(raw_data.size()),
-                   raw_data.data());
-        throw;
-      }
-    }
-
-    m_namespace = tenancy_name->second;
-    // namespace was missing, need to update the endpoint
-    configure_endpoint();
+  if (!m_namespace.empty()) {
+    return;
   }
+
+  static std::mutex s_mutex;
+  static std::unordered_map<std::string, std::string> s_tenancy_names;
+
+  std::lock_guard<std::mutex> lock(s_mutex);
+  auto tenancy_name =
+      s_tenancy_names.find(m_credentials_provider->tenancy_id());
+
+  if (s_tenancy_names.end() == tenancy_name) {
+    rest::Signed_rest_service service(*this);
+    rest::Signed_request request("/n/");
+    rest::String_response response;
+
+    service.get(&request, &response);
+
+    const auto &raw_data = response.buffer;
+
+    try {
+      tenancy_name =
+          s_tenancy_names
+              .emplace(m_credentials_provider->tenancy_id(),
+                       shcore::Value::parse({raw_data.data(), raw_data.size()})
+                           .as_string())
+              .first;
+    } catch (const shcore::Exception &error) {
+      log_debug2("%s\n%.*s", error.what(), static_cast<int>(raw_data.size()),
+                 raw_data.data());
+      throw;
+    }
+  }
+
+  m_namespace = tenancy_name->second;
+
+  // namespace was missing, need to update the endpoint
+  configure_endpoint();
 }
 
 std::unique_ptr<rest::ISigner> Oci_bucket_config::signer() const {
@@ -162,13 +160,7 @@ const std::string &Oci_bucket_config::hash() const {
     m_hash += '-';
     m_hash += m_namespace;
     m_hash += '-';
-    m_hash += m_key_file;
-    m_hash += '-';
-    m_hash += m_tenancy_id;
-    m_hash += '-';
-    m_hash += m_user;
-    m_hash += '-';
-    m_hash += m_fingerprint;
+    m_hash += m_credentials_provider->credentials()->auth_key_id();
   }
 
   return m_hash;
@@ -179,7 +171,8 @@ std::string Oci_bucket_config::describe_self() const {
 }
 
 void Oci_bucket_config::configure_endpoint() {
-  m_host = "objectstorage." + m_region + ".oci.customer-oci.com";
+  m_host = "objectstorage." + m_credentials_provider->region() +
+           ".oci.customer-oci.com";
 
   if (!m_namespace.empty()) {
     m_host = m_namespace + '.' + m_host;

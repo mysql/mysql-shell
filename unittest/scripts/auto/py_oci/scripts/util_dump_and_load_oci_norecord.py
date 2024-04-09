@@ -6,9 +6,9 @@
 #@<> INCLUDE dump_utils.inc
 
 #@<> Setup
-
 import oci
 import os
+import os.path
 import shutil
 
 oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
@@ -230,6 +230,88 @@ session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> BUG#35462985 - util.export_table() to a remote location should not require a prefix to exist
 EXPECT_NO_THROWS(lambda: util.export_table("sakila.actor", "new-dir/actors.tsv", {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False}), "export_table() to non-existing prefix")
+
+#@<> WL15884-TSFR_4_1 - dump/load without `ociAuth`
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_instance() without ociAuth")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_schemas() without ociAuth")
+EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_tables() without ociAuth")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "load_dump() without ociAuth")
+
+#@<> WL15884-TSFR_5_1 - dump/load with `ociAuth` = 'api_key'
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"ociAuth": "api_key", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_instance() with `ociAuth` = 'api_key'")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_schemas() with `ociAuth` = 'api_key'")
+EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "dump_tables() with `ociAuth` = 'api_key'")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": oci_config_file, "showProgress": False}), "load_dump() with `ociAuth` = 'api_key'")
+
+#@<> WL15884 - check if this host supports 'instance_principal' authentication
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+shell.connect(__sandbox_uri1)
+
+try:
+    util.dump_tables("world", ["Country"], "tables", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "showProgress": False})
+    instance_principal_host = True
+except Exception as e:
+    print(e)
+    instance_principal_host = False
+
+#@<> WL15884-TSFR_6_1 - dump/load with `ociAuth` = 'instance_principal' {instance_principal_host}
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"ociAuth": "instance_principal", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "showProgress": False}), "dump_instance() with `ociAuth` = 'instance_principal'")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "showProgress": False}), "dump_schemas() with `ociAuth` = 'instance_principal'")
+EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "showProgress": False}), "dump_tables() with `ociAuth` = 'instance_principal'")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "showProgress": False}), "load_dump() with `ociAuth` = 'instance_principal'")
+
+#@<> WL15884-TSFR_8_1 - dump/load with `ociAuth` = 'security_token'
+# prepare token and config file
+token_path = os.path.join(__tmp_dir, "oci_security_token")
+
+with open(token_path, "w") as f:
+    f.write(get_session_token(oci_config_file))
+
+current_config = read_config_file(oci_config_file)
+new_config = {"security_token_file": token_path, "region": current_config["region"], "tenancy": current_config["tenancy"], "key_file": current_config["key_file"]}
+if "pass_phrase" in current_config:
+    new_config["pass_phrase"] = current_config["pass_phrase"]
+config_path = os.path.join(__tmp_dir, "oci_config_file_with_token")
+write_config_file(config_path, new_config)
+
+# tests
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"ociAuth": "security_token", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_instance() with `ociAuth` = 'security_token'")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_schemas() with `ociAuth` = 'security_token'")
+EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_tables() with `ociAuth` = 'security_token'")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "load_dump() with `ociAuth` = 'security_token'")
 
 #@<> Cleanup
 testutil.rmfile("progress.txt")

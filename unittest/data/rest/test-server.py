@@ -42,6 +42,8 @@ import sys
 import time
 import traceback
 
+from oci._vendor.jwt.utils import base64url_encode
+
 try:
     from urllib.parse import parse_qsl, urlparse
 except:
@@ -51,6 +53,8 @@ except:
 class TestRequestHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
+    token_expiration = int(time.time()) + 60 * 60
+
     def __init__(self, *args, **kwargs):
         self._handlers = {
             r'^/timeout/([0-9]*\.?[0-9]*)$': self.handle_timeout,
@@ -58,7 +62,11 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             r'^/server_error/([1-9][0-9]*)/?([^/]*)/?(.*)$': self.handle_server_error,
             r'^/basic/([^/]+)/(.+)$': self.handle_basic,
             r'^/headers?.+$': self.handle_headers,
-            r'^/partial_file/([1-9][0-9]*)$': self.handle_partial_file
+            r'^/partial_file/([1-9][0-9]*)$': self.handle_partial_file,
+            r'^/20180711/resourcePrincipalToken/(.+)$': self.handle_rpt,
+            r'^/20180711/resourcePrincipalTokenV2/(.+)$': self.handle_rpt_v2,
+            r'^/v1/resourcePrincipalSessionToken$': self.handle_rpst,
+            r'^/nested_rpt/([1-9][0-9]*)$': self.handle_nested_rpt,
         }
 
         try:
@@ -120,7 +128,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         return True
 
     def handle_headers(self, args):
-        self.reply(extra_headers=parse_qsl(urlparse(self.path).query, keep_blank_values=True))
+        self.reply(extra_headers=dict(parse_qsl(urlparse(self.path).query, keep_blank_values=True)))
         return True
 
     def handle_partial_file(self, args):
@@ -130,6 +138,48 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', f'{args[0]}')
         self.end_headers()
         self.wfile.close()
+        return True
+
+    def handle_rpt(self, args):
+        if self.command != 'GET':
+            return False
+        self.reply(extra_response={
+            "resourcePrincipalToken": self.to_jwt({"instance_id": args[0], "token_type": "rpt"}),
+            "servicePrincipalSessionToken": self.to_jwt({"instance_id": args[0], "token_type": "spst"}),
+        })
+        return True
+
+    def handle_rpt_v2(self, args):
+        if self.command != 'GET':
+            return False
+        self.reply(extra_response={
+            "resourcePrincipalToken": self.to_jwt({"resource_id": args[0], "token_type": "rpt"}),
+            "servicePrincipalSessionToken": self.to_jwt({"resource_id": args[0], "token_type": "spst"}),
+        })
+        return True
+
+    def handle_nested_rpt(self, args):
+        if self.command != 'GET':
+            return False
+        self.reply(extra_response={
+            "resourcePrincipalToken": self.to_jwt({"nested": True, "token_type": "rpt"}),
+            "servicePrincipalSessionToken": self.to_jwt({"nested": True, "token_type": "spst"}),
+        }, extra_headers={
+            "opc-parent-rpt-url": f"http://127.0.0.1:{args[0]}/20180711/resourcePrincipalToken/id"
+        })
+        return True
+
+    def handle_rpst(self, args):
+        if self.command != 'POST':
+            return False
+        self.reply(extra_response={
+            "token": self.to_jwt({
+                "rpt": self.json_body["resourcePrincipalToken"],
+                "spst": self.json_body["servicePrincipalSessionToken"],
+                "pub": "sessionPublicKey" in self.json_body,
+                "res_type": "rpst"}
+            ),
+        })
         return True
 
     def invoke_handler(self):
@@ -159,8 +209,8 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', '%d' % (len(response)))
 
-        for h in extra_headers:
-            self.send_header(h[0], h[1])
+        for k, v in extra_headers.items():
+            self.send_header(k, v)
 
         self.end_headers()
 
@@ -194,6 +244,15 @@ class TestRequestHandler(BaseHTTPRequestHandler):
             headers[k.lower()] = v
         return headers
 
+    def to_jwt(self, payload):
+        payload["res_tenant"] = "ocid.tenant"
+        payload["exp"] = self.token_expiration
+        segments = []
+        segments.append(base64url_encode(b'{"typ":"JWT","alg":"RS256"}'))
+        segments.append(base64url_encode(json.dumps(payload).encode("ascii")))
+        segments.append(b"sig")
+        return b".".join(segments).decode("ascii")
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
@@ -218,7 +277,7 @@ def test_server(port, https):
 
     print(f'{server_type} test server running on 127.0.0.1:{port}')
 
-    if 'TEST_DEBUG' in os.environ:
+    if '2' == os.environ.get('TEST_DEBUG'):
         print('Environment variables:')
         for k, v in os.environ.items():
             print(f'\tos.environ[{k}] = {v}')

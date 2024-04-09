@@ -25,7 +25,7 @@
 
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "unittest/mysqlshdk/libs/azure/azure_tests.h"
 
@@ -173,7 +173,7 @@ TEST_F(Azure_container_tests, multipart_uploads) {
 
   // COMMIT MULTIPART UPLOAD
   const auto data = multipart_file_data();
-  const auto hash = shcore::ssl::restricted::md5(data.c_str(), data.size());
+  const auto hash = shcore::ssl::restricted::md5(data);
 
   auto mp_object = container.create_multipart_upload("sakila.sql");
   std::size_t offset = 0;
@@ -197,7 +197,7 @@ TEST_F(Azure_container_tests, multipart_uploads) {
 
   rest::String_buffer buffer{k_multipart_file_size};
   container.get_object("sakila.sql", &buffer);
-  EXPECT_EQ(hash, shcore::ssl::restricted::md5(buffer.data(), buffer.size()));
+  EXPECT_EQ(hash, shcore::ssl::restricted::md5({buffer.data(), buffer.size()}));
 }
 
 TEST_F(Azure_container_tests, container_object_operations) {

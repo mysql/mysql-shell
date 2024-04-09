@@ -34,9 +34,9 @@
 #include <utility>
 
 #include "mysqlshdk/libs/rest/rest_utils.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -579,7 +579,8 @@ void S3_bucket::delete_objects(
 
     // CStrSize() includes the terminating null, subtract it from length
     const auto body_size = printer.CStrSize() - 1;
-    const auto hash = shcore::ssl::restricted::md5(printer.CStr(), body_size);
+    const auto hash = shcore::ssl::restricted::md5(
+        {printer.CStr(), static_cast<std::size_t>(body_size)});
     shcore::encode_base64(hash.data(), hash.size(), &md5);
 
     // copy headers & query

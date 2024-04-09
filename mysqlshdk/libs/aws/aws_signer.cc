@@ -26,10 +26,11 @@
 #include "mysqlshdk/libs/aws/aws_signer.h"
 
 #include <cassert>
+#include <string_view>
 #include <utility>
 
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -71,8 +72,8 @@ std::string hex(const std::vector<unsigned char> &hash) {
   return encoded;
 }
 
-std::string hex_sha256(const char *data, size_t size) {
-  return hex(shcore::ssl::sha256(data, size));
+std::string hex_sha256(std::string_view data) {
+  return hex(shcore::ssl::sha256(data));
 }
 
 }  // namespace
@@ -110,7 +111,7 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request &request,
 
   // hash of the payload - Hex(SHA256Hash(<payload>)
   const auto &payload_hash = request.size
-                                 ? hex_sha256(request.body, request.size)
+                                 ? hex_sha256({request.body, request.size})
                                  : k_empty_payload_hash;
 
   // add required headers
@@ -216,8 +217,7 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request &request,
   string_to_sign += '\n';
   string_to_sign += scope;
   string_to_sign += '\n';
-  string_to_sign +=
-      hex_sha256(canonical_request.c_str(), canonical_request.length());
+  string_to_sign += hex_sha256(canonical_request);
 
   // calculate signature
   // DateKey = HMAC-SHA256("AWS4"+"<SecretAccessKey>", "<YYYYMMDD>")

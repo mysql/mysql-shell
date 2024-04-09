@@ -37,9 +37,9 @@
 
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "mysqlshdk/libs/storage/backend/in_memory/synchronized_file.h"
@@ -615,7 +615,7 @@ TEST(Virtual_fs, threads) {
         file->close();
         dir->publish_created_file(file->name());
 
-        queue.push({std::move(name), md5(buffer.c_str(), buffer.length())});
+        queue.push({std::move(name), md5(buffer)});
       }
     });
   }
@@ -644,7 +644,7 @@ TEST(Virtual_fs, threads) {
         f->close();
 
         SCOPED_TRACE(file.name);
-        EXPECT_EQ(file.hash, md5(result.c_str(), result.length()));
+        EXPECT_EQ(file.hash, md5(result));
       }
     });
   }

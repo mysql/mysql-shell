@@ -31,6 +31,7 @@ extern char **environ;
 #endif
 
 #include <iostream>
+#include <vector>
 
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -45,34 +46,38 @@ namespace tests {
 namespace {
 
 bool debug() {
-  const static bool s_debug = ::getenv("TEST_DEBUG") != nullptr;
+  static const bool s_debug = ::getenv("TEST_DEBUG") != nullptr;
   return s_debug;
 }
 
 void debug_env_vars() {
   if (debug()) {
-    std::cerr << "Environment variables:" << std::endl;
+    static const bool s_debug_env_vars = ::getenv("TEST_DEBUG")[0] == '2';
+
+    if (s_debug_env_vars) {
+      std::cerr << "Environment variables:" << std::endl;
 
 #ifdef _WIN32
-    auto env = GetEnvironmentStringsA();
-    const auto env_head = env;
+      auto env = GetEnvironmentStringsA();
+      const auto env_head = env;
 
-    while (*env) {
-      std::cerr << '\t' << env << std::endl;
-      env += strlen(env) + 1;
-    }
+      while (*env) {
+        std::cerr << '\t' << env << std::endl;
+        env += strlen(env) + 1;
+      }
 
-    if (env_head) {
-      FreeEnvironmentStringsA(env_head);
-    }
+      if (env_head) {
+        FreeEnvironmentStringsA(env_head);
+      }
 #else
-    auto env = environ;
+      auto env = environ;
 
-    while (*env) {
-      std::cerr << '\t' << *env << std::endl;
-      ++env;
-    }
+      while (*env) {
+        std::cerr << '\t' << *env << std::endl;
+        ++env;
+      }
 #endif
+    }
   }
 }
 
@@ -115,7 +120,7 @@ bool Test_server::start_server(int start_port, bool use_env_var, bool https) {
       shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
   const auto port_number = std::to_string(m_port);
   m_address =
-      "http" + std::string{https ? "s" : ""} + "://127.0.0.1:" + port_number;
+      "http" + std::string(https ? "s" : "") + "://127.0.0.1:" + port_number;
 
   bool server_ready = false;
 

@@ -263,6 +263,8 @@ class String_buffer : public Base_response_buffer {
 
   const std::string &raw() const { return m_buffer; }
 
+  std::string steal_buffer() && { return std::move(m_buffer); }
+
  private:
   std::string m_buffer;
 };

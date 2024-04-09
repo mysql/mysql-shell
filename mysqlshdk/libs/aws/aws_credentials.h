@@ -33,7 +33,7 @@
 namespace mysqlshdk {
 namespace aws {
 
-class Aws_credentials final : public rest::Credentials {
+class Aws_credentials final : public rest::Credentials<> {
  public:
   Aws_credentials() = delete;
 

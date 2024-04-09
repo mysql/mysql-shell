@@ -26,16 +26,21 @@
 #include "mysqlshdk/libs/utils/utils_encoding.h"
 
 #include <openssl/evp.h>
+
+#include <algorithm>
 #include <cassert>
 #include <memory>
+#include <stdexcept>
+#include <utility>
 
 namespace shcore {
 namespace {
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 }
 
-bool decode_base64(const std::string &source, std::string *target) {
+bool decode_base64(std::string_view source, std::string *target) {
   assert(target);
+
   //--- Unencodes the Public Key Data
   size_t size = source.size();
   size_t padding =
@@ -45,8 +50,7 @@ bool decode_base64(const std::string &source, std::string *target) {
 
   auto buffer = std::make_unique<char[]>(expected_size);
 
-  BIO_ptr bio_source(BIO_new_mem_buf(source.c_str(), source.size()),
-                     ::BIO_free);
+  BIO_ptr bio_source(BIO_new_mem_buf(source.data(), source.size()), ::BIO_free);
   BIO_ptr bio_base64(BIO_new(BIO_f_base64()), ::BIO_free);
   BIO_push(bio_base64.get(), bio_source.get());
   BIO_set_flags(bio_base64.get(), BIO_FLAGS_BASE64_NO_NL);
@@ -57,10 +61,16 @@ bool decode_base64(const std::string &source, std::string *target) {
   return final_size == expected_size;
 }
 
-bool encode_base64(const unsigned char *source, int source_length,
+bool encode_base64(std::string_view source, std::string *encoded) {
+  return encode_base64(reinterpret_cast<const unsigned char *>(source.data()),
+                       source.length(), encoded);
+}
+
+bool encode_base64(const unsigned char *source, std::size_t source_length,
                    std::string *encoded) {
+  assert(source);
   assert(encoded);
-  assert(source_length >= 0);
+
   // base64 encoding produces 4 bytes of output for every 3 bytes of source
   // data. Output is always padded in such way that length of output is
   // divisible by 4.
@@ -68,11 +78,78 @@ bool encode_base64(const unsigned char *source, int source_length,
   encoded->resize(target_size + 1);
   const auto length =
       EVP_EncodeBlock((unsigned char *)encoded->data(), source, source_length);
+
   if (target_size == static_cast<decltype((target_size))>(length)) {
     encoded->resize(length);
     return true;
   }
+
   return false;
+}
+
+bool decode_base64url(std::string_view source, std::string *target) {
+  assert(target);
+
+  auto base64 = std::string{source};
+
+  std::replace(base64.begin(), base64.end(), '-', '+');
+  std::replace(base64.begin(), base64.end(), '_', '/');
+
+  // pad with '='
+  switch (base64.length() % 4) {
+    case 0:
+      break;
+
+    case 2:
+      base64.push_back('=');
+      [[fallthrough]];
+
+    case 3:
+      base64.push_back('=');
+      break;
+
+    default:
+      throw std::runtime_error("Invalid BASE64 string");
+  }
+
+  std::string decoded;
+
+  if (!shcore::decode_base64(base64, &decoded)) {
+    return false;
+  }
+
+  *target = std::move(decoded);
+
+  return true;
+}
+
+bool encode_base64url(std::string_view source, std::string *encoded) {
+  return encode_base64url(
+      reinterpret_cast<const unsigned char *>(source.data()), source.length(),
+      encoded);
+}
+
+bool encode_base64url(const unsigned char *source, std::size_t source_length,
+                      std::string *encoded) {
+  assert(source);
+  assert(encoded);
+
+  std::string base64;
+
+  if (!encode_base64(source, source_length, &base64)) {
+    return false;
+  }
+
+  std::replace(base64.begin(), base64.end(), '+', '-');
+  std::replace(base64.begin(), base64.end(), '/', '_');
+
+  while ('=' == base64.back()) {
+    base64.pop_back();
+  }
+
+  *encoded = std::move(base64);
+
+  return true;
 }
 
 }  // namespace shcore

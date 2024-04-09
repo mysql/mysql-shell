@@ -628,6 +628,10 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -885,11 +889,22 @@ DESCRIPTION
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
 
-      The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      the osBucketName option is set to an empty string.
+      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
+      used if the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      The ociAuth option allows to specify the authentication method used when
+      connecting to the OCI:
+
+      - api_key - API Key-Based Authentication
+      - instance_principal - Instance Principal Authentication
+      - resource_principal - Resource Principal Authentication
+      - security_token - Session Token-Based Authentication
+
+      For more information please see:
+      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
       Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
 
@@ -1252,6 +1267,10 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1498,11 +1517,22 @@ DESCRIPTION
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
 
-      The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      the osBucketName option is set to an empty string.
+      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
+      used if the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      The ociAuth option allows to specify the authentication method used when
+      connecting to the OCI:
+
+      - api_key - API Key-Based Authentication
+      - instance_principal - Instance Principal Authentication
+      - resource_principal - Resource Principal Authentication
+      - security_token - Session Token-Based Authentication
+
+      For more information please see:
+      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
       Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
 
@@ -1853,6 +1883,10 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2105,11 +2139,22 @@ DESCRIPTION
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
 
-      The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      the osBucketName option is set to an empty string.
+      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
+      used if the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      The ociAuth option allows to specify the authentication method used when
+      connecting to the OCI:
+
+      - api_key - API Key-Based Authentication
+      - instance_principal - Instance Principal Authentication
+      - resource_principal - Resource Principal Authentication
+      - security_token - Session Token-Based Authentication
+
+      For more information please see:
+      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
       Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
 
@@ -2404,6 +2449,10 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2480,11 +2529,22 @@ DESCRIPTION
       OCI bucket, connection is established using the local OCI profile. The
       directory structure is simulated within the object name.
 
-      The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      the osBucketName option is set to an empty string.
+      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
+      used if the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      The ociAuth option allows to specify the authentication method used when
+      connecting to the OCI:
+
+      - api_key - API Key-Based Authentication
+      - instance_principal - Instance Principal Authentication
+      - resource_principal - Resource Principal Authentication
+      - security_token - Session Token-Based Authentication
+
+      For more information please see:
+      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
       Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
 
@@ -2929,6 +2989,10 @@ DESCRIPTION
         shell option, to specify the path to the OCI configuration file.
       - ociProfile: string (default: not set) - Override oci.profile shell
         option, to specify the name of the OCI profile to use.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
 
       AWS S3 Object Storage Options
 
@@ -3367,6 +3431,10 @@ DESCRIPTION
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS

@@ -6,9 +6,11 @@
 
 #@<> Setup
 import os
+import os.path
 
 OCI_CONFIG_FILE = os.path.join(OCI_CONFIG_HOME, "config")
 TARGET_SCHEMA = 'world_x'
+TARGET_TABLE = 'cities'
 SOURCE_FILE = 'world_x_cities.dump'
 
 testutil.deploy_raw_sandbox(__mysql_sandbox_port1, 'root', {'report_host': hostname})
@@ -17,8 +19,8 @@ shell.connect(__sandbox_uri1)
 session.run_sql('DROP SCHEMA IF EXISTS ' + TARGET_SCHEMA)
 session.run_sql('CREATE SCHEMA ' + TARGET_SCHEMA)
 session.run_sql('USE ' + TARGET_SCHEMA)
-session.run_sql('DROP TABLE IF EXISTS `cities`')
-session.run_sql("CREATE TABLE `cities` (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4")
+session.run_sql('DROP TABLE IF EXISTS ' + TARGET_TABLE)
+session.run_sql("CREATE TABLE ! (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4", [TARGET_TABLE])
 session.run_sql('DROP TABLE IF EXISTS `lorem`')
 session.run_sql("CREATE TABLE `lorem` (`id` int primary key, `part` text) ENGINE=InnoDB CHARSET=utf8mb4")
 session.run_sql('SET GLOBAL local_infile = true')
@@ -105,11 +107,11 @@ EXPECT_STDOUT_CONTAINS("Directory nonexisting does not exist.")
 EXPECT_THROWS(lambda: util.import_table('oci+os://region/tenancy/bucket/file'), 'Util.import_table: File handling for oci+os protocol is not supported.')
 
 #@<> test import using OCI
-rc = testutil.call_mysqlsh([__sandbox_uri1, '--schema=' + TARGET_SCHEMA, '--', 'util', 'import-table', SOURCE_FILE, '--table=cities', '--os-bucket-name=' + OS_BUCKET_NAME, '--os-namespace=' + OS_NAMESPACE, '--oci-config-file=' + OCI_CONFIG_FILE])
+rc = testutil.call_mysqlsh([__sandbox_uri1, '--schema=' + TARGET_SCHEMA, '--', 'util', 'import-table', SOURCE_FILE, '--table=' + TARGET_TABLE, '--os-bucket-name=' + OS_BUCKET_NAME, '--os-namespace=' + OS_NAMESPACE, '--oci-config-file=' + OCI_CONFIG_FILE])
 
 EXPECT_EQ(0, rc)
 EXPECT_STDOUT_CONTAINS("File '{0}' (209.75 KB) was imported in ".format(SOURCE_FILE))
-EXPECT_STDOUT_CONTAINS('Total rows affected in {0}.cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0'.format(TARGET_SCHEMA))
+EXPECT_STDOUT_CONTAINS('Total rows affected in {0}.{1}: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0'.format(TARGET_SCHEMA, TARGET_TABLE))
 
 #@<> BUG#35018278 skipRows=X should be applied even if a compressed file or multiple files are loaded
 # setup
@@ -154,10 +156,62 @@ testutil.clear_traps("os_bucket")
 
 #@<> BUG#35895247 - importing a file with escaped wildcard characters should load it in chunks {__os_type != "windows"}
 testutil.anycopy(os.path.join(__import_data_path, SOURCE_FILE), {'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'name': "will *this work?"})
-session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, 'cities')}")
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
 
-EXPECT_NO_THROWS(lambda: util.import_table("will \\*this work\\?", { "schema": TARGET_SCHEMA, "table": "cities", "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE }), "import should not fail")
+EXPECT_NO_THROWS(lambda: util.import_table("will \\*this work\\?", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False, 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE }), "import should not fail")
 EXPECT_STDOUT_CONTAINS(f"Importing from file 'will *this work?' to table ")
+
+#@<> WL15884-TSFR_4_1 - export/import without `ociAuth`
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), "exported.tsv", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": OCI_CONFIG_FILE, "showProgress": False}), "export_table() without ociAuth")
+
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": OCI_CONFIG_FILE, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() without ociAuth")
+
+#@<> WL15884-TSFR_5_1 - export/import with `ociAuth` = 'api_key'
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), "exported.tsv", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": OCI_CONFIG_FILE, "showProgress": False}), "export_table() with `ociAuth` = 'api_key'")
+
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": OCI_CONFIG_FILE, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() with `ociAuth` = 'api_key'")
+
+#@<> WL15884 - check if this host supports 'instance_principal' authentication
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+
+try:
+    util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), "exported.tsv", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "showProgress": False})
+    instance_principal_host = True
+except Exception as e:
+    print(e)
+    instance_principal_host = False
+
+#@<> WL15884-TSFR_6_1 - export/import with `ociAuth` = 'instance_principal' {instance_principal_host}
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), "exported.tsv", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "showProgress": False}), "export_table() with `ociAuth` = 'instance_principal'")
+
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"ociAuth": "instance_principal", "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() with `ociAuth` = 'instance_principal'")
+
+#@<> WL15884-TSFR_8_1 - export/import with `ociAuth` = 'security_token'
+# prepare token and config file
+token_path = os.path.join(__tmp_dir, "oci_security_token")
+
+with open(token_path, "w") as f:
+    f.write(get_session_token(OCI_CONFIG_FILE))
+
+current_config = read_config_file(OCI_CONFIG_FILE)
+new_config = {"security_token_file": token_path, "region": current_config["region"], "tenancy": current_config["tenancy"], "key_file": current_config["key_file"]}
+if "pass_phrase" in current_config:
+    new_config["pass_phrase"] = current_config["pass_phrase"]
+config_path = os.path.join(__tmp_dir, "oci_config_file_with_token")
+write_config_file(config_path, new_config)
+
+# tests
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), "exported.tsv", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "export_table() with `ociAuth` = 'security_token'")
+
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() with `ociAuth` = 'security_token'")
 
 #@<> Cleanup
 delete_bucket(OS_BUCKET_NAME)

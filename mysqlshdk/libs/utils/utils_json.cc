@@ -549,6 +549,20 @@ std::optional<uint64_t> optional_uint(const JSON &json, const char *name) {
   return it->value.GetUint64();
 }
 
+std::string to_string(const JSON &json) {
+  String_stream stream;
+  My_writer<String_stream> writer{stream};
+  json.Accept(writer);
+  return stream.data;
+}
+
+std::string to_pretty_string(const JSON &json) {
+  String_stream stream;
+  My_pretty_writer<String_stream> writer{stream};
+  json.Accept(writer);
+  return stream.data;
+}
+
 }  // namespace json
 
 }  // namespace shcore
