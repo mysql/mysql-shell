@@ -55,38 +55,37 @@ void method_dealloc(PyShFuncObject *self) {
 PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
   const auto func = *self->func;
 
-  Argument_list r;
+  if (auto pyf = std::dynamic_pointer_cast<shcore::Python_function>(func)) {
+    try {
+      return pyf->invoke(args);
+    } catch (...) {
+      translate_python_exception();
+    }
+  } else {
+    Argument_list r;
 
-  if (args) {
-    Python_context *ctx = nullptr;
+    if (args) {
+      Python_context *ctx = nullptr;
 
-    for (size_t c = (size_t)PyTuple_Size(args), i = 0; i < c; i++) {
-      PyObject *argval = PyTuple_GetItem(args, i);
+      for (auto c = PyTuple_Size(args), i = 0L; i < c; i++) {
+        PyObject *argval = PyTuple_GetItem(args, i);
 
-      try {
-        r.push_back(py::convert(argval, &ctx));
-      } catch (...) {
-        translate_python_exception();
-        return nullptr;
+        try {
+          r.push_back(py::convert(argval, &ctx));
+        } catch (...) {
+          translate_python_exception();
+          return nullptr;
+        }
       }
     }
-  }
 
-  try {
-    Value result;
-
-    if (std::dynamic_pointer_cast<shcore::Python_function>(func)) {
-      result = func->invoke(r);
-    } else {
+    try {
       WillLeavePython lock;
-      result = func->invoke(r);
+      return py::convert(func->invoke(r)).release();
+    } catch (...) {
+      translate_python_exception();
     }
-
-    return py::convert(result).release();
-  } catch (...) {
-    translate_python_exception();
   }
-
   return nullptr;
 }
 

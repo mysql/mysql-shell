@@ -101,6 +101,38 @@ bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
   return false;
 }
 
+PyObject *Python_function::invoke(PyObject *args) {
+  PyObject *ret_val;
+
+  // If the function caller provides more parameters than the ones defined in
+  // the function, the last parameter should be handled as kwargs
+  uint64_t argc = PyTuple_Size(args);
+  if (argc == (m_arg_count + 1) &&
+      PyDict_Check(PyTuple_GetItem(args, argc - 1))) {
+    PyObject *kwargs = PyTuple_GetItem(args, argc - 1);
+    py::Release args_copy{PyTuple_GetSlice(args, 0, argc - 1)};
+
+    ret_val = PyObject_Call(m_function.get(), args_copy.get(), kwargs);
+  } else {
+    ret_val = PyObject_Call(m_function.get(), args, nullptr);
+  }
+  if (!ret_val) {
+    // converts mysqlsh.Error to shcore::Error and throws the exception, if
+    // the Python exception is something else, then just returns
+    _py->throw_if_mysqlsh_error();
+
+    std::string error = _py->fetch_and_clear_exception();
+
+    if (error.empty()) {
+      error = "User-defined function threw an exception";
+    }
+
+    throw Exception::scripting_error(error);
+  } else {
+    return ret_val;
+  }
+}
+
 Value Python_function::invoke(const Argument_list &args) {
   WillEnterPython lock;
 
