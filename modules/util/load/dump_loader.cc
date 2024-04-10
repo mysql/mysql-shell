@@ -1417,6 +1417,13 @@ void Dump_loader::Worker::Bulk_load_task::do_load(Worker *worker,
   log_info("Loading %zu files into table %s using BULK LOAD",
            chunk().chunks_total, key().c_str());
 
+  const auto handle_exception = [loader, this](const char *error) {
+    loader->m_thread_exceptions[id()] = std::current_exception();
+    current_console()->print_error(
+        shcore::str_format("%sBULK LOAD into table %s failed: %s", log_id(),
+                           key().c_str(), error));
+  };
+
   try {
     shcore::on_leave_scope cleanup;
 
@@ -1437,8 +1444,12 @@ void Dump_loader::Worker::Bulk_load_task::do_load(Worker *worker,
                     schema(), table(), chunk().partition, schema(),
                     m_target_table);
     }
+  } catch (const mysqlshdk::db::Error &e) {
+    handle_exception(e.format().c_str());
+  } catch (const std::exception &e) {
+    handle_exception(e.what());
   } catch (...) {
-    loader->m_thread_exceptions[id()] = std::current_exception();
+    handle_exception("unknown error");
   }
 }
 

@@ -7,6 +7,7 @@
 #@<> imports
 import json
 import os.path
+import re
 import threading
 import time
 
@@ -380,6 +381,19 @@ EXPECT_LE(3, len(bulk_load_entries))
 prepare_test_table("(first_name VARCHAR(10), last_name VARCHAR(10), full_name VARCHAR(255) AS (CONCAT(first_name,' ',last_name)), address VARCHAR(10))")
 TEST_DUMP_AND_LOAD(expect_bulk_loaded = 0)
 EXPECT_STDOUT_NOT_CONTAINS("error 1261: Row 1 doesn't contain data for all columns")
+
+#@<> BUG#36499646 - failed BULK LOAD was not printed to the console {bulk_load_supported and not __dbug_off}
+prepare_test_table("(f1 INT PRIMARY KEY)")
+DUMP()
+
+# simulate an exception
+testutil.set_trap("mysql", ["sql regex LOAD DATA FROM URL .*", "++match_counter > 1"], { "code": 2013, "msg": "Server lost", "state": "HY000" })
+
+TEST_FAILED_LOAD("Error loading dump")
+EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: BULK LOAD into table `{0}`\.`{1}` failed: MySQL Error 2013 \(HY000\): Server lost".format(test_schema, test_table)))
+EXPECT_STDOUT_CONTAINS("Aborting load...")
+
+testutil.clear_traps("mysql")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
