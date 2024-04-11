@@ -67,7 +67,8 @@ PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
     if (args) {
       Python_context *ctx = nullptr;
 
-      for (auto c = PyTuple_Size(args), i = 0L; i < c; i++) {
+      for (size_t c = static_cast<size_t>(PyTuple_Size(args)), i = 0; i < c;
+           i++) {
         PyObject *argval = PyTuple_GetItem(args, i);
 
         try {
