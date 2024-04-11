@@ -346,11 +346,11 @@ ${*}
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{(VER(>=8.1.0) && VER(<8.3.0)) || VER(<8.0.37)}
                 {
                     "option": "ipWhitelist",
 ?{}
-?{VER(<8.3.0) && VER(>=8.0.23)}
+?{((VER(>=8.1.0) && VER(<8.3.0)) || VER(<8.0.37)) && VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}
@@ -463,11 +463,11 @@ ${*}
 ?{}
                     "variable": "group_replication_ip_allowlist"
                 },
-?{VER(<8.3.0)}
+?{(VER(>=8.1.0) && VER(<8.3.0)) || VER(<8.0.37)}
                 {
                     "option": "ipWhitelist",
 ?{}
-?{VER(<8.3.0) && VER(>=8.0.23)}
+?{((VER(>=8.1.0) && VER(<8.3.0)) || VER(<8.0.37)) && VER(>=8.0.23)}
                     "value": "AUTOMATIC",
 ?{}
 ?{VER(<8.0.23)}

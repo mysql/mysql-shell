@@ -16,7 +16,7 @@
 //  with correct user and without
 
 //@ GlobalSetUp
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, loose_mysql_native_password: "ON"});
 var rootsess = mysql.getClassicSession(__sandbox_uri1);
 
 rootsess.runSql("CREATE USER local_blank@localhost IDENTIFIED WITH mysql_native_password BY ''");

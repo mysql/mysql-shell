@@ -77,7 +77,7 @@ EXPECT_NO_FILE(outpath)
 
 #@<> minimal privs with innodb cluster
 run_collect("minimal:@localhost:"+str(__mysql_sandbox_port1), None, allMembers=1, password="")
-EXPECT_STDOUT_CONTAINS("Access denied")
+EXPECT_STDOUT_CONTAINS_ONE_OF(["Access denied", "Plugin 'mysql_native_password' is not loaded"])
 
 #@<> Shutdown instance
 
