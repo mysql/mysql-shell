@@ -268,7 +268,7 @@ py::Release convert(const Value &value, Python_context * /*context*/) {
       break;
     case Object: {
       if (auto object = value.as_object<Python_object>())
-        return py::Release{object->object()};
+        return py::Release::incref(object->object());
 
       if (value.as_object()->class_name() != "Date")
         return wrap(value.as_object());

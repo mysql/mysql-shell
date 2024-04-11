@@ -71,6 +71,8 @@ class SHCORE_PUBLIC Python_function final : public Function_base {
 
   Value invoke(const Argument_list &args) override;
 
+  PyObject *invoke(PyObject *args);
+
  private:
   Python_context *_py{nullptr};
   py::Store m_function;
