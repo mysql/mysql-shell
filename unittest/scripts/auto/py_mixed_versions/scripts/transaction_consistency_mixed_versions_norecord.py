@@ -6,16 +6,27 @@
 
 #@<> Setup
 
-testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
-testutil.deploy_raw_sandbox(__mysql_sandbox_port2, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
-testutil.deploy_sandbox(__mysql_sandbox_port3, "root", {"report_host":hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port4, "root", {"report_host":hostname})
+if testutil.version_check(MYSQLD_SECONDARY_SERVER_A["version"], '<', __version):
+    testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
+    testutil.deploy_raw_sandbox(__mysql_sandbox_port2, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
+    testutil.deploy_sandbox(__mysql_sandbox_port3, "root", {"report_host":hostname})
+    testutil.deploy_sandbox(__mysql_sandbox_port4, "root", {"report_host":hostname})
+else:
+    testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {"report_host":hostname})
+    testutil.deploy_raw_sandbox(__mysql_sandbox_port2, "root", {"report_host":hostname})
+    testutil.deploy_sandbox(__mysql_sandbox_port3, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
+    testutil.deploy_sandbox(__mysql_sandbox_port4, "root", {"report_host":hostname}, { "mysqldPath": MYSQLD_SECONDARY_SERVER_A["path"] })
 
 EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri1), "")
 EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri2), "")
+EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri3), "")
+EXPECT_NO_THROWS(lambda:dba.configure_instance(__sandbox_uri4), "")
 
 testutil.restart_sandbox(__mysql_sandbox_port1)
 testutil.restart_sandbox(__mysql_sandbox_port2)
+testutil.restart_sandbox(__mysql_sandbox_port3)
+testutil.restart_sandbox(__mysql_sandbox_port4)
+
 session1 = mysql.get_session(__sandbox_uri1)
 session2 = mysql.get_session(__sandbox_uri2)
 session3 = mysql.get_session(__sandbox_uri3)
