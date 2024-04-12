@@ -1256,12 +1256,16 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
 }
 
 void Mysql_shell::init_extra_globals() {
+  bool switch_mode = false;
+
   if (options().default_cluster_set) {
     try {
       auto cluster = create_default_cluster_object();
 
       if (cluster->impl()->is_cluster_set_member())
         create_default_clusterset_object();
+
+      switch_mode = true;
     } catch (const shcore::Exception &) {
       print_warning(
           "Option --cluster requires a session to a member of an InnoDB "
@@ -1273,12 +1277,23 @@ void Mysql_shell::init_extra_globals() {
   if (options().default_replicaset_set) {
     try {
       create_default_replicaset_object();
+      switch_mode = true;
     } catch (const shcore::Exception &) {
       print_warning(
           "Option --replicaset requires a session to a member of an InnoDB "
           "ReplicaSet.");
       throw;
     }
+  }
+
+  // When globals are initialized Shell should start in scripting mode
+  if (switch_mode &&
+      _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
+#ifdef HAVE_V8
+    switch_shell_mode(shcore::Shell_core::Mode::JavaScript, {});
+#elif HAVE_PYTHON
+    switch_shell_mode(shcore::Shell_core::Mode::Python, {});
+#endif
   }
 }
 

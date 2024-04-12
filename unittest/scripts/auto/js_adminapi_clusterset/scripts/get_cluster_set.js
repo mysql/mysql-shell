@@ -80,15 +80,14 @@ EXPECT_NE(c, null);
 EXPECT_EQ(c.status()["clusterName"], "cluster");
 
 //@<> check that the --cluster cmdline option works
-
-testutil.callMysqlsh([__sandbox_uri1, "--cluster", "--js", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
+testutil.callMysqlsh([__sandbox_uri1, "--cluster", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
 
 EXPECT_OUTPUT_CONTAINS('"clusterName": "cluster"');
 EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');
 
 WIPE_OUTPUT()
 
-testutil.callMysqlsh([__sandbox_uri3, "--cluster", "--js", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
+testutil.callMysqlsh([__sandbox_uri3, "--cluster", "-e", "print(cluster.status()); print(); print(clusterset.status());"]);
 
 EXPECT_OUTPUT_CONTAINS('"clusterName": "replica"');
 EXPECT_OUTPUT_CONTAINS('"domainName": "domain"');

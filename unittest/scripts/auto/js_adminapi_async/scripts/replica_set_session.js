@@ -39,6 +39,7 @@ session.close();
 //@<> WL13236-TSFR1_2 {VER(<8.0.23)}
 function expect_rs_variable() {
   EXPECT_STDOUT_CONTAINS_MULTILINE(`You are connected to a member of replicaset 'rs'.
+Switching to JavaScript mode...
 {
     "replicaSet": {
         "name": "rs",
@@ -76,6 +77,7 @@ function expect_rs_variable() {
 //@<> WL13236-TSFR1_2 parallel-appliers {VER(>=8.0.23)}
 function expect_rs_variable() {
   EXPECT_STDOUT_CONTAINS_MULTILINE(`You are connected to a member of replicaset 'rs'.
+Switching to JavaScript mode...
 {
     "replicaSet": {
         "name": "rs",
@@ -112,12 +114,12 @@ function expect_rs_variable() {
 }
 
 //@<> WL13236-TSFR1_2
-mysqlsh([__hostname_ip_uri1, '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri1, '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
 //@<> WL13236-TSFR1_2 - X
-mysqlsh([__hostname_ip_x_uri1, '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
@@ -130,12 +132,12 @@ function expect_error_standalone_instance() {
 ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance`);
 }
 
-mysqlsh([__hostname_ip_uri3, '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri3, '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_standalone_instance();
 
 //@<> WL13236-TSFR1_3 - X
-mysqlsh([__hostname_ip_x_uri3, '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri3, '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_standalone_instance();
 
@@ -143,7 +145,7 @@ expect_error_standalone_instance();
 // WL13236-TSFR1_4: Start the Shell with no connection data and use the --replicaset option. Validate that an exception is thrown because no connection data is provided.
 
 //@<> WL13236-TSFR1_4
-mysqlsh(['--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh(['--replicaset', '--execute', 'println(rs.status())']);
 
 EXPECT_STDOUT_CONTAINS_MULTILINE(`WARNING: Option --replicaset requires a session to a member of an InnoDB ReplicaSet.
 ERROR: RuntimeError: An open session is required to perform this operation.`);
@@ -165,13 +167,13 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`Reconnecting to the PRIMARY instance of an Inn
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to secondary, use --redirect-primary + --replicaset, expect no error
-mysqlsh([__hostname_ip_uri2, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri2, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to secondary, use --redirect-primary + --replicaset - X, expect no error
-mysqlsh([__hostname_ip_x_uri2, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri2, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
@@ -195,13 +197,13 @@ EXPECT_STDOUT_CONTAINS(`<Session:root@${hostname_ip}:${__mysql_sandbox_x_port1}>
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to primary, use --redirect-primary + --replicaset, expect no error
-mysqlsh([__hostname_ip_uri1, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri1, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to primary, use --redirect-primary + --replicaset - X, expect no error
-mysqlsh([__hostname_ip_x_uri1, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
@@ -225,13 +227,13 @@ expect_error_redirect_primary_missing_metadata();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to an instance that does not belong to a replicaset, use --redirect-primary + --replicaset, expect error
-mysqlsh([__hostname_ip_uri3, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri3, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_primary_missing_metadata();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to an instance that does not belong to a replicaset, use --redirect-primary + --replicaset - X, expect error
-mysqlsh([__hostname_ip_x_uri3, '--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri3, '--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_primary_missing_metadata();
 
@@ -249,7 +251,7 @@ expect_error_redirect_primary_no_session();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> use --redirect-primary + --replicaset without connection, expect error
-mysqlsh(['--redirect-primary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh(['--redirect-primary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_primary_no_session();
 
@@ -270,13 +272,13 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`Reconnecting to the SECONDARY instance of an I
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to primary, use --redirect-secondary + --replicaset, expect no error
-mysqlsh([__hostname_ip_uri1, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri1, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to primary, use --redirect-secondary + --replicaset - X, expect no error
-mysqlsh([__hostname_ip_x_uri1, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
@@ -300,13 +302,13 @@ EXPECT_STDOUT_CONTAINS(`<Session:root@${hostname_ip}:${__mysql_sandbox_x_port2}>
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to secondary, use --redirect-secondary + --replicaset, expect no error
-mysqlsh([__hostname_ip_uri2, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri2, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to secondary, use --redirect-secondary + --replicaset - X, expect no error
-mysqlsh([__hostname_ip_x_uri2, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri2, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();
 
@@ -330,13 +332,13 @@ expect_error_redirect_secondary_missing_metadata();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to an instance that does not belong to a replicaset, use --redirect-secondary + --replicaset, expect error
-mysqlsh([__hostname_ip_uri3, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_uri3, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_secondary_missing_metadata();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to an instance that does not belong to a replicaset, use --redirect-secondary + --replicaset - X, expect error
-mysqlsh([__hostname_ip_x_uri3, '--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh([__hostname_ip_x_uri3, '--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_secondary_missing_metadata();
 
@@ -354,7 +356,7 @@ expect_error_redirect_secondary_no_session();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> use --redirect-secondary + --replicaset without connection, expect error
-mysqlsh(['--redirect-secondary', '--replicaset', '--js', '--execute', 'println(rs.status())']);
+mysqlsh(['--redirect-secondary', '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_error_redirect_secondary_no_session();
 
@@ -365,68 +367,68 @@ function expect_error_cluster_with_replicaset() {
   EXPECT_STDOUT_CONTAINS('This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet');
 }
 
-mysqlsh([__hostname_ip_uri1, '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_uri1, '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> use --cluster with a replicaset member - X, expect error
-mysqlsh([__hostname_ip_x_uri1, '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a primary of a replicaset, use --redirect-primary + --cluster, expect error
-mysqlsh([__hostname_ip_uri1, '--redirect-primary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_uri1, '--redirect-primary', '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_already_primary();
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a primary of a replicaset, use --redirect-primary + --cluster - X, expect error
-mysqlsh([__hostname_ip_x_uri1, '--redirect-primary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--redirect-primary', '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_already_primary();
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a secondary of a replicaset, use --redirect-primary + --cluster, expect error
-mysqlsh([__hostname_ip_uri2, '--redirect-primary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_uri2, '--redirect-primary', '--cluster', '--execute', 'println(cluster.status())']);
 
 EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB ReplicaSet (${hostname_ip}:${__mysql_sandbox_port1})...`);
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a secondary of a replicaset, use --redirect-primary + --cluster - X, expect error
-mysqlsh([__hostname_ip_x_uri2, '--redirect-primary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_x_uri2, '--redirect-primary', '--cluster', '--execute', 'println(cluster.status())']);
 
 EXPECT_STDOUT_CONTAINS(`Reconnecting to the PRIMARY instance of an InnoDB ReplicaSet (${hostname_ip}:${__mysql_sandbox_x_port1})...`);
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a primary of a replicaset, use --redirect-secondary + --cluster, expect error
-mysqlsh([__hostname_ip_uri1, '--redirect-secondary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_uri1, '--redirect-secondary', '--cluster', '--execute', 'println(cluster.status())']);
 
 EXPECT_STDOUT_CONTAINS(`Reconnecting to the SECONDARY instance of an InnoDB ReplicaSet (${hostname_ip}:${__mysql_sandbox_port2})...`);
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a primary of a replicaset, use --redirect-secondary + --cluster - X, expect error
-mysqlsh([__hostname_ip_x_uri1, '--redirect-secondary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_x_uri1, '--redirect-secondary', '--cluster', '--execute', 'println(cluster.status())']);
 
 EXPECT_STDOUT_CONTAINS(`Reconnecting to the SECONDARY instance of an InnoDB ReplicaSet (${hostname_ip}:${__mysql_sandbox_x_port2})...`);
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a secondary of a replicaset, use --redirect-secondary + --cluster, expect error
-mysqlsh([__hostname_ip_uri2, '--redirect-secondary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_uri2, '--redirect-secondary', '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_already_secondary();
 expect_error_cluster_with_replicaset();
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect to a secondary of a replicaset, use --redirect-secondary + --cluster - X, expect error
-mysqlsh([__hostname_ip_x_uri2, '--redirect-secondary', '--cluster', '--js', '--execute', 'println(cluster.status())']);
+mysqlsh([__hostname_ip_x_uri2, '--redirect-secondary', '--cluster', '--execute', 'println(cluster.status())']);
 
 expect_already_secondary();
 expect_error_cluster_with_replicaset();
