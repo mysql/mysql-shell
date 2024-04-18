@@ -341,7 +341,10 @@ def dump_diff(f, key_label, instance_labels, diff, header):
     for k, v in diff:
         line = [k.ljust(column_widths[0])]
         for i, value in enumerate(v):
-            line.append(value.ljust(column_widths[1+i]))
+            if value:
+                line.append(value.ljust(column_widths[1+i]))
+            else:
+                print(f"Detected None diff entry, will not append to line")
         f.write((" | ".join(line) + "\n").encode("utf-8"))
 
 
