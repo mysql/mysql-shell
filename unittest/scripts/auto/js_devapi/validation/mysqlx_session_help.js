@@ -18,6 +18,9 @@ DESCRIPTION
       - Retrieval of connection information.
 
 PROPERTIES
+      connectionId
+            Retrieves the connection id for the current session.
+
       currentSchema
             Retrieves the active schema on the session.
 
@@ -44,6 +47,9 @@ FUNCTIONS
 
       dropSchema(name)
             Drops the schema with the specified name.
+
+      getConnectionId()
+            Retrieves the connection id for the current session.
 
       getCurrentSchema()
             Retrieves the active schema on the session.

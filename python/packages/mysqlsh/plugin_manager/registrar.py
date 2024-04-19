@@ -25,6 +25,7 @@
 import inspect
 import re
 from functools import wraps, partial
+import mysqlsh
 
 # Callbacks for additional handling on registered plugin
 # functions should be added here, they should be in the form
@@ -42,10 +43,9 @@ def validate_shell_version(min=None, max=None):
     """
     Validates the plugin Shell version requirements for plugin.
     """
-    import mysqlsh
-
     raw_version = mysqlsh.globals.shell.version
-    shell_version = tuple([int(v) for v in raw_version.split()[1].split('-')[0].split('.')])
+    shell_version = tuple(
+        [int(v) for v in raw_version.split()[1].split('-')[0].split('.')])
 
     # Ensures the plugin can be installed on the current version of the Shell
     min_version_ok = True
@@ -69,6 +69,8 @@ def validate_shell_version(min=None, max=None):
 
     if len(error) != 0:
         raise Exception(error)
+
+
 class PluginRegistrar:
     """Helper class to register a shell plugin.
 
@@ -360,7 +362,8 @@ class PluginRegistrar:
                     section.pop(-1)
 
                 if len(section) == 0:
-                    raise Exception(f"Invalid format: section without content: {name}")
+                    raise Exception(
+                        f"Invalid format: section without content: {name}")
 
             # Parses the function brief description
             self._parse_function_brief()
@@ -597,8 +600,6 @@ class PluginRegistrar:
         If any object in the middle of the chain does not exist, an error will
         be raised.
         """
-        import mysqlsh
-
         shell_obj = mysqlsh.globals.shell
 
         hierarchy = name.split(".")
@@ -659,8 +660,6 @@ class PluginRegistrar:
         web=False
     ):
         """Registers a new member into the provided shell extension object"""
-        import mysqlsh
-
         shell_obj = mysqlsh.globals.shell
 
         if cli and not shell:
@@ -694,6 +693,7 @@ class PluginRegistrar:
     def register_property(self, property):
         pass
 
+
 def plugin(cls=None, shell_version_min=None, shell_version_max=None, parent=None):
     """Decorator to register a class as a Shell extension object
 
@@ -719,7 +719,8 @@ def plugin(cls=None, shell_version_min=None, shell_version_max=None, parent=None
             # register the class as Shell plugin
             object_qualified_name = cls.__name__ if parent is None else parent + "." + cls.__name__
             plugin_manager.register_object(
-                object_qualified_name, PluginRegistrar.FunctionData(cls).format_info()
+                object_qualified_name, PluginRegistrar.FunctionData(
+                    cls).format_info()
             )
 
             def register_inner_classes(cls):
@@ -739,7 +740,8 @@ def plugin(cls=None, shell_version_min=None, shell_version_max=None, parent=None
                 for inner_class in inner_classes:
                     plugin_manager.register_object(
                         inner_class.__qualname__,
-                        PluginRegistrar.FunctionData(inner_class).format_info(),
+                        PluginRegistrar.FunctionData(
+                            inner_class).format_info(),
                     )
 
                     # Recursively also register the inner classes of this class
@@ -827,4 +829,55 @@ def plugin_function(fully_qualified_name,
 
         return wrapper
 
+    return decorator
+
+
+def sql_handler(name, prefixes):
+    """Decorator to register a Custom SQL Handler in the MySQL Shell
+
+    A Custom SQL Handler is a function with the following syntax:
+
+    callback(session, sql) -> Optional[Result]
+
+    @param name: is a unique name to identify the SQL Handler.
+    @param prefixes: is a list of prefixes identifying the SQL statements in which this
+    SQL handler will be used.
+
+    The callback function may return a Result object or None.
+
+    When a Custom SQL Handler returns a Result object, the processing of the SQL statement
+    will be considered complete and no further processing will be done by other Custom SQL
+    Handlers not the Shell itself.
+    """
+    if not isinstance(prefixes, list) or not all([isinstance(x, str) for x in prefixes]):
+        raise Exception("sql_handler() argument 'prefixes' must be a list of strings")
+
+    if len(prefixes) == 0:
+        raise Exception("sql_handler() argument 'prefixes' can not be empty")
+
+    def decorator(function):
+
+        brief = ''
+        if function.__doc__:
+            brief_lines = []
+            lines = function.__doc__.split('\n')
+            for line in lines:
+                if len(line):
+                    brief_lines.append(line)
+                else:
+                    break
+            brief = ' '.join(brief_lines)
+
+        if brief == '':
+            raise Exception(f"sql_handler() function '{function.__name__}' is missing a description")
+
+        # Registers the function as a SQL handler callback
+        # NOTE: No validations are run on prefixes to let the C+ layer validate it
+        mysqlsh.globals.shell.register_sql_handler(
+            name, brief, prefixes, function)
+
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            return function(*args, **kwargs)
+        return wrapper
     return decorator

@@ -43,6 +43,8 @@
 #include "src/mysqlsh/mysql_shell.h"
 
 namespace mysqlsh {
+class ShellResult;
+
 #if DOXYGEN_JS
 Array dir(Object object);
 Any require(String module_name_or_path);
@@ -126,6 +128,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined registerGlobal(String name, Object object, Dictionary definition);
   Integer dumpRows(ShellBaseResult result, String format);
   Dictionary autoCompleteSql(String statement, Dictionary options);
+  Undefined registerSqlHandler(String name, String description, List prefixes,
+                               Function callback);
+  List listSqlHandlers();
+  ShellResult createResult(Dictionary data);
+  ShellResult createResult(List data);
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -154,11 +161,16 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None disable_pager();
   None register_report(str name, str type, Function report, dict description);
   UserObject create_extension_object();
-  Undefined add_extension_object_member(Object object, str name, Value member,
-                                        dict definition);
-  Undefined register_global(str name, Object object, dict definition);
+  None add_extension_object_member(Object object, str name, Value member,
+                                   dict definition);
+  None register_global(str name, Object object, dict definition);
   int dump_rows(ShellBaseResult result, str format);
   dict auto_complete_sql(str statement, dict options);
+  None register_sql_handler(str name, str description, list prefixes,
+                            function callback);
+  list list_sql_handlers();
+  ShellResult create_result(dict data);
+  ShellResult create_result(list data);
 #endif
 
   shcore::Array_t list_credential_helpers();
@@ -198,6 +210,25 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void register_global(const std::string &name,
                        std::shared_ptr<Extensible_object> object,
                        const shcore::Dictionary_t &definition = {});
+
+  /**
+   * Registers a custom SQL handler for pre/post SQL Processing
+   *
+   * @param name A unique identifier for the SQL handler.
+   * @param description A brief description of the SQL handler.
+   * @param prefixes The list of statements prefixes to be handled by the SQL
+   * processor being registered.
+   * @param callback: The SQL processor function.
+   */
+  void register_sql_handler(const std::string &name,
+                            const std::string &description,
+                            const std::vector<std::string> &prefixes,
+                            shcore::Function_base_ref callback);
+
+  shcore::Array_t list_sql_handlers();
+
+  std::shared_ptr<ShellResult> create_result(
+      const std::variant<shcore::Dictionary_t, shcore::Array_t> &data = {});
 
   shcore::Dictionary_t get_globals(shcore::IShell_core::Mode mode) const;
 

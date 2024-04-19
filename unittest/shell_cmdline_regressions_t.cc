@@ -322,7 +322,7 @@ TEST_F(Command_line_test, duplicate_not_connected_error) {
   // Not Connected just once, not once for each statement
   execute({_mysqlsh, "--sql", "-e", "select 1; select 2; select 3;", NULL});
 
-  EXPECT_EQ("ERROR: Not connected.\n", _output);
+  EXPECT_EQ("Not connected.\n", _output);
 }
 
 TEST_F(Command_line_test, bug25653170) {

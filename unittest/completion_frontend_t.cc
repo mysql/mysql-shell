@@ -702,6 +702,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "connectToPrimary()",
                                        "createContext()",
                                        "createExtensionObject()",
+                                       "createResult()",
                                        "deleteAllCredentials()",
                                        "deleteCredential()",
                                        "disablePager()",
@@ -712,6 +713,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "help()",
                                        "listCredentialHelpers()",
                                        "listCredentials()",
+                                       "listSqlHandlers()",
                                        "listSshConnections()",
                                        "log()",
                                        "openSession()",
@@ -721,6 +723,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "reconnect()",
                                        "registerGlobal()",
                                        "registerReport()",
+                                       "registerSqlHandler()",
                                        "reports",
                                        "setCurrentSchema()",
                                        "setSession()",
@@ -775,11 +778,6 @@ TEST_F(Completer_frontend, js_devapi) {
 
   EXPECT_AFTER_TAB("session.createS", "session.createSchema()");
   EXPECT_AFTER_TAB("session.st", "session.startTransaction()");
-  EXPECT_AFTER_TAB_TAB(
-      "session.get",
-      strv({"getCurrentSchema()", "getDefaultSchema()", "getSchema()",
-            "getSchemas()", "getSshUri()", "getUri()"}));
-
   EXPECT_AFTER_TAB("session.sql", "session.sql()");
   EXPECT_AFTER_TAB("session.sql('sele\t", "session.sql('sele");
   EXPECT_AFTER_TAB_TAB("session.sql('sele\t", strv({}));
@@ -804,9 +802,9 @@ TEST_F(Completer_frontend, js_devapi) {
 
   EXPECT_AFTER_TAB_TAB(
       "session.get",
-      strv({"getCurrentSchema()", "getDefaultSchema()", "getSchema()",
-            "getSchemas()", "getSshUri()", "getUri()"}));
-  EXPECT_AFTER_TAB("session.getC", "session.getCurrentSchema()");
+      strv({"getConnectionId()", "getCurrentSchema()", "getDefaultSchema()",
+            "getSchema()", "getSchemas()", "getSshUri()", "getUri()"}));
+  EXPECT_AFTER_TAB("session.getCu", "session.getCurrentSchema()");
 
   // TS_FR5.1_X01
   EXPECT_AFTER_TAB_TAB("db", strv({"db", "dba"}));
@@ -1050,6 +1048,39 @@ TEST_F(Completer_frontend, js_classic) {
   CHECK_OBJECT_COMPLETIONS("mysql");
 }
 
+TEST_F(Completer_frontend, js_shell_result) {
+  execute("\\js");
+  execute("shellresult=shell.createResult()");
+
+  CHECK_OBJECT_COMPLETIONS("shellresult");
+
+  EXPECT_AFTER_TAB_TAB("shellresult.", strv({"affectedItemsCount",
+                                             "autoIncrementValue",
+                                             "columnCount",
+                                             "columnNames",
+                                             "columns",
+                                             "executionTime",
+                                             "fetchAll()",
+                                             "fetchOne()",
+                                             "getAffectedItemsCount()",
+                                             "getAutoIncrementValue()",
+                                             "getColumnCount()",
+                                             "getColumnNames()",
+                                             "getColumns()",
+                                             "getExecutionTime()",
+                                             "getInfo()",
+                                             "getWarnings()",
+                                             "getWarningsCount()",
+                                             "hasData()",
+                                             "help()",
+                                             "info",
+                                             "nextResult()",
+                                             "warnings",
+                                             "warningsCount"}));
+
+  EXPECT_AFTER_TAB_TAB("shellresult.fetch", strv({"fetchAll()", "fetchOne()"}));
+}
+
 TEST_F(Completer_frontend, js_devapi_members_x) {
   _options->devapi_schema_object_handles = false;
   reset_shell();
@@ -1216,6 +1247,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "connect_to_primary()",
                                        "create_context()",
                                        "create_extension_object()",
+                                       "create_result()",
                                        "delete_all_credentials()",
                                        "delete_credential()",
                                        "disable_pager()",
@@ -1226,6 +1258,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "help()",
                                        "list_credential_helpers()",
                                        "list_credentials()",
+                                       "list_sql_handlers()",
                                        "list_ssh_connections()",
                                        "log()",
                                        "open_session()",
@@ -1235,6 +1268,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "reconnect()",
                                        "register_global()",
                                        "register_report()",
+                                       "register_sql_handler()",
                                        "reports",
                                        "set_current_schema()",
                                        "set_session()",
@@ -1301,11 +1335,6 @@ TEST_F(Completer_frontend, py_devapi) {
 
   EXPECT_AFTER_TAB("session.create_s", "session.create_schema()");
   EXPECT_AFTER_TAB("session.st", "session.start_transaction()");
-  EXPECT_AFTER_TAB_TAB(
-      "session.get_",
-      strv({"get_current_schema()", "get_default_schema()", "get_schema()",
-            "get_schemas()", "get_ssh_uri()", "get_uri()"}));
-
   EXPECT_AFTER_TAB("session.sql", "session.sql()");
   EXPECT_AFTER_TAB("session.sql('sele\t", "session.sql('sele");
   EXPECT_AFTER_TAB_TAB("session.sql('sele\t", strv({}));
@@ -1328,11 +1357,11 @@ TEST_F(Completer_frontend, py_devapi) {
   EXPECT_AFTER_TAB("session.sql(mkquery(\"\")).e",
                    "session.sql(mkquery(\"\")).execute()");
 
-  EXPECT_AFTER_TAB_TAB(
-      "session.get_",
-      strv({"get_current_schema()", "get_default_schema()", "get_schema()",
-            "get_schemas()", "get_ssh_uri()", "get_uri()"}));
-  EXPECT_AFTER_TAB("session.get_c", "session.get_current_schema()");
+  EXPECT_AFTER_TAB_TAB("session.get_",
+                       strv({"get_connection_id()", "get_current_schema()",
+                             "get_default_schema()", "get_schema()",
+                             "get_schemas()", "get_ssh_uri()", "get_uri()"}));
+  EXPECT_AFTER_TAB("session.get_cu", "session.get_current_schema()");
 
   // TS_FR5.1_X01
   EXPECT_AFTER_TAB_TAB("db", strv({"db", "dba"}));
@@ -1580,6 +1609,40 @@ TEST_F(Completer_frontend, help_py) {
   EXPECT_AFTER_TAB("\\h util.lo", "\\h util.load_dump");
   EXPECT_AFTER_TAB("\\? sh", "\\? shell");
   EXPECT_AFTER_TAB("\\? shell.co", "\\? shell.connect");
+}
+
+TEST_F(Completer_frontend, py_shell_result) {
+  execute("\\py");
+  execute("shellresult=shell.create_result()");
+
+  CHECK_OBJECT_COMPLETIONS("shellresult");
+
+  EXPECT_AFTER_TAB_TAB("shellresult.", strv({"affected_items_count",
+                                             "auto_increment_value",
+                                             "column_count",
+                                             "column_names",
+                                             "columns",
+                                             "execution_time",
+                                             "fetch_all()",
+                                             "fetch_one()",
+                                             "get_affected_items_count()",
+                                             "get_auto_increment_value()",
+                                             "get_column_count()",
+                                             "get_column_names()",
+                                             "get_columns()",
+                                             "get_execution_time()",
+                                             "get_info()",
+                                             "get_warnings()",
+                                             "get_warnings_count()",
+                                             "has_data()",
+                                             "help()",
+                                             "info",
+                                             "next_result()",
+                                             "warnings",
+                                             "warnings_count"}));
+
+  EXPECT_AFTER_TAB_TAB("shellresult.fetch_",
+                       strv({"fetch_all()", "fetch_one()"}));
 }
 
 TEST_F(Completer_frontend, WL13397_TSFR_1_1) {

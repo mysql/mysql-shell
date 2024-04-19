@@ -66,6 +66,7 @@ set(utils_SOURCE
     utils_uuid.cc
     uuid_gen.cc
     version.cc
+    string_list_matcher.cc
 )
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)

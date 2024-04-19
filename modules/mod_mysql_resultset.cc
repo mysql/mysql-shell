@@ -53,8 +53,7 @@ on the database through the MySQL Protocol.
 This class allows access to the result set from the classic MySQL data model
 to be retrieved from Dev API queries.
 )*");
-ClassicResult::ClassicResult(
-    std::shared_ptr<mysqlshdk::db::mysql::Result> result)
+ClassicResult::ClassicResult(std::shared_ptr<mysqlshdk::db::IResult> result)
     : _result(result) {
   add_property("columns", "getColumns");
   add_property("columnCount", "getColumnCount");

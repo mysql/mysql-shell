@@ -230,10 +230,8 @@ std::shared_ptr<SqlResult> SqlExecute::execute_sql(
     const std::shared_ptr<mysqlsh::mysqlx::Session> &session) {
   std::shared_ptr<SqlResult> result;
   try {
-    auto sresult = std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Result>(
-        session->execute_sql(_sql, _parameters));
-
-    result = std::make_shared<SqlResult>(sresult);
+    result = std::make_shared<SqlResult>(
+        session->execute_sql(_sql, _parameters, {}, true));
     _parameters->clear();
   } catch (...) {
     _parameters->clear();

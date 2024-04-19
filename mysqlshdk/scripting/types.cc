@@ -1481,7 +1481,8 @@ std::string Value::as_string() const {
 
         if constexpr (std::is_same_v<T, bool>) {
           return lexical_cast<std::string>(value);
-        } else if constexpr (std::is_same_v<T, std::string>) {
+        } else if constexpr (std::is_same_v<T, std::string> ||
+                             std::is_same_v<T, binary_string>) {
           return value;
         } else if constexpr (std::is_same_v<T, int64_t>) {
           return lexical_cast<std::string>(value);

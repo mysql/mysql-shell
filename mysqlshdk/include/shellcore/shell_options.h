@@ -186,6 +186,7 @@ class Shell_options final : public shcore::Options {
 
     // Indicates the Shell trunning for the GUI
     bool gui_mode = false;
+    bool disable_user_plugins = false;
 
     // TODO(anyone): Expose the option
     enum class Progress_reporting {

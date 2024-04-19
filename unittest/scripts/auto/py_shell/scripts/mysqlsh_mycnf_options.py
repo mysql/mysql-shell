@@ -96,7 +96,7 @@ EXPECT_STDOUT_MATCHES(re.compile(f".*\n--user=mycnfusr --password=\\*\\*\\*\\*\\
 
 #@<> check --no-defaults
 testutil.call_mysqlsh(["--no-defaults", "--sql", "-e", "select user(), @@port"], "", ["MYSQL_HOME="+homedir])
-EXPECT_STDOUT_CONTAINS("ERROR: Not connected.")
+EXPECT_STDOUT_CONTAINS("Not connected.")
 
 #@<> check --no-defaults + uri
 testutil.call_mysqlsh(["--no-defaults", __mysqluripwd, "--sql", "-e", "select user(), @@port"], "", ["MYSQL_HOME="+homedir])

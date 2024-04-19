@@ -108,15 +108,15 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   bool process_sql(std::string_view query_str, std::string_view delimiter,
                    size_t line_num,
-                   std::shared_ptr<mysqlshdk::db::ISession> session,
+                   std::shared_ptr<mysqlsh::ShellBaseSession> session,
                    mysqlshdk::utils::Sql_splitter *splitter);
 
   std::pair<size_t, bool> handle_command(const char *p, size_t len, bool bol);
 
   void cmd_process_file(const std::vector<std::string> &params);
 
-  std::shared_ptr<mysqlshdk::db::ISession> get_session();
-  void handle_input(std::shared_ptr<mysqlshdk::db::ISession> session,
+  std::shared_ptr<mysqlsh::ShellBaseSession> get_session();
+  void handle_input(std::shared_ptr<mysqlsh::ShellBaseSession> session,
                     bool flush);
 };
 }  // namespace shcore

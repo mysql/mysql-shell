@@ -22,6 +22,7 @@ mysqlshrec = os.path.join(__bin_dir, mysqlshrec)
 
 k_cmdline_password_insecure_msg = "Using a password on the command line interface can be insecure."
 
+
 def get_members(object):
     all_exports = dir(object)
 
@@ -41,6 +42,119 @@ def get_members(object):
 #
 # Will return True if myVar is defined or False if not.
 ##
+
+
+def __split_trim_join(text):
+    needle = '\n'
+    s = [t.rstrip() for t in text.split(needle)]
+    return {'str': needle.join(s), 'array': s}
+
+
+def __check_wildcard_match(expected, actual):
+    if 0 == len(expected):
+        return expected == actual
+
+    needle = '[[*]]'
+    strings = expected.split(needle)
+    start = 0
+
+    for line in strings:
+        idx = actual.find(line, start)
+
+        if idx < 0:
+            return False
+
+        start = idx + len(line)
+
+    if strings[-1] == '':
+        # expected ends with wildcard
+        start = len(actual)
+
+    return start == len(actual)
+
+
+def __multi_value_compare(expected, actual):
+    start = expected.find('{{')
+
+    if (start < 0):
+        return __check_wildcard_match(expected, actual)
+    else:
+        end = expected.find('}}')
+        pre = expected[0, start]
+        post = expected[end + 2]
+        opts = expected[start + 2, end]
+
+        for item in opts.split('|'):
+            if __check_wildcard_match(pre + item + post, actual):
+                return True
+
+        return False
+
+
+def __find_line_matching(expected, actual_lines, start_at=0):
+    actual_index = start_at
+
+    while actual_index < len(actual_lines):
+        if __multi_value_compare(expected, actual_lines[actual_index]):
+            break
+        else:
+            actual_index = actual_index + 1
+
+    return actual_index
+
+
+def __diff_with_error(arr, error, idx):
+    needle = '\n'
+    copy = arr.copy()
+    copy[idx] += error
+    return needle.join(copy)
+
+
+def __check_multiline_expect(expected_lines, actual_lines):
+    diff = ''
+    matches = True
+    needle = '\n'
+
+    while '' == expected_lines[0] or '[[*]]' == expected_lines[0]:
+        expected_lines.pop(0)
+
+    actual_index = __find_line_matching(expected_lines[0], actual_lines)
+
+    if actual_index < len(actual_lines):
+        for expected_index in range(len(expected_lines)-1):
+            if '[[*]]' == expected_lines[expected_index]:
+                if expected_index == len(expected_lines) - 1:
+                    continue  # Ignores [[*]] if at the end of the expectation
+                else:
+                    expected_index = expected_index + 1
+
+                    actual_index = __find_line_matching(
+                        expected_lines[expected_index], actual_lines, actual_index + expected_index - 1)
+
+                    if actual_index < len(actual_lines):
+                        actual_index = actual_index - expected_index
+                    else:
+                        matches = False
+                        diff = __diff_with_error(
+                            expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index)
+                        break
+
+            if (actual_index + expected_index) >= len(actual_lines):
+                matches = False
+                diff = __diff_with_error(
+                    expected_lines, '<yellow><------ MISSING</yellow>', expected_index)
+
+            if not __multi_value_compare(expected_lines[expected_index], actual_lines[actual_index + expected_index]):
+                matches = False
+                diff = __diff_with_error(
+                    expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index)
+                break
+    else:
+        matches = False
+        diff = __diff_with_error(
+            expected_lines, '<yellow><------ INCONSISTENCY</yellow>', 0)
+
+    return {'matches': matches, 'diff': diff}
 
 
 def defined(cb):
@@ -95,6 +209,7 @@ def has_aws_environment():
         sys.stderr.write("Missing AWS Variables: {}".format(", ".join(missing)))
         return False
     return True
+
 
 def is_re_instance(o):
     return isinstance(o, is_re_instance.__re_type)
@@ -277,12 +392,14 @@ def EXPECT_DELTA(expected, allowed_delta, actual, note=""):
                    allowed_delta, actual, note)
 
 
-def EXPECT_JSON_EQ(expected, actual, note = ""):
+def EXPECT_JSON_EQ(expected, actual, note=""):
     def json_to_string(o):
-        return json.dumps(o, indent = 2)
+        return json.dumps(o, indent=2)
+
     def compare_values(expected, actual, path):
         if type(expected) != type(actual):
-            print(" =>", path, "mismatched values. Expected:\n", expected, "\nActual:\n", actual, "\n")
+            print(" =>", path, "mismatched values. Expected:\n",
+                  expected, "\nActual:\n", actual, "\n")
             return 1
         elif isinstance(expected, dict):
             return compare_objects(expected, actual, path)
@@ -290,9 +407,11 @@ def EXPECT_JSON_EQ(expected, actual, note = ""):
             jexpected = json_to_string(expected)
             jactual = json_to_string(actual)
             if jexpected != jactual:
-                print(" =>", path, "mismatched values. Expected:\n", jexpected, "\nActual:\n", jactual, "\n")
+                print(" =>", path, "mismatched values. Expected:\n",
+                      jexpected, "\nActual:\n", jactual, "\n")
                 return 1
         return 0
+
     def compare_objects(expected, actual, path):
         ndiffs = 0
         for k in expected.keys():
@@ -307,7 +426,8 @@ def EXPECT_JSON_EQ(expected, actual, note = ""):
                 print(" =>", path + "." + k, "unexpected but found in result")
         return ndiffs
     if compare_values(expected, actual, "$") > 0:
-        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Tested values don't match as expected.</red> {note}\n\t<yellow>Actual:</yellow> {json_to_string(actual)}\n\t<yellow>Expected:</yellow> {json_to_string(expected)}")
+        testutil.fail(
+            f"<b>Context:</b> {__test_context}\n<red>Tested values don't match as expected.</red> {note}\n\t<yellow>Actual:</yellow> {json_to_string(actual)}\n\t<yellow>Expected:</yellow> {json_to_string(expected)}")
 
 
 def EXPECT_TRUE(value, note=""):
@@ -441,7 +561,9 @@ def EXPECT_SHELL_LOG_CONTAINS(text, note=None):
     match_list = testutil.grep_file(log_file, text)
     if len(match_list) == 0:
         log_out = testutil.cat_file(log_file)
-        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
+        testutil.fail(
+            f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
+
 
 def EXPECT_SHELL_LOG_CONTAINS_COUNT(text, count):
     if not isinstance(count, int):
@@ -707,11 +829,11 @@ def md5sum(s):
 
 def reset_instance(session):
     try:
-      session.run_sql("SELECT group_replication_reset_member_actions()")
+        session.run_sql("SELECT group_replication_reset_member_actions()")
     except:
         pass
     try:
-      session.run_sql("SELECT asynchronous_connection_failover_reset()")
+        session.run_sql("SELECT asynchronous_connection_failover_reset()")
     except:
         pass
     session.run_sql("STOP " + get_replica_keyword())
@@ -747,6 +869,7 @@ def reset_multi(ports):
         s = mysql.get_session(f"mysql://root:root@localhost:{p}")
         reset_instance(s)
         s.close()
+
 
 class Docker_manipulator:
     def __init__(self, docker_name, data_path):
@@ -851,26 +974,73 @@ class Docker_manipulator:
             if remove_image:
                 self.client.images.remove(image=self.img.id, force=True)
 
-def get_reset_binary_logs_keyword():
-  if __version_num < 80200:
-    return "MASTER"
 
-  return "BINARY LOGS AND GTIDS"
+def get_reset_binary_logs_keyword():
+    if __version_num < 80200:
+        return "MASTER"
+
+    return "BINARY LOGS AND GTIDS"
+
 
 def get_replica_keyword():
-  if __version_num < 80022:
-    return "SLAVE"
+    if __version_num < 80022:
+        return "SLAVE"
 
-  return "REPLICA"
+    return "REPLICA"
+
 
 def get_replication_source_keyword():
-  if __version_num < 80022:
-    return "MASTER"
+    if __version_num < 80022:
+        return "MASTER"
 
-  return "REPLICATION SOURCE"
+    return "REPLICATION SOURCE"
+
 
 def get_replication_option_keyword():
-  if __version_num < 80022:
-    return "MASTER"
+    if __version_num < 80022:
+        return "MASTER"
 
-  return "SOURCE"
+    return "SOURCE"
+
+
+def EXPECT_OUTPUT_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetch_captured_stdout(False))
+    err = __split_trim_join(testutil.fetch_captured_stderr(False))
+    text = __split_trim_join(t)
+    out_result = __check_multiline_expect(text["array"], out["array"])
+    err_result = __check_multiline_expect(text["array"], err["array"])
+
+    if not out_result["matches"] and not err_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + \
+            "\n<yellow>Actual stderr:</yellow> " + err["str"] + "\n<yellow>Diff with stdout:</yellow>\n" + \
+            out_result["diff"] + \
+            "\n<yellow>Diff with stderr:</yellow>\n" + err_result["diff"]
+        testutil.fail(context)
+
+
+def EXPECT_STDOUT_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetch_captured_stdout(False))
+    err = __split_trim_join(testutil.fetch_captured_stderr(False))
+    text = __split_trim_join(t)
+    out_result = __check_multiline_expect(text["array"], out["array"])
+
+    if not out_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + \
+            text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + "\n<yellow>Actual stderr:</yellow> " + \
+            err["str"] + "\n<yellow>Diff with stdout:</yellow>\n" + \
+            out_result["diff"]
+        testutil.fail(context)
+
+
+def EXPECT_STDERR_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetchCapturedStdout(False))
+    err = __split_trim_join(testutil.fetchCapturedStderr(False))
+    text = __split_trim_join(t)
+    err_result = __check_multiline_expect(text["array"], err["array"])
+
+    if not err_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + \
+            text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + "\n<yellow>Actual stderr:</yellow> " + \
+            err["str"] + "\n<yellow>Diff with stderr:</yellow>\n" + \
+            err_result["diff"]
+        testutil.fail(context)

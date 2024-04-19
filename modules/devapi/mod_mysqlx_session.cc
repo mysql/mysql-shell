@@ -137,6 +137,7 @@ void Session::init() {
   add_property("sshUri", "getSshUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
+  add_property("connectionId", "getConnectionId");
 
   expose("isOpen", &Session::is_open);
   expose("sql", &Session::sql, "statement");
@@ -308,7 +309,8 @@ void Session::create_schema(const std::string &name) {
 }
 
 void Session::set_current_schema(const std::string &name) {
-  execute_sql(sqlstring("use !", 0) << name);
+  const auto query = sqlstring("use !", 0) << name;
+  execute_sql(query.str_view());
 }
 
 REGISTER_HELP_FUNCTION(setSavepoint, Session);
@@ -632,7 +634,8 @@ Undefined Session::dropSchema(String name) {}
 None Session::drop_schema(str name) {}
 #endif
 void Session::drop_schema(const std::string &name) {
-  execute_sql(sqlstring("drop schema if exists !", 0) << name);
+  const auto query = sqlstring("drop schema if exists !", 0) << name;
+  execute_sql(query.str_view());
   if (_schemas->find(name) != _schemas->end()) _schemas->erase(name);
 }
 
@@ -654,8 +657,8 @@ std::string Session::db_object_exists(std::string &type,
   std::string escaped_name = escape_wildcards(name);
 
   if (type == "Schema") {
-    auto result =
-        execute_sql(sqlstring("show databases like ?", 0) << escaped_name);
+    auto query = sqlstring("show databases like ?", 0) << escaped_name;
+    auto result = execute_sql(query.str_view());
     if (auto row = result->fetch_one()) {
       return row->get_string(0);
     }
@@ -1018,7 +1021,7 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
 }
 
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
-    const std::string &ns, const std::string &command,
+    const std::string &ns, std::string_view command,
     const ::xcl::Argument_array &args) {
   Interruptible intr(this);
   auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
@@ -1027,8 +1030,8 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
   return result;
 }
 
-std::shared_ptr<mysqlshdk::db::IResult> Session::execute_sql(
-    const std::string &statement, const shcore::Array_t &args,
+std::shared_ptr<mysqlshdk::db::IResult> Session::do_execute_sql(
+    std::string_view statement, const shcore::Array_t &args,
     [[maybe_unused]] const std::vector<mysqlshdk::db::Query_attribute>
         &query_attributes) {
   try {
@@ -1190,6 +1193,25 @@ String Session::getSshUri() {}
 str Session::get_ssh_uri() {}
 #endif
 
+REGISTER_HELP_PROPERTY(connectionId, Session);
+REGISTER_HELP(SESSION_CONNECTIONID_BRIEF, "${SESSION_GETCONNECTIONID_BRIEF}");
+REGISTER_HELP_FUNCTION(getConnectionId, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_GETCONNECTIONID, R"*(
+Retrieves the connection id for the current session.
+
+@return An integer value representing the connection id.
+)*");
+/**
+ * $(SESSION_GETCONNECTIONID_BRIEF)
+ *
+ * $(SESSION_GETCONNECTIONID)
+ */
+#if DOXYGEN_JS
+Integer Session::getConnectionId() {}
+#elif DOXYGEN_PY
+int Session::get_connection_id() {}
+#endif
+
 Value Session::get_member(const std::string &prop) const {
   Value ret_val;
   Session *session = const_cast<Session *>(this);
@@ -1219,6 +1241,8 @@ Value Session::get_member(const std::string &prop) const {
     } else {
       ret_val = Value::Null();
     }
+  } else if (prop == "connectionId") {
+    ret_val = shcore::Value(session->get_connection_id());
   } else {
     ret_val = ShellBaseSession::get_member(prop);
   }

@@ -87,6 +87,7 @@ file(GLOB api_module_SOURCES
       "mod_shell_context.cc"
       "mod_shell_options.cc"
       "mod_shell_reports.cc"
+      "mod_shell_result.cc"
       "mod_sys.cc"
       "mod_utils.cc"
       "mod_mysql_constants.cc"

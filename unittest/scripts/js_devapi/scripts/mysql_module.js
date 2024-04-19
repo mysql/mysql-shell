@@ -13,6 +13,7 @@ var mysql = require('mysql');
 validateMembers(mysql, [
     'getClassicSession',
     'ErrorCode',
+    'Type',
     'getSession',
     'help',
     'parseStatementAst',

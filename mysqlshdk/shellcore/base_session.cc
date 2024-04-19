@@ -28,8 +28,11 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/include/shellcore/sql_handler.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -232,6 +235,84 @@ void ShellBaseSession::append_json(shcore::JSON_dumper &dumper) const {
 
 bool ShellBaseSession::operator==(const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
+}
+
+/**
+ * Handles the execution of SQL statements considering any registered SQL
+ * execution handlers.
+ *
+ * - If many SQL handlers are registered, they will be executed in the order of
+ *   registration.
+ * - The execution will be interrupted as soon as an SQL handler returns a
+ *   Result object.
+ */
+std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
+    std::string_view query, const shcore::Array_t &args,
+    const std::vector<mysqlshdk::db::Query_attribute> &query_attributes,
+    bool use_sql_handlers) {
+  std::shared_ptr<mysqlshdk::db::IResult> ret_val;
+
+  // Gets the SQL handlers to be executed for the given query
+  shcore::Sql_handler_ptr sql_handler = nullptr;
+
+  // Only use SQL handlers for SQL coming from the user, determined by
+  // enable_sql_handlers
+  if (use_sql_handlers) {
+    sql_handler =
+        shcore::current_sql_handler_registry()->get_handler_for_sql(query);
+  }
+
+  shcore::Argument_list sql_handler_args;
+  sql_handler_args.push_back(shcore::Value(get_shared_this()));
+  sql_handler_args.push_back(shcore::Value(query));
+
+  if (sql_handler) {
+    if (m_active_custom_sql.empty()) {
+      m_active_custom_sql = query;
+    } else {
+      throw shcore::Exception::logic_error(
+          shcore::str_format("Unable to execute a sql handler while another "
+                             "is being executed.\n "
+                             "Executing SQL: %s\n Unable to execute: %.*s",
+                             m_active_custom_sql.c_str(),
+                             static_cast<int>(query.length()), query.data()));
+    }
+
+    shcore::Scoped_callback enable_sql_handlers(
+        [this]() { m_active_custom_sql.clear(); });
+
+    auto value = sql_handler->callback()->invoke(sql_handler_args);
+
+    // An SQL handler may return either nothing or a Result object
+    if (value && !value.is_null()) {
+      bool invalid_return_type = false;
+      try {
+        auto result = value.as_object<mysqlsh::ShellBaseResult>();
+        if (result) {
+          ret_val = result->get_result();
+        } else {
+          // Could be any other object
+          invalid_return_type = true;
+        }
+      } catch (...) {
+        // This happens when returned data is not an object
+        invalid_return_type = true;
+      }
+      if (invalid_return_type) {
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Invalid data returned by the SQL handler, if "
+            "any, the returned data should be a result object."));
+      }
+    }
+  }
+
+  if (!ret_val) {
+    // The statement will be executed on this session ONLY if it was not already
+    // executed by a handler
+    ret_val = do_execute_sql(query, args, query_attributes);
+  }
+
+  return ret_val;
 }
 
 void ShellBaseSession::enable_sql_mode_tracking() {

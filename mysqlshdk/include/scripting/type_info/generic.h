@@ -149,6 +149,17 @@ struct Type_info<std::string> {
 };
 
 template <>
+struct Type_info<std::string_view> {
+  static const std::string &to_native(const shcore::Value &in) {
+    return in.get_string();
+  }
+  static Value_type vtype() { return shcore::String; }
+  static const char *code() { return "s"; }
+  static std::string default_value() { return std::string(); }
+  static std::string desc() { return type_description(vtype()); }
+};
+
+template <>
 struct Type_info<const char *> {
   static const char *to_native(const shcore::Value &in) {
     return in.get_string().c_str();

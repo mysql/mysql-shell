@@ -51,11 +51,12 @@ namespace {
 const std::map<std::string, std::string> k_shell_hooks = {
     {"ClassicResult", "dump"},       {"Result", "dump"},
     {"DocResult", "dump"},           {"RowResult", "dump"},
-    {"SqlResult", "dump"},           {"CollectionAdd", "execute"},
-    {"CollectionFind", "execute"},   {"CollectionModify", "execute"},
-    {"CollectionRemove", "execute"}, {"TableDelete", "execute"},
-    {"TableInsert", "execute"},      {"TableSelect", "execute"},
-    {"TableUpdate", "execute"},      {"SqlExecute", "execute"},
+    {"SqlResult", "dump"},           {"ShellResult", "dump"},
+    {"CollectionAdd", "execute"},    {"CollectionFind", "execute"},
+    {"CollectionModify", "execute"}, {"CollectionRemove", "execute"},
+    {"TableDelete", "execute"},      {"TableInsert", "execute"},
+    {"TableSelect", "execute"},      {"TableUpdate", "execute"},
+    {"SqlExecute", "execute"},
 };
 }  // namespace
 

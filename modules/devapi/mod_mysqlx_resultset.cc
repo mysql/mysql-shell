@@ -37,6 +37,7 @@
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
+#include "mysqlshdk/libs/db/mysqlx/result.h"
 #include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -56,7 +57,7 @@ REGISTER_HELP(
     BASERESULT_BRIEF,
     "Base class for the different types of results returned by the server.");
 
-BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+BaseResult::BaseResult(std::shared_ptr<mysqlshdk::db::IResult> result)
     : _result(result) {
   add_property("affectedItemsCount", "getAffectedItemsCount");
   add_property("executionTime", "getExecutionTime");
@@ -256,7 +257,7 @@ Other functions on the Session class also return an instance of this class:
 
 @li Transaction handling functions
 )*");
-Result::Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+Result::Result(std::shared_ptr<mysqlshdk::db::IResult> result)
     : BaseResult(result) {
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("generatedIds", "getGeneratedIds");
@@ -344,8 +345,10 @@ List Result::getGeneratedIds() {}
 list Result::get_generated_ids() {}
 #endif
 const std::vector<std::string> Result::get_generated_ids() const {
-  if (_result)
-    return _result->get_generated_ids();
+  auto xresult =
+      std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Result>(_result);
+  if (xresult)
+    return xresult->get_generated_ids();
   else
     return {};
 }
@@ -370,7 +373,7 @@ REGISTER_HELP(DOCRESULT_BRIEF,
               "Allows traversing the DbDoc objects returned by a "
               "Collection.find operation.");
 
-DocResult::DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+DocResult::DocResult(std::shared_ptr<mysqlshdk::db::IResult> result)
     : BaseResult(result) {
   expose("fetchOne", &DocResult::fetch_one);
   expose("fetchAll", &DocResult::fetch_all);
@@ -460,7 +463,7 @@ REGISTER_HELP(
     ROWRESULT_BRIEF,
     "Allows traversing the Row objects returned by a Table.select operation.");
 
-RowResult::RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+RowResult::RowResult(std::shared_ptr<mysqlshdk::db::IResult> result)
     : BaseResult(result) {
   add_property("columnCount", "getColumnCount");
   add_property("columns", "getColumns");
@@ -671,7 +674,7 @@ REGISTER_HELP(SQLRESULT_BRIEF,
               "Allows browsing through the result information after performing "
               "an operation on the database done through Session.sql");
 
-SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
+SqlResult::SqlResult(std::shared_ptr<mysqlshdk::db::IResult> result)
     : RowResult(result) {
   expose("hasData", &SqlResult::has_data);
   expose("nextResult", &SqlResult::next_result);

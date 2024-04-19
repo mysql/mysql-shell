@@ -51,9 +51,12 @@ set(SHELLCORE_SOURCES
   shell_prompt_options.cc
   shell_resultset_dumper.cc
   shell_sql.cc
+  sql_handler.cc
+  sql_handler_registry.cc
   provider_sql.cc
   utils_help.cc
-  wizard.cc)
+  wizard.cc
+  custom_result.cc)
 
 if(HAVE_V8)
   include_directories(SYSTEM "${V8_INCLUDE_DIR}")

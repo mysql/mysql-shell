@@ -18,6 +18,9 @@ DESCRIPTION
       - Retrieval of connection information.
 
 PROPERTIES
+      connection_id
+            Retrieves the connection id for the current session.
+
       current_schema
             Retrieves the active schema on the session.
 
@@ -44,6 +47,9 @@ FUNCTIONS
 
       drop_schema(name)
             Drops the schema with the specified name.
+
+      get_connection_id()
+            Retrieves the connection id for the current session.
 
       get_current_schema()
             Retrieves the active schema on the session.

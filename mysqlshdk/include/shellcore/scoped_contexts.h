@@ -31,6 +31,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/include/shellcore/sql_handler_registry.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -62,6 +63,7 @@ using Scoped_interrupt = Global_scoped_object<shcore::Interrupts>;
 using Scoped_logger = Global_scoped_object<shcore::Logger>;
 using Scoped_ssh_manager = Global_scoped_object<mysqlshdk::ssh::Ssh_manager>;
 using Scoped_log_sql = Global_scoped_object<shcore::Log_sql>;
+using Scoped_sql_processor = Global_scoped_object<shcore::Sql_handler_registry>;
 
 namespace detail {
 

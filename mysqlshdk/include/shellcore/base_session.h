@@ -110,10 +110,10 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   virtual void drop_schema(const std::string &name) = 0;
   virtual void set_current_schema(const std::string &name) = 0;
 
-  virtual std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &query, const shcore::Array_t &args = {},
-      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes =
-          {}) = 0;
+  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
+      std::string_view query, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {},
+      bool use_sql_handlers = false);
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;
@@ -208,18 +208,23 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   Query_attribute_store m_query_attributes;
 
  private:
-  void init();
-
   friend class Query_guard;
   void begin_query();
   void end_query();
   mutable int _guard_active = 0;
 
   bool m_is_sql_mode_tracking_enabled = false;
+  std::string m_active_custom_sql;
+
+  virtual std::shared_ptr<ShellBaseSession> get_shared_this() = 0;
+
+  virtual std::shared_ptr<mysqlshdk::db::IResult> do_execute_sql(
+      std::string_view query, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes =
+          {}) = 0;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Interrupt_mysql, sql_classic);
-  FRIEND_TEST(Interrupt_mysql, sql_node);
 #endif
 };
 

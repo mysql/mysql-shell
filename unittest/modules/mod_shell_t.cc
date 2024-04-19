@@ -358,22 +358,20 @@ TEST_F(mod_shell_test, disconnect) {
 }
 
 TEST_F(mod_shell_test, dump_rows) {
-  auto session = mysqlsh::mysql::ClassicSession(create_mysql_session());
-  auto xsession = mysqlsh::mysqlx::Session(create_mysqlx_session());
+  auto session =
+      std::make_shared<mysqlsh::mysql::ClassicSession>(create_mysql_session());
+  auto xsession =
+      std::make_shared<mysqlsh::mysqlx::Session>(create_mysqlx_session());
 
   mysqlsh::ShellBaseSession *bsession = nullptr;
 
   auto query = [&bsession](const std::string &sql) {
     auto iresult = bsession->execute_sql(sql);
     std::shared_ptr<mysqlsh::ShellBaseResult> result;
-    auto mysql_result =
-        std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(iresult);
-    if (mysql_result) {
-      result = std::make_shared<mysqlsh::mysql::ClassicResult>(mysql_result);
+    if (bsession->session_type() == mysqlsh::SessionType::Classic) {
+      result = std::make_shared<mysqlsh::mysql::ClassicResult>(iresult);
     } else {
-      auto mysqlx_result =
-          std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Result>(iresult);
-      result = std::make_shared<mysqlsh::mysqlx::SqlResult>(mysqlx_result);
+      result = std::make_shared<mysqlsh::mysqlx::SqlResult>(iresult);
     }
 
     return result;
@@ -381,9 +379,9 @@ TEST_F(mod_shell_test, dump_rows) {
 
   for (int i = 0; i < 2; i++) {
     if (i == 0) {
-      bsession = &session;
+      bsession = session.get();
     } else {
-      bsession = &xsession;
+      bsession = xsession.get();
     }
 
     {

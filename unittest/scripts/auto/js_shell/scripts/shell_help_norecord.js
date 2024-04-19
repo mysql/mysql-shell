@@ -62,6 +62,15 @@ shell.help("createExtensionObject")
 //@ Help on shell.createExtensionObject, \? [USE:Help on createExtensionObject]
 \? shell.createExtensionObject
 
+//@ Help on createResult
+shell.help("createResult")
+
+//@ Help on createResult, \? [USE:Help on createResult]
+\? createResult
+
+//@ Help on shell.createResult, \? [USE:Help on createResult]
+\? shell.createResult
+
 //@ Help on deleteAllCredentials
 shell.help("deleteAllCredentials")
 
@@ -161,6 +170,19 @@ shell.help("registerReport")
 
 //@ Help on registerReport, \? [USE:Help on registerReport]
 \? registerReport
+
+
+//@ Help on registerSQLHandler
+shell.help("registerSQLHandler")
+
+//@ Help on registerSQLHandler, \? [USE:Help on registerSQLHandler]
+\? registerSQLHandler
+
+//@ Help on listSQLHandlers
+shell.help("listSQLHandlers")
+
+//@ Help on listSQLHandlers, \? [USE:Help on listSQLHandlers]
+\? listSQLHandlers
 
 //@ Help on setCurrentSchema
 shell.help("setCurrentSchema")

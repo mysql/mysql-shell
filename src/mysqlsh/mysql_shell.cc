@@ -950,15 +950,17 @@ void Mysql_shell::get_plugins(File_list *file_list) {
   std::vector<std::string> plugin_directories = {
       shcore::path::join_path(shcore::get_library_folder(), "plugins")};
 
-  if (options().plugins_path.has_value()) {
-    auto additional_plugin_paths = shcore::split_string(
-        *options().plugins_path, shcore::path::pathlist_separator_s);
-    plugin_directories.insert(plugin_directories.end(),
-                              additional_plugin_paths.begin(),
-                              additional_plugin_paths.end());
-  } else {
-    plugin_directories.push_back(
-        shcore::path::join_path(shcore::get_user_config_path(), "plugins"));
+  if (!options().disable_user_plugins) {
+    if (options().plugins_path.has_value()) {
+      auto additional_plugin_paths = shcore::split_string(
+          *options().plugins_path, shcore::path::pathlist_separator_s);
+      plugin_directories.insert(plugin_directories.end(),
+                                additional_plugin_paths.begin(),
+                                additional_plugin_paths.end());
+    } else {
+      plugin_directories.push_back(
+          shcore::path::join_path(shcore::get_user_config_path(), "plugins"));
+    }
   }
 
   // A plugin is contained in a folder inside of the pre-defined "plugin"
@@ -2052,7 +2054,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"help", "", true}});
 
   registry->add_completable_type("Session",
-                                 {{"uri", "", false},
+                                 {{"connectionId", "", false},
+                                  {"uri", "", false},
                                   {"sshUri", "", false},
                                   {"defaultSchema", "Schema", true},
                                   {"currentSchema", "Schema", true},
@@ -2060,6 +2063,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"commit", "SqlResult", true},
                                   {"createSchema", "Schema", true},
                                   {"dropSchema", "", true},
+                                  {"getConnectionId", "Schema", true},
                                   {"getCurrentSchema", "Schema", true},
                                   {"getDefaultSchema", "Schema", true},
                                   {"getSchema", "Schema", true},
@@ -2465,6 +2469,7 @@ void Mysql_shell::add_devapi_completions() {
   registry->add_completable_type("ClassicSession",
                                  {{"close", "", true},
                                   {"commit", "ClassicResult", true},
+                                  {"getConnectionId", "", true},
                                   {"getUri", "", true},
                                   {"getSshUri", "", true},
                                   {"help", "", true},
@@ -2473,6 +2478,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"runSql", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
                                   {"setQueryAttributes", "", true},
+                                  {"connectionId", "", false},
                                   {"uri", "", false},
                                   {"sshUri", "", false},
                                   {"_getSocketFd", "", true}});
@@ -2501,6 +2507,31 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getInfo", "", true},
                                   {"getStatementId", "", true},
                                   {"info", "", false},
+                                  {"hasData", "", true},
+                                  {"help", "", true},
+                                  {"nextResult", "", true}});
+
+  registry->add_completable_type("ShellResult",
+                                 {{"executionTime", "", true},
+                                  {"warningsCount", "", true},
+                                  {"warnings", "", true},
+                                  {"columnCount", "", true},
+                                  {"columns", "", true},
+                                  {"columnNames", "", true},
+                                  {"affectedItemsCount", "", true},
+                                  {"autoIncrementValue", "", true},
+                                  {"info", "", false},
+                                  {"fetchAll", "", true},
+                                  {"fetchOne", "", true},
+                                  {"getAffectedItemsCount", "", true},
+                                  {"getAutoIncrementValue", "", true},
+                                  {"getColumnCount", "", true},
+                                  {"getColumnNames", "", true},
+                                  {"getColumns", "", true},
+                                  {"getExecutionTime", "", true},
+                                  {"getWarningsCount", "", true},
+                                  {"getWarnings", "", true},
+                                  {"getInfo", "", true},
                                   {"hasData", "", true},
                                   {"help", "", true},
                                   {"nextResult", "", true}});

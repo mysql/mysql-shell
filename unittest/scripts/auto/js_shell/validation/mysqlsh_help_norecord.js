@@ -245,6 +245,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    session, it should be one of: AUTO,
                                    FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN,
                                    SHA256_MEMORY.
+  --disable-plugins                Diable loading user plugins.
   --dba=enableXProtocol            Enable the X protocol in the target server.
                                    Requires a connection using classic session.
                                    Deprecated.

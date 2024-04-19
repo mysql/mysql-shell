@@ -174,10 +174,10 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
@@ -916,6 +916,9 @@ DESCRIPTION
       - Retrieval of connection information.
 
 PROPERTIES
+      connection_id
+            Retrieves the connection id for the current session.
+
       current_schema
             Retrieves the active schema on the session.
 
@@ -942,6 +945,9 @@ FUNCTIONS
 
       drop_schema(name)
             Drops the schema with the specified name.
+
+      get_connection_id()
+            Retrieves the connection id for the current session.
 
       get_current_schema()
             Retrieves the active schema on the session.

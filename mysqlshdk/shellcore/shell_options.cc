@@ -846,7 +846,10 @@ Shell_options::Shell_options(
         "FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN, SHA256_MEMORY.",
         [this](const std::string&, const char* value) {
           storage.connection_data.set(mysqlshdk::db::kAuthMethod, value);
-        });
+        })
+    (cmdline("--disable-plugins"), "Diable loading user plugins.",
+    assign_value(&storage.disable_user_plugins, true));
+;
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.execute_dba_statement, "",

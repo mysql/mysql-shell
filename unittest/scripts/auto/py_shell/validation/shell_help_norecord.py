@@ -34,6 +34,9 @@ FUNCTIONS
             Creates an extension object, it can be used to extend shell
             functionality.
 
+      create_result([data])
+            Creates a ShellResult object from the given data.
+
       delete_all_credentials()
             Deletes all credentials managed by the configured helper.
 
@@ -66,6 +69,9 @@ FUNCTIONS
       list_credentials()
             Retrieves a list of all URLs stored by the configured helper.
 
+      list_sql_handlers()
+            Lists the name and description of any registered SQL handlers.
+
       list_ssh_connections()
             Retrieves a list of all active SSH tunnels.
 
@@ -89,6 +95,10 @@ FUNCTIONS
 
       register_report(name, type, report[, description])
             Registers a new user-defined report.
+
+      register_sql_handler(name, description, prefixes, callback)
+            Registers a custom SQL Handler to intercept and handle matching SQL
+            statements.
 
       set_current_schema(name)
             Sets the active schema on the global session.
@@ -379,10 +389,10 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
@@ -499,10 +509,10 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
@@ -568,6 +578,49 @@ DESCRIPTION
       An extension object is usable only when it has been registered as a
       global object or when it has been added into another extension object
       that is member in an other registered object.
+
+#@<OUT> shell.create_result
+NAME
+      create_result - Creates a ShellResult object from the given data.
+
+SYNTAX
+      shell.create_result([data])
+
+WHERE
+      data: Either a dictionary or a list of dictionaries with the data to be
+            used in the result.
+
+RETURNS
+      ShellResult object representing the given data.
+
+DESCRIPTION
+      A result can be created using a dictionary with the following elements
+      (all of them optional):
+
+      - "affectedItemsCount" - The number of record affected by the SQL
+        statement that produced the result.
+      - "info" - Additional information about the result.
+      - "executionTime" - The execution time of the SQL statement that produced
+        this result.
+      - "autoIncrementValue" - the last integer auto generated id (for insert
+        operations).
+      - "warnings" - a list of warnings associated to the Result.
+      - "data" - a list of dictionaries representing a record in the Result.
+
+      Creating a Result using an empty Dictionary is the same as creating an OK
+      result with no data.
+
+      A warning is defined as a dictionary with the following elements:
+
+      - "level" - holds the warning type: error, warning, note.
+      - "code" - integer number identifying the warning code.
+      - "message" - describes the actual warning.
+
+      When defining warnings, both level and message are mandatory.
+
+      It is possible to create a multi-result Result object, to do so, instead
+      of using a single data dictionary, provide a list of data dictionaries
+      following the specification mentioned above.
 
 #@<OUT> shell.delete_all_credentials
 NAME
@@ -1235,6 +1288,68 @@ EXCEPTIONS
       - if 'type' of a report option holds an invalid value.
       - if the 'argc' key of a 'description' dictionary holds an invalid value.
 
+#@<OUT> shell.register_sql_handler
+NAME
+      register_sql_handler - Registers a custom SQL Handler to intercept and
+                             handle matching SQL statements.
+
+SYNTAX
+      shell.register_sql_handler(name, description, prefixes, callback)
+
+WHERE
+      name: A name that uniquely identifies the SQL handler.
+      description: A brief description of the SQL extensions provided by the
+                   SQL handler.
+      prefixes: List of prefixes to identify the SQL statements to be processed
+                by this handler.
+      callback: The function to be executed when a statement implemented on
+                this SQL handler is identified.
+
+DESCRIPTION
+      SQL statements are intercepted in user created sessions and when
+      applicable, they are processed using the corresponding SQL Handler.
+
+      User created sessions include the MySQL Shell Global Session and the
+      sessions created with the different API functions available.
+
+      The function provided on the callback parameter is expected to have the
+      following signature:
+
+          function(session, sql): [Result]
+
+      The Session used to execute the SQL statement will first identify if a
+      specific SQL handler should be used to process it. If that is the case,
+      the associated callback will be executed.
+
+      If the function returns a Result object the SQL processing will be
+      considered complete; if no data is returned, the Session will proceed to
+      execute the SQL statement.
+
+      The selection of a custom SQL handler for execution will be done by
+      matching the SQL with the prefixes defined on the handler by ignoring
+      leading white spaces and coalescing multiple white spaces between non
+      space characters.
+
+      The callback function may return a Result object, which can be created by
+      calling shell.create_result.
+
+#@<OUT> shell.list_sql_handlers
+NAME
+      list_sql_handlers - Lists the name and description of any registered SQL
+                          handlers.
+
+SYNTAX
+      shell.list_sql_handlers()
+
+RETURNS
+      A list with the information of the registered SQL Handlers.
+
+DESCRIPTION
+      Each element of the list is a dictionary with the following keys:
+
+      - name
+      - description
+
 #@<OUT> shell.set_current_schema
 NAME
       set_current_schema - Sets the active schema on the global session.
@@ -1388,9 +1503,9 @@ The following options are valid for use either in a URI or in a dictionary:
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
-- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the 
+- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- oci-config-file: Allows defining the OCI configuration file for OCI 
+- oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.
@@ -1662,9 +1777,9 @@ The following options are valid for use either in a URI or in a dictionary:
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
-- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the 
+- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- oci-config-file: Allows defining the OCI configuration file for OCI 
+- oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.

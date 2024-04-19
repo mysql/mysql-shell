@@ -70,7 +70,8 @@ class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,
                       public Scoped_storage<shcore::Interrupts>,
                       public Scoped_storage<shcore::Logger>,
                       public Scoped_storage<mysqlshdk::ssh::Ssh_manager>,
-                      public Scoped_storage<shcore::Log_sql> {};
+                      public Scoped_storage<shcore::Log_sql>,
+                      public Scoped_storage<shcore::Sql_handler_registry> {};
 
 thread_local Multi_storage mstorage;
 
@@ -103,6 +104,7 @@ template class Global_scoped_object<mysqlsh::Shell_options>;
 template class Global_scoped_object<shcore::Logger>;
 template class Global_scoped_object<mysqlshdk::ssh::Ssh_manager>;
 template class Global_scoped_object<shcore::Log_sql>;
+template class Global_scoped_object<shcore::Sql_handler_registry>;
 
 namespace detail {
 template <typename T>
@@ -140,4 +142,10 @@ mysqlshdk::ssh::current_ssh_manager(bool allow_empty) {
 
 std::shared_ptr<shcore::Log_sql> shcore::current_log_sql(bool allow_empty) {
   return mysqlsh::detail::current_scoped_value<shcore::Log_sql>(allow_empty);
+}
+
+std::shared_ptr<shcore::Sql_handler_registry>
+shcore::current_sql_handler_registry(bool allow_empty) {
+  return mysqlsh::detail::current_scoped_value<shcore::Sql_handler_registry>(
+      allow_empty);
 }

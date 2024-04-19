@@ -53,6 +53,16 @@ shell.help('create_extension_object')
 #@ global help for create_extension_object[USE:shell.create_extension_object]
 \help Shell.create_extension_object
 
+
+#@ shell.create_result
+shell.help('create_result')
+
+#@ global ? for create_result[USE:shell.create_result]
+\? Shell.create_result
+
+#@ global help for create_result[USE:shell.create_result]
+\help Shell.create_result
+
 #@ shell.delete_all_credentials
 shell.help('delete_all_credentials')
 
@@ -214,6 +224,29 @@ shell.help('register_report')
 
 #@ global help for register_report [USE:shell.register_report]
 \help Shell.register_report
+
+
+#@ shell.register_sql_handler
+shell.help('register_sql_handler')
+
+#@ global ? for register_sql_handler [USE:shell.register_sql_handler]
+\? Shell.register_sql_handler
+
+#@ global help for register_sql_handler [USE:shell.register_sql_handler]
+\help Shell.register_sql_handler
+
+
+
+
+#@ shell.list_sql_handlers
+shell.help('list_sql_handlers')
+
+#@ global ? for list_sql_handlers [USE:shell.list_sql_handlers]
+\? Shell.list_sql_handlers
+
+#@ global help for list_sql_handlers [USE:shell.list_sql_handlers]
+\help Shell.list_sql_handlers
+
 
 #@ shell.set_current_schema
 shell.help('set_current_schema')

@@ -34,6 +34,7 @@
 
 #include "modules/devapi/dynamic_object.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
+#include "mysqlshdk/libs/db/mysqlx/mysqlxclient_clean.h"
 
 namespace mysqlsh {
 namespace mysqlx {

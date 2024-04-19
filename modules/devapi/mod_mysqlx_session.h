@@ -29,6 +29,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "db/mysqlx/session.h"
@@ -79,6 +80,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   String sshUri;         //!< $(SESSION_GETSSHURI_BRIEF)
   Schema defaultSchema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
   Schema currentSchema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
+  Integer connectionId;  //!< $(SESSION_GETCONNECTIONID_BRIEF)
 
   Schema createSchema(String name);
   Schema getSchema(String name);
@@ -88,6 +90,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   List getSchemas();
   String getUri();
   String getSshUri();
+  Integer getConnectionId();
   Undefined close();
   Undefined setFetchWarnings(Boolean enable);
   Result startTransaction();
@@ -109,6 +112,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   str ssh_uri;            //!< $(SESSION_GETSSHURI_BRIEF)
   Schema default_schema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
   Schema current_schema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
+  int connection_id;      //!< $(SESSION_GETCONNECTIONID_BRIEF)
 
   Schema create_schema(str name);
   Schema get_schema(str name);
@@ -118,6 +122,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   list get_schemas();
   str get_uri();
   str get_ssh_uri();
+  int get_connection_id();
   None close();
   None set_fetch_warnings(bool enable);
   Result start_transaction();
@@ -210,11 +215,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   }
 
  public:
-  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &command, const shcore::Array_t &args = {},
-      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
-      override;
-
   shcore::Value _execute_mysqlx_stmt(const std::string &command,
                                      const shcore::Dictionary_t &args);
 
@@ -238,7 +238,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_stmt(
-      const std::string &ns, const std::string &command,
+      const std::string &ns, std::string_view command,
       const ::xcl::Argument_array &args);
 
   shcore::Value _execute_stmt(const std::string &ns, const std::string &command,
@@ -265,6 +265,14 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   bool m_notices_enabled = false;
 
   void reset_session();
+  std::shared_ptr<mysqlshdk::db::IResult> do_execute_sql(
+      std::string_view command, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
+      override;
+
+  std::shared_ptr<ShellBaseSession> get_shared_this() override {
+    return shared_from_this();
+  }
 };
 
 }  // namespace mysqlx

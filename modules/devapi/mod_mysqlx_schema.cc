@@ -778,8 +778,9 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
     if (type == "View") {
       std::shared_ptr<Session> sess(
           std::static_pointer_cast<Session>(_session.lock()));
-      sess->execute_sql(sqlstring("drop view if exists !.!", 0)
-                        << schema.get_string() << name);
+      const auto query = sqlstring("drop view if exists !.!", 0)
+                         << schema.get_string() << name;
+      sess->execute_sql(query.str_view());
     } else {
       if ((type == "Table") || (type == "Collection")) {
         auto command_args = shcore::make_dict();

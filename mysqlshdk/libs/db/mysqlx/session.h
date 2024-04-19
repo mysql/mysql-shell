@@ -220,9 +220,9 @@ class SHCORE_PUBLIC Session : public ISession,
   }
 
   virtual std::shared_ptr<IResult> execute_stmt(
-      const std::string &ns, const std::string &stmt,
+      const std::string &ns, std::string_view stmt,
       const ::xcl::Argument_array &args) {
-    return _impl->execute_stmt(ns, stmt, args);
+    return _impl->execute_stmt(ns, static_cast<std::string>(stmt), args);
   }
 
   virtual std::shared_ptr<IResult> execute_crud(

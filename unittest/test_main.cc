@@ -1080,6 +1080,8 @@ int main(int argc, char **argv) {
   std::string mysqld_path_variables;
   mysqlsh::Scoped_ssh_manager ssh_manager(
       std::make_shared<mysqlshdk::ssh::Ssh_manager>());
+  mysqlsh::Scoped_sql_processor sql_processor(
+      std::make_shared<shcore::Sql_handler_registry>());
   mysqlsh::Scoped_logger sclogger(setup_logger());
   mysqlsh::Scoped_log_sql sclogsql(std::make_shared<shcore::Log_sql>());
   shcore::current_log_sql()->push("testmain");
@@ -1243,6 +1245,10 @@ int main(int argc, char **argv) {
 #ifndef NDEBUG
   if (getenv("DEBUG_OBJ")) shcore::debug::debug_object_dump_report(false);
 #endif
+
+  // We need to ensure the callbacks registered in an SQL handler get released
+  // before the python/js contexts get destroyed.
+  sql_processor.get()->clear();
 
   mysqlsh::global_end();
 

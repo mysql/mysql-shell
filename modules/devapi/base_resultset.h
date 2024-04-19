@@ -51,7 +51,7 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
   std::string class_name() const override { return "ShellBaseResult"; }
 
   bool operator==(const Object_bridge &other) const override;
-  virtual mysqlshdk::db::IResult *get_result() const = 0;
+  virtual std::shared_ptr<mysqlshdk::db::IResult> get_result() const = 0;
   // shcore::Value::Array_type_ref get_columns() const { return m_columns; }
   std::shared_ptr<std::vector<std::string>> get_column_names() const;
 

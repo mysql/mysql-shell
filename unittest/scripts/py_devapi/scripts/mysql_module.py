@@ -15,6 +15,7 @@ validate_members(mysql, [
   'get_classic_session',
   'get_session',
   'ErrorCode',
+  'Type',
   'help',
   'parse_statement_ast',
   'quote_identifier',

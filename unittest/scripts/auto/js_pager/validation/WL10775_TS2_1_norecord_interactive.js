@@ -77,6 +77,9 @@ DESCRIPTION
       Provides facilities to execute queries.
 
 PROPERTIES
+      connectionId
+            Retrieves the connection id for the current session.
+
       sshUri
             Retrieves the SSH URI for the current session.
 
@@ -91,6 +94,9 @@ FUNCTIONS
       commit()
             Commits all the operations executed after a call to
             startTransaction().
+
+      getConnectionId()
+            Retrieves the connection id for the current session.
 
       getSshUri()
             Retrieves the SSH URI for the current session.

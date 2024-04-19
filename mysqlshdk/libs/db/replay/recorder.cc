@@ -209,7 +209,7 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(
 }
 
 std::shared_ptr<IResult> Recorder_mysqlx::execute_stmt(
-    const std::string &ns, const std::string &stmt,
+    const std::string &ns, std::string_view stmt,
     const ::xcl::Argument_array &args) {
   if (ns != "sql")
     throw std::logic_error("recording for namespace " + ns +

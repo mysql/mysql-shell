@@ -40,7 +40,8 @@ class Argument_visitor : public xcl::Argument_visitor {
  public:
   Argument_visitor() = delete;
 
-  explicit Argument_visitor(const std::string &query) : m_sql(query, 0) {}
+  explicit Argument_visitor(std::string_view query)
+      : m_sql(static_cast<std::string>(query), 0) {}
 
   Argument_visitor(const Argument_visitor &) = delete;
 
@@ -90,7 +91,7 @@ class Argument_visitor : public xcl::Argument_visitor {
 
 }  // namespace
 
-std::string query(const std::string &q, const ::xcl::Argument_array &args) {
+std::string query(std::string_view q, const ::xcl::Argument_array &args) {
   Argument_visitor v{q};
   int i = 0;
 

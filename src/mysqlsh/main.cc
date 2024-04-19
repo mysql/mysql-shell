@@ -624,6 +624,9 @@ int main(int argc, char **argv) {
   mysqlsh::Scoped_interrupt interrupt_handler(
       shcore::Interrupts::create(&sighelper));
 
+  mysqlsh::Scoped_sql_processor sql_processor(
+      std::make_shared<shcore::Sql_handler_registry>());
+
   std::shared_ptr<mysqlsh::Shell_options> shell_options =
       process_args(&argc, &argv);
   const mysqlsh::Shell_options::Storage &options = shell_options->get();
@@ -650,12 +653,13 @@ int main(int argc, char **argv) {
   shcore::current_log_sql()->push("main");
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
-#ifdef HAVE_PYTHON
-  shcore::Scoped_callback cleanup([&shell] {
+  shcore::Scoped_callback cleanup([&shell, &sql_processor] {
+    sql_processor.get()->clear();
     shell.reset();
+#ifdef HAVE_PYTHON
     shcore::Python_init_singleton::destroy_python();
-  });
 #endif
+  });
 
   try {
     bool interrupted = false;

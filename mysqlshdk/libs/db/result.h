@@ -77,7 +77,7 @@ class SHCORE_PUBLIC IResult {
     return Row_ref_by_name(field_names(), fetch_one_or_throw());
   }
 
-  double get_execution_time() const { return m_execution_time; }
+  virtual double get_execution_time() const { return m_execution_time; }
   void set_execution_time(double time) { m_execution_time = time; }
 
   virtual bool next_resultset() = 0;

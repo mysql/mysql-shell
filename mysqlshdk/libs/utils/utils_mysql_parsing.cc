@@ -30,6 +30,7 @@
 #include <sstream>
 #include <tuple>
 #include <utility>
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -523,10 +524,15 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                   if (shcore::str_ibeginswith(
                           {p, static_cast<std::size_t>(m_end - p)}, kwd) &&
                       is_any_blank(*(p + kwd.length()))) {
-                    command = true;
-                    p += kwd.length() + 1;
-                    push(Context::kStatement);
-                    break;
+                    // Commands will be considered commands only if no custom
+                    // SQL handler is defined for them
+                    if (shcore::current_sql_handler_registry()
+                            ->get_handler_for_sql(p) == nullptr) {
+                      command = true;
+                      p += kwd.length() + 1;
+                      push(Context::kStatement);
+                      break;
+                    }
                   }
                 if (command) continue;
               }

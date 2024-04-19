@@ -22,5 +22,5 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 """The MySQL Shell Plugin Manager"""
 
-from .registrar import plugin, plugin_function, validate_shell_version
+from .registrar import plugin, plugin_function, sql_handler, validate_shell_version
 from .general import VERSION

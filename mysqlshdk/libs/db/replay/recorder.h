@@ -88,7 +88,7 @@ class Recorder_mysqlx : public mysqlx::Session {
   void executes(const char *sql, size_t length) override;
 
   std::shared_ptr<IResult> execute_stmt(
-      const std::string &ns, const std::string &stmt,
+      const std::string &ns, std::string_view stmt,
       const ::xcl::Argument_array &args) override;
 
   std::shared_ptr<IResult> execute_crud(

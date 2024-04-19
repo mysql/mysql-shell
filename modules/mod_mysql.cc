@@ -203,6 +203,7 @@ REGISTER_HELP(ERRORCODE_DETAIL,
 
 REGISTER_MODULE(Mysql, mysql) {
   add_property("ErrorCode|ErrorCode");
+  add_property("Type|Type");
 
   expose("getClassicSession", &Mysql::get_session, "connectionData",
          "?password");

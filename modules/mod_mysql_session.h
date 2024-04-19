@@ -30,6 +30,7 @@
 #define _MOD_SESSION_H_
 
 #include <memory>
+#include <string_view>
 
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -119,23 +120,20 @@ class SHCORE_PUBLIC ClassicSession
   std::string query_one_string(const std::string &query,
                                int field = 0) override;
   std::string get_ssl_cipher() const override;
-  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
-      const std::string &query, const shcore::Array_t &args = {},
-      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
-      override;
 
   socket_t _get_socket_fd() const;
 
- public:
   SessionType session_type() const override { return SessionType::Classic; }
 
   void kill_query() override;
 
 #if DOXYGEN_JS
-  String uri;     //!< $(CLASSICSESSION_GETURI_BRIEF)
-  String sshUri;  //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
+  String uri;            //!< $(CLASSICSESSION_GETURI_BRIEF)
+  String sshUri;         //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
+  Integer connectionId;  //!< $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
   String getUri();
   String getSshUri();
+  Integer getConnectionId();
   ClassicResult runSql(String query, Array args = []);
   Undefined close();
   ClassicResult startTransaction();
@@ -144,10 +142,12 @@ class SHCORE_PUBLIC ClassicSession
   Bool isOpen();
   Undefined setQueryAttributes(Dictionary attributes);
 #elif DOXYGEN_PY
-  str uri;      //!< Same as get_uri()
-  str ssh_uri;  //!< Same as get_ssh_uri()
+  str uri;            //!< Same as get_uri()
+  str ssh_uri;        //!< Same as get_ssh_uri()
+  int connection_id;  //!< Same as get_connection_id()
   str get_uri();
   str get_ssh_uri();
+  str get_connection_id();
   ClassicResult run_sql(str query, list args = []);
   None close();
   ClassicResult start_transaction();
@@ -161,6 +161,15 @@ class SHCORE_PUBLIC ClassicSession
 
  private:
   void init();
+  std::shared_ptr<mysqlshdk::db::IResult> do_execute_sql(
+      std::string_view query, const shcore::Array_t &args = {},
+      const std::vector<mysqlshdk::db::Query_attribute> &query_attributes = {})
+      override;
+
+  std::shared_ptr<ShellBaseSession> get_shared_this() override {
+    return shared_from_this();
+  }
+
   std::shared_ptr<mysqlshdk::db::mysql::Session> _session;
 };
 }  // namespace mysql

@@ -106,7 +106,7 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_affected_row_count, uint64_t());
   MOCK_CONST_METHOD0(get_fetched_row_count, uint64_t());
   MOCK_CONST_METHOD0(get_warning_count, uint64_t());
-  MOCK_CONST_METHOD0(get_execution_time, unsigned long());
+  MOCK_CONST_METHOD0(get_execution_time, double());
   MOCK_CONST_METHOD0(get_info, std::string());
   MOCK_CONST_METHOD0(get_gtids, const std::vector<std::string> &());
   MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());

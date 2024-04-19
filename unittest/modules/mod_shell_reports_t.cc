@@ -63,9 +63,9 @@ class Mock_shell_base_session : public ShellBaseSession {
   MOCK_METHOD1(create_schema, void(const std::string &));
   MOCK_METHOD1(drop_schema, void(const std::string &));
   MOCK_METHOD1(set_current_schema, void(const std::string &));
-  MOCK_METHOD3(execute_sql,
+  MOCK_METHOD3(do_execute_sql,
                std::shared_ptr<mysqlshdk::db::IResult>(
-                   const std::string &, const shcore::Array_t &,
+                   std::string_view, const shcore::Array_t &,
                    const std::vector<mysqlshdk::db::Query_attribute> &));
   MOCK_CONST_METHOD0(session_type, SessionType());
   MOCK_CONST_METHOD0(get_ssl_cipher, std::string());
@@ -78,6 +78,7 @@ class Mock_shell_base_session : public ShellBaseSession {
   MOCK_METHOD0(rollback, void());
   MOCK_METHOD0(kill_query, void());
   MOCK_CONST_METHOD0(get_core_session, std::shared_ptr<ISession>());
+  MOCK_METHOD0(get_shared_this, std::shared_ptr<ShellBaseSession>());
 };
 
 shcore::Dictionary_t make_report() {

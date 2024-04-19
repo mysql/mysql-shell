@@ -9,6 +9,7 @@ classicSession = mysql.get_classic_session(__uripwd)
 validate_members(classicSession, [
   'close',
   'commit',
+  'get_connection_id',
   'get_uri',
   'get_ssh_uri',
   'help',
@@ -17,6 +18,7 @@ validate_members(classicSession, [
   'run_sql',
   'start_transaction',
   'set_query_attributes',
+  'connection_id',
   'uri',
   'ssh_uri',
   '_get_socket_fd'])

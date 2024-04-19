@@ -85,7 +85,7 @@ void ShellBaseResult::dump() {
   std::string item_label =
       is_doc_result ? "document" : is_result ? "item" : "row";
 
-  mysqlsh::dump_result(result, item_label, is_query, is_doc_result);
+  mysqlsh::dump_result(result.get(), item_label, is_query, is_doc_result);
 
   result->rewind();
 }

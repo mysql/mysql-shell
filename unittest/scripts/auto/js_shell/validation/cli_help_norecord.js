@@ -41,6 +41,9 @@ The following operations are available at 'shell':
    list-credentials
       Retrieves a list of all URLs stored by the configured helper.
 
+   list-sql-handlers
+      Lists the name and description of any registered SQL handlers.
+
    status
       Shows connection status info for the shell.
 

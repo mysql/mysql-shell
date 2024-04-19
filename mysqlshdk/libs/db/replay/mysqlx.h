@@ -26,7 +26,7 @@
 #ifndef MYSQLSHDK_LIBS_DB_REPLAY_MYSQLX_H_
 #define MYSQLSHDK_LIBS_DB_REPLAY_MYSQLX_H_
 
-#include <string>
+#include <string_view>
 
 #include "mysqlshdk/libs/db/mysqlx/mysqlxclient_clean.h"
 
@@ -34,7 +34,7 @@ namespace mysqlshdk {
 namespace db {
 namespace replay {
 
-std::string query(const std::string &q, const ::xcl::Argument_array &args);
+std::string query(std::string_view q, const ::xcl::Argument_array &args);
 
 }  // namespace replay
 }  // namespace db

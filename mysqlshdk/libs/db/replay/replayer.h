@@ -30,6 +30,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -140,7 +141,7 @@ class Replayer_mysqlx : public mysqlx::Session {
       const override;
 
   std::shared_ptr<IResult> execute_stmt(
-      const std::string &ns, const std::string &stmt,
+      const std::string &ns, std::string_view stmt,
       const ::xcl::Argument_array &args) override;
 
   std::shared_ptr<IResult> execute_crud(

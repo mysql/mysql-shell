@@ -32,7 +32,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "db/mysqlx/result.h"
 #include "modules/devapi/base_resultset.h"
 
 namespace mysqlsh {
@@ -46,7 +45,7 @@ class Bufferable_result;
  */
 class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
  public:
-  explicit BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  explicit BaseResult(std::shared_ptr<mysqlshdk::db::IResult> result);
   virtual ~BaseResult();
 
   shcore::Value get_member(const std::string &prop) const override;
@@ -79,11 +78,13 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   str get_execution_time();
 #endif
 
-  mysqlshdk::db::IResult *get_result() const override { return _result.get(); }
+  std::shared_ptr<mysqlshdk::db::IResult> get_result() const override {
+    return _result;
+  }
   bool has_data() const override;
 
  protected:
-  std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
+  std::shared_ptr<mysqlshdk::db::IResult> _result;
 
  private:
   std::string get_protocol() const override { return "mysqlx"; }
@@ -100,7 +101,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
  */
 class SHCORE_PUBLIC Result : public BaseResult {
  public:
-  explicit Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  explicit Result(std::shared_ptr<mysqlshdk::db::IResult> result);
 
   std::string class_name() const override { return "Result"; }
   shcore::Value get_member(const std::string &prop) const override;
@@ -131,7 +132,7 @@ class SHCORE_PUBLIC Result : public BaseResult {
  */
 class SHCORE_PUBLIC DocResult : public BaseResult {
  public:
-  explicit DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  explicit DocResult(std::shared_ptr<mysqlshdk::db::IResult> result);
 
   shcore::Dictionary_t fetch_one() const;
   shcore::Array_t fetch_all() const;
@@ -157,7 +158,7 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
  */
 class SHCORE_PUBLIC RowResult : public BaseResult {
  public:
-  explicit RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  explicit RowResult(std::shared_ptr<mysqlshdk::db::IResult> result);
 
   std::shared_ptr<mysqlsh::Row> fetch_one() const;
   shcore::Array_t fetch_all() const;
@@ -203,7 +204,7 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
  */
 class SHCORE_PUBLIC SqlResult : public RowResult {
  public:
-  explicit SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
+  explicit SqlResult(std::shared_ptr<mysqlshdk::db::IResult> result);
 
   std::string class_name() const override { return "SqlResult"; }
   shcore::Value get_member(const std::string &prop) const override;

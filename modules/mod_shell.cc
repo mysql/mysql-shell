@@ -29,10 +29,15 @@
 
 #include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
+#include "modules/mod_mysql_session.h"
+#include "modules/mod_shell_result.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
+#include "mysqlshdk/include/shellcore/custom_result.h"
+#include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
+#include "mysqlshdk/include/shellcore/sql_handler.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -206,6 +211,11 @@ void Shell::init() {
   if (mysqlshdk::utils::in_main_thread())
     expose("createContext", &Shell::create_context, "callbacks");
   expose("autoCompleteSql", &Shell::auto_complete_sql, "statement", "options");
+  expose("registerSqlHandler", &Shell::register_sql_handler, "name",
+         "description", "prefixes", "callback")
+      ->cli(false);
+  expose("listSqlHandlers", &Shell::list_sql_handlers)->cli(true);
+  expose("createResult", &Shell::create_result, "?data")->cli(false);
 }
 
 Shell::~Shell() {}
@@ -2158,9 +2168,9 @@ int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
   if (!format.empty() && !Resultset_dumper_base::is_valid_format(format))
     throw std::invalid_argument("Invalid format " + format);
 
-  return mysqlsh::dump_result(resultset->get_result(), "row", false, false,
-                              "off", format.empty() ? "table" : format, false,
-                              false);
+  return mysqlsh::dump_result(resultset->get_result().get(), "row", false,
+                              false, "off", format.empty() ? "table" : format,
+                              false, false);
 }
 
 REGISTER_HELP_FUNCTION(autoCompleteSql, shell);
@@ -2258,6 +2268,170 @@ shcore::Dictionary_t Shell::auto_complete_sql(
     const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
         &options) const {
   return mysqlshdk::auto_complete_sql(statement, *options);
+}
+
+REGISTER_HELP_FUNCTION(registerSqlHandler, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_REGISTERSQLHANDLER, R"*(
+Registers a custom SQL Handler to intercept and handle matching SQL statements.
+
+@param name A name that uniquely identifies the SQL handler.
+@param description A brief description of the SQL extensions provided by the
+SQL handler.
+@param prefixes List of prefixes to identify the SQL statements to be processed
+by this handler.
+@param callback The function to be executed when a statement implemented on this
+SQL handler is identified.
+
+SQL statements are intercepted in user created sessions and when applicable,
+they are processed using the corresponding SQL Handler.
+
+User created sessions include the MySQL Shell Global Session and the sessions
+created with the different API functions available.
+
+The function provided on the callback parameter is expected to have the following
+signature:
+
+    function(session, sql): [Result]
+
+The Session used to execute the SQL statement will first identify if a specific
+SQL handler should be used to process it. If that is the case, the associated
+callback will be executed.
+
+If the function returns a Result object the SQL processing will be considered
+complete; if no data is returned, the Session will proceed to execute the SQL
+statement.
+
+The selection of a custom SQL handler for execution will be done by matching the
+SQL with the prefixes defined on the handler by ignoring leading white spaces
+and coalescing multiple white spaces between non space characters.
+
+The callback function may return a Result object, which can be created by calling
+shell.<<<createResult>>>.
+)*");
+
+/**
+ * $(SHELL_REGISTERSQLHANDLER_BRIEF)
+ *
+ * $(SHELL_REGISTERSQLHANDLER)
+ */
+#if DOXYGEN_JS
+Undefined registerSqlHandler(String name, String description, List prefixes,
+                             Function callback) {}
+#elif DOXYGEN_PY
+None register_sql_handler(str name, str description, list prefixes,
+                          function callback) {}
+#endif
+
+void Shell::register_sql_handler(const std::string &name,
+                                 const std::string &description,
+                                 const std::vector<std::string> &prefixes,
+                                 shcore::Function_base_ref callback) {
+  shcore::current_sql_handler_registry()->register_sql_handler(
+      name, description, prefixes, std::move(callback));
+}
+
+REGISTER_HELP_FUNCTION(listSqlHandlers, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_LISTSQLHANDLERS, R"*(
+Lists the name and description of any registered SQL handlers.
+
+@returns A list with the information of the registered SQL Handlers.
+
+Each element of the list is a dictionary with the following keys:
+
+@li name
+@li description
+)*");
+
+/**
+ * $(SHELL_LISTSQLHANDLERS_BRIEF)
+ *
+ * $(SHELL_LISTSQLHANDLERS)
+ */
+#if DOXYGEN_JS
+Undefined listSqlHandlers() {}
+#elif DOXYGEN_PY
+None list_sql_handlers() {}
+#endif
+shcore::Array_t Shell::list_sql_handlers() {
+  auto handlers = shcore::current_sql_handler_registry()->get_sql_handlers();
+  shcore::Array_t ret_val = shcore::make_array();
+  for (const auto &handler : handlers) {
+    ret_val->emplace_back(shcore::make_dict(
+        "name", handler.first, "description", handler.second->description()));
+  }
+
+  return ret_val;
+}
+
+REGISTER_HELP_FUNCTION(createResult, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_CREATERESULT, R"*(
+Creates a ShellResult object from the given data.
+
+@param data Optional Either a dictionary or a list of dictionaries with the data to be
+            used in the result.
+
+@returns ShellResult object representing the given data.
+
+A result can be created using a dictionary with the following elements
+(all of them optional):
+
+@li <b>"affectedItemsCount"</b> - The number of record affected by the SQL
+statement that produced the result.
+@li <b>"info"</b> - Additional information about the result.
+@li <b>"executionTime"</b> - The execution time of the SQL statement that
+produced this result.
+@li <b>"autoIncrementValue"</b> - the last integer auto generated id (for insert operations).
+@li <b>"warnings"</b> - a list of warnings associated to the Result.
+@li <b>"data"</b> - a list of dictionaries representing a record in the Result.
+
+Creating a Result using an empty Dictionary is the same as creating an OK result with no data.
+
+A warning is defined as a dictionary with the following elements:
+
+@li <b>"level"</b> - holds the warning type: error, warning, note.
+@li <b>"code"</b> - integer number identifying the warning code.
+@li <b>"message"</b> - describes the actual warning.
+
+When defining warnings, both level and message are mandatory.
+
+It is possible to create a multi-result Result object, to do so, instead of using
+a single data dictionary, provide a list of data dictionaries following the specification
+mentioned above.
+)*");
+
+/**
+ * $(SHELL_CREATERESULT_BRIEF)
+ *
+ * $(SHELL_CREATERESULT)
+ */
+#if DOXYGEN_JS
+ShellResult Shell::createResult(Dictionary data) {}
+#elif DOXYGEN_PY
+ShellResult Shell::create_result(dict data) {}
+#endif
+/**
+ * $(SHELL_CREATERESULT_BRIEF)
+ *
+ * $(SHELL_CREATERESULT)
+ */
+#if DOXYGEN_JS
+ShellResult Shell::createResult(List data) {}
+#elif DOXYGEN_PY
+ShellResult Shell::create_result(list data) {}
+#endif
+std::shared_ptr<ShellResult> Shell::create_result(
+    const std::variant<shcore::Dictionary_t, shcore::Array_t> &data) {
+  if (std::holds_alternative<shcore::Dictionary_t>(data)) {
+    return std::make_shared<ShellResult>(
+        std::make_shared<mysqlshdk::Custom_result>(
+            std::get<shcore::Dictionary_t>(data)));
+  } else {
+    return std::make_shared<ShellResult>(
+        std::make_shared<mysqlshdk::Custom_result_set>(
+            std::get<shcore::Array_t>(data)));
+  }
+
+  throw std::runtime_error("Invalid data for ShellResult");
 }
 
 }  // namespace mysqlsh

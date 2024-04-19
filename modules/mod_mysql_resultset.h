@@ -106,7 +106,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   str get_statement_id();
 #endif
 
-  explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
+  explicit ClassicResult(std::shared_ptr<mysqlshdk::db::IResult> result);
 
   std::string class_name() const override { return "ClassicResult"; }
   shcore::Value get_member(const std::string &prop) const override;
@@ -118,14 +118,16 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   shcore::Array_t fetch_all() const;
   bool next_result();
 
-  mysqlshdk::db::IResult *get_result() const override { return _result.get(); }
+  std::shared_ptr<mysqlshdk::db::IResult> get_result() const override {
+    return _result;
+  }
 
  private:
   std::string get_protocol() const override { return "mysql"; }
   const std::vector<mysqlshdk::db::Column> &get_metadata() const override {
     return _result->get_metadata();
   }
-  std::shared_ptr<mysqlshdk::db::mysql::Result> _result;
+  std::shared_ptr<mysqlshdk::db::IResult> _result;
 };
 }  // namespace mysql
 }  // namespace mysqlsh

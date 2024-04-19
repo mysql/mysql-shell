@@ -10,6 +10,9 @@ DESCRIPTION
       Provides facilities to execute queries.
 
 PROPERTIES
+      connection_id
+            Retrieves the connection id for the current session.
+
       ssh_uri
             Retrieves the SSH URI for the current session.
 
@@ -24,6 +27,9 @@ FUNCTIONS
       commit()
             Commits all the operations executed after a call to
             start_transaction().
+
+      get_connection_id()
+            Retrieves the connection id for the current session.
 
       get_ssh_uri()
             Retrieves the SSH URI for the current session.

@@ -82,6 +82,7 @@ void ClassicSession::init() {
 
   add_property("uri", "getUri");
   add_property("sshUri", "getSshUri");
+  add_property("connectionId", "getConnectionId");
 
   expose("close", &ClassicSession::close);
   expose("runSql", &ClassicSession::run_sql, "query", "?args");
@@ -263,17 +264,15 @@ std::shared_ptr<ClassicResult> ClassicSession::run_sql(
     shcore::Scoped_callback finally(
         [this]() { query_attribute_store().clear(); });
 
-    auto cresult = std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(
-        execute_sql(query, args, query_attributes()));
-
-    ret_val = std::make_shared<ClassicResult>(cresult);
+    ret_val = std::make_shared<ClassicResult>(
+        execute_sql(query, args, query_attributes(), true));
   }
 
   return ret_val;
 }
 
-std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(
-    const std::string &query, const shcore::Array_t &args,
+std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::do_execute_sql(
+    std::string_view query, const shcore::Array_t &args,
     const std::vector<mysqlshdk::db::Query_attribute> &query_attributes) {
   std::shared_ptr<mysqlshdk::db::IResult> result;
   if (!_session || !_session->is_open()) {
@@ -284,8 +283,9 @@ std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(
     } else {
       Interruptible intr(this);
       try {
-        result = _session->query(sub_query_placeholders(query, args), false,
-                                 query_attributes);
+        result =
+            _session->query(sub_query_placeholders(std::string(query), args),
+                            false, query_attributes);
       } catch (const mysqlshdk::db::Error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());
@@ -351,6 +351,26 @@ String ClassicSession::getSshUri() {}
 str ClassicSession::get_ssh_uri() {}
 #endif
 
+REGISTER_HELP_PROPERTY(connectionId, ClassicSession);
+REGISTER_HELP_FUNCTION(getConnectionId, ClassicSession);
+REGISTER_HELP(CLASSICSESSION_CONNECTIONID_BRIEF,
+              "${CLASSICSESSION_GETCONNECTIONID_BRIEF}");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETCONNECTIONID, R"*(
+Retrieves the connection id for the current session.
+
+@return An integer value representing the connection id.
+)*");
+/**
+ * $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
+ *
+ * $(CLASSICSESSION_GETCONNECTIONID)
+ */
+#if DOXYGEN_JS
+Integer ClassicSession::getConnectionId() {}
+#elif DOXYGEN_PY
+int ClassicSession::get_connection_id() {}
+#endif
+
 Value ClassicSession::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -365,6 +385,8 @@ Value ClassicSession::get_member(const std::string &prop) const {
     ret_val = shcore::Value(uri());
   } else if (prop == "sshUri") {
     ret_val = shcore::Value(ssh_uri());
+  } else if (prop == "connectionId") {
+    ret_val = shcore::Value(_session->get_connection_id());
   } else {
     ret_val = ShellBaseSession::get_member(prop);
   }
@@ -418,7 +440,8 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
 }
 
 void ClassicSession::drop_schema(const std::string &name) {
-  execute_sql(sqlstring("drop schema !", 0) << name, shcore::Array_t());
+  const auto query = sqlstring("drop schema !", 0) << name;
+  execute_sql(query.str_view(), shcore::Array_t());
 }
 
 /*
