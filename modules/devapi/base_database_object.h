@@ -41,15 +41,17 @@ class Proxy_object;
 }  // namespace shcore
 
 namespace mysqlsh {
-class ShellBaseSession;
-class CoreSchema;
+namespace mysqlx {
+class Session;
+}
+
 /**
  * \ingroup ShellAPI
  * $(DATABASEOBJECT_BRIEF)
  */
 class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
  public:
-  DatabaseObject(std::shared_ptr<ShellBaseSession> session,
+  DatabaseObject(std::shared_ptr<mysqlx::Session> session,
                  std::shared_ptr<DatabaseObject> schema,
                  const std::string &name);
   ~DatabaseObject();
@@ -69,7 +71,7 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 
   const std::string &name() const { return _name; }
 
-  std::shared_ptr<ShellBaseSession> session() const { return _session.lock(); }
+  std::shared_ptr<mysqlx::Session> session() const { return _session.lock(); }
 
   std::shared_ptr<DatabaseObject> schema() const { return _schema.lock(); }
 
@@ -94,7 +96,7 @@ class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
 #endif
 
  protected:
-  std::weak_ptr<ShellBaseSession> _session;
+  std::weak_ptr<mysqlx::Session> _session;
   std::weak_ptr<DatabaseObject> _schema;
   std::string _name;
 

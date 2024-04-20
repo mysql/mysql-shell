@@ -69,8 +69,6 @@ class Mock_shell_base_session : public ShellBaseSession {
                    const std::vector<mysqlshdk::db::Query_attribute> &));
   MOCK_CONST_METHOD0(session_type, SessionType());
   MOCK_CONST_METHOD0(get_ssl_cipher, std::string());
-  MOCK_METHOD3(db_object_exists, std::string(std::string &, const std::string &,
-                                             const std::string &));
   MOCK_METHOD2(query_one_string, std::string(const std::string &, int));
   MOCK_METHOD0(get_current_schema, std::string());
   MOCK_METHOD0(start_transaction, void());

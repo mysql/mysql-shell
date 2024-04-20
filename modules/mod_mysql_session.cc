@@ -296,22 +296,6 @@ std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::do_execute_sql(
   return result;
 }
 
-void ClassicSession::create_schema(const std::string &name) {
-  if (!_session || !_session->is_open()) {
-    throw Exception::logic_error("Not connected.");
-  } else {
-    // Options are the statement and optionally options to modify
-    // How the resultset is created.
-
-    if (name.empty()) {
-      throw Exception::argument_error("The schema name can not be empty.");
-    } else {
-      std::string statement = sqlstring("create schema !", 0) << name;
-      execute_sql(statement, shcore::Array_t());
-    }
-  }
-}
-
 // Documentation of getCurrentSchema function
 REGISTER_HELP_PROPERTY(uri, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_URI_BRIEF, "${CLASSICSESSION_GETURI_BRIEF}");
@@ -439,59 +423,6 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
   return session;
 }
 
-void ClassicSession::drop_schema(const std::string &name) {
-  const auto query = sqlstring("drop schema !", 0) << name;
-  execute_sql(query.str_view(), shcore::Array_t());
-}
-
-/*
- * This function verifies if the given object exist in the database, works for
- * schemas, tables and views. The check for tables and views is done is done
- * based on the type. If type is not specified and an object with the name is
- * found, the type will be returned.
- */
-
-std::string ClassicSession::db_object_exists(std::string &type,
-                                             const std::string &name,
-                                             const std::string &owner) {
-  std::string statement;
-  std::string ret_val;
-  // match must be exact, since both branches below use LIKE and both escape
-  // their arguments it's enough to just escape the wildcards
-  std::string escaped_name = escape_wildcards(name);
-
-  auto session = get_core_session();
-  if (type == "Schema") {
-    statement = sqlstring("show databases like ?", 0) << escaped_name;
-    auto result = session->query(statement);
-    auto row = result->fetch_one();
-
-    if (row) ret_val = row->get_string(0);
-  } else {
-    statement = sqlstring("show full tables from ! like ?", 0)
-                << owner << escaped_name;
-    auto result = session->query(statement);
-    auto row = result->fetch_one();
-
-    if (row) {
-      std::string db_type = row->get_string(1);
-
-      if (type == "Table" &&
-          (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
-        ret_val = row->get_string(0);
-      else if (type == "View" &&
-               (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
-        ret_val = row->get_string(0);
-      else if (type.empty()) {
-        ret_val = row->get_string(0);
-        type = db_type;
-      }
-    }
-  }
-
-  return ret_val;
-}
-
 shcore::Value::Map_type_ref ClassicSession::get_status() {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
@@ -500,7 +431,6 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
     auto row = result->fetch_one();
     if (row) {
       (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-      (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
       //        (*status)["DEFAULT_SCHEMA"] =
       //          shcore::Value(_connection_options.has_schema() ?
       //                        _connection_options.get_schema() : "");

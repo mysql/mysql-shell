@@ -430,8 +430,7 @@ void Util::import_json(
         "Please connect the shell to the MySQL server.");
   }
 
-  auto node_type = shell_session->get_node_type();
-  if (node_type.compare("X") != 0) {
+  if (shell_session->session_type() != SessionType::X) {
     throw shcore::Exception::runtime_error(
         "An X Protocol session is required for JSON import.");
   }
@@ -967,7 +966,7 @@ void Util::import_table_files(
 
   auto shell_session = _shell_core.get_dev_session();
   if (!shell_session || !shell_session->is_open() ||
-      shell_session->get_node_type().compare("mysql") != 0) {
+      shell_session->session_type() != mysqlsh::SessionType::Classic) {
     throw shcore::Exception::runtime_error(
         "A classic protocol session is required to perform this operation.");
   }

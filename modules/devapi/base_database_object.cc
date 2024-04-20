@@ -30,10 +30,11 @@
 #include <string>
 #include <vector>
 
+#include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 
@@ -44,7 +45,7 @@ REGISTER_HELP_CLASS(DatabaseObject, mysqlx);
 REGISTER_HELP(DATABASEOBJECT_BRIEF,
               "Provides base functionality for database objects.");
 
-DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session,
+DatabaseObject::DatabaseObject(std::shared_ptr<mysqlx::Session> session,
                                std::shared_ptr<DatabaseObject> schema,
                                const std::string &name)
     : _session(session), _schema(schema), _name(name), _base_property_count(0) {

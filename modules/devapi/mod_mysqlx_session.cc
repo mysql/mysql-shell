@@ -688,8 +688,6 @@ shcore::Value::Map_type_ref Session::get_status() {
 
   (*status)["SESSION_TYPE"] = shcore::Value("X");
 
-  (*status)["NODE_TYPE"] = shcore::Value(get_node_type());
-
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(
       _connection_options.has_schema() ? _connection_options.get_schema() : "");
 

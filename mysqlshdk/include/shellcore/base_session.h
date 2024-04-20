@@ -105,9 +105,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual bool is_open() const = 0;
   virtual shcore::Value::Map_type_ref get_status() = 0;
-  virtual std::string get_node_type() { return "mysql"; }
-  virtual void create_schema(const std::string &name) = 0;
-  virtual void drop_schema(const std::string &name) = 0;
+
   virtual void set_current_schema(const std::string &name) = 0;
 
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
@@ -123,10 +121,6 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   virtual SessionType session_type() const = 0;
 
   virtual std::string get_ssl_cipher() const = 0;
-
-  virtual std::string db_object_exists(std::string &type,
-                                       const std::string &name,
-                                       const std::string &owner) = 0;
 
   virtual void set_option(const char *UNUSED(option), int UNUSED(value)) {}
   virtual uint64_t get_connection_id() const { return 0; }

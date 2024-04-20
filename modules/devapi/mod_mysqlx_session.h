@@ -150,8 +150,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   shcore::Value get_member(const std::string &prop) const override;
 
-  std::string get_node_type() override { return "X"; }
-
   SessionType session_type() const override { return SessionType::X; }
 
   static std::shared_ptr<shcore::Object_bridge> create(
@@ -159,8 +157,8 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
   void connect(const mysqlshdk::db::Connection_options &data) override;
   void close() override;
-  void create_schema(const std::string &name) override;
-  void drop_schema(const std::string &name) override;
+  void create_schema(const std::string &name);
+  void drop_schema(const std::string &name);
   void set_current_schema(const std::string &name) override;
   std::shared_ptr<Schema> get_schema(const std::string &name);
   void start_transaction() override;
@@ -194,7 +192,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   shcore::Array_t get_schemas();
 
   std::string db_object_exists(std::string &type, const std::string &name,
-                               const std::string &owner) override;
+                               const std::string &owner);
 
   std::shared_ptr<Result> set_fetch_warnings(bool enable);
 

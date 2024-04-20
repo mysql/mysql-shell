@@ -85,8 +85,6 @@ class SHCORE_PUBLIC ClassicSession
   // Virtual methods from ISession
   void connect(const mysqlshdk::db::Connection_options &data) override;
   void close() override;
-  void create_schema(const std::string &name) override;
-  void drop_schema(const std::string &name) override;
   void set_current_schema(const std::string &name) override;
   void start_transaction() override;
   void commit() override;
@@ -103,9 +101,6 @@ class SHCORE_PUBLIC ClassicSession
                                          const shcore::Array_t &args = {});
 
   shcore::Value::Map_type_ref get_status() override;
-
-  std::string db_object_exists(std::string &type, const std::string &name,
-                               const std::string &owner) override;
 
   static std::shared_ptr<shcore::Object_bridge> create(
       const mysqlshdk::db::Connection_options &co);

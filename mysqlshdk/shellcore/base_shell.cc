@@ -315,7 +315,6 @@ void Base_shell::update_prompt_variables() {
       }
       _prompt_variables["port"] = port;
       _prompt_variables["socket"] = socket;
-      _prompt_variables["node_type"] = session->get_node_type();
       _prompt_variables["connection_id"] =
           std::to_string(session->get_connection_id());
     } else {
@@ -326,7 +325,6 @@ void Base_shell::update_prompt_variables() {
       _prompt_variables["port"] = "";
       _prompt_variables["socket"] = "";
       _prompt_variables["session"] = "";
-      _prompt_variables["node_type"] = "";
       _prompt_variables["connection_id"] = "";
     }
   }
