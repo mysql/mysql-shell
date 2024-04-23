@@ -46,3 +46,7 @@ for data in validations:
         if "rows" in doc:
             data = doc["rows"][0]["data"]
             EXPECT_EQ(expected, base64.b64decode(data))
+
+#@<> Cleanup
+execute_query(f"drop schema if exists py_json_shell_binary_data")
+

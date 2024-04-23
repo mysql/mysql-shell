@@ -97,11 +97,9 @@ class Table_select : public Shell_core_test_wrapper {
     global_shell.execute("schema = session.create_schema('test_locking');");
 #endif
 
-    // global_shell.execute("\\sql");
     global_shell.execute(
         "session.sql('create table test_locking.test_table (_id int "
         "primary key, name varchar(10))').execute();");
-    // global_shell.execute("\\js");
 #ifdef HAVE_V8
     global_shell.execute("var table = schema.getTable('test_table');");
 #else
@@ -119,8 +117,13 @@ class Table_select : public Shell_core_test_wrapper {
   static void TearDownTestCase() {
     tests::Shell_test_wrapper global_shell;
     global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
-
+#ifdef HAVE_V8
+    global_shell.execute("\\js");
     global_shell.execute("session.dropSchema('test_locking');");
+#else
+    global_shell.execute("\\py");
+    global_shell.execute("session.drop_schema('test_locking')");
+#endif
     global_shell.execute("session.close();");
   }
 

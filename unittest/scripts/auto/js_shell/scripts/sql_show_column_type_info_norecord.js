@@ -64,3 +64,7 @@ testutil.callMysqlsh([__uripwd, '--column-type-info', '--sql', '--vertical', '-e
 
 //@ Column type info enabled classic 5.7 {VER(<8.0.0)}
 testutil.callMysqlsh([__mysqluripwd, '--column-type-info', '--sql', '--vertical', '-e', 'select * from scti_test.t;'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
+
+//@<> Cleanup
+\sql
+drop database if exists scti_test;
