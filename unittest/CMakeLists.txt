@@ -183,12 +183,6 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
     ENDIF()
 
-    # Copy sample prompt files to the test folder
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        ${CMAKE_SOURCE_DIR}/samples/prompt/
-                        $<TARGET_FILE_DIR:run_unit_tests>/)
-
     if(HAVE_V8)
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
     endif()

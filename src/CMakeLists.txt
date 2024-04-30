@@ -141,263 +141,184 @@ ENDIF()
 
 ### Bundling of OpenSSL libraries (if needed)
 if(BUNDLED_OPENSSL)
-  message(STATUS "Copying OpenSSL shared libraries")
-
   IF(WIN32)
-    GET_FILENAME_COMPONENT(CRYPTO_NAME "${HAVE_CRYPTO_DLL}" NAME)
-    GET_FILENAME_COMPONENT(OPENSSL_NAME "${HAVE_OPENSSL_DLL}" NAME)
-
-    # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
-    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_CRYPTO_DLL}"
-                  "$<TARGET_FILE_DIR:mysqlsh>/${CRYPTO_NAME}"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_OPENSSL_DLL}"
-                  "$<TARGET_FILE_DIR:mysqlsh>/${OPENSSL_NAME}")
-
-    # Install/bundle the OpenSSL libraries
-    install(PROGRAMS
-      "${HAVE_CRYPTO_DLL}"
-      "${HAVE_OPENSSL_DLL}"
-      DESTINATION ${INSTALL_BINDIR}
-      COMPONENT main
-    )
-
-    IF(OPENSSL_MODULES_DIR)
-      # Copy the OpenSSL modules to the build dir (for running tests in build tree)
-      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/ossl-modules"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OPENSSL_MODULES_LIST}
-                    "${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/ossl-modules")
-
-      # Install/bundle the OpenSSL modules
-      INSTALL(PROGRAMS ${OPENSSL_MODULES_LIST}
-        DESTINATION "${INSTALL_LIBDIR}/ossl-modules"
-        COMPONENT main
-      )
-    ENDIF()
+    SET(OPENSSL_LIBS "${HAVE_CRYPTO_DLL}" "${HAVE_OPENSSL_DLL}")
   ELSE()
-    # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
-    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CRYPTO_FULL_NAME}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_FULL_NAME}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}")
+    SET(OPENSSL_LIBS "${CRYPTO_FULL_NAME}" "${OPENSSL_FULL_NAME}" "${CRYPTO_LIBRARY}" "${OPENSSL_LIBRARY}")
+  ENDIF()
 
-    # Install/bundle the OpenSSL libraries
-    INSTALL(PROGRAMS
-      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-      DESTINATION ${INSTALL_LIBDIR}
-      COMPONENT main
+  install_bundled_binaries(
+      DESCRIPTION "OpenSSL libraries"
+      BINARIES ${OPENSSL_LIBS}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
+
+  IF(OPENSSL_MODULES_DIR)
+    install_bundled_binaries(
+        DESCRIPTION "OpenSSL modules"
+        BINARIES ${OPENSSL_MODULES_LIST}
+        DESTINATION "${INSTALL_LIBDIR}/ossl-modules"
+        USE_LIBDIR
+        TARGET mysqlsh
     )
-
-    IF(APPLE)
-      # Replace dependency "/Volumes/.../lib/libcrypto... of libssl
-      EXECUTE_PROCESS(
-        COMMAND otool -L "${OPENSSL_LIBRARY}"
-        OUTPUT_VARIABLE OTOOL_OPENSSL_DEPS)
-      STRING(REPLACE "\n" ";" DEPS_LIST ${OTOOL_OPENSSL_DEPS})
-      FOREACH(LINE ${DEPS_LIST})
-        STRING(REGEX MATCH "(/.*/lib/${CRYPTO_VERSION})" XXXXX ${LINE})
-        IF(CMAKE_MATCH_1)
-          SET(OPENSSL_DEPS "${CMAKE_MATCH_1}")
-        ENDIF()
-      ENDFOREACH()
-
-      IF(OPENSSL_DEPS)
-        # install_name_tool -change old new file
-        ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-          COMMAND chmod +w "${CRYPTO_VERSION}" "${OPENSSL_VERSION}"
-          COMMAND install_name_tool -change "${OPENSSL_DEPS}" "@loader_path/${CRYPTO_VERSION}" "${OPENSSL_VERSION}"
-          WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}"
-        )
-      ENDIF()
-
-      # include the soft links
-      INSTALL(PROGRAMS
-        "${CRYPTO_LIBRARY}"
-        "${OPENSSL_LIBRARY}"
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT main
-      )
-    ENDIF()
-
-    IF(OPENSSL_MODULES_DIR)
-      install_bundled_binaries(BINARIES ${OPENSSL_MODULES_LIST} DESTINATION "${INSTALL_LIBDIR}/ossl-modules" TARGET mysqlsh)
-    ENDIF()
   ENDIF()
 endif()
 
 
 ### Bundling of V8 if needed
 if(WITH_DEV)
-    if(HAVE_V8 AND WIN32)
-       install(PROGRAMS ${V8_LIBS} DESTINATION lib COMPONENT dev)
-    endif()
+  if(HAVE_V8 AND WIN32)
+    install(PROGRAMS ${V8_LIBS} DESTINATION lib COMPONENT dev)
+  endif()
 endif()
 
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
-  IF(PYTHON_DEPS)
-    FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
-    IF (APPLE)
-      IF(BUNDLED_OPENSSL_DIR)
-        # The python deps are build and some use the same openssl that will be used
-        # in the shell, when OpenSSL is bundled, we need to update the reference on
-        # such libs to point it to the bundled OpenSSL
-        FILE(GLOB_RECURSE PYTHON_DEPS_LIBRARIES "${PYTHON_DEPS}/*.so")
-        FOREACH(PYTHON_DEP_LIBRARY ${PYTHON_DEPS_LIBRARIES})
-          EXECUTE_PROCESS(
-            COMMAND otool -L "${PYTHON_DEP_LIBRARY}"
-            OUTPUT_VARIABLE PYTHON_DEP_LIBRARY_DEPS)
-
-          # Any library depending on the bundled OpenSSL libns should be updated
-          STRING(REGEX MATCH "${CRYPTO_VERSION}|${OPENSSL_VERSION}" MY_MATCH ${PYTHON_DEP_LIBRARY_DEPS})
-          IF (MY_MATCH)
-            SET_BUNDLED_OPEN_SSL(BINARIES ${PYTHON_DEP_LIBRARY})
-          ENDIF()
-        ENDFOREACH()
-      ENDIF()
-    ENDIF()
-  ENDIF()
-
   if(WIN32)
     remove_definitions(-DUNICODE)
-    IF(PYTHON_LIBRARY_PATH)
-      INSTALL(PROGRAMS "${PYTHON_EXECUTABLE}" DESTINATION "bin" COMPONENT main)
-      INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" USE_SOURCE_PERMISSIONS COMPONENT main)
-      INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" USE_SOURCE_PERMISSIONS COMPONENT main)
-      IF(PYTHON_DEPS)
-        INSTALL(DIRECTORY "${PYTHON_DEPS_PATH}/" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages" USE_SOURCE_PERMISSIONS COMPONENT main)
-      ENDIF()
-    ENDIF()
 
-    # This should be there for both MD and non MD windows builds
-    set(PY_ROOT ${PYTHON_LIBRARIES})
-    get_filename_component(PY_ROOT ${PY_ROOT} DIRECTORY)
-    get_filename_component(PY_ROOT ${PY_ROOT} DIRECTORY)
+    install_bundled_binaries(
+        DESCRIPTION "Python executable"
+        BINARIES "${PYTHON_EXECUTABLE}"
+        DESTINATION "bin"
+        TARGET mysqlsh
+    )
 
-    file(GLOB PYTHON_DLLS "${PY_ROOT}/python*.dll")
-    foreach(PY_DLL IN LISTS PYTHON_DLLS)
-      install(PROGRAMS "${PY_DLL}" DESTINATION bin COMPONENT main)
+    file(GLOB PYTHON_DLLS "${PYTHON_ROOT}/python*.dll")
+    install_bundled_binaries(
+        DESCRIPTION "Python dlls"
+        BINARIES ${PYTHON_DLLS}
+        DESTINATION "bin"
+        TARGET mysqlsh
+    )
 
-      # Copies the dll to the binary location to enable debugging
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy
-                          "${PY_DLL}" $<TARGET_FILE_DIR:mysqlsh>)
-    endforeach()
-
-                        # Copy the Python runtime
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                      COMMAND ${CMAKE_COMMAND} -E copy
-                      "${PYTHON_EXECUTABLE}" $<TARGET_FILE_DIR:mysqlsh>/../bin
-                      COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib
-                      COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
-    # Copy the Python dependencies
-    IF(PYTHON_DEPS)
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        "${PYTHON_DEPS_PATH}/"
-                        $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages)
-    ENDIF()
+    # GLOB is used here, because some of these files may not exist
     file(GLOB PYTHON_ADDITIONAL_DLLS
-      "${PY_ROOT}/libffi.dll"
-      "${PY_ROOT}/sqlite3.dll"
-      "${PY_ROOT}/psqlite3.dll"
+        "${PYTHON_ROOT}/libffi.dll"
+        "${PYTHON_ROOT}/sqlite3.dll"
+        "${PYTHON_ROOT}/psqlite3.dll"
+    )
+    install_bundled_binaries(
+        DESCRIPTION "additional Python dlls"
+        BINARIES ${PYTHON_ADDITIONAL_DLLS}
+        DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs"
+        TARGET mysqlsh
     )
 
-    foreach(PY_ADDITIONAL_DLL IN LISTS PYTHON_ADDITIONAL_DLLS)
-      install(PROGRAMS "${PY_ADDITIONAL_DLL}" DESTINATION lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs COMPONENT main)
+    # Python runtime
+    install_bundled_directory(
+        DESCRIPTION "Python library"
+        DIRECTORY "${PYTHON_LIBRARY_PATH}"
+        DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}"
+        TARGET mysqlsh
+    )
+    install_bundled_directory(
+        DESCRIPTION "Python library dlls"
+        DIRECTORY "${PYTHON_DLLS_PATH}"
+        DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}"
+        TARGET mysqlsh
+    )
 
-      # Copies the dll to the binary location to enable debugging
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${PY_ADDITIONAL_DLL}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
-    endforeach()
+    # Python dependencies
+    IF(PYTHON_DEPS)
+      # no need to install this, this is a subdirectory of the Python library directory
+      install_bundled_directory(
+          DESCRIPTION "extra Python dependencies"
+          COPY_ONLY
+          CONTENTS "${PYTHON_DEPS}"
+          DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages"
+          TARGET mysqlsh
+      )
+    ENDIF()
   elseif(BUNDLED_PYTHON_DIR)
-    GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
-    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" USE_SOURCE_PERMISSIONS COMPONENT main
-              PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
-    INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}"
-            DESTINATION "${INSTALL_LIBDIR}/include" COMPONENT main)
-    IF(PYTHON_DEPS)
-      INSTALL(DIRECTORY "${PYTHON_DEPS_PATH}/"
-        DESTINATION "${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages" USE_SOURCE_PERMISSIONS COMPONENT main)
-    ENDIF()
-
-    IF(APPLE)
-      FILE(GLOB PYTHON_OPEN_SSL_LIBRARIES ${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so)
-      SET_BUNDLED_OPEN_SSL(BINARIES ${PYTHON_OPEN_SSL_LIBRARIES})
-    ENDIF()
-
-    # Copy to build dir to allow testing
-    add_custom_command(TARGET mysqlsh POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                      "${BUNDLED_PYTHON_DIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
-                      "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
-                        COMMAND ${CMAKE_COMMAND} -E create_symlink # symlink to allow python executable to import dylibs
-                      ".." "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/mysqlsh"
-    )
-    IF(PYTHON_DEPS)
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        "${PYTHON_DEPS_PATH}/"
-                        "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
-    ENDIF()
-
-    set(_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
+    set(WRITE_RPATH TRUE)
+    set(EXTRA_COPY_COMMANDS "")
 
     if(BUNDLED_SHARED_PYTHON)
       if(APPLE)
         set(_PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}")
-        get_filename_component(_PYTHON_SHARED_LIB_NAME "${_PYTHON_SHARED_LIB}" NAME)
 
-        add_custom_command(TARGET mysqlsh POST_BUILD
-          COMMAND install_name_tool -change
-                  "@rpath/${_PYTHON_SHARED_LIB_NAME}" "@loader_path/../${_PYTHON_SHARED_LIB_NAME}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}"
-        )
-        INSTALL(PROGRAMS "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/mysqlsh" DESTINATION ${INSTALL_LIBDIR}/lib COMPONENT main)
-        set(_PYTHON_EXECUTABLE "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}")
+        # add rpath to allow python executable to import dylibs
+        set(WRITE_RPATH FALSE)
+        set(EXTRA_COPY_COMMANDS COMMAND install_name_tool -add_rpath "@executable_path/.." "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}")
       else()
         file(GLOB _PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}.*")
+
+        if(STRIP_LIBCRYPT_DEPS)
+          get_filename_component(_PYTHON_SHARED_LIB_NAME "${_PYTHON_SHARED_LIB}" NAME)
+          get_patchelf_command(ARGS --remove-needed libcrypt.so.1 "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/${_PYTHON_SHARED_LIB_NAME}" OUT_COMMAND COMMAND)
+          set(LIB_EXTRA_COPY_COMMANDS COMMAND ${COMMAND})
+        endif()
       endif()
 
-      INSTALL(PROGRAMS
-        "${_PYTHON_SHARED_LIB}"
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT main
+      install_bundled_binaries(
+          DESCRIPTION "Python shared library"
+          BINARIES "${_PYTHON_SHARED_LIB}"
+          DESTINATION "${INSTALL_LIBDIR}"
+          TARGET mysqlsh
+          WRITE_RPATH FALSE
+          EXTRA_COPY_COMMANDS ${LIB_EXTRA_COPY_COMMANDS}
       )
-
-      if(STRIP_LIBCRYPT_DEPS)
-        foreach(_PYTHON_LIB IN LISTS _PYTHON_SHARED_LIB)
-          execute_patchelf(--remove-needed libcrypt.so.1 "${_PYTHON_LIB}")
-        endforeach()
-      endif()
-
-      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${_PYTHON_SHARED_LIB}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
     endif()
 
-    INSTALL(PROGRAMS "${_PYTHON_EXECUTABLE}" DESTINATION "${INSTALL_LIBDIR}/bin" COMPONENT main)
-  else()
-    IF(PYTHON_DEPS)
-      INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib
-        DESTINATION "${INSTALL_LIBDIR}"
-        USE_SOURCE_PERMISSIONS
-        COMPONENT main)
+    install_bundled_binaries(
+        DESCRIPTION "Python executable"
+        BINARIES "${PYTHON_EXECUTABLE}"
+        DESTINATION "${INSTALL_LIBDIR}/bin"
+        TARGET mysqlsh
+        WRITE_RPATH ${WRITE_RPATH}
+        EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
+    )
 
-      add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        "${PYTHON_DEPS_PATH}"
-                        "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
+    # Python headers
+    install(DIRECTORY "${BUNDLED_PYTHON_DIR}/include/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/include" COMPONENT main)
+
+    # Python runtime
+    set(EXTRA_COPY_COMMANDS "")
+
+    if(APPLE)
+      get_use_bundled_openssl_command(PATTERN "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so" OUT_COMMAND EXTRA_COPY_COMMANDS)
+      list(INSERT EXTRA_COPY_COMMANDS 0 COMMAND)
+    endif()
+
+    install_bundled_directory(
+        DESCRIPTION "Python library"
+        DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
+        DESTINATION "${INSTALL_LIBDIR}/lib"
+        TARGET mysqlsh
+        EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
+        EXTRA_INSTALL_COMMANDS PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE
+    )
+
+    # Python dependencies
+    IF(PYTHON_DEPS)
+      set(EXTRA_COPY_COMMANDS "")
+
+      if(APPLE)
+        get_use_bundled_openssl_command(PATTERN "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages/*.so" OUT_COMMAND EXTRA_COPY_COMMANDS)
+        list(INSERT EXTRA_COPY_COMMANDS 0 COMMAND)
+     endif()
+
+      # no need to install this, this is a subdirectory of the Python library directory
+      install_bundled_directory(
+          DESCRIPTION "extra Python dependencies"
+          COPY_ONLY
+          CONTENTS "${PYTHON_DEPS}"
+          DESTINATION "${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages"
+          TARGET mysqlsh
+          EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
+      )
+    ENDIF()
+  else()
+    # Python dependencies
+    IF(PYTHON_DEPS)
+      install_bundled_directory(
+          DESCRIPTION "extra Python dependencies"
+          CONTENTS "${PYTHON_DEPS}"
+          DESTINATION "${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages"
+          TARGET mysqlsh
+      )
     ENDIF()
   endif()
 ENDIF(HAVE_PYTHON)
@@ -418,7 +339,12 @@ IF(BUNDLED_SSH_DIR)
     MESSAGE(FATAL_ERROR "Could not find the bundled libssh libraries")
   ENDIF()
 
-  install_bundled_binaries(BINARIES ${_SSH_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+  install_bundled_binaries(
+      DESCRIPTION "SSH libraries"
+      BINARIES ${_SSH_LIBRARIES}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
 ENDIF()
 
 # krb5 is an indirect dependency for libssh, platforms that bundle libssh should may optionally
@@ -435,7 +361,12 @@ IF(BUNDLED_KRB5_DIR)
     MESSAGE(FATAL_ERROR "Could not find the bundled krb5 libraries")
   ENDIF()
 
-  install_bundled_binaries(BINARIES ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+  install_bundled_binaries(
+      DESCRIPTION "Kerberos libraries"
+      BINARIES ${_KRB5_LIBRARIES}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
 ENDIF()
 
 IF(BUNDLED_SASL_DIR)
@@ -455,8 +386,18 @@ IF(BUNDLED_SASL_DIR)
     MESSAGE(FATAL_ERROR "Could not find the bundled sasl libraries")
   ENDIF()
 
-  install_bundled_binaries(BINARIES ${_SASL_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
-  install_bundled_binaries(BINARIES ${_SASL_PLUGINS} DESTINATION "${INSTALL_LIBDIR}/sasl2" TARGET mysqlsh)
+  install_bundled_binaries(
+      DESCRIPTION "SASL libraries"
+      BINARIES ${_SASL_LIBRARIES}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
+  install_bundled_binaries(
+      DESCRIPTION "SASL plugins"
+      BINARIES ${_SASL_PLUGINS}
+      DESTINATION "${INSTALL_LIBDIR}/sasl2"
+      TARGET mysqlsh
+  )
 ENDIF()
 
 IF(BUNDLED_ANTLR_DIR)
@@ -468,47 +409,49 @@ IF(BUNDLED_ANTLR_DIR)
     file(GLOB _ANTLR4_SHARED_LIB "${ANTLR4_LIBRARY}.*")
   endif()
 
-  IF(WIN32)
-    INSTALL(PROGRAMS
-      "${_ANTLR4_SHARED_LIB}"
-      DESTINATION ${INSTALL_BINDIR}
-      COMPONENT main
-    )
-
-    # Copy the libraries to the build dir (for running tests in build tree)
-    ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_ANTLR4_SHARED_LIB}"
-                  "$<TARGET_FILE_DIR:mysqlsh>/.")
-  ELSE()
-    foreach(CURRENT_ANTLR4_SHARED_LIB ${_ANTLR4_SHARED_LIB})
-       INSTALL(PROGRAMS
-        "${CURRENT_ANTLR4_SHARED_LIB}"
-        DESTINATION ${INSTALL_LIBDIR}
-        COMPONENT main
-      )
-
-      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CURRENT_ANTLR4_SHARED_LIB}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
-    endforeach()
-  ENDIF()
+  install_bundled_binaries(
+      DESCRIPTION "ANTLR libraries"
+      BINARIES ${_ANTLR4_SHARED_LIB}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
 ENDIF()
 
 # If defined, installs the client authentication plugins
 IF(AUTH_CLIENT_PLUGINS)
   IF(AUTH_CLIENT_PLUGINS_DEPS)
-    install_bundled_binaries(BINARIES ${AUTH_CLIENT_PLUGINS_DEPS} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+    install_bundled_binaries(
+        DESCRIPTION "MySQL authentication plugins - dependencies"
+        BINARIES ${AUTH_CLIENT_PLUGINS_DEPS}
+        DESTINATION "${INSTALL_LIBDIR}"
+        TARGET mysqlsh
+    )
   ENDIF()
 
-  install_bundled_binaries(BINARIES ${AUTH_CLIENT_PLUGINS} DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}" TARGET mysqlsh)
+  install_bundled_binaries(
+      DESCRIPTION "MySQL authentication plugins"
+      BINARIES ${AUTH_CLIENT_PLUGINS}
+      DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+      TARGET mysqlsh
+  )
 ELSE()
   MESSAGE(WARNING "Could not find Authentication Client Plugins!")
 ENDIF()
 
 IF(BUNDLED_PROTOBUF_LIBRARY)
-  install_bundled_binaries(BINARIES ${BUNDLED_PROTOBUF_LIBRARY} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+  install_bundled_binaries(
+      DESCRIPTION "Protobuf library"
+      BINARIES ${BUNDLED_PROTOBUF_LIBRARY}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
 
   IF(BUNDLED_ABSEIL_LIBRARIES)
-    install_bundled_binaries(BINARIES ${BUNDLED_ABSEIL_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
+    install_bundled_binaries(
+        DESCRIPTION "abseil libraries"
+        BINARIES ${BUNDLED_ABSEIL_LIBRARIES}
+        DESTINATION "${INSTALL_LIBDIR}"
+        TARGET mysqlsh
+    )
   ENDIF()
 ENDIF()

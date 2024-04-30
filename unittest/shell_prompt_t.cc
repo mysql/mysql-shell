@@ -986,6 +986,11 @@ class Shell_prompt_exe : public tests::Command_line_test {
                         "{\"segments\":[{\"text\":\"ALT_PROMPT\"}]}");
     shcore::create_file("badprompt.json",
                         "\"segments\":[{\"text\":\"ALT_PROMPT\"}]}");
+
+    s_prompt_dir = shcore::path::join_path(::getenv("TMPDIR"), "test-prompt");
+    shcore::copy_dir(
+        shcore::path::join_path(shcore::get_share_folder(), "prompt"),
+        s_prompt_dir);
   }
 
   static void TearDownTestCase() {
@@ -993,8 +998,14 @@ class Shell_prompt_exe : public tests::Command_line_test {
         shcore::path::join_path(shcore::get_user_config_path(), "prompt.json"));
     shcore::delete_file("altprompt.json");
     shcore::delete_file("badprompt.json");
+    shcore::remove_directory(s_prompt_dir);
   }
+
+ protected:
+  static std::string s_prompt_dir;
 };
+
+std::string Shell_prompt_exe::s_prompt_dir;
 
 TEST_F(Shell_prompt_exe, environment) {
   const auto expect_prompt = "mysql-sql>";
@@ -1183,8 +1194,7 @@ TEST_F(Shell_prompt_exe, prompt_variables) {
 
 // Test sample prompts (which in turn would test the whole thing)
 TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_nocolor.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
 
   int rc =
@@ -1200,8 +1210,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_16.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_16.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "16");
 
   int rc =
@@ -1217,8 +1226,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_256.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_256.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
@@ -1239,8 +1247,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_dbl_256.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_dbl_256.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
@@ -1262,8 +1269,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
 }
 
 TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_256pl.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_256pl.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "256");
 
   int rc =
@@ -1290,8 +1296,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
 #ifdef HAVE_V8
 TEST_F(Shell_prompt_exe, bug28314383_js) {
   static constexpr auto k_file = "close.js";
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_nocolor.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
   shcore::create_file(k_file,
                       "session.close();\n"
@@ -1323,8 +1328,7 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
 #ifdef HAVE_PYTHON
 TEST_F(Shell_prompt_exe, bug28314383_py) {
   static constexpr auto k_file = "close.py";
-  shcore::setenv("MYSQLSH_PROMPT_THEME",
-                 shcore::get_binary_folder() + "/prompt_nocolor.json");
+  shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_nocolor.json");
   shcore::setenv("MYSQLSH_TERM_COLOR_MODE", "nocolor");
   shcore::create_file(k_file,
                       "session.close();\n"

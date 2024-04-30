@@ -108,17 +108,15 @@ file(GLOB adminapi_module_SOURCES
       "cluster/api_options.cc"
 )
 
-# install metadata scripts
-FILE(GLOB METADATA_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/common/metadata/*.sql)
-
 add_convenience_library(adminapi_modules ${adminapi_module_SOURCES})
 target_link_libraries(adminapi_modules utils mysql)
 
-ADD_CUSTOM_COMMAND(OUTPUT metadata_scripts
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata
-    DEPENDS ${METADATA_SCRIPTS}
-    COMMAND ${CMAKE_COMMAND} -E copy ${METADATA_SCRIPTS} ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata/
+# install metadata scripts
+add_custom_target(metadata_scripts ALL)
+file(GLOB METADATA_SCRIPTS "${CMAKE_CURRENT_SOURCE_DIR}/common/metadata/*.sql")
+install_bundled_files(
+    DESCRIPTION "Shell metadata"
+    FILES ${METADATA_SCRIPTS}
+    DESTINATION "${INSTALL_SHAREDIR}/adminapi-metadata"
+    TARGET metadata_scripts
 )
-
-ADD_CUSTOM_TARGET(module_data ALL DEPENDS metadata_scripts)
-INSTALL(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

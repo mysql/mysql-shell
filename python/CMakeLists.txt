@@ -21,14 +21,17 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-add_custom_command(OUTPUT copy_python_extensions
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/python-packages
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/plugins
-    COMMENT "Copying Python extensions"
+add_custom_target(python_extensions ALL)
+
+install_bundled_directory(
+    DESCRIPTION "Shell Python packages"
+    CONTENTS "${CMAKE_CURRENT_SOURCE_DIR}/packages"
+    DESTINATION "${INSTALL_LIBDIR}/python-packages"
+    TARGET python_extensions
 )
 
-add_custom_target(python_extensions ALL DEPENDS copy_python_extensions)
-
-install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
-install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})
+install_bundled_plugins(
+    DESCRIPTION "Shell plugin"
+    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/plugins"
+    TARGET python_extensions
+)
