@@ -21,8 +21,14 @@ EXPECT_OUTPUT_CONTAINS("\"primary\": \"" + localhost + ":" + __mysql_sandbox_por
 EXPECT_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);
 }, "Instance cannot be set as primary");
-EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. Error processing configuration start message: The appointed primary member has a version that is greater than the one of some of the members in the group.");
 
+if (__version_num < 80400) {
+    EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. Error processing configuration start message: The appointed primary member has a version that is greater than the one of some of the members in the group.");
+} else {
+    EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. Error processing configuration start message: The appointed primary member is not the lowest version in the group.");
+}
+
+//@<> Cleanup
 cluster.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
