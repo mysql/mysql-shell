@@ -1502,6 +1502,19 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
     }
   }
 
+  // Enables mysql_native_password by default to workaround a random error
+  // generated on the server that causes random failures on shell tests
+  shcore::Dictionary_t cnf_options{my_cnf_options};
+
+  if (!cnf_options) {
+    cnf_options = shcore::make_dict();
+  }
+
+  if (!cnf_options->has_key("loose_mysql_native_password") &&
+      !cnf_options->has_key("mysql_native_password")) {
+    (*cnf_options)["loose_mysql_native_password"] = shcore::Value("ON");
+  }
+
   _passwords[port] = rootpass;
 
   if (_skip_server_interaction) return;
@@ -1519,7 +1532,7 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
 
   // Sandbox from a boilerplate (always start with root password)
   prepare_sandbox_boilerplate(port, mysqld_path);
-  deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
+  deploy_sandbox_from_boilerplate(port, cnf_options, false, mysqld_path);
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
   if (k_boilerplate_root_password == rootpass) {
@@ -1585,10 +1598,23 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
 
   wait_sandbox_dead(port);
 
+  // Enables mysql_native_password by default to workaround a random error
+  // generated on the server that causes random failures on shell tests
+  shcore::Dictionary_t cnf_options{my_cnf_opts};
+
+  if (!cnf_options) {
+    cnf_options = shcore::make_dict();
+  }
+
+  if (!cnf_options->has_key("loose_mysql_native_password") &&
+      !cnf_options->has_key("mysql_native_password")) {
+    (*cnf_options)["loose_mysql_native_password"] = shcore::Value("ON");
+  }
+
   // Sandbox from a boilerplate (always start with root password)
   prepare_sandbox_boilerplate(port, mysqld_path);
   wait_sandbox_dead(port);
-  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path,
+  deploy_sandbox_from_boilerplate(port, cnf_options, true, mysqld_path,
                                   timeout);
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
