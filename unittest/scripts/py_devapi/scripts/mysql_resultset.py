@@ -6,10 +6,10 @@ from mysqlsh import mysql
 mySession = mysql.get_classic_session(__uripwd)
 
 #@<> Result member validation
-mySession.run_sql('drop schema if exists js_shell_test')
-mySession.run_sql('create schema js_shell_test')
-mySession.run_sql('use js_shell_test')
-result = mySession.run_sql('create table js_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))')
+mySession.run_sql('drop schema if exists py_shell_test')
+mySession.run_sql('create schema py_shell_test')
+mySession.run_sql('use py_shell_test')
+result = mySession.run_sql('create table py_shell_test.buffer_table (name varchar(50) primary key, age integer, gender varchar(20))')
 
 validate_members(result, [
   'affected_items_count',
@@ -69,7 +69,7 @@ result = mySession.run_sql(procedure)
 
 
 #@ Resultset has_data() False
-result = mySession.run_sql('use js_shell_test')
+result = mySession.run_sql('use py_shell_test')
 print('has_data():', result.has_data())
 
 #@ Resultset has_data() True
@@ -165,4 +165,8 @@ print(row[0])
 print(row[1])
 print(row[2])
 print(row[3])
+
+#@<> Cleanup
+mySession.run_sql('drop schema if exists py_shell_test')
+mySession.close()
 
