@@ -110,7 +110,7 @@ testutil.waitMemberState(__mysql_sandbox_port6, "(MISSING)");
 
 EXPECT_THROWS(function() {
     old_primary = dba.rebootClusterFromCompleteOutage("replica", {force: true});
-}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is INVALIDATED.");
 
 // put the cluster back
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("replica"); });
@@ -127,9 +127,13 @@ for (i = 0; i < 20; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
+shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri5); });
+testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri6); });
+testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 
+shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
@@ -174,7 +178,7 @@ shell.connect(__sandbox_uri1);
 
 EXPECT_THROWS(function(){
     cluster = dba.rebootClusterFromCompleteOutage("cluster", {force: true});
-}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is INVALIDATED.");
 
 EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
@@ -185,7 +189,7 @@ cluster.rejoinInstance(__sandbox_uri2);
 cluster.rejoinInstance(__sandbox_uri3);
 
 shell.connect(__sandbox_uri4);
-EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica", {force: true}); });
+EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
 
 cs.rejoinCluster("replica");
 
@@ -382,6 +386,10 @@ shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage(); });
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+
+testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
+
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
 CHECK_CLUSTER_SET(session);
 

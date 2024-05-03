@@ -641,6 +641,41 @@ function CHECK_INVALIDATED_CLUSTER_NAMED(session, cluster_name) {
   EXPECT_EQ(1, row["invalidated"], cluster_name+".md.invalidated");
 }
 
+function CHECK_RESTORED_INVALIDATED_CLUSTER(uris) {
+  for (var uri of uris) {
+    var session = mysql.getSession(uri);
+    println("CHECK RESTORED INVALIDATED CLUSTER", uri);
+
+    // check member action config
+    var res = session.runSql("select name, event, enabled, type, priority, error_handling from performance_schema.replication_group_member_actions");
+    while (r = res.fetchOne()) {
+      if ("mysql_disable_super_read_only_if_primary" == r["name"]) {
+        EXPECT_EQ("AFTER_PRIMARY_ELECTION", r["event"], uri+".member_action.sro.event");
+        EXPECT_EQ(0, r["enabled"], uri+".member_action.sro.enabled");
+        EXPECT_EQ("INTERNAL", r["type"], uri+".member_action.sro.type");
+        EXPECT_EQ(1, r["priority"], uri+".member_action.sro.priority");
+        EXPECT_EQ("IGNORE", r["error_handling"], uri+".member_action.sro.error_handling");
+      } else if ("mysql_start_failover_channels_if_primary" == r["name"]) {
+        EXPECT_EQ("AFTER_PRIMARY_ELECTION", r["event"], uri+".member_action.failover.event");
+        EXPECT_EQ(1, r["enabled"], uri+".member_action.failover.enabled");
+        EXPECT_EQ("INTERNAL", r["type"], uri+".member_action.failover.type");
+        EXPECT_EQ(10, r["priority"], uri+".member_action.failover.priority");
+        EXPECT_EQ("CRITICAL", r["error_handling"], uri+".member_action.failover.error_handling");
+      } else {
+        println("UNEXPECTED member action: ", r["name"], "at", uri)
+      }
+    }
+
+    // check SRO
+    var sro = session.runSql("select @@global.super_read_only").fetchOne()[0];
+    EXPECT_TRUE(sro, uri+".super_read_only");
+
+    // check replication channels
+    var res = session.runSql("select c.host, c.port, c.user, c.source_connection_auto_failover, s.service_state, s.source_uuid from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name='clusterset_replication'");
+    var r = res.fetchOne();
+    EXPECT_EQ(null, r, uri+".async repl")
+  }
+}
 
 function CHECK_CLUSTER_SET(session) {
   // check that there are no GR accounts that don't belong to anything

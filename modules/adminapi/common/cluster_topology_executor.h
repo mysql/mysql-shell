@@ -301,7 +301,7 @@ class Rejoin_instance {
 struct Cluster_set_info {
   bool is_member;
   bool is_primary;
-  bool is_primary_invalidated;
+  bool is_invalidated;
   bool removed_from_set;
   Cluster_global_status primary_status;
 };
@@ -378,7 +378,6 @@ class Reboot_cluster_from_complete_outage {
   std::shared_ptr<Cluster> m_cluster;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   Reboot_cluster_options m_options;
-  bool m_is_autorejoining = false;
   bool m_already_member = false;
 };
 
