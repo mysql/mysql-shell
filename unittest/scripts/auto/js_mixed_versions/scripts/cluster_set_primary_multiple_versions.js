@@ -22,7 +22,9 @@ EXPECT_THROWS(function() {
     cluster.setPrimaryInstance(localhost + ":" + __mysql_sandbox_port2);
 }, "Instance cannot be set as primary");
 
-if (__version_num < 80400) {
+var primary_version = session.runSql('SELECT @@version').fetchOne()[0]
+
+if (testutil.versionCheck(primary_version, '<', "80400")) {
     EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. Error processing configuration start message: The appointed primary member has a version that is greater than the one of some of the members in the group.");
 } else {
     EXPECT_OUTPUT_CONTAINS("Failed to set '" + localhost + ":" + __mysql_sandbox_port2 + "' as primary instance: The function 'group_replication_set_as_primary' failed. Error processing configuration start message: The appointed primary member is not the lowest version in the group.");
