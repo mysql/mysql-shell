@@ -193,6 +193,12 @@ function(create_parser_plugin)
         "PARSER_IS_5_7=${PLUGIN_IS_5_7}"
         "USE_OPTIMIZER_HINTS_PARSER"
     )
+    if(WIN32)
+        # needed to correctly import symbols from the MySQL strings library (i.e. my_charset_utf8mb4_0900_ai_ci)
+        target_compile_definitions(${PLUGIN_NAME} PRIVATE
+            "MYSQL_LIBSTRINGS_DLL"
+        )
+    endif()
     target_include_directories(${PLUGIN_NAME} BEFORE PRIVATE
         "${INCLUDE_DIR}"
         "${MYSQL_SOURCE_DIR}/include"

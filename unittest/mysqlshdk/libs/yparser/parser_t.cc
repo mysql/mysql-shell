@@ -43,6 +43,7 @@ using Version = utils::Version;
 
 const Version k_mysql_5_7{5, 7, 44};
 const Version k_mysql_8_0{8, 0, 36};
+const Version k_mysql_8_4{8, 4, 0};
 const Version k_mysql_current{LIBMYSQL_VERSION};
 
 TEST(Parser_test, version) {
@@ -81,29 +82,34 @@ TEST(Parser_test, version) {
     EXPECT_EQ(k_mysql_8_0, parser.version());
   }
 
-  // these tests need to be adjusted once 8.4 parser is added
   {
     Parser parser{Version{8, 1, 0}};
-    EXPECT_EQ(k_mysql_current, parser.version());
+    EXPECT_EQ(k_mysql_8_4, parser.version());
   }
 
   {
     Parser parser{Version{8, 2, 0}};
-    EXPECT_EQ(k_mysql_current, parser.version());
+    EXPECT_EQ(k_mysql_8_4, parser.version());
   }
 
   {
     Parser parser{Version{8, 3, 0}};
-    EXPECT_EQ(k_mysql_current, parser.version());
+    EXPECT_EQ(k_mysql_8_4, parser.version());
   }
 
   {
     Parser parser{Version{8, 4, 0}};
-    EXPECT_EQ(k_mysql_current, parser.version());
+    EXPECT_EQ(k_mysql_8_4, parser.version());
   }
 
   {
     Parser parser{Version{8, 4, 100}};
+    EXPECT_EQ(k_mysql_8_4, parser.version());
+  }
+
+  // this test needs to be adjusted once 9.7 parser is added
+  {
+    Parser parser{Version{9, 0, 0}};
     EXPECT_EQ(k_mysql_current, parser.version());
   }
 
@@ -166,7 +172,7 @@ TEST(Parser_test, sql_mode) {
     EXPECT_NO_THROW(parser.set_sql_mode(",ANSI,NO_ENGINE_SUBSTITUTION"));
   }
 
-  for (const auto &v : {k_mysql_8_0, k_mysql_current}) {
+  for (const auto &v : {k_mysql_8_0, k_mysql_8_4, k_mysql_current}) {
     SCOPED_TRACE("Version: " + v.get_base());
     Parser parser{v};
 
@@ -237,6 +243,7 @@ TEST(Parser_test, check_syntax) {
     // parsers for different versions all present at once
     Parser parser_5_7{k_mysql_5_7};
     Parser parser_8_0{k_mysql_8_0};
+    Parser parser_8_4{k_mysql_8_4};
     Parser parser_X_X{k_mysql_current};
 
     {
@@ -244,6 +251,7 @@ TEST(Parser_test, check_syntax) {
           "GRANT ALL ON *.* TO user@host WITH MAX_QUERIES_PER_HOUR 1";
       EXPECT_TRUE(parser_5_7.check_syntax(grant_with_resource_option).empty());
       EXPECT_FALSE(parser_8_0.check_syntax(grant_with_resource_option).empty());
+      EXPECT_FALSE(parser_8_4.check_syntax(grant_with_resource_option).empty());
       EXPECT_FALSE(parser_X_X.check_syntax(grant_with_resource_option).empty());
     }
 
@@ -251,6 +259,7 @@ TEST(Parser_test, check_syntax) {
       constexpr std::string_view create_role = "CREATE ROLE dev";
       EXPECT_FALSE(parser_5_7.check_syntax(create_role).empty());
       EXPECT_TRUE(parser_8_0.check_syntax(create_role).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(create_role).empty());
       EXPECT_TRUE(parser_X_X.check_syntax(create_role).empty());
     }
 
@@ -258,8 +267,11 @@ TEST(Parser_test, check_syntax) {
       constexpr std::string_view show_parse_tree = "SHOW PARSE_TREE SELECT 1";
       EXPECT_FALSE(parser_5_7.check_syntax(show_parse_tree).empty());
       EXPECT_FALSE(parser_8_0.check_syntax(show_parse_tree).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(show_parse_tree).empty());
       EXPECT_TRUE(parser_X_X.check_syntax(show_parse_tree).empty());
     }
+
+    // TODO(pawel): add a test which uses 9.0-only feature
   }
 
   {
@@ -351,6 +363,7 @@ TEST(Parser_test, optimizer_hints) {
     // parsers for different versions all present at once
     Parser parser_5_7{k_mysql_5_7};
     Parser parser_8_0{k_mysql_8_0};
+    Parser parser_8_4{k_mysql_8_4};
     Parser parser_X_X{k_mysql_current};
 
     {
@@ -358,6 +371,7 @@ TEST(Parser_test, optimizer_hints) {
           "EXPLAIN SELECT /*+ NO_ICP(t1) */ * FROM t1";
       EXPECT_TRUE(parser_5_7.check_syntax(no_icp).empty());
       EXPECT_TRUE(parser_8_0.check_syntax(no_icp).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(no_icp).empty());
       EXPECT_TRUE(parser_X_X.check_syntax(no_icp).empty());
     }
 
@@ -366,6 +380,7 @@ TEST(Parser_test, optimizer_hints) {
           "INSERT /*+ SET_VAR(foreign_key_checks=OFF) */ INTO t2 VALUES(2)";
       EXPECT_FALSE(parser_5_7.check_syntax(set_var).empty());
       EXPECT_TRUE(parser_8_0.check_syntax(set_var).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(set_var).empty());
       EXPECT_TRUE(parser_X_X.check_syntax(set_var).empty());
     }
 
@@ -374,6 +389,7 @@ TEST(Parser_test, optimizer_hints) {
           "EXPLAIN SELECT /*+ UNKNOWN(t1) */ * FROM t1";
       EXPECT_FALSE(parser_5_7.check_syntax(unknown_hint).empty());
       EXPECT_FALSE(parser_8_0.check_syntax(unknown_hint).empty());
+      EXPECT_FALSE(parser_8_4.check_syntax(unknown_hint).empty());
       EXPECT_FALSE(parser_X_X.check_syntax(unknown_hint).empty());
     }
 
@@ -382,14 +398,17 @@ TEST(Parser_test, optimizer_hints) {
           "EXPLAIN SELECT /*+ NO_ICP(\"t1\") */ * FROM t1";
       EXPECT_FALSE(parser_5_7.check_syntax(no_icp_dq).empty());
       EXPECT_FALSE(parser_8_0.check_syntax(no_icp_dq).empty());
+      EXPECT_FALSE(parser_8_4.check_syntax(no_icp_dq).empty());
       EXPECT_FALSE(parser_X_X.check_syntax(no_icp_dq).empty());
 
       parser_5_7.set_sql_mode("ANSI");
       parser_8_0.set_sql_mode("ANSI");
+      parser_8_4.set_sql_mode("ANSI");
       parser_X_X.set_sql_mode("ANSI");
 
       EXPECT_TRUE(parser_5_7.check_syntax(no_icp_dq).empty());
       EXPECT_TRUE(parser_8_0.check_syntax(no_icp_dq).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(no_icp_dq).empty());
       EXPECT_TRUE(parser_X_X.check_syntax(no_icp_dq).empty());
     }
   }
@@ -465,17 +484,17 @@ TEST(Parser_test, optimizer_hints) {
 }
 
 TEST(Parser_test, threads) {
-  SKIP_TEST("This test currently crashes on ARM");
-
   std::vector<Version> versions = {
       k_mysql_5_7,
       k_mysql_8_0,
+      k_mysql_8_4,
       k_mysql_current,
   };
   constexpr std::array statements = {
       "SELECT * from \"mysql\".user",
       "INSERT INTO mysql.\"user\" VALUES (1)",
       "UNLOCK TABLES",
+      "LOCK TABLES `clusters` WRITE",
   };
 
   ASSERT_EQ(versions.size(), statements.size());
