@@ -77,7 +77,9 @@ ENDIF()
 
 set(MYSQLX_INCLUDES
   "${MYSQL_BUILD_DIR}/include"
+  "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
   "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/generated"
+  "${MYSQL_BUILD_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/protocol/protobuf"
   "${MYSQL_SOURCE_DIR}/include"
   "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}"
   "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"

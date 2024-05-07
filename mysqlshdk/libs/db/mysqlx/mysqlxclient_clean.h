@@ -51,6 +51,8 @@
 #undef ERROR
 #endif
 
+#include <mysqlxmessages_export.h>
+
 #include <mysqlxclient.h>
 #include <mysqlxclient/mysqlxclient_error.h>
 #include <mysqlxclient/xmessage.h>
