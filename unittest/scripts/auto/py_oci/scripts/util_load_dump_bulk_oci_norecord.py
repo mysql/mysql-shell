@@ -238,7 +238,7 @@ TEST_DUMP_AND_LOAD(expect_bulk_loaded = 1)
 TEST_LOAD(expect_bulk_loaded = 0, cleanup = False)
 
 #@<> WL15432-TSFR_1_2_7 - resume interrupted load operation {bulk_load_supported and not __dbug_off}
-prepare_test_table("(f1 INT PRIMARY KEY)")
+prepare_test_table("(f1 INT PRIMARY KEY, f2 CHAR(200))", nrows = 10000)
 DUMP()
 
 # simulate an interrupted bulk load
@@ -263,7 +263,7 @@ EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` will not use BU
 #@<> WL15432-TSFR_1_2_9 - table with secondary index is bulk loaded when 'deferTableIndexes' = 'all' is given {bulk_load_supported}
 TEST_LOAD(expect_bulk_loaded = 1, options = { "deferTableIndexes": "all" })
 
-#@<> a table for partition tests
+#@<> WL15432-TSFR_1_3_1 - partitioned table {bulk_load_supported}
 prepare_test_table("""(f1 INT PRIMARY KEY)
 PARTITION BY RANGE (f1) (
     PARTITION p0 VALUES LESS THAN (250),
@@ -273,10 +273,18 @@ PARTITION BY RANGE (f1) (
 )""")
 DUMP()
 
-#@<> WL15432-TSFR_1_3_1 - partitioned table {bulk_load_supported}
 TEST_LOAD(expect_bulk_loaded = 1)
 
 #@<> WL15432-TSFR_1_3_2 - resume interrupted load operation - partitioned table {bulk_load_supported and not __dbug_off}
+prepare_test_table("""(f1 INT PRIMARY KEY, f2 CHAR(200))
+PARTITION BY RANGE (f1) (
+    PARTITION p0 VALUES LESS THAN (250),
+    PARTITION p1 VALUES LESS THAN (500),
+    PARTITION p2 VALUES LESS THAN (750),
+    PARTITION p3 VALUES LESS THAN (MAXVALUE)
+)""", nrows = 10000)
+DUMP()
+
 # simulate an interrupted bulk load
 testutil.dbug_set("+d,dump_loader_bulk_interrupt")
 TEST_FAILED_LOAD("Error loading dump")
@@ -374,8 +382,8 @@ with open(local_progress_file) as f:
         if content["op"] == "TABLE-DATA-BULK":
             bulk_load_entries.append(content)
 
-# there should be at least three entries, start and finish + some progress reports
-EXPECT_LE(3, len(bulk_load_entries))
+# there should be at least two entries, start and finish, progress reports appear only if load is slow enough
+EXPECT_LE(2, len(bulk_load_entries))
 
 #@<> BUG#36477603 - loading a table which contains a virtual column generates a warning
 prepare_test_table("(first_name VARCHAR(10), last_name VARCHAR(10), full_name VARCHAR(255) AS (CONCAT(first_name,' ',last_name)), address VARCHAR(10))")
