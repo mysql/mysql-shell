@@ -33,13 +33,52 @@
 namespace mysqlshdk {
 
 namespace {
-size_t count_spaces(const char *data, size_t size) {
-  if (size_t count = utils::span_spaces({data, size}, 0);
+size_t count_spaces(const char *data, size_t size, size_t offset = 0) {
+  if (size_t count = utils::span_spaces({data, size}, offset);
       count != std::string::npos) {
     return count;
   }
   return size;
 }
+
+size_t span_comment(const char *data, const char *end, size_t offset) {
+  size_t position = offset;
+  if (*(data + offset) == '/' && (data + offset + 1) < end &&
+      *(data + offset + 1) == '*') {
+    auto comment_end =
+        mysqlshdk::utils::span_cstyle_comment(std::string_view(data), offset);
+    if (comment_end == std::string_view::npos) {
+      position = end - data;
+    } else {
+      position = comment_end;
+    }
+  }
+
+  return position;
+}
+
+std::pair<size_t, bool> span_spaces_and_comments(const char *data,
+                                                 const char *end) {
+  size_t next_position = 0;
+  size_t final_position;
+  bool space_found = false;
+  do {
+    final_position = next_position;
+
+    // Spans space
+    next_position = count_spaces(data, (end - data), next_position);
+    if (next_position > final_position) {
+      space_found = true;
+    }
+
+    // Spans comment
+    next_position = span_comment(data, end, next_position);
+
+  } while (next_position > final_position);
+
+  return {final_position, space_found};
+}
+
 }  // namespace
 
 Prefix_overlap_error::Prefix_overlap_error(const std::string &error,
@@ -96,17 +135,18 @@ String_prefix_matcher::String_prefix_matcher(
 
 String_prefix_matcher::Node *String_prefix_matcher::get_max_match(
     const char **index, const char *end) const {
-  (*index) += count_spaces(*index, (end - *index));
+  auto pos_and_spaces = span_spaces_and_comments(*index, end);
+  (*index) += pos_and_spaces.first;
 
   Node *last_match = nullptr;
   Node *next_node = const_cast<Node *>(&m_root);
 
   while (next_node && *index < end) {
-    if (std::isspace(**index)) {
+    pos_and_spaces = span_spaces_and_comments(*index, end);
+    (*index) += pos_and_spaces.first;
+
+    if (pos_and_spaces.second) {
       next_node = next_node->get(' ');
-      if (next_node) {
-        (*index) += count_spaces(*index, (end - *index));
-      }
     } else {
       // Rest of characters are added once
       next_node = next_node->get(std::toupper(**index));
@@ -117,6 +157,7 @@ String_prefix_matcher::Node *String_prefix_matcher::get_max_match(
 
     if (next_node) last_match = next_node;
   }
+
   return last_match;
 }
 

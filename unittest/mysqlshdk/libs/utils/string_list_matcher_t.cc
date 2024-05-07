@@ -75,6 +75,13 @@ TEST(String_prefix_matcher, test_matching) {
 
   // Case insensitiveness..
   EXPECT_TRUE(m.matches("create   Sample   table"));
+  EXPECT_TRUE(m.matches(
+      "/* sample comment */ create /* another comment */  Sample   table"));
+  EXPECT_TRUE(
+      m.matches("/* multiline\ncomment */ create /*consecutive*//*comment*/ "
+                "Sample   table"));
+  EXPECT_FALSE(m.matches(
+      "/* sample comment */ create /* unfinished comment Sample   table"));
   EXPECT_TRUE(m.matches("Create\t\t\tSAMPLE\n\ntable"));
   EXPECT_TRUE(m.matches("   create   sample     table"));
   EXPECT_TRUE(m.matches("\n\tdelete   sample  view"));

@@ -260,5 +260,80 @@ call_mysqlsh([__mysqluripwd, "--py", "--disable-plugins", "-i", "--tabbed",
 EXPECT_STDOUT_CONTAINS('You have an error in your SQL syntax;')
 EXPECT_STDOUT_NOT_CONTAINS('====> SQL HANDLER:')
 
+#@<> SQL Handler - Comment Handling
+plugin_code = """
+from mysqlsh.plugin_manager import sql_handler
+import mysqlsh
+@sql_handler("showmeHandler", prefixes=["LIST DATABASES", "LIST TABLES"])
+def my_handler(session, sql):
+    "Logger for list statements"
+    print(f"====> SQL HANDLER: {sql}")
+    return session.run_sql(sql.replace('list', 'show'))
+"""
+testutil.create_file(plugin_path, plugin_code)
+call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--sql",
+             "-e", "/* prefix comment */ list databases"])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list databases""")
+WIPE_OUTPUT()
+call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--sql",
+             "-e", "list /* middle comment */ databases"])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: list /* middle comment */ databases""")
+WIPE_OUTPUT()
+call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--sql",
+             "-e", "/* prefix comment */ list /* middle comment */ databases"])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list /* middle comment */ databases""")
+WIPE_OUTPUT()
+call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--js",
+             "-e", "session.runSql('/* prefix comment */ list /* middle comment */ databases')"])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list /* middle comment */ databases""")
+WIPE_OUTPUT()
+call_mysqlsh([__uripwd, "-i", "--tabbed", "--js",
+             "-e", "session.runSql('/* prefix comment */ list /* middle comment */ databases')"])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list /* middle comment */ databases""")
+WIPE_OUTPUT()
+script_path = os.path.join(user_path, "test.sql")
+script_code = """
+-- This script verifies the SQL Handlers work properly in the presense of comments
+-- Full line comment v1
+list databases like 'mysql';
+# Full line comment v2
+list databases like 'information_schema';
+/* Delimited Comment */
+list databases like 'performance_schema';
+use mysql;
+/* prefix comment */ list tables like 'user';
+list /* middle comment */ tables like 'plugin';
+/* prefix comment */ list /* and middle comment */ tables like 'db';
+/* 
+This is a multiline comment
+*/
+list tables like 'func';
+"""
+testutil.create_file(script_path, script_code)
+call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--sql",
+             "-f", script_path])
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: list databases like 'mysql'
+Database (mysql)
+""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: list databases like 'information_schema'
+Database (information_schema)
+""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list tables like 'user'
+Tables_in_mysql (user)
+""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: list /* middle comment */ tables like 'plugin'
+Tables_in_mysql (plugin)
+""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list /* and middle comment */ tables like 'db'
+Tables_in_mysql (db)
+""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* 
+This is a multiline comment
+*/
+list tables like 'func'
+Tables_in_mysql (func)
+""")
+
 # @<> Finalization
+testutil.rmfile(script_path)
 testutil.rmdir(plugins_path, True)
