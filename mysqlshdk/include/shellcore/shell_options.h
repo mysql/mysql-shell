@@ -117,8 +117,6 @@ class Shell_options final : public shcore::Options {
     std::string oci_profile;
     std::string oci_config_file;
 
-    std::string protocol;
-
     mysqlshdk::db::Connection_options connection_data;
     Ssh_settings ssh;
 

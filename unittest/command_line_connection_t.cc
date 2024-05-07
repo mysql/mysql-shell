@@ -124,6 +124,7 @@ TEST_F(Command_line_connection_test, classic_no_socket_no_port) {
   EXPECT_EQ(0, ret_val);
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Localhost via UNIX socket");
 #endif
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic 10");
 }
 
 TEST_F(Command_line_connection_test, classic_port) {
@@ -135,6 +136,7 @@ TEST_F(Command_line_connection_test, classic_port) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
       "No default schema selected; type \\use <schema> to set one.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("localhost via TCP/IP");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Classic 10");
 }
 
 TEST_F(Command_line_connection_test, bug25268670) {
@@ -736,9 +738,7 @@ TEST_F(Command_line_connection_test, auth_method) {
            "--auth-method=invalid", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "ArgumentError: X protocol error: Failed to set the authentication "
-      "method: Invalid value for option\nClassic protocol error: ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(protocol_mismatch_error);
+      "Failed to set the authentication method: Invalid value for option");
 
   // auto: X port - valid authentication method
   execute({_mysqlsh, _uri.c_str(), "--interactive=full", "--auth-method=PLAIN",

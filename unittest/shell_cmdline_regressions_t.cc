@@ -512,7 +512,7 @@ TEST_F(Command_line_test, socket_and_port) {
 #else
 #define CONNECT_TO_SOCKET_MESSAGE "Localhost via UNIX socket"
 #define CONNECT_TO_DOT_HOST_MESSAGE \
-  "MySQL Error 2005: No such host is known '.'"
+  "MySQL Error 2005 (HY000): Unknown MySQL server host '.'"
 #endif
 
 #ifdef _WIN32

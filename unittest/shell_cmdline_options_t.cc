@@ -784,7 +784,6 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_TRUE(options.connection_options().should_prompt_password(0));
   EXPECT_FALSE(options.connection_options().should_prompt_password(1));
   EXPECT_FALSE(options.connection_options().should_prompt_password(2));
-  EXPECT_TRUE(options.protocol.empty());
   EXPECT_TRUE(options.run_file.empty());
   EXPECT_TRUE(!options.connection_options().has_schema());
   EXPECT_TRUE(!options.connection_options().has_scheme());

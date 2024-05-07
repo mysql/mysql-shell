@@ -519,6 +519,8 @@ exports.fun = function() {
   // validate output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(
 No default schema selected; type \use <schema> to set one.
+)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(
 Hello from report!
 Hello from module one.js!
 Hello from module two.js!
@@ -1128,7 +1130,6 @@ exports.fun = function() {
 
   // validate output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(R"(
-No default schema selected; type \use <schema> to set one.
 Hello from plugin!
 Hello from module one.js!
 Hello from module two.js!

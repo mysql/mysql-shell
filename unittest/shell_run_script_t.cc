@@ -57,11 +57,11 @@ class ShellRunScript : public Shell_core_test_wrapper {
                         ", 3;\n"
                         "select 5,\n"
                         "6,\n"
-                        "7; select 'end';\n");
+                        "7; select 'end.';\n");
     shcore::create_file("bad.sql",
                         "select 1;\n"
                         "drop schema bogusdb;\n"
-                        "select 'end';\n");
+                        "select 'end.';\n");
 
     shcore::create_file("good_int.py",
                         "print(1)\n"
@@ -69,34 +69,34 @@ class ShellRunScript : public Shell_core_test_wrapper {
                         "if 1:\n"
                         "  print(3)\n"
                         "\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("good.py",
                         "print(1)\n"
                         "print(2)\n"
                         "if 1:\n"
                         "  print(3)\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("bad.py",
                         "print(1)\n"
                         "raise Exception()\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("badsyn.py",
                         "   if:\n"
-                        "print('end')\n");
+                        "print('end.')\n");
 
     shcore::create_file("good.js",
                         "println(1);\n"
                         "println(2);\n"
                         "if (1)\n"
                         "  println(3);\n"
-                        "println('end');\n");
+                        "println('end.');\n");
     shcore::create_file("bad.js",
                         "println(1)\n"
                         "throw 'error'\n"
-                        "println('end')\n");
+                        "println('end.')\n");
     shcore::create_file("badsyn.js",
                         "){}\n"
-                        "println('end')\n");
+                        "println('end.')\n");
   }
 
   static void TearDownTestCase() {
@@ -143,11 +143,11 @@ class ShellExeRunScript : public tests::Command_line_test {
                         ", 3;\n"
                         "select 5,\n"
                         "6,\n"
-                        "7; select 'end';\n");
+                        "7; select 'end.';\n");
     shcore::create_file("bad.sql",
                         "select 1;\n"
                         "drop schema bogusdb;\n"
-                        "select 'end';\n");
+                        "select 'end.';\n");
 
     shcore::create_file("error_test.sql",
                         R"*(/*
@@ -163,34 +163,34 @@ select error;)*");
                         "if 1:\n"
                         "  print(3)\n"
                         "\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("good.py",
                         "print(1)\n"
                         "print(2)\n"
                         "if 1:\n"
                         "  print(3)\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("bad.py",
                         "print(1)\n"
                         "raise Exception()\n"
-                        "print('end')\n");
+                        "print('end.')\n");
     shcore::create_file("badsyn.py",
                         "   if:\n"
-                        "print('end')\n");
+                        "print('end.')\n");
 
     shcore::create_file("good.js",
                         "println(1);\n"
                         "println(2);\n"
                         "if (1)\n"
                         "  println(3);\n"
-                        "println('end');\n");
+                        "println('end.');\n");
     shcore::create_file("bad.js",
                         "println(1)\n"
                         "throw 'error'\n"
-                        "println('end')\n");
+                        "println('end.')\n");
     shcore::create_file("badsyn.js",
                         "){}\n"
-                        "println('end')\n");
+                        "println('end.')\n");
     shcore::create_file("reconnect_mysql.js",
                         "session.runSql('select 1');\n"
                         "try {session.runSql('kill ?', "
@@ -290,7 +290,7 @@ session.run_sql("DROP SCHEMA `test-ó`")
     SCOPED_TRACE(file);                               \
     wipe_all();                                       \
     _interactive_shell->process_file(file, {"test"}); \
-    MY_EXPECT_STDOUT_CONTAINS("end");                 \
+    MY_EXPECT_STDOUT_CONTAINS("end.");                \
   } while (0)
 
 #define RUNFILE_ABORTS(file)                          \
@@ -298,7 +298,7 @@ session.run_sql("DROP SCHEMA `test-ó`")
     SCOPED_TRACE(file);                               \
     wipe_all();                                       \
     _interactive_shell->process_file(file, {"test"}); \
-    MY_EXPECT_STDOUT_NOT_CONTAINS("end");             \
+    MY_EXPECT_STDOUT_NOT_CONTAINS("end.");            \
   } while (0)
 
 #define RUNSTREAM_TIL_END(file)                               \
@@ -309,7 +309,7 @@ session.run_sql("DROP SCHEMA `test-ó`")
     SCOPED_TRACE(file);                                       \
     wipe_all();                                               \
     _interactive_shell->process_stream(s, "STDIN", {"test"}); \
-    MY_EXPECT_STDOUT_CONTAINS("end");                         \
+    MY_EXPECT_STDOUT_CONTAINS("end.");                        \
   } while (0)
 
 #define RUNSTREAM_ABORTS(file)                                \
@@ -320,7 +320,7 @@ session.run_sql("DROP SCHEMA `test-ó`")
     SCOPED_TRACE(file);                                       \
     wipe_all();                                               \
     _interactive_shell->process_stream(s, "STDIN", {"test"}); \
-    MY_EXPECT_STDOUT_NOT_CONTAINS("end");                     \
+    MY_EXPECT_STDOUT_NOT_CONTAINS("end.");                    \
   } while (0)
 
 TEST_F(ShellRunScript, sql_file) {
@@ -369,8 +369,8 @@ TEST_F(ShellExeRunScript, sql_file) {
 2\t3
 5\t6\t7
 5\t6\t7
-end
-end)";
+end.
+end.)";
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("Switching");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(shcore::str_replace(result1, "\\t", "\t"));
 
@@ -459,7 +459,7 @@ TEST_F(ShellExeRunScript, js_file) {
   static const char *result1 = R"(1
 2
 3
-end)";
+end.)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result1);
 
   // Ensures switching message doesn't appear for default/initial mode
@@ -474,7 +474,7 @@ error at bad.js:2:1
 in throw 'error'
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
   wipe_out();
   rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "badsyn.js", nullptr});
@@ -485,7 +485,7 @@ in throw 'error'
 in ){}
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
   wipe_out();
   rc = execute({_mysqlsh, "--js", "-f", "good.js", nullptr});
@@ -496,7 +496,7 @@ in ){}
   rc = execute({_mysqlsh, "--js", "-f", "bad.js", nullptr});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 }
 
 TEST_F(ShellRunScript, js_stream) {
@@ -586,7 +586,7 @@ Traceback (most recent call last):
   File "<string>", line 2, in <module>
 Exception)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
   wipe_out();
   rc = execute({_mysqlsh, _uri.c_str(), "--py", "-f", "badsyn.py", nullptr});
@@ -597,7 +597,7 @@ Exception)";
   static const char *result3b = "IndentationError: unexpected indent";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3a);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3b);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
   wipe_out();
   rc = execute({_mysqlsh, "--py", "-f", "good.py", nullptr});
@@ -608,7 +608,7 @@ Exception)";
   rc = execute({_mysqlsh, "--py", "-f", "bad.py", nullptr});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 }
 
 TEST_F(ShellRunScript, py_stream) {
@@ -799,8 +799,7 @@ mysql-js []> session.runSql('select 1');
 
 TEST_F(ShellExeRunScript, reconnect_mysqlx_session_js) {
   static constexpr auto first_execution =
-      R"(No default schema selected; type \use <schema> to set one.
-NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+      R"(NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
 mysql-js []> session.sql('select 1').execute();
 +---+
 | 1 |
@@ -836,8 +835,7 @@ mysql-js []> session.sql('select 1').execute();
 
 TEST_F(ShellExeRunScript, reconnect_mysql_session_py) {
   static constexpr auto first_execution =
-      R"(No default schema selected; type \use <schema> to set one.
-NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+      R"(NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
 mysql-py []> session.run_sql('select 1');
 +---+
 | 1 |
@@ -872,8 +870,7 @@ mysql-py []> session.run_sql('select 1');
 
 TEST_F(ShellExeRunScript, reconnect_mysqlx_session_py) {
   static constexpr auto first_execution =
-      R"(No default schema selected; type \use <schema> to set one.
-NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
+      R"(NOTE: MYSQLSH_PROMPT_THEME prompt theme file 'invalid' does not exist.
 mysql-py []> session.sql('select 1').execute();
 +---+
 | 1 |

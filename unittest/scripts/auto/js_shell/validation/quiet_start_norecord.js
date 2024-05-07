@@ -8,7 +8,7 @@ Creating a session to '<<<__uri>>>/mysql'
 Your MySQL connection id is [[*]] (X protocol)
 Server version: [[*]]
 Default schema `mysql` accessible through db.
-1
+<<<(__version_num<80016)?"NOTE: The MySQL X Protocol was auto-detected for the target server. It is recommended that the MySQL protocol type be explicitly specified when using the X Protocol (--mysqlx or mysqlx://) for faster connect times, specially in older MySQL versions.\n":"">>>1
 
 //@<OUT> Using --quiet-start
 WARNING: Using a password on the command line interface can be insecure.
@@ -16,7 +16,7 @@ Creating a session to '<<<__uri>>>/mysql'
 Your MySQL connection id is [[*]] (X protocol)
 Server version: [[*]]
 Default schema `mysql` accessible through db.
-1
+<<<(__version_num<80016)?"NOTE: The MySQL X Protocol was auto-detected for the target server. It is recommended that the MySQL protocol type be explicitly specified when using the X Protocol (--mysqlx or mysqlx://) for faster connect times, specially in older MySQL versions.\n":"">>>1
 
 //@ Using --quiet-start
 |~Oracle is a registered trademark of Oracle Corporation and/or its affiliates.|
@@ -27,7 +27,7 @@ Creating a session to '<<<__uri>>>/mysql'
 Your MySQL connection id is [[*]] (X protocol)
 Server version: [[*]]
 Default schema `mysql` accessible through db.
-1
+<<<(__version_num<80016)?"NOTE: The MySQL X Protocol was auto-detected for the target server. It is recommended that the MySQL protocol type be explicitly specified when using the X Protocol (--mysqlx or mysqlx://) for faster connect times, specially in older MySQL versions.\n":"">>>1
 
 //@ Using --quiet-start=1
 |~Oracle is a registered trademark of Oracle Corporation and/or its affiliates.|

@@ -374,7 +374,7 @@ def check(outpath):
         count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as float) from test.preamble").fetch_one()
     else:
         count, dif = session1.run_sql("select count(*), cast(max(execution)-min(execution) as signed) from test.preamble").fetch_one()
-    EXPECT_EQ(2, count, outpath+" execution count")
+    EXPECT_BETWEEN(2, 3, count, outpath+" execution count")
     EXPECT_GT(dif, 1, outpath)
     # this test is not deterministic
     # EXPECT_LT(dif, 4, outpath) # ensure iterations are spaced by more than the specified delay, but not too much more

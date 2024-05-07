@@ -241,10 +241,8 @@ WIPE_OUTPUT()
 testutil.create_file(sql_file_path, "showme;")
 
 call_mysqlsh([__uripwd, "-i", "-f", sql_file_path])
-EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: showme
-+--------------------+
-| Database           |
-""")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: showme""")
+EXPECT_STDOUT_CONTAINS("| Database")
 EXPECT_STDOUT_NOT_CONTAINS("====> SQL HANDLER: show databases")
 WIPE_OUTPUT()
 

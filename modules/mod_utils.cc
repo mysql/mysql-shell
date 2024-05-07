@@ -375,44 +375,35 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_x_session() {
 std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
     const Connection_options &connection_options) {
   std::shared_ptr<mysqlshdk::db::ISession> session;
-  std::string connection_error;
+  std::optional<mysqlshdk::db::Error> orig_exception;
 
   Connection_options copy = connection_options;
 
   SessionType type = copy.get_session_type();
 
   // Automatic protocol detection is ON
-  // Attempts X Protocol first, then Classic
+  // Attempts Classic Protocol first, then X
   if (type == mysqlsh::SessionType::Auto) {
-    session = create_x_session();
-
     try {
-      copy.set_scheme("mysqlx");
+      type = mysqlsh::SessionType::Classic;
+      session = mysqlshdk::db::mysql::Session::create();
+      copy.set_scheme("mysql");
       session->connect(copy);
+
       return session;
     } catch (const mysqlshdk::db::Error &e) {
       // Unknown message received from server indicates an attempt to create
-      // And X Protocol session through the MySQL protocol
+      // a classic Protocol session through the MySQL protocol
       int code = e.code();
-      if (code == CR_MALFORMED_PACKET ||  // Unknown message received from
-                                          // server 10
-          code == CR_CONNECTION_ERROR ||  // No connection could be made because
-                                          // the target machine actively refused
-                                          // it connecting to host:port
-          code == CR_SERVER_GONE_ERROR ||  // MySQL server has gone away
-                                           // (randomly sent by libmysqlx)
-          (CR_X_UNSUPPORTED_OPTION_VALUE == code &&       // auth-method was not
-           strstr(e.what(), "authentication method"))) {  // valid for X proto
-        type = mysqlsh::SessionType::Classic;
-        copy.clear_scheme();
-        copy.set_scheme("mysql");
+      if (code == CR_VERSION_ERROR ||  // Protocol mismatch; server version =
+                                       // 11, client version = 10
+          (code == CR_SERVER_LOST &&   // (server 5.7) waiting for initial
+                                       // communication packet
+           strstr(e.what(), "waiting for initial"))) {
+        type = mysqlsh::SessionType::X;
+        copy.set_scheme("mysqlx");
 
-        // Since this is an unexpected error, we store the message to be
-        // logged in case the classic session connection fails too
-        if (code == CR_SERVER_GONE_ERROR ||
-            CR_X_UNSUPPORTED_OPTION_VALUE == code) {
-          connection_error.append("X protocol error: ").append(e.what());
-        }
+        orig_exception = e;
       } else {
         throw;
       }
@@ -435,14 +426,13 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
   try {
     session->connect(copy);
   } catch (const mysqlshdk::db::Error &e) {
-    if (connection_error.empty()) {
+    if (!orig_exception ||
+        (e.code() != CR_CONNECTION_ERROR && e.code() != CR_SERVER_GONE_ERROR)) {
       throw;
     } else {
-      // If an error was cached for the X protocol connection
-      // it is included on a new exception
-      connection_error.append("\nClassic protocol error: ");
-      connection_error.append(e.format());
-      throw shcore::Exception::argument_error(connection_error);
+      // If an error was cached for the initial connection attempt AND the
+      // error is connection related, then rethrow it
+      throw *orig_exception;
     }
   }
 

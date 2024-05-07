@@ -3,12 +3,16 @@
 |Query OK|
 |Query OK|
 
-//@<OUT> Column type info disabled X
+//@<OUT> Column type info disabled X {VER(>=8.0.16)}
 WARNING: Using a password on the command line interface can be insecure.
 0
 
-//@<OUT> Column type info enabled X
+//@<OUT> Column type info disabled X {VER(<8.0.16)}
 WARNING: Using a password on the command line interface can be insecure.
+NOTE: The MySQL X Protocol was auto-detected for the target server. It is recommended that the MySQL protocol type be explicitly specified when using the X Protocol (--mysqlx or mysqlx://) for faster connect times, specially in older MySQL versions.
+0
+
+//@<OUT> Column type info enabled X
 Field 1
 Name:      `tint`
 Org_name:  `tint`
@@ -1010,11 +1014,9 @@ Flags:     BINARY
 0
 
 //@<OUT> Column type info disabled classic
-WARNING: Using a password on the command line interface can be insecure.
 0
 
 //@<OUT> Column type info enabled classic
-WARNING: Using a password on the command line interface can be insecure.
 Field 1
 Name:      `tint`
 Org_name:  `tint`
@@ -1508,7 +1510,6 @@ Flags:     BINARY
 0
 
 //@<OUT> Column type info enabled X 5.7
-WARNING: Using a password on the command line interface can be insecure.
 Field 1
 Name:      `tint`
 Org_name:  `tint`
@@ -2002,7 +2003,6 @@ Flags:     BINARY
 0
 
 //@<OUT> Column type info enabled classic 5.7
-WARNING: Using a password on the command line interface can be insecure.
 Field 1
 Name:      `tint`
 Org_name:  `tint`

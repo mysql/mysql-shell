@@ -752,6 +752,8 @@ int main(int argc, char **argv) {
 
           const auto target = options.connection_options();
 
+          bool auto_protocol = !target.has_scheme();
+
           if (shell_options->got_cmdline_password) {
             mysqlsh::current_console()->print_warning(
                 "Using a password on the command line interface can be "
@@ -778,6 +780,23 @@ int main(int argc, char **argv) {
 
           // Connect to the requested instance
           shell->connect(target, true, std::move(extra_init));
+
+          // if protocol was auto-detected in 5.7 and turned out to be X
+          // protocol, then recommend using --mysqlx. This is a problem in 5.7
+          // because differences in the initial handshake causes clients to
+          // block until timeout. In 8.0.16+, the X protocol starts by sending a
+          // message so wrong clients don't block.
+          if (auto session = shell->shell_context()->get_dev_session();
+              session && auto_protocol &&
+              session->session_type() == mysqlsh::SessionType::X &&
+              session->get_core_session()->get_server_version() <
+                  mysqlshdk::utils::Version(8, 0, 16)) {
+            mysqlsh::current_console()->print_note(
+                "The MySQL X Protocol was auto-detected for the target server. "
+                "It is recommended that the MySQL protocol type be explicitly "
+                "specified when using the X Protocol (--mysqlx or mysqlx://) "
+                "for faster connect times, specially in older MySQL versions.");
+          }
 
           // If redirect is requested, then reconnect to the right instance
           handle_redirect(shell, options.redirect_session);
