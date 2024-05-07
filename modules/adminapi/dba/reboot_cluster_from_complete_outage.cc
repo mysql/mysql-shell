@@ -274,9 +274,8 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
     Cluster_impl *cluster) {
   m_cs_info.is_member = cluster->is_cluster_set_member();
   m_cs_info.is_primary = m_cs_info.is_member && cluster->is_primary_cluster();
-  m_cs_info.is_primary_invalidated = false;
+  m_cs_info.is_invalidated = false;
   m_cs_info.removed_from_set = false;
-  m_cs_info.invalidated_replica = false;
   m_cs_info.primary_status = Cluster_global_status::UNKNOWN;
   m_cs_info.is_init = true;
 
@@ -289,7 +288,7 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
     auto pc = cs->get_primary_cluster();
 
     if (m_cs_info.is_primary)
-      m_cs_info.is_primary_invalidated = pc->get_id() != cluster->get_id();
+      m_cs_info.is_invalidated = pc->get_id() != cluster->get_id();
     else {
       m_cs_info.primary_status = cs->get_cluster_global_status(pc.get());
     }
@@ -298,12 +297,17 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
   try {
     auto target_cluster = cs->get_cluster(cluster->get_name(), true, true);
 
-    m_cs_info.invalidated_replica = target_cluster->is_invalidated();
-    if (!m_cs_info.invalidated_replica) {
-      target_cluster->check_and_get_cluster_set_for_cluster();
+    cs = target_cluster->check_and_get_cluster_set_for_cluster();
 
-      m_cs_info.removed_from_set =
-          target_cluster->is_cluster_set_remove_pending();
+    m_cs_info.removed_from_set =
+        target_cluster->is_cluster_set_remove_pending();
+
+    auto pc = cs->get_primary_cluster();
+
+    if (m_cs_info.is_primary) {
+      m_cs_info.is_invalidated = pc->get_id() != target_cluster->get_id();
+    } else {
+      m_cs_info.is_invalidated = target_cluster->is_invalidated();
     }
   } catch (const shcore::Exception &e) {
     if ((e.code() != SHERR_DBA_METADATA_MISSING) &&
@@ -313,12 +317,11 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
   }
 
   log_info(
-      "ClusterSet info: %smember, %sprimary, %sprimary_invalidated, %sremoved "
-      "from set, %sinvalidated replica, primary status: %s",
+      "ClusterSet info: %smember, %sprimary, %sinvalidated, %sremoved "
+      "from ClusterSet, primary status: %s",
       m_cs_info.is_member ? "" : "not ", m_cs_info.is_primary ? "" : "not ",
-      m_cs_info.is_primary_invalidated ? "" : "not ",
+      m_cs_info.is_invalidated ? "" : "not ",
       m_cs_info.removed_from_set ? "" : "not ",
-      m_cs_info.invalidated_replica ? "" : "not ",
       to_string(m_cs_info.primary_status).c_str());
 }
 
@@ -678,14 +681,28 @@ void Reboot_cluster_from_complete_outage::check_instance_configuration() {
  */
 void Reboot_cluster_from_complete_outage::reboot_seed(
     const MetadataStorage &metadata) {
+  // If GR auto-started stop it otherwise changing GR member actions will fail
+  if (cluster_topology_executor_ops::is_member_auto_rejoining(
+          m_target_instance)) {
+    cluster_topology_executor_ops::ensure_not_auto_rejoining(m_target_instance);
+  }
+
+  const auto is_gr_sro_if_primary_disabled =
+      [](const mysqlshdk::mysql::IInstance &instance) {
+        bool enabled = false;
+        bool action_exists = mysqlshdk::gr::get_member_action_status(
+            instance, mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
+            &enabled);
+
+        return !action_exists || !enabled;
+      };
+
+  bool remove_cs_replication_channel = false;
+
   // if the cluster isn't part of a set anymore
   if (m_cs_info.removed_from_set) {
     // enable mysql_disable_super_read_only_if_primary if needed
-    if (bool enabled;
-        !mysqlshdk::gr::get_member_action_status(
-            *m_target_instance,
-            mysqlshdk::gr::k_gr_disable_super_read_only_if_primary, &enabled) ||
-        !enabled) {
+    if (is_gr_sro_if_primary_disabled(*m_target_instance)) {
       log_info("Enabling automatic super_read_only management on '%s'",
                m_target_instance->descr().c_str());
 
@@ -695,21 +712,43 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
           mysqlshdk::gr::k_gr_member_action_after_primary_election);
     }
 
-    // remove replication channel
+    // If this is a Replica Cluster we must remove the replication channel too
     if (!m_cs_info.is_primary) {
-      if (mysqlshdk::mysql::Replication_channel channel;
-          mysqlshdk::mysql::get_channel_status(
-              *m_target_instance, k_clusterset_async_channel_name, &channel)) {
-        auto status = channel.status();
-        log_info("State of clusterset replication channel: %d", status);
+      remove_cs_replication_channel = true;
+    }
+  } else if (m_cs_info.is_invalidated) {  // The Cluster does not know if it was
+                                          // removed from the ClusterSet
+    // disable mysql_disable_super_read_only_if_primary if needed
+    if (!is_gr_sro_if_primary_disabled(*m_target_instance)) {
+      log_info("Disabling automatic super_read_only management on '%s'",
+               m_target_instance->descr().c_str());
 
-        if (status == mysqlshdk::mysql::Replication_channel::OFF) {
-          try {
-            mysqlshdk::mysql::reset_slave(
-                *m_target_instance, k_clusterset_async_channel_name, true);
-          } catch (const shcore::Error &e) {
-            throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
-          }
+      mysqlshdk::gr::disable_member_action(
+          *m_target_instance,
+          mysqlshdk::gr::k_gr_disable_super_read_only_if_primary,
+          mysqlshdk::gr::k_gr_member_action_after_primary_election);
+    }
+
+    // If this is a Replica Cluster we must remove the replication channel too
+    if (!m_cs_info.is_primary) {
+      remove_cs_replication_channel = true;
+    }
+  }
+
+  // remove replication channel
+  if (remove_cs_replication_channel) {
+    if (mysqlshdk::mysql::Replication_channel channel;
+        mysqlshdk::mysql::get_channel_status(
+            *m_target_instance, k_clusterset_async_channel_name, &channel)) {
+      auto status = channel.status();
+      log_info("State of clusterset replication channel: %d", status);
+
+      if (status == mysqlshdk::mysql::Replication_channel::OFF) {
+        try {
+          mysqlshdk::mysql::reset_slave(*m_target_instance,
+                                        k_clusterset_async_channel_name, true);
+        } catch (const shcore::Error &e) {
+          throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
         }
       }
     }
@@ -735,10 +774,6 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
 
     m_options.gr_options.manual_start_on_boot =
         m_cluster->impl()->get_manual_start_on_boot_option();
-
-    m_is_autorejoining =
-        cluster_topology_executor_ops::is_member_auto_rejoining(
-            m_target_instance);
 
     // Make sure the target instance does not already belong to a different
     // cluster.
@@ -799,7 +834,7 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
   if ((m_options.gr_options.communication_stack.value_or("") ==
        kCommunicationStackMySQL) &&
       (!m_cs_info.is_member ||
-       (m_cs_info.is_primary && !m_cs_info.is_primary_invalidated))) {
+       (m_cs_info.is_primary && !m_cs_info.is_invalidated))) {
     log_info("Re-creating recovery account.");
 
     // If it's a Replica cluster, we must disable the binary logging and
@@ -938,9 +973,6 @@ void Reboot_cluster_from_complete_outage::reboot_seed(
   // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
   //       Disable read-only temporarily to install the plugin if needed.
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
-
-  if (m_is_autorejoining)
-    cluster_topology_executor_ops::ensure_not_auto_rejoining(m_target_instance);
 
   if (m_options.gr_options.group_name.has_value() &&
       !m_options.gr_options.group_name->empty()) {
@@ -1112,7 +1144,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
     assert(m_cs_info.is_init == true);
 
-    if (!m_cs_info.is_primary_invalidated &&
+    if (!m_cs_info.is_invalidated &&
         (!instances_unreachable.empty() || !members_all_offline)) {
       std::vector<std::string> addresses;
       addresses.reserve(instances_online.size() + instances_unreachable.size());
@@ -1146,7 +1178,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   }
 
   if (m_options.switch_communication_stack.has_value() &&
-      m_cs_info.is_primary_invalidated)
+      m_cs_info.is_invalidated)
     throw shcore::Exception::runtime_error(
         "Cannot switch the communication stack in an invalidated Cluster "
         "because its instances won't be removed or rejoined.");
@@ -1277,10 +1309,10 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   // The 'force' option is a no-op in this scenario (instances aren't rejoined
   // if the Cluster belongs to a ClusterSet and is INVALIDATED), however, it's
   // more correct to forbid it instead of ignoring it.
-  if (m_cs_info.is_primary_invalidated && m_options.get_force())
+  if (m_cs_info.is_invalidated && m_options.get_force())
     throw std::runtime_error(shcore::str_format(
         "The 'force' option cannot be used in a Cluster that belongs to a "
-        "ClusterSet and is PRIMARY INVALIDATED."));
+        "ClusterSet and is INVALIDATED."));
 
   // everything is ready, proceed with the reboot...
 
@@ -1356,7 +1388,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
   // not a replica cluster to not introduce errant transactions.
   if (m_options.gr_options.communication_stack.has_value() &&
       (!m_cs_info.is_member ||
-       (m_cs_info.is_primary && !m_cs_info.is_primary_invalidated))) {
+       (m_cs_info.is_primary && !m_cs_info.is_invalidated))) {
     // if the cluster was fenced, we need to check if we can actually update the
     // MD, otherwise, it's up to the user to call rescan() after the reboot
     if (!cluster_impl->get_metadata_storage()->get_md_server()->get_sysvar_bool(
@@ -1367,33 +1399,22 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
 
   bool rejoin_remaning_instances = true;
 
-  // don't rejoin the instances *if* cluster is in a cluster set and:
-  //  - is invalidated (former primary)
-  //  - is an invalidated replica
-  //  - is a replica and the primary doesn't have global status OK
+  // don't rejoin the instances *if* cluster is in a cluster set and is
+  // invalidated or is a replica and the primary doesn't have global
+  // status OK
   if (m_cs_info.is_member &&
-      (m_cs_info.is_primary_invalidated || m_cs_info.invalidated_replica ||
+      (m_cs_info.is_invalidated ||
        (!m_cs_info.is_primary &&
         m_cs_info.primary_status != Cluster_global_status::OK))) {
-    const char *msg{nullptr};
-    if (m_cs_info.is_primary_invalidated)
-      msg =
-          "Skipping rejoining remaining instances because the Cluster was "
-          "INVALIDATED by a failover. Please add or remove the instances after "
-          "the Cluster is rejoined to the ClusterSet.";
-    else if (m_cs_info.invalidated_replica)
-      msg =
-          "Skipping rejoining remaining instances because the Cluster belongs "
-          "to a ClusterSet as a REPLICA Cluster but has been invalidated. "
-          "Please add or remove the  instances after the Cluster is rejoined "
-          "to the ClusterSet.";
-    else
-      msg =
-          "Skipping rejoining remaining instances because the Cluster belongs "
-          "to a ClusterSet and its global status is not OK. Please add or "
-          "remove the instances after the Cluster is rejoined to the "
-          "ClusterSet.";
-
+    auto msg = m_cs_info.is_invalidated
+                   ? "Skipping rejoining remaining instances because the "
+                     "Cluster belongs to a ClusterSet and is INVALIDATED. "
+                     "Please add or remove the instances after the Cluster is "
+                     "rejoined to the ClusterSet."
+                   : "Skipping rejoining remaining instances because the "
+                     "Cluster belongs to a ClusterSet and its global status is "
+                     "not OK. Please add or remove the instances after the "
+                     "Cluster is rejoined to the ClusterSet.";
     console->print_info(msg);
 
     rejoin_remaning_instances = false;
@@ -1442,7 +1463,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         if (e.code() == SHERR_DBA_METADATA_MISSING)
           cluster_impl->set_cluster_set_remove_pending(true);
       }
-    } else if (!m_cs_info.removed_from_set && !m_cs_info.invalidated_replica) {
+    } else if (!m_cs_info.removed_from_set && !m_cs_info.is_invalidated) {
       // this is a replica cluster, so try and rejoin the cluster set
       console->print_info("Rejoining Cluster into its original ClusterSet...");
       console->print_info();
@@ -1510,10 +1531,9 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
     });
 
     // and finally, rejoin all instances
-    rejoin_instances(
-        cluster_impl.get(), *m_target_instance, instances, m_options,
-        !cluster_is_multi_primary,
-        m_cs_info.removed_from_set || m_cs_info.invalidated_replica);
+    rejoin_instances(cluster_impl.get(), *m_target_instance, instances,
+                     m_options, !cluster_is_multi_primary,
+                     m_cs_info.removed_from_set || m_cs_info.is_invalidated);
   }
 
   if (m_options.get_dry_run()) {

@@ -78,6 +78,7 @@ c1 = dba.rebootClusterFromCompleteOutage();
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri4], c2);
 CHECK_INVALIDATED_CLUSTER_NAMED(session4, "cluster1");
+CHECK_RESTORED_INVALIDATED_CLUSTER([__sandbox_uri1]);
 CHECK_CLUSTER_SET(session);
 
 cs.rejoinCluster("cluster1");
@@ -150,6 +151,8 @@ shell.connect(__sandbox_uri4);
 
 c2 = dba.rebootClusterFromCompleteOutage();
 
+CHECK_RESTORED_INVALIDATED_CLUSTER([__sandbox_uri4]);
+
 cs.rejoinCluster("cluster2");
 
 //@<> failover to an invalidated cluster1 should fail
@@ -167,6 +170,5 @@ EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1", {dryRun:1});}, "Clus
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
-
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);

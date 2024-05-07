@@ -49,14 +49,14 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster", {dryRun: true}); });
 EXPECT_OUTPUT_CONTAINS("NOTE: dryRun option was specified. Validations will be executed, but no changes will be applied.");
-EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster was INVALIDATED by a failover. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("dryRun finished.");
 EXPECT_OUTPUT_NOT_CONTAINS("The Cluster was successfully rebooted.");
 
 testutil.wipeAllOutput();
 
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("cluster"); });
-EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster was INVALIDATED by a failover. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_CONTAINS("The Cluster was successfully rebooted.");
 EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
@@ -110,7 +110,7 @@ testutil.waitMemberState(__mysql_sandbox_port6, "(MISSING)");
 
 EXPECT_THROWS(function() {
     old_primary = dba.rebootClusterFromCompleteOutage("replica", {force: true});
-}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is INVALIDATED.");
 
 // put the cluster back
 EXPECT_NO_THROWS(function(){ old_primary = dba.rebootClusterFromCompleteOutage("replica"); });
@@ -127,9 +127,13 @@ for (i = 0; i < 20; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
+shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri5); });
+testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
 EXPECT_NO_THROWS(function(){ old_primary.rejoinInstance(__sandbox_uri6); });
+testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 
+shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
@@ -174,7 +178,7 @@ shell.connect(__sandbox_uri1);
 
 EXPECT_THROWS(function(){
     cluster = dba.rebootClusterFromCompleteOutage("cluster", {force: true});
-}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is PRIMARY INVALIDATED.");
+}, "The 'force' option cannot be used in a Cluster that belongs to a ClusterSet and is INVALIDATED.");
 
 EXPECT_NO_THROWS(function(){ cluster = dba.rebootClusterFromCompleteOutage("cluster"); });
 
@@ -187,7 +191,7 @@ cluster.rejoinInstance(__sandbox_uri3);
 shell.connect(__sandbox_uri4);
 EXPECT_NO_THROWS(function(){ replica = dba.rebootClusterFromCompleteOutage("replica"); });
 
-EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet as a REPLICA Cluster but has been invalidated. Please add or remove the  instances after the Cluster is rejoined to the ClusterSet.");
+EXPECT_OUTPUT_CONTAINS("Skipping rejoining remaining instances because the Cluster belongs to a ClusterSet and is INVALIDATED. Please add or remove the instances after the Cluster is rejoined to the ClusterSet.");
 EXPECT_OUTPUT_NOT_CONTAINS("Rejoining Cluster into its original ClusterSet...");
 
 EXPECT_NO_THROWS(function(){ cs.rejoinCluster("replica"); });
@@ -395,6 +399,10 @@ testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
+
+testutil.waitMemberState(__mysql_sandbox_port5, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port6, "ONLINE");
+
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5, __sandbox_uri6], cluster, replica);
 CHECK_CLUSTER_SET(session);
 

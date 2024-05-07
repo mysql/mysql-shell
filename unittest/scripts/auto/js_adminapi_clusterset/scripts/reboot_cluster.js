@@ -61,7 +61,7 @@ EXPECT_NO_THROWS(function() {replicacluster = dba.rebootClusterFromCompleteOutag
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri6], cluster, replicacluster);
 
 //Shutdown the PRIMARY Cluster
-disable_auto_rejoin(__mysql_sandbox_port1);
+// Do not disable auto_rejoin on the seed to test that reboot_cluster() stops it
 disable_auto_rejoin(__mysql_sandbox_port2);
 disable_auto_rejoin(__mysql_sandbox_port3);
 
@@ -86,6 +86,8 @@ EXPECT_NO_THROWS(function(){ former_primary = dba.rebootClusterFromCompleteOutag
 
 EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
 CHECK_INVALIDATED_CLUSTER([__sandbox_uri1], cluster, former_primary);
+
+CHECK_RESTORED_INVALIDATED_CLUSTER([__sandbox_uri1]);
 
 //@<> Rejoin the former PRIMARY Cluster back to the ClusterSet
 EXPECT_NO_THROWS(function(){ cs.rejoinCluster("cluster"); });
