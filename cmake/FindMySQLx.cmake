@@ -100,8 +100,10 @@ set(MYSQL_LIBRARY_PATHS
 if(WITH_PROTOBUF_LITE)
   set(_protobuf_lib_suffix "_lite")
 else()
-  ADD_DEFINITIONS(-DUSE_MYSQLX_FULL_PROTO)
+  add_definitions(-DUSE_MYSQLX_FULL_PROTO)
 endif()
+
+add_definitions(-DMYSQLXCLIENT_STATIC_DEFINE)
 
 if(NOT WIN32)
   find_library(MYSQLX_CLIENT_LIB NAMES libmysqlxclient${_protobuf_lib_suffix}.a
