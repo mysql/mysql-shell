@@ -88,6 +88,7 @@ void ClusterSet::init() {
       ->cli();
   expose("status", &ClusterSet::status, "?options")->cli();
   expose("describe", &ClusterSet::describe)->cli();
+  expose("dissolve", &ClusterSet::dissolve, "?options")->cli();
   expose("setupAdminAccount", &ClusterSet::setup_admin_account, "user",
          "?options")
       ->cli();
@@ -377,11 +378,18 @@ The options dictionary can contain the following values:
            only from metadata) in case the PRIMARY cannot be reached, or
            the ClusterSet replication channel cannot be found or is stopped.
            By default, set to false.
+@li dissolve: whether to dissolve the cluster after removing it from the
+              ClusterSet. Set to false if you intend to use it as a standalone
+              cluster. Default is true.
 @li timeout: maximum number of seconds to wait for the instance to sync up
              with the PRIMARY Cluster. Default is 0 and it means no timeout.
 @li dryRun: boolean if true, all validations and steps for removing a
             the Cluster from the ClusterSet are executed, but no changes are
             actually made. An exception will be thrown when finished.
+
+NOTE: if dissolve is set to false it will not be possible to add the removed
+cluster back to the ClusterSet, because transactions that are not in the ClusterSet
+will be executed there.
 )*");
 
 /**
@@ -513,6 +521,55 @@ shcore::Value ClusterSet::describe() {
         return shcore::Value(impl()->describe());
       },
       false);
+}
+
+REGISTER_HELP_FUNCTION(dissolve, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_DISSOLVE, R"*(
+Dissolves the ClusterSet.
+
+@param options Dictionary with options for the operation.
+@returns Nothing
+
+This function dissolves the ClusterSet by removing all Clusters that
+belong to it, implicitly dissolving each one.
+
+With the default options, the command keeps all the user's data intact.
+
+<b>Options</b>
+
+The options dictionary may contain the following attributes:
+
+@li force: set to true to confirm that the dissolve operation must be
+executed, even if some members of the ClusterSet cannot be reached or
+the timeout was reached when waiting for members to catch up with replication
+changes. By default, set to false.
+@li timeout: maximum number of seconds to wait for pending transactions to
+be applied in each reachable instance of the ClusterSet (default value is
+retrieved from the 'dba.gtidWaitTimeout' shell option).
+@li dryRun: if true, all validations and steps for dissolving the
+ClusterSet are executed, but no changes are actually made.
+
+The force option (set to true) must only be used to dissolve a ClusterSet
+with Clusters that are permanently not available (no longer reachable), or if
+any instance of any Cluster is also permanently not available.
+)*");
+
+/**
+ * $(CLUSTERSET_DISSOLVE_BRIEF)
+ *
+ * $(CLUSTERSET_DISSOLVE)
+ */
+#if DOXYGEN_JS
+Undefined ClusterSet::dissolve(Dictionary options) {}
+#elif DOXYGEN_PY
+None ClusterSet::dissolve(dict options) {}
+#endif
+
+void ClusterSet::dissolve(
+    const shcore::Option_pack_ref<clusterset::Dissolve_options> &options) {
+  assert_valid("dissolve");
+
+  execute_with_pool([&]() { impl()->dissolve(*options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryCluster, ClusterSet);

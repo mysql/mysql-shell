@@ -28,6 +28,12 @@ cs.help("disconnect");
 //@ Disconnect \? [USE:Disconnect]
 \? ClusterSet.disconnect
 
+//@ Dissolve
+cs.help("dissolve");
+
+//@ Dissolve \? [USE:Dissolve]
+\? ClusterSet.dissolve
+
 //@ Execute
 cs.help("execute");
 

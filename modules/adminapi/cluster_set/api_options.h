@@ -73,6 +73,7 @@ struct Remove_cluster_options : public Timeout_option {
   static const shcore::Option_pack_def<Remove_cluster_options> &options();
 
   bool dry_run = false;
+  bool dissolve = true;
   std::optional<bool> force;
 };
 
@@ -81,6 +82,13 @@ struct Status_options {
   void set_extended(uint64_t value);
 
   uint64_t extended = 0;  // By default 0 (false).
+};
+
+struct Dissolve_options : public Timeout_option {
+  static const shcore::Option_pack_def<Dissolve_options> &options();
+
+  bool dry_run{false};
+  bool force{false};
 };
 
 struct Invalidate_replica_clusters_option {

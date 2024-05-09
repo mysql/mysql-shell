@@ -523,11 +523,12 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
   std::set<std::string> cset_exclusive_expected = {
       "Cluster.fenceWrites",          "Cluster.getClusterSet",
       "Cluster.unfenceWrites",        "ClusterSet.createReplicaCluster",
-      "ClusterSet.execute",           "ClusterSet.listRouters",
-      "ClusterSet.options",           "ClusterSet.removeCluster",
-      "ClusterSet.routingOptions",    "ClusterSet.routerOptions",
-      "ClusterSet.setOption",         "ClusterSet.setRoutingOption",
-      "ClusterSet.setupAdminAccount", "ClusterSet.setupRouterAccount"};
+      "ClusterSet.dissolve",          "ClusterSet.execute",
+      "ClusterSet.listRouters",       "ClusterSet.options",
+      "ClusterSet.removeCluster",     "ClusterSet.routingOptions",
+      "ClusterSet.routerOptions",     "ClusterSet.setOption",
+      "ClusterSet.setRoutingOption",  "ClusterSet.setupAdminAccount",
+      "ClusterSet.setupRouterAccount"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",

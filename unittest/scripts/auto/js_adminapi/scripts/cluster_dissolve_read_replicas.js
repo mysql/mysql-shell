@@ -59,7 +59,7 @@ EXPECT_THROWS_TYPE(function() { cluster.dissolve(); }, "Operation canceled by us
 shell.options.useWizards=0;
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "cluster",
     "defaultReplicaSet": {

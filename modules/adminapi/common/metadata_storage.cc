@@ -3534,6 +3534,12 @@ void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
 
   // delete clustersets
   execute_sqlf("DELETE FROM mysql_innodb_cluster_metadata.clustersets");
+
+  // cluster is no longer part of a clusterset
+  execute_sqlf(
+      "UPDATE mysql_innodb_cluster_metadata.clusters SET clusterset_id = NULL "
+      "WHERE cluster_id = ?",
+      cluster_id);
 }
 
 Cluster_set_id MetadataStorage::create_cluster_set_record(

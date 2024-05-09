@@ -261,6 +261,12 @@ class Cluster_impl final : public Base_cluster_impl,
       const std::string &recovery_account = "",
       const std::vector<std::string> &hosts = {}) const;
 
+  void clear_clusterset_data() {
+    m_cluster_set.reset();
+    m_cs_md = Cluster_set_member_metadata{};
+    m_cs_md_remove_pending = false;
+  }
+
   bool contains_instance_with_address(const std::string &host_port) const;
 
   mysqlsh::dba::Instance *acquire_primary(

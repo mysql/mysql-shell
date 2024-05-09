@@ -633,7 +633,8 @@ void add_managed_connection_failover(
 
   try {
     log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.str().c_str() +
+                  std::string_view{"SELECT "}.size());  // hide "SELECT "
     if (!dry_run) {
       auto res = target_instance.query_udf(query);
       auto row = res->fetch_one();
@@ -661,7 +662,8 @@ void execute_add_source_connection_failover_udf(
 
   try {
     log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.str().c_str() +
+                  std::string_view{"SELECT "}.size());  // hide "SELECT "
     if (!dry_run) {
       auto res = target_instance.query_udf(query);
       auto row = res->fetch_one();
@@ -707,7 +709,8 @@ void delete_source_connection_failover(
 
   try {
     log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.str().c_str() +
+                  std::string_view{"SELECT "}.size());  // hide "SELECT "
     if (!dry_run) {
       auto res = target_instance.query_udf(query);
       auto row = res->fetch_one();
@@ -742,7 +745,8 @@ void delete_managed_connection_failover(
 
   try {
     log_debug("Executing UDF: %s",
-              query.str().c_str() + sizeof("SELECT"));  // hide "SELECT "
+              query.str().c_str() +
+                  std::string_view{"SELECT "}.size());  // hide "SELECT "
     if (!dry_run) {
       auto res = target_instance.query_udf(query);
       auto row = res->fetch_one();
@@ -760,7 +764,7 @@ void reset_managed_connection_failover(
     const char *query = "SELECT asynchronous_connection_failover_reset()";
 
     log_debug("Executing UDF: %s",
-              query + sizeof("SELECT"));  // hide "SELECT "
+              query + std::string_view{"SELECT "}.size());  // hide "SELECT "
     if (!dry_run) {
       // The server must be writeable to be able to execute the UDF
       bool super_read_only =

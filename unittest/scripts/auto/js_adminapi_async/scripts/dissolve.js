@@ -28,7 +28,7 @@ EXPECT_THROWS(function() {
     rset.dissolve();
 }, "Operation canceled by user.");
 
-EXPECT_OUTPUT_CONTAINS("The ReplicaSet still has the following registered instances:");
+EXPECT_OUTPUT_CONTAINS("The ReplicaSet has the following registered instances:");
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`{
     "name": "rset",
     "topology": [
@@ -69,7 +69,7 @@ WIPE_OUTPUT();
 
 EXPECT_NO_THROWS(function() { rset.dissolve({force: true}); });
 
-EXPECT_OUTPUT_CONTAINS("The ReplicaSet still has the following registered instances:");
+EXPECT_OUTPUT_CONTAINS("The ReplicaSet has the following registered instances:");
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 WARNING: You are about to dissolve the whole ReplicaSet. This operation cannot be reverted. All members will be removed from the ReplicaSet and replication will be stopped, internal recovery user accounts and the ReplicaSet metadata will be dropped. User data will be maintained intact in all instances.
@@ -91,7 +91,7 @@ shell.options.useWizards=0;
 WIPE_OUTPUT();
 EXPECT_NO_THROWS(function() { rset.dissolve(); });
 
-EXPECT_OUTPUT_NOT_CONTAINS("The ReplicaSet still has the following registered instances:");
+EXPECT_OUTPUT_NOT_CONTAINS("The ReplicaSet has the following registered instances:");
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 * Dissolving the ReplicaSet...
@@ -118,7 +118,7 @@ WIPE_OUTPUT();
 testutil.expectPrompt("Are you sure you want to dissolve the ReplicaSet?", "y");
 EXPECT_NO_THROWS(function() { rset.dissolve(); });
 
-EXPECT_OUTPUT_CONTAINS("The ReplicaSet still has the following registered instances:");
+EXPECT_OUTPUT_CONTAINS("The ReplicaSet has the following registered instances:");
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`{
     "name": "rset",
     "topology": [
@@ -236,7 +236,7 @@ WIPE_OUTPUT();
 
 EXPECT_NO_THROWS(function(){ rset.dissolve({force: true}); });
 
-EXPECT_OUTPUT_CONTAINS("The ReplicaSet still has the following registered instances:");
+EXPECT_OUTPUT_CONTAINS("The ReplicaSet has the following registered instances:");
 EXPECT_OUTPUT_CONTAINS(`NOTE: The instance '${hostname}:${__mysql_sandbox_port3}' is 'UNREACHABLE' and it will only be removed from the metadata. Please take any necessary actions to make sure that the instance will not start/join the ReplicaSet if brought back online.`);
 EXPECT_OUTPUT_CONTAINS("* Dissolving the ReplicaSet...");
 EXPECT_OUTPUT_CONTAINS(`WARNING: The ReplicaSet was successfully dissolved, but the following instance was skipped: '${hostname}:${__mysql_sandbox_port3}'. Please make sure this instance is permanently unavailable or take any necessary manual action to ensure the ReplicaSet is fully dissolved.`);
@@ -287,9 +287,9 @@ reset_instance(session);
 shell.connect(__sandbox_uri1);
 reset_instance(session);
 
-//@<> Dissolve fail due to timeout {!__dbug_off}
 shell.options.useWizards=0;
 
+//@<> Dissolve fail due to timeout {!__dbug_off}
 var rset = dba.createReplicaSet('rset', {gtidSetIsComplete: true});
 rset.addInstance(__sandbox_uri2);
 rset.addInstance(__sandbox_uri3);
@@ -317,7 +317,26 @@ EXPECT_OUTPUT_CONTAINS("* Dissolving the ReplicaSet...");
 EXPECT_OUTPUT_CONTAINS(`WARNING: An error occurred when trying to catch up with the ReplicaSet transactions and instance '${hostname}:${__mysql_sandbox_port2}' might have been left in an inconsistent state that will lead to errors if it is reused.`);
 EXPECT_OUTPUT_CONTAINS(`WARNING: An error occurred when trying to catch up with the ReplicaSet transactions and instance '${hostname}:${__mysql_sandbox_port3}' might have been left in an inconsistent state that will lead to errors if it is reused.`);
 EXPECT_OUTPUT_NOT_CONTAINS("The ReplicaSet was successfully dissolved.");
-EXPECT_OUTPUT_CONTAINS(`The ReplicaSet was successfully dissolved, but the following instances were unable to catch up with the ReplicaSet transactions: '${hostname}:${__mysql_sandbox_port2}', '${hostname}:${__mysql_sandbox_port3}'. Please make sure the ReplicaSet metadata was removed on these instances in order to be able to be reused.`);
+EXPECT_OUTPUT_CONTAINS(`The ReplicaSet was successfully dissolved, but the following instances weren't properly dissolved: '${hostname}:${__mysql_sandbox_port2}', '${hostname}:${__mysql_sandbox_port3}'. Please make sure the ReplicaSet metadata and replication channel were removed from these instances in order to be able to be reused.`);
+
+testutil.dbugSet("");
+
+//@<> Dissolve doesn't stop due to error in replication cleanup {!__dbug_off}
+var rset = dba.createReplicaSet('rset', {gtidSetIsComplete: true});
+rset.addInstance(__sandbox_uri2);
+rset.addInstance(__sandbox_uri3);
+
+WIPE_OUTPUT();
+
+testutil.dbugSet("+d,dba_dissolve_replication_error");
+
+EXPECT_NO_THROWS(function(){ rset.dissolve(); });
+
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port2}' to apply received transactions...`);
+EXPECT_OUTPUT_CONTAINS(`An error occurred when trying to remove instance '${hostname}:${__mysql_sandbox_port2}' from the ReplicaSet. The instance might have been left active and in an inconsistent state, requiring manual action to fully dissolve the ReplicaSet.`);
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port3}' to apply received transactions...`);
+EXPECT_OUTPUT_CONTAINS(`An error occurred when trying to remove instance '${hostname}:${__mysql_sandbox_port3}' from the ReplicaSet. The instance might have been left active and in an inconsistent state, requiring manual action to fully dissolve the ReplicaSet.`);
+EXPECT_OUTPUT_CONTAINS(`The ReplicaSet was successfully dissolved, but the following instances weren't properly dissolved: '${hostname}:${__mysql_sandbox_port2}', '${hostname}:${__mysql_sandbox_port3}'. Please make sure the ReplicaSet metadata and replication channel were removed from these instances in order to be able to be reused.`);
 
 testutil.dbugSet("");
 

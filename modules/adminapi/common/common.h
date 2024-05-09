@@ -255,6 +255,7 @@ inline constexpr const char kRestart[] = "restart";
 inline constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
 inline constexpr const char kMultiPrimary[] = "multiPrimary";
 inline constexpr const char kForce[] = "force";
+inline constexpr const char kDissolve[] = "dissolve";
 inline constexpr const char kAdoptFromGR[] = "adoptFromGR";
 inline constexpr const char kAddInstances[] = "addInstances";
 inline constexpr const char kRemoveInstances[] = "removeInstances";
@@ -669,6 +670,7 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
  * @param timeout number of seconds to wait
  * @param cancelable boolean to indicate if the operation is cancelable with
  * SIGINT or not
+ * @param silent controls if output is made (if true, doesn't show progress)
  *
  * @throw RuntimeError if the timeout is reached when waiting for
  * transactions to be applied or replication errors are detected.
@@ -676,7 +678,7 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
 bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
-                            bool cancelable = false);
+                            bool cancelable = false, bool silent = false);
 
 /*
  * Synchronize transactions on target instance.

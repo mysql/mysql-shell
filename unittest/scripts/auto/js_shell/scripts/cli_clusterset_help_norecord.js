@@ -15,6 +15,9 @@ callMysqlsh(["--", "clusterset", "remove-cluster", "--help"])
 //@ CLI clusterset describe --help
 callMysqlsh(["--", "clusterset", "describe", "--help"])
 
+//@ CLI clusterset dissolve --help
+callMysqlsh(["--", "clusterset", "dissolve", "--help"])
+
 //@ CLI clusterset rejoin-cluster --help
 callMysqlsh(["--", "clusterset", "rejoin-cluster", "--help"])
 

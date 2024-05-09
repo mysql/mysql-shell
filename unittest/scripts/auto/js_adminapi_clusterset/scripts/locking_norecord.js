@@ -185,14 +185,41 @@ EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
 testutil.releaseLocks(session3, lock_instance);
 
-// *************************
-// ClusterSet locks (exclusive)
-
-//@<> exclusive lock on clusterset.setPrimaryCluster() (with exclusive locks on all clusters of the set)
+//@<> exclusive lock on clusterset.dissolve() (with an exclusive lock on each cluster)
 
 session1 = mysql.getSession(__sandbox_uri1);
 session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
+
+clusterset_lock_check(function() {
+    cset.dissolve();
+});
+
+testutil.getSharedLock(session1, lock_cluster, lock_name);
+EXPECT_THROWS(function() {
+    cset.dissolve();
+}, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'`);
+EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port1}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+testutil.releaseLocks(session1, lock_cluster);
+
+testutil.getSharedLock(session3, lock_cluster, lock_name);
+EXPECT_THROWS(function() {
+    cset.dissolve();
+}, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port3}'`);
+EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port3}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+testutil.releaseLocks(session3, lock_cluster);
+
+testutil.getSharedLock(session4, lock_cluster, lock_name);
+EXPECT_THROWS(function() {
+    cset.dissolve();
+}, `Failed to acquire Cluster lock through primary member '${hostname}:${__mysql_sandbox_port4}'`);
+EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port4}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
+testutil.releaseLocks(session4, lock_cluster);
+
+// *************************
+// ClusterSet locks (exclusive)
+
+//@<> exclusive lock on clusterset.setPrimaryCluster() (with exclusive locks on all clusters of the set)
 
 testutil.getExclusiveLock(session1, lock_cluster_set, lock_name);
 testutil.getExclusiveLock(session1, lock_cluster, lock_name);

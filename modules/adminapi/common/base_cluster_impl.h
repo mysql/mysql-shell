@@ -239,11 +239,11 @@ class Base_cluster_impl {
    */
   void sync_transactions(const mysqlshdk::mysql::IInstance &target_instance,
                          const std::string &channel_name, int timeout,
-                         bool only_received = false) const;
+                         bool only_received = false, bool silent = false) const;
 
   void sync_transactions(const mysqlshdk::mysql::IInstance &target_instance,
                          Instance_type instance_type, int timeout,
-                         bool only_received = false) const;
+                         bool only_received = false, bool silent = false) const;
 
   /**
    * Connect to the given instance specification given, while validating its

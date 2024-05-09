@@ -198,7 +198,8 @@ const shcore::Option_pack_def<Remove_cluster_options>
       shcore::Option_pack_def<Remove_cluster_options>()
           .include<Timeout_option>()
           .optional(kDryRun, &Remove_cluster_options::dry_run)
-          .optional(kForce, &Remove_cluster_options::force);
+          .optional(kForce, &Remove_cluster_options::force)
+          .optional(kDissolve, &Remove_cluster_options::dissolve);
 
   return opts;
 }
@@ -221,6 +222,15 @@ void Status_options::set_extended(uint64_t value) {
   }
 
   extended = value;
+}
+
+const shcore::Option_pack_def<Dissolve_options> &Dissolve_options::options() {
+  static const auto opts = shcore::Option_pack_def<Dissolve_options>()
+                               .include<Timeout_option>()
+                               .optional(kDryRun, &Dissolve_options::dry_run)
+                               .optional(kForce, &Dissolve_options::force);
+
+  return opts;
 }
 
 const shcore::Option_pack_def<Invalidate_replica_clusters_option>
