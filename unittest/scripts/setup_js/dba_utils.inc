@@ -1,7 +1,6 @@
 function is_replica_stopped(session) {
   r = session.runSql("SHOW REPLICA STATUS").fetchOne();
-
-  if (r == null) return true;
+  if (!r) return true;
 
   if (r.Replica_IO_Running == "No" && r.Replica_SQL_Running == "No")
     return true;
@@ -57,6 +56,17 @@ function CHECK_DISSOLVED_CLUSTER(primary, target_session) {
       }
     }
   }
+
+  // Verify that there are not GR member actions
+  var count_async_conn_failover = session.runSql("SELECT count(*) FROM performance_schema.replication_asynchronous_connection_failover").fetchOne()[0];
+  EXPECT_EQ(0, count_async_conn_failover, "unexpected_async_conn_failover");
+
+  var count_async_conn_failover_managed = session.runSql("SELECT count(*) FROM performance_schema.replication_asynchronous_connection_failover_managed").fetchOne()[0];
+  EXPECT_EQ(0, count_async_conn_failover_managed, "unexpected_async_conn_failover_managed");
+
+  // Verify that skip_replica_start / skip_start_start is disabled
+  var count_skip_replica_start = session.runSql("SELECT count(*) FROM performance_schema.persisted_variables WHERE ((variable_name = 'skip_replica_start') OR (variable_name = 'skip_start_start')) AND (variable_value <> 'OFF')").fetchOne()[0];
+  EXPECT_EQ(0, count_skip_replica_start, "unexpected_skip_replica_start");
 
   if (__version_num >= 80023) {
     // Verify if there are no read-replica channels configured

@@ -1798,7 +1798,7 @@ void check_replication_startup(const mysqlshdk::mysql::IInstance &instance,
 bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
-                            bool cancelable) {
+                            bool cancelable, bool silent) {
   bool stop = false;
   shcore::Interrupt_handler intr(
       [&stop]() {
@@ -1832,7 +1832,9 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
 
   using Progress_reporting = Shell_options::Storage::Progress_reporting;
 
-  auto progress_reporting = current_shell_options()->get().progress_reporting;
+  auto progress_reporting =
+      silent ? Progress_reporting::DISABLED
+             : current_shell_options()->get().progress_reporting;
 
   std::unique_ptr<mysqlshdk::textui::Progress_vt100> progress_bar;
   shcore::Scoped_callback end_progress_bar;

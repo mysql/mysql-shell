@@ -173,7 +173,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 }
 
 //@<OUT> Cluster: dissolve error: not empty
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {
@@ -334,7 +334,7 @@ State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
 //@<OUT> Cluster: final dissolve
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "devCluster",
     "defaultReplicaSet": {

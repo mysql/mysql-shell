@@ -51,6 +51,7 @@ EXPECT_THROWS_TYPE(function(){clusterset.removeCluster("foobar")}, "The cluster 
 
 //@<> removeCluster() - dryRun
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {dryRun: 1}); });
+EXPECT_OUTPUT_NOT_CONTAINS("In order to turn 'replicacluster' into a standalone Cluster (after removing it from the ClusterSet), errant transactions must be introduced on it. This makes the Cluster diverge from the ClusterSet's transaction set.")
 
 EXPECT_OUTPUT_CONTAINS(`The Cluster 'replicacluster' will be removed from the InnoDB ClusterSet.`);
 EXPECT_OUTPUT_CONTAINS(`* Waiting for the Cluster to synchronize with the PRIMARY Cluster...`);
@@ -88,12 +89,13 @@ testutil.killSandbox(__mysql_sandbox_port2);
 
 EXPECT_THROWS_TYPE(function() { clusterset.removeCluster("replicacluster"); }, "Unreachable Read-Replicas detected", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster has unreachable Read-Replicas so the command cannot remove them. Please bring the instances back ONLINE and try to remove the Cluster again. If the instances are permanently not reachable, then you can choose to proceed with the operation and only remove the instances from the Cluster Metadata by using the 'force' option.");
+EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster has unreachable Read-Replicas so the command cannot remove them. Please bring the instances back ONLINE and try to remove the Cluster again. If the instances are permanently not reachable, then you can choose to proceed with the operation and only remove the instances from the Cluster's Metadata by using the 'force' option.");
 
 // Bring read-replica 2 back online
 testutil.startSandbox(__mysql_sandbox_port2);
 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {timeout: 0}); });
+EXPECT_OUTPUT_NOT_CONTAINS("In order to turn 'replicacluster' into a standalone Cluster (after removing it from the ClusterSet), errant transactions must be introduced on it. This makes the Cluster diverge from the ClusterSet's transaction set.");
 if (__version_num < 80300) {
   EXPECT_OUTPUT_CONTAINS("* Reconciling internally generated GTIDs...");
 }
@@ -395,11 +397,17 @@ EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY 
 
 //@<> Remove NO_QUORUM cluster + force (should still fail)
 // we can't remove a NO_QUORUM cluster because STOP REPLICA and most things will just freeze
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
+EXPECT_THROWS(function(){ clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
 
-//@<> temporary recovery until test above is fixed
+//@<> Unable to remove cluster due to unreachable instances
 replicacluster.forceQuorumUsingPartitionOf(__sandbox_uri4);
-clusterset.removeCluster("replicacluster");
+
+EXPECT_THROWS(function(){
+    clusterset.removeCluster("replicacluster");
+}, "Unreachable instances detected");
+EXPECT_OUTPUT_CONTAINS("The Cluster has unreachable instances so the command cannot remove them. Please bring those instances back ONLINE and try to remove the Cluster again. If the instances are permanently not reachable, then you can choose to proceed with the operation and only remove the instances from the Cluster's Metadata by using the 'force' option.");
+
+EXPECT_NO_THROWS(function(){ clusterset.removeCluster("replicacluster", {force: true}); });
 
 //@<> Remove cluster with errant trxs
 wipeout_cluster(session1, [__address4r]);
@@ -445,6 +453,99 @@ replicacluster.setPrimaryInstance(__sandbox_uri5)
 
 // Removing the Replica Cluster should succeed
 EXPECT_NO_THROWS(function() { clusterset.removeCluster("replicacluster"); });
+
+//@<> Removing a cluster from the clusterset without dissolving it
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone"});
+replicacluster.addInstance(__sandbox_uri5, {recoveryMethod: "clone"});
+
+WIPE_OUTPUT();
+
+shell.options.useWizards=1;
+
+testutil.expectPrompt("Are you sure you want to continue and remove the Cluster without dissolving it?", "n");
+EXPECT_THROWS(function() {
+    clusterset.removeCluster("replicacluster", {dissolve: false});
+}, "Operation canceled by user.");
+
+EXPECT_OUTPUT_CONTAINS("In order to turn 'replicacluster' into a standalone Cluster (after removing it from the ClusterSet), errant transactions must be introduced on it. This makes the Cluster diverge from the ClusterSet's transaction set.");
+
+shell.options.useWizards=0;
+
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function(){ clusterset.removeCluster("replicacluster", {dissolve: false}); });
+EXPECT_OUTPUT_NOT_CONTAINS("* Dissolving the Cluster...");
+EXPECT_OUTPUT_CONTAINS("In order to turn 'replicacluster' into a standalone Cluster (after removing it from the ClusterSet), errant transactions must be introduced on it. This makes the Cluster diverge from the ClusterSet's transaction set.");
+EXPECT_OUTPUT_CONTAINS("* Reconfiguring 'replicacluster' as a standalone Cluster.");
+
+var status = cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["status"], "OK_NO_TOLERANCE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+
+var status = replicacluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["status"], "OK_NO_TOLERANCE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["status"], "ONLINE");
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]);
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]["status"], "ONLINE");
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]);
+
+shell.connect(__sandbox_uri4);
+
+replicacluster = dba.getCluster();
+var status = replicacluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["status"], "OK_NO_TOLERANCE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["status"], "ONLINE");
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]);
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]["status"], "ONLINE");
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]);
+
+EXPECT_NO_THROWS(function(){ replicacluster.dissolve(); });
+
+
+
+
+
+//@<> Removing a cluster from the clusterset with an unreachable instance without dissolving it
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone"});
+replicacluster.addInstance(__sandbox_uri5, {recoveryMethod: "clone"});
+
+testutil.stopSandbox(__mysql_sandbox_port5);
+
+shell.connect(__sandbox_uri4);
+testutil.waitMemberState(__mysql_sandbox_port5, "(MISSING)");
+
+EXPECT_THROWS(function(){
+    clusterset.removeCluster("replicacluster", {dissolve: false});
+}, "Unreachable instances detected");
+
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function(){ clusterset.removeCluster("replicacluster", {dissolve: false, force: true}); });
+
+EXPECT_OUTPUT_NOT_CONTAINS("* Dissolving the Cluster...");
+EXPECT_OUTPUT_CONTAINS("In order to turn 'replicacluster' into a standalone Cluster (after removing it from the ClusterSet), errant transactions must be introduced on it. This makes the Cluster diverge from the ClusterSet's transaction set.");
+EXPECT_OUTPUT_CONTAINS("* Reconfiguring 'replicacluster' as a standalone Cluster.");
+EXPECT_OUTPUT_CONTAINS("The Cluster 'replicacluster' was removed from the ClusterSet.");
+
+var status = replicacluster.status();
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", status["defaultReplicaSet"]["status"]);
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["status"]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]);
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]["status"]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]);
+
+shell.connect(__sandbox_uri4);
+
+replicacluster = dba.getCluster();
+var status = replicacluster.status();
+EXPECT_EQ("OK_NO_TOLERANCE_PARTIAL", status["defaultReplicaSet"]["status"]);
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["status"]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]);
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]["status"]);
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port5}`]);
+
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function(){ replicacluster.dissolve({force: true}); });
+EXPECT_OUTPUT_CONTAINS(`WARNING: The cluster was successfully dissolved, but the following instance was skipped: '${hostname}:${__mysql_sandbox_port5}'. Please make sure this instance is permanently unavailable or take any necessary manual action to ensure the cluster is fully dissolved.`);
 
 //@<> Cleanup
 scene.destroy();

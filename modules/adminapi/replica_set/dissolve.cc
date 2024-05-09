@@ -26,10 +26,12 @@
 #include "modules/adminapi/replica_set/dissolve.h"
 
 #include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/replica_set/describe.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -43,7 +45,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
   if (interactive) {
     {
       console->print_info(
-          "The ReplicaSet still has the following registered instances:");
+          "The ReplicaSet has the following registered instances:");
 
       // Pretty print description only if wrap_json is not json/raw.
       auto desc = Topology_executor<replicaset::Describe>{m_rset}.run();
@@ -72,7 +74,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
   // gather instances
   std::list<std::shared_ptr<Instance>> instances_available;
   std::vector<std::string> instances_skipped;
-  std::vector<std::string> instances_sync_error;
+  std::vector<std::string> instances_error;
   {
     auto topology_mng = m_rset.get_topology_manager();
 
@@ -206,7 +208,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
             "during dissolve preparation: %s",
             instance->descr().c_str(), err.what());
 
-        instances_sync_error.push_back(instance->descr());
+        instances_error.push_back(instance->descr());
         continue;
       }
 
@@ -234,7 +236,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
         if (res != Prompt_answer::YES) throw;
       }
 
-      instances_sync_error.push_back(instance->descr());
+      instances_error.push_back(instance->descr());
     }
   }
 
@@ -258,6 +260,16 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
 
   // for each reachable instance, sync transactions and remove channel
   for (const auto &instance : instances_available) {
+    auto add_error = [&instances_error](const std::string instance_descr) {
+      mysqlshdk::utils::Endpoint_predicate pred{instance_descr};
+      if (std::find_if(instances_error.begin(), instances_error.end(),
+                       [&pred](const auto &descr) {
+                         return pred.operator()(descr);
+                       }) == instances_error.end()) {
+        instances_error.push_back(instance_descr);
+      }
+    };
+
     // 1st: sync transactions (i.e.: drop user and metadata)
     if (std::find(instances_skipped.begin(), instances_skipped.end(),
                   instance->descr()) == instances_skipped.end()) {
@@ -269,28 +281,15 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
         m_rset.sync_transactions(*instance, {k_replicaset_channel_name},
                                  timeout.count());
 
-        // if we were able to sync, then there's no error
-        instances_sync_error.erase(
+        // if we were able to sync, then there's no error for this instance
+        instances_error.erase(
             std::remove_if(
-                instances_sync_error.begin(), instances_sync_error.end(),
+                instances_error.begin(), instances_error.end(),
                 mysqlshdk::utils::Endpoint_predicate{instance->descr()}),
-            instances_sync_error.end());
+            instances_error.end());
 
       } catch (const std::exception &err) {
-        // Skip error if force is true otherwise issue an error.
-        if (!force) {
-          console->print_error(shcore::str_format(
-              "The instance '%s' was unable to catch up with the ReplicaSet "
-              "transactions. There might be too many transactions to apply or "
-              "some replication error.",
-              instance->descr().c_str()));
-          throw;
-        }
-
-        if (std::find(instances_sync_error.begin(), instances_sync_error.end(),
-                      instance->descr()) == instances_sync_error.end()) {
-          instances_sync_error.push_back(instance->descr());
-        }
+        add_error(instance->descr());
 
         log_error(
             "Instance '%s' was unable to catch up with cluster transactions: "
@@ -301,23 +300,21 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
             "transactions and instance '%s' might have been left in an "
             "inconsistent state that will lead to errors if it is reused.",
             instance->descr().c_str()));
-        console->print_info();
       }
     }
 
     // 2nd: remove replication channel
     try {
+      DBUG_EXECUTE_IF("dba_dissolve_replication_error", {
+        throw shcore::Exception(
+            "Error while removing async replication channel",
+            SHERR_DBA_REPLICATION_ERROR);
+      });
+
       async_remove_replica(instance.get(), k_replicaset_channel_name, false);
     } catch (const shcore::Exception &err) {
-      // Skip error if force=true otherwise issue an error.
-      if (!force) {
-        console->print_error(shcore::str_format(
-            "Unable to remove instance '%s' from the ReplicaSet.",
-            instance->descr().c_str()));
-        throw shcore::Exception::runtime_error(err.what());
-      }
+      add_error(instance->descr());
 
-      instances_skipped.push_back(instance->descr());
       log_error("Instance '%s' failed to leave the cluster: %s",
                 instance->descr().c_str(), err.what());
       console->print_warning(shcore::str_format(
@@ -326,7 +323,6 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
           "inconsistent state, requiring manual action to fully dissolve the "
           "ReplicaSet.",
           instance->descr().c_str()));
-      console->print_info();
     }
   }
 
@@ -336,7 +332,7 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
   console->print_info();
 
   // entire ReplicaSet successfully removed.
-  if (instances_skipped.empty() && instances_sync_error.empty()) {
+  if (instances_skipped.empty() && instances_error.empty()) {
     console->print_info("The ReplicaSet was successfully dissolved.");
     console->print_info(
         "Replication was disabled but user data was left intact.");
@@ -370,21 +366,23 @@ void Dissolve::do_run(bool force, std::chrono::seconds timeout) {
 
   // Some instance failed to catch up with cluster transaction and cluster's
   // metadata might not have been removed.
-  assert(!instances_sync_error.empty());
+  assert(!instances_error.empty());
 
   std::string warning_msg;
-  warning_msg.reserve(240 + (instances_sync_error.size() * 50));
+  warning_msg.reserve(240 + (instances_error.size() * 50));
 
   warning_msg
       .append(
           "The ReplicaSet was successfully dissolved, but the following "
           "instance")
-      .append((instances_sync_error.size() > 1) ? "s were " : " was ")
-      .append("unable to catch up with the ReplicaSet transactions: '")
-      .append(shcore::str_join(instances_sync_error, "', '"))
-      .append("'. Please make sure the ReplicaSet metadata was removed on ")
-      .append((instances_sync_error.size() > 1) ? "these instances "
-                                                : "this instance ")
+      .append((instances_error.size() > 1) ? "s weren't " : " wasn't ")
+      .append("properly dissolved: '")
+      .append(shcore::str_join(instances_error, "', '"))
+      .append(
+          "'. Please make sure the ReplicaSet metadata and replication channel "
+          "were removed from ")
+      .append((instances_error.size() > 1) ? "these instances "
+                                           : "this instance ")
       .append("in order to be able to be reused.");
 
   console->print_warning(warning_msg);

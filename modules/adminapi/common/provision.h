@@ -61,7 +61,7 @@ namespace dba {
  */
 void leave_cluster(const mysqlsh::dba::Instance &instance,
                    bool reset_member_actions = false,
-                   bool reset_repl_channels = true);
+                   bool reset_repl_channels = true, bool silent = false);
 
 /**
  * Check the instance configuration.

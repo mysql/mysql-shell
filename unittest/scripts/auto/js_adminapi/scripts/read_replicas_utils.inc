@@ -78,8 +78,7 @@ function connect_cluster_primary(cluster) {
 
 function is_replica_stopped(session) {
   r = session.runSql("SHOW REPLICA STATUS").fetchOne();
-
-  if (r == null) return true;
+  if (!r) return true;
 
   if (r.Replica_IO_Running == "No" && r.Replica_SQL_Running == "No")
     return true;

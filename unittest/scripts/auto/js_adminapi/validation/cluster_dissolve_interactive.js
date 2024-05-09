@@ -27,7 +27,7 @@ Replication was disabled but user data was left intact.
 ||
 
 //@<OUT> Dissolve stopped because instance is unreachable and user answer 'no' to continue.
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -64,7 +64,7 @@ Do you want to continue anyway (only the instance metadata will be removed)? [y/
 Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve stopped because one instance is unreachable (force: false).
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -99,7 +99,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be remov
 Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve continues because instance is unreachable and user answer 'yes' to continue.
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -178,7 +178,7 @@ WARNING: The cluster was successfully dissolved, but the following instance was 
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster and user answer 'n' to continue.
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -235,7 +235,7 @@ Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in rep
 ||
 
 //@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false).
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -288,7 +288,7 @@ Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in rep
 ||
 
 //@<OUT> Dissolve continues because instance cannot catch up with cluster and user answer 'y' to continue.
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {

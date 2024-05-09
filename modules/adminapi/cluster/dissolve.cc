@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "modules/adminapi/common/async_topology.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
@@ -35,6 +36,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -59,8 +61,7 @@ void Dissolve::prompt_to_confirm_dissolve() const {
 
   // Show cluster description.
   shcore::Value res = m_cluster->describe();
-  console->print_info(
-      "The cluster still has the following registered instances:");
+  console->print_info("The cluster has the following registered instances:");
 
   // Pretty print description only if wrap_json is not json/raw.
   bool use_pretty_print =
@@ -362,9 +363,7 @@ void Dissolve::prepare() {
 }
 
 shcore::Value Dissolve::execute() {
-  std::shared_ptr<MetadataStorage> metadata = m_cluster->get_metadata_storage();
   auto console = mysqlsh::current_console();
-
   console->print_info("* Dissolving the Cluster...");
 
   // Disable super_read_only mode if it is enabled.
@@ -394,7 +393,15 @@ shcore::Value Dissolve::execute() {
     auto instance_type = instance.second;
     auto instance_ptr = instance.first;
 
-    std::string instance_address = instance_ptr->descr();
+    const std::string instance_address = instance_ptr->descr();
+
+    auto add_error = [this, &instance_address]() {
+      if (std::find(m_sync_error_instances.begin(),
+                    m_sync_error_instances.end(),
+                    instance_address) != m_sync_error_instances.end())
+        return;
+      m_sync_error_instances.push_back(instance_address);
+    };
 
     // JOB: Sync transactions with the cluster.
     try {
@@ -418,31 +425,16 @@ shcore::Value Dissolve::execute() {
               mysqlshdk::utils::Endpoint_predicate{instance_address}),
           m_sync_error_instances.end());
     } catch (const std::exception &err) {
-      // Skip error if force=true otherwise issue an error.
-      if (!m_force.has_value() || !m_force.value()) {
-        console->print_error(
-            "The instance '" + instance_address +
-            "' was unable to catch up with cluster transactions. There might "
-            "be too many transactions to apply or some replication error.");
-        throw;
-      }
-
-      // Only add to list of instance with sync error if not already there.
-      if (std::find(m_sync_error_instances.begin(),
-                    m_sync_error_instances.end(),
-                    instance_address) == m_sync_error_instances.end()) {
-        m_sync_error_instances.push_back(instance_address);
-      }
+      add_error();
 
       log_error(
           "Instance '%s' was unable to catch up with cluster transactions: %s",
           instance_address.c_str(), err.what());
-      console->print_warning(
+      console->print_warning(shcore::str_format(
           "An error occurred when trying to catch up with cluster transactions "
-          "and instance '" +
-          instance_address +
-          "' might have been left in an inconsistent state that will lead to "
-          "errors if it is reused.");
+          "and instance '%s' might have been left in an inconsistent state "
+          "that will lead to errors if it is reused.",
+          instance_address.c_str()));
       console->print_info();
     }
 
@@ -451,26 +443,25 @@ shcore::Value Dissolve::execute() {
       case Instance_type::NONE:
       case Instance_type::GROUP_MEMBER: {
         try {
+          DBUG_EXECUTE_IF("dba_dissolve_replication_error", {
+            throw shcore::Exception("Error while trying to leave cluster",
+                                    SHERR_DBA_REPLICATION_ERROR);
+          });
+
           // Stop Group Replication and reset (persist) GR variables.
           mysqlsh::dba::leave_cluster(*instance_ptr, m_supports_member_actions);
         } catch (const std::exception &err) {
-          // Skip error if force=true otherwise issue an error.
-          if (!m_force.has_value() || !m_force.value()) {
-            console->print_error("Unable to remove instance '" +
-                                 instance_address + "' from the cluster.");
-            throw shcore::Exception::runtime_error(err.what());
-          } else {
-            m_skipped_instances.push_back(instance_address);
-            log_error("Instance '%s' failed to leave the cluster: %s",
-                      instance_address.c_str(), err.what());
-            console->print_warning(
-                "An error occurred when trying to remove instance '" +
-                instance_address +
-                "' from the cluster. The instance might have been left active "
-                "and in an inconsistent state, requiring manual action to "
-                "fully dissolve the cluster.");
-            console->print_info();
-          }
+          add_error();
+
+          log_error("Instance '%s' failed to leave the cluster: %s",
+                    instance_address.c_str(), err.what());
+          console->print_warning(shcore::str_format(
+              "An error occurred when trying to remove instance '%s' from the "
+              "cluster. The instance might have been left active and in an "
+              "inconsistent state, requiring manual action to fully dissolve "
+              "the cluster.",
+              instance_address.c_str()));
+          console->print_info();
         }
 
         break;
@@ -480,7 +471,30 @@ shcore::Value Dissolve::execute() {
                             "' from the cluster...");
 
         // Remove the async channel
-        remove_channel(*instance_ptr, k_read_replica_async_channel_name, false);
+        try {
+          DBUG_EXECUTE_IF("dba_dissolve_replication_error", {
+            throw shcore::Exception(
+                "Error while removing async replication channel",
+                SHERR_DBA_REPLICATION_ERROR);
+          });
+
+          remove_channel(*instance_ptr, k_read_replica_async_channel_name,
+                         false);
+        } catch (...) {
+          add_error();
+
+          log_error(
+              "Error removing read-replica asyncronous replication channel on "
+              "instance %s: %s",
+              instance_address.c_str(), format_active_exception().c_str());
+          console->print_warning(shcore::str_format(
+              "An error occurred when trying to remove instance '%s' from the "
+              "cluster. The instance might have been left active and in an "
+              "inconsistent state, requiring manual action to fully dissolve "
+              "the cluster.",
+              instance_address.c_str()));
+          console->print_info();
+        }
 
         try {
           log_info("Disabling automatic failover management at %s",
@@ -492,9 +506,9 @@ shcore::Value Dissolve::execute() {
                     instance_address.c_str(),
                     format_active_exception().c_str());
           console->print_warning(
-              "An error occurred when trying to disable automatic failover on "
-              "Read-Replica at '" +
-              instance_address + "'");
+              shcore::str_format("An error occurred when trying to disable "
+                                 "automatic failover on Read-Replica at '%s'",
+                                 instance_address.c_str()));
           console->print_info();
         }
 

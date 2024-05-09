@@ -1497,8 +1497,6 @@ void Cluster_impl::check_instance_configuration(
 }
 
 shcore::Value Cluster_impl::describe() {
-  // Throw an error if the cluster has already been dissolved
-
   check_preconditions("describe");
 
   return cluster_describe();
@@ -1618,7 +1616,6 @@ shcore::Value Cluster_impl::cluster_status(int64_t extended) {
 }
 
 shcore::Value Cluster_impl::status(int64_t extended) {
-  // Throw an error if the cluster has already been dissolved
   check_preconditions("status");
 
   return cluster_status(extended);
@@ -2176,7 +2173,6 @@ void Cluster_impl::setup_router_account(const std::string &username,
 }
 
 shcore::Value Cluster_impl::options(const bool all) {
-  // Throw an error if the cluster has already been dissolved
   check_preconditions("options");
 
   // Create the Cluster_options command and execute it.

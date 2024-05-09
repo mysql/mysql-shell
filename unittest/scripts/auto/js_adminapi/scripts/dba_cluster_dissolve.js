@@ -48,7 +48,7 @@ shell.options.useWizards=0;
 
 if (__version_num >= 80011) {
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -80,7 +80,7 @@ Replication was disabled but user data was left intact.
 `);
 } else {
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
-The cluster still has the following registered instances:
+The cluster has the following registered instances:
 {
     "clusterName": "c",
     "defaultReplicaSet": {
@@ -504,6 +504,41 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`WARNING: An error occurred when trying to catc
 WARNING: The cluster was successfully dissolved, but the following instance was unable to catch up with the cluster transactions: '${hostname}:${__mysql_sandbox_port2}'. Please make sure the cluster metadata was removed on this instance in order to be able to be reused.
 `);
 }
+
+//@<> Dissolve doesn't stop due to error in replication cleanup {!__dbug_off}
+
+// re-create cluster
+shell.connect(__sandbox_uri3);
+reset_instance(session);
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+c = dba.createCluster('c', {gtidSetIsComplete: true});
+c.addInstance(__sandbox_uri2);
+c.addInstance(__sandbox_uri3);
+
+WIPE_OUTPUT();
+
+testutil.dbugSet("+d,dba_dissolve_replication_error");
+
+EXPECT_NO_THROWS(function(){ c.dissolve(); });
+
+EXPECT_OUTPUT_CONTAINS("* Dissolving the Cluster...");
+
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port1}' to apply received transactions...`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: An error occurred when trying to remove instance '${hostname}:${__mysql_sandbox_port1}' from the cluster. The instance might have been left active and in an inconsistent state, requiring manual action to fully dissolve the cluster.`);
+
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port2}' to apply received transactions...`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: An error occurred when trying to remove instance '${hostname}:${__mysql_sandbox_port2}' from the cluster. The instance might have been left active and in an inconsistent state, requiring manual action to fully dissolve the cluster.`);
+
+EXPECT_OUTPUT_CONTAINS(`* Waiting for instance '${hostname}:${__mysql_sandbox_port3}' to apply received transactions...`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: An error occurred when trying to remove instance '${hostname}:${__mysql_sandbox_port3}' from the cluster. The instance might have been left active and in an inconsistent state, requiring manual action to fully dissolve the cluster.`);
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: The cluster was successfully dissolved, but the following instances were unable to catch up with the cluster transactions: '${hostname}:${__mysql_sandbox_port1}', '${hostname}:${__mysql_sandbox_port2}', '${hostname}:${__mysql_sandbox_port3}'. Please make sure the cluster metadata was removed on these instances in order to be able to be reused.`);
+
+testutil.dbugSet("");
 
 //@<> Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);

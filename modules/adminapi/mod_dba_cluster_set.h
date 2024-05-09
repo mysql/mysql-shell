@@ -61,6 +61,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined forcePrimaryCluster(String clusterName, Dictionary options);
   Dictionary status(Dictionary options);
   Dictionary describe();
+  Undefined dissolve(Dictionary options);
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
   Undefined setupAdminAccount(String user, Dictionary options);
@@ -83,6 +84,7 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None force_primary_cluster(str clusterName, dict options);
   dict status(dict options);
   dict describe();
+  None dissolve(dict options);
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
   None setup_admin_account(str user, dict options);
@@ -130,7 +132,11 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
 
   shcore::Value status(
       const shcore::Option_pack_ref<clusterset::Status_options> &options);
+
   shcore::Value describe();
+
+  void dissolve(
+      const shcore::Option_pack_ref<clusterset::Dissolve_options> &options);
 
   std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
   Base_cluster_impl *base_impl() const override { return m_impl.get(); }

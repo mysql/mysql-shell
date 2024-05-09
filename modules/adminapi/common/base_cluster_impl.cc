@@ -180,7 +180,8 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
-    const std::string &channel_name, int timeout, bool only_received) const {
+    const std::string &channel_name, int timeout, bool only_received,
+    bool silent) const {
   DBUG_EXECUTE_IF("dba_sync_transactions_timeout", {
     throw shcore::Exception(
         "Timeout reached waiting for all received transactions "
@@ -194,7 +195,7 @@ void Base_cluster_impl::sync_transactions(
         mysqlshdk::mysql::get_received_gtid_set(target_instance, channel_name);
 
     bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
-                                           channel_name, timeout, true);
+                                           channel_name, timeout, true, silent);
 
     if (!sync_res) {
       throw shcore::Exception(
@@ -209,7 +210,7 @@ void Base_cluster_impl::sync_transactions(
     std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
 
     bool sync_res = wait_for_gtid_set_safe(target_instance, gtid_set,
-                                           channel_name, timeout, true);
+                                           channel_name, timeout, true, silent);
 
     if (!sync_res) {
       throw shcore::Exception(
@@ -219,27 +220,30 @@ void Base_cluster_impl::sync_transactions(
     }
   }
 
-  current_console()->print_info();
-  current_console()->print_info();
+  if (!silent) {
+    current_console()->print_info();
+    current_console()->print_info();
+  }
 }
 
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
-    Instance_type instance_type, int timeout, bool only_received) const {
+    Instance_type instance_type, int timeout, bool only_received,
+    bool silent) const {
   switch (instance_type) {
     case Instance_type::GROUP_MEMBER: {
       sync_transactions(target_instance, mysqlshdk::gr::k_gr_applier_channel,
-                        timeout, only_received);
+                        timeout, only_received, silent);
       break;
     }
     case Instance_type::ASYNC_MEMBER: {
       sync_transactions(target_instance, k_replicaset_channel_name, timeout,
-                        only_received);
+                        only_received, silent);
       break;
     }
     case Instance_type::READ_REPLICA: {
       sync_transactions(target_instance, k_read_replica_async_channel_name,
-                        timeout, only_received);
+                        timeout, only_received, silent);
       break;
     }
     case Instance_type::NONE:

@@ -385,7 +385,8 @@ namespace mysqlsh {
 namespace dba {
 
 void leave_cluster(const mysqlsh::dba::Instance &instance,
-                   bool reset_member_actions, bool reset_repl_channels) {
+                   bool reset_member_actions, bool reset_repl_channels,
+                   bool silent) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
 
@@ -397,17 +398,19 @@ void leave_cluster(const mysqlsh::dba::Instance &instance,
   if (state != mysqlshdk::gr::Member_state::OFFLINE &&
       state != mysqlshdk::gr::Member_state::MISSING) {
     // Stop Group Replication (metadata already removed)
-    console->print_info("* Instance '" + instance_address +
-                        "' is attempting to leave the cluster...");
+    if (!silent)
+      console->print_info("* Instance '" + instance_address +
+                          "' is attempting to leave the cluster...");
     mysqlshdk::gr::stop_group_replication(instance);
     // Get final state and log info.
     state = mysqlshdk::gr::get_member_state(instance);
     log_debug("Instance state after stopping Group Replication: %s",
               mysqlshdk::gr::to_string(state).c_str());
   } else {
-    console->print_note("The instance '" + instance_address + "' is " +
-                        mysqlshdk::gr::to_string(state) +
-                        ", Group Replication stop skipped.");
+    if (!silent)
+      console->print_note("The instance '" + instance_address + "' is " +
+                          mysqlshdk::gr::to_string(state) +
+                          ", Group Replication stop skipped.");
   }
 
   // Reset the replication channels used by Group Replication.
@@ -447,20 +450,23 @@ void leave_cluster(const mysqlsh::dba::Instance &instance,
                                   mysqlshdk::mysql::Var_qualifier::PERSIST);
     }
 
-    bool persist_load =
-        instance.get_sysvar_bool("persisted_globals_load", false);
-    if (!persist_load) {
-      std::string warn_msg =
-          "On instance '" + instance_address +
-          "' the persisted cluster configuration will not be loaded upon "
-          "reboot since 'persisted-globals-load' is set to 'OFF'. Please set "
-          "'persisted-globals-load' to 'ON' on the configuration file or set "
-          "the 'group_replication_start_on_boot' variable to 'OFF' in the "
-          "server configuration file, otherwise it might rejoin the cluster "
-          "upon restart.";
-      console->print_warning(warn_msg);
+    if (!silent) {
+      bool persist_load =
+          instance.get_sysvar_bool("persisted_globals_load", false);
+      if (!persist_load) {
+        std::string warn_msg =
+            "On instance '" + instance_address +
+            "' the persisted cluster configuration will not be loaded upon "
+            "reboot since 'persisted-globals-load' is set to 'OFF'. Please set "
+            "'persisted-globals-load' to 'ON' on the configuration file or set "
+            "the 'group_replication_start_on_boot' variable to 'OFF' in the "
+            "server configuration file, otherwise it might rejoin the cluster "
+            "upon restart.";
+        console->print_warning(warn_msg);
+      }
     }
-  } else {
+
+  } else if (!silent) {
     std::string warn_msg =
         "On instance '" + instance_address +
         "' configuration cannot be persisted since MySQL version " +

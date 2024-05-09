@@ -98,6 +98,7 @@ class Cluster_set_impl : public Base_cluster_impl,
       const clusterset::Force_primary_cluster_options &options);
   shcore::Value status(int extended);
   shcore::Value describe();
+  void dissolve(const clusterset::Dissolve_options &options);
 
   shcore::Value execute(
       const std::string &cmd, const shcore::Value &instances,
@@ -128,7 +129,7 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   std::list<std::shared_ptr<Cluster_impl>> connect_all_clusters(
       bool skip_primary_cluster, std::list<Cluster_id> *inout_unreachable,
-      bool allow_invalidated = false);
+      bool allow_invalidated = false, bool silent = false);
 
   std::shared_ptr<Cluster_impl> get_cluster(const std::string &name,
                                             bool allow_unavailable = false,
@@ -250,6 +251,9 @@ class Cluster_set_impl : public Base_cluster_impl,
       mysqlshdk::mysql::IInstance *replica,
       const mysqlshdk::mysql::Gtid_set &missing_view_gtids = {});
 
+  Cluster_set_member_metadata get_cluster_metadata(
+      const Cluster_id &cluster_id) const;
+
  private:
   // workaround for possible clang bug:
   //  error: 'mysqlsh::dba::Cluster_set_impl::list_routers' hides overloaded
@@ -259,9 +263,6 @@ class Cluster_set_impl : public Base_cluster_impl,
   }
 
   Cluster_set_member_metadata get_primary_cluster_metadata() const;
-
-  Cluster_set_member_metadata get_cluster_metadata(
-      const Cluster_id &cluster_id) const;
 
   void ensure_transaction_set_consistent_and_recoverable(
       mysqlshdk::mysql::IInstance *replica,

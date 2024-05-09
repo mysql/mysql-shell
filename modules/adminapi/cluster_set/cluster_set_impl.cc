@@ -36,11 +36,13 @@
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/create_cluster_set.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
+#include "modules/adminapi/cluster_set/dissolve.h"
 #include "modules/adminapi/cluster_set/status.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/execute.h"
+
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
@@ -145,9 +147,8 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
 Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
     const {
   std::vector<Cluster_set_member_metadata> cs_members;
-
   if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
-    throw std::runtime_error("Metadata not found");
+    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
   }
 
   for (const auto &m : cs_members) {
@@ -158,6 +159,21 @@ Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
   }
 
   throw std::runtime_error("No primary cluster found");
+}
+
+Cluster_set_member_metadata Cluster_set_impl::get_cluster_metadata(
+    const Cluster_id &cluster_id) const {
+  std::vector<Cluster_set_member_metadata> cs_members;
+  if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
+    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
+  }
+
+  for (const auto &m : cs_members) {
+    if (m.cluster.cluster_id == cluster_id) return m;
+  }
+
+  throw shcore::Exception("No cluster found",
+                          SHERR_DBA_CLUSTER_METADATA_MISSING);
 }
 
 /**
@@ -195,7 +211,7 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
 
   if (!m_metadata_storage->get_cluster_set(m_id, false, &cs, &cs_members,
                                            &primary_view_id)) {
-    throw std::runtime_error("Metadata not found");
+    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
   }
 
   log_debug(
@@ -667,7 +683,7 @@ Async_replication_options Cluster_set_impl::get_clusterset_replication_options(
 
 std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
     bool skip_primary_cluster, std::list<Cluster_id> *inout_unreachable,
-    bool allow_invalidated) {
+    bool allow_invalidated, bool silent) {
   // Connect to the PRIMARY of each cluster
   std::vector<Cluster_set_member_metadata> cs_members;
   if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
@@ -701,16 +717,17 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
 
       r.emplace_back(std::move(cluster));
     } catch (const shcore::Error &e) {
-      current_console()->print_error(
-          "Could not connect to PRIMARY of cluster " + m.cluster.cluster_name +
-          ": " + e.format());
-      if (inout_unreachable) {
-        inout_unreachable->emplace_back(m.cluster.cluster_id);
-      } else {
+      if (!silent)
+        current_console()->print_error(shcore::str_format(
+            "Could not connect to PRIMARY of cluster '%s': %s ",
+            m.cluster.cluster_name.c_str(), e.format().c_str()));
+
+      if (!inout_unreachable)
         throw shcore::Exception(
             "Cluster " + m.cluster.cluster_name + " is not reachable",
             SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
-      }
+
+      inout_unreachable->emplace_back(m.cluster.cluster_id);
     }
   }
   return r;
@@ -858,7 +875,7 @@ void Cluster_set_impl::remove_cluster(
             cluster_name.c_str()));
         throw;
       } else {
-        if (options.force) {
+        if (options.force.value_or(false)) {
           target_cluster = get_cluster(cluster_name, true, true);
 
           console->print_warning(
@@ -896,6 +913,25 @@ void Cluster_set_impl::remove_cluster(
         target_cluster->get_group_name());
 
     ensure_no_router_uses_cluster(routers, target_cluster->get_name());
+
+    if (!options.dissolve) {
+      console->print_warning(shcore::str_format(
+          "In order to turn '%s' into a standalone Cluster (after removing it "
+          "from the ClusterSet), errant transactions must be introduced on it. "
+          "This makes the Cluster diverge from the ClusterSet's transaction "
+          "set.",
+          cluster_name.c_str()));
+
+      if (current_shell_options()->get().wizards &&
+          !options.force.value_or(false)) {
+        console->print_info();
+        if (console->confirm("Are you sure you want to continue and remove the "
+                             "Cluster without dissolving it?",
+                             Prompt_answer::NO) == Prompt_answer::NO) {
+          throw shcore::Exception::runtime_error("Operation canceled by user.");
+        }
+      }
+    }
   }
 
   // put an exclusive cluster lock on the target cluster (if reachable)
@@ -922,7 +958,7 @@ void Cluster_set_impl::remove_cluster(
     if (!skip_channel_check) {
       if (!get_channel_status(*target_cluster->get_cluster_server(),
                               {k_clusterset_async_channel_name}, &channel)) {
-        if (!options.force) {
+        if (!options.force.value_or(false)) {
           console->print_error(
               "The ClusterSet Replication channel could not be found at the "
               "Cluster '" +
@@ -939,7 +975,7 @@ void Cluster_set_impl::remove_cluster(
       } else {
         if (channel.status() !=
             mysqlshdk::mysql::Replication_channel::Status::ON) {
-          if (!options.force) {
+          if (!options.force.value_or(false)) {
             console->print_error(
                 "The ClusterSet Replication channel has an invalid state '" +
                 to_string(channel.status()) +
@@ -976,6 +1012,21 @@ void Cluster_set_impl::remove_cluster(
           return true;
         });
 
+    // check if there are unreachable (non read-replicas) instances
+    if (!cluster_unreachable_members.empty() &&
+        !options.force.value_or(false)) {
+      console->print_error(
+          "The Cluster has unreachable instances so the command cannot "
+          "remove them. Please bring those instances back ONLINE and try to "
+          "remove the Cluster again. If the instances are permanently not "
+          "reachable, then you can choose to proceed with the operation and "
+          "only remove the instances from the Cluster's Metadata by using the "
+          "'force' option.");
+
+      throw shcore::Exception("Unreachable instances detected",
+                              SHERR_DBA_UNREACHABLE_INSTANCES);
+    }
+
     // Get the list of the reachable and unreachable read-replicas of the
     // cluster
     target_cluster->execute_in_read_replicas(
@@ -993,23 +1044,28 @@ void Cluster_set_impl::remove_cluster(
         });
 
     // Check if there are unreachable Read-Replicas
-    if (cluster_has_unreachable_read_replicas) {
-      if (!options.force) {
-        console->print_error(
-            "The Cluster has unreachable Read-Replicas so the command cannot "
-            "remove them. Please bring the instances back ONLINE and try to "
-            "remove the Cluster again. If the instances are permanently not "
-            "reachable, then you can choose to proceed with the operation and "
-            "only remove the instances from the Cluster Metadata by using the "
-            "'force' option.");
+    if (cluster_has_unreachable_read_replicas &&
+        !options.force.value_or(false)) {
+      console->print_error(
+          "The Cluster has unreachable Read-Replicas so the command cannot "
+          "remove them. Please bring the instances back ONLINE and try to "
+          "remove the Cluster again. If the instances are permanently not "
+          "reachable, then you can choose to proceed with the operation and "
+          "only remove the instances from the Cluster's Metadata by using the "
+          "'force' option.");
 
-        throw shcore::Exception("Unreachable Read-Replicas detected",
-                                SHERR_DBA_UNREACHABLE_INSTANCES);
-      } else {
-        console->print_note(
-            "The Cluster has unreachable Read-Replicas. Ignored because of "
-            "'force' option");
-      }
+      throw shcore::Exception("Unreachable Read-Replicas detected",
+                              SHERR_DBA_UNREACHABLE_INSTANCES);
+    }
+
+    if (!cluster_unreachable_members.empty()) {
+      console->print_note(
+          "The Cluster has unreachable instances. Ignored because of 'force' "
+          "option.");
+    } else if (cluster_has_unreachable_read_replicas) {
+      console->print_note(
+          "The Cluster has unreachable Read-Replicas. Ignored because of "
+          "'force' option.");
     }
 
     // Sync transactions before making any changes
@@ -1032,7 +1088,7 @@ void Cluster_set_impl::remove_cluster(
               "transaction sync timeout with the option 'timeout' or use "
               "the 'force' option to ignore the timeout.");
           throw;
-        } else if (options.force) {
+        } else if (options.force.value_or(false)) {
           console->print_warning(
               "Transaction sync failed but ignored because of 'force' "
               "option: " +
@@ -1076,33 +1132,35 @@ void Cluster_set_impl::remove_cluster(
                       { throw std::logic_error("debug"); });
     }
 
-    // Update Metadata
-    console->print_info("* Updating topology");
-
-    log_debug("Removing Cluster from the Metadata.");
-
     auto metadata = get_metadata_storage();
 
-    struct {
+    struct Auth_data_backup {
       mysqlsh::dba::Replication_auth_type cluster_auth_type;
       std::string cluster_auth_cert_issuer;
       std::optional<std::string> primary_cert_subject;
-    } auth_data_backup;
+    };
+    std::optional<Auth_data_backup> auth_data_backup;
 
-    // store auth data of the cluster to be removed (in case reverted is
-    // executed)
-    auth_data_backup.cluster_auth_type =
-        target_cluster->query_cluster_auth_type();
-    auth_data_backup.cluster_auth_cert_issuer =
-        target_cluster->query_cluster_auth_cert_issuer();
+    auto remove_cluster_from_set = [&]() {
+      // Update Metadata
+      console->print_info("* Updating topology");
 
-    if (auto primary = metadata->get_md_server(); primary) {
-      auth_data_backup.primary_cert_subject =
-          query_cluster_instance_auth_cert_subject(*primary);
-    }
+      log_debug("Removing Cluster from the Metadata.");
 
-    if (!options.dry_run) {
-      {
+      // store auth data of the cluster to be removed (in case reverted is
+      // executed)
+      auth_data_backup = Auth_data_backup();
+      auth_data_backup->cluster_auth_type =
+          target_cluster->query_cluster_auth_type();
+      auth_data_backup->cluster_auth_cert_issuer =
+          target_cluster->query_cluster_auth_cert_issuer();
+
+      if (auto primary = metadata->get_md_server(); primary) {
+        auth_data_backup->primary_cert_subject =
+            query_cluster_instance_auth_cert_subject(*primary);
+      }
+
+      if (!options.dry_run) {
         MetadataStorage::Transaction trx(metadata);
 
         metadata->record_cluster_set_member_removed(get_id(),
@@ -1124,13 +1182,18 @@ void Cluster_set_impl::remove_cluster(
 
         // Only commit transactions once everything is done
         trx.commit();
+
+        // Set debug trap to test reversion of Metadata topology updates to
+        // remove the member
+        DBUG_EXECUTE_IF("dba_remove_cluster_fail_post_cs_member_removed",
+                        { throw std::logic_error("debug"); });
       }
+    };
 
-      // Set debug trap to test reversion of Metadata topology updates to
-      // remove the member
-      DBUG_EXECUTE_IF("dba_remove_cluster_fail_post_cs_member_removed",
-                      { throw std::logic_error("debug"); });
+    // if we want to dissolve the cluster, we can remove it from the MD
+    if (options.dissolve) remove_cluster_from_set();
 
+    if (!options.dry_run) {
       // Drop cluster replication user
       {
         auto sql_undo =
@@ -1148,7 +1211,7 @@ void Cluster_set_impl::remove_cluster(
                       { throw std::logic_error("debug"); });
 
       // Remove Cluster's recovery accounts
-      if (!options.dry_run && target_cluster->get_cluster_server()) {
+      if (options.dissolve && target_cluster->get_cluster_server()) {
         // The accounts must be dropped from the ClusterSet
         // NOTE: If the replication channel is down and 'force' was used, the
         // accounts won't be dropped in the target cluster. This is expected,
@@ -1164,7 +1227,7 @@ void Cluster_set_impl::remove_cluster(
 
       // Remove the Cluster's Metadata and Cluster members' info from the
       // Metadata
-      {
+      if (options.dissolve) {
         auto drop_cluster_trx_undo = Transaction_undo::create();
         MetadataStorage::Transaction trx(metadata);
         metadata->drop_cluster(target_cluster->get_name(),
@@ -1189,7 +1252,7 @@ void Cluster_set_impl::remove_cluster(
           sync_transactions(*target_cluster->get_cluster_server(),
                             {k_clusterset_async_channel_name}, options.timeout);
         } catch (const shcore::Exception &e) {
-          if (options.force) {
+          if (options.force.value_or(false)) {
             console->print_warning(
                 "Transaction sync failed but ignored because of 'force' "
                 "option: " +
@@ -1210,7 +1273,7 @@ void Cluster_set_impl::remove_cluster(
             target_cluster->sync_transactions(*rr, Instance_type::READ_REPLICA,
                                               options.timeout);
           } catch (const shcore::Exception &e) {
-            if (options.force) {
+            if (options.force.value_or(false)) {
               console->print_warning(
                   "Transaction sync failed but ignored because of 'force' "
                   "option: " +
@@ -1260,14 +1323,16 @@ void Cluster_set_impl::remove_cluster(
 
         auto repl_source = get_primary_master();
 
+        if (!auth_data_backup.has_value()) return;
+
         auto ar_channel_options = ar_options;
         {
-          assert(auth_data_backup.primary_cert_subject.has_value());
+          assert(auth_data_backup->primary_cert_subject.has_value());
           auto auth_host = m_repl_account_mng.create_cluster_replication_user(
               *target_cluster->get_cluster_server(), "",
-              auth_data_backup.cluster_auth_type,
-              auth_data_backup.cluster_auth_cert_issuer,
-              auth_data_backup.primary_cert_subject.value_or(""),
+              auth_data_backup->cluster_auth_type,
+              auth_data_backup->cluster_auth_cert_issuer,
+              auth_data_backup->primary_cert_subject.value_or(""),
               options.dry_run);
 
           ar_channel_options.repl_credentials = std::move(auth_host.auth);
@@ -1315,7 +1380,7 @@ void Cluster_set_impl::remove_cluster(
 
           remove_replica(reachable_member.get(), options.dry_run);
         } catch (...) {
-          if (options.force) {
+          if (options.force.value_or(false)) {
             current_console()->print_warning(
                 "Could not reset replication settings for " +
                 reachable_member->descr() + ": " + format_active_exception());
@@ -1343,7 +1408,7 @@ void Cluster_set_impl::remove_cluster(
 
         for (const auto &unreachable_member : cluster_unreachable_members) {
           console->print_warning(
-              shcore::str_format("Configuration update of %s skipped: %s",
+              shcore::str_format("Configuration update of '%s' skipped: %s",
                                  unreachable_member.first.c_str(),
                                  unreachable_member.second.c_str()));
         }
@@ -1355,7 +1420,7 @@ void Cluster_set_impl::remove_cluster(
                     { throw std::logic_error("debug"); });
 
     // Dissolve the Cluster
-    if (target_cluster->get_cluster_server() &&
+    if (options.dissolve && target_cluster->get_cluster_server() &&
         target_cluster->cluster_availability() ==
             Cluster_availability::ONLINE) {
       auto target_cluster_primary = target_cluster->get_cluster_server();
@@ -1472,6 +1537,66 @@ void Cluster_set_impl::remove_cluster(
             target_cluster_primary->get_canonical_address().c_str(),
             err.what()));
         throw;
+      }
+    } else if (!options.dissolve) {
+      // reaching this point we don't want to dissolve the cluster, which means
+      // that we need to configure it to work as a standalone. Also, from this
+      // point on, because the target cluster is not longer replicating from the
+      // primary of the ClusterSet, everything we do will create errant
+      // transactions, so this is a point of no return. In other words: there's
+      // no need to care about undo anymore.
+
+      std::vector<std::string> cluster_set_recov_users,
+          target_cluster_recov_users;
+
+      // cleanup the clusterset
+      if (!options.dry_run) {
+        remove_cluster_from_set();
+
+        metadata->drop_cluster(target_cluster->get_name());
+
+        cluster_set_recov_users = metadata->get_recovery_account_users();
+      }
+
+      // configure the target cluster
+      {
+        console->print_info(
+            shcore::str_format("* Reconfiguring '%s' as a standalone Cluster.",
+                               target_cluster->cluster_name().c_str()));
+
+        if (!options.dry_run) {
+          auto target_cluster_server = target_cluster->get_cluster_server();
+
+          unfence_instance(target_cluster_server.get(), true);
+
+          target_cluster->set_target_server(target_cluster_server);
+          target_cluster->get_metadata_storage()->cleanup_for_cluster(
+              target_cluster->get_id());
+
+          target_cluster->clear_clusterset_data();
+
+          target_cluster_recov_users = target_cluster->get_metadata_storage()
+                                           ->get_recovery_account_users();
+
+          // remove the clusterset recovery users from the target cluster
+          for (const auto &user : cluster_set_recov_users) {
+            auto hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
+                *target_cluster_server, user);
+
+            for (const auto &host : hosts)
+              target_cluster_server->drop_user(user, host, true);
+          }
+        }
+      }
+
+      // finally, we only need to remove the target cluster recovery users from
+      // the clusterset remove recovery users from the clusterset
+      for (const auto &user : target_cluster_recov_users) {
+        auto hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
+            *get_primary_master(), user);
+
+        for (const auto &host : hosts)
+          get_primary_master()->drop_user(user, host, true);
       }
     }
 
@@ -1906,6 +2031,12 @@ shcore::Value Cluster_set_impl::describe() {
   check_preconditions("describe");
 
   return shcore::Value(clusterset::cluster_set_describe(this));
+}
+
+void Cluster_set_impl::dissolve(const clusterset::Dissolve_options &options) {
+  check_preconditions("dissolve");
+
+  Topology_executor<clusterset::Dissolve>{*this}.run(options);
 }
 
 shcore::Value Cluster_set_impl::execute(

@@ -7,6 +7,9 @@ The following operations are available at 'clusterset':
    describe
       Describe the structure of the ClusterSet.
 
+   dissolve
+      Dissolves the ClusterSet.
+      
    execute
       Executes a SQL statement at selected instances of the ClusterSet.
 
@@ -178,6 +181,32 @@ SYNTAX
 
 RETURNS
       A JSON object describing the structure of the ClusterSet.
+
+//@<OUT> CLI clusterset dissolve --help
+NAME
+      dissolve - Dissolves the ClusterSet.
+
+SYNTAX
+      clusterset dissolve [<options>]
+
+RETURNS
+      Nothing
+
+OPTIONS
+--timeout=<int>
+            Maximum number of seconds to wait for pending transactions to be
+            applied in each reachable instance of the ClusterSet (default value
+            is retrieved from the 'dba.gtidWaitTimeout' shell option).
+
+--dryRun=<bool>
+            If true, all validations and steps for dissolving the ClusterSet
+            are executed, but no changes are actually made.
+
+--force=<bool>
+            Set to true to confirm that the dissolve operation must be
+            executed, even if some members of the ClusterSet cannot be reached
+            or the timeout was reached when waiting for members to catch up
+            with replication changes. By default, set to false.
 
 //@<OUT> CLI clusterset rejoin-cluster --help
 NAME

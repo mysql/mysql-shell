@@ -501,7 +501,8 @@ mysqlshdk::utils::Version get_group_protocol_version(
         "SELECT group_replication_get_communication_protocol()";
 
     log_debug("Executing UDF: %s",
-              get_gr_protocol_version + sizeof("SELECT "));  // hide "SELECT "
+              get_gr_protocol_version +
+                  std::string_view{"SELECT "}.size());  // hide "SELECT "
 
     auto resultset = instance.query_udf(get_gr_protocol_version);
     auto row = resultset->fetch_one();
@@ -544,8 +545,9 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
   }
 
   try {
-    log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT "));  // hide "SELECT "
+    log_debug(
+        "Executing UDF: %s",
+        query.c_str() + std::string_view{"SELECT "}.size());  // hide "SELECT "
 
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
@@ -939,8 +941,9 @@ void set_as_primary(const mysqlshdk::mysql::IInstance &instance,
   }
 
   try {
-    log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    log_debug(
+        "Executing UDF: %s",
+        query.c_str() + std::string_view{"SELECT "}.size());  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
@@ -952,8 +955,9 @@ void switch_to_multi_primary_mode(const mysqlshdk::mysql::IInstance &instance) {
   std::string query = "SELECT group_replication_switch_to_multi_primary_mode()";
 
   try {
-    log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    log_debug(
+        "Executing UDF: %s",
+        query.c_str() + std::string_view{"SELECT "}.size());  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
@@ -976,8 +980,9 @@ void switch_to_single_primary_mode(const mysqlshdk::mysql::IInstance &instance,
   }
 
   try {
-    log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT"));  // hide "SELECT "
+    log_debug(
+        "Executing UDF: %s",
+        query.c_str() + std::string_view{"SELECT "}.size());  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
@@ -1223,8 +1228,9 @@ void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
 
   try {
     assert(shcore::str_ibeginswith(query, "select "));
-    log_debug("Executing UDF: %s",
-              query.c_str() + sizeof("SELECT "));  // hide "SELECT "
+    log_debug(
+        "Executing UDF: %s",
+        query.c_str() + std::string_view{"SELECT "}.size());  // hide "SELECT "
     instance.query_udf(query);
   } catch (const mysqlshdk::db::Error &error) {
     throw shcore::Exception::mysql_error_with_code_and_state(
