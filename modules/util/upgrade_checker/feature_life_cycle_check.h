@@ -45,12 +45,6 @@ struct Feature_entry {
   bool enabled;
 };
 
-enum class Grouping {
-  NONE = 0,     // One Upgrade Issue per item
-  FEATURE = 1,  // One Upgrade Issue per feature
-  ALL = 2       // One Upgrade Issue per check
-};
-
 /**
  * Base check to for the usage of features that have been deprecated and/or
  * removed.
@@ -73,17 +67,16 @@ enum class Grouping {
 class Feature_life_cycle_check : public Upgrade_check {
  public:
   explicit Feature_life_cycle_check(std::string_view name,
-                                    Grouping grouping = Grouping::NONE);
+                                    const Upgrade_info &server_info);
   ~Feature_life_cycle_check() override = default;
 
-  virtual std::string build_query(const Upgrade_info &server_info) = 0;
+  virtual std::string build_query() = 0;
 
   bool enabled() const override;
 
-  const std::string &get_description() const override;
+  std::string get_description(const std::string &group) const override;
 
-  void add_feature(const Feature_definition &feature,
-                   const Upgrade_info &server_info);
+  void add_feature(const Feature_definition &feature);
 
   bool has_feature(const std::string &feature_id) const;
   const Feature_definition &get_feature(const std::string &feature_id) const;
@@ -95,8 +88,6 @@ class Feature_life_cycle_check : public Upgrade_check {
   std::vector<const Feature_definition *> get_features(
       bool only_enabled = false) const;
 
-  Grouping grouping() const { return m_grouping; }
-
  protected:
   void add_issue(const std::string &feature, const std::string &item,
                  Upgrade_issue::Object_type object_type);
@@ -106,15 +97,10 @@ class Feature_life_cycle_check : public Upgrade_check {
            std::vector<std::pair<std::string, Upgrade_issue::Object_type>>>
       m_feature_issues;
 
+  const Upgrade_info &m_server_info;
+
  private:
   virtual void process_row(const mysqlshdk::db::IRow *row) = 0;
-
-  virtual std::string resolve_check_description() const;
-  virtual std::string resolve_feature_description(
-      const Feature_definition &feature, Upgrade_issue::Level level,
-      const std::string &item = "") const;
-
-  Grouping m_grouping;
 
   // Feature checks contains a complex condition to restrictive about when to
   // executed the check as well as accurate about what the output should be, for
@@ -127,7 +113,7 @@ class Auth_method_usage_check : public Feature_life_cycle_check {
  public:
   Auth_method_usage_check(const Upgrade_info &server_info);
 
-  std::string build_query(const Upgrade_info &server_info) override;
+  std::string build_query() override;
 
  private:
   void process_row(const mysqlshdk::db::IRow *row) override;
@@ -137,7 +123,7 @@ class Plugin_usage_check : public Feature_life_cycle_check {
  public:
   Plugin_usage_check(const Upgrade_info &server_info);
 
-  std::string build_query(const Upgrade_info &server_info) override;
+  std::string build_query() override;
 
  private:
   void process_row(const mysqlshdk::db::IRow *row) override;

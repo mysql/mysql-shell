@@ -49,11 +49,24 @@ const std::string &Upgrade_check::get_title() const {
   return get_text("title");
 }
 
-const std::string &Upgrade_check::get_description() const {
+std::string Upgrade_check::get_description(const std::string &group) const {
+  std::string description;
+
+  if (!group.empty()) {
+    std::string tag{"description."};
+    tag += group;
+    return get_text(tag.c_str());
+  }
+
   return get_text("description");
 }
 
-const std::string &Upgrade_check::get_doc_link() const {
+const std::string &Upgrade_check::get_doc_link(const std::string &group) const {
+  if (!group.empty()) {
+    std::string tag{"docLink."};
+    tag += group;
+    return get_text(tag.c_str());
+  }
   return get_text("docLink");
 }
 

@@ -37,9 +37,9 @@ namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
 
-Feature_life_cycle_check::Feature_life_cycle_check(std::string_view name,
-                                                   Grouping grouping)
-    : Upgrade_check(name), m_grouping(grouping) {
+Feature_life_cycle_check::Feature_life_cycle_check(
+    std::string_view name, const Upgrade_info &server_info)
+    : Upgrade_check(name), m_server_info(server_info) {
   set_condition(&m_list_condition);
 }
 
@@ -50,31 +50,35 @@ bool Feature_life_cycle_check::enabled() const {
   return false;
 }
 
-const std::string &Feature_life_cycle_check::get_description() const {
-  const auto &description = get_text("description");
-
-  if (description.empty()) {
-    throw std::logic_error(shcore::str_format(
-        "Missing entry for token in upgrade_checker file: %s.description",
-        get_name().c_str()));
-  }
-
-  return description;
-}
-
-std::string Feature_life_cycle_check::resolve_check_description() const {
-  return get_description();
-}
-
-std::string Feature_life_cycle_check::resolve_feature_description(
-    const Feature_definition &feature, Upgrade_issue::Level level,
-    const std::string &item) const {
+std::string Feature_life_cycle_check::get_description(
+    const std::string &group) const {
+  Token_definitions tokens;
   std::string tag{"description"};
 
-  tag.append(".").append(Upgrade_issue::level_to_string(level));
+  if (!group.empty()) {
+    const auto &feature = m_features.at(group).feature;
+    auto level = get_issue_level(feature, m_server_info);
 
-  if (feature.replacement.has_value()) {
-    tag.append(".").append("Replacement");
+    tag.append(".").append(Upgrade_issue::level_to_string(level));
+
+    if (feature.replacement.has_value()) {
+      tag.append(".").append("Replacement");
+    }
+    tokens["feature_id"] = feature.id;
+
+    if (feature.deprecated.has_value()) {
+      tokens["deprecated"] = feature.deprecated->get_base();
+    }
+
+    if (feature.removed.has_value()) {
+      tokens["removed"] = feature.removed->get_base();
+    }
+
+    if (feature.replacement.has_value()) {
+      tokens["replacement"] = *feature.replacement;
+    }
+
+    tokens["item_id"] = group;
   }
 
   std::string description = get_text(tag.c_str());
@@ -84,34 +88,16 @@ std::string Feature_life_cycle_check::resolve_feature_description(
         "Missing entry for token in upgrade_checker file: %s", tag.c_str()));
   }
 
-  Token_definitions tokens{{"feature_id", feature.id}};
-  if (feature.deprecated.has_value()) {
-    tokens["deprecated"] = feature.deprecated->get_base();
-  }
-
-  if (feature.removed.has_value()) {
-    tokens["removed"] = feature.removed->get_base();
-  }
-
-  if (feature.replacement.has_value()) {
-    tokens["replacement"] = *feature.replacement;
-  }
-
-  if (!item.empty()) {
-    tokens["item_id"] = item;
-  }
-
   return resolve_tokens(description, tokens);
 }
 
-void Feature_life_cycle_check::add_feature(const Feature_definition &feature,
-                                           const Upgrade_info &server_info) {
+void Feature_life_cycle_check::add_feature(const Feature_definition &feature) {
   Life_cycle_condition feature_condition(feature.start, feature.deprecated,
                                          feature.removed);
 
   m_list_condition.add_condition(feature_condition);
 
-  m_features[feature.id] = {feature, feature_condition.evaluate(server_info)};
+  m_features[feature.id] = {feature, feature_condition.evaluate(m_server_info)};
 }
 
 bool Feature_life_cycle_check::has_feature(
@@ -146,7 +132,7 @@ std::vector<const Feature_definition *> Feature_life_cycle_check::get_features(
 std::vector<Upgrade_issue> Feature_life_cycle_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const Upgrade_info &server_info) {
-  auto result = session->query(build_query(server_info));
+  auto result = session->query(build_query());
   const mysqlshdk::db::IRow *row = nullptr;
 
   while ((row = result->fetch_one()) != nullptr) {
@@ -163,10 +149,9 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
 
     for (const auto &item : issues.second) {
       Upgrade_issue issue;
-      std::string desc =
-          resolve_feature_description(feature, level, item.first);
-      issue.description = shcore::str_format(
-          "%s: %s", Upgrade_issue::level_to_string(level), desc.c_str());
+
+      // Issues get the feature set as the group
+      issue.group = feature.id;
 
       auto feature_doclink_tag = feature.id + ".docLink";
       issue.doclink = get_text(feature_doclink_tag.c_str());
@@ -183,29 +168,29 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
 
 Auth_method_usage_check::Auth_method_usage_check(
     const Upgrade_info &server_info)
-    : Feature_life_cycle_check(ids::k_auth_method_usage_check,
-                               Grouping::FEATURE) {
+    : Feature_life_cycle_check(ids::k_auth_method_usage_check, server_info) {
+  // Since the groups determine the display order, the groups are set in order
+  // of removal of the plugins
+  set_groups(
+      {"authentication_fido", "mysql_native_password", "sha256_password"});
+
   add_feature({"authentication_fido", Version(8, 0, 27), Version(8, 2, 0),
-               Version(8, 4, 0), "authentication_webauthn"},
-              server_info);
+               Version(8, 4, 0), "authentication_webauthn"});
   add_feature(
-      {"sha256_password", {}, Version(8, 0, 0), {}, "caching_sha2_password"},
-      server_info);
+      {"sha256_password", {}, Version(8, 0, 0), {}, "caching_sha2_password"});
   add_feature({"mysql_native_password",
                {},
                Version(8, 0, 0),
                {},
-               "caching_sha2_password"},
-              server_info);
+               "caching_sha2_password"});
 }
 
-std::string Auth_method_usage_check::build_query(
-    const Upgrade_info &server_info) {
+std::string Auth_method_usage_check::build_query() {
   const auto features = get_features(true);
 
   std::string raw_query;
 
-  if (server_info.server_version >= Version(8, 0, 27)) {
+  if (m_server_info.server_version >= Version(8, 0, 27)) {
     raw_query =
         "SELECT CONCAT(user, '@', host), "
         "COALESCE(JSON_ARRAY_INSERT(JSON_EXTRACT(user_attributes, "
@@ -227,7 +212,7 @@ std::string Auth_method_usage_check::build_query(
   // In 8.0.27 with the introduction of multi-factor authentication,
   // information about 2nd and 3rd factor authentication is stored in
   // user_attributes
-  if (server_info.server_version >= Version(8, 0, 27)) {
+  if (m_server_info.server_version >= Version(8, 0, 27)) {
     std::vector<std::string> mfa_searches(
         features.size(), "JSON_SEARCH(user_attributes, 'one', ?) IS NOT NULL");
 
@@ -242,7 +227,7 @@ std::string Auth_method_usage_check::build_query(
   }
 
   // Fill the list of nth factor auth searches
-  if (server_info.server_version >= Version(8, 0, 27)) {
+  if (m_server_info.server_version >= Version(8, 0, 27)) {
     for (const auto &feature : features) {
       query << feature->id;
     }
@@ -267,32 +252,27 @@ void Auth_method_usage_check::process_row(const mysqlshdk::db::IRow *row) {
 }
 
 Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
-    : Feature_life_cycle_check(ids::k_plugin_usage_check, Grouping::NONE) {
+    : Feature_life_cycle_check(ids::k_plugin_usage_check, server_info) {
   add_feature({"authentication_fido", Version(8, 0, 27), Version(8, 2, 0),
-               Version(8, 4, 0), "'authentication_webauthn' plugin"},
-              server_info);
+               Version(8, 4, 0), "'authentication_webauthn' plugin"});
   add_feature({"keyring_file",
                {},
                Version(8, 0, 34),
                Version(8, 4, 0),
-               "the 'component_keyring_file' component"},
-              server_info);
+               "the 'component_keyring_file' component"});
   add_feature({"keyring_encrypted_file",
                {},
                Version(8, 0, 34),
                Version(8, 4, 0),
-               "the 'component_encrypted_keyring_file' component"},
-              server_info);
+               "the 'component_encrypted_keyring_file' component"});
   add_feature({"keyring_oci",
                {},
                Version(8, 0, 31),
                Version(8, 4, 0),
-               "the 'component_keyring_oci' component"},
-              server_info);
+               "the 'component_keyring_oci' component"});
 }
 
-std::string Plugin_usage_check::build_query(
-    const Upgrade_info & /*server_info*/) {
+std::string Plugin_usage_check::build_query() {
   const auto features = get_features(true);
   std::vector<std::string> wildcards(features.size(), "?");
   std::string raw_query =

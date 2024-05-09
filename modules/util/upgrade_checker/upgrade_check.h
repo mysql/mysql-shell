@@ -46,8 +46,8 @@ class Upgrade_check {
 
   virtual const std::string &get_name() const { return m_name; }
   virtual const std::string &get_title() const;
-  virtual const std::string &get_description() const;
-  virtual const std::string &get_doc_link() const;
+  virtual std::string get_description(const std::string &group = "") const;
+  virtual const std::string &get_doc_link(const std::string &group = "") const;
   virtual bool is_runnable() const { return true; }
   virtual bool is_multi_lvl_check() const { return false; }
 
@@ -73,9 +73,15 @@ class Upgrade_check {
   void set_condition(Condition *condition) { m_condition = condition; }
   Condition *get_condition() const noexcept { return m_condition; }
 
+  void set_groups(std::vector<std::string> groups) {
+    m_groups = std::move(groups);
+  }
+  const std::vector<std::string> &groups() const { return m_groups; }
+
  private:
   std::string m_name;
   Condition *m_condition = nullptr;
+  std::vector<std::string> m_groups;
 };
 
 class Removed_sys_var_check : public Upgrade_check {
