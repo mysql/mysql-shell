@@ -107,10 +107,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     if (results.empty()) {
       print_paragraph("No issues found");
     } else {
-      const Feature_life_cycle_check *feature_check =
-          dynamic_cast<const Feature_life_cycle_check *>(&check);
-      if (feature_check && feature_check->grouping() != Grouping::NONE) {
-        print_grouped_issues(results);
+      if (!check.groups().empty()) {
+        print_grouped_issues(check, results);
       } else {
         if (!check.get_description().empty()) {
           print_paragraph(check.get_description());
@@ -255,25 +253,40 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     }
   }
 
-  void print_grouped_issues(const std::vector<Upgrade_issue> &results) {
-    std::map<std::string, std::set<std::string>> groups;
-    std::map<std::string, std::string> doclinks;
+  void print_grouped_issues(const Upgrade_check &check,
+                            const std::vector<Upgrade_issue> &results) {
+    std::map<std::string, std::set<std::string>> grouped_issues;
+    std::map<std::string, Upgrade_issue::Level> group_levels;
 
     for (const auto &issue : results) {
-      groups[issue.description].insert(issue.get_db_object());
-      doclinks[issue.description] = issue.doclink;
+      grouped_issues[issue.group].insert(issue.get_db_object());
+      group_levels[issue.group] = issue.level;
     }
 
-    for (const auto &group : groups) {
-      print_paragraph(group.first, 2, 0);
-      m_console->println();
+    for (const auto &group : check.groups()) {
+      auto issues = grouped_issues.find(group);
 
-      for (const auto &item : group.second) {
+      // No issues on this group
+      if (issues == grouped_issues.end()) {
+        continue;
+      }
+
+      // Prints the group description first
+      auto issue_level = Upgrade_issue::level_to_string(group_levels[group]);
+      print_paragraph(shcore::str_format("%s: %s", issue_level,
+                                         check.get_description(group).c_str()),
+                      2, 0);
+
+      for (const auto &item : issues->second) {
         print_paragraph("- " + item, 2, 0);
       }
       m_console->println();
-      print_doc_links(doclinks[group.first]);
-      m_console->println();
+
+      auto doc_links = check.get_doc_link(group);
+      if (!doc_links.empty()) {
+        print_doc_links(doc_links);
+        m_console->println();
+      }
     }
   }
 
@@ -321,10 +334,12 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
         "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
     check_object.AddMember("status", rapidjson::StringRef("OK"), m_allocator);
     if (!results.empty()) {
-      if (!check.get_description().empty())
-        check_object.AddMember(
-            "description",
-            rapidjson::StringRef(check.get_description().c_str()), m_allocator);
+      rapidjson::Value description;
+      auto check_description = check.get_description();
+      if (!check_description.empty())
+        description.SetString(check_description.c_str(),
+                              check_description.length(), m_allocator);
+      check_object.AddMember("description", description, m_allocator);
       if (!check.get_doc_link().empty())
         check_object.AddMember(
             "documentationLink",
@@ -346,8 +361,17 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       issue_object.AddMember("dbObject", dbov, m_allocator);
 
       rapidjson::Value description;
-      description.SetString(issue.description.c_str(),
-                            issue.description.length(), m_allocator);
+      // If it is a grouped issue with no specific issue description, uses the
+      // group description
+      if (!issue.group.empty() && issue.description.empty()) {
+        auto group_description = check.get_description(issue.group);
+        description.SetString(group_description.c_str(),
+                              group_description.length(), m_allocator);
+      } else {
+        description.SetString(issue.description.c_str(),
+                              issue.description.length(), m_allocator);
+      }
+
       issue_object.AddMember("description", description, m_allocator);
 
       if (!issue.doclink.empty()) {
@@ -404,10 +428,12 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     check_object.AddMember(
         "title", rapidjson::StringRef(check.get_title().c_str()), m_allocator);
 
-    if (!check.get_description().empty())
-      check_object.AddMember(
-          "description", rapidjson::StringRef(check.get_description().c_str()),
-          m_allocator);
+    auto description = check.get_description();
+    if (!description.empty()) {
+      rapidjson::Value descr;
+      descr.SetString(description.c_str(), description.length(), m_allocator);
+      check_object.AddMember("description", descr, m_allocator);
+    }
     if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
                              rapidjson::StringRef(check.get_doc_link().c_str()),

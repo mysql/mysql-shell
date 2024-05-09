@@ -186,6 +186,7 @@ struct Upgrade_issue {
 
   // To be used for links related to the issue, rather than the check
   std::string doclink;
+  std::string group;
 
   bool empty() const {
     return schema.empty() && table.empty() && column.empty() &&
