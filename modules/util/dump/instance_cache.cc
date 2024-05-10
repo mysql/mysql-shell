@@ -87,22 +87,15 @@ class Profiler final {
 
 }  // namespace
 
-void Instance_cache::Index::reset() {
-  m_columns.clear();
-  m_columns_sql.clear();
-}
-
-void Instance_cache::Index::add_column(Column *column) {
+void Instance_cache::Index::add_column(const Column *column) {
   m_columns.emplace_back(column);
 
   if (!m_columns_sql.empty()) {
-    m_columns_sql += ", ";
+    m_columns_sql += ',';
   }
 
   m_columns_sql += column->quoted_name;
 }
-
-void Instance_cache::Index::set_primary(bool primary) { m_primary = primary; }
 
 struct Instance_cache_builder::Iterate_schema {
   std::string schema_column;
@@ -755,13 +748,12 @@ void Instance_cache_builder::fetch_table_indexes() {
   info.table_name = "statistics";
   info.where = "COLUMN_NAME IS NOT NULL AND NON_UNIQUE=0";
 
-  const std::string primary_index = "PRIMARY";
+  constexpr std::string_view k_primary_index = "PRIMARY";
   struct Index_info {
     std::vector<Instance_cache::Column *> columns;
-    bool unsafe = false;
   };
   // schema -> table -> index name -> index info
-  // indexes are ordered to ensure repeatability of the algorithm
+  // indexes are ordered to ensure repeatability of the selection algorithm
   std::unordered_map<
       std::string,
       std::unordered_map<std::string, std::map<std::string, Index_info>>>
@@ -795,119 +787,34 @@ void Instance_cache_builder::fetch_table_indexes() {
           }
 
           index_info.columns[seq - 1] = &(*column);
-          // BUG#35180061 - do not use indexes on ENUM columns
-          index_info.unsafe |= (mysqlshdk::db::Type::Enum == column->type);
         } else {
           assert(t->all_columns.empty());
         }
       });
 
-  for (auto &schema : indexes) {
-    for (auto &table : schema.second) {
-      for (auto index = table.second.begin(); index != table.second.end();) {
-        if (index->second.unsafe) {
-          index = table.second.erase(index);
-        } else {
-          ++index;
-        }
-      }
-
-      if (table.second.empty()) {
-        continue;
-      }
-
+  for (const auto &schema : indexes) {
+    for (const auto &table : schema.second) {
       auto &t = m_cache.schemas.at(schema.first).tables.at(table.first);
 
-      auto index = table.second.find(primary_index);
-      bool primary = false;
+      for (const auto &index : table.second) {
+        Instance_cache::Index new_index;
+        bool nullable = false;
 
-      if (table.second.end() == index) {
-        std::vector<bool> current;
-
-        const auto mark_integer_columns = [](decltype(index) idx) {
-          std::vector<bool> result;
-
-          result.reserve(idx->second.columns.size());
-
-          for (const auto &c : idx->second.columns) {
-            result.emplace_back(c->type == mysqlshdk::db::Type::Integer ||
-                                c->type == mysqlshdk::db::Type::UInteger);
-          }
-
-          return result;
-        };
-
-        const auto use_given_index =
-            [&index, &current](decltype(index) idx, std::vector<bool> &&cols) {
-              index = idx;
-              current = std::move(cols);
-            };
-
-        const auto use_index = [&use_given_index,
-                                &mark_integer_columns](decltype(index) idx) {
-          use_given_index(idx, mark_integer_columns(idx));
-        };
-
-        use_index(table.second.begin());
-
-        // skip first index
-        for (auto it = std::next(index); it != table.second.end(); ++it) {
-          const auto size = it->second.columns.size();
-
-          if (size < index->second.columns.size()) {
-            // prefer shorter index
-            use_index(it);
-          } else if (size == index->second.columns.size()) {
-            // if indexes have equal length, prefer the one with longer run of
-            // integer columns
-            auto candidate = mark_integer_columns(it);
-            auto candidate_column = it->second.columns.begin();
-            auto current_column = index->second.columns.begin();
-
-            for (std::size_t i = 0; i < size; ++i) {
-              if (candidate[i] == current[i]) {
-                // both columns are of the same type, check if they are nullable
-                if ((*candidate_column)->nullable ==
-                    (*current_column)->nullable) {
-                  // both columns are NULL or NOT NULL
-                  if (!current[i]) {
-                    // both columns are not integers, use the current index
-                    break;
-                  }
-                  // else, both column are integers, check next column
-                } else {
-                  // prefer NOT NULL column
-                  if (!(*candidate_column)->nullable) {
-                    // candidate is NOT NULL, use that
-                    use_given_index(it, std::move(candidate));
-                  }
-                  // else current column is NOT NULL
-                  break;
-                }
-              } else {
-                // columns are different
-                if (candidate[i]) {
-                  // candidate column is an integer, use candidate index
-                  use_given_index(it, std::move(candidate));
-                }
-                // else, current column is an integer, use the current index
-                break;
-              }
-
-              ++candidate_column;
-              ++current_column;
-            }
-          }
-          // else, candidate is longer, ignore it
+        for (const auto &column : index.second.columns) {
+          new_index.add_column(column);
+          nullable |= column->nullable;
         }
-      } else {
-        primary = true;
-      }
 
-      t.index.set_primary(primary);
+        auto ptr =
+            &t.indexes.emplace(index.first, std::move(new_index)).first->second;
 
-      for (auto &column : index->second.columns) {
-        t.index.add_column(column);
+        if (k_primary_index == index.first) {
+          t.primary_key = ptr;
+        } else if (!nullable) {
+          t.primary_key_equivalents.emplace_back(ptr);
+        } else {
+          t.unique_keys.emplace_back(ptr);
+        }
       }
     }
   }

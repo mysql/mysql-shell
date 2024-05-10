@@ -34,6 +34,8 @@
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/indexes.h"
+
 namespace mysqlsh {
 namespace dump {
 namespace tests {
@@ -1632,18 +1634,18 @@ TEST_F(Instance_cache_test, table_indexes) {
     const auto validate =
         [&cache](const std::string &schema, const std::string &table,
                  const std::vector<std::string> &expected_columns,
-                 bool expected_primary) {
+                 bool expected_pke) {
           SCOPED_TRACE("testing table " + schema + "." + table);
 
-          const auto &actual = cache.schemas.at(schema).tables.at(table).index;
+          const auto actual =
+              select_index(cache.schemas.at(schema).tables.at(table));
           const auto size = expected_columns.size();
 
-          ASSERT_EQ(size, actual.columns().size());
-
-          EXPECT_EQ(expected_primary, actual.primary());
+          EXPECT_EQ(expected_pke, actual.second);
+          ASSERT_EQ(size, actual.first ? actual.first->columns().size() : 0);
 
           for (std::size_t i = 0; i < size; ++i) {
-            EXPECT_EQ(expected_columns[i], actual.columns()[i]->name);
+            EXPECT_EQ(expected_columns[i], actual.first->columns()[i]->name);
           }
         };
 
@@ -1665,11 +1667,11 @@ TEST_F(Instance_cache_test, table_indexes) {
     validate("third", "sixteen", {"id", "data"}, false);
     validate("third", "seventeen", {"gen"}, true);
     validate("third", "eighteen", {"gen"}, false);
-    validate("third", "nineteen", {"id"}, false);
-    validate("third", "twenty", {"id"}, false);
-    validate("third", "twenty-one", {"hash"}, false);
-    validate("third", "twenty-two", {"hash"}, false);
-    validate("third", "twenty-three", {"id", "hash"}, false);
+    validate("third", "nineteen", {"id"}, true);
+    validate("third", "twenty", {"id"}, true);
+    validate("third", "twenty-one", {"hash"}, true);
+    validate("third", "twenty-two", {"hash"}, true);
+    validate("third", "twenty-three", {"id", "hash"}, true);
     validate("third", "twenty-four", {"id", "hash"}, false);
   }
 }

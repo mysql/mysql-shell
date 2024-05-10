@@ -73,6 +73,7 @@
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_errors.h"
 #include "modules/util/dump/dump_manifest.h"
+#include "modules/util/dump/indexes.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
 #include "modules/util/upgrade_check.h"
@@ -816,8 +817,8 @@ class Dumper::Table_worker final {
 
     query += where(table.where);
 
-    if (table.info->index.valid()) {
-      query += " ORDER BY " + table.info->index.columns_sql();
+    if (table.index.info) {
+      query += " ORDER BY " + table.index.info->columns_sql();
     }
 
     query += " " + m_dumper->get_query_comment(table, "dumping");
@@ -912,6 +913,7 @@ class Dumper::Table_worker final {
     data_task.quoted_name = table.quoted_name;
     data_task.schema = table.schema;
     data_task.info = table.info;
+    data_task.index = table.index;
     data_task.partitions = table.partitions;
     data_task.where = table.where;
 
@@ -956,8 +958,8 @@ class Dumper::Table_worker final {
       data_task.where = "(" + where + ")";
     }
 
-    if (0 == idx) {
-      for (const auto &c : table.info->index.columns()) {
+    if (0 == idx && table.index.info && !table.index.is_pke) {
+      for (const auto &c : table.index.info->columns()) {
         if (c->nullable) {
           if (!data_task.where.empty()) {
             data_task.where += "OR";
@@ -1043,7 +1045,8 @@ class Dumper::Table_worker final {
 
   static std::string compare(const Chunking_info &info, const Row &value,
                              const std::string &op, bool eq) {
-    const auto &columns = info.table->info->index.columns();
+    assert(info.table->index.info);
+    const auto &columns = info.table->index.info->columns();
     const auto size = columns.size() - info.index_column;
 
     assert(size == value.size());
@@ -1106,10 +1109,9 @@ class Dumper::Table_worker final {
       result += " AND ";
     }
 
-    return result +
-           between(info.table->info->index.columns()[info.index_column]
-                       ->quoted_name,
-                   begin, end);
+    return result + between(info.table->index.info->columns()[info.index_column]
+                                ->quoted_name,
+                            begin, end);
   }
 
   static std::string where(const std::string &condition) {
@@ -1344,8 +1346,9 @@ class Dumper::Table_worker final {
     log_info("%sChunking %s using integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
+    assert(info.table->index.info);
     const auto type =
-        info.table->info->index.columns()[info.index_column]->type;
+        info.table->index.info->columns()[info.index_column]->type;
 
     if (mysqlshdk::db::Type::Integer == type) {
       return chunk_integer_column(info, to_int64_t(begin[info.index_column]),
@@ -1373,7 +1376,8 @@ class Dumper::Table_worker final {
     Row range_begin = begin;
     Row range_end;
 
-    const auto &columns = info.table->info->index.columns();
+    assert(info.table->index.info);
+    const auto &columns = info.table->index.info->columns();
     const auto index =
         shcore::str_join(columns.begin() + info.index_column, columns.end(),
                          ",", [](const auto &c) { return c->quoted_name; });
@@ -1416,7 +1420,7 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_column(const Chunking_info &info) {
-    if (!info.table->info->index.valid()) {
+    if (!info.table->index.info) {
       log_info(
           "%sTable %s does not have a valid index, number of chunks is "
           "estimated",
@@ -1429,7 +1433,7 @@ class Dumper::Table_worker final {
     }
 
     const auto sql =
-        "SELECT SQL_NO_CACHE " + info.table->info->index.columns_sql() +
+        "SELECT SQL_NO_CACHE " + info.table->index.info->columns_sql() +
         " FROM " + info.table->quoted_name + info.partition + where(info.where);
 
     auto result = query(sql + info.order_by + " LIMIT 1");
@@ -1457,11 +1461,11 @@ class Dumper::Table_worker final {
     const Row end = fetch_row(row);
 
     const auto type =
-        info.table->info->index.columns()[info.index_column]->type;
+        info.table->index.info->columns()[info.index_column]->type;
 
     log_info("%sChunking %s, using columns: %s, min: [%s], max: [%s]",
              m_log_id.c_str(), info.table->task_name.c_str(),
-             shcore::str_join(info.table->info->index.columns(), ", ",
+             shcore::str_join(info.table->index.info->columns(), ", ",
                               [](const auto &c) {
                                 return c->quoted_name + " (" +
                                        mysqlshdk::db::to_string(c->type) + ")";
@@ -1536,21 +1540,23 @@ class Dumper::Table_worker final {
     info.partition = std::move(partition_clause);
     info.where = table.where;
 
-    if (table.info->index.valid()) {
-      for (const auto &c : table.info->index.columns()) {
-        if (c->nullable) {
-          if (!info.where.empty()) {
-            info.where += "AND";
-          }
+    if (table.index.info) {
+      if (!table.index.is_pke) {
+        for (const auto &c : table.index.info->columns()) {
+          if (c->nullable) {
+            if (!info.where.empty()) {
+              info.where += "AND";
+            }
 
-          info.where += "(" + c->quoted_name + " IS NOT NULL)";
+            info.where += "(" + c->quoted_name + " IS NOT NULL)";
+          }
         }
       }
 
-      info.order_by = " ORDER BY " + table.info->index.columns_sql();
+      info.order_by = " ORDER BY " + table.index.info->columns_sql();
       info.order_by_desc =
           " ORDER BY " +
-          shcore::str_join(table.info->index.columns(), ",", [](const auto &c) {
+          shcore::str_join(table.index.info->columns(), ",", [](const auto &c) {
             return c->quoted_name + " DESC";
           });
       info.index_column = 0;
@@ -3106,6 +3112,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.schema = schema.name;
   task.basename = table.basename;
   task.info = table.info;
+  std::tie(task.index.info, task.index.is_pke) = select_index(*table.info);
   task.partitions = table.partitions;
   task.where = m_options.where(schema.name, table.name);
 
@@ -3141,15 +3148,16 @@ void Dumper::push_table_task(Table_task &&task) {
 
   log_info("Preparing data dump for table %s", task_name.c_str());
 
-  const auto &index = task.info->index;
+  const auto index = task.index.info;
 
   const auto get_index = [&index]() {
-    return std::string{"column"} + (index.columns().size() > 1 ? "s" : "") +
-           " " + index.columns_sql();
+    assert(index);
+    return std::string("column") + (index->columns().size() > 1 ? "s" : "") +
+           " " + index->columns_sql();
   };
 
   if (m_options.split()) {
-    if (!index.valid()) {
+    if (!index) {
       log_info(
           "Could not select columns to be used as an index for table %s. Data "
           "will be dumped to multiple files by a single thread.",
@@ -3160,8 +3168,8 @@ void Dumper::push_table_task(Table_task &&task) {
     }
   } else {
     const auto index_info =
-        (!index.valid() ? "will not use an index"
-                        : "will use " + get_index() + " as an index");
+        (!index ? "will not use an index"
+                : "will use " + get_index() + " as an index");
     log_info("Data dump for table %s %s", task_name.c_str(),
              index_info.c_str());
   }
@@ -3624,8 +3632,8 @@ void Dumper::write_table_metadata(
   {
     Value primary{Type::kArrayType};
 
-    if (table.info->index.primary()) {
-      for (const auto &column : table.info->index.columns()) {
+    if (table.info->primary_key) {
+      for (const auto &column : table.info->primary_key->columns()) {
         primary.PushBack(refs(column->name), a);
       }
     }

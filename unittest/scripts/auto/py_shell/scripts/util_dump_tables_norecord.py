@@ -2542,7 +2542,7 @@ session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 #@<> composite non-integer key - test
 WIPE_SHELL_LOG()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
-EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
+EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`,`md5_2`,`md5_3`,`md5_4`")
 CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
 TEST_LOAD(tested_schema, tested_table)
 
@@ -3181,6 +3181,10 @@ session.run_sql("DROP INDEX `ordinal` ON !.!", [ tested_schema, tested_table ])
 TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("2 chunks (18 rows, 447 bytes) for 1 tables in 1 schemas were loaded")
 
+# BUG#36493316 - dump with ocimds:true should not fail saying that table does not have a primary key
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "ocimds": True, "showProgress": False })
+
+# cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> Cleanup

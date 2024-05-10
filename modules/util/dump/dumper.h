@@ -120,6 +120,11 @@ class Dumper {
     std::string basename;
   };
 
+  struct Index_info {
+    const Instance_cache::Index *info = nullptr;
+    bool is_pke = false;
+  };
+
   struct Partition_info {
     std::string basename;
     const Instance_cache::Partition *info = nullptr;
@@ -143,6 +148,7 @@ class Dumper {
     std::string task_name;
     std::string schema;
     std::string where;
+    Index_info index;
   };
 
   struct Table_data_task : Table_task {
