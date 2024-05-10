@@ -43,6 +43,8 @@
 #include <array>
 #include <functional>
 #include <map>
+#include <optional>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "my_sys.h"
@@ -113,6 +115,24 @@ const std::unordered_set<std::string> k_system_schemas = {
     "mysql",
     "performance_schema",
     "sys",
+};
+
+const std::unordered_set<std::string> k_mhs_allowed_authentication_plugins = {
+    "authentication_oci",
+    "caching_sha2_password",
+    "mysql_native_password",
+    "sha256_password",
+};
+
+struct Version_info {
+  Version deprecated;
+  std::optional<Version> removed;
+};
+
+const std::unordered_map<std::string, Version_info>
+    k_mhs_deprecated_authentication_plugins = {
+        {"mysql_native_password", {Version{8, 0, 34}, Version{9, 0, 0}}},
+        {"sha256_password", {Version{8, 0, 16}, std::nullopt}},
 };
 
 inline bool is_system_schema(const std::string &s) {
@@ -2868,11 +2888,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     bool add_user = true;
 
     if (opt_mysqlaas || opt_skip_invalid_accounts) {
-      const auto plugin =
-          compatibility::check_create_user_for_authentication_plugin(
-              create_user);
-
-      if (!plugin.empty()) {
+      const auto report_unsupported_plugin = [&](const std::string &plugin) {
         // we're removing the user from the list even if
         // opt_skip_invalid_accounts is not set, account is invalid in MDS, so
         // other checks can be skipped
@@ -2888,6 +2904,34 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
             opt_skip_invalid_accounts
                 ? Issue::Status::FIXED
                 : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+      };
+
+      for (const auto &plugin :
+           compatibility::check_create_user_for_authentication_plugins(
+               create_user)) {
+        if (!k_mhs_allowed_authentication_plugins.contains(plugin)) {
+          report_unsupported_plugin(plugin);
+        } else if (const auto it =
+                       k_mhs_deprecated_authentication_plugins.find(plugin);
+                   k_mhs_deprecated_authentication_plugins.end() != it) {
+          const auto &version_info = it->second;
+
+          if (version_info.removed.has_value() &&
+              opt_target_version >= *version_info.removed) {
+            report_unsupported_plugin(plugin);
+          } else if (opt_target_version >= version_info.deprecated) {
+            std::string issue =
+                "User " + user +
+                " is using a deprecated authentication plugin '" + plugin + "'";
+
+            if ("mysql_native_password" == plugin &&
+                opt_target_version >= Version{8, 4, 0}) {
+              issue += " which is disabled by default";
+            }
+
+            problems.emplace_back(std::move(issue), Issue::Status::WARNING);
+          }
+        }
       }
 
       if (add_user &&

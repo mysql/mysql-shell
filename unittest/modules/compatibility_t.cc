@@ -24,6 +24,7 @@
  */
 
 #include "modules/util/dump/compatibility.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
@@ -1873,92 +1874,63 @@ TEST_F(Compatibility_test, filter_grant_malformed) {
                std::runtime_error);
 }
 
-TEST_F(Compatibility_test, check_create_user_for_authentication_plugin) {
+TEST_F(Compatibility_test, check_create_user_for_authentication_plugins) {
   const std::string exception =
       "This check can be only performed on CREATE USER statements";
 
   // unsupported statements
-  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin(""),
+  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugins(""),
                     std::runtime_error, exception);
-  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("CREATE"),
+  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugins("CREATE"),
                     std::runtime_error, exception);
-  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("create Table"),
-                    std::runtime_error, exception);
+  EXPECT_THROW_LIKE(
+      check_create_user_for_authentication_plugins("create Table"),
+      std::runtime_error, exception);
+
+  const auto EXPECT = [](std::string_view statement,
+                         std::set<std::string> expected_plugins) {
+    SCOPED_TRACE(statement);
+    EXPECT_EQ(expected_plugins,
+              check_create_user_for_authentication_plugins(statement));
+  };
 
   // statements without authentication plugin
-  EXPECT_EQ("",
-            check_create_user_for_authentication_plugin("CREATE USER r@l;"));
-  EXPECT_EQ(
-      "", check_create_user_for_authentication_plugin("CREATE USER 'r'@'l';"));
-  EXPECT_EQ("",
-            check_create_user_for_authentication_plugin("CREATE USER 'r'@l;"));
-  EXPECT_EQ("",
-            check_create_user_for_authentication_plugin("CREATE USER r@'l';"));
-  EXPECT_EQ("", check_create_user_for_authentication_plugin(
-                    "CREATE USER if not exists 'r'@'l';"));
-  EXPECT_EQ("", check_create_user_for_authentication_plugin(
-                    "CREATE USER r@l IDENTIFIED BY 'pass';"));
+  EXPECT("CREATE USER r@l;", {});
+  EXPECT("CREATE USER 'r'@'l';", {});
+  EXPECT("CREATE USER 'r'@l;", {});
+  EXPECT("CREATE USER r@'l';", {});
+  EXPECT("CREATE USER if not exists 'r'@'l';", {});
+  EXPECT("CREATE USER r@l IDENTIFIED BY 'pass';", {});
 
-  // unknown plugin not in the default list
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER r@l IDENTIFIED with 'plugin';"));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER 'r'@'l' identified WITH 'plugin';"));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER r@'l' identified WITH 'plugin';"));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER 'r'@l identified WITH 'plugin';"));
-  EXPECT_EQ("plugin",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER if NOT Exists 'r'@'l' IDENTIFIED WITH 'plugin';"));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER r@l IDENTIFIED WITH \"plugin\""));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER r@l IDENTIFIED WITH `plugin`"));
-  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
-                          "CREATE USER r@l IDENTIFIED WITH plugin"));
+  // various quote types
+  EXPECT("CREATE USER r@l IDENTIFIED with 'plugin';", {"plugin"});
+  EXPECT("CREATE USER 'r'@'l' identified WITH 'plugin';", {"plugin"});
+  EXPECT("CREATE USER r@'l' identified WITH 'plugin';", {"plugin"});
+  EXPECT("CREATE USER 'r'@l identified WITH 'plugin';", {"plugin"});
+  EXPECT("CREATE USER if NOT Exists 'r'@'l' IDENTIFIED WITH 'plugin';",
+         {"plugin"});
+  EXPECT("CREATE USER r@l IDENTIFIED WITH \"plugin\"", {"plugin"});
+  EXPECT("CREATE USER r@l IDENTIFIED WITH `plugin`", {"plugin"});
+  EXPECT("CREATE USER r@l IDENTIFIED WITH plugin", {"plugin"});
 
-  // plugins on the default list
-  EXPECT_EQ("", check_create_user_for_authentication_plugin(
-                    "CREATE USER r@l IDENTIFIED WITH 'caching_sha2_password'"));
-  EXPECT_EQ("", check_create_user_for_authentication_plugin(
-                    "CREATE USER r@l IDENTIFIED WITH 'mysql_native_password'"));
-  EXPECT_EQ("", check_create_user_for_authentication_plugin(
-                    "CREATE USER r@l IDENTIFIED WITH 'sha256_password'"));
-
-  // disallowed plugins
-  EXPECT_EQ("authentication_ldap_sasl",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'authentication_ldap_sasl'"));
-  EXPECT_EQ(
-      "authentication_ldap_simple",
-      check_create_user_for_authentication_plugin(
-          "CREATE USER r@l IDENTIFIED WITH 'authentication_ldap_simple'"));
-  EXPECT_EQ("authentication_pam",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'authentication_pam'"));
-  EXPECT_EQ("authentication_windows",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'authentication_windows'"));
-
-  // plugins which are not enabled
-  EXPECT_EQ("auth_socket",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'auth_socket'"));
-  EXPECT_EQ("mysql_no_login",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'mysql_no_login'"));
-
-  // non-default list
-  EXPECT_EQ("",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'plugin_a'", {"plugin_a"}));
-  EXPECT_EQ("PLUGIN_A",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'PLUGIN_A'", {"plugin_a"}));
-  EXPECT_EQ("plugin_b",
-            check_create_user_for_authentication_plugin(
-                "CREATE USER r@l IDENTIFIED WITH 'plugin_b'", {"plugin_a"}));
+  // multiple plugins
+  EXPECT(
+      "CREATE USER r@l IDENTIFIED WITH plugin-1 "
+      "AND IDENTIFIED WITH plugin-2 AND IDENTIFIED WITH plugin-3",
+      {"plugin-1", "plugin-2", "plugin-3"});
+  EXPECT(
+      "CREATE USER r@l IDENTIFIED WITH plugin "
+      "AND IDENTIFIED WITH plugin AND IDENTIFIED WITH plugin",
+      {"plugin"});
+  EXPECT(
+      "CREATE USER r@l IDENTIFIED WITH plugin-1 BY 'pass' "
+      "AND IDENTIFIED WITH plugin-2 BY RANDOM PASSWORD "
+      "AND IDENTIFIED WITH plugin-3 AS 'pass'",
+      {"plugin-1", "plugin-2", "plugin-3"});
+  EXPECT(
+      "CREATE USER r@l IDENTIFIED WITH plugin-1 "
+      "INITIAL AUTHENTICATION IDENTIFIED WITH plugin-2 AS 'pass'",
+      {"plugin-1", "plugin-2"});
 }
 
 TEST_F(Compatibility_test, check_create_user_for_empty_password) {
@@ -2582,29 +2554,157 @@ TEST_F(Compatibility_test, contains_sensitive_information) {
   EXPECT_FALSE(contains_sensitive_information("SELECT \"IDENTIFIED\""));
 }
 
-TEST_F(Compatibility_test, replace_quoted_strings) {
+TEST_F(Compatibility_test, hide_sensitive_information) {
   const auto EXPECT = [](const std::string &statement,
                          std::string_view replacement,
                          const std::string &expected_result,
                          const std::vector<std::string> &expected_replaced) {
     SCOPED_TRACE(statement);
 
-    std::vector<std::string> replaced;
+    std::vector<std::string_view> replaced;
     EXPECT_EQ(expected_result,
-              replace_quoted_strings(statement, replacement, &replaced));
-    EXPECT_EQ(expected_replaced, replaced);
+              hide_sensitive_information(statement, replacement, &replaced));
+
+    ASSERT_EQ(expected_replaced.size(), replaced.size());
+
+    for (std::size_t i = 0; i < expected_replaced.size(); ++i) {
+      EXPECT_EQ(expected_replaced[i], replaced[i]);
+    }
   };
 
-  EXPECT("", "<secret>", "", {});
-  EXPECT("INSERT INTO s.`t1` VALUES (\"one\", 'two', three, 4)", "<secret>",
-         "INSERT INTO s.`t1` VALUES (\"<secret>\", \"<secret>\", three, 4)",
-         {"\"one\"", "'two'"});
-  EXPECT("INSERT INTO s.`t2` VALUES (\"one\", 'two', three, 4)", "'<secret>'",
-         "INSERT INTO s.`t2` VALUES ('<secret>', '<secret>', three, 4)",
-         {"\"one\"", "'two'"});
-  EXPECT("INSERT INTO s.`t3` VALUES (\"one\", 'two', three, 4)", "\"<secret>\"",
-         "INSERT INTO s.`t3` VALUES (\"<secret>\", \"<secret>\", three, 4)",
-         {"\"one\"", "'two'"});
+  const auto TEST_HIDE = [&](std::string_view template_) {
+    for (const char quote_secret : {'\'', '"'}) {
+      std::vector<std::string> expected_replaced;
+      const auto statement = shcore::str_subvars(
+          template_,
+          [&](std::string_view secret) {
+            std::string expected;
+            expected += quote_secret;
+            expected += secret;
+            expected += quote_secret;
+
+            expected_replaced.emplace_back(expected);
+
+            return expected;
+          },
+          "<", ">");
+
+      {
+        // unquoted replacement
+        const auto expected_result = shcore::str_subvars(
+            template_, [](std::string_view) { return "'****'"; }, "<", ">");
+
+        EXPECT(statement, "****", expected_result, expected_replaced);
+      }
+
+      // quoted replacement
+      for (const auto replacement : {"'****'", "\"****\""}) {
+        const auto expected_result = shcore::str_subvars(
+            template_, [&](std::string_view) { return replacement; }, "<", ">");
+
+        EXPECT(statement, replacement, expected_result, expected_replaced);
+      }
+    }
+  };
+
+  TEST_HIDE("");
+  TEST_HIDE("SELECT 1");
+
+  // SET PASSWORD
+  TEST_HIDE("SET PASSWORD = <secret>");
+  TEST_HIDE("SET PASSWORD FOR user = <secret>");
+
+  TEST_HIDE("SET PASSWORD = PASSWORD(<secret>)");
+  TEST_HIDE("SET PASSWORD FOR user@host = PASSWORD(<secret>)");
+
+  TEST_HIDE("SET PASSWORD = OLD_PASSWORD(<secret>)");
+  TEST_HIDE("SET PASSWORD FOR 'user'@host = OLD_PASSWORD(<secret>)");
+
+  TEST_HIDE("SET PASSWORD TO RANDOM");
+  TEST_HIDE("SET PASSWORD FOR 'user'@`host` TO RANDOM");
+
+  TEST_HIDE("SET PASSWORD TO RANDOM REPLACE <secret>");
+  TEST_HIDE("SET PASSWORD FOR `user`@\"host\" TO RANDOM REPLACE <secret>");
+
+  TEST_HIDE("SET PASSWORD = <secret-1> REPLACE <secret-2>");
+  TEST_HIDE(
+      "SET PASSWORD FOR `user`@`host` = <secret-1> REPLACE <secret-2> "
+      "RETAIN CURRENT PASSWORD");
+
+  // PASSWORD('pass') or PASSWORD = 'pass'
+  TEST_HIDE("SELECT PASSWORD(<secret>)");
+  TEST_HIDE("CHANGE MASTER TO MASTER_PASSWORD = <secret>");
+  TEST_HIDE("CHANGE REPLICATION SOURCE TO SOURCE_PASSWORD = <secret>");
+
+  // IDENTIFIED BY
+  TEST_HIDE("CREATE USER u@h IDENTIFIED BY <secret>");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED BY PASSWORD <secret>");
+
+  TEST_HIDE("GRANT ALL ON *.* TO USER u@h IDENTIFIED BY PASSWORD <secret>");
+
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED BY RANDOM PASSWORD "
+      "AND IDENTIFIED BY <secret>");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED BY <secret-1> AND IDENTIFIED BY <secret-2>");
+
+  TEST_HIDE(
+      "ALTER USER u@h IDENTIFIED BY <secret> PASSWORD EXPIRE ACCOUNT LOCK");
+  TEST_HIDE(
+      "ALTER USER u@h IDENTIFIED BY <secret-1> REPLACE <secret-2> "
+      "RETAIN CURRENT PASSWORD");
+  TEST_HIDE("ALTER USER u@h IDENTIFIED BY RANDOM PASSWORD REPLACE <secret>");
+  TEST_HIDE("ALTER USER u@h IDENTIFIED BY <secret-1> REPLACE <secret-2>");
+
+  // IDENTIFIED WITH
+  TEST_HIDE("CREATE USER u@h IDENTIFIED WITH plugin");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED WITH plugin BY <secret>");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED WITH plugin BY RANDOM PASSWORD");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED WITH plugin AS <secret>");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED WITH plugin "
+      "INITIAL AUTHENTICATION IDENTIFIED BY <secret>");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED WITH plugin "
+      "INITIAL AUTHENTICATION IDENTIFIED BY RANDOM PASSWORD");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED WITH plugin-1 "
+      "INITIAL AUTHENTICATION IDENTIFIED WITH plugin-2 AS <secret>");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED WITH plugin-1 "
+      "AND IDENTIFIED WITH plugin-2 AND IDENTIFIED WITH plugin-3");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED BY <secret> "
+      "AND IDENTIFIED WITH plugin-1 "
+      "AND IDENTIFIED WITH plugin-2 BY RANDOM PASSWORD");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED WITH plugin-1 BY <secret-1>"
+      "AND IDENTIFIED BY <secret-2> "
+      "AND IDENTIFIED WITH plugin-2 AS <secret-3>");
+
+  TEST_HIDE("GRANT ALL ON *.* TO USER u@h IDENTIFIED WITH plugin");
+
+  TEST_HIDE("ALTER USER u@h IDENTIFIED WITH plugin");
+  TEST_HIDE(
+      "ALTER USER u@h IDENTIFIED WITH plugin BY <secret-1> REPLACE <secret-2>");
+  TEST_HIDE(
+      "ALTER USER u@h IDENTIFIED WITH plugin BY RANDOM PASSWORD "
+      "REPLACE <secret> RETAIN CURRENT PASSWORD");
+  TEST_HIDE("ALTER USER u@h IDENTIFIED WITH plugin AS <secret>");
+
+  // IDENTIFIED VIA
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin USING <secret>");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin AS <secret>");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin USING PASSWORD(<secret>)");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin AS PASSWORD(<secret>)");
+  TEST_HIDE("CREATE USER u@h IDENTIFIED VIA plugin-1 OR plugin-2");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED VIA plugin-1 USING PASSWORD(<secret-1>) "
+      "OR plugin-2 USING <secret-2>");
+  TEST_HIDE(
+      "CREATE USER u@h IDENTIFIED VIA plugin-1 AS <secret-1> "
+      "OR plugin-2 AS PASSWORD(<secret-2>)");
 }
 
 TEST_F(Compatibility_test, replace_keyword) {

@@ -31,6 +31,7 @@
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -57,6 +58,7 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "INSERT",
     "LOCK TABLES",
     "PROCESS",
+    "PROXY",  // this privilege is granted to the initial user account itself
     "REFERENCES",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
@@ -76,13 +78,8 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "FLUSH_USER_RESOURCES",
     "REPLICATION_APPLIER",
     "ROLE_ADMIN",
+    "SHOW_ROUTINE",
     "XA_RECOVER_ADMIN",
-};
-
-const std::set<std::string> k_mysqlaas_allowed_authentication_plugins = {
-    "caching_sha2_password",
-    "mysql_native_password",
-    "sha256_password",
 };
 
 const std::unordered_set<std::string> k_mds_users_with_system_user_priv = {
@@ -1107,24 +1104,27 @@ Deferred_statements check_create_table_for_indexes(
   return ret;
 }
 
-std::string check_create_user_for_authentication_plugin(
-    const std::string &create_user, const std::set<std::string> &plugins) {
+std::set<std::string> check_create_user_for_authentication_plugins(
+    std::string_view create_user) {
   SQL_iterator it(create_user, 0, false);
 
   create_user_parse_account(&it);
 
-  if (shcore::str_caseeq(it.next_token(), "IDENTIFIED") &&
-      shcore::str_caseeq(it.next_token(), "WITH")) {
-    std::string auth_plugin{it.next_token()};
+  std::set<std::string> result;
 
-    unquote_string(&auth_plugin);
+  while (it) {
+    if (it.consume_tokens("IDENTIFIED", "WITH")) {
+      std::string auth_plugin{it.next_token()};
 
-    if (plugins.end() == plugins.find(auth_plugin)) {
-      return auth_plugin;
+      unquote_string(&auth_plugin);
+
+      if (!auth_plugin.empty()) {
+        result.emplace(std::move(auth_plugin));
+      }
     }
   }
 
-  return "";
+  return result;
 }
 
 bool check_create_user_for_empty_password(const std::string &create_user) {
@@ -1541,8 +1541,8 @@ std::string convert_grant_to_create_user(
   }
 
   // move to the account name
-  while (it.valid() && !shcore::str_caseeq(it.next_token(), "TO"))
-    ;
+  while (it.valid() && !shcore::str_caseeq(it.next_token(), "TO")) {
+  }
 
   auto create_user = "CREATE USER " + get_account(&it);
   auto grant = statement.substr(0, it.position());
@@ -1653,45 +1653,146 @@ bool contains_sensitive_information(const std::string &statement) {
   return false;
 }
 
-std::string replace_quoted_strings(const std::string &statement,
-                                   std::string_view replacement,
-                                   std::vector<std::string> *replaced) {
+std::string hide_sensitive_information(
+    const std::string &statement, std::string_view replacement,
+    std::vector<std::string_view> *replaced) {
   assert(replaced);
-
   replaced->clear();
 
-  std::string rewritten;
-  SQL_iterator it(statement, 0, false);
   const auto starts_with_quote = [](std::string_view s) {
-    return '\'' == s[0] || '"' == s[0];
-  };
-  const auto needs_quotes = !starts_with_quote(replacement);
-
-  while (it) {
-    auto token = it.next_token();
-
-    if (starts_with_quote(token)) {
-      if (needs_quotes) {
-        rewritten += '"';
-      }
-
-      rewritten += replacement;
-
-      if (needs_quotes) {
-        rewritten += '"';
-      }
-
-      replaced->emplace_back(std::move(token));
-    } else {
-      rewritten += token;
+    if (s.empty()) {
+      return false;
     }
 
-    if (std::isspace(statement[it.position()])) {
-      rewritten += ' ';
+    return '\'' == s[0] || '"' == s[0];
+  };
+
+  Offsets offsets;
+  std::string_view token;
+  SQL_iterator it(statement, 0, false);
+
+  const auto advance = [&]() { token = it.next_token(); };
+  const auto maybe_hide_and_advance = [&]() {
+    if (!starts_with_quote(token)) {
+      return false;
+    }
+
+    offsets.emplace_back(it.position() - token.length(), it.position());
+    replaced->emplace_back(token);
+    advance();
+
+    return true;
+  };
+  const auto hide_and_advance = [&]() {
+    [[maybe_unused]] const auto result = maybe_hide_and_advance();
+    assert(result);
+  };
+
+  advance();
+
+  if (shcore::str_caseeq(token, "SET")) {
+    advance();
+
+    if (shcore::str_caseeq(token, "PASSWORD")) {
+      // replace all quoted strings
+      advance();
+
+      if (shcore::str_caseeq(token, "FOR")) {
+        // skip the account
+        get_account(&it);
+        advance();
+      }
+
+      do {
+        if (!maybe_hide_and_advance()) {
+          advance();
+        }
+      } while (!token.empty());
     }
   }
 
-  return rewritten;
+  do {
+    if (shcore::str_ibeginswith(token, "PASSWORD") ||
+        shcore::str_iendswith(token, "PASSWORD")) {
+      advance();
+
+      if ("=" == token || "(" == token) {
+        // assignment or function call
+        advance();
+        hide_and_advance();
+      } else {
+        // next item should be the one we hide, don't search further (this could
+        // be i.e. PASSWORD EXPIRE)
+        maybe_hide_and_advance();
+      }
+    } else if (shcore::str_caseeq(token, "IDENTIFIED")) {
+      advance();
+
+      // IDENTIFIED {VIA|WITH} authentication_rule [OR authentication_rule  ...]
+      bool mariadb = false;
+
+      do {
+        if ((!mariadb && shcore::str_caseeq(token, "WITH", "VIA")) ||
+            (mariadb && shcore::str_caseeq(token, "OR"))) {
+          // read authentication plugin
+          advance();
+          // read keyword
+          advance();
+        }
+
+        if (!mariadb && shcore::str_caseeq(token, "BY")) {
+          advance();
+
+          if (shcore::str_caseeq(token, "PASSWORD")) {
+            advance();
+          }
+
+          if (shcore::str_caseeq(token, "RANDOM")) {
+            advance();
+
+            if (shcore::str_caseeq(token, "PASSWORD")) {
+              advance();
+            }
+          } else {
+            hide_and_advance();
+          }
+
+          if (shcore::str_caseeq(token, "REPLACE")) {
+            advance();
+            hide_and_advance();
+          }
+        } else if (shcore::str_caseeq(token, "AS", "USING")) {
+          advance();
+
+          if (shcore::str_caseeq(token, "PASSWORD")) {
+            // read (
+            advance();
+            // read 'password'
+            advance();
+            // hide and read )
+            hide_and_advance();
+            // read next token
+            advance();
+          } else {
+            hide_and_advance();
+          }
+        }
+
+        mariadb = shcore::str_caseeq(token, "OR");
+      } while (mariadb);
+    } else {
+      advance();
+    }
+  } while (!token.empty());
+
+  if (offsets.empty()) {
+    return statement;
+  } else {
+    const auto target = starts_with_quote(replacement)
+                            ? std::string{replacement}
+                            : shcore::quote_sql_string(replacement);
+    return replace_at_offsets(statement, offsets, target);
+  }
 }
 
 bool parse_grant_statement(const std::string &statement,

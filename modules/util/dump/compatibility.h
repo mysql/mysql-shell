@@ -41,8 +41,6 @@ namespace compatibility {
 
 extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 
-extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
-
 extern const std::unordered_set<std::string> k_mds_users_with_system_user_priv;
 
 struct Deferred_statements {
@@ -120,10 +118,8 @@ Deferred_statements check_create_table_for_indexes(
     const std::string &statement, const std::string &table_name,
     bool fulltext_only);
 
-std::string check_create_user_for_authentication_plugin(
-    const std::string &create_user,
-    const std::set<std::string> &plugins =
-        k_mysqlaas_allowed_authentication_plugins);
+std::set<std::string> check_create_user_for_authentication_plugins(
+    std::string_view create_user);
 
 bool check_create_user_for_empty_password(const std::string &create_user);
 
@@ -173,8 +169,24 @@ std::string strip_default_role(const std::string &create_user,
 bool contains_sensitive_information(const std::string &statement);
 
 /**
- * Replaces the values of all single and double quoted strings with the given
- * text.
+ * Hides all sensitive information in the given statement.
+ *
+ * Supported statements:
+ *  - SET PASSWORD FOR
+ *
+ * Supported clauses:
+ *  - PASSWORD.* = 'string'
+ *  - PASSWORD.*('string')
+ *  - .*PASSWORD = 'string'
+ *  - .*PASSWORD('string')
+ *  - IDENTIFIED BY 'string' [REPLACE 'string']
+ *  - IDENTIFIED BY PASSWORD 'string'
+ *  - IDENTIFIED BY RANDOM PASSWORD REPLACE 'string'
+ *  - IDENTIFIED WITH plugin BY 'string' [REPLACE 'string']
+ *  - IDENTIFIED WITH plugin BY RANDOM PASSWORD REPLACE 'string'
+ *  - IDENTIFIED WITH plugin AS 'string'
+ *  - IDENTIFIED {VIA|WITH} plugin {USING|AS} 'string' [OR ...]
+ *  - IDENTIFIED {VIA|WITH} plugin {USING|AS} PASSWORD('string') [OR ...]
  *
  * @param statement Statement to be processed.
  * @param replacement Text to be used as a replacement.
@@ -182,9 +194,9 @@ bool contains_sensitive_information(const std::string &statement);
  *
  * @returns modified statement
  */
-std::string replace_quoted_strings(const std::string &statement,
-                                   std::string_view replacement,
-                                   std::vector<std::string> *replaced);
+std::string hide_sensitive_information(const std::string &statement,
+                                       std::string_view replacement,
+                                       std::vector<std::string_view> *replaced);
 
 struct Privilege_level_info {
   enum class Level {

@@ -12,53 +12,65 @@ config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
 
 def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFIG_HOME, "config"), wipe_pars=True):
     start = time.time()
+    config = oci.config.from_file(config_file)
+    os = oci.object_storage.ObjectStorageClient(config)
+    if ns == "":
+        ns = os.get_namespace().data
     q = queue.Queue()
     def worker():
-        os = oci.object_storage.ObjectStorageClient(oci.config.from_file(config_file))
-        while True:
-            w = q.get()
-            if w is None:
+        try:
+            os = oci.object_storage.ObjectStorageClient(oci.config.from_file(config_file))
+            while True:
+                w = q.get()
+                if w is not None:
+                    try:
+                        print(f"--- wipeout_bucket_mt('{bucket}') - worker task: {w[0]} ---")
+                        w[1](os)
+                    except Exception as e:
+                        print(f"--- wipeout_bucket_mt('{bucket}') - exception in worker task \"{w[0]}\": {e} ---")
                 q.task_done()
-                break
-            w(os)
-            q.task_done()
+                if w is None:
+                    break
+        except Exception as e:
+            print(f"--- wipeout_bucket_mt('{bucket}') - exception in worker: {e} ---")
     threads = []
     for i in range(workers):
         t = threading.Thread(target=worker)
         t.start()
         threads.append(t)
     try:
-        config = oci.config.from_file(config_file)
-        os = oci.object_storage.ObjectStorageClient(config)
-        if ns == "":
-            ns = os.get_namespace().data
         def abort_multipart(mp):
             return lambda os: os.abort_multipart_upload(ns, bucket, mp.object, mp.upload_id)
         for mp in oci.pagination.list_call_get_all_results(os.list_multipart_uploads, ns, bucket).data:
-            q.put(abort_multipart(mp))
+            q.put((f"Aborting multipart upload of '{mp.object}', upload ID: {mp.upload_id}", abort_multipart(mp)))
         def delete_object(name):
             return lambda os: os.delete_object(ns, bucket, name)
         for o in oci.pagination.list_call_get_all_results(os.list_objects, ns, bucket).data.objects:
-            q.put(delete_object(o.name))
+            q.put((f"Deleting object: '{o.name}'", delete_object(o.name)))
         def delete_par(id):
             return lambda os: os.delete_preauthenticated_request(ns, bucket, id)
         if wipe_pars:
             for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
-                q.put(delete_par(par.id))
-    except:
-        print("--- wipeout_bucket_mt() - exception: {0} ---".format(sys.exc_info()[0]))
+                q.put((f"Deleting PAR: '{par.id}'", delete_par(par.id)))
+    except Exception as e:
+        print(f"--- wipeout_bucket_mt('{bucket}') - exception: {e} ---")
     for i in range(workers):
         q.put(None)
     q.join()
     for t in threads:
         t.join()
-    print("--- wipeout_bucket_mt() took {0} seconds ---".format(time.time() - start))
+    print(f"--- wipeout_bucket_mt('{bucket}') took {time.time() - start} seconds ---")
 
 def delete_bucket(bucket, namespace=""):
   os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
     namespace = os_client.get_namespace().data
-  wipeout_bucket_mt(4, bucket, namespace)
+  try:
+    os_client.get_bucket(namespace, bucket)
+  except:
+    print(f"--- delete_bucket('{bucket}') - bucket does not exist ---")
+    return
+  wipeout_bucket_mt(12, bucket, namespace)
   os_client.delete_bucket(namespace, bucket, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 def delete_object(bucket, name, namespace=""):
@@ -77,9 +89,9 @@ def prepare_empty_bucket(bucket, namespace="", wipe_pars=True):
     exists = True
   except Exception as e:
     exists = False
-    print(e)
+    print(f"--- prepare_empty_bucket('{bucket}') - bucket does not exist, creating ---")
   if exists:
-    wipeout_bucket_mt(4, bucket, namespace, wipe_pars=wipe_pars)
+    wipeout_bucket_mt(12, bucket, namespace, wipe_pars=wipe_pars)
   else:
     os_client.create_bucket(namespace, oci.object_storage.models.CreateBucketDetails(
           name=bucket,

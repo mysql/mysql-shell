@@ -750,6 +750,7 @@ class Dump_loader {
   std::size_t m_loaded_accounts = 0;
   std::size_t m_dropped_accounts = 0;
   std::size_t m_ignored_grant_errors = 0;
+  std::size_t m_ignored_plugin_errors = 0;
 
   std::size_t m_checksum_errors = 0;
 
