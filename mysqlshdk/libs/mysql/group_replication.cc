@@ -184,7 +184,7 @@ bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
 }
 
 /**
- * Checks whether the group has enough ONLINE members for a quotum to be
+ * Checks whether the group has enough ONLINE members for a quorum to be
  * reachable, from the point of view of the given instance. If the given
  * instance is not ONLINE itself, an exception will be thrown.
  *
@@ -195,8 +195,14 @@ bool is_primary(const mysqlshdk::mysql::IInstance &instance) {
  */
 bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
                 int *out_unreachable, int *out_total) {
-  // Note: ERROR members aren't supposed to be in the members list (except for
-  // itself), but there's a GR bug.
+  // NOTE: The instance used to run this query may report itself as in ERROR
+  // while in a transient state, i.e. during the time frame on which the
+  // instance is considered faulty and leaves the group:
+  //   1) Member moves to ERROR state
+  //   2) Some period of time passes
+  //   3) Member leaves the group and itself is shown on
+  //   performance_schema.replication_group_members
+
   const char *q =
       "SELECT "
       "  CAST(SUM(IF(member_state = 'UNREACHABLE', 1, 0)) AS SIGNED) AS UNRCH,"
@@ -205,7 +211,8 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
       "      FROM performance_schema.replication_group_members"
       "      WHERE member_id = @@server_uuid) AS my_state"
       "  FROM performance_schema.replication_group_members"
-      "  WHERE member_id = @@server_uuid OR member_state <> 'ERROR'";
+      "  WHERE member_id = @@server_uuid OR member_state <> 'ERROR' OR "
+      "  member_state <> 'OFFLINE'";
 
   std::shared_ptr<db::IResult> resultset = instance.query(q);
   auto row = resultset->fetch_one();
@@ -286,7 +293,6 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
 
   // Note: member_state is supposed to not be possible to be ERROR except
   // for the queried member itself, but that's not true because of a bug in GR
-
   // 8.0.2 added member_role and member_version columns
   if (instance.get_version() >= utils::Version(8, 0, 2)) {
     query =
