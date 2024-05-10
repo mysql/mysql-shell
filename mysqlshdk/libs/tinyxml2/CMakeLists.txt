@@ -26,10 +26,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(tinyxml2_SOURCES
-  ${CMAKE_SOURCE_DIR}/ext/tinyxml2-9.0.0/tinyxml2.cpp
+  ${CMAKE_SOURCE_DIR}/ext/tinyxml2-10.0.0/tinyxml2.cpp
 )
 
-set(TINYXML2_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/ext/tinyxml2-9.0.0 PARENT_SCOPE)
+set(TINYXML2_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/ext/tinyxml2-10.0.0 PARENT_SCOPE)
 
 add_convenience_library(tinyxml2
   ${tinyxml2_SOURCES}
