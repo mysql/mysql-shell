@@ -939,7 +939,8 @@ void Mysql_shell::print_connection_message(
 
 std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
-    bool recreate_schema, bool shell_global_session) {
+    bool recreate_schema, bool shell_global_session,
+    bool enable_stored_passwords) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -979,7 +980,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     shcore::Scoped_callback go_back_print_mode([this] { toggle_print(); });
 
     toggle_print();
-    isession = establish_session(connection_options, options().wizards);
+    isession = establish_session(connection_options, options().wizards, false,
+                                 enable_stored_passwords);
   }
 
   auto new_session = ShellBaseSession::wrap_session(isession);

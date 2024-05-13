@@ -851,7 +851,8 @@ int main(int argc, char **argv) {
           }
 
           // Connect to the requested instance
-          shell->connect(target, options.recreate_database);
+          shell->connect(target, options.recreate_database, true,
+                         !options.prompt_password);
 
           // If redirect is requested, then reconnect to the right instance
           handle_redirect(shell, options.redirect_session);

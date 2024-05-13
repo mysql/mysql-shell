@@ -53,7 +53,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &args,
-      bool recreate_schema = false, bool shell_global_session = true);
+      bool recreate_schema = false, bool shell_global_session = true,
+      bool enable_stored_passwords = true);
 
   bool redirect_session_if_needed(
       bool secondary, const Connection_options &opts = Connection_options());
