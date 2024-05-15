@@ -249,4 +249,5 @@ var res = mySession.sql('CALL my_proc();').execute();
 var res2 = mySession.sql('SELECT 1;').execute();
 
 //@<> cleanup
+mySession.dropSchema('js_shell_test');
 mySession.close()
