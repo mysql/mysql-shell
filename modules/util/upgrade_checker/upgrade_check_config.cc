@@ -32,6 +32,18 @@
 
 namespace mysqlsh {
 namespace upgrade_checker {
+namespace {
+std::string get_shell_os(shcore::OperatingSystem system) {
+  switch (system) {
+    case shcore::OperatingSystem::WINDOWS:
+      return "W";
+    case shcore::OperatingSystem::MACOS:
+      return "M";
+    default:
+      return "L";
+  }
+}
+}  // namespace
 
 Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format),
@@ -63,16 +75,31 @@ void Upgrade_check_config::set_session(
   if (!m_session) return;
 
   const auto result = session->query(
-      "select @@version, @@version_comment, UPPER(@@version_compile_os);");
+      "select @@version, @@version_comment, UPPER(@@version_compile_os), "
+      "@@version_compile_machine;");
 
   if (const auto row = result->fetch_one()) {
     m_upgrade_info.server_version = Version(row->get_string(0));
     m_upgrade_info.server_version_long =
         row->get_string(0) + " - " + row->get_string(1);
     m_upgrade_info.server_os = row->get_string(2);
+
+    // This comes from KNOWN_64BIT_ARCHITECTURES in the server code
+    auto version_compile_machine = row->get_string(3);
+    if (version_compile_machine.find("64") != std::string::npos ||
+        version_compile_machine == "s390x") {
+      m_upgrade_info.server_bits = 64;
+    } else {
+      m_upgrade_info.server_bits = 32;
+    }
   } else {
     throw std::runtime_error("Unable to get server version");
   }
+}
+
+void Upgrade_check_config::set_default_server_data() {
+  m_upgrade_info.server_os = get_shell_os(shcore::get_os_type());
+  m_upgrade_info.server_bits = 64;
 }
 
 std::unique_ptr<Upgrade_check_output_formatter>

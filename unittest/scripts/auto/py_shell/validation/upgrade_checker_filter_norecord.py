@@ -70,19 +70,9 @@ Excluded:
   Usage of removed GROUP BY ASC/DESC syntax
   Condition: When the upgrade reaches any of the following versions: 8.0.13
 
-- removedSysLogVars
-  Removed system variables for error logging to the system log configuration
-  Condition: When the upgrade reaches any of the following versions: 8.0.13
-
-- removedSysVars
-  Removed system variables
-  Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.13, 8.0.16, 8.2.0, 8.3.0, 8.4.0
-
-- sysVarsNewDefaults
-  System variables with new default values
-  Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.4.0
+- sysVars
+  System variable check for deprecation, removal, changes in defaults values or
+    invalid values.
 
 - zeroDates
   Zero Date, Datetime, and Timestamp values
@@ -178,10 +168,6 @@ Excluded:
   Checks for errors in column definitions
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
-- sysvarAllowedValues
-  Check for allowed values in System Variables.
-  Condition: When the upgrade reaches any of the following versions: 8.4.0
-
 - invalidPrivileges
   Checks for user privileges that will be removed
   Condition: When the upgrade reaches any of the following versions: 8.4.0
@@ -191,7 +177,7 @@ Excluded:
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
 Included: 1
-Excluded: 41
+Excluded: 38
 
 
 #@<OUT> WL15974-TSFR_3_3_2
@@ -261,19 +247,9 @@ Included:
   Usage of removed GROUP BY ASC/DESC syntax
   Condition: When the upgrade reaches any of the following versions: 8.0.13
 
-- removedSysLogVars
-  Removed system variables for error logging to the system log configuration
-  Condition: When the upgrade reaches any of the following versions: 8.0.13
-
-- removedSysVars
-  Removed system variables
-  Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.13, 8.0.16, 8.2.0, 8.3.0, 8.4.0
-
-- sysVarsNewDefaults
-  System variables with new default values
-  Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.4.0
+- sysVars
+  System variable check for deprecation, removal, changes in defaults values or
+    invalid values.
 
 - zeroDates
   Zero Date, Datetime, and Timestamp values
@@ -372,10 +348,6 @@ Included:
   Checks for errors in column definitions
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
-- sysvarAllowedValues
-  Check for allowed values in System Variables.
-  Condition: When the upgrade reaches any of the following versions: 8.4.0
-
 - invalidPrivileges
   Checks for user privileges that will be removed
   Condition: When the upgrade reaches any of the following versions: 8.4.0
@@ -387,7 +359,7 @@ Included:
 Excluded:
   Empty.
 
-Included: 42
+Included: 39
 
 
 #@<OUT> warning about excluded checks

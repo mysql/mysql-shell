@@ -33,6 +33,7 @@
 #include "modules/util/upgrade_checker/feature_life_cycle_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
+#include "modules/util/upgrade_checker/sysvar_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_condition.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/result.h"
@@ -779,105 +780,8 @@ std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check() {
   return std::make_unique<Groupby_asc_syntax_check>();
 }
 
-std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
-    const Upgrade_info &info) {
-  auto check = std::make_unique<Removed_sys_var_check>(
-      ids::k_removed_sys_log_vars_check, info);
-
-  check->add_sys_var(Version(8, 0, 13),
-                     {{"log_syslog_facility", "syseventlog.facility"},
-                      {"log_syslog_include_pid", "syseventlog.include_pid"},
-                      {"log_syslog_tag", "syseventlog.tag"},
-                      {"log_syslog", nullptr}});
-
-  return check;
-}
-
-std::unique_ptr<Removed_sys_var_check> get_removed_sys_vars_check(
-    const Upgrade_info &info) {
-  auto check = std::make_unique<Removed_sys_var_check>(
-      ids::k_removed_sys_vars_check, info);
-
-  check->add_sys_var(
-      Version(8, 0, 11),
-      {{"date_format", nullptr},
-       {"datetime_format", nullptr},
-       {"group_replication_allow_local_disjoint_gtids_join", nullptr},
-       {"have_crypt", nullptr},
-       {"ignore_builtin_innodb", nullptr},
-       {"ignore_db_dirs", nullptr},
-       {"innodb_checksums", "innodb_checksum_algorithm"},
-       {"innodb_disable_resize_buffer_pool_debug", nullptr},
-       {"innodb_file_format", nullptr},
-       {"innodb_file_format_check", nullptr},
-       {"innodb_file_format_max", nullptr},
-       {"innodb_large_prefix", nullptr},
-       {"innodb_locks_unsafe_for_binlog", nullptr},
-       {"innodb_stats_sample_pages", "innodb_stats_transient_sample_pages"},
-       {"innodb_support_xa", nullptr},
-       {"innodb_undo_logs", "innodb_rollback_segments"},
-       {"log_warnings", "log_error_verbosity"},
-       {"log_builtin_as_identified_by_password", nullptr},
-       {"log_error_filter_rules", nullptr},
-       {"max_tmp_tables", nullptr},
-       {"multi_range_count", nullptr},
-       {"old_passwords", nullptr},
-       {"query_cache_limit", nullptr},
-       {"query_cache_min_res_unit", nullptr},
-       {"query_cache_size", nullptr},
-       {"query_cache_type", nullptr},
-       {"query_cache_wlock_invalidate", nullptr},
-       {"secure_auth", nullptr},
-       {"show_compatibility_56", nullptr},
-       {"sync_frm", nullptr},
-       {"time_format", nullptr},
-       {"tx_isolation", "transaction_isolation"},
-       {"tx_read_only", "transaction_read_only"}});
-
-  check->add_sys_var(Version(8, 0, 13),
-                     {{"metadata_locks_cache_size", nullptr},
-                      {"metadata_locks_hash_instances", nullptr}});
-
-  check->add_sys_var(Version(8, 0, 16),
-                     {{"internal_tmp_disk_storage_engine", nullptr}});
-
-  check->add_sys_var(Version(8, 2, 0), {{"expire_logs_days", nullptr}});
-
-  check->add_sys_var(Version(8, 3, 0),
-                     {{"slave_rows_search_algorithms", nullptr},
-                      {"log_bin_use_v1_row_events", nullptr},
-                      {"relay_log_info_file", nullptr},
-                      {"master_info_file", nullptr},
-                      {"transaction_write_set_extraction", nullptr},
-                      {"relay_log_info_repository", nullptr},
-                      {"master_info_repository", nullptr},
-                      {"group_replication_ip_whitelist", nullptr}});
-
-  check->add_sys_var(
-      Version(8, 4, 0),
-      {{"default_authentication_plugin", "authentication_policy"},
-       {"old", nullptr},
-       {"new", nullptr},
-       {"binlog_transaction_dependency_tracking", nullptr},
-       {"group_replication_recovery_complete_at", nullptr},
-       {"profiling", nullptr},
-       {"profiling_history_size", nullptr},
-       {"avoid_temporal_upgrade", nullptr},
-       {"show_old_temporals", nullptr}});
-
-  check->add_sys_var(Version(9, 0, 0),
-                     {{"sha256_password_auto_generate_rsa_keys", nullptr},
-                      {"sha256_password_private_key_path", nullptr},
-                      {"sha256_password_proxy_users", nullptr},
-                      {"sha256_password_public_key_path", nullptr},
-                      {"mysql_native_password_proxy_users", nullptr}});
-
-  return check;
-}
-
-std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check(
-    const Upgrade_info &server_info) {
-  return std::make_unique<Sysvar_new_defaults>(server_info);
+std::unique_ptr<Sysvar_check> get_sys_vars_check(const Upgrade_info &info) {
+  return std::make_unique<Sysvar_check>(info);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
@@ -1568,11 +1472,6 @@ std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
                "s.table_name",
            Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
-}
-
-std::unique_ptr<Upgrade_check> get_sys_var_allowed_values_check(
-    const Upgrade_info &info) {
-  return std::make_unique<Sys_var_allowed_values_check>(info);
 }
 
 std::unique_ptr<Upgrade_check> get_invalid_privileges_check(

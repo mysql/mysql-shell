@@ -140,20 +140,9 @@ bool UNUSED_VARIABLE(register_groupby_syntax_check) =
         std::bind(&get_groupby_asc_syntax_check), Target::OBJECT_DEFINITIONS,
         "8.0.13");
 
-bool UNUSED_VARIABLE(register_removed_sys_log_vars_check) =
-    Upgrade_check_registry::register_check(&get_removed_sys_log_vars_check,
-                                           Target::SYSTEM_VARIABLES, "8.0.13");
-
-bool UNUSED_VARIABLE(register_removed_sys_vars_check) =
-    Upgrade_check_registry::register_check(&get_removed_sys_vars_check,
-                                           Target::SYSTEM_VARIABLES, "8.0.11",
-                                           "8.0.13", "8.0.16", "8.2.0", "8.3.0",
-                                           "8.4.0");
-
-bool UNUSED_VARIABLE(register_sys_vars_new_defaults_check) =
-    Upgrade_check_registry::register_check(&get_sys_vars_new_defaults_check,
-                                           Target::SYSTEM_VARIABLES, "8.0.11",
-                                           "8.4.0");
+bool UNUSED_VARIABLE(register_sys_vars_check) =
+    Upgrade_check_registry::register_check(get_sys_vars_check,
+                                           Target::SYSTEM_VARIABLES);
 
 bool UNUSED_VARIABLE(register_zero_dates_check) =
     Upgrade_check_registry::register_check(std::bind(&get_zero_dates_check),
@@ -275,10 +264,6 @@ bool UNUSED_VARIABLE(register_get_column_definition_check) =
     Upgrade_check_registry::register_check(
         std::bind(&get_column_definition_check), Target::OBJECT_DEFINITIONS,
         "8.4.0");
-
-bool UNUSED_VARIABLE(register_sys_var_allowed_values_check) =
-    Upgrade_check_registry::register_check(&get_sys_var_allowed_values_check,
-                                           Target::SYSTEM_VARIABLES, "8.4.0");
 
 bool UNUSED_VARIABLE(register_invalid_privileges_check) =
     Upgrade_check_registry::register_check(&get_invalid_privileges_check,

@@ -259,7 +259,9 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     std::map<std::string, Upgrade_issue::Level> group_levels;
 
     for (const auto &issue : results) {
-      grouped_issues[issue.group].insert(issue.get_db_object());
+      auto issue_desc = issue.get_db_object();
+      if (!issue.description.empty()) issue_desc += ": " + issue.description;
+      grouped_issues[issue.group].insert(issue_desc);
       group_levels[issue.group] = issue.level;
     }
 

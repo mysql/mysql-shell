@@ -205,6 +205,8 @@ void Util::check_for_server_upgrade(
 
     config.set_session(session);
     config.set_user_privileges(privileges.get());
+  } else {
+    config.set_default_server_data();
   }
 
   check_for_upgrade(config);

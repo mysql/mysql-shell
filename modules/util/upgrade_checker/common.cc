@@ -59,9 +59,7 @@ const std::set<std::string_view> all = {
     k_circular_directory_check,
     k_removed_functions_check,
     k_groupby_asc_syntax_check,
-    k_removed_sys_log_vars_check,
-    k_removed_sys_vars_check,
-    k_sys_vars_new_defaults_check,
+    k_sys_vars_check,
     k_zero_dates_check,
     k_schema_inconsistency_check,
     k_fts_in_tablename_check,
@@ -82,7 +80,6 @@ const std::set<std::string_view> all = {
     k_default_authentication_plugin_mds_check,
     k_auth_method_usage_check,
     k_plugin_usage_check,
-    k_sysvar_allowed_values_check,
     k_invalid_privileges_check,
     k_column_definition,
     k_partitions_with_prefix_keys};

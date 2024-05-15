@@ -35,13 +35,14 @@ namespace upgrade_checker {
 std::unordered_set<std::string> k_sys_schemas{"information_schema", "sys",
                                               "performance_schema", "mysql"};
 
-Upgrade_info upgrade_info(Version server, Version target,
-                          std::string server_os) {
+Upgrade_info upgrade_info(Version server, Version target, std::string server_os,
+                          size_t server_bits) {
   Upgrade_info ui;
 
   ui.server_version = std::move(server);
   ui.target_version = std::move(target);
   ui.server_os = std::move(server_os);
+  ui.server_bits = server_bits;
 
   return ui;
 }
@@ -53,13 +54,20 @@ Upgrade_info upgrade_info(const std::string &server,
 
 Upgrade_check_config create_config(std::optional<Version> server_version,
                                    std::optional<Version> target_version,
-                                   const std::string &server_os) {
+                                   const std::string &server_os,
+                                   size_t server_bits) {
   Upgrade_check_config config;
+
   if (server_version.has_value())
     config.m_upgrade_info.server_version = std::move(*server_version);
+
   if (target_version.has_value())
     config.m_upgrade_info.target_version = std::move(*target_version);
+
   if (!server_os.empty()) config.m_upgrade_info.server_os = server_os;
+
+  config.m_upgrade_info.server_bits = server_bits;
+
   return config;
 }
 
@@ -142,6 +150,15 @@ std::string remove_quoted_strings(
     result = shcore::str_replace(result, "'" + item + "'", "");
   }
   return result;
+}
+
+void override_sysvar(Checker_cache *cache, const std::string &name,
+                     const std::string &value, const std::string &source) {
+  Checker_cache::Sysvar_info sys_info;
+  sys_info.name = name;
+  sys_info.value = value;
+  sys_info.source = source;
+  cache->m_sysvars[name] = std::move(sys_info);
 }
 
 }  // namespace upgrade_checker

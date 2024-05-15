@@ -51,6 +51,8 @@ class Upgrade_check_config final {
 
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
+  void set_default_server_data();
+
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const {
     return m_session;
   }
@@ -104,7 +106,8 @@ class Upgrade_check_config final {
 
   friend Upgrade_check_config create_config(
       std::optional<Version> server_version,
-      std::optional<Version> target_version, const std::string &server_os);
+      std::optional<Version> target_version, const std::string &server_os,
+      size_t server_bits);
   const mysqlshdk::db::Filtering_options *m_db_filters = nullptr;
 };
 

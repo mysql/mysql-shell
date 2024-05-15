@@ -276,6 +276,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*
 %{_datadir}/mysqlsh/upgrade_checker.msg
+%{_datadir}/mysqlsh/sysvars.json
 %{_datadir}/mysqlsh/Docs/INFO_SRC
 %{_datadir}/mysqlsh/Docs/INFO_BIN
 %if 0%{?bundled_openssl:1}

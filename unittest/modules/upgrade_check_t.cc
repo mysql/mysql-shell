@@ -33,6 +33,7 @@
 #include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/manual_check.h"
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
+#include "modules/util/upgrade_checker/sysvar_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -152,6 +153,23 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     }
   }
 
+  void EXPECT_ISSUES(Upgrade_check *check,
+                     mysqlsh::upgrade_checker::Checker_cache *custom_cache,
+                     const int no = -1) {
+    try {
+      issues = check->run(session, info, custom_cache);
+    } catch (const std::exception &e) {
+      puts("Exception runing check:");
+      puts(e.what());
+      ASSERT_TRUE(false);
+    }
+    if (no >= 0 && no != static_cast<int>(issues.size())) {
+      for (const auto &issue : issues)
+        puts(upgrade_issue_to_string(issue).c_str());
+      ASSERT_EQ(no, issues.size());
+    }
+  }
+
   mysqlshdk::db::Filtering_options default_filtering_options() {
     mysqlshdk::db::Filtering_options options;
     options.schemas().exclude(
@@ -214,6 +232,34 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
         SCOPED_TRACE("Unexpected Issue Found");
         FAIL();
       }
+    }
+  }
+
+  void EXPECT_FIND_ISSUE(
+      const std::string &schema, const std::string &table = "",
+      const std::string &column = "",
+      const Upgrade_issue::Level level = Upgrade_issue::ERROR,
+      const std::string &desc = "") {
+    bool found = false;
+    for (auto &actual : issues) {
+      if (actual.schema == schema && actual.table == table &&
+          actual.column == column && actual.level == level &&
+          (desc.empty() || actual.description == desc)) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      Upgrade_issue issue;
+      issue.schema = schema;
+      issue.table = table;
+      issue.column = column;
+      issue.description = desc;
+      issue.level = level;
+      SCOPED_TRACE(upgrade_issue_to_string(issue));
+      SCOPED_TRACE("Expected Issue Not Found");
+      FAIL();
     }
   }
 
@@ -452,6 +498,51 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
     m_json_output = output_handler.stdout_as_json();
     return m_json_output.get_object("/checksPerformed/0/detectedProblems");
+  }
+
+  void test_removed_vars(const Version &version, bool all_variables = false) {
+    std::map<Version, std::string> sample_vars = {
+        {Version(8, 0, 3), "date_format"},
+        {Version(8, 0, 13), "metadata_locks_cache_size"},
+        {Version(8, 0, 16), "internal_tmp_disk_storage_engine"},
+        {Version(8, 2, 0), "expire_logs_days"},
+        {Version(8, 3, 0), "slave_rows_search_algorithms"},
+        {Version(8, 4, 0), "default_authentication_plugin"},
+    };
+
+    info.server_version = before_version(version);
+    if (all_variables) {
+      info.target_version = Version(MYSH_VERSION);
+    } else {
+      info.target_version = version;
+    }
+
+    auto is_removed = [](const std::vector<Sysvar_version_check> &list,
+                         const std::string name) {
+      auto it = std::ranges::find_if(
+          list, [&](const auto &ch) { return ch.name == name; });
+      if (it == list.end()) return false;
+      if (!it->removal_version.has_value()) return false;
+      return true;
+    };
+
+    auto check = get_sys_vars_check(info);
+    auto real_check = dynamic_cast<Sysvar_check *>(check.get());
+    for (const auto &item : sample_vars) {
+      SCOPED_TRACE(
+          shcore::str_format("TESTING removed variable availability "
+                             "for variable %s using version %s",
+                             item.second.c_str(), version.get_base().c_str()));
+      Upgrade_issue to_find;
+      to_find.schema = item.second;
+      to_find.level = Upgrade_issue::ERROR;
+
+      if (all_variables || item.first == version) {
+        EXPECT_TRUE(is_removed(real_check->get_checks(), item.second));
+      } else {
+        EXPECT_FALSE(is_removed(real_check->get_checks(), item.second));
+      }
+    }
   }
 
   Upgrade_info info;
@@ -1703,70 +1794,18 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
                        "'dbObjectType':'Event'}");
 }
 
-TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
-  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
-
-  std::unique_ptr<Upgrade_check> check = get_removed_sys_log_vars_check(info);
-  EXPECT_STREQ(
-      "https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
-      "news-8-0-13.html#mysqld-8-0-13-logging",
-      check->get_doc_link().c_str());
-
-  if (_target_server_version < Version(8, 0, 0)) {
-    EXPECT_THROW_LIKE(
-        check->run(session, info, &cache), Check_configuration_error,
-        "To run this check requires full path to MySQL server configuration "
-        "file to be specified at 'configPath' key of options dictionary");
-  } else {
-    EXPECT_NO_ISSUES(check.get());
-  }
-}
-
 extern "C" const char *g_test_home;
 
-namespace {
-void test_removed_vars(const Version &version, bool enabled = true,
-                       bool all_variables = false) {
-  std::map<Version, std::string> sample_vars = {
-      {Version(8, 0, 11), "date_format"},
-      {Version(8, 0, 13), "metadata_locks_cache_size"},
-      {Version(8, 0, 16), "internal_tmp_disk_storage_engine"},
-      {Version(8, 2, 0), "expire_logs_days"},
-      {Version(8, 3, 0), "slave_rows_search_algorithms"},
-      {Version(8, 4, 0), "default_authentication_plugin"},
-  };
-
-  Upgrade_info info;
-  info.server_version = before_version(version);
-  if (all_variables) {
-    info.target_version = Version(MYSH_VERSION);
-  } else {
-    info.target_version = version;
-  }
-
-  auto check = get_removed_sys_vars_check(info);
-  ASSERT_EQ(enabled, check->enabled());
-  if (enabled) {
-    auto real_check = dynamic_cast<Removed_sys_var_check *>(check.get());
-    for (const auto &item : sample_vars) {
-      SCOPED_TRACE(
-          shcore::str_format("TESTING removed variable availability "
-                             "for variable %s using version %s",
-                             item.second.c_str(), version.get_base().c_str()));
-      if (all_variables || item.first == version) {
-        EXPECT_TRUE(real_check->has_sys_var(item.second));
-      } else {
-        EXPECT_FALSE(real_check->has_sys_var(item.second));
-      }
-    }
-  }
-}
-}  // namespace
+namespace {}  // namespace
 
 TEST_F(MySQL_upgrade_check_test, removed_sys_vars_enabled) {
-  test_removed_vars(Version(8, 0, 10), false);
-  test_removed_vars(Version(8, 0, 10), true, true);  // all variables
-  test_removed_vars(Version(8, 0, 11));
+  SKIP_IF_SERVER_LOWER_THAN(Version(8, 4, 0));
+
+  auto temp_info = info;
+  auto on_exit = shcore::on_leave_scope([&]() { info = temp_info; });
+
+  test_removed_vars(Version(8, 0, 2));
+  test_removed_vars(Version(8, 0, 3));
   test_removed_vars(Version(8, 0, 13));
   test_removed_vars(Version(8, 0, 16));
   test_removed_vars(Version(8, 2, 0));
@@ -1779,139 +1818,98 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
     SKIP_TEST("This test requires 8.0+ server");
   }
 
-  cache.cache_sysvars(session.get(), info);
+  info.server_version = Version(8, 0, 26);
+  info.target_version = Version(MYSH_VERSION);
 
-  // Uses a version that will discard all the registered variables
-  info.server_version = Version(MYSH_VERSION);
-  info.target_version = after_version(info.server_version);
+  auto check = get_sys_vars_check(info);
 
-  auto check = get_removed_sys_vars_check(info);
-  EXPECT_FALSE(check->enabled());
+  Checker_cache temp_cache;
+  override_sysvar(&temp_cache, "transaction_write_set_extraction", "OFF");
+  override_sysvar(&temp_cache, "master_info_repository", "TABLE");
 
-  // Now configured the check using a variable that is not using a default value
-  check->add_sys_var(info.target_version,
-                     {{"mysqlx_port", nullptr}, {"port", "newport"}});
-  EXPECT_TRUE(check->enabled());
+  EXPECT_ISSUES(check.get(), &temp_cache);
 
-  EXPECT_ISSUES(check.get(), 2);
-  EXPECT_STREQ("mysqlx_port", issues[0].schema.c_str());
-  EXPECT_STREQ(
-      shcore::str_format("Error: The system variable 'mysqlx_port' is "
-                         "set to %s (%s) and will be removed.",
-                         m_port.c_str(),
-                         cache.get_sysvar("mysqlx_port")->source.c_str())
-          .c_str(),
-      issues[0].description.c_str());
+  EXPECT_FIND_ISSUE(
+      "transaction_write_set_extraction", "", "", Upgrade_issue::ERROR,
+      "variable removed at version 8.3.0 is set to OFF (SERVER)..");
 
-  EXPECT_STREQ("port", issues[1].schema.c_str());
-  EXPECT_STREQ(
-      shcore::str_format(
-          "Error: The system variable 'port' is set to %s (%s) "
-          "and will be removed, consider using 'newport' instead.",
-          m_mysql_port.c_str(), cache.get_sysvar("port")->source.c_str())
-          .c_str(),
-      issues[1].description.c_str());
+  EXPECT_FIND_ISSUE(
+      "master_info_repository", "", "", Upgrade_issue::ERROR,
+      "variable removed at version 8.3.0 is set to TABLE (SERVER)..");
 }
 
 TEST_F(MySQL_upgrade_check_test, removed_sys_vars_57) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 
-  std::unique_ptr<Upgrade_check> check = get_removed_sys_vars_check(info);
-  EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/"
-      "added-deprecated-removed.html#optvars-removed",
-      check->get_doc_link().c_str());
+  std::unique_ptr<Upgrade_check> check = get_sys_vars_check(info);
 
-  if (_target_server_version < Version(8, 0, 0)) {
-    EXPECT_THROW_LIKE(
-        check->run(session, info, &cache), Check_configuration_error,
-        "To run this check requires full path to MySQL server configuration "
-        "file to be specified at 'configPath' key of options dictionary");
-    auto config_path =
-        shcore::path::join_path(g_test_home, "data", "config", "uc.cnf");
-    info.config_path = config_path;
-    EXPECT_ISSUES(check.get(), 3);
-    info.config_path.clear();
-    EXPECT_STREQ("master-info-repository", issues[0].schema.c_str());
-    EXPECT_STREQ(
-        "Error: The system variable 'master-info-repository' is set to FILE "
-        "(SERVER) and will be removed.",
-        issues[0].description.c_str());
-    EXPECT_STREQ("max_tmp_tables", issues[1].schema.c_str());
-    EXPECT_STREQ(
-        "Error: The system variable 'max_tmp_tables' is set to 100 (SERVER) "
-        "and will be removed.",
-        issues[1].description.c_str());
-    EXPECT_STREQ("query-cache-type", issues[2].schema.c_str());
-    EXPECT_STREQ(
-        "Error: The system variable 'query-cache-type' is set to ON (SERVER) "
-        "and will be removed.",
-        issues[2].description.c_str());
+  EXPECT_THROW_LIKE(
+      check->run(session, info, &cache), Check_configuration_error,
+      "To run this check requires full path to MySQL server configuration "
+      "file to be specified at 'configPath' key of options dictionary");
+  auto config_path =
+      shcore::path::join_path(g_test_home, "data", "config", "uc.cnf");
+  info.config_path = config_path;
 
-    auto json_issues = execute_check_as_json(ids::k_removed_sys_vars_check,
-                                             {"--config-path", config_path});
-    ASSERT_NE(nullptr, json_issues);
+  EXPECT_ISSUES(check.get());
+  info.config_path.clear();
+  EXPECT_FIND_ISSUE(
+      "master_info_repository", "", "", Upgrade_issue::ERROR,
+      "variable removed at version 8.3.0 is set to FILE (SERVER)..");
 
-    EXPECT_JSON_CONTAINS(json_issues,
-                         "{'dbObject':'master-info-repository', "
-                         "'dbObjectType':'SystemVariable'}");
+  EXPECT_FIND_ISSUE(
+      "max_tmp_tables", "", "", Upgrade_issue::ERROR,
+      "variable removed at version 8.0.3 is set to 100 (SERVER)..");
 
-    EXPECT_JSON_CONTAINS(json_issues,
-                         "{'dbObject':'max_tmp_tables', "
-                         "'dbObjectType':'SystemVariable'}");
-
-    EXPECT_JSON_CONTAINS(json_issues,
-                         "{'dbObject':'query-cache-type', "
-                         "'dbObjectType':'SystemVariable'}");
-  } else {
-    EXPECT_NO_ISSUES(check.get());
-  }
+  EXPECT_FIND_ISSUE(
+      "query_cache_type", "", "", Upgrade_issue::ERROR,
+      "variable removed at version 8.0.3 is set to ON (SERVER)..");
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults_enabled) {
-  {
-    info.server_version = Version(MYSH_VERSION);
-    info.target_version = after_version(info.server_version);
+  auto has_sys_var = [](Sysvar_check *ch, const std::string &name) {
+    auto it = std::ranges::find_if(
+        ch->get_checks(), [&](const auto &item) { return item.name == name; });
+    if (it == ch->get_checks().end()) return false;
 
-    auto check = get_sys_vars_new_defaults_check(info);
-    EXPECT_FALSE(check->enabled());
-  }
+    return it->initial_defaults != it->updated_defaults;
+  };
 
   {
-    info.target_version = Version(8, 0, 11);
+    info.target_version = Version(8, 0, 1);
     info.server_version = before_version(info.target_version);
 
-    auto check = get_sys_vars_new_defaults_check(info);
+    auto check = get_sys_vars_check(info);
     EXPECT_TRUE(check->enabled());
 
-    auto *real_check = dynamic_cast<Sysvar_new_defaults *>(check.get());
-    EXPECT_TRUE(real_check->has_sys_var("character_set_server"));
-    EXPECT_FALSE(real_check->has_sys_var("innodb_buffer_pool_instances"));
+    auto *real_check = dynamic_cast<Sysvar_check *>(check.get());
+    EXPECT_TRUE(has_sys_var(real_check, "character_set_server"));
+    EXPECT_FALSE(has_sys_var(real_check, "innodb_buffer_pool_instances"));
   }
 
   {
     info.target_version = Version(8, 4, 0);
     info.server_version = before_version(info.target_version);
 
-    auto check = get_sys_vars_new_defaults_check(info);
+    auto check = get_sys_vars_check(info);
     EXPECT_TRUE(check->enabled());
 
-    auto *real_check = dynamic_cast<Sysvar_new_defaults *>(check.get());
-    EXPECT_FALSE(real_check->has_sys_var("character_set_server"));
-    EXPECT_TRUE(real_check->has_sys_var("innodb_buffer_pool_instances"));
+    auto *real_check = dynamic_cast<Sysvar_check *>(check.get());
+    EXPECT_FALSE(has_sys_var(real_check, "character_set_server"));
+    EXPECT_TRUE(has_sys_var(real_check, "innodb_buffer_pool_instances"));
   }
 
   {
     // Tests for variables from all versions
-    info.server_version = before_version(Version(8, 0, 11));
+    info.server_version = before_version(Version(8, 0, 1));
     info.target_version = Version(8, 4, 0);
 
-    auto check = get_sys_vars_new_defaults_check(info);
+    auto check = get_sys_vars_check(info);
     EXPECT_TRUE(check->enabled());
 
-    auto *real_check = dynamic_cast<Sysvar_new_defaults *>(check.get());
-    EXPECT_TRUE(real_check->has_sys_var("character_set_server"));
-    EXPECT_TRUE(real_check->has_sys_var("innodb_buffer_pool_instances"));
+    auto *real_check = dynamic_cast<Sysvar_check *>(check.get());
+    EXPECT_TRUE(has_sys_var(real_check, "character_set_server"));
+    EXPECT_TRUE(has_sys_var(real_check, "innodb_buffer_pool_instances"));
   }
 }
 
@@ -1921,30 +1919,21 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
   }
 
   // Uses a version that will discard all the registered variables
-  info.server_version = Version(MYSH_VERSION);
-  info.target_version = after_version(info.server_version);
+  info.server_version = Version(8, 0, 0);
+  info.target_version = Version(MYSH_VERSION);
 
-  auto check = get_sys_vars_new_defaults_check(info);
-  EXPECT_FALSE(check->enabled());
-  auto *real_check = dynamic_cast<Sysvar_new_defaults *>(check.get());
+  auto check = get_sys_vars_check(info);
 
-  // Now configured the check using a variable that is not using a default value
-  real_check->add_sys_var(info.target_version,
-                          {{"activate_all_roles_on_login", "from ON to OFF"}});
-  EXPECT_TRUE(check->enabled());
-
-  EXPECT_ISSUES(check.get(), 1);
-  EXPECT_STREQ("activate_all_roles_on_login", issues[0].schema.c_str());
-  EXPECT_STREQ("default value will change from ON to OFF.",
-               issues[0].description.c_str());
+  EXPECT_ISSUES(check.get());
+  EXPECT_FIND_ISSUE("innodb_adaptive_hash_index", "", "",
+                    Upgrade_issue::WARNING,
+                    "default value changed from ON to OFF..");
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults_57) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Upgrade_check> check = get_sys_vars_new_defaults_check(info);
-  EXPECT_STREQ("https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/",
-               check->get_doc_link().c_str());
+  std::unique_ptr<Upgrade_check> check = get_sys_vars_check(info);
 
   EXPECT_THROW_LIKE(
       check->run(session, info, &cache), Check_configuration_error,
@@ -1952,59 +1941,64 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults_57) {
       "file to be specified at 'configPath' key of options dictionary");
   info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
-  EXPECT_ISSUES(check.get(), 45);
-  EXPECT_STREQ("back_log", issues[0].schema.c_str());
-  EXPECT_STREQ("innodb_redo_log_capacity", issues.back().schema.c_str());
+  EXPECT_ISSUES(check.get());
 
-  auto json_issues = execute_check_as_json(ids::k_sys_vars_new_defaults_check,
+  EXPECT_FIND_ISSUE("character_set_database", "", "", Upgrade_issue::WARNING);
+  EXPECT_FIND_ISSUE("innodb_read_io_threads", "", "", Upgrade_issue::WARNING);
+
+  auto json_issues = execute_check_as_json(ids::k_sys_vars_check,
                                            {"--config-path", info.config_path});
   ASSERT_NE(nullptr, json_issues);
 
   EXPECT_JSON_CONTAINS(
-      json_issues, "{'dbObject':'back_log', 'dbObjectType':'SystemVariable'}");
+      json_issues,
+      "{'dbObject':'character_set_database', 'dbObjectType':'SystemVariable'}");
 
   EXPECT_JSON_CONTAINS(json_issues,
-                       "{'dbObject':'innodb_redo_log_capacity', "
+                       "{'dbObject':'innodb_read_io_threads', "
                        "'dbObjectType':'SystemVariable'}");
 
   info.config_path.clear();
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_enabled) {
-  {
-    // Upgrade starts at the version the variables can't be invalid
-    info.server_version = Version(8, 4, 0);
-    info.target_version = Version(8, 4, 1);
-    Sys_var_allowed_values_check check(info);
-    EXPECT_FALSE(check.enabled());
-  }
+  auto has_allowed_check = [](const Sysvar_check &check,
+                              const std::string &name) {
+    return std::ranges::find_if(check.get_checks(), [&](const auto &item) {
+             return item.name == name && !item.allowed_values.empty();
+           }) != check.get_checks().end();
+  };
 
   {
-    // Same after 8.4.0
-    info.server_version = Version(8, 4, 2);
-    info.target_version = Version(8, 4, 3);
-    Sys_var_allowed_values_check check(info);
-    EXPECT_FALSE(check.enabled());
-  }
-
-  {
-    // Before 8.4.0 the check should be done as the variables were registered
-    // for an upgrade to 8.4.0
     info.server_version = Version(8, 3, 0);
     info.target_version = Version(8, 4, 0);
-    Sys_var_allowed_values_check check(info);
+    Sysvar_check check(info);
     EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_sys_var("explicit_defaults_for_timestamp"));
+    EXPECT_FALSE(has_allowed_check(check, "explicit_defaults_for_timestamp"));
   }
 
   {
-    // Before 8.4.0 the check should be done as the variables were registered
-    // for an upgrade to 8.4.0
     info.server_version = Version(8, 3, 0);
     info.target_version = Version(8, 4, 1);
-    Sys_var_allowed_values_check check(info);
+    Sysvar_check check(info);
     EXPECT_TRUE(check.enabled());
-    EXPECT_TRUE(check.has_sys_var("explicit_defaults_for_timestamp"));
+    EXPECT_FALSE(has_allowed_check(check, "innodb_buffer_pool_in_core_file"));
+  }
+
+  {
+    info.server_version = Version(8, 3, 0);
+    info.target_version = Version(8, 4, 0);
+    Sysvar_check check(info);
+    EXPECT_TRUE(check.enabled());
+    EXPECT_TRUE(has_allowed_check(check, "admin_ssl_cipher"));
+  }
+
+  {
+    info.server_version = Version(8, 3, 0);
+    info.target_version = Version(8, 4, 1);
+    Sysvar_check check(info);
+    EXPECT_TRUE(check.enabled());
+    EXPECT_TRUE(has_allowed_check(check, "admin_ssl_cipher"));
   }
 }
 
@@ -2014,31 +2008,36 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values) {
   }
 
   // Uses a version that will discard all the registered variables
-  info.server_version = Version(8, 4, 0);
-  info.target_version = Version(8, 4, 1);
+  info.server_version = Version(8, 0, 21);
+  info.target_version = Version(9, 0, 0);
 
-  Sys_var_allowed_values_check check(info);
-  EXPECT_FALSE(check.enabled());
+  Checker_cache temp_cache;
+  override_sysvar(&temp_cache, "explicit_defaults_for_timestamp", "0");
+  override_sysvar(&temp_cache, "admin_ssl_cipher", "NULL");
 
-  // Now configured the check using a variable that is not using a default value
-  check.add_sys_var(Version(8, 4, 1), "port", {"ONE", "TWO", "THREE"});
+  Sysvar_check check(info);
 
-  EXPECT_TRUE(check.enabled());
+  EXPECT_ISSUES(&check, &temp_cache);
 
-  EXPECT_ISSUES(&check, 1);
-  EXPECT_EQ("port", issues[0].schema);
-  EXPECT_STREQ(
-      shcore::str_format("Error: The system variable 'port' is set to '%s', "
-                         "allowed values include: ONE, TWO, THREE\n",
-                         m_mysql_port.c_str())
-          .c_str(),
-      issues[0].description.c_str());
+  EXPECT_FIND_ISSUE(
+      "admin_ssl_cipher", "", "", Upgrade_issue::ERROR,
+      "variable is set to 'NULL', allowed "
+      "values include: ECDHE-ECDSA-AES128-GCM-SHA256, "
+      "ECDHE-ECDSA-AES256-GCM-SHA384, ECDHE-RSA-AES128-GCM-SHA256, "
+      "ECDHE-RSA-AES256-GCM-SHA384, ECDHE-ECDSA-CHACHA20-POLY1305, "
+      "ECDHE-RSA-CHACHA20-POLY1305, ECDHE-ECDSA-AES256-CCM, "
+      "ECDHE-ECDSA-AES128-CCM, DHE-RSA-AES128-GCM-SHA256, "
+      "DHE-RSA-AES256-GCM-SHA384, DHE-RSA-AES256-CCM, DHE-RSA-AES128-CCM, "
+      "DHE-RSA-CHACHA20-POLY1305, .");
+  EXPECT_FIND_ISSUE("explicit_defaults_for_timestamp", "", "",
+                    Upgrade_issue::ERROR,
+                    "variable is set to '0', allowed values include: 1.");
 }
 
 TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_57) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 
-  std::unique_ptr<Upgrade_check> check = get_sys_var_allowed_values_check(info);
+  std::unique_ptr<Upgrade_check> check = get_sys_vars_check(info);
 
   EXPECT_THROW_LIKE(
       check->run(session, info, &cache), Check_configuration_error,
@@ -2046,26 +2045,67 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_57) {
       "file to be specified at 'configPath' key of options dictionary");
   info.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
-  EXPECT_ISSUES(check.get(), 5);
-  EXPECT_EQ("admin_ssl_cipher", issues[0].schema);
-  EXPECT_EQ("admin_tls_ciphersuites", issues[1].schema);
-  EXPECT_EQ("explicit_defaults_for_timestamp", issues[2].schema);
-  EXPECT_EQ("ssl_cipher", issues[3].schema);
-  EXPECT_EQ("tls_ciphersuites", issues[4].schema);
 
-  auto json_issues = execute_check_as_json(ids::k_sysvar_allowed_values_check,
+  EXPECT_ISSUES(check.get());
+  EXPECT_FIND_ISSUE("innodb_doublewrite");
+  EXPECT_FIND_ISSUE("ssl_cipher");
+
+  auto json_issues = execute_check_as_json(ids::k_sys_vars_check,
                                            {"--config-path", info.config_path});
   ASSERT_NE(nullptr, json_issues);
 
   EXPECT_JSON_CONTAINS(
       json_issues,
-      "{'dbObject':'admin_ssl_cipher', 'dbObjectType':'SystemVariable'}");
+      "{'dbObject': 'ssl_cipher','dbObjectType': 'SystemVariable'}");
 
   EXPECT_JSON_CONTAINS(
       json_issues,
-      "{'dbObject':'admin_tls_ciphersuites', 'dbObjectType':'SystemVariable'}");
+      "{'dbObject':'innodb_doublewrite','dbObjectType':'SystemVariable'}");
 
   info.config_path.clear();
+}
+
+TEST_F(MySQL_upgrade_check_test, sys_vars_forbidden_values) {
+  if (this->_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    SKIP_TEST("This test requires 8.0+ server");
+  }
+
+  // Uses a version that will discard all the registered variables
+  info.server_version = Version(8, 1, 0);
+  info.target_version = Version(9, 0, 0);
+
+  Checker_cache temp_cache;
+  override_sysvar(&temp_cache, "replica_parallel_workers", "0");
+
+  Sysvar_check check(info);
+
+  EXPECT_ISSUES(&check, &temp_cache);
+
+  EXPECT_FIND_ISSUE("replica_parallel_workers", "", "", Upgrade_issue::ERROR,
+                    "variable is set to '0', forbidden values include: 0.");
+}
+
+TEST_F(MySQL_upgrade_check_test, sys_vars_deprecated_values) {
+  if (this->_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    SKIP_TEST("This test requires 8.0+ server");
+  }
+
+  // Uses a version that will discard all the registered variables
+  info.server_version = Version(8, 1, 0);
+  info.target_version = Version(8, 4, 0);
+
+  Checker_cache temp_cache;
+  override_sysvar(&temp_cache,
+                  "group_replication_allow_local_lower_version_join", "VALUE");
+
+  Sysvar_check check(info);
+
+  EXPECT_ISSUES(&check, &temp_cache);
+
+  EXPECT_FIND_ISSUE(
+      "group_replication_allow_local_lower_version_join", "", "",
+      Upgrade_issue::WARNING,
+      "variable deprecated at version 8.4.0 is set to VALUE (SERVER)..");
 }
 
 TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
@@ -4537,6 +4577,65 @@ TEST_F(MySQL_upgrade_check_test, incomplete_roles_privileges) {
       session->execute("grant select,process on *.* to 'priv_test'@'%';"));
 
   EXPECT_NO_THROW(util.check_for_server_upgrade());
+}
+
+TEST_F(MySQL_upgrade_check_test, sysvar_source_version_tests) {
+  auto temp_info = info;
+  auto on_exit = shcore::on_leave_scope([&]() { info = temp_info; });
+
+  const auto test_var1 = "innodb_buffer_pool_in_core_file";
+  const auto test_var1_ver = Version(8, 0, 14);
+
+  const auto test_var2 = "slave_rows_search_algorithms";
+  const auto test_var2_ver = Version(8, 3, 0);
+
+  auto has_var = [](const Sysvar_check *check, const std::string &name) {
+    return std::ranges::find_if(check->get_checks(), [&](const auto &item) {
+             return item.name == name;
+           }) != check->get_checks().end();
+  };
+
+  info.target_version = Version(MYSH_VERSION);
+
+  // WL16262-TSFR_1_1_2
+  {
+    info.server_version = before_version(test_var1_ver);
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_FALSE(has_var(check.get(), test_var1));
+  }
+  {
+    info.server_version = test_var1_ver;
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_TRUE(has_var(check.get(), test_var1));
+  }
+  {
+    info.server_version = after_version(test_var1_ver);
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_TRUE(has_var(check.get(), test_var1));
+  }
+
+  // WL16262-TSFR_1_1_2
+  {
+    info.server_version = before_version(test_var2_ver);
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_TRUE(has_var(check.get(), test_var2));
+  }
+  {
+    info.server_version = test_var2_ver;
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_FALSE(has_var(check.get(), test_var2));
+  }
+  {
+    info.server_version = after_version(test_var2_ver);
+    auto check = get_sys_vars_check(info);
+
+    EXPECT_FALSE(has_var(check.get(), test_var2));
+  }
 }
 
 }  // namespace upgrade_checker

@@ -1,0 +1,4976 @@
+[
+  {
+    "name": "group_replication_allow_local_disjoint_gtids_join",
+    "version": "5.7.17",
+    "deprecation": "5.7.21",
+    "removal": "8.0.4"
+  },
+  {
+    "name": "group_replication_allow_local_lower_version_join",
+    "version": "5.7.17",
+    "deprecation": "8.4.0"
+  },
+  {
+    "name": "group_replication_components_stop_timeout",
+    "version": "5.7.17",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "31536000 (1 Year)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "300 (5 Minutes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_consistency",
+    "version": "8.0.14",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "EVENTUAL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "BEFORE_ON_PRIMARY_FAILOVER"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_exit_state_action",
+    "version": "5.7.24",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "READ_ONLY"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.12",
+        "all": {
+          "default": {
+            "all": "ABORT_SERVER"
+          }
+        }
+      },
+      {
+        "version": "8.0.16",
+        "all": {
+          "default": {
+            "all": "READ_ONLY"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "OFFLINE_MODE"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_ip_whitelist",
+    "version": "5.7.17",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "group_replication_member_expel_timeout",
+    "version": "8.0.13",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0 (Seconds)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.21",
+        "all": {
+          "default": {
+            "all": "5 (Seconds)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_recovery_complete_at",
+    "version": "5.7.17",
+    "deprecation": "8.0.34",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "group_replication_recovery_tls_version",
+    "version": "8.0.19",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.28",
+        "all": {
+          "default": {
+            "all": "TLSv1.2,TLSv1.3"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_transaction_size_limit",
+    "version": "5.7.19",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0 (Bytes)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.38",
+        "all": {
+          "default": {
+            "all": "150000000 (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_autorejoin_tries",
+    "version": "8.0.16",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.21",
+        "all": {
+          "default": {
+            "all": "3"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_view_change_uuid",
+    "version": "8.0.26",
+    "deprecation": "8.3.0"
+  },
+  {
+    "name": "admin_ssl_cipher",
+    "version": "8.0.21",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "NULL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "ECDHE-ECDSA-AES128-GCM-SHA256",
+              "ECDHE-ECDSA-AES256-GCM-SHA384",
+              "ECDHE-RSA-AES128-GCM-SHA256",
+              "ECDHE-RSA-AES256-GCM-SHA384",
+              "ECDHE-ECDSA-CHACHA20-POLY1305",
+              "ECDHE-RSA-CHACHA20-POLY1305",
+              "ECDHE-ECDSA-AES256-CCM",
+              "ECDHE-ECDSA-AES128-CCM",
+              "DHE-RSA-AES128-GCM-SHA256",
+              "DHE-RSA-AES256-GCM-SHA384",
+              "DHE-RSA-AES256-CCM",
+              "DHE-RSA-AES128-CCM",
+              "DHE-RSA-CHACHA20-POLY1305",
+              ""
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "admin_tls_ciphersuites",
+    "version": "8.0.21",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "NULL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "TLS_AES_128_GCM_SHA256",
+              "TLS_AES_256_GCM_SHA384",
+              "TLS_CHACHA20_POLY1305_SHA256",
+              "TLS_AES_128_CCM_SHA256",
+              ""
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "admin_tls_version",
+    "version": "8.0.21",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.28",
+        "all": {
+          "default": {
+            "all": "TLSv1.2,TLSv1.3"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "audit_log_connection_policy",
+    "version": "5.6.20",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_exclude_accounts",
+    "version": "5.6.20",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_format",
+    "version": "5.5.34",
+    "changes": [
+      {
+        "version": "5.6.14",
+        "all": {
+          "default": {
+            "all": "OLD"
+          }
+        }
+      },
+      {
+        "version": "5.7.9",
+        "all": {
+          "default": {
+            "all": "NEW"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "audit_log_include_accounts",
+    "version": "5.6.20",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_policy",
+    "version": "5.5.28",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_read_buffer_size",
+    "version": "5.7.21",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1048576 (1 MB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.23",
+        "all": {
+          "default": {
+            "all": "32768 (32 KB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "1048576 (1 MB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.12",
+        "all": {
+          "default": {
+            "all": "32768 (32 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "audit_log_statement_policy",
+    "version": "5.6.20",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "authentication_fido_rp_id",
+    "version": "8.0.27",
+    "deprecation": "8.0.35",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "avoid_temporal_upgrade",
+    "version": "5.6.24",
+    "deprecation": "5.6.24",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "basedir",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "configuration-dependent default"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "parent of mysqld installation directory"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_error_action",
+    "version": "5.6.22",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "IGNORE_ERROR"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ABORT_SERVER"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_expire_logs_seconds",
+    "version": "8.0.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0 (Seconds)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "2592000 (30 Days)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_format",
+    "version": "5.1.5",
+    "deprecation": "8.0.34",
+    "changes": [
+      {
+        "version": "5.1.14",
+        "all": {
+          "default": {
+            "all": "MIXED"
+          }
+        }
+      },
+      {
+        "version": "5.1.29",
+        "all": {
+          "default": {
+            "all": "STATEMENT"
+          }
+        }
+      },
+      {
+        "version": "5.1.32",
+        "all": {
+          "default": {
+            "all": "MIXED"
+          }
+        }
+      },
+      {
+        "version": "5.5.15",
+        "all": {
+          "default": {
+            "all": "STATEMENT"
+          }
+        }
+      },
+      {
+        "version": "5.5.31",
+        "all": {
+          "default": {
+            "all": "MIXED"
+          }
+        }
+      },
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ROW"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_gtid_simple_recovery",
+    "version": "5.7.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_max_flush_queue_time",
+    "version": "5.6.6",
+    "deprecation": "5.7.9"
+  },
+  {
+    "name": "binlog_transaction_dependency_tracking",
+    "version": "5.7.22",
+    "deprecation": "8.0.35",
+    "removal": "8.4.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "COMMIT_ORDER"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.3.0",
+        "all": {
+          "default": {
+            "all": "WRITESET"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlogging_impossible_mode",
+    "version": "5.6.20",
+    "deprecation": "5.6.22",
+    "removal": "5.7.6"
+  },
+  {
+    "name": "character_set_server",
+    "version": "4.1.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "latin1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "character_set",
+    "deprecation": "4.1.1"
+  },
+  {
+    "name": "character_set_client",
+    "version": "4.1.1",
+    "changes": [
+      {
+        "version": "5.5.0",
+        "all": {
+          "default": {
+            "all": "utf8"
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "character_set_connection",
+    "version": "4.1.1",
+    "changes": [
+      {
+        "version": "5.5.0",
+        "all": {
+          "default": {
+            "all": "utf8"
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "character_set_database",
+    "version": "4.1.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "latin1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "character_set_results",
+    "version": "4.1.1",
+    "changes": [
+      {
+        "version": "5.5.0",
+        "all": {
+          "default": {
+            "all": "utf8"
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "character_set_system",
+    "version": "4.1.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "utf8"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb3"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "collation_server",
+    "version": "4.1.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "latin1_swedish_ci"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4_0900_ai_ci"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "collation_database",
+    "version": "4.1.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "latin1_swedish_ci"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "utf8mb4_0900_ai_ci"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "connection_memory_chunk_size",
+    "version": "8.0.28",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "8912 (Bytes)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.34",
+        "all": {
+          "default": {
+            "all": "8192 (8 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "create_old_temporals",
+    "version": "5.6.25",
+    "deprecation": "5.6.25",
+    "removal": "5.7.0"
+  },
+  {
+    "name": "daemon_memcached_enable_binlog",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "daemon_memcached_engine_lib_name",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "daemon_memcached_engine_lib_path",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "daemon_memcached_option",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "daemon_memcached_r_batch_size",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "daemon_memcached_w_batch_size",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "date_format",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "datetime_format",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "default_authentication_plugin",
+    "version": "5.7.2",
+    "deprecation": "8.0.27",
+    "removal": "8.4.0",
+    "replacement": "authentication_policy",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "mysql_native_password"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.4",
+        "all": {
+          "default": {
+            "all": "caching_sha2_password"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "default_password_lifetime",
+    "version": "5.7.4",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "360 (Days)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.11",
+        "all": {
+          "default": {
+            "all": "0 (Days)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "delayed_insert_limit",
+    "deprecation": "5.6.7"
+  },
+  {
+    "name": "delayed_insert_timeout",
+    "deprecation": "5.6.7"
+  },
+  {
+    "name": "delayed_queue_size",
+    "deprecation": "5.6.7"
+  },
+  {
+    "name": "enforce_gtid_consistency",
+    "version": "5.6.9",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "OFF"
+          },
+          "allowed": {
+            "all": [
+              "OFF",
+              "ON",
+              "WARN"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "eq_range_index_dive_limit",
+    "version": "5.6.5",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "10"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.4",
+        "all": {
+          "default": {
+            "all": "200"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "event_scheduler",
+    "version": "5.1.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "executed_gtids_compression_period",
+    "version": "5.7.5",
+    "removal": "5.7.6"
+  },
+  {
+    "name": "expire_logs_days",
+    "deprecation": "8.0.3",
+    "removal": "8.2.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0 (Days)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "30 (Days)"
+          }
+        }
+      },
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "0 (Days)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "explicit_defaults_for_timestamp",
+    "version": "5.6.6",
+    "deprecation": "5.6.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      },
+      {
+        "version": "9.0.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "1"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "gtid_executed_compression_period",
+    "version": "5.7.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1000"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.23",
+        "all": {
+          "default": {
+            "all": "0"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "gtid_mode",
+    "version": "5.6.5",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        },
+        "allowed": {
+          "all": [
+            "OFF",
+            "UPGRADE_STEP_1",
+            "UPGRADE_STEP_2",
+            "ON"
+          ]
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "OFF"
+          },
+          "allowed": {
+            "all": [
+              "OFF",
+              "OFF_PERMISSIVE",
+              "ON_PERMISSIVE",
+              "ON"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "have_crypt",
+    "version": "4.1.10",
+    "deprecation": "5.7.6",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "have_openssl",
+    "deprecation": "8.0.26",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "have_partition_engine",
+    "version": "5.1.1",
+    "deprecation": "5.1.6"
+  },
+  {
+    "name": "have_profiling",
+    "version": "5.0.82",
+    "deprecation": "5.6.8"
+  },
+  {
+    "name": "have_query_cache",
+    "deprecation": "5.7.20"
+  },
+  {
+    "name": "have_ssl",
+    "version": "5.0.38",
+    "deprecation": "8.0.26",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "ignore_builtin_innodb",
+    "version": "5.1.33",
+    "deprecation": "5.5.22",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "ignore_db_dirs",
+    "version": "5.6.3",
+    "deprecation": "5.7.16",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "init_slave",
+    "version": "4.1.2",
+    "deprecation": "8.0.26",
+    "replacement": "init_replica"
+  },
+  {
+    "name": "innodb_adaptive_hash_index",
+    "version": "5.0.52",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_api_bk_commit_interval",
+    "version": "5.6.7",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "innodb_api_disable_rowlock",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "innodb_api_enable_binlog",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "innodb_api_enable_mdl",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "innodb_api_trx_level",
+    "version": "5.6.6",
+    "deprecation": "8.0.22",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "innodb_autoinc_lock_mode",
+    "version": "5.1.22",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_buffer_pool_dump_at_shutdown",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_buffer_pool_dump_pct",
+    "version": "5.7.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "100"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "25"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_buffer_pool_in_core_file",
+    "version": "8.0.14",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_buffer_pool_instances",
+    "version": "5.5.4",
+    "changes": [
+      {
+        "version": "5.6.6",
+        "all": {
+          "default": {
+            "all": "8 (or 1 if innodb_buffer_pool_size < 1GB)"
+          }
+        },
+        "windows": {
+          "default": {
+            "32": "1 (or innodb_buffer_pool_size/128MB if innodb_buffer_pool_size > 1.3GB)"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "1 (or MIN(innodb_buffer_pool_size / (innodb_buffer_pool_chunk_size * 2), #vcpu/4) if innodb_buffer_pool_size > 1 GB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_buffer_pool_load_at_startup",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_change_buffering",
+    "version": "5.1.38",
+    "changes": [
+      {
+        "version": "5.5.4",
+        "all": {
+          "default": {
+            "all": "all"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "none"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_checksum_algorithm",
+    "version": "5.6.3",
+    "changes": [
+      {
+        "version": "5.6.7",
+        "all": {
+          "default": {
+            "all": "innodb"
+          }
+        }
+      },
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "crc32"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_checksums",
+    "version": "5.0.3",
+    "deprecation": "5.6.3",
+    "removal": "8.0.0",
+    "replacement": "innodb_checksum_algorithm"
+  },
+  {
+    "name": "innodb_disable_resize_buffer_pool_debug",
+    "version": "5.7.6",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "innodb_doublewrite",
+    "version": "5.0.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.30",
+        "all": {
+          "default": {
+            "all": "ON"
+          },
+          "allowed": {
+            "all": [
+              "ON",
+              "OFF",
+              "DETECT_AND_RECOVER",
+              "DETECT_ONLY"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_doublewrite_files",
+    "version": "8.0.20",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "innodb_buffer_pool_instances * 2"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_doublewrite_pages",
+    "version": "8.0.20",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "innodb_write_io_threads value"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "128"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_file_format",
+    "version": "5.1.38",
+    "deprecation": "5.7.7",
+    "removal": "8.0.0",
+    "changes": [
+      {
+        "version": "5.5.7",
+        "all": {
+          "default": {
+            "all": "Antelope"
+          }
+        }
+      },
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "Barracuda"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_file_format_check",
+    "version": "5.1.38",
+    "deprecation": "5.7.7",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "innodb_file_format_max",
+    "version": "5.5.5",
+    "deprecation": "5.7.7",
+    "removal": "8.0.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "Antelope"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.9",
+        "all": {
+          "default": {
+            "all": "Barracuda"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_flush_method",
+    "changes": [
+      {
+        "version": "5.6.7",
+        "windows": {
+          "default": {
+            "all": "NULL"
+          },
+          "allowed": {
+            "all": [
+              "async_unbuffered",
+              "normal",
+              "unbuffered"
+            ]
+          }
+        },
+        "unix": {
+          "default": {
+            "all": "NULL"
+          },
+          "allowed": {
+            "all": [
+              "fsync",
+              "O_DSYNC",
+              "littlesync",
+              "nosync",
+              "O_DIRECT",
+              "O_DIRECT_NO_FSYNC"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.0",
+        "windows": {
+          "default": {
+            "all": "unbuffered"
+          },
+          "allowed": {
+            "all": [
+              "unbuffered",
+              "normal"
+            ]
+          }
+        },
+        "unix": {
+          "default": {
+            "all": "fsync"
+          },
+          "allowed": {
+            "all": [
+              "fsync",
+              "O_DSYNC",
+              "littlesync",
+              "nosync",
+              "O_DIRECT",
+              "O_DIRECT_NO_FSYNC"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "unix": {
+          "default": {
+            "all": "O_DIRECT if supported, otherwise fsync"
+          },
+          "allowed": {
+            "all": [
+              "fsync",
+              "O_DSYNC",
+              "littlesync",
+              "nosync",
+              "O_DIRECT",
+              "O_DIRECT_NO_FSYNC"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_flush_neighbors",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "0"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_io_capacity",
+    "version": "5.1.38",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "200"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "10000"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_io_capacity_max",
+    "version": "5.6.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "2 * innodb_io_capacity, min of 2000"
+        }
+      },
+      "unix": {
+        "default": {
+          "64": "2 * innodb_io_capacity, min of 2000"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "2 * innodb_io_capacity"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_large_prefix",
+    "version": "5.5.14",
+    "deprecation": "5.7.7",
+    "removal": "8.0.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_locks_unsafe_for_binlog",
+    "version": "4.1.4",
+    "deprecation": "5.6.3",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "innodb_log_buffer_size",
+    "changes": [
+      {
+        "version": "5.4.3",
+        "all": {
+          "default": {
+            "all": "8388608 (8 MB)"
+          }
+        }
+      },
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "16777216 (16 MB)"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "67108864 (64 MB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_log_checksum_algorithm",
+    "version": "5.7.8",
+    "removal": "5.7.9"
+  },
+  {
+    "name": "innodb_log_file_size",
+    "deprecation": "8.0.30"
+  },
+  {
+    "name": "innodb_log_files_in_group",
+    "deprecation": "8.0.30"
+  },
+  {
+    "name": "innodb_log_wait_for_flush_spin_hwm",
+    "version": "8.0.11",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "400 (Microseconds)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "64": "400 (Microseconds)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_lru_scan_depth",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1024"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "64": "1024"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_max_dirty_pages_pct",
+    "changes": [
+      {
+        "version": "5.4.0",
+        "all": {
+          "default": {
+            "all": "75"
+          }
+        }
+      },
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "90"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_max_dirty_pages_pct_lwm",
+    "version": "5.6.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "10"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_additional_mem_pool_size",
+    "deprecation": "5.6.3",
+    "removal": "5.7.4"
+  },
+  {
+    "name": "innodb_numa_interleave",
+    "version": "5.6.27",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_optimize_point_storage",
+    "version": "5.7.5",
+    "removal": "5.7.6"
+  },
+  {
+    "name": "innodb_page_cleaners",
+    "version": "5.7.4",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.8",
+        "all": {
+          "default": {
+            "all": "4"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "innodb_buffer_pool_instances"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_parallel_read_threads",
+    "version": "8.0.14",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "4"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "(available logical processors / 8), min of 4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_purge_threads",
+    "version": "5.5.4",
+    "changes": [
+      {
+        "version": "5.6.5",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      },
+      {
+        "version": "5.7.8",
+        "all": {
+          "default": {
+            "all": "4"
+          }
+        }
+      },
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "1 if # of available logical processors is <= 16; otherwise 4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_read_io_threads",
+    "version": "5.1.38",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "4"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.3.0",
+        "all": {
+          "default": {
+            "all": "(available logical processors / 2), min of 4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_redo_log_capacity",
+    "version": "8.0.30",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "104857600"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "MIN ( #vcpu/2, 16 )GB"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_scan_directories",
+    "version": "8.0.2",
+    "removal": "8.0.4"
+  },
+  {
+    "name": "innodb_stats_sample_pages",
+    "version": "5.1.38",
+    "deprecation": "5.6.3",
+    "removal": "8.0.0",
+    "replacement": "innodb_stats_transient_sample_pages"
+  },
+  {
+    "name": "innodb_strict_mode",
+    "version": "5.1.38",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_support_xa",
+    "version": "5.0.3",
+    "deprecation": "5.7.10",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "innodb_undo_log_truncate",
+    "version": "5.7.5",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_undo_logs",
+    "version": "5.6.3",
+    "deprecation": "5.7.19",
+    "removal": "8.0.2",
+    "replacement": "innodb_rollback_segments"
+  },
+  {
+    "name": "innodb_undo_tablespaces",
+    "version": "5.6.3",
+    "deprecation": "5.7.21",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_use_fdatasync",
+    "version": "8.0.26",
+    "initial": {
+      "linux": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "linux": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_use_sys_malloc",
+    "version": "5.1.38",
+    "deprecation": "5.6.3",
+    "removal": "5.7.4"
+  },
+  {
+    "name": "internal_tmp_disk_storage_engine",
+    "version": "5.7.5",
+    "removal": "8.0.16",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "MYISAM"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "INNODB"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "keyring_aws_region",
+    "version": "5.7.19",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "us-east-1"
+        },
+        "allowed": {
+          "all": [
+            "ap-northeast-1",
+            "ap-northeast-2",
+            "ap-south-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "eu-central-1",
+            "eu-west-1",
+            "sa-east-1",
+            "us-east-1",
+            "us-west-1",
+            "us-west-2"
+          ]
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.27",
+        "all": {
+          "default": {
+            "all": "us-east-1"
+          },
+          "allowed": {
+            "all": [
+              "ap-northeast-1",
+              "ap-northeast-2",
+              "ap-south-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "ca-central-1",
+              "cn-north-1",
+              "cn-northwest-1",
+              "eu-central-1",
+              "eu-west-1",
+              "eu-west-2",
+              "eu-west-3",
+              "sa-east-1",
+              "us-east-1",
+              "us-east-2",
+              "us-west-1",
+              "us-west-2"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.39",
+        "all": {
+          "default": {
+            "all": "us-east-1"
+          },
+          "allowed": {
+            "all": [
+              "af-south-1",
+              "ap-east-1",
+              "ap-northeast-1",
+              "ap-northeast-2",
+              "ap-northeast-3",
+              "ap-south-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "ca-central-1",
+              "cn-north-1",
+              "cn-northwest-1",
+              "eu-central-1",
+              "eu-north-1",
+              "eu-south-1",
+              "eu-west-1",
+              "eu-west-2",
+              "eu-west-3",
+              "me-south-1",
+              "sa-east-1",
+              "us-east-1",
+              "us-east-2",
+              "us-gov-east-1",
+              "us-iso-east-1",
+              "us-iso-west-1",
+              "us-isob-east-1",
+              "us-west-1",
+              "us-west-2"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "us-east-1"
+          },
+          "allowed": {
+            "all": [
+              "ap-northeast-1",
+              "ap-northeast-2",
+              "ap-south-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "eu-central-1",
+              "eu-west-1",
+              "sa-east-1",
+              "us-east-1",
+              "us-west-1",
+              "us-west-2"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.17",
+        "all": {
+          "default": {
+            "all": "us-east-1"
+          },
+          "allowed": {
+            "all": [
+              "ap-northeast-1",
+              "ap-northeast-2",
+              "ap-south-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "ca-central-1",
+              "cn-north-1",
+              "cn-northwest-1",
+              "eu-central-1",
+              "eu-west-1",
+              "eu-west-2",
+              "eu-west-3",
+              "sa-east-1",
+              "us-east-1",
+              "us-east-2",
+              "us-west-1",
+              "us-west-2"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.30",
+        "all": {
+          "default": {
+            "all": "us-east-1"
+          },
+          "allowed": {
+            "all": [
+              "af-south-1",
+              "ap-east-1",
+              "ap-northeast-1",
+              "ap-northeast-2",
+              "ap-northeast-3",
+              "ap-south-1",
+              "ap-southeast-1",
+              "ap-southeast-2",
+              "ca-central-1",
+              "cn-north-1",
+              "cn-northwest-1",
+              "eu-central-1",
+              "eu-north-1",
+              "eu-south-1",
+              "eu-west-1",
+              "eu-west-2",
+              "eu-west-3",
+              "me-south-1",
+              "sa-east-1",
+              "us-east-1",
+              "us-east-2",
+              "us-gov-east-1",
+              "us-iso-east-1",
+              "us-iso-west-1",
+              "us-isob-east-1",
+              "us-west-1",
+              "us-west-2"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "keyring_encrypted_file_data",
+    "version": "5.7.21",
+    "deprecation": "8.0.34",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_encrypted_file_password",
+    "version": "5.7.21",
+    "deprecation": "8.0.34",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_file_data",
+    "version": "5.7.11",
+    "deprecation": "8.0.34",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_ca_certificate",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_compartment",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_encryption_endpoint",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_key_file",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_key_fingerprint",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_management_endpoint",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_master_key",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_secrets_endpoint",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_tenancy",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_user",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_vaults_endpoint",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "keyring_oci_virtual_vault",
+    "version": "8.0.22",
+    "deprecation": "8.0.31",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "language",
+    "deprecation": "5.5.0",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "local_infile",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_bin_trust_function_creators",
+    "version": "5.0.16",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "log-update",
+    "deprecation": "5.0.0"
+  },
+  {
+    "name": "log-warnings",
+    "deprecation": "5.7.2",
+    "removal": "8.0.3",
+    "changes": [
+      {
+        "version": "5.5.3",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      },
+      {
+        "version": "5.7.2",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_backward_compatible_user_definitions",
+    "version": "5.7.6",
+    "removal": "5.7.9"
+  },
+  {
+    "name": "log_bin",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_bin_use_v1_row_events",
+    "version": "5.1.56",
+    "deprecation": "8.0.18",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "log_builtin_as_identified_by_password",
+    "version": "5.7.9",
+    "removal": "8.0.11"
+  },
+  {
+    "name": "log_error_filter_rules",
+    "version": "8.0.2",
+    "removal": "8.0.4"
+  },
+  {
+    "name": "log_error_verbosity",
+    "version": "5.7.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "3"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.4",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_slave_updates",
+    "deprecation": "8.0.26",
+    "replacement": "log_slave_updates",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_slow_slave_statements",
+    "version": "5.6.11",
+    "deprecation": "8.0.26",
+    "replacement": "log_slow_replica_statements"
+  },
+  {
+    "name": "log_statements_unsafe_for_binlog",
+    "version": "5.7.11",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "log_syslog",
+    "version": "5.7.5",
+    "deprecation": "8.0.2",
+    "removal": "8.0.13",
+    "initial": {
+      "windows": {
+        "default": {
+          "all": "ON"
+        }
+      },
+      "unix": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_syslog_facility",
+    "version": "5.7.5",
+    "removal": "8.0.13",
+    "replacement": "syseventlog.facility"
+  },
+  {
+    "name": "log_syslog_include_pid",
+    "version": "5.7.5",
+    "removal": "8.0.13",
+    "replacement": "syseventlog.include_pid"
+  },
+  {
+    "name": "log_syslog_tag",
+    "version": "5.7.5",
+    "removal": "8.0.13",
+    "replacement": "syseventlog.tag"
+  },
+  {
+    "name": "master_info_repository",
+    "version": "5.6.2",
+    "deprecation": "8.0.23",
+    "removal": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "FILE"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "TABLE"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "master_verify_checksum",
+    "version": "5.6.2",
+    "deprecation": "8.0.26"
+  },
+  {
+    "name": "max_allowed_packet",
+    "changes": [
+      {
+        "version": "5.6.6",
+        "all": {
+          "default": {
+            "all": "4194304 (4 MB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "67108864 (64 MB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "max_delayed_threads",
+    "deprecation": "5.6.7"
+  },
+  {
+    "name": "max_error_count",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "64"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "1024"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "max_insert_delayed_threads",
+    "deprecation": "5.6.7"
+  },
+  {
+    "name": "max_length_for_sort_data",
+    "version": "4.1.1",
+    "deprecation": "8.0.20",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1024 (1 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "4096 (4 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "max_long_data_size",
+    "version": "5.1.57",
+    "deprecation": "5.1.57"
+  },
+  {
+    "name": "max_statement_time",
+    "version": "5.7.4",
+    "removal": "5.7.8"
+  },
+  {
+    "name": "max_tmp_tables",
+    "deprecation": "5.6.7",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "metadata_locks_cache_size",
+    "version": "5.5.19",
+    "deprecation": "5.7.4",
+    "removal": "8.0.13"
+  },
+  {
+    "name": "metadata_locks_hash_instances",
+    "version": "5.6.8",
+    "deprecation": "5.7.4",
+    "removal": "8.0.13"
+  },
+  {
+    "name": "myisam_max_extra_sort_file_size",
+    "deprecation": "5.0.6"
+  },
+  {
+    "name": "myisam_repair_threads",
+    "deprecation": "5.7.38",
+    "removal": "5.7.39"
+  },
+  {
+    "name": "ndb-default-column-format",
+    "version": "5.7.11",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "DYNAMIC"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.16",
+        "all": {
+          "default": {
+            "all": "FIXED"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb-wait-connected",
+    "version": "5.1.16",
+    "changes": [
+      {
+        "version": "5.1.56",
+        "all": {
+          "default": {
+            "all": "30 (Seconds)"
+          }
+        }
+      },
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "120 (2 Minutes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb-wait-setup",
+    "version": "5.1.39",
+    "changes": [
+      {
+        "version": "5.1.56",
+        "all": {
+          "default": {
+            "all": "30 (Seconds)"
+          }
+        }
+      },
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "120 (2 Minutes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb_autoincrement_prefetch_sz",
+    "version": "4.1.8",
+    "changes": [
+      {
+        "version": "5.5.15",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      },
+      {
+        "version": "8.0.19",
+        "all": {
+          "default": {
+            "all": "512"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb_cache_check_time",
+    "deprecation": "5.7.20",
+    "removal": "8.0.1"
+  },
+  {
+    "name": "ndb_default_column_format",
+    "version": "5.7.11",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "DYNAMIC"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.16",
+        "all": {
+          "default": {
+            "all": "FIXED"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb_log_bin",
+    "version": "5.1.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.16",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb_read_backup",
+    "version": "5.7.12",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.19",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "Ndb_replica_max_replicated_epoch",
+    "deprecation": "8.0.23"
+  },
+  {
+    "name": "ndb_report_thresh_binlog_epoch_slip",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "3"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.16",
+        "all": {
+          "default": {
+            "all": "10"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ndb_slave_conflict_role",
+    "version": "5.6.20",
+    "deprecation": "8.0.23",
+    "replacement": "ndb_conflict_role"
+  },
+  {
+    "name": "new",
+    "deprecation": "8.0.35",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "old",
+    "version": "5.1.18",
+    "deprecation": "8.0.35",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "old_passwords",
+    "deprecation": "5.7.6",
+    "removal": "8.0.11",
+    "changes": [
+      {
+        "version": "5.6.6",
+        "all": {
+          "default": {
+            "all": "0"
+          },
+          "allowed": {
+            "all": [
+              "0",
+              "1",
+              "2"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.5",
+        "all": {
+          "default": {
+            "all": "0"
+          },
+          "allowed": {
+            "all": [
+              "0",
+              "2"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "optimizer_switch",
+    "version": "5.1.34",
+    "changes": [
+      {
+        "version": "5.6.9",
+        "all": {
+          "default": {
+            "all": "''"
+          },
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.5",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.6",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.8",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.33",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "prefer_ordering_index={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.3",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.13",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.18",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "hash_join={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.21",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "hash_join={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "prefer_ordering_index={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "subquery_to_derived={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.22",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_condition_pushdown={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "hash_join={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "prefer_ordering_index={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "subquery_to_derived={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "optimizer_trace_max_mem_size",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "16384 (16 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.4",
+        "all": {
+          "default": {
+            "all": "1048576 (1 MB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "optimizer_use_mrr",
+    "version": "5.2.4",
+    "removal": "6.0.14"
+  },
+  {
+    "name": "performance_schema_max_cond_classes",
+    "version": "5.5.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "80"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.13",
+        "all": {
+          "default": {
+            "all": "100"
+          }
+        }
+      },
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "150"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_file_classes",
+    "version": "5.5.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "50"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.9",
+        "all": {
+          "default": {
+            "all": "80"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_memory_classes",
+    "version": "5.7.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "250"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.5",
+        "all": {
+          "default": {
+            "all": "320"
+          }
+        }
+      },
+      {
+        "version": "8.0.0",
+        "all": {
+          "default": {
+            "all": "350"
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "450"
+          }
+        }
+      },
+      {
+        "version": "8.2.0",
+        "all": {
+          "default": {
+            "all": "470"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_mutex_classes",
+    "version": "5.5.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "200"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "220"
+          }
+        }
+      },
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "250"
+          }
+        }
+      },
+      {
+        "version": "8.0.12",
+        "all": {
+          "default": {
+            "all": "300"
+          }
+        }
+      },
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "350"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_program_instances",
+    "version": "5.7.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "5000"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "-1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_rwlock_classes",
+    "version": "5.5.3",
+    "changes": [
+      {
+        "version": "5.6.15",
+        "all": {
+          "default": {
+            "all": "40"
+          }
+        }
+      },
+      {
+        "version": "5.7.0",
+        "all": {
+          "default": {
+            "all": "30"
+          }
+        }
+      },
+      {
+        "version": "5.7.3",
+        "all": {
+          "default": {
+            "all": "40"
+          }
+        }
+      },
+      {
+        "version": "5.7.25",
+        "all": {
+          "default": {
+            "all": "50"
+          }
+        }
+      },
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "60"
+          }
+        }
+      },
+      {
+        "version": "8.0.12",
+        "all": {
+          "default": {
+            "all": "100"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_stage_classes",
+    "version": "5.6.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "150"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.13",
+        "all": {
+          "default": {
+            "all": "175"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_max_thread_classes",
+    "version": "5.5.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "50"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "100"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_setup_actors_size",
+    "version": "5.6.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "100"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "-1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_setup_objects_size",
+    "version": "5.6.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "100"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "-1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_show_processlist",
+    "version": "5.7.39",
+    "deprecation": "8.0.35"
+  },
+  {
+    "name": "profiling",
+    "version": "5.0.37",
+    "deprecation": "5.6.8"
+  },
+  {
+    "name": "profiling_history_size",
+    "version": "5.0.37",
+    "deprecation": "5.6.8"
+  },
+  {
+    "name": "pseudo_slave_mode",
+    "version": "5.5.30",
+    "deprecation": "8.0.26",
+    "replacement": "pseudo_replica_mode"
+  },
+  {
+    "name": "query_cache_limit",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "query_cache_min_res_unit",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "query_cache_size",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3",
+    "initial": {
+      "all": {
+        "default": {
+          "64": "0 (Bytes)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.6.8",
+        "all": {
+          "default": {
+            "all": "1048576 (1 MB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "0 (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "query_cache_type",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "query_cache_wlock_invalidate",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "query_prealloc_size",
+    "deprecation": "8.0.29"
+  },
+  {
+    "name": "range_alloc_block_size",
+    "initial": {
+      "all": {
+        "default": {
+          "32": "4096 (4 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.5.3",
+        "all": {
+          "default": {
+            "64": "4096 (4 KB)"
+          }
+        }
+      },
+      {
+        "version": "5.7.9",
+        "all": {
+          "default": {
+            "all": "4096 (4 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "range_optimizer_max_mem_size",
+    "version": "5.7.9",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1536000 (1500 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.12",
+        "all": {
+          "default": {
+            "all": "8388608 (8 MB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "relay_log_info_file",
+    "version": "4.1.1",
+    "deprecation": "8.0.18",
+    "removal": "8.3.0"
+  },
+  {
+    "name": "relay_log_info_repository",
+    "version": "5.6.2",
+    "deprecation": "8.0.23",
+    "removal": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "FILE"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "TABLE"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "replica_allow_batching",
+    "version": "8.0.26",
+    "changes": [
+      {
+        "version": "5.1.19",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      },
+      {
+        "version": "8.0.30",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "restrict_fk_on_non_standard_key",
+    "version": "8.4.0",
+    "deprecation": "8.4.0"
+  },
+  {
+    "name": "rpl_recovery_rank",
+    "deprecation": "5.5.3"
+  },
+  {
+    "name": "rpl_stop_slave_timeout",
+    "version": "5.6.13",
+    "deprecation": "8.0.26",
+    "replacement": "rpl_stop_replica_timeout"
+  },
+  {
+    "name": "secure_auth",
+    "version": "4.1.1",
+    "deprecation": "5.7.5",
+    "removal": "8.0.3",
+    "changes": [
+      {
+        "version": "5.6.5",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      },
+      {
+        "version": "5.7.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          },
+          "allowed": {
+            "all": [
+              "OFF",
+              "ON"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.5",
+        "all": {
+          "default": {
+            "all": "ON"
+          },
+          "allowed": {
+            "all": [
+              "ON"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "secure_file_priv",
+    "version": "5.0.38",
+    "changes": [
+      {
+        "version": "5.6.34",
+        "all": {
+          "default": {
+            "all": "platform specific"
+          },
+          "allowed": {
+            "all": [
+              "empty string",
+              "dirname",
+              "NULL"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.0",
+        "all": {
+          "default": {
+            "all": "empty string"
+          },
+          "allowed": {
+            "all": [
+              "empty string",
+              "dirname"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.6",
+        "all": {
+          "default": {
+            "all": "platform specific"
+          },
+          "allowed": {
+            "all": [
+              "empty string",
+              "dirname",
+              "NULL"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "server_id",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.3",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sha256_password_auto_generate_rsa_keys",
+    "version": "5.7.5",
+    "deprecation": "8.0.16"
+  },
+  {
+    "name": "sha256_password_private_key_path",
+    "version": "5.6.6",
+    "deprecation": "8.0.16"
+  },
+  {
+    "name": "sha256_password_proxy_users",
+    "version": "5.7.7",
+    "deprecation": "8.0.16"
+  },
+  {
+    "name": "sha256_password_public_key_path",
+    "version": "5.6.6",
+    "deprecation": "8.0.16"
+  },
+  {
+    "name": "show_compatibility_56",
+    "version": "5.7.6",
+    "deprecation": "5.7.6",
+    "removal": "8.0.1",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.8",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "show_old_temporals",
+    "version": "5.6.24",
+    "deprecation": "5.6.24",
+    "removal": "8.4.0"
+  },
+  {
+    "name": "simplified_binlog_gtid_recovery",
+    "version": "5.7.5",
+    "deprecation": "5.6.23",
+    "removal": "5.7.6"
+  },
+  {
+    "name": "skip-slave-start",
+    "deprecation": "8.0.26",
+    "replacement": "skip_replica_start"
+  },
+  {
+    "name": "slave_load_tmpdir",
+    "deprecation": "8.0.26",
+    "replacement": "replica_load_tmpdir"
+  },
+  {
+    "name": "slave_net_timeout",
+    "deprecation": "8.0.26",
+    "replacement": "replica_net_timeout",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "3600 (1 Hour)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "60 (1 Minute)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave-skip-errors",
+    "deprecation": "8.0.26",
+    "replacement": "replica_skip_errors"
+  },
+  {
+    "name": "slave_allow_batching",
+    "version": "5.1.19",
+    "deprecation": "8.0.26",
+    "replacement": "replica_allow_batching",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.30",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_checkpoint_group",
+    "version": "5.6.3",
+    "deprecation": "8.0.26",
+    "replacement": "replica_checkpoint_group"
+  },
+  {
+    "name": "slave_checkpoint_period",
+    "version": "5.6.3",
+    "deprecation": "8.0.26",
+    "replacement": "replica_checkpoint_period"
+  },
+  {
+    "name": "slave_compressed_protocol",
+    "deprecation": "8.0.18",
+    "replacement": "replica_compressed_protocol"
+  },
+  {
+    "name": "slave_max_allowed_packet",
+    "version": "5.1.64",
+    "deprecation": "8.0.26",
+    "replacement": "replica_max_allowed_packet"
+  },
+  {
+    "name": "slave_parallel_type",
+    "version": "5.7.2",
+    "deprecation": "8.0.26",
+    "replacement": "replica_parallel_type",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "DATABASE"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "LOGICAL_CLOCK"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "replica_parallel_type",
+    "version": "8.0.26",
+    "deprecation": "8.0.29",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "DATABASE"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "LOGICAL_CLOCK"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_parallel_workers",
+    "version": "5.6.3",
+    "deprecation": "8.0.26",
+    "replacement": "replica_parallel_workers",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "4"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "replica_parallel_workers",
+    "version": "8.0.26",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "4"
+          }
+        }
+      },
+      {
+        "version": "9.0.0",
+        "all": {
+          "forbidden": {
+            "all": [
+              "0"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_pending_jobs_size_max",
+    "version": "5.6.3",
+    "deprecation": "8.0.26",
+    "replacement": "replica_pending_jobs_size_max",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "16M (Bytes)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.12",
+        "all": {
+          "default": {
+            "all": "128M (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_preserve_commit_order",
+    "version": "5.7.5",
+    "deprecation": "8.0.26",
+    "replacement": "replica_preserve_commit_order",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "replica_preserve_commit_order",
+    "version": "8.0.26",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_rows_search_algorithms",
+    "version": "5.6.6",
+    "deprecation": "8.0.18",
+    "removal": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "TABLE_SCAN,INDEX_SCAN"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "INDEX_SCAN,HASH_SCAN"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "slave_sql_verify_checksum",
+    "version": "5.6.2",
+    "deprecation": "8.0.26",
+    "replacement": "replica_sql_verify_checksum"
+  },
+  {
+    "name": "slave_transaction_retries",
+    "version": "4.1.11",
+    "deprecation": "8.0.26",
+    "replacement": "replica_transaction_retries"
+  },
+  {
+    "name": "slave_type_conversions",
+    "version": "5.1.44",
+    "deprecation": "8.0.26",
+    "replacement": "replica_type_conversions",
+    "changes": [
+      {
+        "version": "5.6.13",
+        "all": {
+          "default": {
+            "all": ""
+          },
+          "allowed": {
+            "all": [
+              "ALL_LOSSY",
+              "ALL_NON_LOSSY",
+              "ALL_SIGNED",
+              "ALL_UNSIGNED"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.0",
+        "all": {
+          "default": {
+            "all": ""
+          },
+          "allowed": {
+            "all": [
+              "ALL_LOSSY",
+              "ALL_NON_LOSSY"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.2",
+        "all": {
+          "default": {
+            "all": ""
+          },
+          "allowed": {
+            "all": [
+              "ALL_LOSSY",
+              "ALL_NON_LOSSY",
+              "ALL_SIGNED",
+              "ALL_UNSIGNED"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sql-mode",
+    "changes": [
+      {
+        "version": "5.6.6",
+        "all": {
+          "default": {
+            "all": "NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_CREATE_USER",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_FIELD_OPTIONS",
+              "NO_KEY_OPTIONS",
+              "NO_TABLE_OPTIONS",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.5",
+        "all": {
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_CREATE_USER",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_FIELD_OPTIONS",
+              "NO_KEY_OPTIONS",
+              "NO_TABLE_OPTIONS",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_AUTO_CREATE_USER NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_CREATE_USER",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_FIELD_OPTIONS",
+              "NO_KEY_OPTIONS",
+              "NO_TABLE_OPTIONS",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.8",
+        "all": {
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_ZERO_IN_DATE NO_ZERO_DATE ERROR_FOR_DIVISION_BY_ZERO NO_AUTO_CREATE_USER NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_CREATE_USER",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_FIELD_OPTIONS",
+              "NO_KEY_OPTIONS",
+              "NO_TABLE_OPTIONS",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.1",
+        "all": {
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_ZERO_IN_DATE NO_ZERO_DATE ERROR_FOR_DIVISION_BY_ZERO NO_AUTO_CREATE_USER NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_CREATE_USER",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_FIELD_OPTIONS",
+              "NO_KEY_OPTIONS",
+              "NO_TABLE_OPTIONS",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES",
+              "TIME_TRUNCATE_FRACTIONAL"
+            ]
+          }
+        }
+      },
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_ZERO_IN_DATE NO_ZERO_DATE ERROR_FOR_DIVISION_BY_ZERO NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES",
+              "TIME_TRUNCATE_FRACTIONAL"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sql_slave_skip_counter",
+    "deprecation": "8.0.26",
+    "replacement": "sql_replica_skip_counter"
+  },
+  {
+    "name": "ssl_cipher",
+    "version": "5.0.23",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "NULL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "ECDHE-ECDSA-AES128-GCM-SHA256",
+              "ECDHE-ECDSA-AES256-GCM-SHA384",
+              "ECDHE-RSA-AES128-GCM-SHA256",
+              "ECDHE-RSA-AES256-GCM-SHA384",
+              "ECDHE-ECDSA-CHACHA20-POLY1305",
+              "ECDHE-RSA-CHACHA20-POLY1305",
+              "ECDHE-ECDSA-AES256-CCM",
+              "ECDHE-ECDSA-AES128-CCM",
+              "DHE-RSA-AES128-GCM-SHA256",
+              "DHE-RSA-AES256-GCM-SHA384",
+              "DHE-RSA-AES256-CCM",
+              "DHE-RSA-AES128-CCM",
+              "DHE-RSA-CHACHA20-POLY1305",
+              ""
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "ssl_fips_mode",
+    "version": "8.0.11",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "storage_engine",
+    "version": "4.1.2",
+    "removal": "5.7.5"
+  },
+  {
+    "name": "sync_binlog",
+    "version": "4.1.3",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.7",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "sync_frm",
+    "deprecation": "5.7.6",
+    "removal": "8.0.0"
+  },
+  {
+    "name": "sync_master_info",
+    "version": "6.0.11",
+    "deprecation": "8.0.26"
+  },
+  {
+    "name": "sync_relay_log_info",
+    "version": "6.0.11",
+    "deprecation": "8.0.34"
+  },
+  {
+    "name": "table_open_cache",
+    "version": "5.1.3",
+    "changes": [
+      {
+        "version": "5.6.8",
+        "all": {
+          "default": {
+            "all": "2000"
+          }
+        }
+      },
+      {
+        "version": "8.0.4",
+        "all": {
+          "default": {
+            "all": "4000"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "table_open_cache_instances",
+    "version": "5.6.6",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.7.8",
+        "all": {
+          "default": {
+            "all": "16"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "temptable_max_mmap",
+    "version": "8.0.23",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1073741824 (1 GB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "0 (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "temptable_max_ram",
+    "version": "8.0.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1073741824 (1 GB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "3% of total memory: min 1 GB, max 4 GB (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "temptable_use_mmap",
+    "version": "8.0.16",
+    "deprecation": "8.0.26",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "thread_concurrency",
+    "deprecation": "5.6.1",
+    "removal": "5.7.2"
+  },
+  {
+    "name": "thread_handling",
+    "version": "5.1.17",
+    "changes": [
+      {
+        "version": "5.5.16",
+        "all": {
+          "default": {
+            "all": "one-thread-per-connection"
+          },
+          "allowed": {
+            "all": [
+              "no-threads",
+              "one-thread-per-connection",
+              "loaded-dynamically"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.0",
+        "all": {
+          "default": {
+            "all": "one-thread-per-connection"
+          },
+          "allowed": {
+            "all": [
+              "no-threads",
+              "one-thread-per-connection"
+            ]
+          }
+        }
+      },
+      {
+        "version": "5.7.9",
+        "all": {
+          "default": {
+            "all": "one-thread-per-connection"
+          },
+          "allowed": {
+            "all": [
+              "no-threads",
+              "one-thread-per-connection",
+              "loaded-dynamically"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "thread_pool_size",
+    "version": "5.5.16",
+    "removal": "6.0.14"
+  },
+  {
+    "name": "thread_stack",
+    "initial": {
+      "all": {
+        "default": {
+          "32": "196608 (192 KB)",
+          "64": "262144 (256 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.5.3",
+        "all": {
+          "default": {
+            "64": "262144 (256 KB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "32": "221184 (216 KB)",
+            "64": "286720 (280 KB)"
+          }
+        }
+      },
+      {
+        "version": "8.0.27",
+        "all": {
+          "default": {
+            "all": "1048576 (1 MB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "time_format",
+    "removal": "8.0.3"
+  },
+  {
+    "name": "timed_mutexes",
+    "version": "5.0.3",
+    "deprecation": "5.5.39",
+    "removal": "5.7.5"
+  },
+  {
+    "name": "tls_ciphersuites",
+    "version": "8.0.16",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "NULL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.4.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "TLS_AES_128_GCM_SHA256",
+              "TLS_AES_256_GCM_SHA384",
+              "TLS_CHACHA20_POLY1305_SHA256",
+              "TLS_AES_128_CCM_SHA256",
+              ""
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "tls_version",
+    "version": "5.7.10",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "TLSv1,TLSv1.1,TLSv1.2"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.16",
+        "all": {
+          "default": {
+            "all": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3"
+          }
+        }
+      },
+      {
+        "version": "8.0.28",
+        "all": {
+          "default": {
+            "all": "TLSv1.2,TLSv1.3"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "transaction_alloc_block_size",
+    "initial": {
+      "all": {
+        "default": {
+          "64": "8192 (8 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.5.43",
+        "all": {
+          "default": {
+            "all": "8192 (8 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "transaction_prealloc_size",
+    "deprecation": "8.0.29",
+    "initial": {
+      "all": {
+        "default": {
+          "64": "4096 (4 KB)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "5.5.43",
+        "all": {
+          "default": {
+            "all": "4096 (4 KB)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "transaction_write_set_extraction",
+    "version": "5.7.6",
+    "deprecation": "8.0.26",
+    "removal": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.2",
+        "all": {
+          "default": {
+            "all": "XXHASH64"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "tx_isolation",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3",
+    "replacement": "transaction_isolation"
+  },
+  {
+    "name": "tx_read_only",
+    "version": "5.6.5",
+    "deprecation": "5.7.20",
+    "removal": "8.0.3",
+    "replacement": "transaction_read_only"
+  },
+  {
+    "name": "validate_password.check_user_name",
+    "version": "8.0.4",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "validate_password_check_user_name",
+    "version": "5.7.15",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_consumer_events_transactions_current",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "performance_schema_consumer_events_transactions_history",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "log_warnings",
+    "removal": "8.0.11",
+    "replacement": "log_error_verbosity"
+  },
+  {
+    "name": "master_info_file",
+    "removal": "8.3.0"
+  }
+]

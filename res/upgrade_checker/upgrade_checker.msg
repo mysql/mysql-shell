@@ -192,49 +192,6 @@ that ASC/DESC keyword is removed from GROUP BY clause and placed in appropriate 
 * groupbyAscSyntax.docLink
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-sql-syntax
 
-* removedSysLogVars.title
-Removed system variables for error logging to the system log configuration
-
-* removedSysLogVars.description
-Error: System variables related to logging using OS facilities (the Event Log on Windows, and
-syslog on Unix and Unix-like systems) have been removed. Where appropriate, the removed system
-variables were replaced with new system variables managed by the log_sink_syseventlog error log
-component. Installations that used the old system variable names must update their configuration
-to use the new variable names.
-
-* removedSysLogVars.docLink
-https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
-
-* removedSysVars.title
-Removed system variables
-
-* removedSysVars.description
-Error: Following system variables that were detected as being used will be removed. Please update
-your system to not rely on them before the upgrade.
-
-* removedSysVars.issue
-The system variable '%item%' is set to %value% (%source%) and will be removed
-
-* removedSysVars.replacement
-consider using '%replacement%' instead
-
-* removedSysVars.docLink
-https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-removed
-
-* sysVarsNewDefaults.title
-System variables with new default values
-
-* sysVarsNewDefaults.description
-Warning: Following system variables that are not defined in your configuration file will have new
-default values. Please review if you rely on their current values and if so define them before
-performing upgrade.
-
-* sysVarsNewDefaults.issue
-default value will change
-
-* sysVarsNewDefaults.docLink
-https://dev.mysql.com/blog-archive/new-defaults-in-mysql-8-0/
-
 * zeroDates.title
 Zero Date, Datetime, and Timestamp values
 
@@ -556,15 +513,6 @@ https://dev.mysql.com/doc/refman/8.0/en/keyring-encrypted-file-component.html
 * pluginUsage.keyring_oci.docLink
 https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/keyring-oci-plugin.html
 
-* sysvarAllowedValues.title
-Check for allowed values in System Variables.
-
-* sysvarAllowedValues.description
-The following system variables are using values that are not allowed.\n
-
-* sysvarAllowedValues.issue
-The system variable '%variable%' is set to '%value%', allowed values include: %allowed%\n
-
 * invalidPrivileges.title
 Checks for user privileges that will be removed
 
@@ -601,3 +549,66 @@ before upgrading to 8.4.0.
 
 * partitionsWithPrefixKeys.docLink
 https://dev.mysql.com/doc/refman/8.0/en/partitioning-limitations.html
+
+* sysVars.title
+System variable check for deprecation, removal, changes in defaults values or invalid values.
+
+* sysVars.description
+Following system variables that were detected as being used ware changed, deprecated or removed. Please update 
+your system accordingly before the upgrade.
+
+* sysVars.description.removed
+The following system variables that were detected as being used will be removed. Please update 
+your system to not rely on them before the upgrade.
+
+* sysVars.description.removedLogging
+System variables related to logging using OS facilities (the Event Log on Windows, and
+syslog on Unix and Unix-like systems) have been removed. Where appropriate, the removed system
+variables were replaced with new system variables managed by the log_sink_syseventlog error log
+component. Installations that used the old system variable names must update their configuration
+to use the new variable names.
+
+* sysVars.description.allowedValues
+The following system variables that were detected as being used are using values that are 
+invalid in the target version.
+
+* sysVars.description.forbiddenValues
+The following system variables that were detected as being used are using values that are 
+invalid in the target version.
+
+* sysVars.description.newDefaults
+The following system variables that are not defined in your configuration file will have 
+new default values. Please review if you rely on their current values and if so, explicitly 
+define them before performing upgrade.
+
+* sysVars.description.deprecated
+The following system variables that were detected as being used are deprecated. 
+Consider updating your system to not rely on them before the upgrade.
+
+* sysVars.issue.deprecated
+variable deprecated at version %deprecated_version% is set to %value% (%source%).
+
+* sysVars.issue.removed
+variable removed at version %removed_version% is set to %value% (%source%).
+
+* sysVars.issue.removedLogging
+log variable removed at version %removed_version% is set to %value% (%source%).
+
+* sysVars.issue.newDefaults
+default value changed from %initial_default% to %updated_default%.
+
+* sysVars.issue.allowedValues
+variable is set to '%value%', allowed values include: %allowed%
+
+* sysVars.issue.forbiddenValues
+variable is set to '%value%', forbidden values include: %forbidden%
+
+* sysVars.replacement
+consider using '%replacement%' instead
+
+* sysVars.docLink.removed
+https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-removed
+https://dev.mysql.com/doc/refman/8.4/en/added-deprecated-removed.html#optvars-removed
+
+* sysVars.docLink.removedLogging
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging

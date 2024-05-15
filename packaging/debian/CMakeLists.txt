@@ -256,6 +256,7 @@ usr/share/mysqlsh/Docs/INFO_BIN     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
 usr/share/mysqlsh/adminapi-metadata/* usr/share/mysqlsh/adminapi-metadata
 usr/share/mysqlsh/upgrade_checker.msg
+usr/share/mysqlsh/sysvars.json
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages
 usr/lib/mysqlsh/yparser

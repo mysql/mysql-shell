@@ -21,10 +21,15 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+
+file(GLOB UPGRADE_CHECKER_RESOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg
+    ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/sysvars.json)
+
 add_custom_target(upgrade_checker_resources ALL)
 install_bundled_files(
     DESCRIPTION "upgrade checker resource"
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg"
+    FILES ${UPGRADE_CHECKER_RESOURCES}
     DESTINATION "${INSTALL_SHAREDIR}"
     TARGET upgrade_checker_resources
 )

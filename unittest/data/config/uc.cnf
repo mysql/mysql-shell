@@ -91,6 +91,7 @@ ssl_cipher=ECDHE-ECDSA-AES128-GCM-INVALID
 admin_ssl_cipher=ECDHE-ECDSA-AES128-GCM-INVALID
 tls_ciphersuites=TLS_AES_128_GCM_INVALID
 admin_tls_ciphersuites=TLS_AES_128_GCM_INVALID
+innodb_doublewrite=DISABLED
 
 
 [delete_section]

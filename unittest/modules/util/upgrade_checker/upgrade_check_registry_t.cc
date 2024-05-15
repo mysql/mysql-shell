@@ -64,9 +64,6 @@ TEST(Upgrade_check_registry, messages) {
   // If not the case, the correct info should be set
   additional_checks[ids::k_innodb_rowformat_check] = {false, {}};
   additional_checks[ids::k_table_command_check] = {false, {}};
-  additional_checks[ids::k_removed_sys_vars_check] = {true,
-                                                      {"issue", "replacement"}};
-  additional_checks[ids::k_sys_vars_new_defaults_check] = {true, {"issue"}};
   additional_checks[ids::k_schema_inconsistency_check] = {false, {}};
   additional_checks[ids::k_fts_in_tablename_check] = {false, {}};
   additional_checks[ids::k_engine_mixup_check] = {false, {}};
@@ -93,11 +90,18 @@ TEST(Upgrade_check_registry, messages) {
        "keyring_file.docLink", "keyring_encrypted_file.docLink",
        "keyring_oci.docLink"}};
 
-  additional_checks[ids::k_sysvar_allowed_values_check] = {false, {"issue"}};
   additional_checks[ids::k_column_definition] = {
       false, {"floatAutoIncrement", "doubleAutoIncrement"}};
   additional_checks[ids::k_invalid_privileges_check] = {false, {}};
   additional_checks[ids::k_partitions_with_prefix_keys] = {true, {"issue"}};
+  additional_checks[ids::k_sys_vars_check] = {
+      false,
+      {"description.removed", "description.removedLogging",
+       "description.allowedValues", "description.forbiddenValues",
+       "description.newDefaults", "description.deprecated", "issue.deprecated",
+       "issue.removed", "issue.removedLogging", "issue.newDefaults",
+       "issue.allowedValues", "issue.forbiddenValues", "replacement",
+       "docLink.removed", "docLink.removedLogging"}};
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();
@@ -145,10 +149,20 @@ namespace {
 std::set<std::string_view> positive;
 std::set<std::string_view> negative;
 
+bool has_sys_var(Sysvar_check *ch, const std::string &name,
+                 const std::string &group) {
+  auto it = std::ranges::find_if(
+      ch->get_checks(), [&](const auto &item) { return item.name == name; });
+  if (it == ch->get_checks().end()) return false;
+  if (group == "allowedValues") return !it->allowed_values.empty();
+  return false;
+}
+
 void test_check_availability(
     std::string_view name, bool availability,
     const std::vector<std::pair<Version, Version>> &versions,
-    const std::string &feature = "", const std::string &server_os = "") {
+    const std::string &feature = "", const std::string &server_os = "",
+    const std::string &group = "") {
   // Track the checks that have been verified
   if (availability) {
     positive.insert(name);
@@ -176,9 +190,9 @@ void test_check_availability(
             break;
           }
           const auto sys_var_values_check =
-              dynamic_cast<Sys_var_allowed_values_check *>(check.get());
+              dynamic_cast<Sysvar_check *>(check.get());
           if (sys_var_values_check) {
-            found = sys_var_values_check->has_sys_var(feature);
+            found = has_sys_var(sys_var_values_check, feature, group);
             break;
           }
         }
@@ -222,8 +236,7 @@ TEST(Upgrade_check_registry, create_checklist) {
         ids::k_default_authentication_plugin_check,
         ids::k_default_authentication_plugin_mds_check}},
       {Version(8, 0, 12), {ids::k_columns_which_cannot_have_defaults_check}},
-      {Version(8, 0, 13),
-       {ids::k_groupby_asc_syntax_check, ids::k_removed_sys_log_vars_check}},
+      {Version(8, 0, 13), {ids::k_groupby_asc_syntax_check}},
       {Version(8, 0, 17), {ids::k_circular_directory_check}},
       {Version(8, 0, 29), {ids::k_deprecated_temporal_delimiter_check}},
       {Version(8, 0, 31), {ids::k_dollar_sign_name_check}},
@@ -343,16 +356,9 @@ TEST(Upgrade_check_registry, create_checklist) {
                            {Version(8, 0, 17), Version(8, 0, 30)},
                            {Version(8, 0, 31), vShell}});
 
-  test_check_availability(ids::k_sys_vars_new_defaults_check, true,
-                          {{v5_7_0, Version(8, 0, 11)},
-                           {Version(8, 0, 11), Version(8, 4, 0)},
-                           {v5_7_0, vShell}});
-
-  test_check_availability(
-      ids::k_sys_vars_new_defaults_check, false,
-      {{v5_7_0, Version(8, 0, 10)},
-       {Version(8, 0, 11), Version(8, 3, 0)},
-       {Version(8, 4, 0), after_version(Version(8, 4, 0))}});
+  // Check unavaliability impossible due to present deprecated sysvars that ware
+  // never removed
+  test_check_availability(ids::k_sys_vars_check, true, {{v5_7_0, vShell}});
 
   // authentication_fido:
   // Introduced: 8.0.27
@@ -471,42 +477,22 @@ TEST(Upgrade_check_registry, create_checklist) {
       "keyring_oci");
 
   // Not included in upgrades that don't cross 8.4.0
-  for (const auto &item :
-       {"explicit_defaults_for_timestamp", "ssl_cipher", "admin_ssl_cipher",
-        "tls_ciphersuites", "admin_tls_ciphersuites"}) {
-    test_check_availability(ids::k_sysvar_allowed_values_check, false,
-                            {{Version(8, 2, 0), Version(8, 3, 0)},
-                             {Version(8, 4, 0), Version(8, 4, 1)},
-                             {Version(8, 4, 1), Version(8, 4, 2)}},
-                            item);
-
+  for (const auto &item : {"admin_ssl_cipher", "admin_tls_ciphersuites"}) {
+    test_check_availability(ids::k_sys_vars_check, false,
+                            {{Version(8, 0, 0), Version(8, 1, 0)},
+                             {Version(8, 2, 0), Version(8, 3, 0)}},
+                            item, "", "allowedValues");
     // Included in upgrades that get/cross 8.4.0
-    test_check_availability(ids::k_sysvar_allowed_values_check, true,
+    test_check_availability(ids::k_sys_vars_check, true,
                             {{Version(8, 3, 0), Version(8, 4, 0)},
-                             {Version(8, 3, 0), Version(8, 4, 1)}},
-                            item);
+                             {Version(8, 4, 0), Version(8, 4, 1)}},
+                            item, "", "allowedValues");
   }
-
-  test_check_availability(ids::k_removed_sys_vars_check, true,
-                          {{Version(8, 0, 10), Version(8, 0, 11)},
-                           {Version(8, 0, 12), Version(8, 0, 13)},
-                           {Version(8, 0, 15), Version(8, 0, 16)},
-                           {Version(8, 1, 0), Version(8, 2, 0)},
-                           {Version(8, 2, 0), Version(8, 3, 0)},
-                           {Version(8, 3, 0), Version(8, 4, 0)}});
-
-  test_check_availability(ids::k_removed_sys_vars_check, false,
-                          {{v5_7_0, Version(8, 0, 10)},
-                           {Version(8, 0, 11), Version(8, 0, 12)},
-                           {Version(8, 0, 13), Version(8, 0, 15)},
-                           {Version(8, 0, 16), Version(8, 1, 99)},
-                           {Version(8, 2, 0), Version(8, 2, 99)},
-                           {Version(8, 3, 0), Version(8, 3, 99)},
-                           {Version(8, 4, 0), Version(8, 4, 1)}});
 
   {
     // Tests without positive verification are marked as done
     positive.insert(ids::k_innodb_rowformat_check);  // Not used
+    positive.insert(ids::k_sys_vars_check);
 
     std::set<std::string_view> missing;
     std::set_difference(ids::all.begin(), ids::all.end(), positive.begin(),
@@ -524,6 +510,7 @@ TEST(Upgrade_check_registry, create_checklist) {
     // Tests without negative verification are marked as done
     negative.insert(ids::k_table_command_check);     // Always enabled
     negative.insert(ids::k_innodb_rowformat_check);  // Not used
+    negative.insert(ids::k_sys_vars_check);
 
     std::set<std::string_view> missing;
     std::set_difference(ids::all.begin(), ids::all.end(), negative.begin(),

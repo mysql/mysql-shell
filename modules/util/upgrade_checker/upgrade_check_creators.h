@@ -34,6 +34,7 @@
 
 #include "modules/util/upgrade_checker/common.h"
 #include "modules/util/upgrade_checker/sql_upgrade_check.h"
+#include "modules/util/upgrade_checker/sysvar_check.h"
 #include "modules/util/upgrade_checker/upgrade_check.h"
 
 namespace mysqlsh {
@@ -57,13 +58,7 @@ get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_circular_directory_check();
 std::unique_ptr<Sql_upgrade_check> get_removed_functions_check();
 std::unique_ptr<Sql_upgrade_check> get_groupby_asc_syntax_check();
-std::unique_ptr<Upgrade_check> get_removed_sys_log_vars_check(
-    const Upgrade_info &info);
-std::unique_ptr<Removed_sys_var_check> get_removed_sys_vars_check(
-    const Upgrade_info &info);
-
-std::unique_ptr<Upgrade_check> get_sys_vars_new_defaults_check(
-    const Upgrade_info &info);
+std::unique_ptr<Sysvar_check> get_sys_vars_check(const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check();
 std::unique_ptr<Sql_upgrade_check> get_schema_inconsistency_check();
 std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check();
@@ -92,8 +87,6 @@ using Formatter = std::function<std::string(
 std::unique_ptr<Upgrade_check> get_auth_method_usage_check(
     const Upgrade_info &info);
 std::unique_ptr<Upgrade_check> get_plugin_usage_check(const Upgrade_info &info);
-std::unique_ptr<Upgrade_check> get_sys_var_allowed_values_check(
-    const Upgrade_info &info);
 std::unique_ptr<Upgrade_check> get_invalid_privileges_check(
     const Upgrade_info &info);
 

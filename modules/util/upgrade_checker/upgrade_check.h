@@ -84,61 +84,6 @@ class Upgrade_check {
   std::vector<std::string> m_groups;
 };
 
-class Removed_sys_var_check : public Upgrade_check {
- public:
-  Removed_sys_var_check(const std::string_view name,
-                        const Upgrade_info &server_info);
-
-  void add_sys_var(const Version &version,
-                   std::map<std::string, const char *> removed_vars);
-  bool has_sys_var(const std::string &name) const;
-  bool enabled() const override;
-
-  std::vector<Upgrade_issue> run(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info, Checker_cache *cache) override;
-
- protected:
-  std::map<std::string, const char *> m_vars;
-  const Upgrade_info &m_server_info;
-};
-
-class Sys_var_allowed_values_check : public Upgrade_check {
- public:
-  explicit Sys_var_allowed_values_check(const Upgrade_info &server_info);
-
-  void add_sys_var(const Version &version, const std::string &name,
-                   const std::vector<std::string> &defaults);
-  bool has_sys_var(const std::string &name) const;
-  bool enabled() const override;
-
-  std::vector<Upgrade_issue> run(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info, Checker_cache *cache) override;
-
- private:
-  std::map<std::string, std::vector<std::string>> m_sys_vars;
-  const Upgrade_info &m_server_info;
-};
-
-class Sysvar_new_defaults : public Upgrade_check {
- public:
-  using Sysvar_defaults = std::map<std::string, const char *>;
-  explicit Sysvar_new_defaults(const Upgrade_info &server_info);
-
-  void add_sys_var(Version version, const Sysvar_defaults &defaults);
-  bool has_sys_var(const std::string &name) const;
-  bool enabled() const override;
-
-  std::vector<Upgrade_issue> run(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info, Checker_cache *cache) override;
-
- protected:
-  const Upgrade_info &m_server_info;
-  std::map<Version, Sysvar_defaults> m_version_defaults;
-};
-
 class Invalid_privileges_check : public Upgrade_check {
  public:
   explicit Invalid_privileges_check(const Upgrade_info &server_info);

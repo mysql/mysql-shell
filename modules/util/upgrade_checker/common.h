@@ -70,11 +70,7 @@ inline constexpr std::string_view k_removed_functions_check =
     "removedFunctions";
 inline constexpr std::string_view k_groupby_asc_syntax_check =
     "groupbyAscSyntax";
-inline constexpr std::string_view k_removed_sys_log_vars_check =
-    "removedSysLogVars";
-inline constexpr std::string_view k_removed_sys_vars_check = "removedSysVars";
-inline constexpr std::string_view k_sys_vars_new_defaults_check =
-    "sysVarsNewDefaults";
+inline constexpr std::string_view k_sys_vars_check = "sysVars";
 inline constexpr std::string_view k_zero_dates_check = "zeroDates";
 inline constexpr std::string_view k_schema_inconsistency_check =
     "schemaInconsistency";
@@ -106,8 +102,6 @@ inline constexpr std::string_view k_default_authentication_plugin_mds_check =
     "defaultAuthenticationPluginMds";
 inline constexpr std::string_view k_auth_method_usage_check = "authMethodUsage";
 inline constexpr std::string_view k_plugin_usage_check = "pluginUsage";
-inline constexpr std::string_view k_sysvar_allowed_values_check =
-    "sysvarAllowedValues";
 inline constexpr std::string_view k_invalid_privileges_check =
     "invalidPrivileges";
 inline constexpr std::string_view k_column_definition = "columnDefinition";
@@ -151,6 +145,7 @@ struct Upgrade_info {
   std::string server_os;
   std::string config_path;
   bool explicit_target_version;
+  size_t server_bits;
 
   void validate(bool listing = false) const;
 };
@@ -242,6 +237,10 @@ class Checker_cache {
   mysqlshdk::db::Query_helper m_query_helper;
   std::unordered_map<std::string, Table_info> m_tables;
   std::unordered_map<std::string, Sysvar_info> m_sysvars;
+
+  friend void override_sysvar(Checker_cache *cache, const std::string &name,
+                              const std::string &value,
+                              const std::string &source);
 };
 
 const std::string &get_translation(const char *item);

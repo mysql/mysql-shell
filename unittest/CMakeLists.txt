@@ -97,6 +97,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/feature_upgrade_check_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/upgrade_check_registry_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/upgrade_check_creators_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/util/upgrade_checker/sysvar_upgrade_check_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cli_operation_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"

@@ -52,13 +52,15 @@ extern std::unordered_map<std::string, Version> k_latest_versions;
 extern std::unordered_set<std::string> k_sys_schemas;
 
 Upgrade_info upgrade_info(Version server, Version target,
-                          std::string server_os = "");
+                          std::string server_os = "LINUX",
+                          size_t server_bits = 64);
 
 Upgrade_info upgrade_info(const std::string &server, const std::string &target);
 
 Upgrade_check_config create_config(std::optional<Version> server_version = {},
                                    std::optional<Version> target_version = {},
-                                   const std::string &server_os = "");
+                                   const std::string &server_os = "LINUX",
+                                   size_t server_bits = 64);
 
 Version before_version(const Version &version);
 
@@ -76,6 +78,11 @@ class Upgrade_checker_test : public Shell_core_test_wrapper {
 std::string remove_quoted_strings(const std::string &source,
                                   const std::unordered_set<std::string> &items);
 
+class Checker_cache;
+
+void override_sysvar(Checker_cache *cache, const std::string &name,
+                     const std::string &value,
+                     const std::string &source = "SERVER");
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 
