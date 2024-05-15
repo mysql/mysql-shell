@@ -3206,6 +3206,10 @@ session.run_sql("DROP INDEX `ordinal` ON !.!", [ tested_schema, tested_table ])
 TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("2 chunks (18 rows, 447 bytes) for 1 tables in 1 schemas were loaded")
 
+# BUG#36493316 - dump with ocimds:true should not fail saying that table does not have a primary key
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "ocimds": True, "showProgress": False })
+
+# cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> WL15887 - setup
