@@ -123,4 +123,5 @@ println(row[1])
 println(row[2])
 println(row[3])
 
+mySession.runSql('drop schema if exists js_shell_test');
 mySession.close()

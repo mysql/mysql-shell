@@ -571,4 +571,5 @@ result = mySession.run_sql("select count(*) from mysql.user")
 columns = result.get_columns()
 print("Count(*) Type:", columns[0].get_type().data)
 
+schema = mySession.drop_schema('py_shell_test')
 mySession.close()

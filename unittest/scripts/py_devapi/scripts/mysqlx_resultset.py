@@ -292,5 +292,7 @@ result = mySession.run_sql("select NULL")
 print([c.column_label for c in result.columns])
 print(result.column_names)
 
+
 #@<> cleanup
+mySession.drop_schema('js_shell_test')
 mySession.close()

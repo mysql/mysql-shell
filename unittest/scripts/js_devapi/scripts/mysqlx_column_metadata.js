@@ -568,4 +568,5 @@ println('Collation Name:', formatCollation(column.getCollationName()));
 println('Charset Name:', column.getCharacterSetName());
 println('Is ZeroFill:', column.isZeroFill());
 
+mySession.dropSchema('py_shell_test')
 mySession.close();

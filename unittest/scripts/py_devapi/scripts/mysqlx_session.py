@@ -272,4 +272,5 @@ mysqlx.get_session(["bla"])
 mysqlx.get_session(None)
 
 # Cleanup
+mySession.drop_schema('testSP')
 mySession.close()

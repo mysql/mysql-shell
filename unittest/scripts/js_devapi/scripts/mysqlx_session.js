@@ -306,4 +306,5 @@ mysqlx.getSession(["bla"])
 mysqlx.getSession(null)
 
 // Cleanup
+mySession.dropSchema('testSP');
 mySession.close();
