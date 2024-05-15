@@ -943,13 +943,6 @@ Shell_options::Shell_options(
       // still don't know what session type to use
       storage.connection_data.set_scheme("mysql");
     }
-    // if connection options were specified but nothing about password, then
-    // prompt by default
-    if (storage.has_connection_data(true) &&
-        !storage.connection_data.has_password() &&
-        !storage.connection_data.has_needs_password(0)) {
-      storage.connection_data.set_needs_password(0, true);
-    }
 
     check_password_conflicts();
     check_ssh_conflicts();
