@@ -128,9 +128,9 @@ get_connection_map(const Connection_options &connection_options);
  *         connection cannot be established using both X and MySQL protocol
  * @throws mysqlshdk::db::Error if session could not be established
  */
-std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
-establish_session(const Connection_options &options, bool prompt_for_password,
-                  bool prompt_in_loop = false);
+std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC establish_session(
+    const Connection_options &options, bool prompt_for_password,
+    bool prompt_in_loop = false, bool enable_stored_passwords = true);
 
 /**
  * Forces the session to use MySQL protocol changing the scheme to "mysql",

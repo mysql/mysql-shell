@@ -488,9 +488,38 @@ void password_prompt(Connection_options *options) {
 
 }  // namespace
 
+/**
+ * Password Retrieval Logic
+ *
+ * When attempting to create a connection the connection data will be taken from
+ * the following sources in order of precedence:
+ *
+ * 1) Options File
+ * 2) Login Path
+ * 3) Command line options
+ * 4) Stored Password
+ * 5) Interactive Password Prompt
+ *
+ * Connection Option Resolution
+ * ============================
+ * Fron 1 to 3 the last connection option found overrides earlier occurrences.
+ *
+ * In 3, the right-most option overrides any previous definition.
+ *
+ * 4 and 5 are specific to passwords and are used only if the password is not
+ * defined by any of the previous means.
+ *
+ *
+ * Disabling Elements
+ * ==================
+ * Usage of options file is disabled through --no-defaults
+ * Usage of Login Path is disabled through --no-login-paths
+ * Usage of Stored Passwords is disabled through -p
+ */
+
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop) {
+    bool prompt_in_loop, bool /*enable_stored_passwords*/) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -505,7 +534,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     }
 
     // TODO(alfredo) - password storage for MFA needs to be figured out
-    if (!copy.has_password() && copy.has_user()) {
+    if (copy.has_user() && !copy.should_prompt_password(0, true)) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
         try {
           return create_session(copy);

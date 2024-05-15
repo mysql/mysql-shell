@@ -121,11 +121,37 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   bool has_needs_password(int factor) const;
 
   bool needs_password(int factor) const;
-  bool should_prompt_password(int factor) const {
-    return (!has_mfa_password(factor) && has_needs_password(factor) &&
-            needs_password(factor)) ||
-           // prompt for password1 by default
-           (factor == 0 && !has_needs_password(0) && !has_password());
+
+  /**
+   * This function returns a boolean indicating if the password should be
+   * prompted.
+   *
+   * @param mandatory indicates the function to return true only if the prompt
+   * is mandatory
+   *
+   * By default the function will return true if the password is missing for
+   * factor 0. If mandatory is true or the factor is not 0, the function will
+   * only return true if the password is missing and one of the password options
+   * was used:
+   *
+   * -p
+   * -password
+   * -password1
+   * -password2
+   * -password3
+   */
+  bool should_prompt_password(int factor, bool mandatory = false) const {
+    if (has_mfa_password(factor)) {
+      return false;
+    }
+
+    // Only the first factor uses prompt by default, otherwise it needs to be
+    // explicitly requested (with needs_password)
+    if (mandatory || factor > 0) {
+      return has_needs_password(factor) && needs_password(factor);
+    } else {
+      return !has_needs_password(factor) || needs_password(factor);
+    }
   }
 
   bool has_data() const override;
