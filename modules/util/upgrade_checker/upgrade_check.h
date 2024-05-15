@@ -46,10 +46,13 @@ class Upgrade_check {
 
   virtual const std::string &get_name() const { return m_name; }
   virtual const std::string &get_title() const;
-  virtual std::string get_description(const std::string &group = "") const;
+  virtual std::string get_description(
+      const std::string &group = "",
+      const Token_definitions &tokens = {}) const;
   virtual const std::string &get_doc_link(const std::string &group = "") const;
   virtual bool is_runnable() const { return true; }
   virtual bool is_multi_lvl_check() const { return false; }
+  std::vector<std::string> get_solutions(const std::string &group = "") const;
 
   virtual std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,

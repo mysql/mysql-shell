@@ -2009,7 +2009,7 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values) {
   EXPECT_EQ("port", issues[0].schema);
   EXPECT_STREQ(
       shcore::str_format("Error: The system variable 'port' is set to '%s', "
-                         "allowed values include: ONE, TWO, THREE\n",
+                         "allowed values include: ONE, TWO, THREE",
                          m_mysql_port.c_str())
           .c_str(),
       issues[0].description.c_str());

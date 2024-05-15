@@ -43,6 +43,119 @@ def get_members(object):
 ##
 
 
+def __split_trim_join(text):
+    needle = '\n'
+    s = [t.rstrip() for t in text.split(needle)]
+    return {'str': needle.join(s), 'array': s}
+
+
+def __check_wildcard_match(expected, actual):
+    if 0 == len(expected):
+        return expected == actual
+
+    needle = '[[*]]'
+    strings = expected.split(needle)
+    start = 0
+
+    for line in strings:
+        idx = actual.find(line, start)
+
+        if idx < 0:
+            return False
+
+        start = idx + len(line)
+
+    if strings[-1] == '':
+        # expected ends with wildcard
+        start = len(actual)
+
+    return start == len(actual)
+
+
+def __multi_value_compare(expected, actual):
+    start = expected.find('{{')
+
+    if (start < 0):
+        return __check_wildcard_match(expected, actual)
+    else:
+        end = expected.find('}}')
+        pre = expected[0, start]
+        post = expected[end + 2]
+        opts = expected[start + 2, end]
+
+        for item in opts.split('|'):
+            if __check_wildcard_match(pre + item + post, actual):
+                return True
+
+        return False
+
+
+def __find_line_matching(expected, actual_lines, start_at=0):
+    actual_index = start_at
+
+    while actual_index < len(actual_lines):
+        if __multi_value_compare(expected, actual_lines[actual_index]):
+            break
+        else:
+            actual_index = actual_index + 1
+
+    return actual_index
+
+
+def __diff_with_error(arr, error, idx):
+    needle = '\n'
+    copy = arr.copy()
+    copy[idx] += error
+    return needle.join(copy)
+
+
+def __check_multiline_expect(expected_lines, actual_lines):
+    diff = ''
+    matches = True
+    needle = '\n'
+
+    while '' == expected_lines[0] or '[[*]]' == expected_lines[0]:
+        expected_lines.pop(0)
+
+    actual_index = __find_line_matching(expected_lines[0], actual_lines)
+
+    if actual_index < len(actual_lines):
+        for expected_index in range(len(expected_lines)-1):
+            if '[[*]]' == expected_lines[expected_index]:
+                if expected_index == len(expected_lines) - 1:
+                    continue  # Ignores [[*]] if at the end of the expectation
+                else:
+                    expected_index = expected_index + 1
+
+                    actual_index = __find_line_matching(
+                        expected_lines[expected_index], actual_lines, actual_index + expected_index - 1)
+
+                    if actual_index < len(actual_lines):
+                        actual_index = actual_index - expected_index
+                    else:
+                        matches = False
+                        diff = __diff_with_error(
+                            expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index)
+                        break
+
+            if (actual_index + expected_index) >= len(actual_lines):
+                matches = False
+                diff = __diff_with_error(
+                    expected_lines, '<yellow><------ MISSING</yellow>', expected_index)
+
+            if not __multi_value_compare(expected_lines[expected_index], actual_lines[actual_index + expected_index]):
+                matches = False
+                diff = __diff_with_error(
+                    expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index)
+                break
+    else:
+        matches = False
+        diff = __diff_with_error(
+            expected_lines, '<yellow><------ INCONSISTENCY</yellow>', 0)
+
+    return {'matches': matches, 'diff': diff}
+
+
 def defined(cb):
     try:
         cb()
@@ -874,3 +987,45 @@ def get_replication_option_keyword():
     return "MASTER"
 
   return "SOURCE"
+
+def EXPECT_OUTPUT_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetch_captured_stdout(False))
+    err = __split_trim_join(testutil.fetch_captured_stderr(False))
+    text = __split_trim_join(t)
+    out_result = __check_multiline_expect(text["array"], out["array"])
+    err_result = __check_multiline_expect(text["array"], err["array"])
+
+    if not out_result["matches"] and not err_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + \
+            "\n<yellow>Actual stderr:</yellow> " + err["str"] + "\n<yellow>Diff with stdout:</yellow>\n" + \
+            out_result["diff"] + \
+            "\n<yellow>Diff with stderr:</yellow>\n" + err_result["diff"]
+        testutil.fail(context)
+
+
+def EXPECT_STDOUT_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetch_captured_stdout(False))
+    err = __split_trim_join(testutil.fetch_captured_stderr(False))
+    text = __split_trim_join(t)
+    out_result = __check_multiline_expect(text["array"], out["array"])
+
+    if not out_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + \
+            text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + "\n<yellow>Actual stderr:</yellow> " + \
+            err["str"] + "\n<yellow>Diff with stdout:</yellow>\n" + \
+            out_result["diff"]
+        testutil.fail(context)
+
+
+def EXPECT_STDERR_CONTAINS_MULTILINE(t):
+    out = __split_trim_join(testutil.fetchCapturedStdout(False))
+    err = __split_trim_join(testutil.fetchCapturedStderr(False))
+    text = __split_trim_join(t)
+    err_result = __check_multiline_expect(text["array"], err["array"])
+
+    if not err_result["matches"]:
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + \
+            text["str"] + "\n<yellow>Actual stdout:</yellow> " + out["str"] + "\n<yellow>Actual stderr:</yellow> " + \
+            err["str"] + "\n<yellow>Diff with stderr:</yellow>\n" + \
+            err_result["diff"]
+        testutil.fail(context)

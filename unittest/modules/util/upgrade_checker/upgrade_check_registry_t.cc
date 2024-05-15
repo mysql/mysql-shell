@@ -82,16 +82,16 @@ TEST(Upgrade_check_registry, messages) {
       false,
       {"description.Notice", "description.Warning", "description.Error",
        "description.Notice.Replacement", "description.Warning.Replacement",
-       "description.Error.Replacement", "authentication_fido.docLink",
-       "sha256_password.docLink", "mysql_native_password.docLink"}};
+       "description.Error.Replacement", "docLink.authentication_fido",
+       "docLink.sha256_password", "docLink.mysql_native_password"}};
 
   additional_checks[ids::k_plugin_usage_check] = {
       false,
       {"description.Notice", "description.Warning", "description.Error",
        "description.Notice.Replacement", "description.Warning.Replacement",
-       "description.Error.Replacement", "authentication_fido.docLink",
-       "keyring_file.docLink", "keyring_encrypted_file.docLink",
-       "keyring_oci.docLink"}};
+       "description.Error.Replacement", "docLink.authentication_fido",
+       "docLink.keyring_file", "docLink.keyring_encrypted_file",
+       "docLink.keyring_oci"}};
 
   additional_checks[ids::k_sysvar_allowed_values_check] = {false, {"issue"}};
   additional_checks[ids::k_column_definition] = {

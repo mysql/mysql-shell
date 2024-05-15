@@ -74,7 +74,9 @@ class Feature_life_cycle_check : public Upgrade_check {
 
   bool enabled() const override;
 
-  std::string get_description(const std::string &group) const override;
+  std::string get_description(
+      const std::string &group,
+      const Token_definitions &tokens = {}) const override;
 
   void add_feature(const Feature_definition &feature);
 

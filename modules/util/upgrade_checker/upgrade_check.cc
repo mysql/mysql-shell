@@ -49,16 +49,38 @@ const std::string &Upgrade_check::get_title() const {
   return get_text("title");
 }
 
-std::string Upgrade_check::get_description(const std::string &group) const {
+std::string Upgrade_check::get_description(
+    const std::string &group, const Token_definitions &tokens) const {
   std::string description;
 
   if (!group.empty()) {
     std::string tag{"description."};
     tag += group;
-    return get_text(tag.c_str());
+    return resolve_tokens(get_text(tag.c_str()), tokens);
   }
 
-  return get_text("description");
+  return resolve_tokens(get_text("description"), tokens);
+}
+
+std::vector<std::string> Upgrade_check::get_solutions(
+    const std::string &group) const {
+  std::vector<std::string> solutions;
+
+  std::string tag{"solution"};
+  if (!group.empty()) {
+    tag += "." + group;
+  }
+
+  auto solution = get_text(tag.c_str());
+  int index = 0;
+  while (!solution.empty()) {
+    solutions.push_back(std::move(solution));
+    auto indexed_tag{tag};
+    indexed_tag += std::to_string(++index);
+    solution = get_text(indexed_tag.c_str());
+  }
+
+  return solutions;
 }
 
 const std::string &Upgrade_check::get_doc_link(const std::string &group) const {
@@ -360,6 +382,7 @@ Invalid_privileges_check::Invalid_privileges_check(
     const Upgrade_info &server_info)
     : Upgrade_check(ids::k_invalid_privileges_check),
       m_upgrade_info(server_info) {
+  set_groups({k_dynamic_group});
   if (m_upgrade_info.server_version > Version(8, 0, 0)) {
     add_privileges(Version(8, 4, 0), {"SET_USER_ID"});
   }
@@ -422,6 +445,8 @@ std::vector<Upgrade_issue> Invalid_privileges_check::run(
         std::string raw_description = get_text("issue");
         issue.schema = shcore::make_account(user.first, user.second);
         issue.level = Upgrade_issue::NOTICE;
+        issue.group = shcore::str_join(invalid_list, ", ");
+
         issue.description = resolve_tokens(
             raw_description,
             {{"account", issue.schema},

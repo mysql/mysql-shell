@@ -530,7 +530,7 @@ TEST(Auth_method_usage_check, notices) {
           "The following users are using the '%s' "
           "authentication method which will be deprecated as of MySQL %s.\n"
           "Consider switching the users to a different authentication method "
-          "(i.e. %s).\n",
+          "(i.e. %s).",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -579,7 +579,7 @@ TEST(Auth_method_usage_check, warnings) {
           "authentication method which is deprecated as of MySQL %s and will "
           "be removed in a future release.\n"
           "Consider switching the users to a different authentication method "
-          "(i.e. %s).\n",
+          "(i.e. %s).",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -623,7 +623,7 @@ TEST(Auth_method_usage_check, errors) {
           "The following users are using the '%s' "
           "authentication method which is removed as of MySQL %s.\n"
           "The users must be deleted or re-created with a different "
-          "authentication method (i.e. %s).\n",
+          "authentication method (i.e. %s).",
           feature->id.c_str(), (*feature->removed).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -658,7 +658,7 @@ TEST(Auth_method_usage_check, mixed) {
            "The following users are using the 'authentication_fido' "
            "authentication method which will be deprecated as of MySQL 8.2.0.\n"
            "Consider switching the users to a different authentication method "
-           "(i.e. authentication_webauthn).\n",
+           "(i.e. authentication_webauthn).",
            "https://dev.mysql.com/doc/refman/8.3/en/"
            "webauthn-pluggable-authentication.html",
            "another@localhost"},
@@ -671,7 +671,7 @@ TEST(Auth_method_usage_check, mixed) {
               "will be removed in a future release.\n"
               "Consider switching the users to a different authentication "
               "method "
-              "(i.e. caching_sha2_password).\n",
+              "(i.e. caching_sha2_password).",
               "https://dev.mysql.com/doc/refman/8.0/en/"
               "caching-sha2-pluggable-authentication.html",
               "another@localhost",
@@ -681,7 +681,7 @@ TEST(Auth_method_usage_check, mixed) {
            "authentication method which is deprecated as of MySQL 8.0.0 and "
            "will be removed in a future release.\n"
            "Consider switching the users to a different authentication method "
-           "(i.e. caching_sha2_password).\n",
+           "(i.e. caching_sha2_password).",
            "https://dev.mysql.com/doc/refman/8.0/en/"
            "caching-sha2-pluggable-authentication.html",
            "sample@localhost"},
@@ -820,7 +820,7 @@ TEST(Plugin_usage_check, notices) {
       Records records = {{feature->id}};
       auto notice = shcore::str_format(
           "The '%s' plugin will be deprecated as of MySQL "
-          "%s.\nConsider using %s instead.\n",
+          "%s.\nConsider using %s instead.",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -863,7 +863,7 @@ TEST(Plugin_usage_check, warnings) {
       Records records = {{feature->id}};
       auto notice = shcore::str_format(
           "The '%s' plugin is deprecated as of MySQL %s and will be "
-          "removed in a future release.\nConsider using %s instead.\n",
+          "removed in a future release.\nConsider using %s instead.",
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -906,7 +906,7 @@ TEST(Plugin_usage_check, errors) {
       Records records = {{feature->id}};
       auto notice = shcore::str_format(
           "The '%s' plugin is removed as of MySQL %s.\nIt must not be "
-          "used anymore, please use %s instead.\n",
+          "used anymore, please use %s instead.",
           feature->id.c_str(), (*feature->removed).get_base().c_str(),
           (*feature->replacement).c_str());
 
@@ -943,7 +943,7 @@ TEST(Plugin_usage_check, mixed) {
       {{Upgrade_issue::Level::NOTICE, "authentication_fido",
         "The 'authentication_fido' plugin will be deprecated as of "
         "MySQL 8.2.0.\nConsider using 'authentication_webauthn' plugin "
-        "instead.\n",
+        "instead.",
         "https://dev.mysql.com/doc/refman/8.3/en/"
         "webauthn-pluggable-authentication.html",
         "authentication_fido"},
@@ -951,20 +951,20 @@ TEST(Plugin_usage_check, mixed) {
         "The 'keyring_encrypted_file' plugin is deprecated as of "
         "MySQL 8.0.34 and will be removed in a future release.\n"
         "Consider using the 'component_encrypted_keyring_file' component "
-        "instead.\n",
+        "instead.",
         "https://dev.mysql.com/doc/refman/8.0/en/"
         "keyring-encrypted-file-component.html",
         "keyring_encrypted_file"},
        {Upgrade_issue::Level::WARNING, "keyring_file",
         "The 'keyring_file' plugin is deprecated as of MySQL "
         "8.0.34 and will be removed in a future release.\n"
-        "Consider using the 'component_keyring_file' component instead.\n",
+        "Consider using the 'component_keyring_file' component instead.",
         "https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html",
         "keyring_file"},
        {Upgrade_issue::Level::WARNING, "keyring_oci",
         "The 'keyring_oci' plugin is deprecated as of "
         "MySQL 8.0.31 and will be removed in a future release.\n"
-        "Consider using the 'component_keyring_oci' component instead.\n",
+        "Consider using the 'component_keyring_oci' component instead.",
         "https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/"
         "keyring-oci-plugin.html",
         "keyring_oci"}});
