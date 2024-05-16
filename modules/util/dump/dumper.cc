@@ -55,7 +55,7 @@
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
-#include "mysqlshdk/libs/utils/enumset.h"
+
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -104,22 +104,6 @@ FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
   }
 });
 
-enum class Issue_status {
-  FIXED,
-  FIXED_CREATE_PKS,
-  FIXED_IGNORE_PKS,
-  WARNING,
-  WARNING_DEPRECATED_DEFINERS,
-  ERROR,
-  ERROR_MISSING_PKS,
-  ERROR_HAS_INVALID_GRANTS,
-  ERROR_HAS_WILDCARD_GRANTS,
-};
-
-using Issue_status_set =
-    mysqlshdk::utils::Enum_set<Issue_status,
-                               Issue_status::ERROR_HAS_WILDCARD_GRANTS>;
-
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
     return shcore::quote_sql_string(value);
@@ -149,34 +133,35 @@ void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
   file->close();
 }
 
-Issue_status_set show_issues(const std::vector<Schema_dumper::Issue> &issues) {
+issues::Status_set show_issues(
+    const std::vector<Schema_dumper::Issue> &issues) {
   const auto console = current_console();
-  Issue_status_set status;
+  issues::Status_set status;
 
   for (const auto &issue : issues) {
     if (issue.status <= Schema_dumper::Issue::Status::FIXED) {
-      status.set(Issue_status::FIXED);
+      status.set(issues::Status::FIXED);
 
       if (issue.status ==
           Schema_dumper::Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS) {
-        status.set(Issue_status::FIXED_CREATE_PKS);
+        status.set(issues::Status::FIXED_CREATE_PKS);
       } else if (issue.status ==
                  Schema_dumper::Issue::Status::FIXED_BY_IGNORE_MISSING_PKS) {
-        status.set(Issue_status::FIXED_IGNORE_PKS);
+        status.set(issues::Status::FIXED_IGNORE_PKS);
       }
 
       console->print_note(issue.description);
     } else if (issue.status <= Schema_dumper::Issue::Status::WARNING) {
-      status.set(Issue_status::WARNING);
+      status.set(issues::Status::WARNING);
 
       if (Schema_dumper::Issue::Status::WARNING_DEPRECATED_DEFINERS ==
           issue.status) {
-        status.set(Issue_status::WARNING_DEPRECATED_DEFINERS);
+        status.set(issues::Status::WARNING_DEPRECATED_DEFINERS);
       }
 
       console->print_warning(issue.description);
     } else {
-      status.set(Issue_status::ERROR);
+      status.set(issues::Status::ERROR);
 
       std::string hint;
 
@@ -184,14 +169,14 @@ Issue_status_set show_issues(const std::vector<Schema_dumper::Issue> &issues) {
         hint = "this issue needs to be fixed manually";
       } else if (Schema_dumper::Issue::Status::USE_CREATE_OR_IGNORE_PKS ==
                  issue.status) {
-        status.set(Issue_status::ERROR_MISSING_PKS);
+        status.set(issues::Status::ERROR_MISSING_PKS);
       } else if (Schema_dumper::Issue::Status::FIX_WILDCARD_GRANTS ==
                  issue.status) {
-        status.set(Issue_status::ERROR_HAS_WILDCARD_GRANTS);
+        status.set(issues::Status::ERROR_HAS_WILDCARD_GRANTS);
       } else {
         if (Schema_dumper::Issue::Status::USE_STRIP_INVALID_GRANTS ==
             issue.status) {
-          status.set(Issue_status::ERROR_HAS_INVALID_GRANTS);
+          status.set(issues::Status::ERROR_HAS_INVALID_GRANTS);
         }
 
         hint = "fix this with '" +
@@ -2645,7 +2630,7 @@ void Dumper::validate_mds() const {
 
   const auto console = current_console();
   const auto version = m_options.target_version().get_base();
-  Issue_status_set status;
+  issues::Status_set status;
 
   console->print_note(
       "When migrating to MySQL HeatWave Service, please always use the latest "
@@ -2658,15 +2643,10 @@ void Dumper::validate_mds() const {
     console->print_note("MySQL Server " +
                         m_cache.server_version.version.get_short() +
                         " detected, please consider upgrading to 8.0 first.");
-
-    if (m_cache.server_version.is_5_7) {
-      console->print_info("Checking for potential upgrade issues.");
-
-      if (check_for_upgrade_errors()) {
-        status.set(Issue_status::ERROR);
-      }
-    }
   }
+
+  console->print_info("Checking for potential upgrade issues.");
+  status.set(check_for_upgrade_errors());
 
   Progress_thread::Progress_config config;
   std::atomic<uint64_t> objects_checked{0};
@@ -2716,7 +2696,7 @@ void Dumper::validate_mds() const {
   }
 
   if (m_options.implicit_target_version() &&
-      status.is_set(Issue_status::WARNING_DEPRECATED_DEFINERS)) {
+      status.is_set(issues::Status::WARNING_DEPRECATED_DEFINERS)) {
     console->print_info();
     console->print_note(
         "One or more objects with the DEFINER clause were found.");
@@ -2728,7 +2708,7 @@ void Dumper::validate_mds() const {
                            m_options.target_version().get_base().c_str()));
   }
 
-  if (status.is_set(Issue_status::ERROR_MISSING_PKS)) {
+  if (status.is_set(issues::Status::ERROR_MISSING_PKS)) {
     console->print_info();
     console->print_error("One or more tables without Primary Keys were found.");
     console->print_info(R"(
@@ -2750,7 +2730,7 @@ void Dumper::validate_mds() const {
 )");
   }
 
-  if (status.is_set(Issue_status::ERROR_HAS_WILDCARD_GRANTS)) {
+  if (status.is_set(issues::Status::ERROR_HAS_WILDCARD_GRANTS)) {
     console->print_info();
     console->print_error(
         "One or more accounts with database level grants containing wildcard "
@@ -2769,7 +2749,22 @@ void Dumper::validate_mds() const {
     )");
   }
 
-  if (status.is_set(Issue_status::ERROR)) {
+  if (status.is_set(issues::Status::ERROR_HAS_NON_STANDARD_FKS)) {
+    console->print_info();
+    console->print_error(
+        "One or more tables with non-standard foreign keys (that reference "
+        "non-unique keys or partial fields of composite keys) were found.");
+    console->print_info(R"(
+      Loading these tables into a DB System instance may fail, as instances are created with the 'restrict_fk_on_non_standard_key' system variable set to 'ON'.
+      To continue with the dump you must do one of the following:
+
+      * Fix the tables listed above, i.e. create the missing unique key.
+
+      * Add the "force_non_standard_fks" to the "compatibility" option to ignore these issues. Please note that creation of foreign keys with non-standard keys may break the replication.
+    )");
+  }
+
+  if (status.is_set(issues::Status::ERROR)) {
     console->print_info(
         "Compatibility issues with MySQL HeatWave Service " + version +
         " were found. Please use the 'compatibility' option to apply "
@@ -2777,13 +2772,14 @@ void Dumper::validate_mds() const {
     THROW_ERROR(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
   }
 
-  if (status.matches_any(Issue_status_set{Issue_status::FIXED_CREATE_PKS,
-                                          Issue_status::FIXED_IGNORE_PKS})) {
+  if (status.matches_any(
+          issues::Status_set{issues::Status::FIXED_CREATE_PKS,
+                             issues::Status::FIXED_IGNORE_PKS})) {
     console->print_info();
     console->print_note("One or more tables without Primary Keys were found.");
   }
 
-  if (status.is_set(Issue_status::FIXED_CREATE_PKS)) {
+  if (status.is_set(issues::Status::FIXED_CREATE_PKS)) {
     console->print_info(R"(
       Missing Primary Keys will be created automatically when this dump is loaded.
       This will make it possible to enable High Availability in MySQL HeatWave Service DB System instance without application impact and without changes to the source database.
@@ -2791,14 +2787,14 @@ void Dumper::validate_mds() const {
 )");
   }
 
-  if (status.is_set(Issue_status::FIXED_IGNORE_PKS)) {
+  if (status.is_set(issues::Status::FIXED_IGNORE_PKS)) {
     console->print_info(R"(
       This issue is ignored.
       This dump cannot be loaded into an MySQL HeatWave Service DB System instance with High Availability.
 )");
   }
 
-  if (status.is_set(Issue_status::FIXED)) {
+  if (status.is_set(issues::Status::FIXED)) {
     console->print_info("Compatibility issues with MySQL HeatWave Service " +
                         version +
                         " were found and repaired. Please review the changes "
@@ -3021,9 +3017,9 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
     // if MDS is on, changes done by compatibility options were printed earlier
     const auto status = show_issues(in_memory.issues());
 
-    if (status.is_set(Issue_status::ERROR_HAS_INVALID_GRANTS)) {
+    if (status.is_set(issues::Status::ERROR_HAS_INVALID_GRANTS)) {
       THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
-    } else if (status.is_set(Issue_status::ERROR)) {
+    } else if (status.is_set(issues::Status::ERROR)) {
       THROW_ERROR(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
     }
   }
@@ -4539,14 +4535,32 @@ void Dumper::fetch_server_information() {
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
 }
 
-bool Dumper::check_for_upgrade_errors() const {
+issues::Status_set Dumper::check_for_upgrade_errors() const {
   if (!m_options.mds_compatibility()) {
-    return false;
+    return {};
   }
 
   if (m_options.skip_upgrade_checks()) {
     current_console()->print_note("Skipping upgrade compatibility checks");
-    return false;
+    return {};
+  }
+
+  // upgrade checker does not support 5.6 servers
+  if (m_cache.server_version.is_5_6) {
+    current_console()->print_note(
+        shcore::str_format("MySQL Server %s is not supported, skipping upgrade "
+                           "compatibility checks",
+                           m_cache.server_version.version.get_full().c_str()));
+    return {};
+  }
+
+  if (m_options.target_version() <= m_cache.server_version.version) {
+    current_console()->print_note(shcore::str_format(
+        "The value of 'targetVersion' option (%s) is not greater than current "
+        "version of the server (%s), skipping upgrade compatibility checks",
+        m_options.target_version().get_base().c_str(),
+        m_cache.server_version.version.get_base().c_str()));
+    return {};
   }
 
   upgrade_checker::Upgrade_check_options options;
@@ -4554,6 +4568,15 @@ bool Dumper::check_for_upgrade_errors() const {
   // It is pointless to perform this check should not be executed in the context
   // of D&L since the mysql schema is excluded all the time.
   options.exclude_list.emplace(upgrade_checker::ids::k_mysql_schema_check);
+
+  if (m_options.compatibility_options().is_set(
+          Compatibility_option::FORCE_NON_STANDARD_FKS)) {
+    // exclude the non-standard FKs check
+    options.exclude_list.emplace(
+        upgrade_checker::ids::k_foreign_key_references);
+  }
+
+  issues::Status_set status;
   upgrade_checker::Upgrade_check_config config{options};
 
   config.set_session(session());
@@ -4564,24 +4587,26 @@ bool Dumper::check_for_upgrade_errors() const {
                          upgrade_checker::Target::OBJECT_DEFINITIONS) |
                      upgrade_checker::Target::ENGINES |
                      upgrade_checker::Target::MDS_SPECIFIC);
-  config.set_issue_filter([this](const upgrade_checker::Upgrade_issue &issue) {
-    const auto schema = m_cache.schemas.find(issue.schema);
 
-    if (m_cache.schemas.end() != schema &&
-        (issue.table.empty() ||
-         schema->second.tables.find(issue.table) !=
-             schema->second.tables.end() ||
-         schema->second.views.find(issue.table) !=
-             schema->second.views.end())) {
-      return true;
+  config.set_issue_filter([&status](
+                              const upgrade_checker::Upgrade_issue &issue) {
+    if (upgrade_checker::ids::k_foreign_key_references == issue.check_name) {
+      status.set(issues::Status::ERROR_HAS_NON_STANDARD_FKS);
+      status.set(issues::Status::ERROR);
     }
 
-    return false;
+    // we're using DB filters, issues are already filtered
+    return true;
   });
-
   config.set_db_filters(&m_options.filters());
 
-  return !check_for_upgrade(config);
+  config.set_warn_on_excludes(false);
+
+  if (!check_for_upgrade(config)) {
+    status.set(issues::Status::ERROR);
+  }
+
+  return status;
 }
 
 void Dumper::throw_if_cannot_dump_users() const {

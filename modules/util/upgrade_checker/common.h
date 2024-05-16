@@ -218,7 +218,7 @@ enum class Feature_life_cycle_state { OK, DEPRECATED, REMOVED };
 class Checker_cache {
  public:
   using Filtering_options = mysqlshdk::db::Filtering_options;
-  explicit Checker_cache(Filtering_options *db_filters = nullptr);
+  explicit Checker_cache(const Filtering_options *db_filters = nullptr);
 
   struct Table_info {
     std::string schema_name;

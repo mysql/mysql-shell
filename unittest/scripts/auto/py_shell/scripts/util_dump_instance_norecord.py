@@ -1629,7 +1629,11 @@ EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service 
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
-    EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
+
+EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
+
+if testutil.version_check(target_version, "<=", __version):
+    EXPECT_STDOUT_CONTAINS(f"NOTE: The value of 'targetVersion' option ({target_version}) is not greater than current version of the server ({__version}), skipping upgrade compatibility checks")
 
 EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 

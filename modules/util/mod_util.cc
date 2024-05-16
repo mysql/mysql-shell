@@ -1354,6 +1354,16 @@ statements that use incompatible storage engines and replace them with InnoDB.
 It will also remove the ROW_FORMAT=FIXED option, as it is not supported by the
 InnoDB storage engine.
 
+<b>force_non_standard_fks</b> - In MySQL 8.4.0, a new system variable
+<b>restrict_fk_on_non_standard_key</b> was added, which prohibits creation of
+non-standard foreign keys (that reference non-unique keys or partial fields of
+composite keys), when enabled. The MySQL HeatWave Service instances have this
+variable enabled by default, which causes dumps with such tables to fail to
+load. This option will disable checks for non-standard foreign keys, and cause
+the loader to set the session value of <b>restrict_fk_on_non_standard_key</b>
+variable to <b>OFF</b>. Creation of foreign keys with non-standard keys may
+break the replication.
+
 <b>ignore_missing_pks</b> - Ignore errors caused by tables which do not have
 Primary Keys. Dumps created with this value cannot be used in MySQL HeatWave
 Service DB System instance with High Availability. Mutually exclusive with the
@@ -1544,9 +1554,10 @@ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
 MySQL HeatWave Service.
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 HeatWave Service compatibility modifications when writing dump files. Supported
-values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-"ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-"strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
+"ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
+"strip_definers", "strip_invalid_grants", "strip_restricted_grants",
+"strip_tablespaces".
 @li <b>targetVersion</b>: string (default: current version of Shell) - Specifies
 version of the destination MySQL server.
 @li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
@@ -2245,9 +2256,10 @@ names used to limit the data copy to just the specified partitions.
 
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 HeatWave Service compatibility modifications when copying the DDL. Supported
-values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
-"ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-"strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
+"ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
+"strip_definers", "strip_invalid_grants", "strip_restricted_grants",
+"strip_tablespaces".
 
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 

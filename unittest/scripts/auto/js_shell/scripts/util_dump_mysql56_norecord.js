@@ -192,10 +192,11 @@ util.dumpInstance(k_instance_dump, { "users": false, "bytesPerChunk": "128k", "o
 EXPECT_STDOUT_CONTAINS("NOTE: Backup lock is not supported in MySQL 5.6 and DDL changes will not be blocked. The dump may fail with an error if schema changes are made while dumping.");
 // BUG32376447 - check if some tables were chunked
 EXPECT_SHELL_LOG_MATCHES(/Data dump for table `\w+`.`\w+` will be written to \d+ files/);
-// util.checkForServerUpgrade() does not support 5.6 and it should not be suggested when using the 'ocimds' option
-EXPECT_STDOUT_NOT_CONTAINS("checkForServerUpgrade");
 // BUG#32925914 - FIXED row format will be removed even though 'force_innodb' is not specified, because table uses InnoDB engine
 EXPECT_STDOUT_CONTAINS("NOTE: Table `test`.`fixed_row_format` had unsupported ROW_FORMAT=FIXED option removed")
+// BUG#36553849 - upgrade checker does not support this version
+EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
+EXPECT_STDOUT_MATCHES(/NOTE: MySQL Server 5\.6\..* is not supported, skipping upgrade compatibility checks/)
 
 //@<> BUG#32925914 remove ROW_FORMAT=FIXED, so the remaining tests can work without ocimds/force_innodb options
 session.runSql("ALTER TABLE test.fixed_row_format ROW_FORMAT=DEFAULT;");
