@@ -182,6 +182,68 @@ shell.connect(__sandbox_uri1)
 session.run_sql(f"DROP USER {mysql_native_password_account}")
 session.run_sql(f"DROP USER {sha256_password_account}")
 
+#@<> BUG#36553849 - detect tables with non-standard foreign keys
+# setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(__tmp_dir, "ldtest", "bug_36553849")
+
+shell.connect(__sandbox_uri1)
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+
+session.run_sql(f"""CREATE TABLE !.`{tested_table}_parent` (
+   a int,
+   b int,
+   PRIMARY KEY (a,b)
+)
+ENGINE=InnoDB""", [ tested_schema ])
+session.run_sql(f"""CREATE TABLE !.! (
+   c int PRIMARY KEY,
+   a int,
+   FOREIGN KEY (a) REFERENCES `{tested_table}_parent`(a)
+)
+ENGINE=InnoDB""", [ tested_schema, tested_table ])
+
+#@<> BUG#36553849 - target server does not reject non-standard foreign keys
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "ocimds": True, "targetVersion": "8.3.99", "showProgress": False }), "dump should not fail")
+
+shutil.rmtree(dump_dir, True)
+
+#@<> BUG#36553849 - target server rejects non-standard foreign keys
+EXPECT_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "ocimds": True, "targetVersion": "8.4.0", "showProgress": False }), "Compatibility issues were found")
+EXPECT_STDOUT_CONTAINS("""
+ERROR: One or more tables with non-standard foreign keys (that reference non-unique keys or partial fields of composite keys) were found.
+
+      Loading these tables into a DB System instance may fail, as instances are created with the 'restrict_fk_on_non_standard_key' system variable set to 'ON'.
+      To continue with the dump you must do one of the following:
+
+      * Fix the tables listed above, i.e. create the missing unique key.
+
+      * Add the "force_non_standard_fks" to the "compatibility" option to ignore these issues. Please note that creation of foreign keys with non-standard keys may break the replication.
+""")
+
+shutil.rmtree(dump_dir, True)
+
+#@<> BUG#36553849 - target server rejects non-standard foreign keys - compatibility option
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "compatibility": ["force_non_standard_fks"], "ocimds": True, "targetVersion": "8.4.0", "showProgress": False }), "dump should not fail")
+
+#@<> BUG#36553849 - target server rejects non-standard foreign keys - load the dump {VER(>=8.4.0)}
+shell.connect(__sandbox_uri4)
+session.run_sql("SET @saved_restrict_fk_on_non_standard_key = @@GLOBAL.restrict_fk_on_non_standard_key")
+session.run_sql("SET @@GLOBAL.restrict_fk_on_non_standard_key = ON")
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "load should not fail")
+EXPECT_STDOUT_CONTAINS("WARNING: The dump was created with the 'force_non_standard_fks' compatibility option set, the 'restrict_fk_on_non_standard_key' session variable will be set to 'OFF'. Please note that creation of foreign keys with non-standard keys may break the replication.")
+
+session.run_sql("SET @@GLOBAL.restrict_fk_on_non_standard_key = @saved_restrict_fk_on_non_standard_key")
+
+#@<> BUG#36553849 - cleanup
+for uri in [__sandbox_uri1, __sandbox_uri4]:
+    shell.connect(uri)
+    session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

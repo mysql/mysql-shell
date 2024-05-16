@@ -172,7 +172,8 @@ DESCRIPTION
         used to limit the data copy to just the specified partitions.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when copying the DDL. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -297,7 +298,8 @@ DESCRIPTION
         used to limit the data copy to just the specified partitions.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when copying the DDL. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -411,7 +413,8 @@ DESCRIPTION
         used to limit the data copy to just the specified partitions.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when copying the DDL. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -526,7 +529,8 @@ DESCRIPTION
         MySQL HeatWave Service.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when writing dump files. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
@@ -797,6 +801,16 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
       not supported by the InnoDB storage engine.
+
+      force_non_standard_fks - In MySQL 8.4.0, a new system variable
+      restrict_fk_on_non_standard_key was added, which prohibits creation of
+      non-standard foreign keys (that reference non-unique keys or partial
+      fields of composite keys), when enabled. The MySQL HeatWave Service
+      instances have this variable enabled by default, which causes dumps with
+      such tables to fail to load. This option will disable checks for
+      non-standard foreign keys, and cause the loader to set the session value
+      of restrict_fk_on_non_standard_key variable to OFF. Creation of foreign
+      keys with non-standard keys may break the replication.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL
@@ -1175,7 +1189,8 @@ DESCRIPTION
         MySQL HeatWave Service.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when writing dump files. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
@@ -1425,6 +1440,16 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
       not supported by the InnoDB storage engine.
+
+      force_non_standard_fks - In MySQL 8.4.0, a new system variable
+      restrict_fk_on_non_standard_key was added, which prohibits creation of
+      non-standard foreign keys (that reference non-unique keys or partial
+      fields of composite keys), when enabled. The MySQL HeatWave Service
+      instances have this variable enabled by default, which causes dumps with
+      such tables to fail to load. This option will disable checks for
+      non-standard foreign keys, and cause the loader to set the session value
+      of restrict_fk_on_non_standard_key variable to OFF. Creation of foreign
+      keys with non-standard keys may break the replication.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL
@@ -1802,7 +1827,8 @@ DESCRIPTION
         MySQL HeatWave Service.
       - compatibility: list of strings (default: empty) - Apply MySQL HeatWave
         Service compatibility modifications when writing dump files. Supported
-        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        values: "create_invisible_pks", "force_innodb",
+        "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
         "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
       - targetVersion: string (default: current version of Shell) - Specifies
@@ -2047,6 +2073,16 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
       not supported by the InnoDB storage engine.
+
+      force_non_standard_fks - In MySQL 8.4.0, a new system variable
+      restrict_fk_on_non_standard_key was added, which prohibits creation of
+      non-standard foreign keys (that reference non-unique keys or partial
+      fields of composite keys), when enabled. The MySQL HeatWave Service
+      instances have this variable enabled by default, which causes dumps with
+      such tables to fail to load. This option will disable checks for
+      non-standard foreign keys, and cause the loader to set the session value
+      of restrict_fk_on_non_standard_key variable to OFF. Creation of foreign
+      keys with non-standard keys may break the replication.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL

@@ -74,6 +74,10 @@ class Upgrade_check_config final {
     m_db_filters = filters;
   }
 
+  inline const mysqlshdk::db::Filtering_options *db_filters() const noexcept {
+    return m_db_filters;
+  }
+
   std::vector<Upgrade_issue> filter_issues(
       std::vector<Upgrade_issue> &&issues) const;
 

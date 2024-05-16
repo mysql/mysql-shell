@@ -45,6 +45,7 @@ enum class Compatibility_option {
   SKIP_INVALID_ACCOUNTS,
   STRIP_INVALID_GRANTS,
   IGNORE_WILDCARD_GRANTS,
+  FORCE_NON_STANDARD_FKS,
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
@@ -55,7 +56,7 @@ std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::IGNORE_WILDCARD_GRANTS>;
+                               Compatibility_option::FORCE_NON_STANDARD_FKS>;
 
 }  // namespace dump
 }  // namespace mysqlsh

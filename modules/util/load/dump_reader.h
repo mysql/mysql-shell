@@ -78,6 +78,10 @@ class Dump_reader {
 
   bool should_create_pks() const;
 
+  inline bool force_non_standard_fks() const noexcept {
+    return m_contents.force_non_standard_fks;
+  }
+
   const mysqlshdk::utils::Version &server_version() const {
     return m_contents.server_version;
   }
@@ -516,6 +520,7 @@ class Dump_reader {
     bool mds_compatibility = false;
     bool partial_revokes = false;
     bool create_invisible_pks = false;
+    bool force_non_standard_fks = false;
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;

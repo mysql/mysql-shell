@@ -47,6 +47,7 @@
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -59,6 +60,26 @@
 
 namespace mysqlsh {
 namespace dump {
+
+namespace issues {
+
+enum class Status {
+  FIXED,
+  FIXED_CREATE_PKS,
+  FIXED_IGNORE_PKS,
+  WARNING,
+  WARNING_DEPRECATED_DEFINERS,
+  ERROR,
+  ERROR_MISSING_PKS,
+  ERROR_HAS_INVALID_GRANTS,
+  ERROR_HAS_WILDCARD_GRANTS,
+  ERROR_HAS_NON_STANDARD_FKS,
+};
+
+using Status_set =
+    mysqlshdk::utils::Enum_set<Status, Status::ERROR_HAS_NON_STANDARD_FKS>;
+
+}  // namespace issues
 
 class Schema_dumper;
 
@@ -404,7 +425,7 @@ class Dumper {
   void fetch_server_information();
 
   // returns true in case of errors
-  bool check_for_upgrade_errors() const;
+  issues::Status_set check_for_upgrade_errors() const;
 
   void throw_if_cannot_dump_users() const;
 

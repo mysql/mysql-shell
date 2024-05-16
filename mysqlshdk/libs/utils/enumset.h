@@ -85,7 +85,7 @@ class Enum_set {
   Enum_set &operator|=(Enum value) { return set(value); }
   Enum_set &operator=(Enum value) { return clear().set(value); }
 
-  constexpr operator bool() const { return !empty(); }
+  constexpr explicit operator bool() const { return !empty(); }
 
   constexpr Enum_set operator&(Enum value) const {
     return Enum_set(_value & ord(value));
