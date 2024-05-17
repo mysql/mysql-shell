@@ -134,6 +134,8 @@ additional requirements:
 configuration file to be provided through the <b>configPath</b> option.
 @li The <b>checkTableCommand</b> check requires the user executing the
 tool has the RELOAD grant.
+@li The <b>schemaInconsistency</b> check ignores schemas/tables 
+that contain unicode characters outside ASCII range.
 )*");
 
 /**
