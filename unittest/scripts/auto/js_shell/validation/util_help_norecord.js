@@ -101,6 +101,8 @@ DESCRIPTION
         configuration file to be provided through the configPath option.
       - The checkTableCommand check requires the user executing the tool has
         the RELOAD grant.
+      - The schemaInconsistency check ignores schemas/tables that contain
+        unicode characters outside ASCII range.
 
 //@<OUT> util copyInstance help
 NAME

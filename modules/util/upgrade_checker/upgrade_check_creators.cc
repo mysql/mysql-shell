@@ -840,7 +840,7 @@ get_schema_inconsistency_check() {
        "join information_schema.tables I on A.table_name = I.table_name and "
        "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
        "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
-       "not REGEXP '@[0-9]' and A.schema_name not REGEXP '@[0-9]';",
+       "not REGEXP '@[0-9a-f]{4}' and A.schema_name not REGEXP '@[0-9a-f]{4}';",
            Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::ERROR);
 }
