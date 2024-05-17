@@ -105,16 +105,18 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     std::function<std::string(const Upgrade_issue &)> issue_formater(
         upgrade_issue_to_string);
     if (results.empty()) {
-      print_paragraph("No issues found");
+      print_paragraph("No issues found", 3, 0);
     } else {
+      // Prints the check description
+      if (!check.get_description().empty()) {
+        print_paragraph(check.get_description(), 3, 0);
+        m_console->println();
+      }
+
       if (!check.groups().empty()) {
         print_grouped_issues(check, results);
       } else {
         if (!check.get_description().empty()) {
-          print_paragraph(check.get_description());
-          print_doc_links(check.get_doc_link());
-          m_console->println();
-
           if (check.is_multi_lvl_check())
             issue_formater = multi_lvl_format_issue;
         } else {
@@ -125,7 +127,20 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
           print_paragraph(issue_formater(issue));
           print_doc_links(issue.doclink);
         }
+        m_console->println();
       }
+
+      auto solutions = check.get_solutions();
+      if (!solutions.empty()) {
+        for (const auto &solution : solutions) {
+          print_paragraph(solution, 3, 0);
+        }
+        m_console->println();
+      }
+
+      // Print the check doc links
+      print_doc_links(check.get_doc_link());
+      m_console->println();
     }
   }
 
@@ -145,7 +160,6 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void summarize(int error, int warning, int notice, const std::string &text,
                  const std::map<std::string, std::string> &excluded) override {
-    m_console->println();
     m_console->println(shcore::str_format("Errors:   %d", error));
     m_console->println(shcore::str_format("Warnings: %d", warning));
     m_console->println(shcore::str_format("Notices:  %d\n", notice));
@@ -173,7 +187,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
                  const std::string &server_version,
                  const std::string &target_version,
                  bool explicit_target_version) override {
-    print_paragraph("Upgrade Consistency Checks");
+    print_paragraph("Upgrade Consistency Checks", 0, 0);
     m_console->println();
     if (!server_address.empty() && !server_version.empty() &&
         !target_version.empty()) {
@@ -191,7 +205,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     } else {
       print_paragraph(
           "The MySQL Shell will now list checks for possible compatibility "
-          "issues for upgrade of MySQL Server...");
+          "issues for upgrade of MySQL Server...",
+          0, 0);
     }
   }
 
@@ -202,7 +217,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_console->println(shcore::str_format("%s:", section.c_str()));
 
     if (checks.empty()) {
-      print_paragraph("Empty.");
+      print_paragraph("Empty.", 2, 0);
     } else {
       for (const auto &check : checks) {
         list_item_info(*check);
@@ -222,10 +237,11 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
  private:
   void list_item_info(const Upgrade_check &check) {
     m_console->println();
-    print_paragraph("- " + check.get_name(), 0);
-    print_paragraph(check.get_title());
+    print_paragraph("- " + check.get_name(), 0, 2);
+    print_paragraph(check.get_title(), 2, 0);
     if (check.get_condition())
-      print_paragraph("Condition: " + check.get_condition()->description());
+      print_paragraph("Condition: " + check.get_condition()->description(), 2,
+                      0);
   }
 
   void print_title(const std::string &title, const std::string &name) {
@@ -235,8 +251,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
                     0, 0);
   }
 
-  void print_paragraph(const std::string &s, std::size_t base_indent = 2,
-                       std::size_t indent_by = 2) {
+  void print_paragraph(const std::string &s, std::size_t base_indent = 3,
+                       std::size_t indent_by = 3) {
     std::string indent(base_indent, ' ');
     auto descr = shcore::str_break_into_lines(s, 80 - base_indent);
     for (std::size_t i = 0; i < descr.size(); i++) {
@@ -247,9 +263,9 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
 
   void print_doc_links(const std::string &links) {
     if (!links.empty()) {
-      std::string indent(2, ' ');
+      std::string indent(3, ' ');
       m_console->println(indent + "More information:");
-      print_paragraph(links, 4, 0);
+      print_paragraph(links, 5, 0);
     }
   }
 
@@ -265,7 +281,17 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       group_levels[issue.group] = issue.level;
     }
 
-    for (const auto &group : check.groups()) {
+    std::vector<std::string> groups;
+    bool is_dynamic_group = check.groups().at(0) == k_dynamic_group;
+    if (is_dynamic_group) {
+      for (const auto &item : grouped_issues) {
+        groups.push_back(item.first);
+      }
+    } else {
+      groups = check.groups();
+    }
+
+    for (const auto &group : groups) {
       auto issues = grouped_issues.find(group);
 
       // No issues on this group
@@ -274,15 +300,29 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       }
 
       // Prints the group description first
+      Token_definitions tokens;
+      tokens["group"] = group;
       auto issue_level = Upgrade_issue::level_to_string(group_levels[group]);
-      print_paragraph(shcore::str_format("%s: %s", issue_level,
-                                         check.get_description(group).c_str()),
-                      2, 0);
+      print_paragraph(
+          shcore::str_format(
+              "%s: %s", issue_level,
+              check
+                  .get_description(is_dynamic_group ? k_dynamic_group : group,
+                                   tokens)
+                  .c_str()),
+          3, 0);
 
       for (const auto &item : issues->second) {
-        print_paragraph("- " + item, 2, 0);
+        print_paragraph("- " + item, 3, 0);
       }
       m_console->println();
+
+      auto solutions = check.get_solutions(group);
+      if (!solutions.empty()) {
+        for (const auto &solution : solutions) {
+          print_paragraph(solution, 3, 0);
+        }
+      }
 
       auto doc_links = check.get_doc_link(group);
       if (!doc_links.empty()) {

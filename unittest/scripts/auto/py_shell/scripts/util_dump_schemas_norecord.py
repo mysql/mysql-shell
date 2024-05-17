@@ -2245,13 +2245,14 @@ EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Serv
 EXPECT_STDOUT_CONTAINS(f"""
 8) ENUM/SET column definitions containing elements longer than 255 characters
 (enumSetElementLength)
-  Error: The following columns are defined as either ENUM or SET and contain at
-    least one element longer that 255 characters. They need to be altered so that
-    all elements fit into the 255 characters limit.
-  More information:
-    https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
+   Error: The following columns are defined as either ENUM or SET and contain
+   at least one element longer that 255 characters. They need to be altered so
+   that all elements fit into the 255 characters limit.
 
-  {tested_schema}.{tested_table}.e - ENUM contains element longer than 255 characters
+   {tested_schema}.{tested_table}.e - ENUM contains element longer than 255 characters
+
+   More information:
+     https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
 """)
 EXPECT_STDOUT_CONTAINS("ERROR: 1 errors were found. Please correct these issues before upgrading to avoid compatibility issues.")
 

@@ -112,6 +112,10 @@ inline constexpr std::string_view k_partitions_with_prefix_keys =
 extern const std::set<std::string_view> all;
 }  // namespace ids
 
+// dynamicGroup is meant to be used in checks that require issue grouping, but
+// the groups are not hardcoded but generated dynamically
+inline constexpr const char *k_dynamic_group = "dynamicGroup";
+
 using mysqlshdk::utils::Version;
 
 // This map should be updated with the latest version of each series to enable

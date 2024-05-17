@@ -1,8 +1,8 @@
 #@<OUT> WL15974-TSFR_3_3_1
-  Upgrade Consistency Checks
+Upgrade Consistency Checks
 
-  The MySQL Shell will now list checks for possible compatibility issues for
-    upgrade of MySQL Server...
+The MySQL Shell will now list checks for possible compatibility issues for
+upgrade of MySQL Server...
 
 Included:
 
@@ -22,7 +22,7 @@ Excluded:
 - reservedKeywords
   Usage of db objects with names conflicting with new reserved keywords
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.14, 8.0.17, 8.0.31
+  8.0.14, 8.0.17, 8.0.31
 
 - utf8mb3
   Usage of utf8mb3 charset
@@ -30,7 +30,7 @@ Excluded:
 
 - mysqlSchema
   Table names in the mysql schema conflicting with new tables in the latest
-    MySQL.
+  MySQL.
   Condition: When the upgrade reaches any of the following versions: 8.0.11
 
 - nonNativePartitioning
@@ -56,7 +56,7 @@ Excluded:
 - partitionedTablesInSharedTablespaces
   Usage of partitioned tables in shared tablespaces
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.13
+  8.0.13
 
 - circularDirectory
   Circular directory references in tablespace data file paths
@@ -72,7 +72,7 @@ Excluded:
 
 - sysVars
   System variable check for deprecation, removal, changes in defaults values or
-    invalid values.
+  invalid values.
 
 - zeroDates
   Zero Date, Datetime, and Timestamp values
@@ -85,7 +85,7 @@ Excluded:
 - ftsInTablename
   Table names containing 'FTS'
   Condition: When upgrading to a version between 8.0.11 and 8.0.17 on non
-    Windows platforms.
+  Windows platforms.
 
 - engineMixup
   Tables recognized by InnoDB that belong to a different engine
@@ -106,7 +106,7 @@ Excluded:
 - changedFunctionsInGeneratedColumns
   Indexes on functions with changed semantics
   Condition: When the upgrade reaches any of the following versions: 5.7.0,
-    8.0.28
+  8.0.28
 
 - columnsWhichCannotHaveDefaults
   Columns which cannot have default values
@@ -126,7 +126,7 @@ Excluded:
 
 - indexTooLarge
   Check for indexes that are too large to work on higher versions of MySQL
-    Server than 5.7
+  Server than 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - emptyDotTableSyntax
@@ -135,30 +135,30 @@ Excluded:
 
 - invalidEngineForeignKey
   Check for columns that have foreign keys pointing to tables from a different
-    database engine.
+  database engine.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
   Condition: Server version is lower than 9.0.0 and the target version is at
-    least 8.0.0
+  least 8.0.0
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
   Condition: Server version is lower than 8.4.0 and the target version is at
-    least 8.0.31
+  least 8.0.31
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system
-    variables.
+  variables.
   Condition: When the upgrade reaches any of the following versions: 8.0.0,
-    8.1.0, 8.2.0
+  8.1.0, 8.2.0
 
 - deprecatedRouterAuthMethod
   Check for deprecated or invalid authentication methods in use by MySQL Router
-    internal accounts.
+  internal accounts.
   Condition: When the upgrade reaches any of the following versions: 8.0.0,
-    8.1.0, 8.2.0
+  8.1.0, 8.2.0
 
 - deprecatedTemporalDelimiter
   Check for deprecated temporal delimiters in table partitions.
@@ -181,10 +181,10 @@ Excluded: 38
 
 
 #@<OUT> WL15974-TSFR_3_3_2
-  Upgrade Consistency Checks
+Upgrade Consistency Checks
 
-  The MySQL Shell will now list checks for possible compatibility issues for
-    upgrade of MySQL Server...
+The MySQL Shell will now list checks for possible compatibility issues for
+upgrade of MySQL Server...
 
 Included:
 
@@ -199,7 +199,7 @@ Included:
 - reservedKeywords
   Usage of db objects with names conflicting with new reserved keywords
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.14, 8.0.17, 8.0.31
+  8.0.14, 8.0.17, 8.0.31
 
 - utf8mb3
   Usage of utf8mb3 charset
@@ -207,7 +207,7 @@ Included:
 
 - mysqlSchema
   Table names in the mysql schema conflicting with new tables in the latest
-    MySQL.
+  MySQL.
   Condition: When the upgrade reaches any of the following versions: 8.0.11
 
 - nonNativePartitioning
@@ -233,7 +233,7 @@ Included:
 - partitionedTablesInSharedTablespaces
   Usage of partitioned tables in shared tablespaces
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-    8.0.13
+  8.0.13
 
 - circularDirectory
   Circular directory references in tablespace data file paths
@@ -249,7 +249,7 @@ Included:
 
 - sysVars
   System variable check for deprecation, removal, changes in defaults values or
-    invalid values.
+  invalid values.
 
 - zeroDates
   Zero Date, Datetime, and Timestamp values
@@ -262,7 +262,7 @@ Included:
 - ftsInTablename
   Table names containing 'FTS'
   Condition: When upgrading to a version between 8.0.11 and 8.0.17 on non
-    Windows platforms.
+  Windows platforms.
 
 - engineMixup
   Tables recognized by InnoDB that belong to a different engine
@@ -286,7 +286,7 @@ Included:
 - changedFunctionsInGeneratedColumns
   Indexes on functions with changed semantics
   Condition: When the upgrade reaches any of the following versions: 5.7.0,
-    8.0.28
+  8.0.28
 
 - columnsWhichCannotHaveDefaults
   Columns which cannot have default values
@@ -306,7 +306,7 @@ Included:
 
 - indexTooLarge
   Check for indexes that are too large to work on higher versions of MySQL
-    Server than 5.7
+  Server than 5.7
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - emptyDotTableSyntax
@@ -315,30 +315,30 @@ Included:
 
 - invalidEngineForeignKey
   Check for columns that have foreign keys pointing to tables from a different
-    database engine.
+  database engine.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
   Condition: Server version is lower than 9.0.0 and the target version is at
-    least 8.0.0
+  least 8.0.0
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
   Condition: Server version is lower than 8.4.0 and the target version is at
-    least 8.0.31
+  least 8.0.31
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system
-    variables.
+  variables.
   Condition: When the upgrade reaches any of the following versions: 8.0.0,
-    8.1.0, 8.2.0
+  8.1.0, 8.2.0
 
 - deprecatedRouterAuthMethod
   Check for deprecated or invalid authentication methods in use by MySQL Router
-    internal accounts.
+  internal accounts.
   Condition: When the upgrade reaches any of the following versions: 8.0.0,
-    8.1.0, 8.2.0
+  8.1.0, 8.2.0
 
 - deprecatedTemporalDelimiter
   Check for deprecated temporal delimiters in table partitions.

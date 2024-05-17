@@ -51,8 +51,8 @@ bool Feature_life_cycle_check::enabled() const {
 }
 
 std::string Feature_life_cycle_check::get_description(
-    const std::string &group) const {
-  Token_definitions tokens;
+    const std::string &group, const Token_definitions &tokens) const {
+  Token_definitions local_tokens{tokens};
   std::string tag{"description"};
 
   if (!group.empty()) {
@@ -64,21 +64,21 @@ std::string Feature_life_cycle_check::get_description(
     if (feature.replacement.has_value()) {
       tag.append(".").append("Replacement");
     }
-    tokens["feature_id"] = feature.id;
+    local_tokens["feature_id"] = feature.id;
 
     if (feature.deprecated.has_value()) {
-      tokens["deprecated"] = feature.deprecated->get_base();
+      local_tokens["deprecated"] = feature.deprecated->get_base();
     }
 
     if (feature.removed.has_value()) {
-      tokens["removed"] = feature.removed->get_base();
+      local_tokens["removed"] = feature.removed->get_base();
     }
 
     if (feature.replacement.has_value()) {
-      tokens["replacement"] = *feature.replacement;
+      local_tokens["replacement"] = *feature.replacement;
     }
 
-    tokens["item_id"] = group;
+    local_tokens["item_id"] = group;
   }
 
   std::string description = get_text(tag.c_str());
@@ -88,7 +88,7 @@ std::string Feature_life_cycle_check::get_description(
         "Missing entry for token in upgrade_checker file: %s", tag.c_str()));
   }
 
-  return resolve_tokens(description, tokens);
+  return resolve_tokens(description, local_tokens);
 }
 
 void Feature_life_cycle_check::add_feature(const Feature_definition &feature) {
@@ -153,8 +153,7 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
       // Issues get the feature set as the group
       issue.group = feature.id;
 
-      auto feature_doclink_tag = feature.id + ".docLink";
-      issue.doclink = get_text(feature_doclink_tag.c_str());
+      issue.doclink = get_doc_link(feature.id);
 
       issue.schema = item.first;
       issue.level = level;

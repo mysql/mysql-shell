@@ -321,7 +321,10 @@ https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaul
 Check for invalid table names and schema names used in 5.7
 
 * invalid57Names.description
-The following tables and/or schemas have invalid names. In order to fix them use the mysqlcheck
+The following tables and/or schemas have invalid names.
+
+* invalid57Names.solution
+In order to fix them use the mysqlcheck
 utility as follows:\n
 \n
   $ mysqlcheck --check-upgrade --all-databases\n
@@ -372,7 +375,7 @@ Check for deprecated '.<table>' syntax used in routines.
 
 * emptyDotTableSyntax.description
 Error: The following routines contain identifiers in deprecated identifier syntax (".<table>"),
-and should be corrected before upgrade:\n
+and should be corrected before upgrade:
 
 * invalidEngineForeignKey.title
 Check for columns that have foreign keys pointing to tables from a different database engine.
@@ -380,13 +383,13 @@ Check for columns that have foreign keys pointing to tables from a different dat
 * invalidEngineForeignKey.description
 Error: The following columns have foreign keys pointing to tables from different database engines
 than originating table. This is invalid and probably a mistake done when FOREIGN_KEY_CHECKS was
-turned OFF:\n
+turned OFF:
 
 * deprecatedDefaultAuth.title
 Check for deprecated or invalid default authentication methods in system variables.
 
 * deprecatedDefaultAuth.description
-The following variables have problems with their set authentication method:\n
+The following variables have problems with their set authentication method:
 
 * deprecatedRouterAuthMethod.title
 Check for deprecated or invalid authentication methods in use by MySQL Router internal accounts.
@@ -430,98 +433,103 @@ Check for deprecated or invalid user authentication methods.
 
 * authMethodUsage.description
 Some users are using authentication methods that may be deprecated or removed,
-please review the details below.\n
+please review the details below.
 
 * authMethodUsage.description.Notice
 The following users are using the '%feature_id%' authentication method which
 will be deprecated as of MySQL %deprecated%.\n
-Consider switching the users to a different authentication method.\n
+Consider switching the users to a different authentication method.
 
 * authMethodUsage.description.Warning
 The following users are using the '%feature_id%' authentication method which
 is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
-Consider switching the users to a different authentication method.\n
+Consider switching the users to a different authentication method
 
 * authMethodUsage.description.Error
 The following users are using the '%feature_id%' authentication method which
 is removed as of MySQL %removed%.\n
-The users must be deleted or re-created with a different authentication method.\n
+The users must be deleted or re-created with a different authentication method.
 
 * authMethodUsage.description.Notice.Replacement
 The following users are using the '%feature_id%' authentication method which
 will be deprecated as of MySQL %deprecated%.\n
-Consider switching the users to a different authentication method (i.e. %replacement%).\n
+Consider switching the users to a different authentication method (i.e. %replacement%).
 
 * authMethodUsage.description.Warning.Replacement
 The following users are using the '%feature_id%' authentication method which
 is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
-Consider switching the users to a different authentication method (i.e. %replacement%).\n
+Consider switching the users to a different authentication method (i.e. %replacement%).
 
 * authMethodUsage.description.Error.Replacement
 The following users are using the '%feature_id%' authentication method which
 is removed as of MySQL %removed%.\n
-The users must be deleted or re-created with a different authentication method (i.e. %replacement%).\n
+The users must be deleted or re-created with a different authentication method (i.e. %replacement%).
 
-* authMethodUsage.authentication_fido.docLink
+* authMethodUsage.docLink.authentication_fido
 https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
 
-* authMethodUsage.sha256_password.docLink
+* authMethodUsage.docLink.sha256_password
 https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
 
-* authMethodUsage.mysql_native_password.docLink
+* authMethodUsage.docLink.mysql_native_password
 https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
 
 * pluginUsage.title
 Check for deprecated or removed plugin usage.
 
 * pluginUsage.description
-The following plugins are ACTIVE and they have been deprecated or removed.\n
+The following plugins are ACTIVE and they have been deprecated or removed.
 
 * pluginUsage.description.Notice
 The '%item_id%' plugin will be deprecated as of MySQL %deprecated%.\n
-Consider to stop using it.\n
+Consider to stop using it.
 
 * pluginUsage.description.Warning
 The '%item_id%' plugin is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
-Consider to stop using it.\n
+Consider to stop using it.
 
 * pluginUsage.description.Error
 The '%item_id%' plugin is removed as of MySQL %removed%.\n
-It must not be used anymore.\n
+It must not be used anymore.
 
 * pluginUsage.description.Notice.Replacement
 The '%item_id%' plugin will be deprecated as of MySQL %deprecated%.\n
-Consider using %replacement% instead.\n
+Consider using %replacement% instead.
 
 * pluginUsage.description.Warning.Replacement
 The '%item_id%' plugin is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
-Consider using %replacement% instead.\n
+Consider using %replacement% instead.
 
 * pluginUsage.description.Error.Replacement
 The '%item_id%' plugin is removed as of MySQL %removed%.\n
-It must not be used anymore, please use %replacement% instead.\n
+It must not be used anymore, please use %replacement% instead.
 
-* pluginUsage.authentication_fido.docLink
+* pluginUsage.docLink.authentication_fido
 https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
 
-* pluginUsage.keyring_file.docLink
+* pluginUsage.docLink.keyring_file
 https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html
 
-* pluginUsage.keyring_encrypted_file.docLink
+* pluginUsage.docLink.keyring_encrypted_file
 https://dev.mysql.com/doc/refman/8.0/en/keyring-encrypted-file-component.html
 
-* pluginUsage.keyring_oci.docLink
+* pluginUsage.docLink.keyring_oci
 https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/keyring-oci-plugin.html
 
 * invalidPrivileges.title
 Checks for user privileges that will be removed
 
 * invalidPrivileges.description
-Verifies for users containing grants to be removed, since privileges are removed as part of
-the upgrade, raises a NOTICE to inform the user about users that will be losing invalid privileges\n
+Verifies for users containing grants to be removed as part of the upgrade process.
+
+* invalidPrivileges.description.dynamicGroup
+The following users have the %group% privilege which will be removed as part of the upgrade process:
 
 * invalidPrivileges.issue
 The user %account% has the following privileges that will be removed as part of the upgrade process: %privileges%
+
+* invalidPrivileges.solution
+If the privileges are not being used, no action is required, otherwise, ensure they stop being used before the upgrade as they will be lost.
 
 * columnDefinition.title
 Checks for errors in column definitions
