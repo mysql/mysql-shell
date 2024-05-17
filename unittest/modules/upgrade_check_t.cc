@@ -2119,6 +2119,19 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
       "(4, 'test4/partitionedWin#p#p1', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
       "'Single')"));
 
+  // Inserts schema/tables with unicode characters, that should be ignored in
+  // the query
+  EXPECT_NO_THROW(session->execute(
+      "insert into innodb_sys_tables values"
+      "(5, 'atest5/co@4536rrect', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single'),"
+      "(6, 'atest6/corre@cb34ct2', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single'),"
+      "(7, 'a@35d4test7/correct3', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single'),"
+      "(8, 'a@fa5dtest8/correct4', 1, 1, 1, 'Barracuda', 'Dynamic', 0, "
+      "'Single')"));
+
   // Gets the query from the check, and tweaks is to use a test schema and adds
   // order by clause for test consistency
   std::string query = check->get_queries().at(0).first;
