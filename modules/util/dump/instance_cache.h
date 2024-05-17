@@ -168,7 +168,6 @@ struct Instance_cache {
   std::string hostname;
   std::string server;
   Server_version server_version;
-  uint32_t explain_rows_idx = 0;
   Binlog binlog;
   std::string gtid_executed;
   std::unordered_map<std::string, Schema> schemas;
@@ -229,8 +228,6 @@ class Instance_cache_builder final {
   void fetch_metadata(const Partition_filters &partitions);
 
   void fetch_version();
-
-  void fetch_explain_select_rows_index();
 
   void fetch_server_metadata();
 

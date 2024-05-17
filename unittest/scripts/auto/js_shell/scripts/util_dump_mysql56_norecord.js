@@ -1,7 +1,9 @@
 //@{__mysql56_uri != null && VER(>=8.0.0)}
 // run only vs mysql 8.0, in part because paratrace doesn't support multiple instances of 5.6
 
-// constants
+//@<> INCLUDE dump_utils.inc
+
+//@<> constants
 const k_dump_dir = os.path.join(__tmp_dir, "ldtest");
 const k_users_dump = os.path.join(k_dump_dir, "dumpu");
 const k_instance_dump = os.path.join(k_dump_dir, "dumpi");
@@ -279,6 +281,37 @@ EXPECT_STDOUT_CONTAINS("WARNING: TGT: Destination MySQL version is newer than th
 
 EXPECT_EQ(all_objects, fetch_all_objects());
 EXPECT_CHECKSUMS(all_tables);
+
+//@<> BUG#36470302 - use JSON output when executing EXPLAIN statements
+// constants
+var dump_dir = os.path.join(k_dump_dir, "bug_36470302");
+var test_schema = "test_schema";
+var test_table = "test_table";
+var row_count = 1000;
+
+// setup
+shell.connect(__mysql56_uri);
+session.runSql("DROP SCHEMA IF EXISTS !", [ test_schema ]);
+session.runSql("CREATE SCHEMA !", [ test_schema ]);
+session.runSql(`CREATE TABLE !.! (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  data BLOB
+)
+DEFAULT CHARACTER SET = utf8mb4
+`, [ test_schema, test_table ]);
+session.runSql("INSERT INTO !.!(data) VALUES " + Array(row_count).fill("(RANDOM_BYTES(1024))").join(","), [ test_schema, test_table ]);
+// insert a row with a high ID, creating a gap and forcing the adaptive step chunking algorithm which uses the EXPLAIN statement
+session.runSql(`INSERT INTO !.!(id, data) VALUES (${row_count * row_count}, RANDOM_BYTES(1024))`, [ test_schema, test_table ]);
+session.runSql("ANALYZE TABLE !.!", [ test_schema, test_table ]);
+
+//@<> BUG#36470302 - test
+WIPE_SHELL_LOG();
+EXPECT_NO_THROWS(function () { util.dumpSchemas([ test_schema ], dump_dir, { bytesPerChunk: "128k", showProgress: false }); }, "Dump should not throw");
+EXPECT_SHELL_LOG_CONTAINS(`Chunking ${quote_identifier(test_schema, test_table)} using integer algorithm with adaptive step`);
+
+//@<> BUG#36470302 - cleanup
+shell.connect(__mysql56_uri);
+session.runSql("DROP SCHEMA IF EXISTS !", [ test_schema ]);
 
 //@<> Cleanup
 lock_session.runSql("ALTER TABLE mysql.lock56 DROP COLUMN locked");

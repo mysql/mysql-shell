@@ -3251,6 +3251,49 @@ testutil.clear_traps("mysql")
 # cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
+#@<> BUG#36470302 - use JSON output when executing EXPLAIN statements
+# constants
+dump_dir = os.path.join(outdir, "bug_36470302")
+test_schema = "test_schema"
+test_table = "test_table"
+row_count = 1000
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+session.run_sql("""CREATE TABLE !.! (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  data BLOB
+)
+DEFAULT CHARACTER SET = utf8mb4
+""", [ test_schema, test_table ])
+session.run_sql(f"INSERT INTO !.! (data) VALUES {','.join(['(RANDOM_BYTES(1024))'] * row_count)}", [ test_schema, test_table ])
+# insert a row with a high ID, creating a gap and forcing the adaptive step chunking algorithm which uses the EXPLAIN statement
+session.run_sql(f"INSERT INTO !.! (id, data) VALUES ({row_count * row_count}, RANDOM_BYTES(1024))", [ test_schema, test_table ])
+session.run_sql("ANALYZE TABLE !.!", [ test_schema, test_table ])
+
+#@<> BUG#36470302 - test
+WIPE_SHELL_LOG()
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw");
+EXPECT_SHELL_LOG_CONTAINS(f"Chunking {quote_identifier(test_schema, test_table)} using integer algorithm with adaptive step")
+
+#@<> BUG#36470302 - test with JSON output version 2 {VER(>=8.3.0)}
+shutil.rmtree(dump_dir, True)
+
+session.run_sql("SET @saved_explain_json_format_version = @@GLOBAL.explain_json_format_version")
+session.run_sql("SET @@GLOBAL.explain_json_format_version = 2")
+
+WIPE_SHELL_LOG()
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw");
+EXPECT_SHELL_LOG_CONTAINS(f"Chunking {quote_identifier(test_schema, test_table)} using integer algorithm with adaptive step")
+
+session.run_sql("SET @@GLOBAL.explain_json_format_version = @saved_explain_json_format_version")
+
+#@<> BUG#36470302 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

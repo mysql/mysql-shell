@@ -131,7 +131,6 @@ Instance_cache_builder::Instance_cache_builder(
 
   if (m_cache.schemas.empty()) {
     fetch_version();
-    fetch_explain_select_rows_index();
 
     filter_schemas();
     filter_tables();
@@ -386,11 +385,6 @@ void Instance_cache_builder::fetch_version() {
   Profiler profiler{"fetching version"};
 
   m_cache.server_version = Schema_dumper{m_session}.server_version();
-}
-
-void Instance_cache_builder::fetch_explain_select_rows_index() {
-  m_cache.explain_rows_idx =
-      query("EXPLAIN SELECT 1")->field_names()->field_index("rows");
 }
 
 void Instance_cache_builder::fetch_server_metadata() {

@@ -39,6 +39,7 @@
 #include <mysqld_error.h>
 
 #include <rapidjson/document.h>
+#include <rapidjson/pointer.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 
@@ -62,6 +63,7 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -1027,7 +1029,6 @@ class Dumper::Table_worker final {
     uint64_t row_count;
     uint64_t rows_per_chunk;
     uint64_t accuracy;
-    int explain_rows_idx;
     std::string partition;
     std::string boundary;
     std::string order_by;
@@ -1206,12 +1207,13 @@ class Dumper::Table_worker final {
 
     const auto row_count = [&info, &comment, this](const auto begin,
                                                    const auto end) {
-      return to_uint64_t(query("EXPLAIN SELECT COUNT(*) FROM " +
-                               info.table->quoted_name + info.partition +
-                               where(*info.table, between(info, begin, end)) +
-                               info.order_by + comment)
-                             ->fetch_one_or_throw()
-                             ->get_as_string(info.explain_rows_idx));
+      return row_count_from_explain(
+          query("EXPLAIN FORMAT=JSON SELECT COUNT(*) FROM " +
+                info.table->quoted_name + info.partition +
+                where(*info.table, between(info, begin, end)) + info.order_by +
+                comment)
+              ->fetch_one_or_throw()
+              ->get_as_string(0));
     };
 
     while (delta > info.accuracy && retry < k_chunker_retries) {
@@ -1551,7 +1553,6 @@ class Dumper::Table_worker final {
     info.rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
-    info.explain_rows_idx = m_dumper->m_cache.explain_rows_idx;
     info.partition = std::move(partition_clause);
 
     if (table.index.info) {
@@ -1665,12 +1666,72 @@ class Dumper::Table_worker final {
     return m_dumper->get_query_comment(table.task_name, id, "chunking");
   }
 
+  uint64_t row_count_from_explain(const std::string &explain) {
+    const auto error = [&explain](const std::string &msg) {
+      log_error("JSON output of malformed EXPLAIN statement:\n%s",
+                explain.c_str());
+      return std::runtime_error(msg);
+    };
+
+    shcore::json::JSON json;
+
+    try {
+      json = shcore::json::parse_object_or_throw(explain);
+    } catch (const std::exception &e) {
+      throw error(shcore::str_format(
+          "Failed to parse JSON output of an EXPLAIN statement: %s", e.what()));
+    }
+
+    if (!m_json_path) {
+      for (const auto path : {
+               "/inputs/0/estimated_rows",  // JSON format ver. 2
+               "/query_block/table/rows_examined_per_scan",   // 5.7+ (ver. 1)
+               "/query_block/ordering_operation/table/rows",  // 5.6
+               "/query_block/nested_loop/0/table/rows",       // MariaDB
+           }) {
+        if (rapidjson::Pointer(path).Get(json)) {
+          m_json_path = path;
+          break;
+        }
+      }
+
+      if (!m_json_path) {
+        throw error(
+            "Couldn't find the row count in JSON output of an EXPLAIN "
+            "statement");
+      }
+    }
+
+    const auto value = rapidjson::Pointer(m_json_path).Get(json);
+
+    if (!value) {
+      throw error(
+          shcore::str_format("Couldn't find the row count in JSON output of an "
+                             "EXPLAIN statement using path: %s",
+                             m_json_path));
+    }
+
+    if (value->IsNumber()) {
+      if (value->IsDouble()) {
+        return static_cast<uint64_t>(value->GetDouble());
+      } else {
+        return value->GetUint64();
+      }
+    } else {
+      throw error(
+          "The row count in JSON output of an EXPLAIN statement is not a "
+          "number");
+    }
+  }
+
   const std::size_t m_id;
   const std::string m_log_id;
   Dumper *m_dumper;
   Exception_strategy m_strategy;
   mysqlshdk::utils::Rate_limit m_rate_limit;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  // JSON path in an output of EXPLAIN statement to the row count
+  const char *m_json_path = nullptr;
 };
 
 // template specialization of a static method must be defined outside of a class
