@@ -192,6 +192,7 @@ std::optional<std::string> Sysvar_configuration::get_default(
 
   return value;
 }
+
 std::optional<std::vector<std::string>> Sysvar_configuration::get_allowed(
     size_t bits, char platform) const {
   assert(std::string("WLM").find(platform) != std::string::npos);
@@ -222,7 +223,7 @@ std::optional<std::vector<std::string>> Sysvar_configuration::get_allowed(
   }
 
   return allowed;
-};
+}
 
 std::optional<std::vector<std::string>> Sysvar_configuration::get_forbidden(
     size_t bits, char platform) const {
@@ -254,7 +255,7 @@ std::optional<std::vector<std::string>> Sysvar_configuration::get_forbidden(
   }
 
   return forbidden;
-};
+}
 
 void Sysvar_definition::set_default(std::string value,
                                     const std::optional<Version> &version,
