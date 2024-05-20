@@ -134,7 +134,7 @@ Http_request::Http_request(Masked_string path, bool use_retry,
                            rest::Headers headers)
     : Request(std::move(path), std::move(headers)) {
   if (use_retry) {
-    m_retry_strategy = mysqlshdk::rest::default_retry_strategy();
+    m_retry_strategy = mysqlshdk::rest::retry_terminal_errors_strategy();
     retry_strategy = m_retry_strategy.get();
   }
 }
