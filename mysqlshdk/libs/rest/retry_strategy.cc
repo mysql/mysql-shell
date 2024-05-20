@@ -54,6 +54,289 @@ int random_int() {
   return d(g);
 }
 
+/**
+ * Retries all unhandled errors up to three times, with one second delay between
+ * each retry.
+ */
+class Retry_terminal_errors : public rest::IRetry_strategy {
+ public:
+  Retry_terminal_errors() = delete;
+
+  Retry_terminal_errors(const Retry_terminal_errors &) = delete;
+  Retry_terminal_errors(Retry_terminal_errors &&) = default;
+
+  Retry_terminal_errors &operator=(const Retry_terminal_errors &) = delete;
+  Retry_terminal_errors &operator=(Retry_terminal_errors &&) = default;
+
+  ~Retry_terminal_errors() override = default;
+
+  [[nodiscard]] static std::unique_ptr<Retry_terminal_errors> create(
+      std::unique_ptr<IRetry_strategy> strategy) {
+    auto delay = std::make_unique<Variable_delay>();
+    auto base =
+        std::make_unique<Base_strategy>(std::move(strategy), delay.get());
+
+    // this is a private constructor, std::make_unique cannot be used
+    std::unique_ptr<Retry_terminal_errors> aws_strategy{
+        new Retry_terminal_errors(std::move(delay))};
+
+    aws_strategy->add_condition(std::move(base));
+    aws_strategy->add_condition<Filter_status_codes>();
+    aws_strategy->add_condition<Accept_all>();
+
+    return aws_strategy;
+  }
+
+ private:
+  /**
+   * Exponential back-off delay with equal jitter.
+   */
+  class Equal_jitter_delay : public Exponential_backoff_delay {
+   public:
+    Equal_jitter_delay() = delete;
+
+    /**
+     * Initializes an exponential back-off delay.
+     *
+     * @param base_delay Base delay.
+     * @param exponent_grow_factor Exponent grow factor.
+     * @param max_wait_between_calls Max time to wait between calls.
+     */
+    Equal_jitter_delay(uint32_t base_delay, uint32_t exponent_grow_factor,
+                       uint32_t max_wait_between_calls)
+        : Exponential_backoff_delay(base_delay, exponent_grow_factor,
+                                    max_wait_between_calls) {}
+
+    Equal_jitter_delay(const Equal_jitter_delay &) = default;
+    Equal_jitter_delay(Equal_jitter_delay &&) = default;
+
+    Equal_jitter_delay &operator=(const Equal_jitter_delay &) = default;
+    Equal_jitter_delay &operator=(Equal_jitter_delay &&) = default;
+
+    ~Equal_jitter_delay() override = default;
+
+   private:
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Unknown_error &) override {
+      return equal_jitter();
+    }
+
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Response_error &) override {
+      return equal_jitter();
+    }
+
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Connection_error &) override {
+      return equal_jitter();
+    }
+  };
+
+  /**
+   * Delay which can be changed at will. If retry is attempted within the first
+   * 10 minutes since creation, it will use 1 second delay between retries.
+   * Afterwards, it's using delay with equal jitter. Delay can be also set to a
+   * custom value.
+   */
+  class Variable_delay : public IRetry_delay {
+   public:
+    Variable_delay() = default;
+
+    Variable_delay(const Variable_delay &) = delete;
+    Variable_delay(Variable_delay &&) = default;
+
+    Variable_delay &operator=(const Variable_delay &) = delete;
+    Variable_delay &operator=(Variable_delay &&) = default;
+
+    ~Variable_delay() override = default;
+
+    /**
+     * Sets the delay between retries.
+     */
+    inline void override_delay(std::chrono::seconds delay) noexcept {
+      m_custom_delay = delay;
+    }
+
+    inline void clear_delay() noexcept { m_custom_delay.reset(); }
+
+   private:
+    void reset() override {
+      clear_delay();
+      m_delay->reset();
+    }
+
+    template <typename T>
+    [[nodiscard]] std::chrono::seconds delay(const T &error) {
+      if (m_custom_delay.has_value()) {
+        return *m_custom_delay;
+      }
+
+      // use longer delays after 10 minutes have passed
+      if (!m_delay_replaced &&
+          std::chrono::system_clock::now() - m_creation_time >
+              std::chrono::minutes(10)) {
+        // 1st delay: 3-6s
+        // 2nd delay: 18-36s
+        // 3rd and subsequent delays: 40-80s
+        m_delay = std::make_unique<Equal_jitter_delay>(1, 6, 80);
+        m_delay_replaced = true;
+      }
+
+      m_delay->set_next_sleep_time(error);
+      return m_delay->next_sleep_time();
+    }
+
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Unknown_error &error) override {
+      return delay(error);
+    }
+
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Response_error &error) override {
+      return delay(error);
+    }
+
+    [[nodiscard]] std::chrono::seconds handle(
+        const rest::Connection_error &error) override {
+      return delay(error);
+    }
+
+    std::chrono::system_clock::time_point m_creation_time =
+        std::chrono::system_clock::now();
+
+    // custom delay
+    std::optional<std::chrono::seconds> m_custom_delay;
+    // start with one second delay between retries
+    std::unique_ptr<IRetry_delay> m_delay = std::make_unique<Constant_delay>(1);
+    bool m_delay_replaced = false;
+  };
+
+  /**
+   * Allows up to three retries, with one second delay between retries.
+   *
+   * First allows the base strategy to retry, if it decides not to, takes over.
+   *
+   * Controls the delay.
+   */
+  class Base_strategy : public IRetry_condition {
+   public:
+    Base_strategy() = delete;
+
+    /**
+     * Uses the base strategy, but overrides it decision to always retry.
+     *
+     * @param strategy Base strategy.
+     * @param delay Delay to be used.
+     */
+    explicit Base_strategy(std::unique_ptr<IRetry_strategy> strategy,
+                           Variable_delay *delay)
+        : m_base_strategy(std::move(strategy)), m_delay(delay) {}
+
+    Base_strategy(const Base_strategy &) = delete;
+    Base_strategy(Base_strategy &&) = default;
+
+    Base_strategy &operator=(const Base_strategy &) = delete;
+    Base_strategy &operator=(Base_strategy &&) = default;
+
+    ~Base_strategy() override = default;
+
+   private:
+    void reset() override {
+      m_base_strategy->reset();
+      m_retry_count = 0;
+    }
+
+    [[nodiscard]] std::optional<bool> handle(
+        const rest::Unknown_error &error) override {
+      return handle_retry(error);
+    }
+
+    [[nodiscard]] std::optional<bool> handle(
+        const rest::Response_error &error) override {
+      return handle_retry(error);
+    }
+
+    [[nodiscard]] std::optional<bool> handle(
+        const rest::Connection_error &error) override {
+      return handle_retry(error);
+    }
+
+    template <typename T>
+    [[nodiscard]] std::optional<bool> handle_retry(const T &error) {
+      // always increase the counter, so we don't continue to retry after base
+      // strategy finishes its retries
+      ++m_retry_count;
+
+      std::optional<bool> retry;
+
+      if (m_base_strategy->should_retry(error)) {
+        // use base strategy
+        retry = true;
+        m_delay->override_delay(m_base_strategy->next_sleep_time());
+      } else {
+        // use our strategy
+        if (m_retry_count > k_max_retries) {
+          // we've reached the maximum number of retries
+          retry = false;
+        }
+        // else, decision will be made by another retry condition
+
+        m_delay->clear_delay();
+      }
+
+      // reset the waiting time
+      m_delay->set_next_sleep_time(error);
+
+      return retry;
+    }
+
+    // three retries maximum
+    static constexpr uint32_t k_max_retries{3};
+
+    std::unique_ptr<IRetry_strategy> m_base_strategy;
+    Variable_delay *m_delay;
+    uint32_t m_retry_count = 0;
+  };
+
+  /**
+   * Not all status codes need to be retried, i.e. 2xx, or 404 (used to detect
+   * non-existent files).
+   */
+  class Filter_status_codes : public Ignore_all {
+   public:
+    Filter_status_codes() = default;
+
+    Filter_status_codes(const Filter_status_codes &) = default;
+    Filter_status_codes(Filter_status_codes &&) = default;
+
+    Filter_status_codes &operator=(const Filter_status_codes &) = default;
+    Filter_status_codes &operator=(Filter_status_codes &&) = default;
+
+    ~Filter_status_codes() override = default;
+
+   private:
+    [[nodiscard]] std::optional<bool> handle(
+        const rest::Response_error &error) override {
+      const auto code = error.status_code();
+
+      // don't retry 1xx, 2xx, 3xx
+      if (code < rest::Response::Status_code::BAD_REQUEST) {
+        return false;
+      }
+
+      // don't retry 404
+      if (rest::Response::Status_code::NOT_FOUND == code) {
+        return false;
+      }
+
+      return {};
+    }
+  };
+
+  explicit Retry_terminal_errors(std::unique_ptr<Variable_delay> delay)
+      : IRetry_strategy(std::move(delay)) {}
+};
+
 }  // namespace
 
 std::unique_ptr<Retry_strategy> default_retry_strategy() {
@@ -85,6 +368,10 @@ std::unique_ptr<Retry_strategy> default_retry_strategy() {
       // retry in case of failure in receiving network data
       .retry_on(Error_code::RECV_ERROR)
       .build();
+}
+
+std::unique_ptr<IRetry_strategy> retry_terminal_errors_strategy() {
+  return Retry_terminal_errors::create(default_retry_strategy());
 }
 
 void IRetry_strategy::IRetry_delay::reset() { m_next_sleep_time = {}; }

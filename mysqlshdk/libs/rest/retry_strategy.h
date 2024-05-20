@@ -724,6 +724,8 @@ class Retry_strategy_builder {
 
 std::unique_ptr<Retry_strategy> default_retry_strategy();
 
+std::unique_ptr<IRetry_strategy> retry_terminal_errors_strategy();
+
 }  // namespace rest
 }  // namespace mysqlshdk
 

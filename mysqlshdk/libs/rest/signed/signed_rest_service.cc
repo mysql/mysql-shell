@@ -66,7 +66,7 @@ Signed_rest_service::Signed_rest_service(
       m_label{config.service_label()},
       m_signer{config.signer()},
       m_enable_signature_caching(config.signature_caching_enabled()),
-      m_default_retry_strategy(config.retry_strategy()) {
+      m_retry_strategy(config.retry_strategy()) {
   m_signer->initialize();
 }
 
@@ -214,7 +214,7 @@ Response::Status_code Signed_rest_service::execute(Signed_request *request,
   std::unique_ptr<rest::Retry_strategy> retry_strategy;
 
   if (!request->retry_strategy) {
-    request->retry_strategy = m_default_retry_strategy.get();
+    request->retry_strategy = m_retry_strategy.get();
   }
 
   request->m_service = this;

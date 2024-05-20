@@ -67,8 +67,6 @@ class S3_bucket_config
 
   std::unique_ptr<rest::ISigner> signer() const override;
 
-  std::unique_ptr<rest::IRetry_strategy> retry_strategy() const override;
-
   std::unique_ptr<storage::backend::object_storage::Container> container()
       const override;
 

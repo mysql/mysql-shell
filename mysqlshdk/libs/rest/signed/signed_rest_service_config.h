@@ -58,7 +58,7 @@ class Signed_rest_service_config {
   virtual bool signature_caching_enabled() const { return true; }
 
   virtual std::unique_ptr<IRetry_strategy> retry_strategy() const {
-    return rest::default_retry_strategy();
+    return rest::retry_terminal_errors_strategy();
   }
 };
 
