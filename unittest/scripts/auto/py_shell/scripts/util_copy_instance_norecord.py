@@ -140,7 +140,9 @@ EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ] })
 # WL15298_TSFR_4_4_15
 
 # NOTE: targetVersion cannot be lower than 8.0.25 and higher than the current version
-if __version_num < 80025 or __version_num > __mysh_version_num:
+if __version_num < 80025:
+    target_version = "8.0.25"
+elif __version_num > __mysh_version_num:
     target_version = __mysh_version_no_extra
 else:
     target_version = __version

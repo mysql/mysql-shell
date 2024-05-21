@@ -274,8 +274,8 @@ void execute_statement(const Session_ptr &session, std::string_view stmt,
       const auto sensitive =
           compatibility::contains_sensitive_information(stmt_str);
       constexpr std::string_view replacement = "'****'";
-      std::vector<std::string> replaced;
-      const auto &query = sensitive ? compatibility::replace_quoted_strings(
+      std::vector<std::string_view> replaced;
+      const auto &query = sensitive ? compatibility::hide_sensitive_information(
                                           stmt_str, replacement, &replaced)
                                     : stmt_str;
       auto error = e.format();
@@ -1983,8 +1983,15 @@ Dump_loader::filter_user_script_for_mds() const {
 
   auto allowed_global_grants =
       mysqlshdk::mysql::get_global_grants(instance, "administrator", "%");
-  if (allowed_global_grants.empty())
+
+  if (allowed_global_grants.empty()) {
     current_console()->print_warning("`administrator` role not found!");
+
+    // in case of a test we return early, as the next call will throw
+    DBUG_EXECUTE_IF("dump_loader_force_mds", {
+      return [](const std::string &, const std::string &) { return false; };
+    });
+  }
 
   // get list of DB level privileges revoked from the administrator role
   auto restrictions =
@@ -2001,6 +2008,11 @@ Dump_loader::filter_user_script_for_mds() const {
   return [restrictions = std::move(restrictions),
           allowed_global_grants = std::move(allowed_global_grants)](
              const std::string &priv_type, const std::string &priv_level) {
+    // USAGE is always granted
+    if (shcore::str_caseeq(priv_type, "USAGE")) {
+      return false;
+    }
+
     // strip global privileges
     if (priv_level == "*.*") {
       // return true if the priv should be stripped
@@ -2743,6 +2755,12 @@ void Dump_loader::show_summary() {
   if (m_options.load_users()) {
     std::string msg =
         std::to_string(m_loaded_accounts) + " accounts were loaded";
+
+    if (m_ignored_plugin_errors) {
+      msg += ", " + std::to_string(m_ignored_plugin_errors) +
+             " accounts failed to load due to unsupported authentication "
+             "plugin errors";
+    }
 
     if (m_ignored_grant_errors) {
       msg += ", " + std::to_string(m_ignored_grant_errors) +
@@ -4751,6 +4769,7 @@ void Dump_loader::load_users() {
 
     m_dropped_accounts = 0;
     m_ignored_grant_errors = 0;
+    m_ignored_plugin_errors = 0;
     all_accounts.clear();
     ignored_accounts.clear();
   };
@@ -4785,33 +4804,53 @@ void Dump_loader::load_users() {
           execute_statement(m_session, stmt,
                             "While executing user accounts SQL");
         } catch (const mysqlshdk::db::Error &e) {
-          if (dump::Schema_dumper::User_statements::Type::GRANT != group.type) {
-            throw;
-          }
+          switch (group.type) {
+            case dump::Schema_dumper::User_statements::Type::CREATE_USER:
+              // BUG#36552764 - if target is MHS, ignore errors about missing
+              // plugins and continue
+              if (!m_options.is_mds() || ER_PLUGIN_IS_NOT_LOADED != e.code()) {
+                throw;
+              }
 
-          switch (m_options.on_grant_errors()) {
-            case Load_dump_options::Handle_grant_errors::ABORT:
-              throw;
-
-            case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT: {
-              console->print_note(
+              console->print_warning(
                   "Due to the above error the account " + group.account +
-                  " was dropped, the load operation will continue.");
+                  " was not created, the load operation will continue.");
               ignored_accounts.emplace(group.account);
-
-              const auto drop = "DROP USER IF EXISTS " + group.account;
-              execute_statement(m_session, drop,
-                                "While dropping the account " + group.account);
-              ++m_dropped_accounts;
+              ++m_ignored_plugin_errors;
               break;
-            }
 
-            case Load_dump_options::Handle_grant_errors::IGNORE:
-              console->print_note(
-                  "The above error was ignored, the load operation will "
-                  "continue.");
-              ++m_ignored_grant_errors;
+            case dump::Schema_dumper::User_statements::Type::GRANT:
+              switch (m_options.on_grant_errors()) {
+                case Load_dump_options::Handle_grant_errors::ABORT:
+                  throw;
+
+                case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT:
+                  console->print_note(
+                      "Due to the above error the account " + group.account +
+                      " was dropped, the load operation will continue.");
+                  ignored_accounts.emplace(group.account);
+
+                  {
+                    const auto drop = "DROP USER IF EXISTS " + group.account;
+                    execute_statement(
+                        m_session, drop,
+                        "While dropping the account " + group.account);
+                  }
+
+                  ++m_dropped_accounts;
+                  break;
+
+                case Load_dump_options::Handle_grant_errors::IGNORE:
+                  console->print_note(
+                      "The above error was ignored, the load operation will "
+                      "continue.");
+                  ++m_ignored_grant_errors;
+                  break;
+              }
               break;
+
+            default:
+              throw;
           }
         }
       }

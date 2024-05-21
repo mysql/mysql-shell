@@ -299,6 +299,14 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"loadUsers":True, "excludeUse
 
 compare_servers(session1, session2)
 
+# cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP USER uuuser@localhost")
+session.run_sql("DROP USER uuuuser@localhost")
+session.run_sql("DROP USER uuuuuser@localhost")
+session.run_sql("DROP USER uuuuuuser@localhost")
+session.run_sql("DROP USER uuuuuuuser@localhost")
+
 #@<> BUG#34952027 - privileges are no longer filtered based on object filters
 # NOTE: this removes filtering introduced by fix for BUG#33406711
 # setup
@@ -376,7 +384,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeU
 
 # BUG#36197620 - summary should contain more details regarding all executed stages
 EXPECT_STDOUT_CONTAINS(f"{60 if __version_num >= 84000 else 59} DDL files were executed in ")
-EXPECT_STDOUT_CONTAINS("6 accounts were loaded")
+EXPECT_STDOUT_CONTAINS("1 accounts were loaded")
 EXPECT_STDOUT_CONTAINS("Data load duration: ")
 EXPECT_STDOUT_CONTAINS("Total duration: ")
 
@@ -404,7 +412,7 @@ EXPECT_STDOUT_CONTAINS(f"""
 ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: The above error was ignored, the load operation will continue.
 """)
-EXPECT_STDOUT_CONTAINS("6 accounts were loaded, 1 GRANT statement errors were ignored")
+EXPECT_STDOUT_CONTAINS("1 accounts were loaded, 1 GRANT statement errors were ignored")
 
 # privileges for schema1.table1 are not included
 expected_accounts[tested_user_key]["grants"] = [grant for grant in expected_accounts[tested_user_key]["grants"] if "table1" not in grant]
@@ -420,7 +428,7 @@ EXPECT_STDOUT_CONTAINS(f"""
 ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: Due to the above error the account 'user_34952027'@'localhost' was dropped, the load operation will continue.
 """)
-EXPECT_STDOUT_CONTAINS("5 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
+EXPECT_STDOUT_CONTAINS("0 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
 # ensure that no more grant statements are executed
 EXPECT_STDOUT_NOT_CONTAINS("You are not allowed to create a user with GRANT")
 
@@ -682,7 +690,7 @@ session.run_sql("DROP user zenon@localhost;")
 shell.connect(__sandbox_uri1)
 
 dump_dir = os.path.join(outdir, "skip_binlog")
-EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "ocimds": True, "compatibility": ["ignore_missing_pks", "strip_restricted_grants", "strip_definers"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "ocimds": True, "compatibility": ["ignore_missing_pks", "strip_restricted_grants", "strip_definers", "skip_invalid_accounts"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
 
 # when loading into non-MDS instance, if skipBinlog is set, but user doesn't have required privileges, exception should be thrown
 wipeout_server(session2)
@@ -2719,7 +2727,7 @@ EXPECT_STDOUT_CONTAINS(f"ERROR: User {tested_user} has grant statement on a non-
 # with MDS compatibility check
 WIPE_OUTPUT()
 wipe_dir(dump_dir)
-EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_definers"], "ocimds": True, "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Compatibility issues were found")
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_definers"], "ocimds": True, "targetVersion": "8.0.30", "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Compatibility issues were found")
 EXPECT_STDOUT_CONTAINS(strip_invalid_grants(tested_user, invalid_grant, "table").error())
 
 # succeeds with the compatibility option
@@ -2730,7 +2738,7 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip
 # succeeds with the compatibility option - ocimds
 WIPE_OUTPUT()
 wipe_dir(dump_dir)
-EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_invalid_grants", "strip_definers"], "ocimds": True, "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_invalid_grants", "strip_definers"], "ocimds": True, "targetVersion": "8.0.30", "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
 EXPECT_STDOUT_CONTAINS(strip_invalid_grants(tested_user, invalid_grant, "table").fixed())
 
 # test load

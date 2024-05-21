@@ -82,6 +82,7 @@ allowed_privileges = [
     "INSERT",
     "LOCK TABLES",
     "PROCESS",
+    "PROXY",
     "REFERENCES",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
@@ -101,6 +102,7 @@ allowed_privileges = [
     "FLUSH_USER_RESOURCES",
     "REPLICATION_APPLIER",
     "ROLE_ADMIN",
+    "SHOW_ROUTINE",
     "XA_RECOVER_ADMIN",
 ]
 
@@ -307,10 +309,14 @@ def create_users():
     session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in disallowed_privileges:
         try:
-            session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
+            if "PROXY" == privilege:
+                session.run_sql(f"GRANT PROXY ON {test_user_account} TO {account_name}")
+            else:
+                session.run_sql(f"GRANT {privilege} ON *.* TO {account_name}")
             disallowed.append(privilege)
         except Exception as e:
             # ignore exceptions on non-existing privileges
+            print(f"Failed to grant privilege {privilege}:", e)
             pass
     disallowed_privileges = disallowed
 
@@ -1689,7 +1695,8 @@ for plugin in disallowed_authentication_plugins:
 # there should be no errors on USAGE privilege
 EXPECT_STDOUT_NOT_CONTAINS("USAGE")
 # there should be no errors about the user which only has allowed privileges
-EXPECT_STDOUT_NOT_CONTAINS(get_test_user_account(test_all_allowed_privileges))
+msg = strip_restricted_grants(get_test_user_account(test_all_allowed_privileges), []).error()
+EXPECT_STDOUT_NOT_CONTAINS(msg[:msg.find("privilege")])
 # all disallowed privileges should be reported
 EXPECT_STDOUT_CONTAINS(strip_restricted_grants(get_test_user_account(test_disallowed_privileges), disallowed_privileges).error())
 
@@ -1940,7 +1947,7 @@ EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [
 EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
 # BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "skip_invalid_accounts" ] , "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "skip_invalid_accounts" ], "targetVersion": target_version, "ddlOnly": True, "showProgress": False })
 
 for plugin in disallowed_authentication_plugins:
     EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).fixed())
@@ -3581,7 +3588,7 @@ schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `all\\%`.* TO {accou
 session.run_sql(schema_level_grant_with_escaped_percent)
 
 #@<> BUG#34952027 - dumping with ocimds fails
-EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
 
 EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more accounts with database level grants containing wildcard characters were found.
@@ -3611,7 +3618,7 @@ EXPECT_STDOUT_NOT_CONTAINS("wildcard")
 session.run_sql("SET @@GLOBAL.partial_revokes = OFF")
 
 #@<> BUG#34952027 - dumping with ocimds and ignore_wildcard_grants succeeds
-EXPECT_SUCCESS([ "invalid" ], test_output_relative, { "ocimds": True, "compatibility": [ "ignore_wildcard_grants" ],"users": True, "includeUsers": [ wild_account ], "dryRun": True, "showProgress": False })
+EXPECT_SUCCESS([ "invalid" ], test_output_relative, { "ocimds": True, "targetVersion": target_version, "compatibility": [ "ignore_wildcard_grants" ],"users": True, "includeUsers": [ wild_account ], "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_NOT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant).fixed())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_underscore).fixed())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_percent).fixed())
@@ -3817,8 +3824,9 @@ session.run_sql(f"GRANT SELECT ON `performance_schema`.`global_variables` TO {ac
 session.run_sql(f"GRANT EXECUTE ON FUNCTION `sys`.`version_major` TO {account_for_grant()}")
 
 #@<> BUG#35680824 - test
-EXPECT_SUCCESS(None, test_output_relative, { "ocimds": True, "users": True, "includeUsers": [ test_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_NOT_CONTAINS(account_for_grant())
+EXPECT_SUCCESS(None, test_output_relative, { "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ test_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+msg = grant_on_excluded_object(account_for_grant(), "").warning()
+EXPECT_STDOUT_NOT_CONTAINS(msg[:msg.find("included")])
 
 #@<> BUG#35680824 - cleanup
 session.run_sql(f"DROP USER IF EXISTS {test_account}")

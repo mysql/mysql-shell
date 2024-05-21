@@ -380,6 +380,14 @@ def grant_on_excluded_object(user, grant):
     warning = f"User {user} has a grant statement on an object which is not included in the dump ({grant})"
     return Compatibility_issue(None, None, warning)
 
+def deprecated_authentication_plugin(user, plugin):
+    warning = f"User {user} is using a deprecated authentication plugin '{plugin}'"
+    return Compatibility_issue(None, None, warning)
+
+def deprecated_and_disabled_authentication_plugin(user):
+    warning = f"User {user} is using a deprecated authentication plugin 'mysql_native_password' which is disabled by default"
+    return Compatibility_issue(None, None, warning)
+
 def supports_set_any_definer_privilege(ver):
     return testutil.version_check(ver, ">=", "8.2.0")
 

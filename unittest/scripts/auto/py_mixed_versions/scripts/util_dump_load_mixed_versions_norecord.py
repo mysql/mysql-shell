@@ -5,6 +5,8 @@
 #@<> INCLUDE dump_utils.inc
 
 #@<> Setup
+import os.path
+import shutil
 import time
 
 try:
@@ -33,7 +35,8 @@ def prepare(sbport, version, load_data, mysqlaas=False):
             "loose_innodb_directories": datadir,
             "early_plugin_load": "keyring_file."+("dll" if __os_type=="windows" else "so"),
             "keyring_file_data": datadir+"/keyring",
-            "local_infile": "1"
+            "local_infile": "1",
+            "loose_mysql_native_password": "OFF",
         })
     if load_data:
         testutil.import_data(uri, __data_path+"/sql/fieldtypes_all.sql", "", "utf8mb4") # xtest
@@ -82,12 +85,17 @@ def EXPECT_DUMP_LOADED(reference, session):
 def EXPECT_NO_CHANGES(session, before):
     EXPECT_JSON_EQ(before, snapshot_instance(session))
 
-# Test dumping in MySQL 5.7 and loading in 8.0
-
-#@<> Plain dump in 5.7, load in 8.0
+# 5.7 dump
 shell.connect(__sandbox_uri1)
 util.dump_instance(__tmp_dir+"/ldtest/dump1", { "checksum": True })
 
+# current version dump
+shell.connect(__sandbox_uri2)
+util.dump_instance(__tmp_dir+"/ldtest/dump2")
+
+# Test dumping in MySQL 5.7 and loading in 8.0
+
+#@<> Plain dump in 5.7, load in 8.0 {VER(<9.0.0)}
 # BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri4)
 util.load_dump(__tmp_dir+"/ldtest/dump1")
@@ -96,14 +104,11 @@ EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_80+". Dump was produced from M
 EXPECT_STDOUT_CONTAINS("NOTE: Destination MySQL version is newer than the one where the dump was created.")
 EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 
-#@<> WL15947 - verify checksums 5.7 -> 8.*
+#@<> WL15947 - verify checksums 5.7 -> 8.* {VER(<9.0.0)}
 shell.connect(__sandbox_uri4)
 EXPECT_NO_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump1", { "loadData": False, "loadDdl": False, "checksum": True }), "checksums should match")
 
-#@<> Test dumping in MySQL 8.0 and loading in 5.7
-shell.connect(__sandbox_uri2)
-util.dump_instance(__tmp_dir+"/ldtest/dump2")
-
+#@<> Test dumping in MySQL 8.0 and loading in 5.7 {VER(<9.0.0)}
 # BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri3)
 # Currently expected failure
@@ -112,6 +117,70 @@ EXPECT_STDOUT_CONTAINS("Unknown collation: 'utf8mb4_0900_ai_ci'")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)
 EXPECT_STDOUT_CONTAINS("NOTE: Destination MySQL version is older than the one where the dump was created.")
+
+#@<> BUG#36552764 - update list of authentication plugins allowed in MHS
+# constants
+mysql_native_password_account = get_test_user_account("bug_36552764_mysql")
+sha256_password_account = get_test_user_account("bug_36552764_sha256")
+dump_dir = os.path.join(__tmp_dir, "ldtest", "bug_36552764")
+dump_dir_ocimds = dump_dir + "_ocimds"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"CREATE USER {mysql_native_password_account} IDENTIFIED WITH mysql_native_password BY 'pass'")
+session.run_sql(f"CREATE USER {sha256_password_account} IDENTIFIED WITH sha256_password BY 'pass'")
+
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "includeSchemas": [ "sakila" ], "includeUsers": [ mysql_native_password_account, sha256_password_account ] }), "dump should not fail")
+
+#@<> BUG#36552764 - mysql_native_password and sha256_password should be reported as deprecated
+shell.connect(__sandbox_uri1)
+shutil.rmtree(dump_dir_ocimds, True)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir_ocimds, { "compatibility": ["strip_definers"], "targetVersion": "8.0.34", "ocimds": True, "users": True, "includeSchemas": [ "sakila" ], "includeUsers": [ mysql_native_password_account, sha256_password_account ], "ddlOnly": True }), "dump should not fail")
+EXPECT_STDOUT_CONTAINS(deprecated_authentication_plugin(mysql_native_password_account, "mysql_native_password").warning())
+EXPECT_STDOUT_CONTAINS(deprecated_authentication_plugin(sha256_password_account, "sha256_password").warning())
+
+#@<> BUG#36552764 - sha256_password should be reported as deprecated, mysql_native_password with an extra message {__mysh_version_num >= 80400}
+shell.connect(__sandbox_uri1)
+shutil.rmtree(dump_dir_ocimds, True)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir_ocimds, { "targetVersion": "8.4.0", "ocimds": True, "users": True, "includeSchemas": [ "sakila" ], "includeUsers": [ mysql_native_password_account, sha256_password_account ], "ddlOnly": True }), "dump should not fail")
+EXPECT_STDOUT_CONTAINS(deprecated_and_disabled_authentication_plugin(mysql_native_password_account).warning())
+EXPECT_STDOUT_CONTAINS(deprecated_authentication_plugin(sha256_password_account, "sha256_password").warning())
+
+#@<> BUG#36552764 - sha256_password should be reported as deprecated, mysql_native_password as an error {__mysh_version_num >= 90000}
+shell.connect(__sandbox_uri1)
+shutil.rmtree(dump_dir_ocimds, True)
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir_ocimds, { "targetVersion": "9.0.0", "ocimds": True, "users": True, "includeSchemas": [ "sakila" ], "includeUsers": [ mysql_native_password_account, sha256_password_account ], "ddlOnly": True }), "Compatibility issues were found")
+EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_plugin(mysql_native_password_account, "mysql_native_password").error())
+EXPECT_STDOUT_CONTAINS(deprecated_authentication_plugin(sha256_password_account, "sha256_password").warning())
+
+#@<> BUG#36552764 - sha256_password should be reported as deprecated, mysql_native_password is fixed {__mysh_version_num >= 90000}
+shell.connect(__sandbox_uri1)
+shutil.rmtree(dump_dir_ocimds, True)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir_ocimds, { "compatibility": ["skip_invalid_accounts"], "targetVersion": "9.0.0", "ocimds": True, "users": True, "includeSchemas": [ "sakila" ], "includeUsers": [ mysql_native_password_account, sha256_password_account ], "ddlOnly": True }), "dump should not fail")
+EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_plugin(mysql_native_password_account, "mysql_native_password").fixed())
+EXPECT_STDOUT_CONTAINS(deprecated_authentication_plugin(sha256_password_account, "sha256_password").warning())
+
+#@<> BUG#36552764 - loader should not ignore unknown plugin errors if target is not MHS {VER(>=8.4.0)}
+shell.connect(__sandbox_uri4)
+session.run_sql(f"DROP SCHEMA IF EXISTS sakila")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "ignoreVersion": True, "resetProgress": True }), "Plugin 'mysql_native_password' is not loaded")
+
+#@<> BUG#36552764 - loader should ignore unknown plugin errors if target is MDS {VER(>=8.4.0) and not __dbug_off}
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+shell.connect(__sandbox_uri4)
+session.run_sql(f"DROP SCHEMA IF EXISTS sakila")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "ignoreVersion": True, "resetProgress": True }), "load should not fail")
+EXPECT_STDOUT_CONTAINS(f"Plugin 'mysql_native_password' is not loaded: CREATE USER IF NOT EXISTS {mysql_native_password_account} IDENTIFIED WITH 'mysql_native_password' AS '****'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Due to the above error the account {mysql_native_password_account} was not created, the load operation will continue.")
+EXPECT_STDOUT_CONTAINS("1 accounts failed to load due to unsupported authentication plugin errors")
+
+testutil.dbug_set("")
+
+#@<> BUG#36552764 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"DROP USER {mysql_native_password_account}")
+session.run_sql(f"DROP USER {sha256_password_account}")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
