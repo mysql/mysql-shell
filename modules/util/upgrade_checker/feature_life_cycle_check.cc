@@ -55,11 +55,17 @@ std::string Feature_life_cycle_check::get_description(
   Token_definitions local_tokens{tokens};
   std::string tag{"description"};
 
+  std::string feature_additional_desc;
   if (!group.empty()) {
     const auto &feature = m_features.at(group).feature;
     auto level = get_issue_level(feature, m_server_info);
 
     tag.append(".").append(Upgrade_issue::level_to_string(level));
+
+    // Tag for specific text for the feature
+    auto specific_description_tag{tag};
+    specific_description_tag.append(".").append(feature.id);
+    feature_additional_desc = get_text(specific_description_tag.c_str());
 
     if (feature.replacement.has_value()) {
       tag.append(".").append("Replacement");
@@ -86,6 +92,10 @@ std::string Feature_life_cycle_check::get_description(
   if (description.empty()) {
     throw std::logic_error(shcore::str_format(
         "Missing entry for token in upgrade_checker file: %s", tag.c_str()));
+  }
+
+  if (!feature_additional_desc.empty()) {
+    description.append("\n").append(feature_additional_desc);
   }
 
   return resolve_tokens(description, local_tokens);
@@ -175,14 +185,11 @@ Auth_method_usage_check::Auth_method_usage_check(
 
   add_feature({"authentication_fido", Version(8, 0, 27), Version(8, 2, 0),
                Version(8, 4, 0), "authentication_webauthn"});
-  add_feature({"sha256_password",
-               {},
-               Version(8, 0, 0),
-               Version(9, 0, 0),
-               "caching_sha2_password"});
+  add_feature(
+      {"sha256_password", {}, Version(8, 0, 16), {}, "caching_sha2_password"});
   add_feature({"mysql_native_password",
                {},
-               Version(8, 0, 0),
+               Version(8, 0, 34),
                Version(9, 0, 0),
                "caching_sha2_password"});
 }
