@@ -483,7 +483,7 @@ void validate_expected(Upgrade_issue::Level level,
 
 const std::map<std::string, std::string> k_plugin_doclink = {
     {"authentication_fido",
-     "https://dev.mysql.com/doc/refman/8.3/en/"
+     "https://dev.mysql.com/doc/refman/en/"
      "webauthn-pluggable-authentication.html"},
     {"sha256_password",
      "https://dev.mysql.com/doc/refman/8.0/en/"
@@ -497,8 +497,7 @@ const std::map<std::string, std::string> k_plugin_doclink = {
      "https://dev.mysql.com/doc/refman/8.0/en/"
      "keyring-encrypted-file-component.html"},
     {"keyring_oci",
-     "https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/"
-     "keyring-oci-plugin.html"},
+     "https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html"},
 };
 
 }  // namespace
@@ -581,6 +580,13 @@ TEST(Auth_method_usage_check, warnings) {
           feature->id.c_str(), (*feature->deprecated).get_base().c_str(),
           (*feature->replacement).c_str());
 
+      if (feature->id == "mysql_native_password") {
+        warning +=
+            "\nThe 'mysql_native_password' authentication type is disabled by "
+            "default in MySQL 8.4, but can still be enabled by setting "
+            "loose_mysql_native_password=ON.";
+      }
+
       auto msession = std::make_shared<testing::Mock_session>();
       test_feature_check(
           shcore::str_format("Warning in %s", feature->id.c_str()),
@@ -653,7 +659,7 @@ TEST(Auth_method_usage_check, mixed) {
   auto msession = std::make_shared<testing::Mock_session>();
 
   Versions versions;
-  versions.emplace_back("8.0.27", "8.0.33");
+  versions.emplace_back("8.0.27", "8.0.34");
   test_feature_check(
       "Using the three deprecated auth methods", &get_auth_method_usage_check,
       versions, records,
@@ -663,7 +669,7 @@ TEST(Auth_method_usage_check, mixed) {
            "authentication method which will be deprecated as of MySQL 8.2.0.\n"
            "Consider switching the users to a different authentication method "
            "(i.e. authentication_webauthn).",
-           "https://dev.mysql.com/doc/refman/8.3/en/"
+           "https://dev.mysql.com/doc/refman/en/"
            "webauthn-pluggable-authentication.html",
            "another@localhost"},
           {
@@ -671,18 +677,20 @@ TEST(Auth_method_usage_check, mixed) {
               "mysql_native_password",
               "The following users are using the "
               "'mysql_native_password' "
-              "authentication method which is deprecated as of MySQL 8.0.0 and "
-              "will be removed in a future release.\n"
+              "authentication method which is deprecated as of MySQL 8.0.34 "
+              "and will be removed in a future release.\n"
               "Consider switching the users to a different authentication "
-              "method "
-              "(i.e. caching_sha2_password).",
+              "method (i.e. caching_sha2_password).\n"
+              "The 'mysql_native_password' authentication type is disabled by "
+              "default in MySQL 8.4, but can still be enabled by setting "
+              "loose_mysql_native_password=ON.",
               "https://dev.mysql.com/doc/refman/8.0/en/"
               "caching-sha2-pluggable-authentication.html",
               "another@localhost",
           },
           {Upgrade_issue::Level::WARNING, "sha256_password",
            "The following users are using the 'sha256_password' "
-           "authentication method which is deprecated as of MySQL 8.0.0 and "
+           "authentication method which is deprecated as of MySQL 8.0.16 and "
            "will be removed in a future release.\n"
            "Consider switching the users to a different authentication method "
            "(i.e. caching_sha2_password).",
@@ -948,7 +956,7 @@ TEST(Plugin_usage_check, mixed) {
         "The 'authentication_fido' plugin will be deprecated as of "
         "MySQL 8.2.0.\nConsider using 'authentication_webauthn' plugin "
         "instead.",
-        "https://dev.mysql.com/doc/refman/8.3/en/"
+        "https://dev.mysql.com/doc/refman/en/"
         "webauthn-pluggable-authentication.html",
         "authentication_fido"},
        {Upgrade_issue::Level::WARNING, "keyring_encrypted_file",
@@ -969,8 +977,7 @@ TEST(Plugin_usage_check, mixed) {
         "The 'keyring_oci' plugin is deprecated as of "
         "MySQL 8.0.31 and will be removed in a future release.\n"
         "Consider using the 'component_keyring_oci' component instead.",
-        "https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/"
-        "keyring-oci-plugin.html",
+        "https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html",
         "keyring_oci"}});
 }
 
