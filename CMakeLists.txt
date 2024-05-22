@@ -1317,3 +1317,7 @@ ENDIF()
 ###
 
 INCLUDE(packaging)
+
+if(CPACK_WIX_MYSQLSH_USE_CUSTOM_ACTION)
+  add_subdirectory(packaging/wix4/custom_action)
+endif()
