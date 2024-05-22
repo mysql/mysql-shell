@@ -29,6 +29,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -1317,8 +1318,12 @@ TEST(mod_dba_common, is_option_supported) {
           Version(100, 0, 0), mysqlsh::dba::kExitStateAction,
           mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
-      "Unsupported server version '100.0.0': AdminAPI operations in this "
-      "version of MySQL Shell support MySQL Server up to version 9.0");
+      shcore::str_format(
+          "Unsupported server version '100.0.0': AdminAPI operations in this "
+          "version of MySQL Shell support MySQL Server up to version %s",
+          mysqlsh::dba::Precondition_checker::k_max_adminapi_server_version
+              .get_short()
+              .c_str()));
 
   // testing the result of exit-state action case since it has requirements
   // for 8.0 MySQL versions.
