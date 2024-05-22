@@ -30,19 +30,19 @@ parameters = [
      "-e", "print(session)"
 ]
 #@<> Success: no password provided, logged in OK
-testutil.call_mysqlsh(parameters, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+testutil.call_mysqlsh(parameters, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], "mysqlshrec")
 EXPECT_STDOUT_CONTAINS(f"<ClassicSession:{sample_user}>")
 
 #@<> Forcing password prompt with -p, used wrong password
-testutil.call_mysqlsh(parameters + ["-p"], "wrong_password", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+testutil.call_mysqlsh(parameters + ["-p"], "wrong_password", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], "mysqlshrec")
 EXPECT_STDOUT_CONTAINS("MySQL Error 1045 (28000): Access denied for user 'sample'@'localhost' (using password: YES)")
 
 #@<> Forcing password prompt with -p, used correct password
-testutil.call_mysqlsh(parameters + ["-p"], "password", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+testutil.call_mysqlsh(parameters + ["-p"], "password", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], "mysqlshrec")
 EXPECT_STDOUT_CONTAINS(f"<ClassicSession:{sample_user}>")
 
 #@<> Again, using the stored password
-testutil.call_mysqlsh(parameters, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+testutil.call_mysqlsh(parameters, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"], "mysqlshrec")
 EXPECT_STDOUT_CONTAINS(f"<ClassicSession:{sample_user}>")
 
 #@<> Cleanup
