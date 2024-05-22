@@ -113,6 +113,8 @@ inline constexpr std::string_view k_invalid_privileges_check =
 inline constexpr std::string_view k_column_definition = "columnDefinition";
 inline constexpr std::string_view k_partitions_with_prefix_keys =
     "partitionsWithPrefixKeys";
+inline constexpr std::string_view k_foreign_key_references =
+    "foreignKeyReferences";
 
 // NOTE: Every added id should be included here
 extern const std::set<std::string_view> all;
@@ -191,6 +193,7 @@ struct Upgrade_issue {
   // To be used for links related to the issue, rather than the check
   std::string doclink;
   std::string group;
+  std::string check_name;
 
   bool empty() const {
     return schema.empty() && table.empty() && column.empty() &&

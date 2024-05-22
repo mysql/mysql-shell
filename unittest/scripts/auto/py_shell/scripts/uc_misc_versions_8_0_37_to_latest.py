@@ -16,8 +16,9 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
    - 'root'@'%'
    - 'root'@'localhost'
 
-   If the privileges are not being used, no action is required, otherwise,
-   ensure they stop being used before the upgrade as they will be lost.
+   Solution:
+   - If the privileges are not being used, no action is required, otherwise,
+      ensure they stop being used before the upgrade as they will be lost.
 
 
 Errors:   0
@@ -57,6 +58,9 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
                     "description": "The user 'root'@'localhost' has the following privileges that will be removed as part of the upgrade process: SET_USER_ID",
                     "dbObjectType": "User"
                 }
+            ],
+            "solutions": [
+                "If the privileges are not being used, no action is required, otherwise, ensure they stop being used before the upgrade as they will be lost."
             ]
         }
     ],
@@ -156,7 +160,8 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
                     "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html",
                     "dbObjectType": "User"
                 }
-            ]
+            ],
+            "solutions": []
         }
     ],
     "manualChecks": []

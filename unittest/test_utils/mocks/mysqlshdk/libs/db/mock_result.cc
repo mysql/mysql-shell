@@ -36,8 +36,12 @@ Fake_result::Fake_result(const std::vector<std::string> &names,
     : _index(0), _windex(0), _names(names), _types(types) {
   m_field_names.reset(
       new mysqlshdk::db::Field_names(std::vector<mysqlshdk::db::Column>()));
-  for (const auto &n : names) {
-    m_field_names->add(n);
+
+  for (size_t index = 0; index < names.size(); index++) {
+    m_field_names->add(names[index]);
+    m_metadata.push_back(mysqlshdk::db::Column(
+        "", "", "", "", "", names[index], names[index].size(), 0, types[index],
+        0, 0, 0, 0, "", ""));
   }
 }
 
@@ -85,6 +89,11 @@ Mock_result::Mock_result() : _index(0) {
   ON_CALL(*this, next_resultset())
       .WillByDefault(Invoke(this, &Mock_result::fake_next_resultset));
 }
+
+const std::vector<mysqlshdk::db::Column> &Mock_result::get_metadata() const {
+  if (_index < _results.size()) return _results[_index]->get_metadata();
+  return _metadata;
+};
 
 std::shared_ptr<mysqlshdk::db::Field_names> Mock_result::field_names() const {
   if (_index < _results.size()) return _results[_index]->field_names();

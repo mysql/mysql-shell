@@ -131,11 +131,15 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       }
 
       auto solutions = check.get_solutions();
+
       if (!solutions.empty()) {
+        print_paragraph(
+            shcore::str_format("Solution%s:", solutions.size() > 1 ? "s" : ""),
+            3, 0);
         for (const auto &solution : solutions) {
-          print_paragraph(solution, 3, 0);
+          print_paragraph("- " + solution, 3, 3);
+          m_console->println();
         }
-        m_console->println();
       }
 
       // Print the check doc links
@@ -351,15 +355,15 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                   [[maybe_unused]] const std::string &warning) override {
     rapidjson::Value addr;
     addr.SetString(server_addres.c_str(), server_addres.length(), m_allocator);
-    m_json_document.AddMember("serverAddress", addr, m_allocator);
+    m_json_document.AddMember("serverAddress", std::move(addr), m_allocator);
 
     rapidjson::Value svr;
     svr.SetString(server_version.c_str(), server_version.length(), m_allocator);
-    m_json_document.AddMember("serverVersion", svr, m_allocator);
+    m_json_document.AddMember("serverVersion", std::move(svr), m_allocator);
 
     rapidjson::Value tvr;
     tvr.SetString(target_version.c_str(), target_version.length(), m_allocator);
-    m_json_document.AddMember("targetVersion", tvr, m_allocator);
+    m_json_document.AddMember("targetVersion", std::move(tvr), m_allocator);
   }
 
   void check_title(const Upgrade_check &) override {}
@@ -379,7 +383,8 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       if (!check_description.empty())
         description.SetString(check_description.c_str(),
                               check_description.length(), m_allocator);
-      check_object.AddMember("description", description, m_allocator);
+      check_object.AddMember("description", std::move(description),
+                             m_allocator);
       if (!check.get_doc_link().empty())
         check_object.AddMember(
             "documentationLink",
@@ -398,7 +403,7 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
       std::string db_object = issue.get_db_object();
       rapidjson::Value dbov;
       dbov.SetString(db_object.c_str(), db_object.length(), m_allocator);
-      issue_object.AddMember("dbObject", dbov, m_allocator);
+      issue_object.AddMember("dbObject", std::move(dbov), m_allocator);
 
       rapidjson::Value description;
       // If it is a grouped issue with no specific issue description, uses the
@@ -412,25 +417,39 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
                               issue.description.length(), m_allocator);
       }
 
-      issue_object.AddMember("description", description, m_allocator);
+      issue_object.AddMember("description", std::move(description),
+                             m_allocator);
 
       if (!issue.doclink.empty()) {
         rapidjson::Value doclink;
         doclink.SetString(issue.doclink.c_str(), issue.doclink.length(),
                           m_allocator);
-        issue_object.AddMember("documentationLink", doclink, m_allocator);
+        issue_object.AddMember("documentationLink", std::move(doclink),
+                               m_allocator);
       }
 
       auto type = issue.type_to_string(issue.object_type);
       rapidjson::Value object_type;
       object_type.SetString(type.data(), type.length(), m_allocator);
-      issue_object.AddMember("dbObjectType", object_type, m_allocator);
+      issue_object.AddMember("dbObjectType", std::move(object_type),
+                             m_allocator);
 
-      issues.PushBack(issue_object, m_allocator);
+      issues.PushBack(std::move(issue_object), m_allocator);
     }
 
-    check_object.AddMember("detectedProblems", issues, m_allocator);
-    m_checks.PushBack(check_object, m_allocator);
+    check_object.AddMember("detectedProblems", std::move(issues), m_allocator);
+
+    rapidjson::Value solutions_obj(rapidjson::kArrayType);
+    auto check_solutions = check.get_solutions();
+
+    for (const auto &solution : check_solutions) {
+      rapidjson::Value solution_obj;
+      solution_obj.SetString(solution.c_str(), solution.length(), m_allocator);
+      solutions_obj.PushBack(std::move(solution_obj), m_allocator);
+    }
+
+    check_object.AddMember("solutions", std::move(solutions_obj), m_allocator);
+    m_checks.PushBack(std::move(check_object), m_allocator);
   }
 
   void check_error(const Upgrade_check &check, const char *description,
@@ -450,14 +469,14 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
 
     rapidjson::Value descr;
     descr.SetString(description, strlen(description), m_allocator);
-    check_object.AddMember("description", descr, m_allocator);
+    check_object.AddMember("description", std::move(descr), m_allocator);
     if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
                              rapidjson::StringRef(check.get_doc_link().c_str()),
                              m_allocator);
 
     rapidjson::Value issues(rapidjson::kArrayType);
-    m_checks.PushBack(check_object, m_allocator);
+    m_checks.PushBack(std::move(check_object), m_allocator);
   }
 
   void manual_check(const Upgrade_check &check) override {
@@ -472,13 +491,13 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     if (!description.empty()) {
       rapidjson::Value descr;
       descr.SetString(description.c_str(), description.length(), m_allocator);
-      check_object.AddMember("description", descr, m_allocator);
+      check_object.AddMember("description", std::move(descr), m_allocator);
     }
     if (!check.get_doc_link().empty())
       check_object.AddMember("documentationLink",
                              rapidjson::StringRef(check.get_doc_link().c_str()),
                              m_allocator);
-    m_manual_checks.PushBack(check_object, m_allocator);
+    m_manual_checks.PushBack(std::move(check_object), m_allocator);
   }
 
   void summarize(int error, int warning, int notice, const std::string &text,
@@ -489,10 +508,12 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
 
     rapidjson::Value val;
     val.SetString(text.c_str(), text.length(), m_allocator);
-    m_json_document.AddMember("summary", val, m_allocator);
+    m_json_document.AddMember("summary", std::move(val), m_allocator);
 
-    m_json_document.AddMember("checksPerformed", m_checks, m_allocator);
-    m_json_document.AddMember("manualChecks", m_manual_checks, m_allocator);
+    m_json_document.AddMember("checksPerformed", std::move(m_checks),
+                              m_allocator);
+    m_json_document.AddMember("manualChecks", std::move(m_manual_checks),
+                              m_allocator);
 
     if (!excluded.empty()) {
       rapidjson::Value excluded_list(rapidjson::kArrayType);
@@ -506,10 +527,11 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
         exclude_item.AddMember(
             "title", rapidjson::StringRef(item.second.c_str()), m_allocator);
 
-        excluded_list.PushBack(exclude_item, m_allocator);
+        excluded_list.PushBack(std::move(exclude_item), m_allocator);
       }
 
-      m_json_document.AddMember("excludedChecks", excluded_list, m_allocator);
+      m_json_document.AddMember("excludedChecks", std::move(excluded_list),
+                                m_allocator);
     }
 
     print_to_output();

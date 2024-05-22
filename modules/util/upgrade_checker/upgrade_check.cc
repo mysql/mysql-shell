@@ -92,6 +92,12 @@ const std::string &Upgrade_check::get_doc_link(const std::string &group) const {
   return get_text("docLink");
 }
 
+Upgrade_issue Upgrade_check::create_issue() const {
+  Upgrade_issue issue;
+  issue.check_name = get_name();
+  return issue;
+}
+
 Removed_sys_var_check::Removed_sys_var_check(const std::string_view name,
                                              const Upgrade_info &server_info)
     : Upgrade_check(name), m_server_info{server_info} {}
@@ -137,7 +143,7 @@ std::vector<Upgrade_issue> Removed_sys_var_check::run(
 
       description = resolve_tokens(description, tokens);
 
-      Upgrade_issue issue;
+      auto issue = create_issue();
       issue.schema = sysvar->name;
       issue.level = Upgrade_issue::ERROR;
       issue.description = shcore::str_format(
@@ -224,7 +230,7 @@ std::vector<Upgrade_issue> Sys_var_allowed_values_check::run(
                                              {"source", cached_var->source},
                                              {"allowed", allowed}});
 
-        Upgrade_issue issue;
+        auto issue = create_issue();
         issue.schema = variable.first;
         issue.level = Upgrade_issue::ERROR;
         issue.description = shcore::str_format(
@@ -348,7 +354,7 @@ std::vector<Upgrade_issue> Sysvar_new_defaults::run(
       // If the variable doesn't exist (i.e. in the config file) or exist
       // with the COMPILED value (the default)
       if (!sysvar || (sysvar && sysvar->source == "COMPILED")) {
-        Upgrade_issue issue;
+        auto issue = create_issue();
         issue.schema = sys_default.first;
         Token_definitions tokens = {
             {"level", Upgrade_issue::level_to_string(Upgrade_issue::WARNING)},
@@ -441,7 +447,7 @@ std::vector<Upgrade_issue> Invalid_privileges_check::run(
                             missing.begin(), missing.end(),
                             std::back_inserter(invalid_list));
 
-        Upgrade_issue issue;
+        auto issue = create_issue();
         std::string raw_description = get_text("issue");
         issue.schema = shcore::make_account(user.first, user.second);
         issue.level = Upgrade_issue::NOTICE;

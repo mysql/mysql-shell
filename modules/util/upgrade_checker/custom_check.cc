@@ -100,7 +100,7 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     assert(table);
 
     if (ref_table == nullptr) {
-      Upgrade_issue problem;
+      auto problem = create_issue();
 
       problem.schema = table->schema_name;
       problem.table = table->name;
@@ -145,7 +145,7 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
   }
 
   for (const auto &fk : foreign_keys) {
-    Upgrade_issue problem;
+    auto problem = create_issue();
 
     problem.schema = fk.second.schema;
     problem.description = "column has invalid foreign key to column '" +

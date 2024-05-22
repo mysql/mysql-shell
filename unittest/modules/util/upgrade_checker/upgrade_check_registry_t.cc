@@ -98,6 +98,10 @@ TEST(Upgrade_check_registry, messages) {
       false, {"floatAutoIncrement", "doubleAutoIncrement"}};
   additional_checks[ids::k_invalid_privileges_check] = {false, {}};
   additional_checks[ids::k_partitions_with_prefix_keys] = {true, {"issue"}};
+  additional_checks[ids::k_foreign_key_references] = {
+      false,
+      {"fkToNonUniqueKey", "fkToPartialKey", "solution", "solution1",
+       "solution2"}};
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();
@@ -496,6 +500,20 @@ TEST(Upgrade_check_registry, create_checklist) {
                            {Version(8, 3, 0), Version(8, 3, 99)},
                            {Version(8, 4, 0), Version(8, 4, 1)}});
 
+  test_check_availability(ids::k_foreign_key_references, true,
+                          {{v5_7_0, Version(8, 4, 0)},
+                           {v5_7_0, Version(8, 4, 1)},
+                           {v5_7_0, Version(9, 0, 0)},
+                           {Version(8, 0, 37), Version(8, 4, 0)},
+                           {Version(8, 0, 37), Version(8, 4, 1)},
+                           {Version(8, 0, 37), Version(9, 0, 0)},
+                           {Version(8, 4, 0), Version(9, 0, 0)},
+                           {Version(8, 4, 1), Version(9, 0, 0)},
+                           {Version(9, 0, 0), Version(9, 1, 0)}});
+
+  test_check_availability(
+      ids::k_foreign_key_references, false,
+      {{v5_7_0, Version(8, 3, 0)}, {Version(8, 0, 37), Version(8, 3, 0)}});
   {
     // Tests without positive verification are marked as done
     positive.insert(ids::k_innodb_rowformat_check);  // Not used

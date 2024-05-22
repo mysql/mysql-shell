@@ -250,3 +250,6 @@ coll.create_index('myField', {'fields': [{'field': '$.myField', 'type': 'TEXT(10
 
 #@ Create an index specifiying INDEX as the index type for a spatial data type (WL10858-ET_3)
 coll.create_index('myField', {'fields': [{'field': '$.myField', 'type': 'GEOJSON', 'required': True, 'options': 2, 'srid': 4326}], 'type':'INDEX'})
+
+#@<> Cleanup
+session.drop_schema('my_schema');

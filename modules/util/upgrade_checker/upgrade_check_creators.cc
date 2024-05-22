@@ -149,6 +149,7 @@ class Routine_syntax_check : public Upgrade_check {
     const auto &qh = cache->query_helper();
 
     Check_info object_info[] = {
+
         {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
          " FROM information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE'"
          " AND " +
@@ -218,7 +219,7 @@ class Routine_syntax_check : public Upgrade_check {
                              int show_sql_field,
                              Upgrade_issue::Object_type object_type,
                              mysqlshdk::db::ISession *session) {
-    Upgrade_issue issue;
+    auto issue = create_issue();
 
     issue.schema = row->get_as_string(0);
     issue.table = row->get_as_string(1);
@@ -411,7 +412,7 @@ class Enum_set_element_length_check : public Sql_upgrade_check {
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
                           Upgrade_issue::Object_type object_type) override {
-    Upgrade_issue res;
+    auto res = create_issue();
     std::string type = row->get_as_string(3);
     if (type == "SET") {
       std::string definition{row->get_as_string(4)};
@@ -485,7 +486,7 @@ class Check_table_command : public Upgrade_check {
       const mysqlshdk::db::IRow *row = nullptr;
       while ((row = check_result->fetch_one()) != nullptr) {
         if (row->get_string(2) == "status") continue;
-        Upgrade_issue issue;
+        auto issue = create_issue();
         std::string type = row->get_string(2);
         if (type == "warning")
           issue.level = Upgrade_issue::WARNING;
@@ -662,7 +663,7 @@ class Removed_functions_check : public Sql_upgrade_check {
  protected:
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
                           Upgrade_issue::Object_type object_type) override {
-    Upgrade_issue res;
+    auto res = create_issue();
     std::vector<std::pair<std::string, const char *>> flagged_functions;
     std::string definition = row->get_as_string(4);
     mysqlshdk::utils::SQL_iterator it(definition);
@@ -732,7 +733,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
                           Upgrade_issue::Object_type object_type) override {
-    Upgrade_issue res;
+    auto res = create_issue();
     std::string definition = row->get_as_string(3);
     mysqlshdk::utils::SQL_iterator it(definition);
     bool gb_found = false;
@@ -1012,7 +1013,7 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
  protected:
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
                           Upgrade_issue::Object_type object_type) override {
-    Upgrade_issue res;
+    auto res = create_issue();
     bool match = false;
     std::string definition = row->get_as_string(3);
     mysqlshdk::utils::SQL_iterator it(definition);
@@ -1326,6 +1327,7 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
 
       auto issue =
           deprecated_auth_funcs::parse_item(item, value, m_target_version);
+      issue.check_name = get_name();
       issue.object_type = object_type;
       if (!issue.empty()) issues->emplace_back(std::move(issue));
     }
@@ -1479,7 +1481,7 @@ where
         std::regex(deprecated_delimiter_funcs::k_time_regex_str);
     constexpr std::string_view max_value_str = "MAXVALUE";
 
-    Upgrade_issue problem;
+    auto problem = create_issue();
     problem.schema = row->get_as_string(0);
     problem.table = row->get_as_string(1);
     problem.column = row->get_as_string(2);
@@ -1572,6 +1574,61 @@ std::unique_ptr<Upgrade_check> get_invalid_privileges_check(
     const Upgrade_info &info) {
   return std::make_unique<Invalid_privileges_check>(info);
 }
+
+// clang-format off
+std::unique_ptr<Upgrade_check> get_foreign_key_references_check() {
+  return std::make_unique<Sql_upgrade_check>(
+      ids::k_foreign_key_references,
+      std::vector<Check_query>{
+          {
+"SELECT rc.constraint_schema, "
+        "rc.constraint_name, "
+        "''," // column field
+        "CONCAT(rc.table_name, '(', GROUP_CONCAT(DISTINCT kc.column_name),')') as fk_definition, "
+        "rc.REFERENCED_TABLE_NAME as target_table, "
+        "'##fkToNonUniqueKey' FROM "
+"INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc "
+"JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc "
+"ON rc.constraint_schema=kc.constraint_schema AND "
+   "rc.constraint_name=kc.constraint_name "
+"JOIN INFORMATION_SCHEMA.STATISTICS idx "
+"ON rc.referenced_table_name = idx.table_name AND "
+   "rc.constraint_schema=idx.table_schema AND "
+   "kc.referenced_column_name=idx.column_name AND "
+   "idx.non_unique=1 "
+"WHERE <<schema_filter:rc.constraint_schema>> "
+"GROUP BY "
+  "rc.constraint_schema, rc.constraint_name, rc.table_name, "
+  "rc.referenced_table_name",
+                       Upgrade_issue::Object_type::FOREIGN_KEY},
+                       {
+"SELECT constraint_schema, "
+        "name, "
+        "'', " // column field
+        "fk_definition, "
+        "col_list, "
+        "target_table, "
+        "'##fkToPartialKey'"
+  "FROM (SELECT rc.constraint_schema constraint_schema, "
+               "rc.constraint_name name, "
+               "rc.referenced_table_name target_table, "
+               "CONCAT(rc.constraint_schema,'.',rc.table_name,'(',GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') fk_definition, "
+               "CONCAT(rc.constraint_schema,'.',rc.referenced_table_name,'(',GROUP_CONCAT(kc.referenced_column_name order by kc.ORDINAL_POSITION),')') col_list "
+        "FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc INNER JOIN "
+             "INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc ON "
+             "rc.constraint_schema=kc.constraint_schema AND "
+             "rc.constraint_name=kc.constraint_name AND "
+             "<<schema_filter:rc.constraint_schema>> "
+        "GROUP BY "
+             "rc.constraint_name,rc.constraint_schema, rc.table_name, "
+             "rc.referenced_table_name) fk "
+        "WHERE fk.col_list NOT IN (SELECT CONCAT(table_schema,'.',table_name,'(',GROUP_CONCAT(column_name order by seq_in_index),')') col_list "
+        "FROM INFORMATION_SCHEMA.STATISTICS WHERE sub_part IS NULL AND <<schema_filter:table_schema>> GROUP BY table_schema, table_name, index_name);"
+                        ,Upgrade_issue::Object_type::FOREIGN_KEY
+                       }},
+      Upgrade_issue::WARNING);
+}
+// clang-format on
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

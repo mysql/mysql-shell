@@ -148,6 +148,10 @@ Excluded:
   database engine.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
+- foreignKeyReferences
+  Checks for foreing keys not referencing a full unique index
+  Condition: When the target server is equal or above 8.4.0.
+
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
   Condition: Target version is at least 8.0.16
@@ -190,7 +194,7 @@ Excluded:
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
 Included: 1
-Excluded: 41
+Excluded: 42
 
 
 #@<OUT> WL15974-TSFR_3_3_2
@@ -341,6 +345,10 @@ Included:
   database engine.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
+- foreignKeyReferences
+  Checks for foreing keys not referencing a full unique index
+  Condition: When the target server is equal or above 8.4.0.
+
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
   Condition: Target version is at least 8.0.16
@@ -385,7 +393,7 @@ Included:
 Excluded:
   Empty.
 
-Included: 42
+Included: 43
 
 
 #@<OUT> warning about excluded checks
