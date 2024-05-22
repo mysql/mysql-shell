@@ -2339,11 +2339,12 @@ TEST_F(MySQL_upgrade_check_test, manual_checks) {
       "upgrading-from-previous-series.html#upgrade-caching-sha2-password-"
       "compatibility-issues\nhttps://dev.mysql.com/doc/refman/8.0/en/"
       "upgrading-from-previous-series.html#upgrade-caching-sha2-password-"
-      "replication",
+      "replication\nhttps://dev.mysql.com/doc/refman/8.4/en/"
+      "mysql-nutshell.html",
       auth->get_doc_link().c_str());
   ASSERT_NE(nullptr,
             strstr(auth->get_description().c_str(),
-                   "Warning: The new default authentication plugin "
+                   "Warning: The default authentication plugin "
                    "'caching_sha2_password' offers more secure password "
                    "hashing than previously used 'mysql_native_password' (and "
                    "consequent improved client connection authentication)."));

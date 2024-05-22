@@ -72,8 +72,9 @@ https://dev.mysql.com/doc/refman/en/keywords.html
 Usage of utf8mb3 charset
 
 * utf8mb3.description
-Warning: The following objects use the utf8mb3 character set. It is recommended to convert them
-to use utf8mb4 instead, for improved Unicode support.
+Warning: The following objects use the deprecated utf8mb3 character set. It is recommended to convert
+them to use utf8mb4 instead, for improved Unicode support. The utf8mb3 character is subject to removal
+in the future.
 
 * utf8mb3.docLink
 https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
@@ -176,7 +177,7 @@ https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgr
 Usage of removed functions
 
 * removedFunctions.description
-Error: Following DB objects make use of functions that have been removed int the latest MySQL
+Error: The following DB objects use functions that were removed in the latest MySQL
 version. Please make sure to update them to use supported alternatives before upgrade.
 
 * removedFunctions.docLink
@@ -301,7 +302,7 @@ Issues reported by 'check table x for upgrade' command
 New default authentication plugin considerations
 
 * defaultAuthenticationPlugin.description
-Warning: The new default authentication plugin 'caching_sha2_password' offers more secure password
+Warning: The default authentication plugin 'caching_sha2_password' offers more secure password
 hashing than previously used 'mysql_native_password' (and consequent improved client connection
 authentication). However, it also has compatibility implications that may affect existing MySQL
 installations.  If your MySQL installation must serve pre-8.0 clients and you encounter
@@ -315,27 +316,36 @@ default_authentication_plugin=mysql_native_password\n
 However, the setting should be viewed as temporary, not as a long term or permanent solution,
 because it causes new accounts created with the setting in effect to forego the improved
 authentication security.\n
+\n
+MySQL 8.4.0 removes the deprecated default_authentication_plugin option.\n
+The deprecated mysql_native_password authentication plugin is disabled by default as of 
+MySQL 8.4.0, and is subject to removal in a future version.\n
+\n
 If you are using replication please take time to understand how the authentication plugin changes
 may impact you.
 
 * defaultAuthenticationPlugin.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
-https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication\n
+https://dev.mysql.com/doc/refman/8.4/en/mysql-nutshell.html
 
 * defaultAuthenticationPluginMds.title
 New default authentication plugin considerations
 
 * defaultAuthenticationPluginMds.description
-Warning: The new default authentication plugin 'caching_sha2_password' offers more secure password
+Warning: The default authentication plugin 'caching_sha2_password' offers more secure password
 hashing than previously used 'mysql_native_password' (and consequent improved client connection
 authentication). However, it also has compatibility implications that may affect existing MySQL
 installations.  If your MySQL installation must serve pre-8.0 clients, you may encounter
 compatibility issues after upgrading unless newly created accounts are created to use
-'mysql_native_password'.
+'mysql_native_password'. In addition, MySQL 8.4.0 removes the deprecated default_authentication_plugin
+option. The deprecated mysql_native_password authentication plugin is disabled by default as of 
+MySQL 8.4.0, and is subject to removal in a future version.
 
 * defaultAuthenticationPluginMds.docLink
 https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-compatibility-issues\n
-https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication
+https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password-replication\n
+https://dev.mysql.com/doc/refman/8.4/en/mysql-nutshell.html
 
 * changedFunctionsInGeneratedColumns.title
 Indexes on functions with changed semantics
@@ -400,9 +410,9 @@ this event is associated to a schema that no longer exists.
 Check for deprecated usage of single dollar signs in object names
 
 * dollarSignName.description
-Warning: The following objects have names with deprecated usage of dollar sign ($) at the
-begining of the identifier. To correct this warning, ensure, that names starting with dollar
-sign, also end with it, similary to quotes ($example$). 
+Warning: The following objects have names with deprecated usage of a dollar sign ($) at the
+beginning of the identifier. To correct this warning, ensure that names starting with a dollar
+sign also end with one, similar to quotes ($example$).
 
 * indexTooLarge.title
 Check for indexes that are too large to work on higher versions of MySQL Server than 5.7
@@ -462,7 +472,7 @@ These partitions need to be updated to standard temporal delimiters before the u
 
 * deprecatedTemporalDelimiter.docLink
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-29.html#mysqld-8-0-29-deprecation-removal
-https://dev.mysql.com/doc/refman/8.2/en/datetime.html
+https://dev.mysql.com/doc/refman/en/datetime.html
 
 * innodbRowFormat.title
 InnoDB tables with non-default row format
@@ -488,6 +498,10 @@ The following users are using the '%feature_id%' authentication method which
 is deprecated as of MySQL %deprecated% and will be removed in a future release.\n
 Consider switching the users to a different authentication method
 
+* authMethodUsage.description.Warning.mysql_native_password
+The '%feature_id%' authentication type is disabled by default in MySQL 8.4,
+but can still be enabled by setting loose_mysql_native_password=ON.
+
 * authMethodUsage.description.Error
 The following users are using the '%feature_id%' authentication method which
 is removed as of MySQL %removed%.\n
@@ -509,7 +523,7 @@ is removed as of MySQL %removed%.\n
 The users must be deleted or re-created with a different authentication method (i.e. %replacement%).
 
 * authMethodUsage.docLink.authentication_fido
-https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
+https://dev.mysql.com/doc/refman/en/webauthn-pluggable-authentication.html
 
 * authMethodUsage.docLink.sha256_password
 https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
@@ -548,7 +562,7 @@ The '%item_id%' plugin is removed as of MySQL %removed%.\n
 It must not be used anymore, please use %replacement% instead.
 
 * pluginUsage.docLink.authentication_fido
-https://dev.mysql.com/doc/refman/8.3/en/webauthn-pluggable-authentication.html
+https://dev.mysql.com/doc/refman/en/webauthn-pluggable-authentication.html
 
 * pluginUsage.docLink.keyring_file
 https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html
@@ -557,7 +571,7 @@ https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html
 https://dev.mysql.com/doc/refman/8.0/en/keyring-encrypted-file-component.html
 
 * pluginUsage.docLink.keyring_oci
-https://dev.mysql.com/doc/mysql-security-excerpt/8.3/en/keyring-oci-plugin.html
+https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html
 
 * sysvarAllowedValues.title
 Check for allowed values in System Variables.
@@ -600,7 +614,7 @@ Checks for partitions by key using columns with prefix key indexes
 
 * partitionsWithPrefixKeys.description
 Indexes on column prefixes are not supported for key partitioning, they are ignored by the
-partition function and so they are not allowed in 8.4.0.
+partition function and so they are not allowed as of 8.4.0.
 This check identifies tables with partitions defined this way, they should be fixed
 before upgrading to 8.4.0.
 
@@ -608,4 +622,4 @@ before upgrading to 8.4.0.
 %level%: the `%schema%`.`%table%` table uses partition by KEY using the following columns with prefix index: %details%.
 
 * partitionsWithPrefixKeys.docLink
-https://dev.mysql.com/doc/refman/8.0/en/partitioning-limitations.html
+https://dev.mysql.com/doc/refman/en/partitioning-limitations.html

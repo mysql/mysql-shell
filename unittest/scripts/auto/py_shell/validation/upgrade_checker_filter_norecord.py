@@ -150,7 +150,7 @@ Excluded:
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
-  Condition: Target version is at least 8.0.0
+  Condition: Target version is at least 8.0.16
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
@@ -343,7 +343,7 @@ Included:
 
 - authMethodUsage
   Check for deprecated or invalid user authentication methods.
-  Condition: Target version is at least 8.0.0
+  Condition: Target version is at least 8.0.16
 
 - pluginUsage
   Check for deprecated or removed plugin usage.
