@@ -74,6 +74,8 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
           std::string filter;
           if (key.compare("schema_filter") == 0) {
             filter = qh.schema_filter();
+          } else if (shcore::str_beginswith(key, "schema_filter:")) {
+            filter = qh.schema_filter(std::string(key.substr(14)));
           } else if (key.compare("schema_and_table_filter") == 0) {
             filter = qh.schema_and_table_filter();
           } else if (key.compare("schema_and_routine_filter") == 0) {
@@ -104,10 +106,20 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
         "<<", ">>");
 
     auto result = session->query(final_query);
+
+    // Get the metadata to have the queried data available for message
+    // resolution
+    std::vector<std::string> field_names;
+    for (const auto &column : result->get_metadata()) {
+      field_names.push_back(column.get_column_label());
+    }
+
+    m_field_names = &field_names;
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
       add_issue(row, query.second, &issues);
     }
+    m_field_names = nullptr;
   }
 
   for (const auto &stm : m_clean_up) session->execute(stm);
@@ -118,16 +130,25 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
 void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
                                   Upgrade_issue::Object_type object_type,
                                   std::vector<Upgrade_issue> *issues) {
-  Upgrade_issue issue = parse_row(row, object_type);
+  auto issue = parse_row(row, object_type);
   if (!issue.empty()) issues->emplace_back(std::move(issue));
 }
 
 Upgrade_issue Sql_upgrade_check::parse_row(
     const mysqlshdk::db::IRow *row, Upgrade_issue::Object_type object_type) {
-  Upgrade_issue problem;
+  auto problem = create_issue();
   problem.object_type = object_type;
   auto fields_count = row->num_fields();
   std::string issue_details;
+
+  // Expose all the query fields to be usable in the message resolution
+  Token_definitions tokens;
+  if (m_field_names) {
+    for (size_t index = 0; index < fields_count; index++) {
+      tokens[m_field_names->at(index)] = row->get_as_string(index);
+    }
+  }
+
   problem.schema = row->get_as_string(0);
   if (fields_count > 2) problem.table = row->get_as_string(1);
   if (fields_count > 3) problem.column = row->get_as_string(2);
@@ -148,7 +169,6 @@ Upgrade_issue Sql_upgrade_check::parse_row(
   // The description was loaded from the messages file, so token resolution is
   // performed
   if (!problem.description.empty()) {
-    Token_definitions tokens;
     if (!problem.schema.empty()) {
       tokens["schema"] = problem.schema;
     }
@@ -161,11 +181,11 @@ Upgrade_issue Sql_upgrade_check::parse_row(
       tokens["column"] = problem.column;
     }
 
-    if (!issue_details.empty()) {
-      tokens["details"] = std::move(issue_details);
-    }
-
     tokens["level"] = Upgrade_issue::level_to_string(get_level());
+
+    if (!issue_details.empty()) {
+      tokens["details"] = resolve_tokens(issue_details, tokens);
+    }
 
     problem.description = resolve_tokens(problem.description, tokens);
   } else {

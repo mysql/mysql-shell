@@ -72,6 +72,7 @@ class Sql_upgrade_check : public Upgrade_check {
   std::forward_list<std::string> m_clean_up;
   const Upgrade_issue::Level m_level;
   const char *m_minimal_version;
+  const std::vector<std::string> *m_field_names = nullptr;
 };
 
 }  // namespace upgrade_checker

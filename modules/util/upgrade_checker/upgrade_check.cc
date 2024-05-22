@@ -92,6 +92,12 @@ const std::string &Upgrade_check::get_doc_link(const std::string &group) const {
   return get_text("docLink");
 }
 
+Upgrade_issue Upgrade_check::create_issue() const {
+  Upgrade_issue issue;
+  issue.check_name = get_name();
+  return issue;
+}
+
 Invalid_privileges_check::Invalid_privileges_check(
     const Upgrade_info &server_info)
     : Upgrade_check(ids::k_invalid_privileges_check),
@@ -157,7 +163,7 @@ std::vector<Upgrade_issue> Invalid_privileges_check::run(
                             missing.begin(), missing.end(),
                             std::back_inserter(invalid_list));
 
-        Upgrade_issue issue;
+        auto issue = create_issue();
         std::string raw_description = get_text("issue");
         issue.schema = shcore::make_account(user.first, user.second);
         issue.level = Upgrade_issue::NOTICE;

@@ -146,6 +146,11 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       puts(e.what());
       ASSERT_TRUE(false);
     }
+
+    for (const auto &issue : issues) {
+      EXPECT_EQ(issue.check_name, check->get_name());
+    }
+
     if (no >= 0 && no != static_cast<int>(issues.size())) {
       for (const auto &issue : issues)
         puts(upgrade_issue_to_string(issue).c_str());
@@ -187,6 +192,11 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       puts(e.what());
       ASSERT_TRUE(false);
     }
+
+    for (const auto &issue : issues) {
+      EXPECT_EQ(issue.check_name, check->get_name());
+    }
+
     if (no >= 0 && no != static_cast<int>(issues.size())) {
       for (const auto &issue : issues)
         puts(upgrade_issue_to_string(issue).c_str());
@@ -4637,6 +4647,119 @@ TEST_F(MySQL_upgrade_check_test, sysvar_source_version_tests) {
 
     EXPECT_FALSE(has_var(check.get(), test_var2));
   }
+}
+
+TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
+  PrepareTestDatabase("fk_invalid_reference");
+
+  if (_target_server_version >= Version(8, 4, 0)) {
+    ASSERT_NO_THROW(
+        session->execute("SET SESSION restrict_fk_on_non_standard_key = OFF;"));
+  }
+
+  // First Scenario: FK to table with same ENGINE
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE parent (
+    a int,
+    b int,
+    c int NOT NULL,
+    d int NOT NULL,
+    e int,
+    f int,
+    PRIMARY KEY (a,b)
+  );)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE UNIQUE INDEX my_unique_index
+  ON parent (c, d);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE INDEX my_non_unique_index
+  ON parent (e, f);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE child_aaa_partial_fk_to_primary (
+   a int PRIMARY KEY,
+   b int,
+   FOREIGN KEY (a) REFERENCES parent(a)
+);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE child_bbb_partial_fk_to_unique_index (
+   a int PRIMARY KEY,
+   b int,
+   FOREIGN KEY (a) REFERENCES parent(c)
+);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE child_ccc_full_fk_to_non_unique_index (
+   a int PRIMARY KEY,
+   b int,
+   FOREIGN KEY (a, b) REFERENCES parent(e, f)
+);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE child_ddd_full_fk_to_parent_pk (
+   a int PRIMARY KEY,
+   b int,
+   FOREIGN KEY (a, b) REFERENCES parent(a, b)
+);)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE child_eee_full_fk_to_parent_unique_index (
+   a int PRIMARY KEY,
+   b int,
+   FOREIGN KEY (a, b) REFERENCES parent(c, d)
+);)"));
+
+  auto check = get_foreign_key_references_check();
+
+  // Second Scenario detected properly
+
+  auto find_issue = [&](const std::string &pk_name) -> const Upgrade_issue * {
+    for (const auto &issue : issues) {
+      if (issue.table == pk_name) {
+        return &issue;
+      }
+    }
+
+    return nullptr;
+  };
+
+  EXPECT_ISSUES(check.get(), 3);
+
+  auto issue = find_issue("child_ccc_full_fk_to_non_unique_index_ibfk_1");
+
+  EXPECT_ISSUE(*issue, "fk_invalid_reference",
+               "child_ccc_full_fk_to_non_unique_index_ibfk_1", "",
+               Upgrade_issue::WARNING);
+  EXPECT_EQ(
+      "invalid foreign key defined as "
+      "'child_ccc_full_fk_to_non_unique_index(a,b)' references a non unique "
+      "key at table 'parent'.",
+      issue->description);
+
+  issue = find_issue("child_bbb_partial_fk_to_unique_index_ibfk_1");
+
+  EXPECT_ISSUE(*issue, "fk_invalid_reference",
+               "child_bbb_partial_fk_to_unique_index_ibfk_1", "",
+               Upgrade_issue::WARNING);
+  EXPECT_EQ(
+      "invalid foreign key defined as "
+      "'fk_invalid_reference.child_aaa_partial_fk_to_primary(a)' references a "
+      "partial key at table 'parent'.",
+      issues[1].description);
+
+  issue = find_issue("child_aaa_partial_fk_to_primary_ibfk_1");
+
+  EXPECT_ISSUE(*issue, "fk_invalid_reference",
+               "child_aaa_partial_fk_to_primary_ibfk_1", "",
+               Upgrade_issue::WARNING);
+  EXPECT_EQ(
+      "invalid foreign key defined as "
+      "'fk_invalid_reference.child_bbb_partial_fk_to_unique_index(a)' "
+      "references a partial key at table 'parent'.",
+      issues[2].description);
 }
 
 }  // namespace upgrade_checker

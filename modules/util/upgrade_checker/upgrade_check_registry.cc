@@ -236,6 +236,15 @@ bool UNUSED_VARIABLE(register_get_invalid_engine_foreign_key_check) =
         std::bind(&get_invalid_engine_foreign_key_check),
         Target::OBJECT_DEFINITIONS, "8.0.0");
 
+bool UNUSED_VARIABLE(register_get_foreign_key_references_check) =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_foreign_key_references_check),
+        Target::OBJECT_DEFINITIONS,
+        [](const Upgrade_info &info) {
+          return info.target_version >= Version(8, 4, 0);
+        },
+        "When the target server is equal or above 8.4.0.");
+
 bool UNUSED_VARIABLE(register_auth_method_usage_check) =
     Upgrade_check_registry::register_check(&get_auth_method_usage_check,
                                            Target::AUTHENTICATION_PLUGINS);

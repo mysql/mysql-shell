@@ -332,6 +332,6 @@ collection.find("`list` not overlaps `overlaps`").fields(["name"]).execute()
 # WL12767-TS3_1
 collection.find("list not OvErLaPs overlaps").fields(["name"]).execute()
 
-# Cleanup
+#@<> Cleanup
 mySession.drop_schema('js_shell_test')
 mySession.close()

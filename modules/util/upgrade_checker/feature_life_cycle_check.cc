@@ -158,7 +158,7 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
     auto level = get_issue_level(feature, server_info);
 
     for (const auto &item : issues.second) {
-      Upgrade_issue issue;
+      auto issue = create_issue();
 
       // Issues get the feature set as the group
       issue.group = feature.id;
