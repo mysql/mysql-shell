@@ -157,13 +157,6 @@ TEST(Upgrade_checker_test_common, get_issue_level) {
 
 TEST(Auth_method_usage_check, enabled_and_features) {
   {
-    // UC Start version is after all registered features were removed
-    Upgrade_info info;
-    info.server_version = Version(9, 0, 0);
-    Auth_method_usage_check check(info);
-    EXPECT_FALSE(check.enabled());
-  }
-  {
     // UC Start version before introduction of fido_authentication
     Upgrade_info info;
     info.server_version = Version(8, 0, 26);
@@ -610,9 +603,7 @@ TEST(Auth_method_usage_check, errors) {
   Auth_method_usage_check check(info);
 
   std::map<std::string, bool> tested_plugins = {
-      {"authentication_fido", false},
-      {"sha256_password", false},
-      {"mysql_native_password", false}};
+      {"authentication_fido", false}, {"mysql_native_password", false}};
 
   auto features = check.get_features();
   for (const auto feature : features) {

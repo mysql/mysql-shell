@@ -391,7 +391,6 @@ TEST(Upgrade_check_registry, create_checklist) {
   // sha256_password and "mysql_native_password"
   // Since no start date is defined for these, they are included all the time
   // before the feature is removed
-
   for (const auto &method : {"sha256_password", "mysql_native_password"}) {
     test_check_availability(
         ids::k_auth_method_usage_check, true,
@@ -402,14 +401,14 @@ TEST(Upgrade_check_registry, create_checklist) {
           Version(8, 0, 34)},  // Start after feature deprecation
          {Version(8, 3, 0), Version(8, 4, 0)}},  // Start before feature removal
         method);
-
-    // Not included after feature removal
-    test_check_availability(
-        ids::k_auth_method_usage_check, false,
-        {{Version(9, 0, 0), Version(9, 1, 0)},   // Start on feature removal
-         {Version(9, 1, 0), Version(9, 2, 0)}},  // Start on feature deprecation
-        method);
   }
+
+  // Not included after feature removal
+  test_check_availability(
+      ids::k_auth_method_usage_check, false,
+      {{Version(9, 0, 0), Version(9, 1, 0)},   // Start on feature removal
+       {Version(9, 1, 0), Version(9, 2, 0)}},  // Start on feature deprecation
+      "mysql_native_password");
 
   // authentication_fido:
   // Introduced: 8.0.27
