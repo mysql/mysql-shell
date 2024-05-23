@@ -94,6 +94,12 @@ REGISTER_HELP(HELP_AVAILABLE_TOPICS_SCRIPTING5, "${HELP_AVAILABLE_TOPICS_ALL}");
 REGISTER_HELP(HELP_AVAILABLE_TOPICS_SQL, "${HELP_AVAILABLE_TOPICS_TITLE}");
 REGISTER_HELP(HELP_AVAILABLE_TOPICS_SQL1, "${HELP_AVAILABLE_TOPICS_ALL}");
 
+REGISTER_HELP(HELP_SQL_MODE_ADDITIONAL_FEATURES, "ADDITIONAL FEATURES");
+REGISTER_HELP(HELP_SQL_MODE_ADDITIONAL_FEATURES1,
+              "Scripting capabilities as well as other utilities are available "
+              "in JavaScript (\\js) and Python (\\py) modes, switch to them "
+              "and type \\? for additional information.");
+
 REGISTER_HELP(HELP_PATTERN,
               "The pattern is a filter to identify topics for which help is "
               "required, it can use the following wildcards:");
