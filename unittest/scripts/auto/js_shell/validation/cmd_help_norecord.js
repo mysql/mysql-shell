@@ -205,6 +205,12 @@ EXAMPLES
 \? select
       Displays information about the SELECT SQL statement.
 
+ADDITIONAL FEATURES
+
+Scripting capabilities as well as other utilities are available in JavaScript
+(\js) and Python (\py) modes, switch to them and type \? for additional
+information.
+
 //@<OUT> Help Contents in SQL mode
 The Shell Help is organized in categories and topics. To get help for a
 specific category or topic use: \? <pattern>
