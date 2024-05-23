@@ -397,6 +397,9 @@ void Command_help::print_help_global() {
     help->add_examples_section({}, "GLOBALS_EXAMPLE_SCRIPTING", &sections, 0);
   } else {
     help->add_examples_section({}, "GLOBALS_EXAMPLE_SQL", &sections, 0);
+
+    help->add_section({}, "", "HELP_SQL_MODE_ADDITIONAL_FEATURES", &sections,
+                      0);
   }
 
   mysqlsh::current_console()->println(shcore::str_join(sections, "\n\n"));

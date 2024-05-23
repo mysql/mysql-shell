@@ -133,7 +133,7 @@ class Shell_log_sql_parameterized_tests
          std::string(
              "You have an error in your SQL syntax; check the manual that "
              "corresponds to your MySQL server version for the right syntax to "
-             "use near 'showasdf' at line 1, SQL: <filtered>")},
+             "use near 'showasdf' at line 1, SQL: <filtered: ")},
         true});
   }
 

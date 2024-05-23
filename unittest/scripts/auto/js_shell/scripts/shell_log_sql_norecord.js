@@ -341,6 +341,23 @@ WIPE_SHELL_LOG();
 session.runSql("select whatever");
 EXPECT_SHELL_LOG_MATCHES(/Info: ClassicSession.runSql: tid=\d+: MySQL Error 1054 \(42S22\): Unknown column 'whatever' in 'field list', SQL: select whatever/);
 
+
+//@<> Testing sensitive query logging with error and filtered
+WIPE_SHELL_LOG();
+EXPECT_THROWS(function() {
+    session.runSql("CREATE USER 'test'@'localhost' IDENTIFIED BAY 'sample'");
+}, "You have an error in your SQL syntax;");
+EXPECT_SHELL_LOG_NOT_CONTAINS("CREATE USER 'test'@'localhost' IDENTIFIED BAY ''");
+EXPECT_SHELL_LOG_CONTAINS("SQL: <filtered: *IDENTIFIED*>");
+
+//@<> Testing sensitive query logging with error and masked
+WIPE_SHELL_LOG();
+EXPECT_THROWS(function() {
+    session.runSql("CREATE USER 'test'@'localhost' IDENTIFIED BAY '/*((*/sample/*))*/'");
+}, "You have an error in your SQL syntax;");
+EXPECT_SHELL_LOG_NOT_CONTAINS("CREATE USER 'test'@'localhost' IDENTIFIED BAY ''");
+EXPECT_SHELL_LOG_CONTAINS("SQL: CREATE USER 'test'@'localhost' IDENTIFIED BAY '****'");
+
 //@<> Clean-up
 session.close();
 testutil.rmfile("multi.sql");
