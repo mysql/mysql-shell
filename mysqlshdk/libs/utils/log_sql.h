@@ -81,10 +81,10 @@ class Log_sql : public NotificationObserver {
 
  private:
   void init(const mysqlsh::Shell_options::Storage &opts);
-  std::pair<bool, bool> will_log(std::string_view, bool has_error);
+  std::pair<bool, std::string> will_log(std::string_view, bool has_error);
   void do_log(std::string_view msg) const;
-  bool is_filtered(const std::string_view sql) const;
-  bool is_filtered_unsafe(const std::string_view sql) const;
+  std::string is_filtered(const std::string_view sql) const;
+  std::string is_filtered_unsafe(const std::string_view sql) const;
 
   mutable std::mutex m_mutex;
 
