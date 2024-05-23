@@ -296,3 +296,7 @@ EXPECT_THROWS(function() {
 EXPECT_NO_THROWS(function() {
   coll.createIndex('myField', { fields: [{ field: '$.myField', type: 'CHAR(10)', array: true}], type: 'INDEX' });
 }, "Creating array index in array column");
+
+
+//@<> Cleanup
+session.dropSchema('my_schema');

@@ -93,6 +93,8 @@ std::unique_ptr<Upgrade_check> get_invalid_privileges_check(
 std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
     const Upgrade_info &info);
 
+std::unique_ptr<Upgrade_check> get_foreign_key_references_check();
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 

@@ -634,3 +634,29 @@ https://dev.mysql.com/doc/refman/8.4/en/added-deprecated-removed.html#optvars-re
 
 * sysVars.docLink.removedLogging
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
+
+* foreignKeyReferences.title
+Checks for foreing keys not referencing a full unique index
+
+* foreignKeyReferences.description
+Foreign keys to partial indexes may be forbidden as of 8.4.0, this check identifies such
+cases to warn the user.
+
+* foreignKeyReferences.fkToNonUniqueKey
+invalid foreign key defined as '%fk_definition%' references a non unique key at table '%target_table%'.
+
+* foreignKeyReferences.fkToPartialKey
+invalid foreign key defined as '%fk_definition%' references a partial key at table '%target_table%'.
+
+* foreignKeyReferences.solution
+Convert non unique key to unique key if values do not have any duplicates.
+In case of foreign keys involving partial columns of key, create composite 
+unique key containing all the referencing columns if values do not have any 
+duplicates.
+
+* foreignKeyReferences.solution1
+Remove foreign keys referring to non unique key/partial columns of key.
+
+* foreignKeyReferences.solution2
+In case of multi level references which involves more than two tables change
+foreign key reference.

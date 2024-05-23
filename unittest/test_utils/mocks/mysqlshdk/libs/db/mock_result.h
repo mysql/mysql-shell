@@ -56,6 +56,10 @@ class Fake_result {
     return m_field_names;
   }
 
+  const std::vector<mysqlshdk::db::Column> &get_metadata() const {
+    return m_metadata;
+  }
+
  private:
   size_t _index;
   size_t _windex;
@@ -64,6 +68,7 @@ class Fake_result {
   std::vector<mysqlshdk::db::Type> _types;
   std::vector<std::unique_ptr<mysqlshdk::db::IRow>> _records;
   std::shared_ptr<mysqlshdk::db::Field_names> m_field_names;
+  std::vector<mysqlshdk::db::Column> m_metadata;
 
   std::vector<std::unique_ptr<mysqlshdk::db::Warning>> _warnings;
 };
@@ -109,8 +114,8 @@ class Mock_result : public mysqlshdk::db::IResult {
   MOCK_CONST_METHOD0(get_execution_time, double());
   MOCK_CONST_METHOD0(get_info, std::string());
   MOCK_CONST_METHOD0(get_gtids, const std::vector<std::string> &());
-  MOCK_CONST_METHOD0(get_metadata, std::vector<mysqlshdk::db::Column> &());
 
+  virtual const std::vector<mysqlshdk::db::Column> &get_metadata() const;
   virtual std::shared_ptr<mysqlshdk::db::Field_names> field_names() const;
   virtual const mysqlshdk::db::IRow *fetch_one();
   virtual std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
@@ -132,6 +137,7 @@ class Mock_result : public mysqlshdk::db::IResult {
  private:
   size_t _index;
   std::vector<std::unique_ptr<Fake_result>> _results;
+  std::vector<mysqlshdk::db::Column> _metadata;
 
   const mysqlshdk::db::IRow *fake_fetch_one();
   bool fake_next_resultset();

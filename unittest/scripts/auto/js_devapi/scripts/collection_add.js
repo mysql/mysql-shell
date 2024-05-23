@@ -130,6 +130,6 @@ EXPECT_EQ(2, result.affectedItemsCount);
 var result = collection.add({ "_id": "1E9C92FDA74ED311944E00059A3C7A49", "name": 'my eigth', "passed": 'yep', "count": 6 }, mysqlx.expr('{"_id": "1E9C92FDA74ED311944E00059A3C7A4A", "name": "my nineth", "passed": "yep again", "count": 6}')).execute()
 EXPECT_EQ(2, result.affectedItemsCount);
 
-// Cleanup
+//@<> Cleanup
 mySession.dropSchema('js_shell_test');
 mySession.close();

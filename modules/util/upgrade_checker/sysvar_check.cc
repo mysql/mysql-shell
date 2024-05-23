@@ -645,7 +645,7 @@ std::vector<Upgrade_issue> Sysvar_check::run(
   for (const auto &sysvar_check : m_checks) {
     auto sysvar = cache->get_sysvar(sysvar_check.name);
 
-    Upgrade_issue issue;
+    auto issue = create_issue();
     if (sysvar && sysvar->source != "COMPILED") {
       if (sysvar_check.removal_version.has_value()) {
         if (cont_contains(k_removed_sys_log_vars, sysvar->name))
@@ -732,7 +732,7 @@ Upgrade_issue Sysvar_check::get_issue(
   if (group == k_sysvar_group_deprecated || group == k_sysvar_group_defaults)
     issue_level = Upgrade_issue::WARNING;
 
-  Upgrade_issue issue;
+  auto issue = create_issue();
   issue.schema = sysvar_check.name;
   issue.level = issue_level;
   issue.description = description.c_str();

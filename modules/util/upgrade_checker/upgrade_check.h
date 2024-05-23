@@ -44,7 +44,7 @@ class Upgrade_check {
   explicit Upgrade_check(const std::string_view name) : m_name(name) {}
   virtual ~Upgrade_check() {}
 
-  virtual const std::string &get_name() const { return m_name; }
+  const std::string &get_name() const { return m_name; }
   virtual const std::string &get_title() const;
   virtual std::string get_description(
       const std::string &group = "",
@@ -80,6 +80,7 @@ class Upgrade_check {
     m_groups = std::move(groups);
   }
   const std::vector<std::string> &groups() const { return m_groups; }
+  Upgrade_issue create_issue() const;
 
  private:
   std::string m_name;
