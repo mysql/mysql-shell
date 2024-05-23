@@ -9,7 +9,8 @@ k_mycnf_options = {
   require_secure_transport:1,
   loose_group_replication_consistency:"BEFORE",
   plugin_load:"validate_password" + (__os_type != "windows" ? ".so" : ".dll"),
-  loose_validate_password_policy:"STRONG"
+  loose_validate_password_policy:"STRONG",
+  wait_timeout:1
 }
 // TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
 
@@ -50,9 +51,13 @@ testutil.restartSandbox(__mysql_sandbox_port3);
 testutil.restartSandbox(__mysql_sandbox_port4);
 
 session1 = mysql.getSession(__sandbox_uri1);
+session1.runSql("SET SESSION wait_timeout = 28800");
 session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("SET SESSION wait_timeout = 28800");
 session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("SET SESSION wait_timeout = 28800");
 session4 = mysql.getSession(__sandbox_uri4);
+session4.runSql("SET SESSION wait_timeout = 28800");
 
 function get_clients(s, ignore_ids) {
   var ignore_ids = "connection_id(),"+ignore_ids;
@@ -102,8 +107,13 @@ function END_CHECK_NO_ZOMBIES(cs) {
   EXPECT_PROCESSLIST(session4, __mysql_sandbox_port4);
 }
 
+function connect_no_timeout(uri) {
+    shell.connect(uri);
+    session.runSql("SET SESSION wait_timeout = 28800");
+}
+
 //@<> create Primary Cluster
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 
 var cluster;
 EXPECT_NO_THROWS(function() { cluster = dba.createCluster("cluster", {"ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
@@ -274,7 +284,7 @@ clusterset = dba.getClusterSet();
 //  - Setup admin account
 //  - Setup router account
 
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 
 cluster = dba.getCluster();
 
@@ -325,18 +335,18 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster,
 //@<> rejoinInstance on a replica cluster
 session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP group_replication");
-shell.connect(__sandbox_uri4);
+connect_no_timeout(__sandbox_uri4);
 EXPECT_NO_THROWS(function() { replicacluster.rejoinInstance(__sandbox_uri3); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
 //@<> rescan() on a replica cluster
 // delete sb3 from the metadata so that rescan picks it up
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
 EXPECT_NO_THROWS(function() { replicacluster.rescan({addInstances: "auto"}); });
-shell.connect(__sandbox_uri4);
+connect_no_timeout(__sandbox_uri4);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);
 
@@ -387,12 +397,13 @@ CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster", __secure_pass
 //@<> createReplicaCluster() - clone recovery
 EXPECT_NO_THROWS(function() {replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip, "communicationStack": "XCOM"}); });
 session4 = mysql.getSession(__sandbox_uri4);
+session4.runSql("SET SESSION wait_timeout = 28800");
 
 //@<> validate replica cluster - clone recovery
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], cluster, replicacluster, undefined, __secure_password);
 
 //@<> setPrimaryCluster
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 cs = dba.getClusterSet();
 
 cs.status({extended:1});
@@ -402,7 +413,7 @@ cs.setPrimaryCluster("replicacluster");
 //@<> forcePrimaryCluster
 session4.runSql("shutdown");
 
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 cs = dba.getClusterSet();
 
 cs.forcePrimaryCluster("cluster");
@@ -410,10 +421,10 @@ cs.forcePrimaryCluster("cluster");
 //@<> rejoinCluster
 testutil.startSandbox(__mysql_sandbox_port4);
 session4 = mysql.getSession(__sandbox_uri4);
-shell.connect(__sandbox_uri4);
+connect_no_timeout(__sandbox_uri4);
 dba.rebootClusterFromCompleteOutage();
 
-shell.connect(__sandbox_uri1);
+connect_no_timeout(__sandbox_uri1);
 cs = dba.getClusterSet();
 cs.rejoinCluster("replicacluster");
 

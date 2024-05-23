@@ -35,20 +35,16 @@
 #include <set>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
-#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/enumset.h"
-#include "scripting/lang_base.h"
 #include "scripting/types.h"
 
 namespace mysqlsh {
@@ -268,6 +264,7 @@ inline constexpr const char kUpdate[] = "update";
 inline constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
 inline constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 inline constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
+inline constexpr const char kRepairMetadata[] = "repairMetadata";
 inline constexpr const char kAll[] = "all";
 inline constexpr const char kTimeout[] = "timeout";
 inline constexpr const char kInvalidateErrorInstances[] =

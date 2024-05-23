@@ -13,11 +13,13 @@ k_mycnf_options = {
     autocommit:1,
     require_secure_transport:1,
     plugin_load:"validate_password" + (__os_type != "windows" ? ".so" : ".dll"),
-    loose_validate_password_policy:"STRONG"
+    loose_validate_password_policy:"STRONG",
+    wait_timeout:1
 }
 // TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
 
 function get_open_sessions(session) {
+    session.runSql("SET SESSION wait_timeout = 28800");
     var r = session.runSql("SELECT processlist_id FROM performance_schema.threads WHERE processlist_user is not null");
     pids = []
     while (row = r.fetchOne()) {
@@ -28,6 +30,7 @@ function get_open_sessions(session) {
 
 // function to detect that a command has closed all sessions it has opened
 function check_open_sessions(session, ignore_pids) {
+    session.runSql("SET SESSION wait_timeout = 28800");
     var r = session.runSql("SELECT processlist_id, processlist_user, processlist_info FROM performance_schema.threads WHERE processlist_user is not null");
     var flag = false;
     if (row = r.fetchOne()) {
@@ -43,6 +46,11 @@ function check_open_sessions(session, ignore_pids) {
         println();
         testutil.fail("DB session leak detected");
     }
+}
+
+function connect_no_timeout(uri, pwd) {
+    shell.connect(uri, pwd);
+    session.runSql("SET SESSION wait_timeout = 28800");
 }
 
 //@<> Setup
@@ -90,7 +98,7 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ createReplicaSet
-shell.connect(__sandbox_uri1, __secure_password);
+connect_no_timeout(__sandbox_uri1, __secure_password);
 
 expected_pids1 = get_open_sessions(session1);
 
@@ -222,6 +230,7 @@ EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ rejoinInstance (clone) {VER(>=8.0.17)}
 session3 = mysql.getSession(__sandbox_uri3, __secure_password);
+session3.runSql("SET SESSION wait_timeout = 28800");
 session3.runSql("STOP SLAVE");
 
 rs.rejoinInstance(__sandbox_uri_secure_password3, {recoveryMethod:"clone"});
@@ -287,10 +296,13 @@ testutil.restartSandbox(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port3);
 
 session1 = mysql.getSession(__sandbox_uri1, __secure_password);
+session1.runSql("SET SESSION wait_timeout = 28800");
 session2 = mysql.getSession(__sandbox_uri2 + "?ssl-mode=DISABLED&get-server-public-key=1", __secure_password);
+session2.runSql("SET SESSION wait_timeout = 28800");
 session3 = mysql.getSession(__sandbox_uri3 + "?ssl-mode=DISABLED&get-server-public-key=1", __secure_password);
+session3.runSql("SET SESSION wait_timeout = 28800");
 
-shell.connect(__sandbox_uri2, __secure_password);
+connect_no_timeout(__sandbox_uri2, __secure_password);
 rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});
 
 rs.addInstance(__sandbox_uri_secure_password3);
@@ -304,7 +316,7 @@ reset_instance(session1);
 reset_instance(session2);
 reset_instance(session3);
 
-shell.connect(__sandbox_uri1, __secure_password);
+connect_no_timeout(__sandbox_uri1, __secure_password);
 rs = dba.createReplicaSet("rs", {gtidSetIsComplete:1});
 
 EXPECT_THROWS(function(){rs.addInstance(__sandbox_uri_secure_password3);}, `Instance '127.0.0.1:${__mysql_sandbox_port3}' does not support TLS and cannot join a replicaset with TLS (encryption) enabled.`);

@@ -26,15 +26,13 @@
 #include <mysql/group_replication.h>
 
 #include "modules/adminapi/cluster/dissolve.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
-#include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -329,6 +327,23 @@ void Dissolve::remove_instance(const std::string &instance_address,
     // Stop Group Replication and reset (persist) GR variables.
     mysqlsh::dba::leave_cluster(*m_available_instances[instance_index],
                                 m_supports_member_actions);
+
+    // Reset the ClusterSet replication channel
+    //
+    // NOTE: It's not possible to dissolve a Cluster that belongs to a
+    // ClusterSet, the Cluster needs to be removed from the ClusterSet (which
+    // will ensure the replication channel is reset among other
+    // reconfiguration). However, there is a remote possibility of a failed
+    // create_replica_cluster() to leave a dangling Cluster that is fully
+    // set up but not part of the ClusterSet yet. Users should be able
+    // to dissolve() that Cluster, but if the replication channel is present
+    // the command won't stop/reset it. That leftover will hit the precondition
+    // checks for reusing the ex-members of that Cluster (have no replication
+    // channels configured). For that reason, we should aim to clean as much as
+    // possible, and considering that the remove_channel() function is a no-op
+    // if the channel doesn't exist, we always call it.
+    remove_channel(m_available_instances[instance_index].get(),
+                   k_clusterset_async_channel_name, false);
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 

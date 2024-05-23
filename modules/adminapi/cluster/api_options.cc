@@ -30,11 +30,7 @@
 
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
-#include "shellcore/shell_options.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -138,7 +134,8 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
           .optional(kUpgradeCommProtocol,
                     &Rescan_options::upgrade_comm_protocol)
           .optional(kUpdateViewChangeUuid,
-                    &Rescan_options::update_view_change_uuid);
+                    &Rescan_options::update_view_change_uuid)
+          .optional(kRepairMetadata, &Rescan_options::repair_metadata);
 
   return opts;
 }

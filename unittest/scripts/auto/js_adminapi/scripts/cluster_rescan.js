@@ -1041,6 +1041,7 @@ EXPECT_NO_THROWS(function() { c.rescan(); });
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 Result of the rescanning operation for the 'cluster' cluster:
 {
+    "metadataConsistent": true,
     "name": "cluster",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -1089,6 +1090,7 @@ EXPECT_NO_THROWS(function() { c.rescan(); });
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 Result of the rescanning operation for the 'cluster' cluster:
 {
+    "metadataConsistent": true,
     "name": "cluster",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -1127,6 +1129,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'cluster' cluster:
 {
+    "metadataConsistent": true,
     "name": "cluster",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -1153,6 +1156,7 @@ EXPECT_NO_THROWS(function() { c.rescan(); });
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 Result of the rescanning operation for the 'cluster' cluster:
 {
+    "metadataConsistent": true,
     "name": "cluster",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -1191,6 +1195,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'cluster' cluster:
 {
+    "metadataConsistent": true,
     "name": "cluster",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],

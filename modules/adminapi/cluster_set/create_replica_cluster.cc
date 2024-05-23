@@ -24,19 +24,15 @@
  */
 
 #include <memory>
-#include <set>
-#include <utility>
 #include <vector>
 
 #include "adminapi/common/async_topology.h"
 #include "adminapi/common/instance_validations.h"
 #include "adminapi/common/member_recovery_monitoring.h"
-#include "modules/adminapi/cluster/create_cluster_set.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_validations.h"
@@ -45,7 +41,6 @@
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/server_features.h"
 #include "mysql/clone.h"
-#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "shellcore/console.h"
@@ -1039,6 +1034,11 @@ shcore::Value Create_replica_cluster::execute() {
 
     console->print_error("Error creating Replica Cluster: " +
                          format_active_exception());
+
+    DBUG_EXECUTE_IF("dba_create_replica_cluster_fail_revert", {
+      undo_list.cancel();
+      throw;
+    });
 
     console->print_note("Reverting changes...");
 

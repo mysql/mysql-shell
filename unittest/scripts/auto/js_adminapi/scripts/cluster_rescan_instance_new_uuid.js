@@ -23,17 +23,18 @@ function restart_instance_with_new_uuid(target_port, new_uuid_suffix){
 function validate_rescan() {
     EXPECT_STDOUT_CONTAINS_MULTILINE(`
 Rescanning the cluster...
-    
+
 Result of the rescanning operation for the 'cluster' cluster:
 {
-    "name": "cluster", 
-    "newTopologyMode": null, 
-    "newlyDiscoveredInstances": [], 
-    "unavailableInstances": [], 
+    "metadataConsistent": true,
+    "name": "cluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
     "updatedInstances": [
         {
-            "host": "${hostname}:${__mysql_sandbox_port2}", 
-            "label": "${hostname}:${__mysql_sandbox_port2}", 
+            "host": "${hostname}:${__mysql_sandbox_port2}",
+            "label": "${hostname}:${__mysql_sandbox_port2}",
             "member_id": "${new_uuid}",
             "old_member_id": "${uuid}"
         }

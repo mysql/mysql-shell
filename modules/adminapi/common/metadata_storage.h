@@ -29,7 +29,6 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -39,7 +38,6 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/undo.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -213,6 +211,15 @@ class MetadataStorage {
    * @param cluster_id The target Cluster ID
    */
   void cleanup_for_cluster(Cluster_id cluster_id);
+
+  /**
+   * Deletes any dangling Clusters the ClusterSet's Metadata may have
+   *
+   * Ensures that any unrelated Cluster entries on the ClusterSet's Metadata are
+   * removed. Those can be resulting of failed actions, such as adding a new
+   * Replica Cluster.
+   */
+  void prune_clusterset_metadata(const Cluster_set_id &cs_id);
 
   Cluster_set_id create_cluster_set_record(
       Cluster_set_impl *cs, Cluster_id seed_cluster_id,

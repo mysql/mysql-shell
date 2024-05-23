@@ -23,30 +23,20 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <iomanip>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "db/utils_connection.h"
-#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
-#include "modules/adminapi/common/preconditions.h"
-#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
-#include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 using std::placeholders::_1;
 
@@ -797,12 +787,19 @@ communication protocol to the highest version possible.
 @li updateViewChangeUuid: boolean value used to indicate if the command should
 generate and set a value for Group Replication View Change UUID in the whole
 Cluster. Required for InnoDB ClusterSet usage.
+@li repairMetadata: boolean. Set to true to repair the Metadata if detected to
+be inconsistent.
 
 The value for addInstances and removeInstances is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept
 list connection data. In addition, the "auto" value can be used for both
 options in order to automatically add or remove the instances in the metadata,
 without having to explicitly specify them.
+
+'repairMetadata' is used to eliminate any inconsistencies detected in the
+Metadata. These inconsistencies may arise from a few scenarios, such as the
+failure of one or more commands. Clusters detected in the ClusterSet Metadata
+that do not qualify as valid members will be removed.
 
 @attention The updateTopologyMode option will be removed in a future release.
 

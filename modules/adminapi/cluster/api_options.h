@@ -31,12 +31,9 @@
 #include <vector>
 
 #include "modules/adminapi/common/api_options.h"
-#include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/clone_options.h"
-#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -97,6 +94,7 @@ struct Rescan_options : public Interactive_option {
   bool auto_remove = false;
   bool upgrade_comm_protocol = false;
   mysqlshdk::null_bool update_view_change_uuid;
+  std::optional<bool> repair_metadata;
 };
 
 struct Set_primary_instance_options {
