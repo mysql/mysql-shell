@@ -93,7 +93,7 @@ Mock_result::Mock_result() : _index(0) {
 const std::vector<mysqlshdk::db::Column> &Mock_result::get_metadata() const {
   if (_index < _results.size()) return _results[_index]->get_metadata();
   return _metadata;
-};
+}
 
 std::shared_ptr<mysqlshdk::db::Field_names> Mock_result::field_names() const {
   if (_index < _results.size()) return _results[_index]->field_names();
