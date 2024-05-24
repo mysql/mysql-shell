@@ -1006,7 +1006,8 @@ void Mysql_shell::print_connection_message(
 std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
     bool shell_global_session,
-    std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init) {
+    std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init,
+    bool enable_stored_passwords) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -1042,7 +1043,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     shcore::Scoped_callback go_back_print_mode([this] { toggle_print(); });
 
     toggle_print();
-    isession = establish_session(connection_options, options().wizards);
+    isession = establish_session(connection_options, options().wizards, false,
+                                 enable_stored_passwords);
 
     if (extra_init) {
       extra_init(isession);
@@ -1393,7 +1395,8 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   if (shell_options.get().exit_code == 0 &&
       shell_options.get().has_connection_data()) {
     try {
-      connect(shell_options.get().connection_options());
+      connect(shell_options.get().connection_options(), true, nullptr,
+              !shell_options.get().prompt_password);
     } catch (const shcore::Exception &e) {
       print_diag(std::string(e.format()) + "\n");
     } catch (const mysqlshdk::db::Error &e) {

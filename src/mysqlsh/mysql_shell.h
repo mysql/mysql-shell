@@ -56,7 +56,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
       const mysqlshdk::db::Connection_options &args,
       bool shell_global_session = true,
       std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init =
-          nullptr);
+          nullptr,
+      bool enable_stored_passwords = true);
 
   bool redirect_session_if_needed(
       bool secondary, const Connection_options &opts = Connection_options());

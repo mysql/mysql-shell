@@ -779,7 +779,8 @@ int main(int argc, char **argv) {
           }
 
           // Connect to the requested instance
-          shell->connect(target, true, std::move(extra_init));
+          shell->connect(target, true, std::move(extra_init),
+                         !options.prompt_password);
 
           // if protocol was auto-detected in 5.7 and turned out to be X
           // protocol, then recommend using --mysqlx. This is a problem in 5.7

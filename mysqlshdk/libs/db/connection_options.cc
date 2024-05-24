@@ -256,6 +256,13 @@ bool Connection_options::needs_password(int factor) const {
   return *m_needs_password[factor];
 }
 
+bool Connection_options::should_prompt_password(int factor) const {
+  return (!has_mfa_password(factor) && has_needs_password(factor) &&
+          needs_password(factor)) ||
+         // prompt for password1 by default
+         (factor == 0 && !has_needs_password(0) && !has_password());
+}
+
 void Connection_options::clear_password() { IConnection::clear_password(); }
 
 void Connection_options::clear_mfa_password(int factor) {
