@@ -1182,6 +1182,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     if (shcore::Options::Iterator::Type::NO_VALUE == iterator->type()) {
       storage.connection_data.clear_mfa_password(mfa_password);
       iterator->next_no_value();
+      storage.prompt_password = true;
     } else if (shcore::Options::Iterator::Type::SEPARATE_VALUE !=
                iterator->type()) {
       // --password=value || -pvalue

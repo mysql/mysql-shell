@@ -177,6 +177,7 @@ class Shell_options final : public shcore::Options {
 
     double connect_timeout = 10.0;
     double dba_connect_timeout = 5.0;
+    bool prompt_password = false;
 
     // This should probably a command line option that determines how much bytes
     // should be included when returning binary data, 0 means no limits

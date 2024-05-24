@@ -301,7 +301,10 @@ std::vector<std::string> Credential_manager::list_credential_helpers() const {
 bool Credential_manager::get_password(mysqlshdk::IConnection *options) const {
   if (m_helper) {
     std::string password;
-    bool ret = m_helper->get(get_secret_spec(*options), &password);
+    auto secret_spec = get_secret_spec(*options);
+    log_debug2("Retrieving password from credential manager for '%s'",
+               secret_spec.url.c_str());
+    bool ret = m_helper->get(secret_spec, &password);
 
     if (ret) {
       options->set_password(password);
