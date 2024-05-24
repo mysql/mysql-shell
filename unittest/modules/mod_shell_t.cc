@@ -40,11 +40,11 @@ class Mock_mysql_shell : public mysqlsh::Mysql_shell {
                    shcore::Interpreter_delegate *custom_delegate)
       : mysqlsh::Mysql_shell(options, custom_delegate) {}
 
-  MOCK_METHOD3(
+  MOCK_METHOD4(
       connect,
       std::shared_ptr<mysqlsh::ShellBaseSession>(
           const mysqlshdk::db::Connection_options &, bool,
-          std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>));
+          std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>, bool));
   MOCK_METHOD1(cmd_disconnect, bool(const std::vector<std::string> &args));
 };
 
@@ -343,11 +343,11 @@ TEST_F(mod_shell_test, parse_uri) {
 }
 
 TEST_F(mod_shell_test, connect) {
-  EXPECT_CALL(*_backend, connect(_, true, _));
+  EXPECT_CALL(*_backend, connect(_, true, _, _));
 
   _shell->connect(mysqlshdk::db::Connection_options{_mysql_uri});
 
-  EXPECT_CALL(*_backend, connect(_, false, _));
+  EXPECT_CALL(*_backend, connect(_, false, _, _));
   _shell->open_session(mysqlshdk::db::Connection_options{_mysql_uri});
 }
 

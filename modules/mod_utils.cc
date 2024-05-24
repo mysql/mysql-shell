@@ -509,7 +509,7 @@ void password_prompt(Connection_options *options) {
 
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop, bool /*enable_stored_passwords*/) {
+    bool prompt_in_loop, bool enable_stored_passwords) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -524,7 +524,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     }
 
     // TODO(alfredo) - password storage for MFA needs to be figured out
-    if (copy.has_user() && !copy.should_prompt_password(0, true)) {
+    if (!copy.has_password() && copy.has_user() && enable_stored_passwords) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
         try {
           return create_session(copy);
