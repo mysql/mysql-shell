@@ -217,7 +217,7 @@ std::string Upgrade_issue::get_db_object() const {
   return ss.str();
 }
 
-Checker_cache::Checker_cache(Filtering_options *db_filters)
+Checker_cache::Checker_cache(const Filtering_options *db_filters)
     : m_query_helper(db_filters != nullptr ? *db_filters : m_filters) {
   m_filters.schemas().exclude("information_schema");
   m_filters.schemas().exclude("performance_schema");

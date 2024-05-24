@@ -1925,22 +1925,30 @@ Session_ptr Dump_loader::create_session() {
 
   if (m_dump->tz_utc()) sql::execute(session, "SET TIME_ZONE='+00:00'");
 
-  if (m_options.load_ddl() && m_options.auto_create_pks_supported()) {
-    // target server supports automatic creation of primary keys, we need to
-    // explicitly set the value of session variable, so we won't end up creating
-    // primary keys when user doesn't want to do that
-    const auto create_pks = should_create_pks();
+  if (m_options.load_ddl()) {
+    if (m_options.auto_create_pks_supported()) {
+      // target server supports automatic creation of primary keys, we need to
+      // explicitly set the value of session variable, so we won't end up
+      // creating primary keys when user doesn't want to do that
+      const auto create_pks = should_create_pks();
 
-    // we toggle the session variable only if the global value is different from
-    // the value requested by the user, as it requires at least
-    // SESSION_VARIABLES_ADMIN privilege; in case of MDS (where users do no
-    // have this privilege) we expect that user has set the appropriate
-    // compatibility option during the dump and this variable is not going to be
-    // toggled
-    if (m_options.sql_generate_invisible_primary_key() != create_pks) {
-      sql::executef(session,
-                    "SET @@SESSION.sql_generate_invisible_primary_key=?",
-                    create_pks);
+      // we toggle the session variable only if the global value is different
+      // from the value requested by the user, as it requires at least
+      // SESSION_VARIABLES_ADMIN privilege; in case of MDS (where users do no
+      // have this privilege) we expect that user has set the appropriate
+      // compatibility option during the dump and this variable is not going to
+      // be toggled
+      if (m_options.sql_generate_invisible_primary_key() != create_pks) {
+        sql::executef(session,
+                      "SET @@SESSION.sql_generate_invisible_primary_key=?",
+                      create_pks);
+      }
+    }
+
+    if (m_dump->force_non_standard_fks() &&
+        m_options.target_server_version() >= Version(8, 4, 0)) {
+      sql::execute(session,
+                   "SET @@SESSION.restrict_fk_on_non_standard_key=OFF");
     }
   }
 
@@ -3108,6 +3116,15 @@ void Dump_loader::check_server_version() {
         "behave differently.",
         status(m_dump->partial_revokes()),
         status(m_options.partial_revokes())));
+  }
+
+  if (m_options.load_ddl() && m_dump->force_non_standard_fks() &&
+      m_options.target_server_version() >= Version(8, 4, 0)) {
+    console->print_warning(
+        "The dump was created with the 'force_non_standard_fks' compatibility "
+        "option set, the 'restrict_fk_on_non_standard_key' session variable "
+        "will be set to 'OFF'. Please note that creation of foreign keys with "
+        "non-standard keys may break the replication.");
   }
 }
 

@@ -211,6 +211,10 @@ Dump_reader::Status Dump_reader::open() {
     m_contents.create_invisible_pks =
         std::find(options.begin(), options.end(), "create_invisible_pks") !=
         options.end();
+
+    m_contents.force_non_standard_fks =
+        std::find(options.begin(), options.end(), "force_non_standard_fks") !=
+        options.end();
   }
 
   if (md->has_key("tableOnly"))

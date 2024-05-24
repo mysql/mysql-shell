@@ -136,7 +136,7 @@ bool run_checks_for_upgrade(const Upgrade_check_config &config,
     }
   };
 
-  Checker_cache cache;
+  Checker_cache cache{config.db_filters()};
 
   // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present
   // up to 5.7.39
