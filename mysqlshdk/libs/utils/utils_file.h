@@ -40,6 +40,7 @@ std::string SHCORE_PUBLIC get_binary_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 std::string SHCORE_PUBLIC get_share_folder();
 std::string SHCORE_PUBLIC get_library_folder();
+std::string SHCORE_PUBLIC get_default_mysql_plugin_dir();
 
 #ifdef HAVE_LIBEXEC_DIR
 std::string SHCORE_PUBLIC get_libexec_folder();

@@ -39,7 +39,6 @@ def prepare(sbport, options={}):
         "tmpdir": mysql_tmpdir,
         # small sort buffer to force stray filesorts to be triggered even if we don't have much data
         "sort_buffer_size": 32768,
-        "loose_mysql_native_password": "ON"
     })
     if __os_type == "windows":
         options.update({
@@ -1105,8 +1104,8 @@ for table in all_tables:
 session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 
 #@<> BUG#33144419: setup
-dumper_user = "dumper"
-loader_user = "loader"
+dumper_user = "dumper_33144419"
+loader_user = "loader_33144419"
 password = "pass"
 host_with_netmask = "127.0.0.0/255.0.0.0"
 dump_dir = os.path.join(outdir, "host_with_netmask")
@@ -1134,7 +1133,8 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "ddlOnly"
 
 #@<> BUG#33144419: load
 # dumper user does not exist
-EXPECT_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}"), f"Access denied for user '{dumper_user}'@'localhost'")
+shell.connect(__sandbox_uri2)
+EXPECT_EQ([], session.run_sql("select 1 from mysql.user where user = ?", [ dumper_user ]).fetch_all())
 
 # load the dump, users are created
 shell.connect(f"{loader_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}")
@@ -1143,7 +1143,8 @@ EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping CREATE/ALTER USER statements for user '{
 EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping GRANT/REVOKE statements for user '{loader_user}'@'{host_with_netmask}'")
 
 # dumper user was created
-EXPECT_NO_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}"), "user should exist")
+shell.connect(__sandbox_uri2)
+EXPECT_NE([], session.run_sql("select 1 from mysql.user where user = ?", [ dumper_user ]).fetch_all())
 
 #@<> BUG#33144419: cleanup
 shell.connect(__sandbox_uri1)
@@ -2322,6 +2323,15 @@ except:
     shutil.unpack_archive(source_archive, outdir)
 
 # run the test
+if __version_num >= 90000:
+    # accounts are using mysql_native_password authentication plugin, which is not available
+    users_file = os.path.join(dump_dir, "@.users.sql")
+    with open(users_file, "r") as f:
+        users_contents = f.read()
+    users_contents = users_contents.replace("'mysql_native_password' AS", "'caching_sha2_password' BY")
+    with open(users_file, "w") as f:
+        f.write(users_contents)
+
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "'root'@'%'" ], "ignoreVersion": True, "showProgress": False }), "Loading should not throw")
 EXPECT_STDOUT_CONTAINS(f"Loading DDL, Data and Users from '{dump_dir}' using 4 threads.")
 EXPECT_STDOUT_CONTAINS("NOTE: Dump format has version 1.0.0 and was created by an older version of MySQL Shell. If you experience problems loading it, please recreate the dump using the current version of MySQL Shell and try again.")

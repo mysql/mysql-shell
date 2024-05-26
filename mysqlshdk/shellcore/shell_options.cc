@@ -267,12 +267,6 @@ Shell_options::Shell_options(
   home += ("mysql-sandboxes");
 #endif
 
-  std::string default_mysql_plugin_dir;
-#ifdef DEFAULT_MYSQL_PLUGIN_DIR
-  default_mysql_plugin_dir = shcore::path::normalize(shcore::path::join_path(
-      shcore::get_mysqlx_home_path(), DEFAULT_MYSQL_PLUGIN_DIR));
-#endif
-
   const auto create_result_format_handler = [this](const char *value) {
     return [this, value](const std::string &opt_name, const char *) {
       get_option(SHCORE_RESULT_FORMAT)
@@ -760,7 +754,8 @@ Shell_options::Shell_options(
         "Path to Oracle Cloud Infrastructure (OCI) configuration file.")
     (&storage.oci_profile, std::string{"DEFAULT"}, "oci.profile",
         "Oracle Cloud Infrastructure (OCI) configuration file profile name.")
-    (&storage.mysql_plugin_dir, default_mysql_plugin_dir, SHCORE_MYSQL_PLUGIN_DIR,
+    (&storage.mysql_plugin_dir, shcore::get_default_mysql_plugin_dir(),
+        SHCORE_MYSQL_PLUGIN_DIR,
         cmdline("--mysql-plugin-dir[=<path>]"),
         "Directory for client-side authentication plugins.")
     (&storage.connect_timeout, 10.0, SHCORE_CONNECT_TIMEOUT,

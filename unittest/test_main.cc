@@ -132,6 +132,11 @@ void detect_mysql_environment(int port, const char *pwd) {
   mysql = mysql_init(nullptr);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(mysql, MYSQL_OPT_PROTOCOL, &tcp);
+
+  if (const auto dir = shcore::get_default_mysql_plugin_dir(); !dir.empty()) {
+    mysql_options(mysql, MYSQL_PLUGIN_DIR, dir.c_str());
+  }
+
   // if connect succeeds or error is a server error, then there's a server
   if (mysql_real_connect(mysql, "127.0.0.1", "root", pwd, NULL, port, NULL,
                          0)) {

@@ -1502,19 +1502,6 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
     }
   }
 
-  // Enables mysql_native_password by default to workaround a random error
-  // generated on the server that causes random failures on shell tests
-  shcore::Dictionary_t cnf_options{my_cnf_options};
-
-  if (!cnf_options) {
-    cnf_options = shcore::make_dict();
-  }
-
-  if (!cnf_options->has_key("loose_mysql_native_password") &&
-      !cnf_options->has_key("mysql_native_password")) {
-    (*cnf_options)["loose_mysql_native_password"] = shcore::Value("ON");
-  }
-
   _passwords[port] = rootpass;
 
   if (_skip_server_interaction) return;
@@ -1532,7 +1519,7 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
 
   // Sandbox from a boilerplate (always start with root password)
   prepare_sandbox_boilerplate(port, mysqld_path);
-  deploy_sandbox_from_boilerplate(port, cnf_options, false, mysqld_path);
+  deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
   if (k_boilerplate_root_password == rootpass) {
@@ -1598,23 +1585,10 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
 
   wait_sandbox_dead(port);
 
-  // Enables mysql_native_password by default to workaround a random error
-  // generated on the server that causes random failures on shell tests
-  shcore::Dictionary_t cnf_options{my_cnf_opts};
-
-  if (!cnf_options) {
-    cnf_options = shcore::make_dict();
-  }
-
-  if (!cnf_options->has_key("loose_mysql_native_password") &&
-      !cnf_options->has_key("mysql_native_password")) {
-    (*cnf_options)["loose_mysql_native_password"] = shcore::Value("ON");
-  }
-
   // Sandbox from a boilerplate (always start with root password)
   prepare_sandbox_boilerplate(port, mysqld_path);
   wait_sandbox_dead(port);
-  deploy_sandbox_from_boilerplate(port, cnf_options, true, mysqld_path,
+  deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path,
                                   timeout);
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
@@ -3739,7 +3713,7 @@ void Testutils::validate_boilerplate(const std::string &sandbox_dir,
 }
 
 void Testutils::deploy_sandbox_from_boilerplate(
-    int port, const shcore::Dictionary_t &opts, bool raw,
+    int port, const shcore::Dictionary_t &cnf_options, bool raw,
     const std::string &mysqld_path, int timeout) {
   if (g_test_trace_scripts) {
     if (raw)
@@ -3851,7 +3825,24 @@ void Testutils::deploy_sandbox_from_boilerplate(
     }
   }
 
-  if (opts && !opts->empty()) {
+  shcore::Dictionary_t opts{cnf_options};
+
+  if (!opts) {
+    opts = shcore::make_dict();
+  }
+
+  using mysqlshdk::utils::Version;
+  const Version mysqld_ver{mysqld_version};
+
+  // Enables mysql_native_password by default to workaround a random error
+  // generated on the server that causes random failures on shell tests
+  if (mysqld_ver >= Version(8, 4, 0) && mysqld_ver < Version(9, 0, 0) &&
+      !opts->has_key("loose_mysql_native_password") &&
+      !opts->has_key("mysql_native_password")) {
+    (*opts)["mysql_native_password"] = shcore::Value("ON");
+  }
+
+  if (!opts->empty()) {
     // Handle server-uuid (or server_uuid) option.
     // It is a special case that cannot be set in the configuration file,
     // it has to be changed in another specific file ($DATADIR/auto.cnf).
@@ -3864,11 +3855,9 @@ void Testutils::deploy_sandbox_from_boilerplate(
       opts->erase("server_uuid");
     }
 
-    using mysqlshdk::utils::Version;
     // keyring component was introduced in 8.0.24, keyring plugin was removed
     // in 8.4.0
-    const auto use_keyring_component =
-        Version(mysqld_version) >= Version(8, 4, 0);
+    const auto use_keyring_component = mysqld_ver >= Version(8, 4, 0);
     std::string plugin_dir;
 
     if (use_keyring_component) {

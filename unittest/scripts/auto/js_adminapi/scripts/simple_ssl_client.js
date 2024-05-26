@@ -4,9 +4,9 @@
 
 //@<> Setup
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {loose_mysql_native_password: "ON"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {loose_mysql_native_password: "ON"});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {loose_mysql_native_password: "ON"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root");
+testutil.deploySandbox(__mysql_sandbox_port2, "root");
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
 
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 

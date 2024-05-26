@@ -339,6 +339,17 @@ std::string get_mysqlx_home_path() {
   return ret_val;
 }
 
+std::string SHCORE_PUBLIC get_default_mysql_plugin_dir() {
+  std::string default_mysql_plugin_dir;
+
+#ifdef DEFAULT_MYSQL_PLUGIN_DIR
+  default_mysql_plugin_dir = path::normalize(
+      path::join_path(get_mysqlx_home_path(), DEFAULT_MYSQL_PLUGIN_DIR));
+#endif
+
+  return default_mysql_plugin_dir;
+}
+
 /*
  * Returns whether a file or a directory exists at the given path (true) or
  * doesn't (false);
