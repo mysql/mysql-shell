@@ -1051,9 +1051,13 @@ IF(MYSQL_BUILD_DIR)
 
   FILE(GLOB AUTH_CLIENT_PLUGINS "${_plugin_subdirs}/authentication_*_client.${_plugin_ext}")
 
+  IF(EXISTS "${_plugin_subdirs}/mysql_native_password.${_plugin_ext}")
+    LIST(APPEND AUTH_CLIENT_PLUGINS "${_plugin_subdirs}/mysql_native_password.${_plugin_ext}")
+  ENDIF()
+
   IF(AUTH_CLIENT_PLUGINS)
     SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
-    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client")
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client" "mysql_native_password")
 
     IF(NOT APPLE)
       LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")

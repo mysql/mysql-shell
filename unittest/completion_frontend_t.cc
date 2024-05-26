@@ -2337,24 +2337,30 @@ TEST_F(Completer_frontend, quote_collation) {
 }
 
 TEST_F(Completer_frontend, quote_plugin) {
+  const bool native_password =
+      _target_server_version < mysqlshdk::utils::Version(9, 0, 0);
+  const std::string to_complete = native_password ? "mysql_n" : "caching_s";
+  const std::string completed =
+      native_password ? "mysql_native_password" : "caching_sha2_password";
+
   connect_classic();
   execute("\\sql");
 
-  EXPECT_AFTER_TAB("UNINSTALL PLUGIN mysql_n",
-                   "UNINSTALL PLUGIN mysql_native_password");
-  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `mysql_n",
-                   "UNINSTALL PLUGIN `mysql_native_password`");
-  EXPECT_TAB_DOES_NOTHING("UNINSTALL PLUGIN \"mysql_n");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN " + to_complete,
+                   "UNINSTALL PLUGIN " + completed);
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `" + to_complete,
+                   "UNINSTALL PLUGIN `" + completed + "`");
+  EXPECT_TAB_DOES_NOTHING("UNINSTALL PLUGIN \"" + to_complete);
 
   execute("SET @@sql_mode = 'ANSI_QUOTES';");
   execute("\\rehash");
 
-  EXPECT_AFTER_TAB("UNINSTALL PLUGIN mysql_n",
-                   "UNINSTALL PLUGIN mysql_native_password");
-  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `mysql_n",
-                   "UNINSTALL PLUGIN `mysql_native_password`");
-  EXPECT_AFTER_TAB("UNINSTALL PLUGIN \"mysql_n",
-                   "UNINSTALL PLUGIN \"mysql_native_password\"");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN " + to_complete,
+                   "UNINSTALL PLUGIN " + completed);
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN `" + to_complete,
+                   "UNINSTALL PLUGIN `" + completed + "`");
+  EXPECT_AFTER_TAB("UNINSTALL PLUGIN \"" + to_complete,
+                   "UNINSTALL PLUGIN \"" + completed + "\"");
 }
 
 TEST_F(Completer_frontend, quote_labels) {

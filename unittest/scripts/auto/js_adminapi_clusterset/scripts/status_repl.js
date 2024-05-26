@@ -4,10 +4,10 @@
 
 //@<> Setup
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname, loose_mysql_native_password: "ON"});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname, loose_mysql_native_password: "ON"});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname, loose_mysql_native_password: "ON"});
-testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname, loose_mysql_native_password: "ON"});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host:hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
