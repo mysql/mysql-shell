@@ -42,8 +42,7 @@
 namespace shcore {
 
 void clear_buffer(char *buffer, size_t size);
-
-void clear_buffer(std::string *buffer);
+void clear_buffer(std::string &buffer);
 
 namespace internal {
 

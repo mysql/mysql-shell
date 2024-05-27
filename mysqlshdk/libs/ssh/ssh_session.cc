@@ -151,7 +151,7 @@ int libssh_auth_callback(const char *prompt, char *buf, size_t len, int echo,
   strncpy(buf, return_value.data(),
           return_value.size() > len ? len : return_value.size());
 
-  shcore::clear_buffer(&return_value);
+  shcore::clear_buffer(return_value);
   return 0;
 }
 }  // namespace
@@ -630,7 +630,7 @@ Ssh_auth_return Ssh_session::auth_password(
           throw shcore::cancelled("User cancelled");
       }
       config->set_password(passphrase);
-      shcore::clear_buffer(&passphrase);
+      shcore::clear_buffer(passphrase);
     }
   }
   if (config->has_password()) {
@@ -783,7 +783,7 @@ Ssh_auth_return Ssh_session::auth_interactive() {
       }
 
       shcore::on_leave_scope cleanup([&reply]() {
-        if (!reply.empty()) shcore::clear_buffer(&reply);
+        if (!reply.empty()) shcore::clear_buffer(reply);
       });
       try {
         if (m_session->userauthKbdintSetAnswer(i, reply.c_str()) == 0) {

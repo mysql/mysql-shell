@@ -88,7 +88,7 @@ class Ssh_connection_options : public mysqlshdk::IConnection {
     m_fingerprint = fingerprint;
   }
 
-  void clear_key_file_password() { shcore::clear_buffer(&m_key_password); }
+  void clear_key_file_password() { shcore::clear_buffer(m_key_password); }
 
   void clear_remote_host() { clear_value(mysqlshdk::db::kSshRemoteHost); }
   void clear_remote_port() { m_remote_port.reset(); }

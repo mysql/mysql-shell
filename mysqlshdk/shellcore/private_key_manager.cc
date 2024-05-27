@@ -114,7 +114,7 @@ std::shared_ptr<EVP_PKEY> load_private_key(const std::string &path,
     auto result = console->prompt_password(msg, &new_passphrase);
     state->user_asked++;
     if (result != shcore::Prompt_result::Ok) {
-      shcore::clear_buffer(&new_passphrase);
+      shcore::clear_buffer(new_passphrase);
       state->interrupted = true;
       return -1;
     }
@@ -122,7 +122,7 @@ std::shared_ptr<EVP_PKEY> load_private_key(const std::string &path,
     const auto passphrase_size =
         std::min(static_cast<size_t>(size), new_passphrase.size());
     memcpy(buf, new_passphrase.c_str(), passphrase_size);
-    shcore::clear_buffer(&new_passphrase);
+    shcore::clear_buffer(new_passphrase);
     return passphrase_size;
   };
 
@@ -149,9 +149,8 @@ std::shared_ptr<EVP_PKEY> load_private_key(const std::string &path,
 
 namespace shcore {
 Private_key_storage::~Private_key_storage() {
-  for (auto &item : m_store) {
-    clear_buffer(const_cast<char *>(&(item.first)[0]), item.first.capacity());
-  }
+  for (auto &item : m_store)
+    clear_buffer(const_cast<std::string &>(item.first));
 }
 
 Private_key_storage &Private_key_storage::get() {

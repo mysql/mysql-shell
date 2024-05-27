@@ -67,10 +67,9 @@ void clear_buffer(char *buffer, size_t size) {
 #endif
 }
 
-void clear_buffer(std::string *buffer) {
-  assert(buffer);
-  clear_buffer(&(*buffer)[0], buffer->capacity());
-  buffer->clear();
+void clear_buffer(std::string &buffer) {
+  clear_buffer(buffer.data(), buffer.size());
+  buffer.clear();
 }
 
 std::string_view SHCORE_PUBLIC str_strip_view(std::string_view s,

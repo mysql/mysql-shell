@@ -30,13 +30,13 @@
 namespace mysqlshdk {
 namespace rest {
 
-Authentication::Authentication(const std::string &username,
-                               const std::string &password)
-    : m_username(username), m_password(password) {}
+Authentication::Authentication(std::string username,
+                               std::string password) noexcept
+    : m_username(std::move(username)), m_password(std::move(password)) {}
 
 Authentication::~Authentication() {
-  shcore::clear_buffer(&m_username[0], m_username.length());
-  shcore::clear_buffer(&m_password[0], m_password.length());
+  shcore::clear_buffer(m_username);
+  shcore::clear_buffer(m_password);
 }
 
 const std::string &Authentication::username() const noexcept {
@@ -47,9 +47,9 @@ const std::string &Authentication::password() const noexcept {
   return m_password;
 }
 
-Basic_authentication::Basic_authentication(const std::string &username,
-                                           const std::string &password)
-    : Authentication(username, password) {}
+Basic_authentication::Basic_authentication(std::string username,
+                                           std::string password) noexcept
+    : Authentication(std::move(username), std::move(password)) {}
 
 }  // namespace rest
 }  // namespace mysqlshdk
