@@ -413,13 +413,13 @@ class Ephemeral_private_key {
   Ephemeral_private_key &operator=(const Ephemeral_private_key &) = delete;
   Ephemeral_private_key &operator=(Ephemeral_private_key &&) = delete;
 
-  ~Ephemeral_private_key() { shcore::clear_buffer(&m_pass_phrase); }
+  ~Ephemeral_private_key() { shcore::clear_buffer(m_pass_phrase); }
 
   const Private_key_id &refresh() {
     if (m_is_file) {
       std::string pass_phrase;
       shcore::on_leave_scope clear_pass_phrase{
-          [&pass_phrase]() { shcore::clear_buffer(&pass_phrase); }};
+          [&pass_phrase]() { shcore::clear_buffer(pass_phrase); }};
 
       if (!m_pass_phrase.empty()) {
         pass_phrase = shcore::str_strip(shcore::get_text_file(m_pass_phrase));

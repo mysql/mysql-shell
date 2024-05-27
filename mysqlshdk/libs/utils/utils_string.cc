@@ -64,16 +64,9 @@ void clear_buffer(char *buffer, size_t size) {
 #endif
 }
 
-void clear_buffer(std::string *buffer) {
-  assert(buffer);
-  // EL7 has a string implementation which uses copy-on-write, we need to get
-  // the pointer first (which potentially copies the data) and capacity second,
-  // because COW may change the capacity - let's hope that compiler won't
-  // reorder these...
-  const auto ptr = buffer->data();
-  const auto size = buffer->capacity();
-  clear_buffer(ptr, size);
-  buffer->clear();
+void clear_buffer(std::string &buffer) {
+  clear_buffer(buffer.data(), buffer.size());
+  buffer.clear();
 }
 
 std::string_view SHCORE_PUBLIC str_strip_view(std::string_view s,

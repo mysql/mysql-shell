@@ -58,7 +58,7 @@ class Authentication {
    * @param username Name of the user.
    * @param password Password of the specified user.
    */
-  Authentication(const std::string &username, const std::string &password);
+  Authentication(std::string username, std::string password) noexcept;
 
  private:
   std::string m_username;
@@ -70,8 +70,7 @@ class Authentication {
  */
 class Basic_authentication : public Authentication {
  public:
-  Basic_authentication(const std::string &username,
-                       const std::string &password);
+  Basic_authentication(std::string username, std::string password) noexcept;
 };
 
 }  // namespace rest

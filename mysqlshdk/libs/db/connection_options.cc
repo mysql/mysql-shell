@@ -266,11 +266,11 @@ void Connection_options::clear_mfa_password(int factor) {
       clear_password();
       break;
     case 1:
-      shcore::clear_buffer(&*m_mfa_password_2);
+      shcore::clear_buffer(*m_mfa_password_2);
       m_mfa_password_2.reset();
       break;
     case 2:
-      shcore::clear_buffer(&*m_mfa_password_3);
+      shcore::clear_buffer(*m_mfa_password_3);
       m_mfa_password_3.reset();
       break;
     default:
