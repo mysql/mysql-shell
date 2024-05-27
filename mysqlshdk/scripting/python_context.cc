@@ -818,20 +818,28 @@ Value Python_context::execute_interactive(const std::string &code,
   orig_hook.reset();
 
   if (!py_result) {
-    PyObject *exc, *value, *tb;
+#if PY_VERSION_HEX >= 0x030c0000
+    py::Release exc_value{PyErr_GetRaisedException()};
+#else
+    PyObject *type, *value, *tb;
+
+    PyErr_Fetch(&type, &value, &tb);
+    PyErr_NormalizeException(&type, &value, &tb);
+
+    py::Release exc_type{type}, exc_value{value}, exc_tb{tb};
+#endif
+
     // check whether this is a SyntaxError: unexpected EOF while parsing
     // that would indicate that the command is not complete and needs more
     // input til it's completed
-    PyErr_Fetch(&exc, &value, &tb);
-    PyErr_NormalizeException(&exc, &value, &tb);
-    if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError) ||
-        PyErr_GivenExceptionMatches(exc, PyExc_IndentationError)) {
+    if (PyErr_GivenExceptionMatches(exc_value.get(), PyExc_SyntaxError) ||
+        PyErr_GivenExceptionMatches(exc_value.get(), PyExc_IndentationError)) {
       // If there's no more input then the interpreter should not continue in
       // continued mode so any error should bubble up
       if (!flush) {
         const char *msg;
         PyObject *obj;
-        const py::Release args{PyObject_GetAttrString(value, "args")};
+        const py::Release args{PyObject_GetAttrString(exc_value.get(), "args")};
 
         if (args && PyTuple_Check(args.get()) &&
             PyArg_ParseTuple(args.get(), "sO", &msg, &obj)) {
@@ -882,7 +890,13 @@ Value Python_context::execute_interactive(const std::string &code,
         }
       }
     }
-    PyErr_Restore(exc, value, tb);
+
+#if PY_VERSION_HEX >= 0x030c0000
+    PyErr_SetRaisedException(exc_value.release());
+#else
+    PyErr_Restore(exc_type.release(), exc_value.release(), exc_tb.release());
+#endif
+
     if (r_state != Input_state::Ok)
       PyErr_Clear();
     else
@@ -1718,40 +1732,46 @@ namespace {
 bool get_code_and_msg(int *out_code, std::string *out_msg) {
   bool ret = false;
 
-  PyObject *exc = nullptr;
-  PyObject *value = nullptr;
-  PyObject *tb = nullptr;
+#if PY_VERSION_HEX >= 0x030c0000
+  py::Release exc_value{PyErr_GetRaisedException()};
+#else
+  PyObject *type, *value, *tb;
 
-  PyErr_Fetch(&exc, &value, &tb);
+  PyErr_Fetch(&type, &value, &tb);
+  PyErr_NormalizeException(&type, &value, &tb);
+
+  py::Release exc_type{type}, exc_value{value}, exc_tb{tb};
+#endif
+
   {
-    PyErr_NormalizeException(&exc, &value, &tb);
+    py::Release args{PyObject_GetAttrString(exc_value.get(), "args")};
 
-    PyObject *args = PyObject_GetAttrString(value, "args");
-    if (args && PyTuple_Check(args) && PyTuple_GET_SIZE(args) == 2) {
+    if (args && PyTuple_Check(args.get()) &&
+        PyTuple_GET_SIZE(args.get()) == 2) {
       const char *msg;
 
-      if (PyTuple_GetItem(args, 0) == Py_None) {
+      if (PyTuple_GetItem(args.get(), 0) == Py_None) {
         PyObject *dummy;
         *out_code = 0;
-        if (PyArg_ParseTuple(args, "Os", &dummy, &msg)) {
+        if (PyArg_ParseTuple(args.get(), "Os", &dummy, &msg) && msg) {
           ret = true;
           *out_msg = msg;
         }
       } else {
-        if (PyArg_ParseTuple(args, "is", out_code, &msg) && msg) {
+        if (PyArg_ParseTuple(args.get(), "is", out_code, &msg) && msg) {
           ret = true;
-          *out_msg = std::string(msg);
+          *out_msg = msg;
         }
       }
     }
   }
 
-  if (ret) {
-    Py_XDECREF(exc);
-    Py_XDECREF(value);
-    Py_XDECREF(tb);
-  } else {
-    PyErr_Restore(exc, value, tb);
+  if (!ret) {
+#if PY_VERSION_HEX >= 0x030c0000
+    PyErr_SetRaisedException(exc_value.release());
+#else
+    PyErr_Restore(exc_type.release(), exc_value.release(), exc_tb.release());
+#endif
   }
 
   return ret;
@@ -1784,15 +1804,7 @@ void Python_context::throw_if_mysqlsh_error() {
   }
 }
 
-void Python_context::clear_exception() {
-  PyObject *exc, *value, *tb;
-
-  PyErr_Fetch(&exc, &value, &tb);
-
-  Py_XDECREF(exc);
-  Py_XDECREF(value);
-  Py_XDECREF(tb);
-}
+void Python_context::clear_exception() { PyErr_Clear(); }
 
 std::string Python_context::fetch_and_clear_exception() {
   if (!PyErr_Occurred()) return {};
@@ -1800,52 +1812,60 @@ std::string Python_context::fetch_and_clear_exception() {
   std::string exception;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  PyObject *exc = nullptr;
-  PyObject *value = nullptr;
-  PyObject *tb = nullptr;
+#if PY_VERSION_HEX >= 0x030c0000
+  py::Release exc_value{PyErr_GetRaisedException()};
+  py::Release exc_tb{PyException_GetTraceback(exc_value.get())};
+#else
+  PyObject *type, *value, *tb;
 
-  PyErr_Fetch(&exc, &value, &tb);
-  PyErr_NormalizeException(&exc, &value, &tb);
+  PyErr_Fetch(&type, &value, &tb);
+  PyErr_NormalizeException(&type, &value, &tb);
+
+  py::Release exc_type{type}, exc_value{value}, exc_tb{tb};
+#endif
 
   {
-    PyObject *str = PyObject_Str(value);
+    py::Release str{PyObject_Str(exc_value.get())};
     pystring_to_string(str, &exception);
-    Py_XDECREF(str);
   }
 
-  if (nullptr != tb) {
-    PyObject *traceback_module = PyImport_ImportModule("traceback");
+  if (!exc_tb) {
+    return exception;
+  }
 
-    if (nullptr != traceback_module) {
-      PyObject *format_exception =
-          PyObject_GetAttrString(traceback_module, "format_exception");
+#if PY_VERSION_HEX >= 0x030c0000
+  // docs for traceback.print_exception()/format_exception() say:
+  // Since Python 3.10, instead of passing value and tb, an exception object can
+  // be passed as the first argument.
+  // in our case, the first argument is exc_type
+  py::Release exc_type = std::move(exc_value);
+  exc_tb.reset();
+#endif
 
-      if (nullptr != format_exception && PyCallable_Check(format_exception)) {
-        PyObject *backtrace = PyObject_CallFunctionObjArgs(
-            format_exception, exc, value, tb, nullptr);
+  py::Release traceback_module{PyImport_ImportModule("traceback")};
 
-        if (nullptr != backtrace && PyList_Check(backtrace)) {
-          exception = "\n";
+  if (!traceback_module) {
+    return exception;
+  }
 
-          for (Py_ssize_t c = PyList_Size(backtrace), i = 0; i < c; ++i) {
-            std::string item;
-            pystring_to_string(PyList_GetItem(backtrace, i), &item);
-            exception += item;
-          }
-        }
+  py::Release format_exception{
+      PyObject_GetAttrString(traceback_module.get(), "format_exception")};
 
-        Py_XDECREF(backtrace);
+  if (format_exception && PyCallable_Check(format_exception.get())) {
+    py::Release backtrace{
+        PyObject_CallFunctionObjArgs(format_exception.get(), exc_type.get(),
+                                     exc_value.get(), exc_tb.get(), nullptr)};
+
+    if (backtrace && PyList_Check(backtrace.get())) {
+      exception = "\n";
+
+      for (Py_ssize_t c = PyList_Size(backtrace.get()), i = 0; i < c; ++i) {
+        std::string item;
+        pystring_to_string(PyList_GetItem(backtrace.get(), i), &item);
+        exception += item;
       }
-
-      Py_XDECREF(format_exception);
     }
-
-    Py_XDECREF(traceback_module);
   }
-
-  Py_XDECREF(exc);
-  Py_XDECREF(value);
-  Py_XDECREF(tb);
 
   return exception;
 }
