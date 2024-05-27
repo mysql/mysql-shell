@@ -299,7 +299,7 @@ std::string Oci_setup::load_private_key(const std::string &path,
       const auto passphrase_size =
           std::min(static_cast<size_t>(size), pass_phrase.size());
       memcpy(buf, pass_phrase.c_str(), passphrase_size);
-      shcore::clear_buffer(&pass_phrase);
+      shcore::clear_buffer(pass_phrase);
       return passphrase_size;
     }
   };
@@ -455,7 +455,7 @@ void Oci_setup::load_profile(const std::string &profile_name) {
           passphrase_size =
               std::min(static_cast<size_t>(size), passphrase.size());
           memcpy(buf, passphrase.c_str(), passphrase_size);
-          shcore::clear_buffer(&passphrase);
+          shcore::clear_buffer(passphrase);
         }
 
         // Ensure the wizard knows a passphrase is required

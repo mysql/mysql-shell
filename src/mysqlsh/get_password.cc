@@ -296,10 +296,8 @@ char *mysh_get_tty_password(const char *opt_message) {
   char *passbuff = getpass(message);
   // copy the password to buff and clear original (static) buffer
   strncpy(buff, passbuff, sizeof(buff) - 1);
-#ifdef _PASSWORD_LEN
-  shcore::clear_buffer(passbuff, _PASSWORD_LEN);
-#endif  // _PASSWORD_LEN
-#else   // ! HAVE_GETPASS
+  shcore::clear_buffer(passbuff, ::strlen(passbuff));
+#else  // ! HAVE_GETPASS
   Prompt_password prompt{message};
 
   if (!prompt.get(buff, sizeof(buff))) {
