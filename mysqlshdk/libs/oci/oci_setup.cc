@@ -65,7 +65,7 @@ std::string Oci_setup::load_private_key(const std::string &path) {
                                   : "Please enter the API key passphrase: ";
     std::string passphrase;
     shcore::on_leave_scope clear_passphrase{
-        [&passphrase]() { shcore::clear_buffer(&passphrase); }};
+        [&passphrase]() { shcore::clear_buffer(passphrase); }};
 
     if (current_console()->prompt_password(msg, &passphrase) !=
         shcore::Prompt_result::Ok) {
@@ -124,7 +124,7 @@ void Oci_setup::load_profile(const std::string &profile_name) {
     bool requires_passphrase = false;
   } data;
   shcore::on_leave_scope clear_passphrase{
-      [&data]() { shcore::clear_buffer(&data.passphrase); }};
+      [&data]() { shcore::clear_buffer(data.passphrase); }};
 
   // If there's a pass phrase on the config file
   if (m_config.has_option(profile_name, kPassphrase)) {

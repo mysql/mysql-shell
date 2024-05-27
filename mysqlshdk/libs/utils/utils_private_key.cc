@@ -261,7 +261,7 @@ Private_key Private_key::from_file(const std::string &path,
     }();
     std::string pass;
     shcore::on_leave_scope clear_passphrase{
-        [&pass]() { shcore::clear_buffer(&pass); }};
+        [&pass]() { shcore::clear_buffer(pass); }};
 
     ++state->user_asked;
 
@@ -392,7 +392,7 @@ void Private_key::save(const std::string &path,
   }
 }
 
-Private_key_id::~Private_key_id() { clear_buffer(&m_id); }
+Private_key_id::~Private_key_id() { clear_buffer(m_id); }
 
 Private_key_id Private_key_id::from_path(const std::string &path) {
   return Private_key_id("file://" + expand_path(path));

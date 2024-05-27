@@ -139,8 +139,7 @@ void Nullable_options::clear_value(const std::string &name, bool secure) {
   if (!has(name)) throw_invalid_option(name);
 
   if (secure && has_value(name)) {
-    std::string *str = m_options.at(name).operator->();
-    shcore::clear_buffer(str);
+    shcore::clear_buffer(*m_options.at(name));
   }
   m_options.at(name).reset();
 }
