@@ -53,7 +53,7 @@ session3 = mysql.get_session(__sandbox_uri3)
 testutil.wait_member_transactions(__mysql_sandbox_port2, __mysql_sandbox_port1)
 testutil.wait_member_transactions(__mysql_sandbox_port3, __mysql_sandbox_port1)
 
-#@<> highload and slowQuery 
+#@<> highload and slowQuery
 outpath = run_collect_hl(__sandbox_uri1, None)
 CHECK_DIAGPACK(outpath, [(None, session1)], localTarget=True)
 
@@ -91,13 +91,16 @@ testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 outpath = run_collect(hostname_uri, None, allMembers=1)
 CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
 
-#@<> Take offline
-session3.run_sql("stop group_replication")
+#@<> Uninstall GR in one of the instances
+
+# NOTE: The util should be able to handle unknown vars, such as the Group Replication ones that become unknown after the plugin is uninstalled
+session1.run_sql("uninstall plugin group_replication")
 
 outpath = run_collect(hostname_uri, None, allMembers=1)
 CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
 
-session1.run_sql("stop group_replication")
+#@<> Take offline
+session3.run_sql("stop group_replication")
 
 outpath = run_collect(hostname_uri, None, allMembers=1)
 CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
