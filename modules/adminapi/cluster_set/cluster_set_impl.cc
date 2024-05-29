@@ -954,7 +954,7 @@ void Cluster_set_impl::remove_cluster(
             cluster_name.c_str()));
         throw;
       } else {
-        if (options.force) {
+        if (options.force.get_safe()) {
           target_cluster = get_cluster(cluster_name, true, true);
 
           console->print_warning(
@@ -1016,7 +1016,7 @@ void Cluster_set_impl::remove_cluster(
     if (!skip_channel_check) {
       if (!get_channel_status(*target_cluster->get_cluster_server(),
                               {k_clusterset_async_channel_name}, &channel)) {
-        if (!options.force) {
+        if (!options.force.get_safe()) {
           console->print_error(
               "The ClusterSet Replication channel could not be found at the "
               "Cluster '" +
@@ -1033,7 +1033,7 @@ void Cluster_set_impl::remove_cluster(
       } else {
         if (channel.status() !=
             mysqlshdk::mysql::Replication_channel::Status::ON) {
-          if (!options.force) {
+          if (!options.force.get_safe()) {
             console->print_error(
                 "The ClusterSet Replication channel has an invalid state '" +
                 to_string(channel.status()) +
@@ -1088,7 +1088,7 @@ void Cluster_set_impl::remove_cluster(
               "transaction sync timeout with the option 'timeout' or use "
               "the 'force' option to ignore the timeout.");
           throw;
-        } else if (options.force) {
+        } else if (options.force.get_safe()) {
           console->print_warning(
               "Transaction sync failed but ignored because of 'force' "
               "option: " +
@@ -1242,7 +1242,7 @@ void Cluster_set_impl::remove_cluster(
           sync_transactions(*target_cluster->get_cluster_server(),
                             {k_clusterset_async_channel_name}, options.timeout);
         } catch (const shcore::Exception &e) {
-          if (options.force) {
+          if (options.force.get_safe()) {
             console->print_warning(
                 "Transaction sync failed but ignored because of 'force' "
                 "option: " +
@@ -1341,7 +1341,7 @@ void Cluster_set_impl::remove_cluster(
 
           remove_replica(reachable_member.get(), options.dry_run);
         } catch (...) {
-          if (options.force) {
+          if (options.force.get_safe()) {
             current_console()->print_warning(
                 "Could not reset replication settings for " +
                 reachable_member->descr() + ": " + format_active_exception());
