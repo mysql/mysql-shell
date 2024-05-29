@@ -99,7 +99,7 @@ class Signed_rest_service {
   std::string m_label;
   std::unique_ptr<ISigner> m_signer;
   bool m_enable_signature_caching;
-  std::unique_ptr<IRetry_strategy> m_default_retry_strategy;
+  std::unique_ptr<IRetry_strategy> m_retry_strategy;
 };
 
 }  // namespace rest
