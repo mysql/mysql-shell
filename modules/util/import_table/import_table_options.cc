@@ -32,6 +32,7 @@
 #include <utility>
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/dump/utils.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -176,6 +177,12 @@ void Import_table_option_pack::set_filenames(
       m_table = std::get<0>(
           shcore::path::split_extension(shcore::path::basename(single_file())));
     }
+  }
+
+  if (!storage_config() && !m_filelist_from_user.empty()) {
+    // if this is a PAR, we want to use a retry strategy
+    m_storage_config =
+        mysqlsh::dump::common::get_par_config(m_filelist_from_user[0]);
   }
 }
 
