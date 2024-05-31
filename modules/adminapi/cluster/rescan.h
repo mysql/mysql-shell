@@ -31,6 +31,8 @@
 #include <vector>
 
 #include "adminapi/cluster/cluster_impl.h"
+#include "adminapi/common/cluster_types.h"
+#include "adminapi/common/metadata_storage.h"
 #include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/common/replication_account.h"
 #include "modules/command_interface.h"
@@ -89,6 +91,7 @@ class Rescan : public Command_interface {
   Cluster_impl *const m_cluster = nullptr;
   bool m_is_view_change_uuid_supported = false;
   Replication_account m_repl_account_mng;
+  std::vector<Cluster_metadata> m_invalid_clusterset_clusters;
 
   /**
    * Validate existence of duplicates for the addInstances and removeInstances
@@ -134,7 +137,7 @@ class Rescan : public Command_interface {
    *         information registered in the metadata (i.e., new instances, not
    *         available instances, and topology mode changes).
    */
-  shcore::Value::Map_type_ref get_rescan_report() const;
+  shcore::Value::Map_type_ref get_rescan_report();
 
   /**
    * Handles the addition of new instances to the the metadata.
@@ -227,6 +230,10 @@ class Rescan : public Command_interface {
   void ensure_recovery_accounts_match();
 
   void check_mismatched_hostnames_addresses(shcore::Array_t instances) const;
+
+  bool is_clusterset_metadata_consistent();
+
+  void repair_metadata() const;
 };
 
 }  // namespace cluster

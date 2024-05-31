@@ -126,7 +126,8 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
           .optional(kUpgradeCommProtocol,
                     &Rescan_options::upgrade_comm_protocol)
           .optional(kUpdateViewChangeUuid,
-                    &Rescan_options::update_view_change_uuid);
+                    &Rescan_options::update_view_change_uuid)
+          .optional(kRepairMetadata, &Rescan_options::repair_metadata);
 
   return opts;
 }

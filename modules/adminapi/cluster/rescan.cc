@@ -29,6 +29,7 @@
 #include <iterator>
 #include <set>
 
+#include "adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
@@ -38,6 +39,7 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "utils/utils_string.h"
 #include "utils/version.h"
 
 namespace mysqlsh {
@@ -328,7 +330,74 @@ void Rescan::check_mismatched_hostnames_addresses(
          const Cluster_impl::Instance_md_and_gr_member &) { return true; });
 }
 
-shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
+bool Rescan::is_clusterset_metadata_consistent() {
+  // All metadata update are atomic, to ensure consistency. On top of that, the
+  // AdminAPI reverts any failing operation to ensure there are no leftovers.
+  // To achieve that, operations are executed inside transactions:
+  //   - Create topology (Cluster, ReplicaSet, ClusterSet)
+  //   - Add instances to the topology
+  //   - Remove instances from the topology
+  //   - etc.
+  //
+  // However, there is 1 exception:
+  //   - Adding a new Replica Cluster to a ClusterSet
+  //
+  //  That operations is split into 2 transactions: Creating a new Cluster (with
+  //  its Metadata entries) and adding that Cluster to the ClusterSet's
+  //  metadata (set the ClusterSet id, etc.). If one fails and the changes are
+  //  not reverted, the Metadata becomes inconsistent.
+
+  // Check if this Cluster belongs to a ClusterSet first
+  if (!m_cluster->is_cluster_set_member()) return true;
+
+  auto cs_id = m_cluster->get_metadata().cluster_set_id;
+
+  // Iterate all Cluster's metadata
+  for (const auto &c : m_cluster->get_metadata_storage()->get_all_clusters()) {
+    // If cluster_set_id is set and the same continue looking
+    if (c.cluster_set_id == cs_id) continue;
+
+    auto console = mysqlsh::current_console();
+    console->print_warning(
+        shcore::str_format("The Cluster '%s' was detected in the ClusterSet "
+                           "Metadata, but it does not appear to be a valid "
+                           "member of the ClusterSet.",
+                           c.full_cluster_name().c_str()));
+    console->print_info();
+
+    m_invalid_clusterset_clusters.emplace_back(c);
+
+    return false;
+  }
+
+  return true;
+}
+
+void Rescan::repair_metadata() const {
+  auto metadata = m_cluster->get_metadata_storage();
+
+  mysqlsh::current_console()->print_note(
+      "Repairing Metadata inconsistencies...");
+
+  for (const auto &c : m_invalid_clusterset_clusters) {
+    log_info("Removing Cluster '%s' from the Metadata.",
+             c.full_cluster_name().c_str());
+
+    for (const auto &i : metadata->get_all_instances(c.cluster_id)) {
+      log_info("Removing Instance '%s' from the Metadata.", i.endpoint.c_str());
+    }
+  }
+
+  auto clusterset_id = m_cluster->get_clusterset_metadata().cluster_set_id;
+
+  MetadataStorage::Transaction trx(metadata);
+
+  metadata->prune_clusterset_metadata(clusterset_id);
+
+  trx.commit();
+}
+
+shcore::Value::Map_type_ref Rescan::get_rescan_report() {
   auto cluster_map = std::make_shared<shcore::Value::Map_type>();
 
   // Set the Cluster name on the result map
@@ -447,6 +516,10 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
     // Topology mode is the same (no change needed).
     (*cluster_map)["newTopologyMode"] = shcore::Value::Null();
   }
+
+  // Check if the metadata is consistent
+  (*cluster_map)["metadataConsistent"] =
+      shcore::Value(is_clusterset_metadata_consistent());
 
   return cluster_map;
 }
@@ -1167,6 +1240,32 @@ shcore::Value Rescan::execute() {
       console->print_warning(shcore::str_format(
           "Error dropping recovery account '%s'@'%s': %s", user.c_str(),
           host.c_str(), format_active_exception().c_str()));
+    }
+  }
+
+  // Check if the Metadata is not consistent so it needs a clean-up
+  if (result->has_key("metadataConsistent") &&
+      !result->get_bool("metadataConsistent")) {
+    if (!m_options.repair_metadata.has_value()) {
+      console->print_warning(
+          "Metadata inconsistencies detected, possibly due to one or more "
+          "failed commands. Please review the topology status before "
+          "proceeding.");
+      if (current_shell_options()->get().wizards) {
+        // Prompt the user to confirm the action
+        if (console->confirm(
+                "The invalid Cluster(s) listed above will be removed from the "
+                "metadata. Do you want to proceed?",
+                Prompt_answer::YES) == Prompt_answer::YES) {
+          repair_metadata();
+        }
+      } else {
+        console->print_info(shcore::str_format(
+            "Use the '%s' option to repair the Metadata inconsistencies.",
+            kRepairMetadata));
+      }
+    } else if (*m_options.repair_metadata) {
+      repair_metadata();
     }
   }
 

@@ -52,11 +52,8 @@
 #include <unistd.h>
 #endif
 
-#include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
@@ -80,8 +77,6 @@
 #include "unittest/test_utils/shell_test_env.h"
 #endif
 #include "modules/adminapi/common/metadata_management_mysql.h"
-#include "modules/adminapi/mod_dba.h"
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/aws/s3_bucket.h"
@@ -92,7 +87,6 @@
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
 #include "mysqlshdk/libs/storage/backend/object_storage.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -4494,6 +4488,7 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
 
   auto session = mysqlshdk::db::mysql::Session::create();
   session->connect(cnx_opt);
+  session->execute("SET SESSION wait_timeout = 28800");
   return session;
 }
 
