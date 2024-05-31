@@ -34,10 +34,8 @@
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/clone_options.h"
-#include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh::dba::cluster {
 
@@ -96,6 +94,7 @@ struct Rescan_options {
   bool auto_remove = false;
   bool upgrade_comm_protocol = false;
   std::optional<bool> update_view_change_uuid;
+  std::optional<bool> repair_metadata;
 
  private:
   std::optional<bool> m_used_deprecated;

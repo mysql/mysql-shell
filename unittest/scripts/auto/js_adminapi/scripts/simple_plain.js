@@ -9,6 +9,7 @@ k_mycnf_options = {
     autocommit:1,
     require_secure_transport:1,
     loose_group_replication_consistency:"BEFORE",
+    wait_timeout:1,
 }
 // TODO - also add PAD_CHAR_TO_FULL_LENGTH to sql_mode, but fix #34961015 1st
 
@@ -21,6 +22,7 @@ if (__version_num > 80000) {
 }
 
 function get_open_sessions(session) {
+    session.runSql("SET SESSION wait_timeout = 28800");
     var r = session.runSql("SELECT processlist_id FROM performance_schema.threads WHERE processlist_user is not null");
     pids = []
     while (row = r.fetchOne()) {
@@ -31,6 +33,7 @@ function get_open_sessions(session) {
 
 // function to detect that a command has closed all sessions it has opened
 function check_open_sessions(session, ignore_pids) {
+    session.runSql("SET SESSION wait_timeout = 28800");
     var r = session.runSql("SELECT processlist_id, processlist_user, processlist_info FROM performance_schema.threads WHERE processlist_user is not null");
     var flag = false;
     if (row = r.fetchOne()) {
@@ -55,6 +58,11 @@ function get_uri(port, pwd) {
     else {
         return `mysql://root:${pwd}@localhost:${port}`
     }
+}
+
+function connect_no_timeout(uri, pwd) {
+    shell.connect(uri, pwd);
+    session.runSql("SET SESSION wait_timeout = 28800");
 }
 
 //@<> Setup
@@ -123,7 +131,7 @@ EXPECT_THROWS(function() { dba.getCluster();}, `An open session is required to p
 shell.options.useWizards = false;
 
 //@<> createCluster
-shell.connect(__sandbox_uri1, pwd);
+connect_no_timeout(__sandbox_uri1, pwd);
 
 expected_pids1 = get_open_sessions(session1);
 
@@ -278,7 +286,7 @@ check_open_sessions(session2, expected_pids2);
 
 EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_port1)); });
 
-shell.connect(__sandbox_uri1, pwd);
+connect_no_timeout(__sandbox_uri1, pwd);
 cluster = dba.getCluster(); // shouldn't be necessary
 
 //@<> rescan

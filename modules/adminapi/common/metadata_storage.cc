@@ -3542,6 +3542,27 @@ void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
       cluster_id);
 }
 
+void MetadataStorage::prune_clusterset_metadata(const Cluster_set_id &cs_id) {
+  if (cs_id.empty()) return;
+
+  // Iterate over all ClusterSet members
+  for (const auto &cluster_md : get_all_clusters(true)) {
+    if (cluster_md.cluster_set_id == cs_id) continue;
+
+    // Remove all instances
+    execute_sqlf(
+        "DELETE FROM mysql_innodb_cluster_metadata.instances"
+        " WHERE cluster_id = ?",
+        cluster_md.cluster_id);
+
+    // Remove Cluster
+    execute_sqlf(
+        "DELETE FROM mysql_innodb_cluster_metadata.clusters"
+        " WHERE cluster_id = ?",
+        cluster_md.cluster_id);
+  }
+}
+
 Cluster_set_id MetadataStorage::create_cluster_set_record(
     Cluster_set_impl *clusterset, Cluster_id seed_cluster_id,
     shcore::Dictionary_t seed_attributes) {

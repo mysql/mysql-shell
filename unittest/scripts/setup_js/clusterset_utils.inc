@@ -104,6 +104,7 @@ function connect_cluster_primary(cluster, root_pwd) {
   uri = `root:${root_pwd}@${host}?connect-timeout=1`;
   s = mysql.getSession(uri);
   s.runSql("SET SESSION sql_mode=''");
+  s.runSql("SET SESSION wait_timeout = 28800");
   return s;
 }
 
@@ -456,6 +457,7 @@ function CHECK_REPLICA_CLUSTER(uris, pcluster, cluster, values, root_pwd) {
   for (var uri of uris) {
     try {
       var session = mysql.getSession(uri+"?connect-timeout=1");
+      session.runSql("SET SESSION wait_timeout = 28800");
     } catch (e) {
       println(uri, e);
       throw e;

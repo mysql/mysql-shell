@@ -51,6 +51,103 @@ EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${host
 status = rcluster.status();
 EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]);
 
+//@<> rescan() should detect inconsistencies in the ClusterSet metadata {!__dbug_off}
+
+// All metadata updated are atomic, to ensure consistency. The operations are
+// executed inside transactions:
+//   - Create topology (Cluster, ReplicaSet, ClusterSet)
+//   - Add instances to the topology
+//   - Remove instances from the topology
+//   - etc.
+//
+// However, there is 1 exception:
+//   - Adding a new Replica Cluster to a ClusterSet
+//
+//  That operations is split into 2 transactions: Creating a new Cluster (with its Metadata entries) and adding that Cluster to the ClusterSet's metadata.
+//  If one fails, the Metadata is inconsistent.
+
+// Remove the Replica Cluster
+cset.removeCluster("cluster");
+
+// Set the debug trap to the point in time right before calling
+// v2_cs_member_added and to fail the undo
+testutil.dbugSet("+d,dba_create_replica_cluster_fail_setup_cs_settings");
+testutil.dbugSet("+d,dba_create_replica_cluster_fail_revert");
+
+// Create a Replica Cluster
+cset = dba.getClusterSet();
+EXPECT_THROWS_TYPE(function(){ cluster = cset.createReplicaCluster(__sandbox_uri1, "cluster", {recoveryMethod:"clone"}); }, "debug", "LogicError");
+
+// Retrying the operation will fail
+EXPECT_THROWS(function() { cset.createReplicaCluster(__sandbox_uri1, "cluster", {recoveryMethod:"clone"}); }, "Target instance already part of an InnoDB Cluster", "MYSQLSH");
+
+// Unset the debug trap
+testutil.dbugSet("");
+
+// rescan() must fix the Metadata inconsistencies
+primary = dba.getCluster();
+
+EXPECT_NO_THROWS(function() { primary.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+WARNING: The Cluster 'cluster' was detected in the ClusterSet Metadata, but it does not appear to be a valid member of the ClusterSet.
+
+Result of the rescanning operation for the 'rcluster' cluster:
+{
+    "metadataConsistent": false,
+    "name": "rcluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": []
+}
+
+WARNING: Metadata inconsistencies detected, possibly due to one or more failed commands. Please review the topology status before proceeding.
+Use the 'repairMetadata' option to repair the Metadata inconsistencies.
+`);
+WIPE_STDOUT();
+
+// Dissolve the dangling Cluster
+shell.connect(__sandbox_uri1);
+dangling = dba.getCluster();
+
+EXPECT_NO_THROWS(function() { dangling.dissolve(); });
+
+// Test the prompt
+shell.options["useWizards"] = true;
+
+testutil.expectPrompt("The invalid Cluster(s) listed above will be removed from the metadata. Do you want to proceed? [Y/n]:", "n");
+
+EXPECT_NO_THROWS(function() { primary.rescan(); });
+
+shell.options["useWizards"] = false;
+
+// Repair the MD inconsistencies
+EXPECT_NO_THROWS(function() { primary.rescan({repairMetadata: true}); });
+
+EXPECT_OUTPUT_CONTAINS("Repairing Metadata inconsistencies...");
+EXPECT_SHELL_LOG_CONTAINS(`Removing Cluster 'cluster' from the Metadata.`);
+EXPECT_SHELL_LOG_CONTAINS(`Removing Instance '${__endpoint1}' from the Metadata.`);
+WIPE_STDOUT();
+WIPE_SHELL_LOG();
+
+EXPECT_NO_THROWS(function() { primary.rescan(); });
+
+EXPECT_OUTPUT_CONTAINS_MULTILINE(`
+Result of the rescanning operation for the 'rcluster' cluster:
+{
+    "metadataConsistent": true,
+    "name": "rcluster",
+    "newTopologyMode": null,
+    "newlyDiscoveredInstances": [],
+    "unavailableInstances": [],
+    "updatedInstances": []
+}
+`)
+
+// Retry the createReplicaCluster() using the instance from the dangling cluster
+EXPECT_NO_THROWS(function() { cset.createReplicaCluster(__sandbox_uri1, "cluster", {recoveryMethod:"clone"}); });
+
 //@<> Cleanup
 session.close()
 scene.destroy();
