@@ -452,6 +452,23 @@ shcore::Value Dissolve::execute() {
         try {
           // Stop Group Replication and reset (persist) GR variables.
           mysqlsh::dba::leave_cluster(*instance_ptr, m_supports_member_actions);
+
+          // Reset the ClusterSet replication channel
+          //
+          // NOTE: It's not possible to dissolve a Cluster that belongs to a
+          // ClusterSet, the Cluster needs to be removed from the ClusterSet
+          // (which will ensure the replication channel is reset among other
+          // reconfiguration). However, there is a remote possibility of a
+          // failed create_replica_cluster() to leave a dangling Cluster that
+          // is fully set up but not part of the ClusterSet yet. Users should
+          // be able to dissolve() that Cluster, but if the replication channel
+          // is present the command won't stop/reset it. That leftover will hit
+          // the precondition checks for reusing the ex-members of that Cluster
+          // (have no replication channels configured). For that reason, we
+          // should aim to clean as much as possible, and considering that the
+          // remove_channel() function is a no-op if the channel doesn't exist,
+          // we always call it.
+          remove_channel(*instance_ptr, k_clusterset_async_channel_name, false);
         } catch (const std::exception &err) {
           // Skip error if force=true otherwise issue an error.
           if (!m_force.has_value() || !m_force.value()) {

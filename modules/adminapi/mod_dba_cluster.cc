@@ -712,12 +712,19 @@ to the metadata. Defaults to false.
 @li removeObsolete: set to true to automatically remove all obsolete instances,
 i.e. no longer part of the replication topology, from the metadata. Defaults
 to false.
+@li repairMetadata: boolean. Set to true to repair the Metadata if detected to
+be inconsistent.
 
 The value for addInstances and removeInstances is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept
 list connection data. In addition, the "auto" value can be used for both
 options in order to automatically add or remove the instances in the metadata,
 without having to explicitly specify them.
+
+'repairMetadata' is used to eliminate any inconsistencies detected in the
+Metadata. These inconsistencies may arise from a few scenarios, such as the
+failure of one or more commands. Clusters detected in the ClusterSet Metadata
+that do not qualify as valid members will be removed.
 
 @attention The addInstances and removeInstances options will be removed in a
 future release. Use addUnmanaged and removeObsolete instead.

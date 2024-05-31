@@ -711,6 +711,11 @@ shcore::Value Create_replica_cluster::execute() {
     console->print_error("Error creating Replica Cluster: " +
                          format_active_exception());
 
+    DBUG_EXECUTE_IF("dba_create_replica_cluster_fail_revert", {
+      undo_list.cancel();
+      throw;
+    });
+
     console->print_note("Reverting changes...");
 
     undo_list.call();

@@ -55,6 +55,9 @@ constexpr const char *k_default_sql_mode =
 constexpr char k_lock[] = "AdminAPI_lock";
 constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 
+// default wait_timeout
+constexpr uint64_t k_default_wait_timeout = 28800;
+
 int64_t default_adminapi_connect_timeout() {
   return mysqlsh::current_shell_options()->get().dba_connect_timeout * 1000;
 }
@@ -150,6 +153,20 @@ void Instance::prepare_session() {
   // the variable.
   set_sysvar("group_concat_max_len", static_cast<int64_t>(1024 * 1024 * 1024),
              mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  // Ensure the default value for 'wait_timeout' is kept for the AdminAPI
+  // accounts, avoiding any possible timeouts in command execution due to
+  // user-configured low values.
+  // NOTE: set directly to 28800, instead of using DEFAULT, because the user
+  // might have configured directly on the configuration file the value for the
+  // timeout and that becomes the compiled DEFAULT value.
+  // Also, only set if the instance has a value set that is lower than 28800.
+  // This is important to ensure higher values set by the user are honored.
+  if (get_sysvar_int("wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION) <
+      k_default_wait_timeout) {
+    set_sysvar("wait_timeout", static_cast<int64_t>(k_default_wait_timeout),
+               mysqlshdk::mysql::Var_qualifier::SESSION);
+  }
 
   // Cache the hostname, port, and UUID to avoid errors accessing this data if
   // the instance fails during an operation.

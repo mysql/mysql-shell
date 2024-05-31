@@ -36,10 +36,8 @@
 #include <set>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
-#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/mod_utils.h"
@@ -269,6 +267,7 @@ inline constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
 inline constexpr const char kUpdate[] = "update";
 inline constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 inline constexpr const char kUpdateViewChangeUuid[] = "updateViewChangeUuid";
+inline constexpr const char kRepairMetadata[] = "repairMetadata";
 inline constexpr const char kAll[] = "all";
 inline constexpr const char kTimeout[] = "timeout";
 inline constexpr const char kInvalidateErrorInstances[] =

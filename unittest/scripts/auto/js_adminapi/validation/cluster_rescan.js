@@ -3,6 +3,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -21,6 +22,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -41,6 +43,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -60,6 +63,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [
@@ -91,6 +95,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [
@@ -122,6 +127,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [
@@ -152,6 +158,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [
@@ -185,6 +192,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [
@@ -216,6 +224,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -247,6 +256,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -279,6 +289,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -308,6 +319,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -339,6 +351,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
@@ -381,6 +394,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": "Multi-Primary",
     "newlyDiscoveredInstances": [],
@@ -408,6 +422,7 @@ Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
 {
+    "metadataConsistent": true,
     "name": "c",
     "newTopologyMode": "Multi-Primary",
     "newlyDiscoveredInstances": [],
