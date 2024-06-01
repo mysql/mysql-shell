@@ -201,7 +201,7 @@ cmake .. \
     -DV8_LIB_DIR=%{v8_libdir} \
 %else
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DHAVE_V8=OFF
+    -DHAVE_V8=OFF \
 %endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
