@@ -26,16 +26,12 @@
 #ifndef MODULES_ADMINAPI_COMMON_PRECONDITIONS_H_
 #define MODULES_ADMINAPI_COMMON_PRECONDITIONS_H_
 
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
-#include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -43,51 +39,86 @@ namespace dba {
 class Instance;
 class MetadataStorage;
 
-// Specific minimum versions for InnoDB Cluster, ReplicaSet and ClusterSet
+struct Command_conditions {
+  class Builder;
+
+  std::string name;  // debug purposes only
+  mysqlshdk::utils::Version min_mysql_version;
+  int instance_config_state{0};
+  ReplicationQuorum::State cluster_status;
+  std::vector<metadata::Compatibility> metadata_states;
+  bool primary_required{true};
+  Cluster_global_status_mask cluster_global_state{
+      Cluster_global_status_mask::any()};
+  bool allowed_on_fenced{false};
+
+ private:
+  friend class Builder;
+  bool m_primary_set{false};
+};
+
+class Command_conditions::Builder {
+ public:
+  static Builder gen_dba(std::string_view name);
+  static Builder gen_cluster(std::string_view name);
+  static Builder gen_replicaset(std::string_view name);
+  static Builder gen_clusterset(std::string_view name);
+
+  Builder &min_mysql_version(mysqlshdk::utils::Version version);
+
+  template <class... Ts>
+  Builder &target_instance(Ts &&...types) {
+    static_assert(std::conjunction_v<std::is_same<TargetType::Type, Ts>...>,
+                  "Type must be TargetType::Type");
+
+    m_conds.instance_config_state = (... | types);
+    return *this;
+  }
+
+  Builder &quorum_state(ReplicationQuorum::States state);
+
+  template <class... Ts>
+  Builder &compatibility_check(Ts &&...compatibility) {
+    static_assert(
+        std::conjunction_v<std::is_same<metadata::Compatibility, Ts>...>,
+        "Type must be metadata::Compatibility");
+
+    (m_conds.metadata_states.push_back(compatibility), ...);
+    return *this;
+  }
+
+  Builder &cluster_global_status(Cluster_global_status state);
+  Builder &cluster_global_status_any_ok();
+  Builder &cluster_global_status_add_not_ok();
+  Builder &cluster_global_status_add_invalidated();
+
+  Builder &primary_required();
+  Builder &primary_not_required();
+
+  Builder &allowed_on_fence();
+
+  Command_conditions build();
+
+ private:
+  Command_conditions m_conds;
+};
 
 class Precondition_checker {
  public:
   static const mysqlshdk::utils::Version k_max_adminapi_server_version;
   static const mysqlshdk::utils::Version k_min_adminapi_server_version;
   static const mysqlshdk::utils::Version k_deprecated_adminapi_server_version;
-  static const mysqlshdk::utils::Version k_min_gr_version;
-  static const mysqlshdk::utils::Version k_min_ar_version;
   static const mysqlshdk::utils::Version k_min_cs_version;
   static const mysqlshdk::utils::Version k_min_rr_version;
-
-  static constexpr Cluster_global_status_mask kClusterGlobalStateAnyOk{
-      Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
-      Cluster_global_status::OK_NOT_CONSISTENT,
-      Cluster_global_status::OK_MISCONFIGURED};
-
-  static constexpr Cluster_global_status_mask kClusterGlobalStateAnyOkorNotOk{
-      Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
-      Cluster_global_status::OK_NOT_CONSISTENT,
-      Cluster_global_status::OK_MISCONFIGURED, Cluster_global_status::NOT_OK};
-
-  static constexpr Cluster_global_status_mask
-      kClusterGlobalStateAnyOkorInvalidated{
-          Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
-          Cluster_global_status::OK_NOT_CONSISTENT,
-          Cluster_global_status::OK_MISCONFIGURED,
-          Cluster_global_status::INVALIDATED};
-
-  static constexpr Cluster_global_status_mask kClusterGlobalStateAny =
-      Cluster_global_status_mask::any();
 
  public:
   Precondition_checker(const std::shared_ptr<MetadataStorage> &metadata,
                        const std::shared_ptr<Instance> &group_server,
                        bool primary_available);
-  Cluster_check_info check_preconditions(
-      const std::string &function_name,
-      const Function_availability *custom_func_avail = nullptr);
+
   virtual ~Precondition_checker() = default;
 
-  static const Function_availability &get_function_preconditions(
-      const std::string &function_name);
-
-  static const std::map<std::string, Function_availability> s_preconditions;
+  Cluster_check_info check_preconditions(const Command_conditions &conds);
 
  private:
 #ifdef FRIEND_TEST
@@ -108,8 +139,7 @@ class Precondition_checker {
 #endif
 
   void check_session() const;
-  metadata::State check_metadata_state_actions(
-      const std::string &function_name);
+  metadata::State check_metadata_state_actions(const Command_conditions &conds);
   void check_instance_configuration_preconditions(
       mysqlsh::dba::TargetType::Type instance_type, int allowed_types) const;
   void check_managed_instance_status_preconditions(
@@ -139,11 +169,10 @@ class Precondition_checker {
 // single instance of the Metadata class and pass it down through the chain
 // call.
 Cluster_check_info check_function_preconditions(
-    const std::string &function_name,
+    const Command_conditions &conds,
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &group_server,
-    bool primary_available = false,
-    const Function_availability *custom_func_avail = nullptr);
+    bool primary_available = false);
 
 }  // namespace dba
 }  // namespace mysqlsh

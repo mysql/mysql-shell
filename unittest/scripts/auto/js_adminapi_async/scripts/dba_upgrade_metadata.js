@@ -21,7 +21,8 @@ var server_uuid2 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
 //@<> upgradeMetadata on a standalone instance
 shell.connect(__sandbox_uri1)
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available through a session to a standalone instance")
+EXPECT_THROWS(function(){dba.upgradeMetadata()}, "Metadata Schema not found.")
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@<> Creates the sample cluster
 var rset = dba.createReplicaSet("myrs", {gtidSetIsComplete:true});

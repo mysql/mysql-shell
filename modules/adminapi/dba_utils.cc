@@ -143,7 +143,7 @@ std::string find_member_uri_of_role(const std::shared_ptr<Instance> &instance,
   if (!md.check_version(&version)) {
     throw shcore::Exception(
         "Metadata schema of an InnoDB Cluster or ReplicaSet not found",
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   const auto &instance_uuid = instance->get_uuid();

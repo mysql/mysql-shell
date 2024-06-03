@@ -41,7 +41,8 @@ var server_id3 = session.runSql("SELECT @@server_id").fetchOne()[0];
 shell.connect(__sandbox_uri1)
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
 var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
-EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available through a session to a standalone instance")
+EXPECT_THROWS(function(){dba.upgradeMetadata()}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@<> Creates the sample cluster
 shell.connect(cluster_admin_uri);
@@ -64,7 +65,8 @@ prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_u
 //@<> upgradeMetadata, installed version is greater than current version
 set_metadata_version(major, minor, patch + 1)
 var installed_version = testutil.getInstalledMetadataVersion();
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is newer than the version supported by this Shell (installed: ${installed_version}, shell: ${current_version})`);
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Metadata version is not compatible");
+EXPECT_OUTPUT_CONTAINS(`Incompatible Metadata version. No operations are allowed on a Metadata version higher than Shell supports ('${current_version}'), the installed Metadata version '${installed_version}' is not supported. Please upgrade MySQL Shell.`);
 
 //@<> upgradeMetadata, installed version is unknown
 set_metadata_version(major, minor, -1)
@@ -114,7 +116,9 @@ EXPECT_STDERR_EMPTY();
 
 //@<> Tests accessing the cluster after dropping the metadata after an upgrade
 dba.dropMetadataSchema({force:true});
-EXPECT_THROWS(function () { c.status() }, "This function is not available through a session to an instance belonging to an unmanaged replication group");
+
+EXPECT_THROWS(function(){ c.status(); }, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@ Upgrades the metadata from a slave instance
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);

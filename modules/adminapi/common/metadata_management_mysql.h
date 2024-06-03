@@ -34,8 +34,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
                              bool dry_run);
@@ -68,37 +67,30 @@ inline constexpr char kFailedUpgradeError[] =
     "invalid state. Execute dba.<<<upgradeMetadata>>> again to repair it.";
 
 enum State {
+  NONEXISTING,
+  UPGRADING,
+  FAILED_UPGRADE,
+  FAILED_SETUP,
   EQUAL,
   MAJOR_HIGHER,
   MAJOR_LOWER,
   MINOR_HIGHER,
   MINOR_LOWER,
   PATCH_HIGHER,
-  PATCH_LOWER,
-  UPGRADING,
-  FAILED_UPGRADE,
-  FAILED_SETUP,
-  NONEXISTING
+  PATCH_LOWER
 };
 
-using States = mysqlshdk::utils::Enum_set<State, State::NONEXISTING>;
-
-const States kCompatible = States(State::EQUAL)
-                               .set(State::MINOR_HIGHER)
-                               .set(State::MINOR_LOWER)
-                               .set(State::PATCH_HIGHER)
-                               .set(State::PATCH_LOWER);
-const States kCompatibleLower =
-    States(State::MINOR_LOWER).set(State::PATCH_LOWER);
-const States kIncompatible =
-    States(State::MAJOR_HIGHER).set(State::MAJOR_LOWER);
-const States kUpgradeStates =
-    States(State::UPGRADING).set(State::FAILED_UPGRADE);
-const States kUpgradeInProgress = States(State::UPGRADING);
-const States kIncompatibleOrUpgrading = States(State::UPGRADING)
-                                            .set(State::FAILED_UPGRADE)
-                                            .set(State::MAJOR_HIGHER)
-                                            .set(State::MAJOR_LOWER);
+enum class Compatibility {
+  COMPATIBLE,                      // EQUAL
+  COMPATIBLE_WARN_UPGRADE,         // MAJOR_LOWER | MINOR_LOWER | PATCH_LOWER
+  INCOMPATIBLE_UPGRADING,          // UPGRADING
+  INCOMPATIBLE_FAILED_UPGRADE,     // FAILED_UPGRADE
+  INCOMPATIBLE_MIN_VERSION_2_0_0,  // minimum MD 2.0.0 version required
+  INCOMPATIBLE_MIN_VERSION_2_1_0,  // minimum MD 2.1.0 version required
+  INCOMPATIBLE_MIN_VERSION_2_2_0,  // minimum MD 2.2.0 version required
+  IGNORE_NON_EXISTING,             // don't error out if MD doesn't exist
+  IGNORE_FAILED_UPGRADE            // don't error out if FAILED_UPGRADE
+};
 
 metadata::State check_installed_schema_version(
     const std::shared_ptr<Instance> &group_server,
@@ -126,7 +118,7 @@ void uninstall(const std::shared_ptr<Instance> &group_server);
 
 bool is_valid_version(const mysqlshdk::utils::Version &version);
 }  // namespace metadata
-}  // namespace dba
-}  // namespace mysqlsh
+
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_COMMON_METADATA_MANAGEMENT_MYSQL_H_

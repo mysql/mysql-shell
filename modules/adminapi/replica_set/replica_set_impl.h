@@ -243,7 +243,7 @@ class Replica_set_impl final : public Base_cluster_impl {
   shcore::Dictionary_t get_topology_options();
 
   void check_preconditions_and_primary_availability(
-      const std::string &function_name,
+      const Command_conditions &conds,
       bool throw_if_primary_unavailable = true);
 
   void read_replication_options(const mysqlshdk::mysql::IInstance *instance,

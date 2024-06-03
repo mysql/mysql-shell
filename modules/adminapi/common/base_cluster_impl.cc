@@ -53,8 +53,7 @@
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 // # of seconds to wait until clone starts
 constexpr std::chrono::seconds k_clone_start_timeout{30};
@@ -66,14 +65,40 @@ namespace {
 const built_in_tags_map_t k_supported_set_option_tags{
     {"_hidden", shcore::Value_type::Bool},
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
+
+Command_conditions::Builder gen_routing_options_builder(Cluster_type type,
+                                                        std::string_view name) {
+  switch (type) {
+    case Cluster_type::GROUP_REPLICATION:
+      return Command_conditions::Builder::gen_cluster(name)
+          .target_instance(TargetType::InnoDBCluster,
+                           TargetType::InnoDBClusterSet)
+          .primary_required()
+          .allowed_on_fence();
+    case Cluster_type::ASYNC_REPLICATION:
+      return Command_conditions::Builder::gen_replicaset(name)
+          .primary_required();
+
+    case Cluster_type::REPLICATED_CLUSTER:
+      return Command_conditions::Builder::gen_clusterset(name)
+          .primary_not_required()
+          .allowed_on_fence();
+
+    default:
+      throw std::logic_error(
+          shcore::str_format("Command context is incorrect for \"%.*s\".",
+                             static_cast<int>(name.size()), name.data()));
+  }
+}
+
 }  // namespace
 
 Base_cluster_impl::Base_cluster_impl(
-    const std::string &cluster_name, std::shared_ptr<Instance> group_server,
+    std::string cluster_name, std::shared_ptr<Instance> group_server,
     std::shared_ptr<MetadataStorage> metadata_storage)
-    : m_cluster_name(cluster_name),
-      m_cluster_server(group_server),
-      m_metadata_storage(metadata_storage) {
+    : m_cluster_name{std::move(cluster_name)},
+      m_cluster_server{std::move(group_server)},
+      m_metadata_storage{std::move(metadata_storage)} {
   if (m_cluster_server) {
     m_cluster_server->retain();
 
@@ -114,11 +139,8 @@ bool Base_cluster_impl::check_valid() const {
   return true;
 }
 
-void Base_cluster_impl::check_preconditions(
-    const std::string &function_name,
-    Function_availability *custom_func_avail) {
-  log_debug("Checking '%s' preconditions.", function_name.c_str());
-  bool primary_available = false;
+void Base_cluster_impl::check_preconditions(const Command_conditions &conds) {
+  log_debug("Checking '%s' preconditions.", conds.name.c_str());
 
   // Makes sure the metadata state is re-loaded on each API call
   m_metadata_storage->invalidate_cached();
@@ -126,19 +148,12 @@ void Base_cluster_impl::check_preconditions(
   // Makes sure the primary master is reset before acquiring it on each API call
   m_primary_master.reset();
 
-  bool primary_required = false;
-  if (custom_func_avail) {
-    primary_required = custom_func_avail->primary_required;
-  } else {
-    primary_required = Precondition_checker::get_function_preconditions(
-                           api_class(get_type()) + "." + function_name)
-                           .primary_required;
-  }
-
+  bool primary_available = false;
   try {
     current_ipool()->set_metadata(get_metadata_storage());
 
-    primary_available = (acquire_primary(primary_required, true) != nullptr);
+    primary_available =
+        (acquire_primary(conds.primary_required, true) != nullptr);
     log_debug("Acquired primary: %d", primary_available);
 
   } catch (const shcore::Exception &e) {
@@ -165,9 +180,8 @@ void Base_cluster_impl::check_preconditions(
     }
   }
 
-  check_function_preconditions(api_class(get_type()) + "." + function_name,
-                               get_metadata_storage(), get_cluster_server(),
-                               primary_available, custom_func_avail);
+  check_function_preconditions(conds, get_metadata_storage(),
+                               get_cluster_server(), primary_available);
 }
 
 bool Base_cluster_impl::get_gtid_set_is_complete() const {
@@ -932,7 +946,30 @@ void Base_cluster_impl::setup_router_account(
 }
 
 void Base_cluster_impl::remove_router_metadata(const std::string &router) {
-  check_preconditions("removeRouterMetadata");
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("removeRouterMetadata")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .primary_required()
+                    .cluster_global_status(Cluster_global_status::OK)
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds =
+            Command_conditions::Builder::gen_replicaset("removeRouterMetadata")
+                .primary_required()
+                .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"removeRouterMetadata\".");
+    }
+
+    check_preconditions(conds);
+  }
 
   auto c_lock = get_lock_shared();
 
@@ -982,7 +1019,30 @@ void Base_cluster_impl::set_router_tag(const std::string &router,
 void Base_cluster_impl::set_instance_option(const std::string &instance_def,
                                             const std::string &option,
                                             const shcore::Value &value) {
-  check_preconditions("setInstanceOption");
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("setInstanceOption")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .quorum_state(ReplicationQuorum::States::Normal)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset("setInstanceOption")
+                    .primary_required()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"setInstanceOption\".");
+    }
+
+    check_preconditions(conds);
+  }
 
   std::string opt_namespace, opt;
   shcore::Value val;
@@ -1004,32 +1064,60 @@ void Base_cluster_impl::set_option(const std::string &option,
       validate_set_option_namespace(option, value, k_supported_set_option_tags);
 
   if (!opt_namespace.empty() && get_type() == Cluster_type::GROUP_REPLICATION) {
-    Function_availability custom_func_avail = {
-        Precondition_checker::k_min_gr_version,
-        TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-        ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-        {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-        true,
-        Precondition_checker::kClusterGlobalStateAnyOk};
+    auto conds = Command_conditions::Builder::gen_cluster("setOption")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .cluster_global_status_any_ok()
+                     .build();
 
-    check_preconditions("setOption", &custom_func_avail);
+    check_preconditions(conds);
+
   } else if (opt_namespace.empty() &&
              shcore::str_beginswith(opt, "clusterSetReplication") &&
              ((get_type() == Cluster_type::GROUP_REPLICATION) ||
               (get_type() == Cluster_type::REPLICATED_CLUSTER))) {
-    Function_availability custom_func_avail = {
-        Precondition_checker::k_min_gr_version,
-        TargetType::InnoDBCluster | TargetType::InnoDBClusterSet |
-            TargetType::InnoDBClusterSetOffline,
-        ReplicationQuorum::State::any(),
-        {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-        true,
-        Precondition_checker::kClusterGlobalStateAnyOkorNotOk};
+    auto conds = Command_conditions::Builder::gen_cluster("setOption")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet,
+                                      TargetType::InnoDBClusterSetOffline)
+                     .primary_required()
+                     .cluster_global_status_any_ok()
+                     .cluster_global_status_add_not_ok()
+                     .build();
 
-    check_preconditions("setOption", &custom_func_avail);
+    check_preconditions(conds);
   } else {
-    // use defaults
-    check_preconditions("setOption", nullptr);
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("setOption")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .quorum_state(ReplicationQuorum::States::All_online)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset("setOption")
+                    .primary_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset("setOption")
+                    .quorum_state(ReplicationQuorum::States::All_online)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"setOption\".");
+    }
+
+    check_preconditions(conds);
   }
 
   // make sure metadata session is using the primary
@@ -1197,8 +1285,37 @@ void Base_cluster_impl::disconnect_internal() {
 void Base_cluster_impl::set_routing_option(const std::string &router,
                                            const std::string &option,
                                            const shcore::Value &value) {
-  // Preconditions the same to sister function
-  check_preconditions("setRoutingOption");
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("setRoutingOption")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset("setRoutingOption")
+                    .primary_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset("setRoutingOption")
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"setRoutingOption\".");
+    }
+
+    check_preconditions(conds);
+  }
 
   std::string opt_namespace, opt;
   shcore::Value val;
@@ -1229,7 +1346,16 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
 
 shcore::Dictionary_t Base_cluster_impl::routing_options(
     const std::string &router) {
-  check_preconditions("routingOptions");
+  {
+    auto type = get_type();
+
+    auto b = gen_routing_options_builder(type, "routingOptions");
+    if (type == Cluster_type::GROUP_REPLICATION)
+      b.compatibility_check(
+          metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0);
+
+    check_preconditions(b.build());
+  }
 
   return mysqlsh::dba::routing_options(get_metadata_storage().get(), get_type(),
                                        get_id(), router);
@@ -1237,11 +1363,20 @@ shcore::Dictionary_t Base_cluster_impl::routing_options(
 
 shcore::Dictionary_t Base_cluster_impl::router_options(
     const shcore::Option_pack_ref<Router_options_options> &options) {
-  check_preconditions("routerOptions");
+  {
+    auto type = get_type();
+
+    auto b = gen_routing_options_builder(type, "routerOptions");
+    if ((type == Cluster_type::GROUP_REPLICATION) ||
+        (type == Cluster_type::ASYNC_REPLICATION))
+      b.compatibility_check(
+          metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0);
+
+    check_preconditions(b.build());
+  }
 
   return mysqlsh::dba::router_options(get_metadata_storage().get(), get_type(),
                                       get_id(), get_name(), *options);
 }
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba

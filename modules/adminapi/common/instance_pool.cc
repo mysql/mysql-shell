@@ -438,7 +438,7 @@ struct Instance_pool::Metadata_cache {
     throw shcore::Exception(
         "Could not find metadata for cluster with group_name '" + group_name +
             "'",
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
 };
 
@@ -523,7 +523,7 @@ std::shared_ptr<MetadataStorage> Instance_pool::find_metadata_server(
     console->print_warning("InnoDB cluster metadata does not exist at " +
                            session->get_connection_options().uri_endpoint());
     throw shcore::Exception("Metadata schema missing",
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   auto old_md = m_metadata;
@@ -770,7 +770,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_primary(
 
       throw shcore::Exception(
           "No managed members found for cluster '" + cname + "'",
-          SHERR_DBA_METADATA_MISSING);
+          SHERR_DBA_MISSING_FROM_METADATA);
     }
 
     // we don't know any possible primaries, so just try everyone one by one
@@ -922,7 +922,7 @@ Instance_pool::try_connect_cluster_primary_with_fallback(
     throw shcore::Exception(
         shcore::str_format("Could not find metadata for Cluster '%s'",
                            cluster_id.c_str()),
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   std::shared_ptr<Instance> best;

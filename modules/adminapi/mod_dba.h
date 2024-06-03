@@ -194,9 +194,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   std::shared_ptr<ClusterSet> get_cluster_set();
 
   std::shared_ptr<Instance> check_preconditions(
-      const std::string &function_name,
-      const std::shared_ptr<Instance> &group_server,
-      const Function_availability *custom_func_avail = nullptr);
+      const Command_conditions &conds,
+      const std::shared_ptr<Instance> &group_server);
 
  protected:
   shcore::IShell_core *_shell_core = nullptr;

@@ -23,7 +23,8 @@ cs.removeCluster("replica");
 c.dissolve();
 
 //@<> dissolve on removed cluster in a clusterset is unnecessary because removeCluster already did it
-EXPECT_THROWS(function () { r.dissolve(); }, "This function is not available through a session to a standalone instance");
+EXPECT_THROWS(function () { r.dissolve(); }, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@<> dropMD on invalidated cluster should work
 shell.connect(__sandbox_uri2);

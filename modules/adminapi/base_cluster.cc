@@ -32,21 +32,20 @@ namespace mysqlsh {
 namespace dba {
 
 shcore::Value Base_cluster::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-
   // Throw an error if the cluster has already been dissolved
   assert_valid(prop);
 
-  if (prop == "name")
-    ret_val = shcore::Value(base_impl()->get_name());
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-  return ret_val;
+  if (prop == "name") return shcore::Value(base_impl()->get_name());
+  return shcore::Cpp_object_bridge::get_member(prop);
 }
 
 std::string &Base_cluster::append_descr(std::string &s_out, int UNUSED(indent),
                                         int UNUSED(quote_strings)) const {
-  s_out.append("<" + class_name() + ":" + base_impl()->get_name() + ">");
+  s_out.append("<")
+      .append(class_name())
+      .append(+":")
+      .append(base_impl()->get_name())
+      .append(">");
   return s_out;
 }
 

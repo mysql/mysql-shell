@@ -160,7 +160,8 @@ TEST_F(Admin_api_metadata_management_test, check_installed_schema_version) {
   compatibility = mysqlsh::dba::metadata::check_installed_schema_version(
       m_instance, &installed, &real_md_version, &md_version_schema);
 
-  EXPECT_TRUE(mysqlsh::dba::metadata::kIncompatible.is_set(compatibility));
+  EXPECT_TRUE((compatibility == MDS::MAJOR_HIGHER) ||
+              (compatibility == MDS::MAJOR_LOWER));
 
   // Metadata upgrading version 0.0.0, no metadata backup is a restore scenario
   // when the data was already restored but setting the original version failed,

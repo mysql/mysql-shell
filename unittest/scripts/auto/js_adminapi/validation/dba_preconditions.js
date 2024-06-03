@@ -5,28 +5,13 @@
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet (MYSQLSH 51306)
 
-//@# Dba_preconditions_standalone, get_cluster_fails
-||This function is not available through a session to a standalone instance
-
 //@# Dba_preconditions_standalone, create_cluster_succeeds
 // Create Cluster is allowed on standalone instance, the precondition
 // validation passes
 ||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (1nvalidName)
 
-
-//@# Dba_preconditions_standalone, drop_metadata_schema_fails
-// getCluster is not allowed on standalone instances
-||This function is not available through a session to a standalone instance
-
-//@# Dba_preconditions_standalone, reboot_cluster_from_complete_outage_succeeds
-||This function is not available through a session to a standalone instance
-
 //@# Dba_preconditions_standalone, configureInstance allowed
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster usage.|
-
-//@# Dba_preconditions_unmanaged_gr, get_cluster_fails
-// getCluster is not allowed on standalone instances
-||This function is not available through a session to an instance belonging to an unmanaged replication group
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_fails
 // Create Cluster is allowed on standalone instance, the precondition
@@ -35,12 +20,6 @@
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt_needed
 ||Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
-
-//@# Dba_preconditions_unmanaged_gr, drop_metadata_schema_fails
-||This function is not available through a session to an instance belonging to an unmanaged replication group
-
-//@# Dba_preconditions_unmanaged_gr, reboot_cluster_from_complete_outage
-||This function is not available through a session to an instance belonging to an unmanaged replication group
 
 //@# Dba_preconditions_innodb, create_cluster_fails
 ||Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to an InnoDB cluster. Use dba.getCluster() to access it.

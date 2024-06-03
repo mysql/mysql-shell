@@ -43,6 +43,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/execute.h"
 
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
@@ -148,7 +149,8 @@ Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
     const {
   std::vector<Cluster_set_member_metadata> cs_members;
   if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
-    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
+    throw shcore::Exception("Metadata not found",
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   for (const auto &m : cs_members) {
@@ -165,7 +167,8 @@ Cluster_set_member_metadata Cluster_set_impl::get_cluster_metadata(
     const Cluster_id &cluster_id) const {
   std::vector<Cluster_set_member_metadata> cs_members;
   if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
-    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
+    throw shcore::Exception("Metadata not found",
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   for (const auto &m : cs_members) {
@@ -211,7 +214,8 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
 
   if (!m_metadata_storage->get_cluster_set(m_id, false, &cs, &cs_members,
                                            &primary_view_id)) {
-    throw shcore::Exception("Metadata not found", SHERR_DBA_METADATA_MISSING);
+    throw shcore::Exception("Metadata not found",
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   log_debug(
@@ -238,7 +242,7 @@ bool Cluster_set_impl::reconnect_target_if_invalidated(bool print_warnings) {
       group_server = ipool->try_connect_cluster_primary_with_fallback(
           m.cluster.cluster_id, &availability);
     } catch (const shcore::Exception &e) {
-      if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
+      if (e.code() != SHERR_DBA_MISSING_FROM_METADATA) throw;
       log_debug("%s", e.what());
     }
 
@@ -345,7 +349,7 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
     throw shcore::Exception(
         shcore::str_format("The cluster with the name '%s' does not exist.",
                            name.c_str()),
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   auto cluster = get_cluster_object(cluster_md, allow_unavailable);
@@ -817,7 +821,16 @@ shcore::Value Cluster_set_impl::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
     Recovery_progress_style progress_style,
     const clusterset::Create_replica_cluster_options &options) {
-  check_preconditions("createReplicaCluster");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_clusterset("createReplicaCluster")
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .primary_not_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
 
@@ -844,7 +857,14 @@ shcore::Value Cluster_set_impl::create_replica_cluster(
 void Cluster_set_impl::remove_cluster(
     const std::string &cluster_name,
     const clusterset::Remove_cluster_options &options) {
-  check_preconditions("removeCluster");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("removeCluster")
+                     .primary_required()
+                     .cluster_global_status_any_ok()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   std::shared_ptr<Cluster_impl> target_cluster;
   bool skip_channel_check = false;
@@ -867,7 +887,7 @@ void Cluster_set_impl::remove_cluster(
     try {
       target_cluster = get_cluster(cluster_name, false, true);
     } catch (const shcore::Exception &e) {
-      if (e.code() == SHERR_DBA_METADATA_MISSING ||
+      if (e.code() == SHERR_DBA_MISSING_FROM_METADATA ||
           e.code() == SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET) {
         console->print_error(shcore::str_format(
             "The Cluster '%s' does not exist or does not belong to the "
@@ -1773,7 +1793,14 @@ void Cluster_set_impl::ensure_replica_settings(Cluster_impl *replica,
 }
 
 shcore::Value Cluster_set_impl::list_routers(const std::string &router) {
-  check_preconditions("listRouters");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("listRouters")
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   auto routers =
       clusterset_list_routers(get_metadata_storage().get(), get_id(), router);
@@ -2022,19 +2049,45 @@ void Cluster_set_impl::record_in_metadata(
 }
 
 shcore::Value Cluster_set_impl::status(int extended) {
-  check_preconditions("status");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("status")
+                     .target_instance(TargetType::InnoDBClusterSet,
+                                      TargetType::InnoDBClusterSetOffline)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   return shcore::Value(clusterset::cluster_set_status(this, extended));
 }
 
 shcore::Value Cluster_set_impl::describe() {
-  check_preconditions("describe");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("describe")
+                     .target_instance(TargetType::InnoDBClusterSet,
+                                      TargetType::InnoDBClusterSetOffline)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   return shcore::Value(clusterset::cluster_set_describe(this));
 }
 
 void Cluster_set_impl::dissolve(const clusterset::Dissolve_options &options) {
-  check_preconditions("dissolve");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("dissolve")
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   Topology_executor<clusterset::Dissolve>{*this}.run(options);
 }
@@ -2042,7 +2095,14 @@ void Cluster_set_impl::dissolve(const clusterset::Dissolve_options &options) {
 shcore::Value Cluster_set_impl::execute(
     const std::string &cmd, const shcore::Value &instances,
     const shcore::Option_pack_ref<Execute_options> &options) {
-  check_preconditions("execute");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("execute")
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // obtain a shared lock on the ClusterSet and on all the Clusters
   mysqlshdk::mysql::Lock_scoped_list api_locks;
@@ -2059,7 +2119,14 @@ shcore::Value Cluster_set_impl::execute(
 }
 
 shcore::Value Cluster_set_impl::options() {
-  check_preconditions("options");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("options")
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   shcore::Dictionary_t inner_dict = shcore::make_dict();
   (*inner_dict)["domainName"] = shcore::Value(get_name());
@@ -2255,7 +2322,17 @@ void Cluster_set_impl::_set_option(const std::string &option,
 void Cluster_set_impl::set_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Set_primary_cluster_options &options) {
-  check_preconditions("setPrimaryCluster");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_clusterset("setPrimaryCluster")
+            .target_instance(TargetType::InnoDBClusterSet,
+                             TargetType::InnoDBClusterSetOffline)
+            .primary_required()
+            .cluster_global_status_any_ok()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the clusterset
   mysqlshdk::mysql::Lock_scoped_list api_locks;
@@ -2836,7 +2913,18 @@ void Cluster_set_impl::primary_instance_did_change(
 void Cluster_set_impl::force_primary_cluster(
     const std::string &cluster_name,
     const clusterset::Force_primary_cluster_options &options) {
-  check_preconditions("forcePrimaryCluster");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_clusterset("forcePrimaryCluster")
+            .target_instance(TargetType::InnoDBClusterSet,
+                             TargetType::InnoDBClusterSetOffline)
+            .primary_not_required()
+            .cluster_global_status_any_ok()
+            .cluster_global_status_add_not_ok()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   auto console = current_console();
   auto primary_cluster_name = get_primary_cluster()->get_name();
@@ -3126,7 +3214,17 @@ void Cluster_set_impl::ensure_transaction_set_consistent_and_recoverable(
 void Cluster_set_impl::rejoin_cluster(
     const std::string &cluster_name,
     const clusterset::Rejoin_cluster_options &options, bool allow_unavailable) {
-  check_preconditions("rejoinCluster");
+  {
+    auto conds = Command_conditions::Builder::gen_clusterset("rejoinCluster")
+                     .target_instance(TargetType::InnoDBClusterSet,
+                                      TargetType::InnoDBClusterSetOffline)
+                     .primary_required()
+                     .cluster_global_status_any_ok()
+                     .cluster_global_status_add_invalidated()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // put a shared lock on the clusterset and a shared cluster lock on the
   // primary cluster
@@ -3281,7 +3379,16 @@ void Cluster_set_impl::rejoin_cluster(
 void Cluster_set_impl::setup_admin_account(
     const std::string &username, const std::string &host,
     const Setup_account_options &options) {
-  check_preconditions("setupAdminAccount");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_clusterset("setupAdminAccount")
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .primary_required()
+            .cluster_global_status_any_ok()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put a shared lock on the cluster
   auto c_lock = get_lock_shared();
@@ -3292,7 +3399,16 @@ void Cluster_set_impl::setup_admin_account(
 void Cluster_set_impl::setup_router_account(
     const std::string &username, const std::string &host,
     const Setup_account_options &options) {
-  check_preconditions("setupRouterAccount");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_clusterset("setupRouterAccount")
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .primary_required()
+            .cluster_global_status_any_ok()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put a shared lock on the cluster
   auto c_lock = get_lock_shared();

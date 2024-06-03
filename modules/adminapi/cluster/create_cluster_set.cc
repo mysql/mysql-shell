@@ -172,15 +172,6 @@ void Create_cluster_set::prepare() {
         "but no changes will be applied.");
   }
 
-  // Verify if the Metadata version is compatible, i.e. >= 2.1.0.
-  // NOTE: not made a precondition because this is the only use case
-  if (!m_cluster->get_metadata_storage()->supports_cluster_set()) {
-    throw std::runtime_error(
-        "Operation not allowed. The installed metadata version is lower than "
-        "the version required by Shell. Upgrade the metadata to execute this "
-        "operation. See \\? dba.<<<upgradeMetadata>>> for additional details.");
-  }
-
   // Validate the domain_name
   mysqlsh::dba::validate_cluster_name(m_domain_name,
                                       Cluster_type::REPLICATED_CLUSTER);

@@ -114,15 +114,7 @@ enum class States {
 };
 
 using State = mysqlshdk::utils::Enum_set<States, States::Dead>;
-
 }  // namespace ReplicationQuorum
-
-enum class MDS_actions { NONE, NOTE, WARN, RAISE_ERROR };
-
-struct Metadata_state_action {
-  metadata::States state;
-  MDS_actions action;
-};
 
 typedef mysqlshdk::utils::Enum_set<Cluster_global_status,
                                    Cluster_global_status::UNKNOWN>
@@ -130,20 +122,6 @@ typedef mysqlshdk::utils::Enum_set<Cluster_global_status,
 
 typedef mysqlshdk::utils::Enum_set<Cluster_status, Cluster_status::UNKNOWN>
     Cluster_status_mask;
-
-// Note that this structure may be initialized using initializer
-// lists, so the order of the fields is very important
-struct Function_availability {
-  mysqlshdk::utils::Version min_version;
-  int instance_config_state;
-  ReplicationQuorum::State cluster_status;
-  std::vector<Metadata_state_action> metadata_state_actions = {};
-  bool primary_required = true;
-  // Defines the global state in which the operation is allowed
-  // Empty indicates the operation is not allowed for instances in a cluster set
-  Cluster_global_status_mask cluster_set_state = {};
-  bool allowed_on_fenced = false;
-};
 
 struct Cluster_check_info {
   // Server version from the instance from which the data was consulted

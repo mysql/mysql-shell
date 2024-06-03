@@ -3,17 +3,23 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_i
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_ip, server_uuid:"22222222-2222-2222-2222-222222222222"});
 shell.connect(__sandbox_uri1);
 
-//@ getReplicaSet() in a standalone instance (should fail)
-dba.getReplicaSet();
+//@<> getReplicaSet() in a standalone instance (should fail)
+EXPECT_THROWS(function(){
+    dba.getReplicaSet();
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
-//@ getReplicaSet() in a standalone instance with GR MD 1.0.1 (should fail) {VER(>8.0.4)}
+//@<> getReplicaSet() in a standalone instance with GR MD 1.0.1 (should fail) {VER(>8.0.4)}
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
 session.runSql("RESET " + get_reset_binary_logs_keyword());
 // import the MD schema and hack it to match the test environment
 testutil.importData(__sandbox_uri1, __data_path+"/dba/md-1.0.1-cluster_1member.sql", "mysql_innodb_cluster_metadata");
 
-dba.getReplicaSet();
+EXPECT_THROWS(function(){
+    dba.getReplicaSet();
+}, "Metadata version is not compatible");
+EXPECT_OUTPUT_CONTAINS("ERROR: Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.0.0'. Upgrade the Metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.");
 
 //@ getReplicaSet() in a standalone instance with GR MD 2.0.0 (should fail) {VER(>8.0.4)}
 session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
@@ -57,12 +63,12 @@ shell.connect(__sandbox_uri1);
 var rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:true});
 rs.addInstance(__sandbox_uri2);
 
-//@ Positive case {VER(>=8.0.11)}
-dba.getReplicaSet();
+//@<> Positive case {VER(>=8.0.11)}
+EXPECT_NO_THROWS(function(){ dba.getReplicaSet(); });
 
-//@ From a secondary {VER(>=8.0.11)}
+//@<> From a secondary {VER(>=8.0.11)}
 shell.connect(__sandbox_uri2);
-dba.getReplicaSet();
+EXPECT_NO_THROWS(function(){ dba.getReplicaSet(); });
 
 //@<> Delete metadata for the instance (should fail) {VER(>=8.0.11)}
 shell.connect(__sandbox_uri1);
@@ -75,7 +81,8 @@ EXPECT_THROWS(function(){
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 EXPECT_THROWS(function(){
     dba.getReplicaSet();
-}, "This function is not available through a session to an instance belonging to an unmanaged asynchronous replication topology");
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

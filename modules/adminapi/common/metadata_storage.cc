@@ -3055,7 +3055,7 @@ std::string MetadataStorage::get_cluster_group_name(
   }
 
   throw shcore::Exception("No cluster found with name '" + cluster_name + "'",
-                          SHERR_DBA_METADATA_MISSING);
+                          SHERR_DBA_MISSING_FROM_METADATA);
 }
 
 static void parse_router_definition(const std::string &router_def,
@@ -3264,7 +3264,7 @@ shcore::Value MetadataStorage::get_router_info(const std::string &router_name) {
   }
 
   throw shcore::Exception("Invalid router name '" + router_name + "'",
-                          SHERR_DBA_METADATA_MISSING);
+                          SHERR_DBA_MISSING_FROM_METADATA);
 }
 
 namespace {

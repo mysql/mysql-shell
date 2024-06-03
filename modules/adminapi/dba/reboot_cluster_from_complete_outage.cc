@@ -311,7 +311,7 @@ void Reboot_cluster_from_complete_outage::retrieve_cs_info(
       m_cs_info.is_invalidated = target_cluster->is_invalidated();
     }
   } catch (const shcore::Exception &e) {
-    if ((e.code() != SHERR_DBA_METADATA_MISSING) &&
+    if ((e.code() != SHERR_DBA_MISSING_FROM_METADATA) &&
         (e.code() != SHERR_DBA_ASYNC_MEMBER_INVALIDATED))
       throw;
     m_cs_info.removed_from_set = true;
@@ -1431,7 +1431,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
       try {
         cs = cluster_impl->check_and_get_cluster_set_for_cluster();
       } catch (const shcore::Exception &e) {
-        if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
+        if (e.code() != SHERR_DBA_MISSING_FROM_METADATA) throw;
       }
 
       // If the ClusterSet couldn't be obtained, it means the Cluster has been
@@ -1464,7 +1464,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
         cluster_impl->check_and_get_cluster_set_for_cluster();
 
       } catch (const shcore::Exception &e) {
-        if (e.code() == SHERR_DBA_METADATA_MISSING)
+        if (e.code() == SHERR_DBA_MISSING_FROM_METADATA)
           cluster_impl->set_cluster_set_remove_pending(true);
       }
     } else if (!m_cs_info.removed_from_set && !m_cs_info.is_invalidated) {
@@ -1499,7 +1499,7 @@ std::shared_ptr<Cluster> Reboot_cluster_from_complete_outage::do_run() {
                   "is unreachable). Please call ClusterSet.rejoinCluster() to "
                   "manually rejoin this Cluster back into the ClusterSet.");
               break;
-            case SHERR_DBA_METADATA_MISSING: {
+            case SHERR_DBA_MISSING_FROM_METADATA: {
               std::string cs_domain_name;
               cluster_impl->get_metadata_storage()->check_cluster_set(
                   nullptr, nullptr, &cs_domain_name);

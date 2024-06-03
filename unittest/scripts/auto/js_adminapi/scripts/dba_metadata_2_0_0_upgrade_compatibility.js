@@ -32,9 +32,8 @@ cluster_id = session.runSql("select cluster_id from mysql_innodb_cluster_metadat
 session.runSql(`INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 'mysqlrouter', 'routerhost1', '8.0.23', '2019-01-01 11:22:33', '${attrs1}', ?, NULL)`, [cluster_id]);
 session.runSql(`INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'default', 'mysqlrouter', 'routerhost2', '8.0.23', '2019-01-01 11:22:33', '${attrs2}', ?, NULL)`, [cluster_id]);
 
-
 // Upgrade Metadata
-dba.upgradeMetadata()
+dba.upgradeMetadata();
 metadata_201 = true
 
 // Get Cluster from master

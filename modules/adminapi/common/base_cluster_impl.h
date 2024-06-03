@@ -26,7 +26,6 @@
 #ifndef MODULES_ADMINAPI_COMMON_BASE_CLUSTER_IMPL_H_
 #define MODULES_ADMINAPI_COMMON_BASE_CLUSTER_IMPL_H_
 
-#include <list>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -38,13 +37,14 @@
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
 
 namespace mysqlsh {
 namespace dba {
+
+struct Command_conditions;
 
 // User provided option for telling us to assume that the cluster was created
 // with a server where the full update history is reflected in its GTID set
@@ -87,7 +87,7 @@ inline constexpr const char k_cluster_capabilities[] = "capabilities";
 
 class Base_cluster_impl {
  public:
-  Base_cluster_impl(const std::string &cluster_name,
+  Base_cluster_impl(std::string cluster_name,
                     std::shared_ptr<Instance> group_server,
                     std::shared_ptr<MetadataStorage> metadata_storage);
   virtual ~Base_cluster_impl();
@@ -124,8 +124,7 @@ class Base_cluster_impl {
 
   virtual bool check_valid() const;
 
-  void check_preconditions(const std::string &function_name,
-                           Function_availability *custom_func_avail = nullptr);
+  void check_preconditions(const Command_conditions &conds);
 
   std::shared_ptr<MetadataStorage> get_metadata_storage() const {
     return m_metadata_storage;

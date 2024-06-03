@@ -29,10 +29,12 @@
 ||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
 
 //@# adopt with existing old metadata, belongs to other (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+|Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.2.0'. Upgrade the Metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
+|| Metadata version is not compatible (MYSQLSH 51107)
 
 //@# indirect adopt with existing old metadata, belongs to other (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+|Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.2.0'. Upgrade the Metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
+|| Metadata version is not compatible (MYSQLSH 51107)
 
 //@# replication filters (should fail)
 ||127.0.0.1:<<<__mysql_sandbox_port1>>>: instance has global replication filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)

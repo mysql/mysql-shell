@@ -43,6 +43,7 @@
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/sql.h"
@@ -935,7 +936,13 @@ void Replica_set_impl::add_instance(
     const std::string &auth_cert_subject,
     Recovery_progress_style progress_style, int sync_timeout, bool interactive,
     bool dry_run) {
-  check_preconditions_and_primary_availability("addInstance");
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("addInstance")
+                     .primary_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   Async_replication_options ar_options(ar_options_);
   Clone_options clone_options(clone_options_);
@@ -1221,7 +1228,13 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
                                        bool dry_run) {
   log_debug("Checking rejoin instance preconditions.");
 
-  check_preconditions_and_primary_availability("rejoinInstance");
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("rejoinInstance")
+                     .primary_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   Clone_options clone_options(clone_options_);
 
@@ -1532,7 +1545,13 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
                                        std::optional<bool> force, int timeout) {
   log_debug("Checking remove instance preconditions.");
 
-  check_preconditions_and_primary_availability("removeInstance");
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("removeInstance")
+                     .primary_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   auto console = current_console();
   auto ipool = current_ipool();
@@ -1718,7 +1737,14 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   auto console = current_console();
   auto ipool = current_ipool();
 
-  check_preconditions_and_primary_availability("setPrimaryInstance");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_replicaset("setPrimaryInstance")
+            .primary_required()
+            .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   // put an exclusive lock on the replica set
   auto rs_lock = get_lock_exclusive();
@@ -1970,7 +1996,13 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
                                               bool invalidate_error_instances,
                                               bool dry_run) {
   try {
-    check_preconditions("forcePrimaryInstance");
+    auto conds =
+        Command_conditions::Builder::gen_replicaset("forcePrimaryInstance")
+            .primary_not_required()
+            .build();
+
+    check_preconditions(conds);
+
   } catch (const shcore::Exception &e) {
     // When forcing the primary, there's no primary available
     if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
@@ -2256,7 +2288,13 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
 }
 
 void Replica_set_impl::dissolve(const replicaset::Dissolve_options &options) {
-  check_preconditions("dissolve");
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("dissolve")
+                     .primary_required()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the replica set
   auto rs_lock = get_lock_exclusive();
@@ -2266,7 +2304,13 @@ void Replica_set_impl::dissolve(const replicaset::Dissolve_options &options) {
 }
 
 void Replica_set_impl::rescan(const replicaset::Rescan_options &options) {
-  check_preconditions_and_primary_availability("rescan");
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("rescan")
+                     .primary_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   // put an exclusive lock on the replica set
   auto rs_lock = get_lock_exclusive();
@@ -2286,13 +2330,25 @@ shcore::Value Replica_set_impl::execute(
 }
 
 shcore::Value Replica_set_impl::describe() {
-  check_preconditions_and_primary_availability("describe", false);
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("describe")
+                     .primary_not_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds, false);
+  }
 
   return Topology_executor<replicaset::Describe>{*this}.run();
 }
 
 shcore::Value Replica_set_impl::status(int extended) {
-  check_preconditions_and_primary_availability("status", false);
+  {
+    auto conds = Command_conditions::Builder::gen_replicaset("status")
+                     .primary_not_required()
+                     .build();
+
+    check_preconditions_and_primary_availability(conds, false);
+  }
 
   return Topology_executor<replicaset::Status>{*this}.run(extended);
 }
@@ -2302,7 +2358,7 @@ std::shared_ptr<Global_topology_manager> Replica_set_impl::get_topology_manager(
   Cluster_metadata cmd;
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd))
     throw shcore::Exception("Metadata not found for replicaset " + get_name(),
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
 
   auto topology = topology::scan_global_topology(
       get_metadata_storage().get(), cmd, k_replicaset_channel_name, deep);
@@ -2495,7 +2551,7 @@ Cluster_metadata Replica_set_impl::get_metadata() const {
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd)) {
     throw shcore::Exception(
         "ReplicaSet metadata could not be loaded for " + get_name(),
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
   return cmd;
 }
@@ -2955,7 +3011,12 @@ void Replica_set_impl::check_replication_applier_errors(
 
 shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
   try {
-    check_preconditions("listRouters");
+    auto conds = Command_conditions::Builder::gen_replicaset("listRouters")
+                     .primary_not_required()
+                     .build();
+
+    check_preconditions(conds);
+
   } catch (const shcore::Exception &e) {
     // The primary might not be available, but listRouters() must work anyway
     if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
@@ -2973,7 +3034,14 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
 }
 
 void Replica_set_impl::remove_router_metadata(const std::string &router) {
-  check_preconditions_and_primary_availability("removeRouterMetadata");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_replicaset("removeRouterMetadata")
+            .primary_required()
+            .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   Base_cluster_impl::remove_router_metadata(router);
 }
@@ -2981,7 +3049,14 @@ void Replica_set_impl::remove_router_metadata(const std::string &router) {
 void Replica_set_impl::setup_admin_account(
     const std::string &username, const std::string &host,
     const Setup_account_options &options) {
-  check_preconditions_and_primary_availability("setupAdminAccount");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_replicaset("setupAdminAccount")
+            .primary_required()
+            .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   // put a shared lock on the replica set
   auto rs_lock = get_lock_shared();
@@ -2992,7 +3067,14 @@ void Replica_set_impl::setup_admin_account(
 void Replica_set_impl::setup_router_account(
     const std::string &username, const std::string &host,
     const Setup_account_options &options) {
-  check_preconditions_and_primary_availability("setupRouterAccount");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_replicaset("setupRouterAccount")
+            .primary_required()
+            .build();
+
+    check_preconditions_and_primary_availability(conds);
+  }
 
   // put a shared lock on the replica set
   auto rs_lock = get_lock_shared();
@@ -3120,7 +3202,12 @@ shcore::Dictionary_t Replica_set_impl::get_topology_options() {
 
 shcore::Value Replica_set_impl::options() {
   try {
-    check_preconditions("options");
+    auto conds = Command_conditions::Builder::gen_replicaset("options")
+                     .primary_not_required()
+                     .build();
+
+    check_preconditions(conds);
+
   } catch (const shcore::Exception &e) {
     // The primary might not be available, but options() must work anyway
     if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
@@ -3377,9 +3464,9 @@ void Replica_set_impl::_set_option(const std::string &option,
 }
 
 void Replica_set_impl::check_preconditions_and_primary_availability(
-    const std::string &function_name, bool throw_if_primary_unavailable) {
+    const Command_conditions &conds, bool throw_if_primary_unavailable) {
   try {
-    check_preconditions(function_name);
+    check_preconditions(conds);
   } catch (const shcore::Exception &e) {
     if (e.code() != SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) throw;
 

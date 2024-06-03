@@ -383,7 +383,13 @@ TEST_F(Admin_api_preconditions, check_quorum_state_preconditions_errors) {
   std::vector<Invalid_states> validations = {
       {mysqlsh::dba::ReplicationQuorum::State(
            mysqlsh::dba::ReplicationQuorum::States::Normal),
-       {},
+       {},  // no validation is performed
+       0,
+       ""},
+      {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Normal),
+       {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Dead)},
        0,
        "Unable to perform this operation"},
       {mysqlsh::dba::ReplicationQuorum::State(
@@ -393,57 +399,39 @@ TEST_F(Admin_api_preconditions, check_quorum_state_preconditions_errors) {
        0, "This operation requires all the cluster members to be ONLINE"},
       {mysqlsh::dba::ReplicationQuorum::State(
            ReplicationQuorum::States::Quorumless),
-       {},
+       {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Dead)},
        SHERR_DBA_GROUP_HAS_NO_QUORUM,
        "There is no quorum to perform the operation"},
       {mysqlsh::dba::ReplicationQuorum::State(ReplicationQuorum::States::Dead),
-       {},
+       {mysqlsh::dba::ReplicationQuorum::State(
+           mysqlsh::dba::ReplicationQuorum::States::Normal)},
        0,
        "Unable to perform the operation on a dead InnoDB cluster"}};
 
   Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
   for (const auto &validation : validations) {
+    if (validation.error.empty()) {
+      EXPECT_NO_THROW(checker.check_quorum_state_preconditions(
+          validation.instance_state, validation.allowed_states));
+      continue;
+    }
+
     // Validates the errors
     EXPECT_THROW_LIKE(checker.check_quorum_state_preconditions(
                           validation.instance_state, validation.allowed_states),
                       shcore::Exception, validation.error);
 
     // Validates the error codes when needed
-    if (validation.code != 0) {
-      try {
-        checker.check_quorum_state_preconditions(validation.instance_state,
-                                                 validation.allowed_states);
-      } catch (const shcore::Error &error) {
-        SCOPED_TRACE(validation.error);
-        SCOPED_TRACE("Unexpected Error Code");
-        EXPECT_EQ(validation.code, error.code());
-      }
-    }
-  }
-}
+    if (validation.code == 0) continue;
 
-TEST_F(Admin_api_preconditions, check_quorum_state_preconditions) {
-  std::vector<mysqlsh::dba::ReplicationQuorum::State> quorum_states{
-      mysqlsh::dba::ReplicationQuorum::State(
-          mysqlsh::dba::ReplicationQuorum::States::Normal),
-      mysqlsh::dba::ReplicationQuorum::State(
-          ReplicationQuorum::States::Quorumless),
-      mysqlsh::dba::ReplicationQuorum::State(ReplicationQuorum::States::Dead)};
-
-  Precondition_checker checker(m_mock_metadata, m_mock_instance, true);
-  for (const auto &precondition : Precondition_checker::s_preconditions) {
-    for (auto quorum_state : quorum_states) {
-      if (quorum_state.matches_any(precondition.second.cluster_status)) {
-        EXPECT_NO_THROW(checker.check_quorum_state_preconditions(
-            quorum_state, precondition.second.cluster_status));
-        SCOPED_TRACE("Unexpected failure!");
-        SCOPED_TRACE(precondition.first);
-      } else {
-        EXPECT_ANY_THROW(checker.check_quorum_state_preconditions(
-            quorum_state, precondition.second.cluster_status));
-        SCOPED_TRACE("Unexpected success!");
-        SCOPED_TRACE(precondition.first);
-      }
+    try {
+      checker.check_quorum_state_preconditions(validation.instance_state,
+                                               validation.allowed_states);
+    } catch (const shcore::Error &error) {
+      SCOPED_TRACE(validation.error);
+      SCOPED_TRACE("Unexpected Error Code");
+      EXPECT_EQ(validation.code, error.code());
     }
   }
 }
@@ -478,9 +466,15 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions_errors) {
       checker.check_cluster_set_preconditions(validation.allowed_states),
       shcore::Exception, validation.error);
 
+  constexpr Cluster_global_status_mask kClusterGlobalStateAnyOk{
+      Cluster_global_status::OK, Cluster_global_status::OK_NOT_REPLICATING,
+      Cluster_global_status::OK_NOT_CONSISTENT,
+      Cluster_global_status::OK_MISCONFIGURED};
+
+  constexpr auto kClusterGlobalStateAny{Cluster_global_status_mask::any()};
+
   validation = {
-      mysqlsh::dba::Cluster_global_status_mask(
-          mysqlsh::dba::Precondition_checker::kClusterGlobalStateAnyOk),
+      mysqlsh::dba::Cluster_global_status_mask(kClusterGlobalStateAnyOk),
       "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
       "state of " +
           to_string(mysqlsh::dba::Cluster_global_status::NOT_OK) +
@@ -497,147 +491,8 @@ TEST_F(Admin_api_preconditions, check_cluster_set_preconditions_errors) {
       checker.check_cluster_set_preconditions(validation.allowed_states),
       shcore::Exception, validation.error);
 
-  EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
-      mysqlsh::dba::Precondition_checker::kClusterGlobalStateAny));
-}
-
-TEST_F(Admin_api_preconditions, check_cluster_set_preconditions) {
-  std::vector<std::pair<mysqlsh::dba::Cluster_global_status,
-                        mysqlsh::dba::Cluster_availability>>
-      global_cluster_states{
-          {mysqlsh::dba::Cluster_global_status::OK,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::OK_NOT_CONSISTENT,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::OK_NOT_REPLICATING,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::UNKNOWN,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::NOT_OK,
-           mysqlsh::dba::Cluster_availability::ONLINE},
-          {mysqlsh::dba::Cluster_global_status::INVALIDATED,
-           mysqlsh::dba::Cluster_availability::ONLINE}};
-
-  std::set<std::string> cset_exclusive_expected = {
-      "Cluster.fenceWrites",          "Cluster.getClusterSet",
-      "Cluster.unfenceWrites",        "ClusterSet.createReplicaCluster",
-      "ClusterSet.dissolve",          "ClusterSet.execute",
-      "ClusterSet.listRouters",       "ClusterSet.options",
-      "ClusterSet.removeCluster",     "ClusterSet.routingOptions",
-      "ClusterSet.routerOptions",     "ClusterSet.setOption",
-      "ClusterSet.setRoutingOption",  "ClusterSet.setupAdminAccount",
-      "ClusterSet.setupRouterAccount"};
-
-  std::set<std::string> cset_offline_expected = {
-      "ClusterSet.describe",
-      "ClusterSet.forcePrimaryCluster",
-      "ClusterSet.rejoinCluster",
-      "ClusterSet.setPrimaryCluster",
-      "ClusterSet.status",
-      "Dba.checkInstanceConfiguration",
-      "Dba.configureInstance",
-      "Dba.getClusterSet",
-      "Dba.rebootClusterFromCompleteOutage"};
-
-  std::set<std::string> standalone_cluster_exclusive_expected = {
-      "Cluster.createClusterSet", "Cluster.switchToMultiPrimaryMode",
-      "Cluster.switchToSinglePrimaryMode"};
-
-  std::set<std::string> cset_always_allowed_expected = {
-      "Cluster.describe",       "Cluster.forceQuorumUsingPartitionOf",
-      "Cluster.listRouters",    "Cluster.setPrimaryInstance",
-      "Cluster.options",        "Cluster.routingOptions",
-      "Cluster.routerOptions",  "Cluster.status",
-      "Cluster.dissolve",       "Cluster.execute",
-      "Dba.getCluster",         "Dba.upgradeMetadata",
-      "Dba.dropMetadataSchema", "Cluster.fenceAllTraffic"};
-
-  std::set<std::string> cset_sometimes_allowed_expected = {
-      "Cluster.addInstance",
-      "Cluster.addReplicaInstance",
-      "Cluster.rejoinInstance",
-      "Cluster.removeInstance",
-      "Cluster.removeRouterMetadata",
-      "Cluster.rescan",
-      "Cluster.resetRecoveryAccountsPassword",
-      "Cluster.setInstanceOption",
-      "Cluster.setOption",
-      "Cluster.setRoutingOption",
-      "Cluster.setupAdminAccount",
-      "Cluster.setupRouterAccount"};
-
-  std::set<std::string> cset_exclusive;
-  std::set<std::string> cset_offline;
-  std::set<std::string> standalone_cluster_exclusive;
-  std::set<std::string> cset_always_allowed;
-  std::set<std::string> cset_sometimes_allowed;
-
-  testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance,
-                                             true);
-  for (const auto &precondition : Precondition_checker::s_preconditions) {
-    // Functions that are exclusive to ClusterSets
-    bool cluster_set_exclusive =
-        (precondition.second.instance_config_state |
-         TargetType::InnoDBClusterSet) == TargetType::InnoDBClusterSet;
-
-    bool cluster_set_offline =
-        ((precondition.second.instance_config_state &
-          TargetType::InnoDBClusterSet) == TargetType::InnoDBClusterSet) &&
-        (precondition.second.instance_config_state &
-         TargetType::InnoDBClusterSetOffline);
-
-    // Functions that are forbidden in Clusters that belong to ClusterSets
-    bool is_standalone_cluster_exclusive =
-        ((precondition.second.instance_config_state &
-          TargetType::InnoDBCluster) == TargetType::InnoDBCluster) &&
-        !(precondition.second.instance_config_state &
-          TargetType::InnoDBClusterSet);
-
-    // Functions allowed in ClusterSet
-    bool is_allowed_clusterset =
-        precondition.second.instance_config_state & TargetType::InnoDBCluster;
-
-    if (cluster_set_exclusive) {
-      cset_exclusive.insert(precondition.first);
-      // Check also that the cluster_set_state mask is empty
-    } else if (cluster_set_offline) {
-      cset_offline.insert(precondition.first);
-    } else if (precondition.second.cluster_set_state.empty() &&
-               is_standalone_cluster_exclusive) {
-      // Functions that are forbidden to cluster sets
-      EXPECT_ANY_THROW(checker.check_cluster_set_preconditions(
-          precondition.second.cluster_set_state));
-      standalone_cluster_exclusive.insert(precondition.first);
-    } else if (precondition.second.cluster_set_state ==
-               mysqlsh::dba::Cluster_global_status_mask::any()) {
-      cset_always_allowed.insert(precondition.first);
-
-      // The global state is not even verified for these functions
-      // EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
-      //     precondition.second.cluster_set_state));
-    } else if (is_allowed_clusterset) {
-      cset_sometimes_allowed.insert(precondition.first);
-      for (const auto &global_state : global_cluster_states) {
-        EXPECT_CALL(checker, get_cluster_global_state())
-            .WillRepeatedly(Return(global_state));
-        if (precondition.second.cluster_set_state.is_set(global_state.first)) {
-          EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
-              precondition.second.cluster_set_state));
-        } else {
-          EXPECT_ANY_THROW(checker.check_cluster_set_preconditions(
-              precondition.second.cluster_set_state));
-        }
-      }
-    }
-  }
-  EXPECT_EQ(cset_exclusive_expected, cset_exclusive);
-  EXPECT_EQ(cset_offline_expected, cset_offline);
-  EXPECT_EQ(standalone_cluster_exclusive_expected,
-            standalone_cluster_exclusive);
-  EXPECT_EQ(cset_always_allowed_expected, cset_always_allowed);
-  EXPECT_EQ(cset_sometimes_allowed_expected, cset_sometimes_allowed);
+  EXPECT_NO_THROW(
+      checker.check_cluster_set_preconditions(kClusterGlobalStateAny));
 }
 
 TEST_F(Admin_api_preconditions, check_cluster_fenced_preconditions) {

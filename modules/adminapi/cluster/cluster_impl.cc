@@ -1090,7 +1090,20 @@ void Cluster_impl::update_group_members_for_removed_member(
 void Cluster_impl::add_instance(
     const mysqlshdk::db::Connection_options &instance_def,
     const cluster::Add_instance_options &options) {
-  check_preconditions("addInstance");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("addInstance")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
 
@@ -1113,7 +1126,20 @@ void Cluster_impl::add_instance(
 void Cluster_impl::rejoin_instance(
     const Connection_options &instance_def,
     const cluster::Rejoin_instance_options &options) {
-  check_preconditions("rejoinInstance");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("rejoinInstance")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   Scoped_instance target(connect_target_instance(instance_def, true));
 
@@ -1134,7 +1160,20 @@ void Cluster_impl::rejoin_instance(
 void Cluster_impl::remove_instance(
     const Connection_options &instance_def,
     const cluster::Remove_instance_options &options) {
-  check_preconditions("removeInstance");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("removeInstance")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
@@ -1497,7 +1536,16 @@ void Cluster_impl::check_instance_configuration(
 }
 
 shcore::Value Cluster_impl::describe() {
-  check_preconditions("describe");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("describe")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   return cluster_describe();
 }
@@ -1616,13 +1664,31 @@ shcore::Value Cluster_impl::cluster_status(int64_t extended) {
 }
 
 shcore::Value Cluster_impl::status(int64_t extended) {
-  check_preconditions("status");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("status")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   return cluster_status(extended);
 }
 
 shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
-  check_preconditions("listRouters");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("listRouters")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   if (is_cluster_set_member()) {
     current_console()->print_error(
@@ -1645,7 +1711,18 @@ shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
 
 void Cluster_impl::reset_recovery_password(std::optional<bool> force,
                                            const bool interactive) {
-  check_preconditions("resetRecoveryAccountsPassword");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster(
+                     "resetRecoveryAccountsPassword")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .cluster_global_status_any_ok()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
@@ -1687,7 +1764,21 @@ void Cluster_impl::enable_super_read_only_globally() const {
 }
 
 void Cluster_impl::fence_all_traffic() {
-  check_preconditions("fenceAllTraffic");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("fenceAllTraffic")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .allowed_on_fence()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   auto console = mysqlsh::current_console();
   console->print_info("The Cluster '" + get_name() +
@@ -1765,7 +1856,19 @@ void Cluster_impl::fence_all_traffic() {
 }
 
 void Cluster_impl::fence_writes() {
-  check_preconditions("fenceWrites");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("fenceWrites")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   auto console = mysqlsh::current_console();
 
@@ -1804,7 +1907,20 @@ void Cluster_impl::fence_writes() {
 }
 
 void Cluster_impl::unfence_writes() {
-  check_preconditions("unfenceWrites");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("unfenceWrites")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .allowed_on_fence()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   auto console = mysqlsh::current_console();
 
@@ -1938,7 +2054,21 @@ shcore::Value Cluster_impl::create_cluster_set(
     const std::string &domain_name,
     const clusterset::Create_cluster_set_options &options) {
   try {
-    check_preconditions("createClusterSet");
+    // TODO(anyone): All of the preconditions quorum related checks are done
+    // using ReplicationQuorum::State which should eventually be replaced by
+    // Cluster_status, i.e. to satisfy WL12805-FR2.1
+    auto conds =
+        Command_conditions::Builder::gen_cluster("createClusterSet")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBCluster)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
+            .primary_required()
+            .build();
+
+    check_preconditions(conds);
+
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
       // NOTE: This overrides the original quorum error, it was implemented this
@@ -1960,7 +2090,19 @@ shcore::Value Cluster_impl::create_cluster_set(
 }
 
 std::shared_ptr<ClusterSet> Cluster_impl::get_cluster_set() {
-  check_preconditions("getClusterSet");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("getClusterSet")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBClusterSet)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
+            .primary_not_required()
+            .allowed_on_fence()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   auto cs = get_cluster_set_object();
 
@@ -2051,7 +2193,7 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set_object(
                                  nullptr)) {
     throw shcore::Exception("No metadata found for the ClusterSet that " +
                                 get_cluster_server()->descr() + " belongs to.",
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   auto cs = std::make_shared<Cluster_set_impl>(cset_md, get_cluster_server(),
@@ -2153,7 +2295,17 @@ void Cluster_impl::ensure_compatible_clone_donor(
 void Cluster_impl::setup_admin_account(const std::string &username,
                                        const std::string &host,
                                        const Setup_account_options &options) {
-  check_preconditions("setupAdminAccount");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("setupAdminAccount")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .cluster_global_status(Cluster_global_status::OK)
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // put a shared lock on the cluster
   auto c_lock = get_lock_shared();
@@ -2164,7 +2316,17 @@ void Cluster_impl::setup_admin_account(const std::string &username,
 void Cluster_impl::setup_router_account(const std::string &username,
                                         const std::string &host,
                                         const Setup_account_options &options) {
-  check_preconditions("setupRouterAccount");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("setupRouterAccount")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .cluster_global_status(Cluster_global_status::OK)
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // put a shared lock on the cluster
   auto c_lock = get_lock_shared();
@@ -2173,7 +2335,16 @@ void Cluster_impl::setup_router_account(const std::string &username,
 }
 
 shcore::Value Cluster_impl::options(const bool all) {
-  check_preconditions("options");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("options")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // Create the Cluster_options command and execute it.
   cluster::Options op_option(*this, all);
@@ -2192,7 +2363,18 @@ void Cluster_impl::dissolve(std::optional<bool> force, const bool interactive) {
   // of the group and we end up with a hang.
   // This check is done at check_preconditions()
   try {
-    check_preconditions("dissolve");
+    auto conds =
+        Command_conditions::Builder::gen_cluster("dissolve")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .allowed_on_fence()
+            .build();
+
+    check_preconditions(conds);
   } catch (const shcore::Exception &e) {
     // special case for dissolving a cluster that was removed from a clusterset
     // but its local metadata couldn't be updated
@@ -2227,7 +2409,19 @@ void Cluster_impl::force_quorum_using_partition_of(
   Scoped_instance target_instance{
       connect_target_instance(instance_def, true, true)};
 
-  check_preconditions("forceQuorumUsingPartitionOf");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("forceQuorumUsingPartitionOf")
+            .target_instance(TargetType::GroupReplication,
+                             TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_not_required()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
@@ -2489,7 +2683,20 @@ void Cluster_impl::force_quorum_using_partition_of(
 }
 
 void Cluster_impl::rescan(const cluster::Rescan_options &options) {
-  check_preconditions("rescan");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("rescan")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
@@ -2545,7 +2752,18 @@ const std::string Cluster_impl::get_view_change_uuid() const {
 
 void Cluster_impl::switch_to_single_primary_mode(
     const Connection_options &instance_def) {
-  check_preconditions("switchToSinglePrimaryMode");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("switchToSinglePrimaryMode")
+            .target_instance(TargetType::InnoDBCluster)
+            .quorum_state(ReplicationQuorum::States::All_online)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // Switch to single-primary mode
 
@@ -2570,7 +2788,18 @@ void Cluster_impl::switch_to_single_primary_mode(
 }
 
 void Cluster_impl::switch_to_multi_primary_mode() {
-  check_preconditions("switchToMultiPrimaryMode");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("switchToMultiPrimaryMode")
+            .target_instance(TargetType::InnoDBCluster)
+            .quorum_state(ReplicationQuorum::States::All_online)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0)
+            .primary_required()
+            .build();
+
+    check_preconditions(conds);
+  }
 
   // put an exclusive lock on the cluster
   auto c_lock = get_lock_exclusive();
@@ -2593,7 +2822,20 @@ void Cluster_impl::switch_to_multi_primary_mode() {
 void Cluster_impl::set_primary_instance(
     const Connection_options &instance_def,
     const cluster::Set_primary_instance_options &options) {
-  check_preconditions("setPrimaryInstance");
+  {
+    // In case of a Cluster, because we have to have all members online, the
+    // primary is automatically also available. But in case of a ClusterSet,
+    // this refers to the set's primary, which isn't required
+
+    auto conds = Command_conditions::Builder::gen_cluster("setPrimaryInstance")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .quorum_state(ReplicationQuorum::States::All_online)
+                     .primary_not_required()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   // Set primary instance
 
@@ -2618,7 +2860,16 @@ void Cluster_impl::set_primary_instance(
 shcore::Value Cluster_impl::execute(
     const std::string &cmd, const shcore::Value &instances,
     const shcore::Option_pack_ref<Execute_options> &options) {
-  check_preconditions("execute");
+  {
+    auto conds = Command_conditions::Builder::gen_cluster("execute")
+                     .target_instance(TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet)
+                     .primary_not_required()
+                     .allowed_on_fence()
+                     .build();
+
+    check_preconditions(conds);
+  }
 
   auto c_lock = get_lock_shared();
 
@@ -3300,7 +3551,7 @@ Cluster_metadata Cluster_impl::get_metadata() const {
   if (!get_metadata_storage()->get_cluster(get_id(), &cmd)) {
     throw shcore::Exception(
         "Cluster metadata could not be loaded for " + get_name(),
-        SHERR_DBA_METADATA_MISSING);
+        SHERR_DBA_MISSING_FROM_METADATA);
   }
   return cmd;
 }
@@ -4014,8 +4265,21 @@ void Cluster_impl::set_routing_option(const std::string &router,
 void Cluster_impl::add_replica_instance(
     const Connection_options &instance_def,
     const cluster::Add_replica_instance_options &options) {
-  // Preconditions check
-  check_preconditions("addReplicaInstance");
+  {
+    auto conds =
+        Command_conditions::Builder::gen_cluster("addReplicaInstance")
+            .min_mysql_version(Precondition_checker::k_min_rr_version)
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::Normal)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0)
+            .primary_required()
+            .cluster_global_status(Cluster_global_status::OK)
+            .build();
+
+    check_preconditions(conds);
+  }
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
 

@@ -1,6 +1,3 @@
-//@ Get Cluster from master
-|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
-
 //@<OUT> Status from master
 {
     "clusterName": "sample",
@@ -542,6 +539,3 @@ ${*}
         }
     }
 }
-
-//@ Get Cluster from slave
-|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|

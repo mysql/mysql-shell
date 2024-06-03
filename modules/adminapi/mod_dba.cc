@@ -1106,7 +1106,18 @@ std::shared_ptr<Cluster> Dba::get_cluster(
         current_shell_options()->get().wizards,
         Instance_pool::Auth_options{target_member->get_connection_options()});
 
-    check_function_preconditions("Dba.getCluster", metadata, target_member);
+    {
+      auto conds = Command_conditions::Builder::gen_dba("getCluster")
+                       .target_instance(TargetType::InnoDBCluster,
+                                        TargetType::InnoDBClusterSet)
+                       .compatibility_check(
+                           metadata::Compatibility::COMPATIBLE_WARN_UPGRADE)
+                       .primary_not_required()
+                       .allowed_on_fence()
+                       .build();
+
+      check_function_preconditions(conds, metadata, target_member);
+    }
 
     bool is_read_replica =
         metadata->get_instance_by_uuid(target_member->get_uuid())
@@ -1229,7 +1240,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       throw e;
     }
 
-    if (e.code() == SHERR_DBA_METADATA_MISSING && target_member) {
+    if (e.code() == SHERR_DBA_MISSING_FROM_METADATA && target_member) {
       // The Metadata does not contain this Cluster, however, the preconditions
       // checker verified the existence of the Cluster in the Metadata schema of
       // the current Shell session meaning:
@@ -1283,7 +1294,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     throw shcore::Exception("No cluster metadata found for " +
                                 group_server->get_uuid() + " of instance " +
                                 group_server->descr(),
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   if (!name) {
@@ -1294,7 +1305,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       throw shcore::Exception(
           shcore::str_format("The cluster with the name '%s' does not exist.",
                              name),
-          SHERR_DBA_METADATA_MISSING);
+          SHERR_DBA_MISSING_FROM_METADATA);
     }
   }
 
@@ -1496,8 +1507,16 @@ shcore::Value Dba::create_cluster(
   // Check preconditions.
   Cluster_check_info state;
   try {
-    state = check_function_preconditions("Dba.createCluster", metadata,
-                                         group_server);
+    auto conds =
+        Command_conditions::Builder::gen_dba("createCluster")
+            .target_instance(
+                TargetType::Standalone, TargetType::StandaloneWithMetadata,
+                TargetType::GroupReplication, TargetType::AsyncReplication)
+            .compatibility_check(metadata::Compatibility::IGNORE_NON_EXISTING)
+            .primary_not_required()
+            .build();
+
+    state = check_function_preconditions(conds, metadata, group_server);
 
     ipool->set_metadata(metadata);
   } catch (const shcore::Exception &e) {
@@ -1615,7 +1634,21 @@ void Dba::drop_metadata_schema(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options(instance->get_connection_options()));
 
-  auto primary = check_preconditions("Dba.dropMetadataSchema", instance);
+  std::shared_ptr<Instance> primary;
+  {
+    auto conds = Command_conditions::Builder::gen_dba("dropMetadataSchema")
+                     .target_instance(TargetType::StandaloneWithMetadata,
+                                      TargetType::StandaloneInMetadata,
+                                      TargetType::InnoDBCluster,
+                                      TargetType::InnoDBClusterSet,
+                                      TargetType::AsyncReplicaSet)
+                     .quorum_state(ReplicationQuorum::States::Normal)
+                     .primary_required()
+                     .allowed_on_fence()
+                     .build();
+
+    primary = check_preconditions(conds, instance);
+  }
 
   if (primary) {
     metadata = std::make_shared<MetadataStorage>(primary);
@@ -1746,7 +1779,22 @@ shcore::Value Dba::check_instance_configuration(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options(instance->get_connection_options()));
 
-  check_preconditions("Dba.checkInstanceConfiguration", instance);
+  {
+    auto conds =
+        Command_conditions::Builder::gen_dba("checkInstanceConfiguration")
+            .target_instance(
+                TargetType::Standalone, TargetType::StandaloneWithMetadata,
+                TargetType::StandaloneInMetadata, TargetType::InnoDBCluster,
+                TargetType::InnoDBClusterSet,
+                TargetType::InnoDBClusterSetOffline,
+                TargetType::GroupReplication, TargetType::AsyncReplication,
+                TargetType::Unknown)
+            .compatibility_check(metadata::Compatibility::IGNORE_NON_EXISTING)
+            .primary_not_required()
+            .build();
+
+    check_preconditions(conds, instance);
+  }
 
   ipool->set_metadata(metadata);
 
@@ -1799,7 +1847,18 @@ std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options(target_server->get_connection_options()));
 
-  check_preconditions("Dba.getReplicaSet", target_server);
+  {
+    auto conds =
+        Command_conditions::Builder::gen_dba("getReplicaSet")
+            .target_instance(TargetType::AsyncReplicaSet)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0,
+                metadata::Compatibility::COMPATIBLE_WARN_UPGRADE)
+            .primary_not_required()
+            .build();
+
+    check_preconditions(conds, target_server);
+  }
 
   ipool->set_metadata(metadata);
 
@@ -1820,7 +1879,7 @@ std::shared_ptr<Replica_set_impl> Dba::get_replica_set(
                                              &target_server_cm)) {
     throw shcore::Exception("No metadata found for " + target_server->descr() +
                                 " (" + target_server->get_uuid() + ")",
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   return std::make_shared<Replica_set_impl>(target_server_cm, target_server,
@@ -1955,8 +2014,19 @@ shcore::Value Dba::create_replica_set(
     if (target_server)
       metadata = std::make_shared<MetadataStorage>(target_server);
 
-    check_function_preconditions("Dba.createReplicaSet", metadata,
-                                 target_server);
+    {
+      auto conds =
+          Command_conditions::Builder::gen_dba("createReplicaSet")
+              .target_instance(TargetType::Standalone,
+                               TargetType::StandaloneWithMetadata,
+                               TargetType::AsyncReplication)
+              .compatibility_check(metadata::Compatibility::IGNORE_NON_EXISTING)
+              .primary_not_required()
+              .build();
+
+      check_function_preconditions(conds, metadata, target_server);
+    }
+
   } catch (const shcore::Exception &e) {
     switch (e.code()) {
       case SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER:
@@ -2043,7 +2113,22 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
         Instance::connect(target_server->get_connection_options()));
   }
 
-  check_function_preconditions("Dba.getClusterSet", metadata, target_server);
+  {
+    auto conds =
+        Command_conditions::Builder::gen_dba("getClusterSet")
+            .min_mysql_version(Precondition_checker::k_min_cs_version)
+            .target_instance(TargetType::InnoDBClusterSet,
+                             TargetType::InnoDBClusterSetOffline,
+                             TargetType::InnoDBCluster)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0,
+                metadata::Compatibility::COMPATIBLE_WARN_UPGRADE)
+            .primary_not_required()
+            .allowed_on_fence()
+            .build();
+
+    check_function_preconditions(conds, metadata, target_server);
+  }
 
   // Init the connection pool
   Scoped_instance_pool ipool(
@@ -2056,7 +2141,7 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
                                              &cluster_md)) {
     throw shcore::Exception("No metadata found for " + target_server->descr() +
                                 " (" + target_server->get_uuid() + ")",
-                            SHERR_DBA_METADATA_MISSING);
+                            SHERR_DBA_MISSING_FROM_METADATA);
   }
 
   auto cluster = get_cluster(cluster_md.cluster_name.c_str(), metadata,
@@ -2522,11 +2607,32 @@ void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
   // Check the function preconditions
   Cluster_check_info state;
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
-    state = check_function_preconditions("Dba.configureReplicaSetInstance",
-                                         metadata, target_instance);
+    auto conds =
+        Command_conditions::Builder::gen_dba("configureReplicaSetInstance")
+            .target_instance(TargetType::Standalone,
+                             TargetType::StandaloneWithMetadata,
+                             TargetType::StandaloneInMetadata,
+                             TargetType::AsyncReplicaSet, TargetType::Unknown)
+            .compatibility_check(
+                metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0,
+                metadata::Compatibility::IGNORE_NON_EXISTING)
+            .primary_not_required()
+            .build();
+
+    state = check_function_preconditions(conds, metadata, target_instance);
   } else {
-    state = check_function_preconditions("Dba.configureInstance", metadata,
-                                         target_instance);
+    auto conds =
+        Command_conditions::Builder::gen_dba("configureInstance")
+            .target_instance(
+                TargetType::Standalone, TargetType::StandaloneWithMetadata,
+                TargetType::StandaloneInMetadata, TargetType::GroupReplication,
+                TargetType::InnoDBCluster, TargetType::InnoDBClusterSet,
+                TargetType::InnoDBClusterSetOffline)
+            .compatibility_check(metadata::Compatibility::IGNORE_NON_EXISTING)
+            .primary_not_required()
+            .build();
+
+    state = check_function_preconditions(conds, metadata, target_instance);
   }
 
   ipool->set_metadata(std::exchange(metadata, nullptr));
@@ -2804,8 +2910,20 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // thus this instance will be used as the primary
   connect_to_target_group({}, &metadata, &target_instance, false);
 
-  check_function_preconditions("Dba.rebootClusterFromCompleteOutage", metadata,
-                               target_instance);
+  {
+    auto conds =
+        Command_conditions::Builder::gen_dba("rebootClusterFromCompleteOutage")
+            .target_instance(TargetType::StandaloneInMetadata,
+                             TargetType::InnoDBCluster,
+                             TargetType::InnoDBClusterSet,
+                             TargetType::InnoDBClusterSetOffline)
+            .compatibility_check(
+                metadata::Compatibility::COMPATIBLE_WARN_UPGRADE)
+            .primary_not_required()
+            .build();
+
+    check_function_preconditions(conds, metadata, target_instance);
+  }
 
   // Validate and handle command options
   {
@@ -2940,7 +3058,20 @@ void Dba::upgrade_metadata(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options{instance->get_connection_options()});
 
-  auto primary = check_preconditions("Dba.upgradeMetadata", instance);
+  std::shared_ptr<Instance> primary;
+  {
+    auto conds =
+        Command_conditions::Builder::gen_dba("upgradeMetadata")
+            .target_instance(TargetType::InnoDBCluster,
+                             TargetType::AsyncReplicaSet,
+                             TargetType::InnoDBClusterSet)
+            .quorum_state(ReplicationQuorum::States::All_online)
+            .compatibility_check(metadata::Compatibility::IGNORE_FAILED_UPGRADE)
+            .primary_not_required()
+            .build();
+
+    primary = check_preconditions(conds, instance);
+  }
 
   if (primary) {
     metadata = std::make_shared<MetadataStorage>(primary);
@@ -2987,9 +3118,8 @@ void Dba::upgrade_metadata(
 }
 
 std::shared_ptr<Instance> Dba::check_preconditions(
-    const std::string &function_name,
-    const std::shared_ptr<Instance> &group_server,
-    const Function_availability *custom_func_avail) {
+    const Command_conditions &conds,
+    const std::shared_ptr<Instance> &group_server) {
   bool primary_available = true;
   std::shared_ptr<Instance> primary;
 
@@ -3029,8 +3159,8 @@ std::shared_ptr<Instance> Dba::check_preconditions(
     }
   }
 
-  check_function_preconditions(function_name, metadata, group_server,
-                               primary_available, custom_func_avail);
+  check_function_preconditions(conds, metadata, group_server,
+                               primary_available);
 
   return primary;
 }

@@ -127,19 +127,16 @@ expect_rs_variable();
 // WL13236-TSFR1_3: Start the Shell with a valid connection data to an instance that is not member of a ReplicaSet and use the --replicaset option. Validate that the `rs` object is not set and an exception is thrown because the target instance is not part of a ReplicaSet.
 
 //@<> WL13236-TSFR1_3
-function expect_error_standalone_instance() {
-  EXPECT_STDOUT_CONTAINS_MULTILINE(`WARNING: Option --replicaset requires a session to a member of an InnoDB ReplicaSet.
-ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance`);
-}
-
 mysqlsh([__hostname_ip_uri3, '--replicaset', '--execute', 'println(rs.status())']);
 
-expect_error_standalone_instance();
+EXPECT_OUTPUT_CONTAINS("ERROR: Command not available on an unmanaged standalone instance.");
+EXPECT_OUTPUT_CONTAINS("ERROR: MYSQLSH 51113: Metadata Schema not found.");
 
 //@<> WL13236-TSFR1_3 - X
 mysqlsh([__hostname_ip_x_uri3, '--replicaset', '--execute', 'println(rs.status())']);
 
-expect_error_standalone_instance();
+EXPECT_OUTPUT_CONTAINS("ERROR: Command not available on an unmanaged standalone instance.");
+EXPECT_OUTPUT_CONTAINS("ERROR: MYSQLSH 51113: Metadata Schema not found.");
 
 ////////////////////////////////////////////////////////////////////////////////
 // WL13236-TSFR1_4: Start the Shell with no connection data and use the --replicaset option. Validate that an exception is thrown because no connection data is provided.

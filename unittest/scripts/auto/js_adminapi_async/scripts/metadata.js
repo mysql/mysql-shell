@@ -1,6 +1,6 @@
 //@ {VER(>=8.0.11)}
 
-//@ INCLUDE async_utils.inc
+//@<> INCLUDE async_utils.inc
 
 //@<> Setup
 
@@ -14,23 +14,26 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: uuid2, serve
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);
 
-
-
 //=========
 // Metadata schema already exists, but it's an old version
 
-//@ create replicaset (should fail)
+//@<> create replicaset (should fail)
 shell.connect(__sandbox_uri1);
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata");
 testutil.importData(__sandbox_uri1, __dba_data_path + "/md-1.0.1-cluster_1member.sql");
 
-dba.createReplicaSet("myrs");
+EXPECT_THROWS(function(){
+    dba.createReplicaSet("myrs");
+}, "Metadata version is not compatible");
+EXPECT_OUTPUT_CONTAINS(`Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '${testutil.getCurrentMetadataVersion()}'. Upgrade the Metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`);
+
+// Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 // ========
 // Should NOT be possible to store metadata from different clusters and replicasets
 // in the same schema
 
-//@ Merge schema from different sources (cluster then rs)
+//@<> Merge schema from different sources (cluster then rs)
 reset_instance(s1);
 reset_instance(s2);
 shell.connect(__sandbox_uri1);

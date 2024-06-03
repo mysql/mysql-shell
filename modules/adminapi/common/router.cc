@@ -425,7 +425,7 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
                   value.get_string()));
           ok = true;
         } catch (const shcore::Exception &e) {
-          if (e.code() != SHERR_DBA_METADATA_MISSING) throw;
+          if (e.code() != SHERR_DBA_MISSING_FROM_METADATA) throw;
         }
       }
     }

@@ -23,8 +23,8 @@ metadata_201 = false
 //@<> INCLUDE BATCH _prepare_metadata_2_0_0_cluster.js
 
 //@<> Test initialization Batch Mode
-var cluster = dba.getCluster();
-EXPECT_OUTPUT_CONTAINS("It is recommended to upgrade the metadata.");
+EXPECT_NO_THROWS(function(){ var cluster = dba.getCluster(); });
+EXPECT_OUTPUT_CONTAINS(`WARNING: The installed metadata version '2.0.0' is lower than the version supported by Shell, version '${testutil.getCurrentMetadataVersion()}'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.`);
 
 cluster.dissolve({force: true});
 
@@ -56,8 +56,8 @@ secondary_port = __mysql_sandbox_port3
 //@<> INCLUDE INTERACTIVE _prepare_metadata_2_0_0_cluster.js
 
 //@<> Test initialization Interactive Mode
-var cluster = dba.getCluster();
-EXPECT_OUTPUT_CONTAINS("It is recommended to upgrade the metadata.");
+EXPECT_NO_THROWS(function(){ var cluster = dba.getCluster(); });
+EXPECT_OUTPUT_CONTAINS(`WARNING: The installed metadata version '2.0.0' is lower than the version supported by Shell, version '${testutil.getCurrentMetadataVersion()}'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.`);
 
 //@<> INCLUDE INTERACTIVE _simple_cluster_tests.js
 

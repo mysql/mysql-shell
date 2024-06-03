@@ -60,9 +60,12 @@ var state = testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE,(MISSIN
 //@ Testing upgrade metadata with no quorum
 dba.upgradeMetadata()
 
-//@ Getting cluster with no quorum
+//@<> Getting cluster with no quorum
 var cluster = dba.getCluster()
-cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
+EXPECT_THROWS(function(){
+    cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
+}, "Metadata version is not compatible");
+EXPECT_OUTPUT_CONTAINS("ERROR: Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.0.0'. Upgrade the Metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.");
 
 //@ Getting cluster with quorum
 var cluster = dba.getCluster()
@@ -70,6 +73,7 @@ var cluster = dba.getCluster()
 //@ Metadata continues failing...
 dba.upgradeMetadata()
 
+//@<> Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

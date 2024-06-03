@@ -19,19 +19,28 @@ dba.rebootClusterFromCompleteOutage();
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 session.runSql("RESET " + get_reset_binary_logs_keyword());
 
-//@# Dba_preconditions_standalone, get_cluster_fails
-dba.getCluster("");
+//@<> Dba_preconditions_standalone, get_cluster_fails
+EXPECT_THROWS(function() {
+    dba.getCluster("");
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@# Dba_preconditions_standalone, create_cluster_succeeds
 // Create Cluster is allowed on standalone instance, the precondition
 // validation passes
 dba.createCluster("1nvalidName");
 
-//@# Dba_preconditions_standalone, drop_metadata_schema_fails
-dba.dropMetadataSchema({});
+//@<> Dba_preconditions_standalone, drop_metadata_schema_fails
+EXPECT_THROWS(function() {
+    dba.dropMetadataSchema({});
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
-//@# Dba_preconditions_standalone, reboot_cluster_from_complete_outage_succeeds
-dba.rebootClusterFromCompleteOutage("");
+//@<> Dba_preconditions_standalone, reboot_cluster_from_complete_outage_succeeds
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("");
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@<> Unmanaged GR
 var cluster = dba.createCluster("dev");
@@ -40,8 +49,11 @@ EXPECT_NO_THROWS(function(){ dba.dropMetadataSchema({force:true}); });
 //@# Dba_preconditions_standalone, configureInstance allowed
 EXPECT_NO_THROWS(function(){ dba.configureInstance(__sandbox_uri1) });
 
-//@# Dba_preconditions_unmanaged_gr, get_cluster_fails
-dba.getCluster("");
+//@<> Dba_preconditions_unmanaged_gr, get_cluster_fails
+EXPECT_THROWS(function() {
+    dba.getCluster("");
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_fails
 // Create Cluster is allowed on unmanaged gr instance
@@ -51,11 +63,17 @@ dba.createCluster("1nvalidName");
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt_needed
 dba.createCluster("bla");
 
-//@# Dba_preconditions_unmanaged_gr, drop_metadata_schema_fails
-dba.dropMetadataSchema({});
+//@<> Dba_preconditions_unmanaged_gr, drop_metadata_schema_fails
+EXPECT_THROWS(function() {
+    dba.dropMetadataSchema({});
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
-//@# Dba_preconditions_unmanaged_gr, reboot_cluster_from_complete_outage
-dba.rebootClusterFromCompleteOutage("");
+//@<> Dba_preconditions_unmanaged_gr, reboot_cluster_from_complete_outage
+EXPECT_THROWS(function() {
+    dba.rebootClusterFromCompleteOutage("");
+}, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 //@#<> Dba_preconditions_unmanaged_gr, create_cluster_adopt
 EXPECT_NO_THROWS(function(){ dba.createCluster("bla", {adoptFromGR:true}); });

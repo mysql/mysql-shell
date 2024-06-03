@@ -25,139 +25,95 @@
 
 #include "modules/adminapi/common/preconditions.h"
 
-#include <map>
-
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysqlshdk/libs/utils/debug.h"
 
 namespace mysqlsh {
 namespace dba {
 
 namespace {
-// Holds a relation of messages for a given metadata state.
-using MDS = metadata::State;
+void throw_incompatible_md_version(const mysqlshdk::utils::Version &installed,
+                                   const mysqlshdk::utils::Version &required) {
+  auto msg = shcore::str_format(
+      "Incompatible Metadata version. This operation is disallowed because the "
+      "installed Metadata version '%s' is lower than the required version, "
+      "'%s'. Upgrade the Metadata to remove this restriction. See \\? "
+      "dba.<<<upgradeMetadata>>> for additional details.",
+      installed.get_base().c_str(), required.get_base().c_str());
+  msg = shcore::str_subvars(
+      msg,
+      [style = shcore::current_naming_style()](std::string_view var) {
+        return shcore::get_member_name(var, style);
+      },
+      "<<<", ">>>");
 
-std::string lookup_message(const std::string &function_name, MDS state) {
-  if (function_name == "*") {
-    switch (state) {
-      case MDS::MAJOR_HIGHER:
-        return "The installed metadata version %s is higher than the supported "
-               "by the Shell which is version %s. It is recommended to use a "
-               "Shell version that supports this metadata.";
-      case MDS::MAJOR_LOWER:
-      case MDS::MINOR_LOWER:
-      case MDS::PATCH_LOWER:
-        return "The installed metadata version %s is lower than the version "
-               "required by Shell which is version %s. It is recommended to "
-               "upgrade the metadata. See \\? dba.<<<upgradeMetadata>>> for "
-               "additional details.";
-      case MDS::FAILED_UPGRADE:
-        return metadata::kFailedUpgradeError;
-      case MDS::UPGRADING:
-        return "The metadata is being upgraded. Wait until the upgrade process "
-               "completes and then retry the operation.";
-      default:
-        break;
-    }
-  } else if (function_name == "Dba.createCluster" ||
-             function_name == "Dba.createReplicaSet") {
-    switch (state) {
-      case MDS::MAJOR_HIGHER:
-        return "Operation not allowed. The installed metadata version %s is "
-               "higher than the supported by the Shell which is version %s. "
-               "Please use the latest version of the Shell.";
-      case MDS::MAJOR_LOWER:
-        return "Operation not allowed. The installed metadata version %s is "
-               "lower than the version required by Shell which is version %s. "
-               "Upgrade the metadata to execute this operation. See \\? "
-               "dba.<<<upgradeMetadata>>> for additional details.";
-      default:
-        break;
-    }
-  } else if (function_name == "Dba.getCluster" ||
-             function_name == "Dba.getReplicaSet") {
-    Cluster_type type = function_name == "Dba.getCluster"
-                            ? Cluster_type::GROUP_REPLICATION
-                            : Cluster_type::ASYNC_REPLICATION;
+  mysqlsh::current_console()->print_error(msg);
 
-    switch (state) {
-      case MDS::MAJOR_HIGHER:
-        return "No " + thing(type) +
-               " change operations can be executed because the installed "
-               "metadata version %s is higher than the supported by the Shell "
-               "which is version %s. Please use the latest version of the "
-               "Shell.";
-      case MDS::MAJOR_LOWER:
-        return "No " + thing(type) +
-               " change operations can be executed because the installed "
-               "metadata version %s is lower than the version required by "
-               "Shell which is version %s. Upgrade the metadata to remove this "
-               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
-               "details.";
-      default:
-        break;
-    }
-  } else if (function_name == "Dba.rebootClusterFromCompleteOutage") {
-    switch (state) {
-      case MDS::MAJOR_HIGHER:
-        return "Operation not allowed. No " +
-               thing(Cluster_type::GROUP_REPLICATION) +
-               " change operations can be executed because the installed "
-               "metadata version %s is higher than the supported by the Shell "
-               "which is version %s. Please use the latest version of the "
-               "Shell.";
-      case MDS::MAJOR_LOWER:
-        return "The " + thing(Cluster_type::GROUP_REPLICATION) +
-               " will be rebooted as configured on the metadata, however, no "
-               "change operations can be executed because the installed "
-               "metadata version %s is lower than the version required by "
-               "Shell which is version %s. Upgrade the metadata to remove this "
-               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
-               "details.";
-      default:
-        break;
-    }
-  } else if (function_name == "Cluster" || function_name == "ReplicaSet") {
-    Cluster_type type = function_name == "Cluster"
-                            ? Cluster_type::GROUP_REPLICATION
-                            : Cluster_type::ASYNC_REPLICATION;
+  throw shcore::Exception("Metadata version is not compatible",
+                          SHERR_DBA_METADATA_UNSUPPORTED);
+}
 
-    switch (state) {
-      case MDS::MAJOR_HIGHER:
-        return "Operation not allowed. No " + thing(type) +
-               " change operations can be executed because the installed "
-               "metadata version %s is higher than the supported by the Shell "
-               "which is version %s. Please use the latest version of the "
-               "Shell.";
-      case MDS::MAJOR_LOWER:
-        return "Operation not allowed. No " + thing(type) +
-               " change operations can be executed because the installed "
-               "metadata version %s is lower than the version required by "
-               "Shell "
-               "which is version %s. Upgrade the metadata to remove this "
-               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
-               "details.";
-      default:
-        break;
+void verify_compatibility(metadata::Compatibility compatibility,
+                          const MetadataStorage &md) {
+  switch (compatibility) {
+    case metadata::Compatibility::COMPATIBLE:
+      return;
+
+    case metadata::Compatibility::COMPATIBLE_WARN_UPGRADE: {
+      auto version_installed = md.installed_version().get_base();
+      auto version_current =
+          mysqlsh::dba::metadata::current_version().get_base();
+
+      auto msg = shcore::str_format(
+          "The installed metadata version '%s' is lower than the version "
+          "supported by Shell, version '%s'. It is recommended to upgrade the "
+          "Metadata. See \\? dba.<<<upgradeMetadata>>> for additional details.",
+          version_installed.c_str(), version_current.c_str());
+      msg = shcore::str_subvars(
+          msg,
+          [style = shcore::current_naming_style()](std::string_view var) {
+            return shcore::get_member_name(var, style);
+          },
+          "<<<", ">>>");
+
+      mysqlsh::current_console()->print_warning(msg);
+      return;
     }
+
+    case metadata::Compatibility::INCOMPATIBLE_UPGRADING:
+      mysqlsh::current_console()->print_error(
+          "The metadata is being upgraded. Wait until the upgrade process "
+          "completes and then retry the operation.");
+
+      throw shcore::Exception("Metadata is being upgraded",
+                              SHERR_DBA_METADATA_INVALID);
+
+    case metadata::Compatibility::INCOMPATIBLE_FAILED_UPGRADE: {
+      auto msg = shcore::str_subvars(
+          metadata::kFailedUpgradeError,
+          [style = shcore::current_naming_style()](std::string_view var) {
+            return shcore::get_member_name(var, style);
+          },
+          "<<<", ">>>");
+
+      mysqlsh::current_console()->print_error(msg);
+
+      throw shcore::Exception("Metadata upgrade failed",
+                              SHERR_DBA_METADATA_INVALID);
+    }
+
+    default:
+      break;
   }
 
-  // If the message for the specific function is not found, then it tries
-  // getting the message for the class. If the message for the class is not
-  // found, then it tries getting the generic message.
-  if (function_name != "*") {
-    auto tokens = shcore::str_split(function_name, ".");
-    if (tokens.size() == 2) {
-      return lookup_message(tokens[0], state);
-    } else {
-      return lookup_message("*", state);
-    }
-  }
-  return "";
+  throw std::invalid_argument(
+      shcore::str_format("Invalid value for MD compatibility: %d",
+                         static_cast<int>(compatibility)));
 }
 
 void check_clusters_availability(Cluster_availability availability,
@@ -191,13 +147,7 @@ void check_clusters_availability(Cluster_availability availability,
   }
 }
 
-constexpr bool k_primary_not_required = false;
-constexpr bool k_primary_required = true;
-constexpr bool k_allowed_on_fence = true;
 }  // namespace
-
-// The replicaset functions do not use quorum
-ReplicationQuorum::State na_quorum;
 
 // The AdminAPI maximum supported MySQL Server version
 const mysqlshdk::utils::Version
@@ -213,604 +163,125 @@ const mysqlshdk::utils::Version
 const mysqlshdk::utils::Version
     Precondition_checker::k_deprecated_adminapi_server_version{};
 
-const mysqlshdk::utils::Version Precondition_checker::k_min_gr_version(8, 0);
-const mysqlshdk::utils::Version Precondition_checker::k_min_ar_version(8, 0);
 const mysqlshdk::utils::Version Precondition_checker::k_min_cs_version(8, 0,
                                                                        27);
 const mysqlshdk::utils::Version Precondition_checker::k_min_rr_version(8, 0,
                                                                        23);
 
-const std::map<std::string, Function_availability>
-    Precondition_checker::s_preconditions = {
-        // The Dba functions
-        {"Dba.createCluster",
-         {k_min_gr_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::GroupReplication | TargetType::AsyncReplication,
-          ReplicationQuorum::State::any(),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
-           {metadata::kCompatibleLower, MDS_actions::NOTE},
-           {metadata::States(metadata::State::FAILED_SETUP),
-            MDS_actions::NONE}},
-          k_primary_not_required}},
-        {"Dba.getCluster",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Dba.dropMetadataSchema",
-         {k_min_adminapi_server_version,
-          TargetType::StandaloneWithMetadata |
-              TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet | TargetType::AsyncReplicaSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          true}},
-        {"Dba.rebootClusterFromCompleteOutage",
-         {k_min_gr_version,
-          TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet |
-              TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::States(metadata::State::MAJOR_HIGHER),
-            MDS_actions::RAISE_ERROR},
-           {metadata::States(metadata::State::MAJOR_LOWER), MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
-        {"Dba.checkInstanceConfiguration",
-         {k_min_gr_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet |
-              TargetType::InnoDBClusterSetOffline |
-              TargetType::GroupReplication | TargetType::AsyncReplication |
-              TargetType::Unknown,
-          ReplicationQuorum::State::any(),
-          {},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
-        {"Dba.configureInstance",
-         {k_min_gr_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::StandaloneInMetadata | TargetType::GroupReplication |
-              TargetType::InnoDBCluster | TargetType::InnoDBClusterSet |
-              TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
+Command_conditions::Builder Command_conditions::Builder::gen_dba(
+    std::string_view name) {
+  Builder builder;
+  builder.m_conds.name = shcore::str_format(
+      "Dba.%.*s", static_cast<int>(name.size()), name.data());
 
-        {"Dba.upgradeMetadata",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::AsyncReplicaSet |
-              TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kUpgradeInProgress, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
+  builder.min_mysql_version(
+      Precondition_checker::k_min_adminapi_server_version);
 
-        {"Dba.configureReplicaSetInstance",
-         {k_min_ar_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::StandaloneInMetadata | TargetType::AsyncReplicaSet |
-              TargetType::Unknown,
-          na_quorum,
-          {},
-          k_primary_not_required}},
-        {"Dba.createReplicaSet",
-         {k_min_ar_version,
-          TargetType::Standalone | TargetType::StandaloneWithMetadata |
-              TargetType::AsyncReplication,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required}},
-        {"Dba.getReplicaSet",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required}},
-        {"Dba.getClusterSet",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline |
-              TargetType::InnoDBCluster,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
+  return builder;
+}
 
-        // GR Cluster functions
-        {"Cluster.addInstance",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.removeInstance",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.rejoinInstance",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.describe",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.status",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.resetRecoveryAccountsPassword",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"Cluster.options",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.dissolve",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          true}},
-        {"Cluster.rescan",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.forceQuorumUsingPartitionOf",
-         {k_min_gr_version,
-          TargetType::GroupReplication | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::States(metadata::State::MAJOR_HIGHER),
-            MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny}},
-        {"Cluster.switchToSinglePrimaryMode",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"Cluster.switchToMultiPrimaryMode",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"Cluster.setPrimaryInstance",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,  // In case of a Cluster, because we have to
-                                   // have all members online, the primary is
-                                   // automatically also available. But in case
-                                   // of a ClusterSet, this refers to the set's
-                                   // primary, which isn't required
-          kClusterGlobalStateAny}},
-        {"Cluster.setOption",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"Cluster.setInstanceOption",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"Cluster.listRouters",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          true}},
-        {"Cluster.setRoutingOption",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"Cluster.routingOptions",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.routerOptions",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.removeRouterMetadata",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.setupAdminAccount",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.setupRouterAccount",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.fenceAllTraffic",
-         {k_min_cs_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.fenceWrites",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny}},
-        {"Cluster.unfenceWrites",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.getClusterSet",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"Cluster.createClusterSet",
-         {k_min_cs_version,
-          TargetType::InnoDBCluster,
-          // TODO(anyone): All of the preconditions quorum related checks are
-          // done using ReplicationQuorum::State which should eventually be
-          // replaced by Cluster_status, i.e. to satisfy WL12805-FR2.1
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_required}},
-        {"Cluster.addReplicaInstance",
-         {k_min_rr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"Cluster.execute",
-         {k_min_gr_version,
-          TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
+Command_conditions::Builder Command_conditions::Builder::gen_cluster(
+    std::string_view name) {
+  Builder builder;
+  builder.m_conds.name = shcore::str_format(
+      "Cluster.%.*s", static_cast<int>(name.size()), name.data());
 
-        // ClusterSet Functions
-        {"ClusterSet.createReplicaCluster",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          Cluster_global_status_mask(Cluster_global_status::OK)}},
-        {"ClusterSet.removeCluster",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.rejoinCluster",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_required,
-          kClusterGlobalStateAnyOkorInvalidated}},
-        {"ClusterSet.setPrimaryCluster",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.forcePrimaryCluster",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAnyOkorNotOk}},
-        {"ClusterSet.setRoutingOption",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),  // XXX review these? shouldn't be
-                                            // Online only?
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.routingOptions",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.routerOptions",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.listRouters",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.status",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.describe",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
-           {metadata::kIncompatible, MDS_actions::WARN},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.dissolve",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.options",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
-        {"ClusterSet.setOption",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.setupAdminAccount",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.setupRouterAccount",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State(ReplicationQuorum::States::Normal),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_required,
-          kClusterGlobalStateAnyOk}},
-        {"ClusterSet.execute",
-         {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
-          ReplicationQuorum::State::any(),
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required,
-          kClusterGlobalStateAny,
-          k_allowed_on_fence}},
+  builder.min_mysql_version(
+      Precondition_checker::k_min_adminapi_server_version);
 
-        // ReplicaSet Functions
-        {"ReplicaSet.addInstance",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.rejoinInstance",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.removeInstance",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.describe",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-        {"ReplicaSet.status",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-        {"ReplicaSet.dissolve",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.rescan",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setPrimaryInstance",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.forcePrimaryInstance",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-        {"ReplicaSet.listRouters",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-        {"ReplicaSet.removeRouterMetadata",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setupAdminAccount",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setupRouterAccount",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setRoutingOption",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.routingOptions",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.routerOptions",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setOption",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.setInstanceOption",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
-        {"ReplicaSet.options",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-        {"ReplicaSet.execute",
-         {k_min_ar_version,
-          TargetType::AsyncReplicaSet,
-          na_quorum,
-          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}},
-          k_primary_not_required}},
-};
+  return builder;
+}
+
+Command_conditions::Builder Command_conditions::Builder::gen_replicaset(
+    std::string_view name) {
+  Builder builder;
+  builder.m_conds.name = shcore::str_format(
+      "ReplicaSet.%.*s", static_cast<int>(name.size()), name.data());
+
+  builder.min_mysql_version(
+      Precondition_checker::k_min_adminapi_server_version);
+  builder.target_instance(TargetType::AsyncReplicaSet);
+
+  return builder;
+}
+
+Command_conditions::Builder Command_conditions::Builder::gen_clusterset(
+    std::string_view name) {
+  Builder builder;
+  builder.m_conds.name = shcore::str_format(
+      "ClusterSet.%.*s", static_cast<int>(name.size()), name.data());
+
+  builder.min_mysql_version(Precondition_checker::k_min_cs_version);
+  builder.target_instance(TargetType::InnoDBClusterSet);
+
+  return builder;
+}
+
+Command_conditions::Builder &Command_conditions::Builder::min_mysql_version(
+    mysqlshdk::utils::Version version) {
+  m_conds.min_mysql_version = std::move(version);
+  return *this;
+}
+
+Command_conditions::Builder &Command_conditions::Builder::quorum_state(
+    ReplicationQuorum::States state) {
+  m_conds.cluster_status = state;
+  return *this;
+}
+
+Command_conditions::Builder &Command_conditions::Builder::cluster_global_status(
+    Cluster_global_status state) {
+  m_conds.cluster_global_state = Cluster_global_status_mask(state);
+  return *this;
+}
+
+Command_conditions::Builder &
+Command_conditions::Builder::cluster_global_status_any_ok() {
+  m_conds.cluster_global_state = Cluster_global_status::OK;
+  m_conds.cluster_global_state |= Cluster_global_status::OK_NOT_REPLICATING;
+  m_conds.cluster_global_state |= Cluster_global_status::OK_NOT_CONSISTENT;
+  m_conds.cluster_global_state |= Cluster_global_status::OK_MISCONFIGURED;
+  return *this;
+}
+
+Command_conditions::Builder &
+Command_conditions::Builder::cluster_global_status_add_not_ok() {
+  m_conds.cluster_global_state |= Cluster_global_status::NOT_OK;
+  return *this;
+}
+
+Command_conditions::Builder &
+Command_conditions::Builder::cluster_global_status_add_invalidated() {
+  m_conds.cluster_global_state |= Cluster_global_status::INVALIDATED;
+  return *this;
+}
+
+Command_conditions::Builder &Command_conditions::Builder::primary_required() {
+  m_conds.primary_required = true;
+  m_conds.m_primary_set = true;
+  return *this;
+}
+
+Command_conditions::Builder &
+Command_conditions::Builder::primary_not_required() {
+  m_conds.primary_required = false;
+  m_conds.m_primary_set = true;
+  return *this;
+}
+
+Command_conditions::Builder &Command_conditions::Builder::allowed_on_fence() {
+  m_conds.allowed_on_fenced = true;
+  return *this;
+}
+
+Command_conditions Command_conditions::Builder::build() {
+  // must specify primary check
+  assert(m_conds.m_primary_set);
+  if (!m_conds.m_primary_set)
+    throw std::logic_error("Primary condition check must be specified");
+
+  return std::exchange(m_conds, {});
+}
 
 /**
  * Validates the session for AdminAPI operations.
@@ -829,7 +300,8 @@ void Precondition_checker::check_session() const {
   if (!session) {
     throw shcore::Exception::runtime_error(
         "An open session is required to perform this operation");
-  } else if (!session->is_open()) {
+  }
+  if (!session->is_open()) {
     throw shcore::Exception::runtime_error(
         "The session was closed. An open session is required to perform "
         "this operation");
@@ -891,13 +363,6 @@ std::string describe(State state) {
 }
 }  // namespace ManagedInstance
 
-const Function_availability &Precondition_checker::get_function_preconditions(
-    const std::string &function_name) {
-  assert(s_preconditions.find(function_name) != s_preconditions.end());
-
-  return s_preconditions.at(function_name);
-}
-
 Precondition_checker::Precondition_checker(
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &group_server, bool primary_available)
@@ -906,41 +371,28 @@ Precondition_checker::Precondition_checker(
       m_primary_available(primary_available) {}
 
 Cluster_check_info Precondition_checker::check_preconditions(
-    const std::string &function_name,
-    const Function_availability *custom_func_avail) {
-  Function_availability availability;
-  // If a Function_availability is not provided, look it up based on the
-  // function name
-  if (!custom_func_avail) {
-    // Retrieves the availability configuration for the given function
-    availability = get_function_preconditions(function_name);
-  } else {
-    // If a function availability is provided use it
-    availability = *custom_func_avail;
-  }
-
+    const Command_conditions &conds) {
   check_session();
 
   // bypass the checks if MD setup failed and it's allowed (we're recovering)
-  if (MDS mds = check_metadata_state_actions(function_name);
-      mds == MDS::FAILED_SETUP)
+  if (check_metadata_state_actions(conds) == metadata::State::FAILED_SETUP)
     return get_cluster_check_info(*m_metadata, m_group_server.get(), true);
 
   Cluster_check_info state =
       get_cluster_check_info(*m_metadata, m_group_server.get(), false);
 
   // Check minimum version for the specific function
-  if (availability.min_version > state.source_version) {
-    throw shcore::Exception::runtime_error(
+  if (conds.min_mysql_version > state.source_version) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
         "Unsupported server version: This AdminAPI operation requires MySQL "
-        "version " +
-        availability.min_version.get_full() + " or newer, but target is " +
-        state.source_version.get_full());
+        "version %s or newer, but target is %s",
+        conds.min_mysql_version.get_full().c_str(),
+        state.source_version.get_full().c_str()));
   }
 
-  // Validates availability based on the configuration state
-  check_instance_configuration_preconditions(
-      state.source_type, availability.instance_config_state);
+  // Validates availability based on the allowed target instance type.
+  check_instance_configuration_preconditions(state.source_type,
+                                             conds.instance_config_state);
 
   // If it is a GR instance, validates the instance state
   if (state.source_type == TargetType::GroupReplication ||
@@ -950,24 +402,24 @@ Cluster_check_info Precondition_checker::check_preconditions(
       state.source_type == TargetType::AsyncReplicaSet) {
     // Validates availability based on the the primary availability
     check_managed_instance_status_preconditions(state.source_type, state.quorum,
-                                                availability.primary_required);
+                                                conds.primary_required);
 
-    // Finally validates availability based on the Cluster quorum for IDC
-    // operations
+    // Validates availability based on the Cluster quorum status (InnoDB
+    // Cluster/ClusterSet)
     if (state.source_type != TargetType::AsyncReplicaSet) {
-      check_quorum_state_preconditions(state.quorum,
-                                       availability.cluster_status);
+      check_quorum_state_preconditions(state.quorum, conds.cluster_status);
     }
 
-    // Validate some ClusterSet preconditions
+    // Validate ClusterSet preconditions
     if (state.source_type == TargetType::InnoDBClusterSet ||
         state.source_type == TargetType::InnoDBClusterSetOffline) {
-      check_cluster_set_preconditions(availability.cluster_set_state);
+      check_cluster_set_preconditions(conds.cluster_global_state);
     }
 
-    // Validate command availability based on the Cluster status
+    // Validates command availability based on whether it is allowed or not
+    // while fenced.
     if (state.source_type == TargetType::InnoDBClusterSet) {
-      check_cluster_fenced_preconditions(availability.allowed_on_fenced);
+      check_cluster_fenced_preconditions(conds.allowed_on_fenced);
     }
   }
 
@@ -979,21 +431,20 @@ void Precondition_checker::check_instance_configuration_preconditions(
   // If instance type is on the allowed types, we are good to go
   if (instance_type & allowed_types) return;
 
-  std::string error;
-  int code = 0;
+  // The original failure detecting the instance type gets logged.
+  if (instance_type == TargetType::Unknown) {
+    auto instance =
+        m_group_server ? m_group_server : m_metadata->get_md_server();
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Unable to detect state for instance '%s'. Please see the shell log "
+        "for more details.",
+        instance->get_canonical_address().c_str()));
+  }
 
-  error = "This function is not available through a session";
+  int code = 0;
+  std::string error("This function is not available through a session");
+
   switch (instance_type) {
-    case TargetType::Unknown: {
-      // The original failure detecting the instance type gets logged.
-      auto instance =
-          m_group_server ? m_group_server : m_metadata->get_md_server();
-      error = shcore::str_format(
-          "Unable to detect state for instance '%s'. Please see the shell log "
-          "for more details.",
-          instance->get_canonical_address().c_str());
-      break;
-    }
     case TargetType::Standalone:
       error += " to a standalone instance";
       code = SHERR_DBA_BADARG_INSTANCE_NOT_MANAGED;
@@ -1063,13 +514,13 @@ void Precondition_checker::check_instance_configuration_preconditions(
           "not ONLINE";
       code = SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE;
       break;
+    default:
+      assert(!"Invalid target instance type");
+      break;
   }
 
-  if (code != 0) {
-    throw shcore::Exception(error, code);
-  } else {
-    throw shcore::Exception::runtime_error(error);
-  }
+  if (code != 0) throw shcore::Exception(error, code);
+  throw shcore::Exception::runtime_error(error);
 }
 
 void Precondition_checker::check_managed_instance_status_preconditions(
@@ -1109,6 +560,9 @@ void Precondition_checker::check_managed_instance_status_preconditions(
 void Precondition_checker::check_quorum_state_preconditions(
     mysqlsh::dba::ReplicationQuorum::State instance_quorum_state,
     mysqlsh::dba::ReplicationQuorum::State allowed_states) const {
+  // ignore filter
+  if (allowed_states.empty()) return;
+
   // If state is allowed, we are good to go
   if (instance_quorum_state.matches_any(allowed_states)) return;
 
@@ -1130,11 +584,8 @@ void Precondition_checker::check_quorum_state_preconditions(
     error = "Unable to perform the operation on a dead InnoDB cluster";
   }
 
-  if (code != 0) {
-    throw shcore::Exception(error, code);
-  } else {
-    throw shcore::Exception::runtime_error(error);
-  }
+  if (code != 0) throw shcore::Exception(error, code);
+  throw shcore::Exception::runtime_error(error);
 }
 
 std::pair<Cluster_global_status, Cluster_availability>
@@ -1171,14 +622,13 @@ Precondition_checker::get_cluster_global_state() const {
 
 Cluster_status Precondition_checker::get_cluster_status() {
   Cluster_metadata cluster_md;
-  Cluster_set_metadata cset_md;
-
   if (m_metadata->get_cluster_for_server_uuid(m_group_server->get_uuid(),
                                               &cluster_md)) {
     Cluster_impl cluster(cluster_md, m_group_server, m_metadata,
                          Cluster_availability::ONLINE);
-    auto finally_primary =
-        shcore::on_leave_scope([&cluster]() { cluster.release_primary(); });
+
+    shcore::on_leave_scope finally_primary(
+        [&cluster]() { cluster.release_primary(); });
 
     return cluster.cluster_status();
   }
@@ -1206,12 +656,11 @@ void Precondition_checker::check_cluster_set_preconditions(
   // ERROR: The function is available on instances in a ClusterSet
   // with specific global state and the instance global state is
   // different
-  std::string error =
-      "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
-      "state of " +
-      to_string(global_state.first) +
-      " within the ClusterSet. Operation is not possible when in that "
-      "state";
+  auto error = shcore::str_format(
+      "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state "
+      "of %s within the ClusterSet. Operation is not possible when in that "
+      "state",
+      to_string(global_state.first).c_str());
 
   // If the global_state is NOT_OK, check the primary cluster availability
   // to provide a finer grain of detail in the error message
@@ -1231,97 +680,216 @@ void Precondition_checker::check_cluster_set_preconditions(
  */
 void Precondition_checker::check_cluster_fenced_preconditions(
     bool allowed_on_fenced) {
-  std::string error;
+  if (allowed_on_fenced) return;
 
   // Only queries status if not allowed on fenced
-  if (!allowed_on_fenced) {
-    Cluster_status cluster_status = get_cluster_status();
+  auto cluster_status = get_cluster_status();
+  if (cluster_status != Cluster_status::FENCED_WRITES) return;
 
-    if (cluster_status == Cluster_status::FENCED_WRITES) {
-      // ERROR: The function is available on instances in a Cluster
-      // with status FENCED_WRITES
-      error =
-          "Unable to perform the operation on an InnoDB Cluster with "
-          "status " +
-          to_string(cluster_status);
-
-      throw shcore::Exception::runtime_error(error);
-    }
-  }
+  // ERROR: The function is available on instances in a Cluster
+  // with status FENCED_WRITES
+  throw shcore::Exception::runtime_error(shcore::str_format(
+      "Unable to perform the operation on an InnoDB Cluster with status %s",
+      to_string(cluster_status).c_str()));
 }
 
 /**
  * This function verifies the installed metadata vs the supported metadata.
- * The action to be taken depends on the metadata options configured for each
- * function:
  *
- * If the metadata state is Compatible no action will be taken.
+ * If, for the specified conditions, the current MD state is incompatible, this
+ * method throws an exception. Otherwise, it returns the MD state.
  *
- * If the metadata is not Compatible, but any of the other states the action
- * depends on the configuration for each function as follows:
+ * The verification is done following these ordered steps:
+ *  - if MD is in FAILED_SETUP, the method doesn't throw and returns (state is
+ * dealt with later)
+ *  - if MD is in UPGRADING, throws
+ *  - if MD is in FAILED_UPGRADE, throws unless the conditions have
+ * IGNORE_FAILED_UPGRADE
+ *  - if MD is in NONEXISTING, throws unless the conditions have
+ * IGNORE_NON_EXISTING
+ *  - if MD is in (MAJOR_HIGHER, MINOR_HIGHER or PATCH_HIGHER), throws (shell
+ * needs to be upgraded)
+ *  - otherwise, the state is converted to metadata::Compatibility and checked
+ * against the specified conditions and throws if condition is INCOMPATIBLE_*
  *
- * If no specific actions are configured for the function:
- * - Read_compatible will be treated as Incompatible
- * - If metadata is Incompatible an error will be shown indicating whether:
- *   - The metadata Should be updated
- *   - The Shell should be updated
- *
- * If specific actions are configured they will be executed as configured.
- *
- * Every function requiring specific action handling should have it registered
- * on the AdminAPI_function_availability.
  */
-MDS Precondition_checker::check_metadata_state_actions(
-    const std::string &function_name) {
-  // It is assumed that if metadata is Compatible, there should be no
-  // restrictions on any function
-  assert(Precondition_checker::s_preconditions.find(function_name) !=
-         Precondition_checker::s_preconditions.end());
-  Function_availability availability =
-      Precondition_checker::s_preconditions.at(function_name);
+metadata::State Precondition_checker::check_metadata_state_actions(
+    const Command_conditions &conds) {
+  auto state = m_metadata->state();
+  DBUG_EXECUTE_IF("md_assume_version_lower",
+                  { state = metadata::State::MAJOR_LOWER; });
 
-  // Metadata validation is done only on the functions that require it
-  if (availability.metadata_state_actions.empty()) return MDS::EQUAL;
+  log_info("Metadata state: %d", static_cast<int>(state));
 
-  MDS compatibility = m_metadata->state();
-  if (compatibility == MDS::EQUAL) return compatibility;
+  // these states don't need to check against the command's supported state
+  // actions
+  switch (state) {
+    case metadata::State::EQUAL:
+    case metadata::State::FAILED_SETUP:
+      return state;
 
-  for (const auto &item : availability.metadata_state_actions) {
-    if (!item.state.is_set(compatibility)) continue;
+    case metadata::State::UPGRADING: {
+      verify_compatibility(metadata::Compatibility::INCOMPATIBLE_UPGRADING,
+                           *m_metadata);
 
-    // Gets the right message for the function on this state
-    std::string msg = lookup_message(function_name, compatibility);
-
-    // If the message is empty then no action is required, falls back to
-    // existing precondition checks.
-    if (msg.empty()) continue;
-
-    auto pre_formatted = shcore::str_format(
-        msg.c_str(), m_metadata->installed_version().get_base().c_str(),
-        mysqlsh::dba::metadata::current_version().get_base().c_str());
-
-    if (item.action == MDS_actions::WARN) {
-      mysqlsh::current_console()->print_warning(pre_formatted);
-    } else if (item.action == MDS_actions::NOTE) {
-      mysqlsh::current_console()->print_note(pre_formatted);
-    } else if (item.action == MDS_actions::RAISE_ERROR) {
-      throw std::runtime_error(shcore::str_subvars(
-          pre_formatted,
-          [](std::string_view var) {
-            return shcore::get_member_name(var, shcore::current_naming_style());
-          },
-          "<<<", ">>>"));
+      // std::unreachable();
+      assert(!"std::unreachable");
+      break;
     }
+
+    case metadata::State::FAILED_UPGRADE: {
+      auto ignore_failed = std::any_of(
+          conds.metadata_states.begin(), conds.metadata_states.end(),
+          [](const auto &compatibility) {
+            return (compatibility ==
+                    metadata::Compatibility::IGNORE_FAILED_UPGRADE);
+          });
+      if (ignore_failed) return state;
+
+      verify_compatibility(metadata::Compatibility::INCOMPATIBLE_FAILED_UPGRADE,
+                           *m_metadata);
+
+      // std::unreachable();
+      assert(!"std::unreachable");
+      break;
+    }
+    default:
+      break;
   }
 
-  return compatibility;
+  // not having a MD available gets special treatment
+  if (state == metadata::State::NONEXISTING) {
+    // command must support a Compatibility::IGNORE_NON_EXISTING state action
+    auto not_required =
+        std::any_of(conds.metadata_states.begin(), conds.metadata_states.end(),
+                    [](const auto &compatibility) {
+                      return (compatibility ==
+                              metadata::Compatibility::IGNORE_NON_EXISTING);
+                    });
+    if (not_required) return state;
+
+    mysqlsh::current_console()->print_error(
+        "Command not available on an unmanaged standalone instance.");
+    throw shcore::Exception("Metadata Schema not found.",
+                            SHERR_DBA_METADATA_NOT_FOUND);
+  }
+
+  // check for shell needs to be upgraded
+  switch (state) {
+    case metadata::State::MAJOR_HIGHER:
+    case metadata::State::MINOR_HIGHER:
+    case metadata::State::PATCH_HIGHER: {
+      auto version_installed = m_metadata->installed_version().get_base();
+      auto version_current =
+          mysqlsh::dba::metadata::current_version().get_base();
+
+      mysqlsh::current_console()->print_error(shcore::str_format(
+          "Incompatible Metadata version. No operations are allowed on a "
+          "Metadata version higher than Shell supports ('%s'), the installed "
+          "Metadata version '%s' is not supported. Please upgrade MySQL Shell.",
+          version_current.c_str(), version_installed.c_str()));
+
+      throw shcore::Exception("Metadata version is not compatible",
+                              SHERR_DBA_METADATA_UNSUPPORTED);
+    }
+    default:
+      break;
+  }
+
+  // if the command doesn't require any more checks
+  if (conds.metadata_states.empty()) return state;
+
+  // convert to compatibility
+  metadata::Compatibility compatibility;
+  switch (state) {
+    case metadata::State::MAJOR_LOWER:
+    case metadata::State::MINOR_LOWER:
+    case metadata::State::PATCH_LOWER:
+      compatibility = metadata::Compatibility::COMPATIBLE_WARN_UPGRADE;
+      break;
+    case metadata::State::UPGRADING:
+      compatibility = metadata::Compatibility::INCOMPATIBLE_UPGRADING;
+      break;
+    case metadata::State::FAILED_UPGRADE:
+      compatibility = metadata::Compatibility::INCOMPATIBLE_FAILED_UPGRADE;
+      break;
+    default:
+      assert(!"Invalid MD state");
+      return state;
+  }
+
+  // check if incompatibility must trigger an error
+  for (const auto &cur_compatibility : conds.metadata_states) {
+    // min version has to be checked manually
+    switch (cur_compatibility) {
+      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0:
+      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0:
+      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0: {
+        auto version_required = mysqlshdk::utils::Version(2, 0, 0);
+        if (cur_compatibility ==
+            metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
+          version_required = mysqlshdk::utils::Version(2, 1, 0);
+        else if (cur_compatibility ==
+                 metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0)
+          version_required = mysqlshdk::utils::Version(2, 2, 0);
+
+        auto version_installed = m_metadata->installed_version();
+        DBUG_EXECUTE_IF("md_assume_version_1_0_1", {
+          version_installed = mysqlshdk::utils::Version(1, 0, 1);
+        });
+        DBUG_EXECUTE_IF("md_assume_version_2_0_0", {
+          version_installed = mysqlshdk::utils::Version(2, 0, 0);
+        });
+        DBUG_EXECUTE_IF("md_assume_version_2_1_0", {
+          version_installed = mysqlshdk::utils::Version(2, 1, 0);
+        });
+
+        if (version_installed >= version_required) continue;
+
+        throw_incompatible_md_version(version_installed, version_required);
+      }
+      default:
+        break;
+    }
+
+    // reaching this point, we only need to check if the command compatibility
+    // matches with the actual one
+
+    if (cur_compatibility != compatibility) continue;
+
+    verify_compatibility(compatibility, *m_metadata);
+    return state;
+  }
+
+  // reaching this point, there's an incompatibility (either
+  // metadata::Compatibility::COMPATIBLE_WARN_UPGRADE,
+  // metadata::Compatibility::INCOMPATIBLE_UPGRADING or
+  // metadata::Compatibility::INCOMPATIBLE_FAILED_UPGRADE) and the command
+  // didn't specify any state that would trigger it. There is, however, a final
+  // use case related to Compatibility::COMPATIBLE_WARN_UPGRADE, which is when
+  // the command doesn't care about any metadata, but at the same time none can
+  // be present.
+  //
+  // We can detect this if the only state action is
+  // Compatibility::IGNORE_NON_EXISTING, which means that we can then throw a
+  // similar error as Compatibility::INCOMPATIBLE_MIN_VERSION_* (but with the
+  // current version).
+
+  if ((compatibility == metadata::Compatibility::COMPATIBLE_WARN_UPGRADE) &&
+      (conds.metadata_states.size() == 1) &&
+      (conds.metadata_states.front() ==
+       metadata::Compatibility::IGNORE_NON_EXISTING)) {
+    throw_incompatible_md_version(m_metadata->installed_version(),
+                                  mysqlsh::dba::metadata::current_version());
+  }
+
+  return state;
 }
 
 Cluster_check_info check_function_preconditions(
-    const std::string &function_name,
+    const Command_conditions &conds,
     const std::shared_ptr<MetadataStorage> &metadata,
-    const std::shared_ptr<Instance> &group_server, bool primary_available,
-    const Function_availability *custom_func_avail) {
+    const std::shared_ptr<Instance> &group_server, bool primary_available) {
   // Check if an open session is needed
   if (!metadata && (!group_server || !group_server->get_session() ||
                     !group_server->get_session()->is_open())) {
@@ -1330,7 +898,7 @@ Cluster_check_info check_function_preconditions(
   }
 
   Precondition_checker checker(metadata, group_server, primary_available);
-  return checker.check_preconditions(function_name, custom_func_avail);
+  return checker.check_preconditions(conds);
 }
 
 }  // namespace dba

@@ -1,12 +1,3 @@
-//@# INCLUDE async_utils.inc
-||
-
-//@# create replicaset (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.2.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
-
-//@ Merge schema from different sources (cluster then rs)
-||
-
 //@<OUT> clusters
 *************************** 1. row ***************************
   cluster_type: gr

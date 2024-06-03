@@ -17,11 +17,12 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", { report_host: hostname })
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
 //@<> upgradeMetadata without connection
-EXPECT_THROWS(function(){dba.upgradeMetadata()}, "An open session is required to perform this operation")
+EXPECT_THROWS(function(){ dba.upgradeMetadata(); }, "An open session is required to perform this operation")
 
 //@<> upgradeMetadata on a standalone instance
 shell.connect(__sandbox_uri1)
-EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available through a session to a standalone instance")
+EXPECT_THROWS(function(){ dba.upgradeMetadata(); }, "Metadata Schema not found.");
+EXPECT_OUTPUT_CONTAINS("Command not available on an unmanaged standalone instance.");
 
 var current_version = testutil.getCurrentMetadataVersion();
 var version = current_version.split('.');
@@ -161,10 +162,12 @@ testutil.dbugSet("");
 other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
 
 //@<> Upgrading: precondition error upgradeMetadata
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Metadata is being upgraded");
+EXPECT_OUTPUT_CONTAINS("The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
 
 //@<> Upgrading: precondition error upgradeMetadata + dryRun
-EXPECT_THROWS(function () { dba.upgradeMetadata({dryRun:true}) }, "The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
+EXPECT_THROWS(function () { dba.upgradeMetadata({dryRun:true}) }, "Metadata is being upgraded");
+EXPECT_OUTPUT_CONTAINS("The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
 
 //@<> upgradeMetadata, prepare for failed upgrade errors
 other_session.close();
