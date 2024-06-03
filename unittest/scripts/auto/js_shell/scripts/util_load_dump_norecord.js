@@ -371,7 +371,11 @@ EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for schema");
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `xtest`.`t_tinyint`");
 EXPECT_SHELL_LOG_CONTAINS("Executing triggers SQL for `sakila`.`payment`");
 EXPECT_STDOUT_CONTAINS("Executing common postamble SQL");
-EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.");
+
+if (__version_num < 90000) {
+  // 9.0 has some warnings due to WL#10495 (possibly due a bug)
+  EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.");
+}
 
 // users not loaded, so don't compare accounts list
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
