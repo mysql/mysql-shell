@@ -319,7 +319,7 @@ file(APPEND "${{output_json}}" "  \\"ignore\\":\\"me\\"\\n}}\\n")
 
 class Wix4():
     extensions = ["WixToolset.UI.wixext", "WixToolset.Util.wixext"]
-    version = "4.0.1"
+    version = "4.0.5"
 
     def __init__(self, cpack):
         self.__cpack = cpack
