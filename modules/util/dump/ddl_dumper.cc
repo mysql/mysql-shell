@@ -56,6 +56,8 @@ std::unique_ptr<Schema_dumper> Ddl_dumper::schema_dumper(
       options.is_set(Compatibility_option::STRIP_INVALID_GRANTS);
   dumper->opt_ignore_wildcard_grants =
       options.is_set(Compatibility_option::IGNORE_WILDCARD_GRANTS);
+  dumper->opt_unescape_wildcard_grants =
+      options.is_set(Compatibility_option::UNESCAPE_WILDCARD_GRANTS);
 
   return dumper;
 }

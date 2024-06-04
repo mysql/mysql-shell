@@ -371,8 +371,13 @@ def too_many_columns(schema, table, columns):
 
 def ignore_wildcard_grants(user, grant):
     error = f"User {user} has a wildcard grant statement at the database level ({grant})"
-    fixed = error + ", this is ignored"
+    fixed = error + ", this issue is ignored"
     return Compatibility_issue(error, fixed)
+
+def unescape_wildcard_grants(user, schema, fixed_schema = ""):
+    warning = f"User {user} has a wildcard grant statement at the database level which is using escaped wildcard characters ({schema})"
+    fixed = warning + ", schema name has been replaced with: " + fixed_schema
+    return Compatibility_issue(None, fixed, warning)
 
 def grant_on_excluded_object(user, grant):
     warning = f"User {user} has a grant statement on an object which is not included in the dump ({grant})"

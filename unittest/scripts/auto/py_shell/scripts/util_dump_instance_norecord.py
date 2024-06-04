@@ -3549,16 +3549,22 @@ session.run_sql(f"CREATE USER {wild_account} IDENTIFIED BY 'pwd'")
 schema_level_grant = f"GRANT SELECT ON `miscellaneous`.* TO {account_for_grant()}"
 session.run_sql(schema_level_grant)
 # schema-level grant with _ wildcard
-schema_level_grant_with_underscore = f"GRANT SELECT ON `sample_schema`.* TO {account_for_grant()}"
+schema_level_grant_with_underscore = f"GRANT SELECT ON `some_schema`.* TO {account_for_grant()}"
 session.run_sql(schema_level_grant_with_underscore)
 # schema-level grant with % wildcard
-schema_level_grant_with_percent = f"GRANT SELECT ON `all%`.* TO {account_for_grant()}"
+schema_level_grant_with_percent = f"GRANT SELECT ON `almost%`.* TO {account_for_grant()}"
 session.run_sql(schema_level_grant_with_percent)
 # schema-level grant with escaped _ wildcard
-schema_level_grant_with_escaped_underscore = f"GRANT SELECT ON `sample\\_schema`.* TO {account_for_grant()}"
+schema_name_with_escaped_underscore = "sample\\_schema"
+schema_level_grant_with_escaped_underscore = f"GRANT SELECT ON `{schema_name_with_escaped_underscore}`.* TO {account_for_grant()}"
+schema_name_with_unescaped_underscore = "sample_schema"
+schema_level_grant_with_unescaped_underscore = f"GRANT SELECT ON `{schema_name_with_unescaped_underscore}`.* TO {account_for_grant()}"
 session.run_sql(schema_level_grant_with_escaped_underscore)
 # schema-level grant with escaped % wildcard
-schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `all\\%`.* TO {account_for_grant()}"
+schema_name_with_escaped_percent = "all\\%"
+schema_level_grant_with_escaped_percent = f"GRANT SELECT ON `{schema_name_with_escaped_percent}`.* TO {account_for_grant()} WITH GRANT OPTION"
+schema_name_with_unescaped_percent = "all%"
+schema_level_grant_with_unescaped_percent = f"GRANT SELECT ON `{schema_name_with_unescaped_percent}`.* TO {account_for_grant()} WITH GRANT OPTION"
 session.run_sql(schema_level_grant_with_escaped_percent)
 
 #@<> BUG#34952027 - dumping with ocimds fails
@@ -3568,13 +3574,17 @@ EXPECT_STDOUT_CONTAINS("""
 ERROR: One or more accounts with database level grants containing wildcard characters were found.
 
       Loading these grants into a DB System instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
-      To continue with the dump you must do one of the following:
+      To continue with the dump you must do one or more of the following:
+
+      * Manually update the schema names in GRANT statements of problematic accounts.
 
       * Use the "excludeUsers" dump option to exclude problematic accounts.
 
-      * Set the "users" dump option to false in order to disable user dumping.
+      * Add "unescape_wildcard_grants" to the "compatibility" option to automatically replace escaped \_ and \% wildcards in schema names with _ and % wildcard characters.
 
-      * Add the "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
+      * Add "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
+
+      * Set the "users" dump option to false in order to disable user dumping.
 
       For more information on the interaction between wildcard database level grants and partial_revokes system variable please refer to: https://dev.mysql.com/doc/refman/en/grant.html
 """)
@@ -3584,6 +3594,35 @@ EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_w
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_percent).error())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_underscore).error())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_percent).error())
+# BUG#36524862 - warn about escaped wildcards in schema names
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_underscore).warning())
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_percent).warning())
+
+#@<> BUG#36524862 - unescape_wildcard_grants is used, escaped wildcards are replaced with wildcard characters
+EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "compatibility": [ "unescape_wildcard_grants" ], "ocimds": True, "targetVersion": target_version, "users": True, "includeUsers": [ wild_account ], "includeSchemas": [ "invalid" ], "dryRun": True, "showProgress": False })
+
+EXPECT_STDOUT_CONTAINS("""
+ERROR: One or more accounts with database level grants containing wildcard characters were found.
+
+      Loading these grants into a DB System instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
+      To continue with the dump you must do one or more of the following:
+
+      * Manually update the schema names in GRANT statements of problematic accounts.
+
+      * Use the "excludeUsers" dump option to exclude problematic accounts.
+
+      * Add "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
+
+      * Set the "users" dump option to false in order to disable user dumping.
+
+      For more information on the interaction between wildcard database level grants and partial_revokes system variable please refer to: https://dev.mysql.com/doc/refman/en/grant.html
+""")
+
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_underscore, schema_name_with_unescaped_underscore).fixed())
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_percent, schema_name_with_unescaped_percent).fixed())
+# grants were altered, but errors are still reported
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_unescaped_underscore).error())
+EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_unescaped_percent).error())
 
 #@<> BUG#34952027 - dumping with ocimds and partial_revokes=ON succeeds {VER(>=8.0.16)}
 session.run_sql("SET @@GLOBAL.partial_revokes = ON")
@@ -3598,6 +3637,9 @@ EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_w
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_percent).fixed())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_underscore).fixed())
 EXPECT_STDOUT_CONTAINS(ignore_wildcard_grants(wild_account, schema_level_grant_with_escaped_percent).fixed())
+# BUG#36524862 - unescape_wildcard_grants was not used, we still warn about escaped wildcards in schema names
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_underscore).warning())
+EXPECT_STDOUT_CONTAINS(unescape_wildcard_grants(wild_account, schema_name_with_escaped_percent).warning())
 
 #@<> BUG#34952027 - cleanup
 session.run_sql(f"DROP USER IF EXISTS {wild_account}")

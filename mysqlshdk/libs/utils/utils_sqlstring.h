@@ -82,6 +82,24 @@ SHCORE_PUBLIC bool has_sql_wildcard(std::string_view s);
 SHCORE_PUBLIC bool has_unescaped_sql_wildcard(std::string_view s);
 
 /**
+ * Checks if the given string contains an escaped MySQL wildcard character.
+ *
+ * @param s String to be checked.
+ *
+ * @returns true If the given string contains an escaped wildcard.
+ */
+SHCORE_PUBLIC bool has_escaped_sql_wildcard(std::string_view s);
+
+/**
+ * Unescapes all escaped MySQL wildcard characters.
+ *
+ * @param s String to be used.
+ *
+ * @returns Unescaped string.
+ */
+SHCORE_PUBLIC std::string unescape_sql_wildcards(std::string_view s);
+
+/**
  * Case-sensitive SQL wildcard match.
  *
  * @param str Input matched against pattern.

@@ -661,9 +661,10 @@ bool has_sql_wildcard(std::string_view s) {
 
 bool has_unescaped_sql_wildcard(std::string_view s) {
   const auto length = s.length();
+  char c;
 
   for (auto i = decltype(length){0}; i < length; ++i) {
-    const auto c = s[i];
+    c = s[i];
 
     if (k_wild_escape == c) {
       // escaped character, skip it
@@ -676,6 +677,59 @@ bool has_unescaped_sql_wildcard(std::string_view s) {
   }
 
   return false;
+}
+
+bool has_escaped_sql_wildcard(std::string_view s) {
+  const auto length = s.length();
+  char c;
+
+  for (auto i = decltype(length){0}; i < length; ++i) {
+    c = s[i];
+
+    if (k_wild_escape == c) {
+      // escaped character
+      ++i;
+
+      if (i < length) {
+        c = s[i];
+
+        if (k_wild_one == c || k_wild_many == c) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+std::string unescape_sql_wildcards(std::string_view s) {
+  const auto length = s.length();
+  char c;
+  std::string result;
+  result.reserve(length);
+
+  for (auto i = decltype(length){0}; i < length; ++i) {
+    c = s[i];
+
+    if (k_wild_escape == c) {
+      // escaped character
+      ++i;
+
+      if (i < length) {
+        c = s[i];
+
+        if (k_wild_one != c && k_wild_many != c) {
+          // not a wildcard, keep the escape character
+          result += k_wild_escape;
+        }
+      }
+    }
+
+    result += c;
+  }
+
+  return result;
 }
 
 namespace {

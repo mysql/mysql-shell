@@ -177,7 +177,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         copies. When enabled, produces a transactionally consistent copy at a
@@ -303,7 +304,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         copies. When enabled, produces a transactionally consistent copy at a
@@ -418,7 +420,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         copies. When enabled, produces a transactionally consistent copy at a
@@ -533,7 +536,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
       - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
@@ -816,7 +820,10 @@ DESCRIPTION
 
       ignore_wildcard_grants - Ignore errors from grants on schemas with
       wildcards, which are interpreted differently in systems where
-      partial_revokes system variable is enabled.
+      partial_revokes system variable is enabled. When this variable is
+      enabled, the _ and % characters are treated as literals, which could lead
+      to unexpected results. Before using this compatibility option, each such
+      grant should be carefully reviewed.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
@@ -859,6 +866,13 @@ DESCRIPTION
       HeatWave Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
       TABLE statements.
+
+      unescape_wildcard_grants - Fixes grants on schemas with wildcards,
+      replacing escaped \_ and \% wildcards in schema names with _ and %
+      wildcard characters. When the partial_revokes system variable is enabled,
+      the \ character is treated as a literal, which could lead to unexpected
+      results. Before using this compatibility option, each such grant should
+      be carefully reviewed.
 
       Additionally, the following changes will always be made to DDL scripts
       when the ocimds option is enabled:
@@ -1178,7 +1192,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
       - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
@@ -1440,7 +1455,10 @@ DESCRIPTION
 
       ignore_wildcard_grants - Ignore errors from grants on schemas with
       wildcards, which are interpreted differently in systems where
-      partial_revokes system variable is enabled.
+      partial_revokes system variable is enabled. When this variable is
+      enabled, the _ and % characters are treated as literals, which could lead
+      to unexpected results. Before using this compatibility option, each such
+      grant should be carefully reviewed.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
@@ -1483,6 +1501,13 @@ DESCRIPTION
       HeatWave Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
       TABLE statements.
+
+      unescape_wildcard_grants - Fixes grants on schemas with wildcards,
+      replacing escaped \_ and \% wildcards in schema names with _ and %
+      wildcard characters. When the partial_revokes system variable is enabled,
+      the \ character is treated as a literal, which could lead to unexpected
+      results. Before using this compatibility option, each such grant should
+      be carefully reviewed.
 
       Additionally, the following changes will always be made to DDL scripts
       when the ocimds option is enabled:
@@ -1801,7 +1826,8 @@ DESCRIPTION
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
         "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces".
+        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
       - skipUpgradeChecks: bool (default: false) - Do not execute the upgrade
@@ -2058,7 +2084,10 @@ DESCRIPTION
 
       ignore_wildcard_grants - Ignore errors from grants on schemas with
       wildcards, which are interpreted differently in systems where
-      partial_revokes system variable is enabled.
+      partial_revokes system variable is enabled. When this variable is
+      enabled, the _ and % characters are treated as literals, which could lead
+      to unexpected results. Before using this compatibility option, each such
+      grant should be carefully reviewed.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
@@ -2101,6 +2130,13 @@ DESCRIPTION
       HeatWave Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
       TABLE statements.
+
+      unescape_wildcard_grants - Fixes grants on schemas with wildcards,
+      replacing escaped \_ and \% wildcards in schema names with _ and %
+      wildcard characters. When the partial_revokes system variable is enabled,
+      the \ character is treated as a literal, which could lead to unexpected
+      results. Before using this compatibility option, each such grant should
+      be carefully reviewed.
 
       Additionally, the following changes will always be made to DDL scripts
       when the ocimds option is enabled:

@@ -25,6 +25,7 @@
 
 #include "modules/util/dump/compatibility.h"
 
+#include <cassert>
 #include <regex>
 #include <unordered_map>
 #include <utility>
@@ -1920,6 +1921,17 @@ bool parse_grant_statement(const std::string &statement,
       result.level = object_is_routine ? Privilege_level_info::Level::ROUTINE
                                        : Privilege_level_info::Level::TABLE;
     }
+
+    // TO
+    it.next_token();
+  }
+
+  result.account = get_account(&it);
+
+  if (is_role) {
+    result.with_grant = it.consume_tokens("WITH", "ADMIN", "OPTION");
+  } else {
+    result.with_grant = it.consume_tokens("WITH", "GRANT", "OPTION");
   }
 
   for (auto &p : privileges) {
@@ -1929,6 +1941,27 @@ bool parse_grant_statement(const std::string &statement,
   *info = std::move(result);
 
   return true;
+}
+
+std::string to_grant_statement(const Privilege_level_info &info) {
+  assert(Privilege_level_info::Level::SCHEMA == info.level);
+
+  std::string result = info.grant ? "GRANT" : "REVOKE";
+
+  result += ' ';
+  result += shcore::str_join(info.privileges, ", ");
+  result += " ON ";
+  result += shcore::quote_identifier(info.schema);
+  result += ".* ";
+  result += info.grant ? "TO" : "FROM";
+  result += ' ';
+  result += info.account;
+
+  if (info.with_grant) {
+    result += " WITH GRANT OPTION";
+  }
+
+  return result;
 }
 
 bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v) {

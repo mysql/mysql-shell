@@ -299,7 +299,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the copy in the format of
@@ -504,7 +505,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the copy in the format of
@@ -691,7 +693,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --excludeTriggers=<str list>
             List of triggers to be excluded from the copy in the format of
@@ -884,7 +887,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --targetVersion=<str>
             Specifies version of the destination MySQL server. Default: current
@@ -1133,7 +1137,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --targetVersion=<str>
             Specifies version of the destination MySQL server. Default: current
@@ -1363,7 +1368,8 @@ OPTIONS
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
             "ignore_wildcard_grants", "skip_invalid_accounts",
             "strip_definers", "strip_invalid_grants",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            "strip_restricted_grants", "strip_tablespaces",
+            "unescape_wildcard_grants". Default: empty.
 
 --targetVersion=<str>
             Specifies version of the destination MySQL server. Default: current
