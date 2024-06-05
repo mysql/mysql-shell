@@ -1,8 +1,8 @@
 #@ {has_oci_environment('OS') and __version_num >= 80400}
 
-#@<> INCLUDE oci_utils.inc
-
 #@<> INCLUDE dump_utils.inc
+
+#@<> INCLUDE oci_utils.inc
 
 #@<> imports
 import json
@@ -190,9 +190,9 @@ TEST_DUMP_AND_LOAD(expect_bulk_loaded = 0, dump_options = { "compression": "gzip
 EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` will not use BULK LOAD: unsupported compression: gzip")
 
 #@<> WL15432-TSFR_1_2_4 - unsupported data type {bulk_load_supported}
-prepare_test_table("(f1 INT PRIMARY KEY, f2 JSON)")
+prepare_test_table("(f1 INT PRIMARY KEY, f2 DECIMAL UNSIGNED)")
 TEST_DUMP_AND_LOAD(expect_bulk_loaded = 0)
-EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` is not compatible with BULK LOAD: MySQL Error 3658 (HY000): Feature json column type is unsupported (LOAD DATA ALGORITHM = BULK)")
+EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` is not compatible with BULK LOAD: MySQL Error 3658 (HY000): Feature UNSIGNED DECIMAL column (deprecated) is unsupported (LOAD DATA ALGORITHM = BULK)")
 EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` will not use BULK LOAD: not compatible")
 
 #@<> WL15432-TSFR_1_2_4 - data type which is encoded and requires preprocessing when loading - not supported by BULK LOAD {bulk_load_supported}
