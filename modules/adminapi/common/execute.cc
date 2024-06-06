@@ -69,87 +69,140 @@ class Scheduler {
 
   ~Scheduler() noexcept { finish(); }
 
+  void spawn_threads(size_t num_threads) {
+    if (m_finish) return;
+
+    for (size_t i = 0; i < num_threads; i++) {
+      auto t = mysqlsh::spawn_scoped_thread([this, i]() {
+        mysqlsh::Mysql_thread mysql_thread;
+
+        auto thread_name = shcore::str_format("execute_%zu", i + 1);
+        shcore::set_current_thread_name(thread_name.c_str());
+
+        log_info("Thread '%s' started", thread_name.c_str());
+        execute();
+        log_info("Thread '%s' finished", thread_name.c_str());
+      });
+
+      m_threads.push_back(std::move(t));
+    }
+  }
+
   void finish() {
-    if (m_finish.exchange(true)) return;
+    {
+      std::lock_guard l(m_mutex);
+      m_finish = true;
+    }
 
-    m_cvar_work.notify_all();
+    m_cvar_work.notify_all();  // wake everyone up
 
-    std::unique_lock l(m_mutex);
-    m_cvar_executions_done.wait(l, [this] { return (m_num_executions == 0); });
+    {
+      std::unique_lock l(m_mutex);
+      if (m_num_executions > 0)
+        m_cvar_executions_done.wait(l,
+                                    [this] { return (m_num_executions == 0); });
+    }
+
+    for (auto &t : m_threads) {
+      try {
+        t.join();
+      } catch (const std::system_error &err) {
+        if (err.code() != std::errc::no_such_process)
+          log_info("Thread error: '%s'", err.what());
+      }
+    }
+    m_threads.clear();
   }
 
   void post(Task task) {
-    assert(!m_finish);
-    if (m_finish) return;
+    {
+      std::lock_guard l(m_mutex);
 
-    std::unique_lock l(m_mutex);
+      assert(!m_finish);
+      if (m_finish) return;
 
-    m_num_tasks++;
-    m_tasks.emplace_back(std::move(task));
+      m_num_tasks++;
+      m_tasks.emplace_back(std::move(task));
+    }
+
     m_cvar_work.notify_one();
   }
 
   void execute() {
-    ++m_num_executions;
+    {
+      std::lock_guard l(m_mutex);
 
-    while (!m_finish) {
-      // wait for work
-      {
-        std::unique_lock l(m_mutex);
-        if (m_finish) break;
-        if (m_tasks.empty()) m_cvar_work.wait(l);
-      }
-
-      if (m_finish) break;
-
-      // either get a task or go back and wait for work
-      Task task;
-      {
-        std::lock_guard l(m_mutex);
-        if (m_tasks.empty()) continue;
-
-        task = std::exchange(m_tasks.front(), {});
-        m_tasks.pop_front();
-      }
-
-      // execute task
-      try {
-        task();
-        task = nullptr;  // causes dtor to run "now"
-      } catch (const std::exception &exp) {
-        log_error("Error executing task: %s", exp.what());
-      }
-
-      // are we done?
-      {
-        std::lock_guard l(m_mutex);
-
-        assert(m_num_tasks > 0);
-        --m_num_tasks;
-        if (m_num_tasks == 0) m_cvar_tasks_done.notify_all();
-      }
+      if (m_finish) return;
+      ++m_num_executions;
     }
 
-    --m_num_executions;
+    try {
+      while (!m_finish) {
+        // wait for work
+        {
+          std::unique_lock l(m_mutex);
+          if (m_finish) break;
+          if (m_tasks.empty()) m_cvar_work.wait(l);
+        }
+
+        if (m_finish) break;
+
+        // either get a task or go back and wait for work
+        Task task;
+        {
+          std::lock_guard l(m_mutex);
+          if (m_tasks.empty()) continue;
+
+          task = std::exchange(m_tasks.front(), {});
+          m_tasks.pop_front();
+        }
+
+        // execute task
+        try {
+          task();
+          task = nullptr;  // causes task dtor to run now
+        } catch (const std::exception &exp) {
+          log_error("Error executing task: %s", exp.what());
+        }
+
+        // are we done?
+        {
+          std::lock_guard l(m_mutex);
+
+          assert(m_num_tasks > 0);
+          --m_num_tasks;
+          if (m_num_tasks == 0) m_cvar_tasks_done.notify_all();
+        }
+      }
+    } catch (const std::exception &exp) {
+      log_error("Error while working: %s", exp.what());
+    }
+
+    {
+      std::lock_guard l(m_mutex);
+      --m_num_executions;
+    }
+
     m_cvar_executions_done.notify_all();
   }
 
   void wait_all() {
     std::unique_lock l(m_mutex);
-    if (m_num_tasks == 0) return;
 
-    m_cvar_tasks_done.wait(l, [this] { return (m_num_tasks == 0); });
+    if (m_num_tasks > 0)
+      m_cvar_tasks_done.wait(l, [this] { return (m_num_tasks == 0); });
   }
 
  private:
   size_t m_num_tasks{0};
-  std::atomic<size_t> m_num_executions{0};
+  size_t m_num_executions{0};
   std::atomic<bool> m_finish{false};
   std::condition_variable m_cvar_work;
   std::condition_variable m_cvar_tasks_done;
   std::condition_variable m_cvar_executions_done;
   std::mutex m_mutex;
   std::list<Task> m_tasks;
+  std::vector<std::thread> m_threads;
 };
 
 shcore::Dictionary_t gen_output_main(std::string_view instance_address,
@@ -1055,12 +1108,14 @@ std::vector<shcore::Value> Execute::execute_parallel(
       // threads: one for monitoring (and possibly cancelling queries) and
       // another to do the actual work
       if (platform_threads >= 3) platform_threads--;
+      if (platform_threads < 2) platform_threads = 2;
 
       num_threads = std::min(instances.size() + 1, platform_threads);
     } else {
       // NOTE: we don't want to overload the system, but we need, at least, 1
       // thread: to do the actual work
       if (platform_threads >= 2) platform_threads--;
+      if (platform_threads < 1) platform_threads = 1;
 
       num_threads = std::min(instances.size(), platform_threads);
     }
@@ -1193,26 +1248,13 @@ std::vector<shcore::Value> Execute::execute_parallel(
     }
   }
 
-  // tell the scheduler to execute everything it has (in this case using
-  // threads)
-  for (size_t i = 0; i < num_threads; ++i) {
-    std::thread t = mysqlsh::spawn_scoped_thread([i, &scheduler]() {
-      mysqlsh::Mysql_thread mysql_thread;
-
-      auto thread_name = shcore::str_format("execute_%zu", i + 1);
-      shcore::set_current_thread_name(thread_name.c_str());
-
-      log_info("Thread '%s' started", thread_name.c_str());
-      scheduler.execute();
-      log_info("Thread '%s' finished", thread_name.c_str());
-    });
-    t.detach();
-  }
+  // spawn threads to execute tasks
+  scheduler.spawn_threads(num_threads);
 
   DBUG_EXECUTE_IF("execute_cancel", { canceled = true; });
 
-  scheduler.wait_all();  // this will block until everything is finished
-  scheduler.finish();    // tell threads to exit (blocks until they do)
+  scheduler.wait_all();  // waits for current tasks to finish
+  scheduler.finish();    // informs scheduler to exit and blocks until it does
 
   assert(result.size() == instances.size());
   return result;
