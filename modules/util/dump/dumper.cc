@@ -161,6 +161,11 @@ issues::Status_set show_issues(
         status.set(issues::Status::WARNING_DEPRECATED_DEFINERS);
       }
 
+      if (Schema_dumper::Issue::Status::WARNING_ESCAPED_WILDCARDS ==
+          issue.status) {
+        status.set(issues::Status::WARNING_ESCAPED_WILDCARDS);
+      }
+
       console->print_warning(issue.description);
     } else {
       status.set(issues::Status::ERROR);
@@ -2796,18 +2801,25 @@ void Dumper::validate_mds() const {
     console->print_error(
         "One or more accounts with database level grants containing wildcard "
         "characters were found.");
-    console->print_info(R"(
+    console->print_info(shcore::str_format(
+        R"(
       Loading these grants into a DB System instance may lead to unexpected results, as the partial_revokes system variable is enabled, which in turn changes the interpretation of wildcards in GRANT statements.
-      To continue with the dump you must do one of the following:
+      To continue with the dump you must do one or more of the following:
 
-      * Use the "excludeUsers" dump option to exclude problematic accounts.
+      * Manually update the schema names in GRANT statements of problematic accounts.
+
+      * Use the "excludeUsers" dump option to exclude problematic accounts.%s
+
+      * Add "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
 
       * Set the "users" dump option to false in order to disable user dumping.
 
-      * Add the "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
-
       For more information on the interaction between wildcard database level grants and partial_revokes system variable please refer to: https://dev.mysql.com/doc/refman/en/grant.html
-    )");
+    )",
+        status.is_set(issues::Status::WARNING_ESCAPED_WILDCARDS) ? R"(
+
+      * Add "unescape_wildcard_grants" to the "compatibility" option to automatically replace escaped \_ and \% wildcards in schema names with _ and % wildcard characters.)"
+                                                                 : ""));
   }
 
   if (status.is_set(issues::Status::ERROR_HAS_NON_STANDARD_FKS)) {

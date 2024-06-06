@@ -211,7 +211,9 @@ struct Privilege_level_info {
   Level level = Level::GLOBAL;
   std::string schema;
   std::string object;
-  std::unordered_set<std::string> privileges;
+  std::set<std::string> privileges;
+  std::string account;
+  bool with_grant = false;
 };
 
 /**
@@ -225,6 +227,19 @@ struct Privilege_level_info {
  */
 bool parse_grant_statement(const std::string &statement,
                            Privilege_level_info *info);
+
+/**
+ * Constructs a grant/revoke statement using provided information about
+ * privileges.
+ *
+ * NOTE: Given that parse_grant_statement() does not extract all the
+ *       information, currently only schema-level privileges are supported.
+ *
+ * @param info Information about privileges.
+ *
+ * @returns Corresponding grant/revoke statement.
+ */
+std::string to_grant_statement(const Privilege_level_info &info);
 
 /**
  * Checks if server with the given version supports SET_ANY_DEFINER privilege.

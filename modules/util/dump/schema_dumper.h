@@ -59,6 +59,7 @@ class Schema_dumper {
       FIXED_BY_IGNORE_MISSING_PKS,
       FIXED,
       WARNING_DEPRECATED_DEFINERS,
+      WARNING_ESCAPED_WILDCARDS,
       WARNING,
       FIX_MANUALLY,
       FIX_WILDCARD_GRANTS,
@@ -195,6 +196,7 @@ class Schema_dumper {
   bool opt_create_invisible_pks = false;
   bool opt_strip_invalid_grants = false;
   bool opt_ignore_wildcard_grants = false;
+  bool opt_unescape_wildcard_grants = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {

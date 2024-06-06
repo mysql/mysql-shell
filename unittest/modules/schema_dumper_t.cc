@@ -70,6 +70,9 @@ std::string to_string(Schema_dumper::Issue::Status s) {
     case Status::WARNING_DEPRECATED_DEFINERS:
       return "WARNING_DEPRECATED_STRIP_DEFINERS";
 
+    case Status::WARNING_ESCAPED_WILDCARDS:
+      return "WARNING_ESCAPED_WILDCARDS";
+
     case Status::WARNING:
       return "WARNING";
 

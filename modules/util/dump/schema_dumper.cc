@@ -3071,21 +3071,51 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
             case Level::SCHEMA:
               // NOTE: grants on a missing schema are valid
               // handle wildcard grants at schema level
-              if ((opt_mysqlaas || opt_ignore_wildcard_grants) &&
+              if ((opt_mysqlaas || opt_ignore_wildcard_grants ||
+                   opt_unescape_wildcard_grants) &&
                   shcore::has_sql_wildcard(priv.schema)) {
-                std::string prefix =
-                    "User " + user +
-                    " has a wildcard grant statement at the database level (" +
-                    grant + ")";
+                // we report the one always, even if ignore_wildcard_grants is
+                // used, as this grant will not work as expected
+                if (shcore::has_escaped_sql_wildcard(priv.schema)) {
+                  std::string issue = "User " + user +
+                                      " has a wildcard grant statement at the "
+                                      "database level which is using escaped "
+                                      "wildcard characters (" +
+                                      priv.schema + ")";
 
-                if (opt_ignore_wildcard_grants) {
-                  problems.emplace_back(prefix + ", this is ignored",
-                                        Issue::Status::FIXED);
-                } else if (!partial_revokes()) {
-                  // only report error if partial_revokes is disabled, if it's
-                  // enabled we assume that grants are valid
-                  problems.emplace_back(std::move(prefix),
-                                        Issue::Status::FIX_WILDCARD_GRANTS);
+                  if (opt_unescape_wildcard_grants) {
+                    priv.schema = shcore::unescape_sql_wildcards(priv.schema);
+                    grant = compatibility::to_grant_statement(priv);
+                    problems.emplace_back(
+                        issue + ", schema name has been replaced with: " +
+                            priv.schema,
+                        Issue::Status::FIXED);
+                  } else if (!partial_revokes()) {
+                    // only report error if partial_revokes is disabled, if it's
+                    // enabled we assume that grants are valid
+                    problems.emplace_back(
+                        std::move(issue),
+                        Issue::Status::WARNING_ESCAPED_WILDCARDS);
+                  }
+                }
+
+                // we don't report this one if only unescape_wildcard_grants
+                // is used
+                if (opt_mysqlaas || opt_ignore_wildcard_grants) {
+                  std::string issue = "User " + user +
+                                      " has a wildcard grant statement at the "
+                                      "database level (" +
+                                      grant + ")";
+
+                  if (opt_ignore_wildcard_grants) {
+                    problems.emplace_back(issue + ", this issue is ignored",
+                                          Issue::Status::FIXED);
+                  } else if (!partial_revokes()) {
+                    // only report error if partial_revokes is disabled, if it's
+                    // enabled we assume that grants are valid
+                    problems.emplace_back(std::move(issue),
+                                          Issue::Status::FIX_WILDCARD_GRANTS);
+                  }
                 }
               }
 

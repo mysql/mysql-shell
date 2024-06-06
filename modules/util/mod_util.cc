@@ -1378,7 +1378,10 @@ Service DB System instance with High Availability. Mutually exclusive with the
 
 <b>ignore_wildcard_grants</b> - Ignore errors from grants on schemas with
 wildcards, which are interpreted differently in systems where
-<b>partial_revokes</b> system variable is enabled.
+<b>partial_revokes</b> system variable is enabled. When this variable is enabled,
+the <b>_</b> and <b>%</b> characters are treated as literals, which could lead
+to unexpected results. Before using this compatibility option, each such grant
+should be carefully reviewed.
 
 <b>skip_invalid_accounts</b> - Skips accounts which do not have a password or
 use authentication methods (plugins) not supported by the MySQL HeatWave Service.
@@ -1418,6 +1421,13 @@ being stripped.
 HeatWave Service. If you'd like to have tables created in their default
 tablespaces, this option will strip the TABLESPACE= option from CREATE TABLE
 statements.
+
+<b>unescape_wildcard_grants</b> - Fixes grants on schemas with wildcards,
+replacing escaped <b>\\_</b> and <b>\\%</b> wildcards in schema names with
+<b>_</b> and <b>%</b> wildcard characters. When the <b>partial_revokes</b>
+system variable is enabled, the <b>\\</b> character is treated as a literal,
+which could lead to unexpected results. Before using this compatibility option,
+each such grant should be carefully reviewed.
 
 Additionally, the following changes will always be made to DDL scripts
 when the <b>ocimds</b> option is enabled:
@@ -1567,7 +1577,7 @@ HeatWave Service compatibility modifications when writing dump files. Supported
 values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
 "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
 "strip_definers", "strip_invalid_grants", "strip_restricted_grants",
-"strip_tablespaces".
+"strip_tablespaces", "unescape_wildcard_grants".
 @li <b>targetVersion</b>: string (default: current version of Shell) - Specifies
 version of the destination MySQL server.
 @li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
@@ -2280,7 +2290,7 @@ HeatWave Service compatibility modifications when copying the DDL. Supported
 values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
 "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
 "strip_definers", "strip_invalid_grants", "strip_restricted_grants",
-"strip_tablespaces".
+"strip_tablespaces", "unescape_wildcard_grants".
 
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 

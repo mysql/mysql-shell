@@ -93,8 +93,15 @@ TEST(utils_sqlstring, has_unescaped_sql_wildcard) {
   EXPECT_EQ(false, has_unescaped_sql_wildcard("\\%"));
   EXPECT_EQ(false, has_unescaped_sql_wildcard("\\_"));
 
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("_\\%"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("\\_%"));
+
+  EXPECT_EQ(false, has_unescaped_sql_wildcard("\\\\"));
   EXPECT_EQ(true, has_unescaped_sql_wildcard("\\\\%"));
   EXPECT_EQ(true, has_unescaped_sql_wildcard("\\\\_"));
+
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("\\\\%\\_"));
+  EXPECT_EQ(true, has_unescaped_sql_wildcard("\\%\\\\_"));
 
   EXPECT_EQ(true, has_unescaped_sql_wildcard("a%"));
   EXPECT_EQ(true, has_unescaped_sql_wildcard("a_"));
@@ -106,6 +113,71 @@ TEST(utils_sqlstring, has_unescaped_sql_wildcard) {
   EXPECT_EQ(false, has_unescaped_sql_wildcard("a"));
   EXPECT_EQ(false, has_unescaped_sql_wildcard("ab"));
   EXPECT_EQ(false, has_unescaped_sql_wildcard("abc"));
+}
+
+TEST(utils_sqlstring, has_escaped_sql_wildcard) {
+  EXPECT_EQ(false, has_escaped_sql_wildcard(""));
+
+  EXPECT_EQ(false, has_escaped_sql_wildcard("%"));
+  EXPECT_EQ(false, has_escaped_sql_wildcard("_"));
+
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\%"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\_"));
+
+  EXPECT_EQ(true, has_escaped_sql_wildcard("_\\%"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\_%"));
+
+  EXPECT_EQ(false, has_escaped_sql_wildcard("\\\\"));
+  EXPECT_EQ(false, has_escaped_sql_wildcard("\\\\%"));
+  EXPECT_EQ(false, has_escaped_sql_wildcard("\\\\_"));
+
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\\\%\\_"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\%\\\\_"));
+
+  EXPECT_EQ(true, has_escaped_sql_wildcard("a\\%"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("a\\_"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\%a"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("\\_a"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("a\\%b"));
+  EXPECT_EQ(true, has_escaped_sql_wildcard("a\\_b"));
+
+  EXPECT_EQ(false, has_escaped_sql_wildcard("a"));
+  EXPECT_EQ(false, has_escaped_sql_wildcard("ab"));
+  EXPECT_EQ(false, has_escaped_sql_wildcard("abc"));
+}
+
+TEST(utils_sqlstring, unescape_sql_wildcards) {
+  EXPECT_EQ("", unescape_sql_wildcards(""));
+
+  EXPECT_EQ("%", unescape_sql_wildcards("%"));
+  EXPECT_EQ("_", unescape_sql_wildcards("_"));
+
+  EXPECT_EQ("%", unescape_sql_wildcards("\\%"));
+  EXPECT_EQ("_", unescape_sql_wildcards("\\_"));
+
+  EXPECT_EQ("_%", unescape_sql_wildcards("_\\%"));
+  EXPECT_EQ("_%", unescape_sql_wildcards("\\_%"));
+
+  EXPECT_EQ("\\", unescape_sql_wildcards("\\"));
+  EXPECT_EQ("\\\\", unescape_sql_wildcards("\\\\"));
+  EXPECT_EQ("\\\\%", unescape_sql_wildcards("\\\\%"));
+  EXPECT_EQ("\\\\_", unescape_sql_wildcards("\\\\_"));
+
+  EXPECT_EQ("\\\\%_", unescape_sql_wildcards("\\\\%\\_"));
+  EXPECT_EQ("%\\\\_", unescape_sql_wildcards("\\%\\\\_"));
+
+  EXPECT_EQ("a%", unescape_sql_wildcards("a\\%"));
+  EXPECT_EQ("a_", unescape_sql_wildcards("a\\_"));
+  EXPECT_EQ("%a", unescape_sql_wildcards("\\%a"));
+  EXPECT_EQ("_a", unescape_sql_wildcards("\\_a"));
+  EXPECT_EQ("a%b", unescape_sql_wildcards("a\\%b"));
+  EXPECT_EQ("a_b", unescape_sql_wildcards("a\\_b"));
+  EXPECT_EQ("a_b%", unescape_sql_wildcards("a\\_b\\%"));
+  EXPECT_EQ("_a%b", unescape_sql_wildcards("\\_a\\%b"));
+
+  EXPECT_EQ("a", unescape_sql_wildcards("a"));
+  EXPECT_EQ("ab", unescape_sql_wildcards("ab"));
+  EXPECT_EQ("abc", unescape_sql_wildcards("abc"));
 }
 
 TEST(utils_sqlstring, match_sql_wild) {

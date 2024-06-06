@@ -2761,6 +2761,8 @@ TEST_F(Compatibility_test, parse_grant_statement) {
       EXPECT_EQ(expected.schema, info.schema);
       EXPECT_EQ(expected.object, info.object);
       EXPECT_EQ(expected.privileges, info.privileges);
+      EXPECT_EQ(expected.account, info.account);
+      EXPECT_EQ(expected.with_grant, info.with_grant);
     }
   };
 
@@ -2772,46 +2774,78 @@ TEST_F(Compatibility_test, parse_grant_statement) {
 
   using Level = Privilege_level_info::Level;
 
-  EXPECT("GRANT SUPER ON *.* TO u@h", true,
-         {true, Level::GLOBAL, "*", "*", {"SUPER"}});
-  EXPECT("REVOKE CREATE TABLESPACE, CREATE USER, FILE ON *.* FROM u@h", true,
+  EXPECT("GRANT SUPER ON *.* TO u@h WITH GRANT OPTION", true,
+         {true, Level::GLOBAL, "*", "*", {"SUPER"}, "u@h", true});
+  EXPECT("REVOKE CREATE TABLESPACE, CREATE USER, FILE ON *.* FROM 'u'@'h'",
+         true,
          {false,
           Level::GLOBAL,
           "*",
           "*",
-          {"CREATE TABLESPACE", "CREATE USER", "FILE"}});
+          {"CREATE TABLESPACE", "CREATE USER", "FILE"},
+          "'u'@'h'"});
 
-  EXPECT("GRANT EVENT, LOCK TABLES ON s.* TO u@h", true,
-         {true, Level::SCHEMA, "s", "*", {"EVENT", "LOCK TABLES"}});
+  EXPECT("GRANT EVENT, LOCK TABLES ON s.* TO `u`@`h`", true,
+         {true, Level::SCHEMA, "s", "*", {"EVENT", "LOCK TABLES"}, "`u`@`h`"});
   EXPECT("REVOKE LOCK TABLES ON s.* FROM u@h", true,
-         {false, Level::SCHEMA, "s", "*", {"LOCK TABLES"}});
+         {false, Level::SCHEMA, "s", "*", {"LOCK TABLES"}, "u@h"});
 
   EXPECT("GRANT SELECT, SHOW VIEW, TRIGGER ON s.t TO u@h", true,
-         {true, Level::TABLE, "s", "t", {"SELECT", "SHOW VIEW", "TRIGGER"}});
+         {true,
+          Level::TABLE,
+          "s",
+          "t",
+          {"SELECT", "SHOW VIEW", "TRIGGER"},
+          "u@h"});
   EXPECT("REVOKE ALTER ON TABLE s.t FROM u@h", true,
-         {false, Level::TABLE, "s", "t", {"ALTER"}});
+         {false, Level::TABLE, "s", "t", {"ALTER"}, "u@h"});
   EXPECT("GRANT SELECT (c1), INSERT(c1, c2) ON s.t TO u@h", true,
-         {true, Level::TABLE, "s", "t", {"SELECT", "INSERT"}});
+         {true, Level::TABLE, "s", "t", {"SELECT", "INSERT"}, "u@h"});
 
   EXPECT("GRANT ALTER ROUTINE ON FUNCTION s.f TO u@h", true,
-         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}});
+         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}, "u@h"});
   EXPECT("GRANT ALTER rOUTINE ON s.f TO u@h", true,
-         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}});
+         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}, "u@h"});
   EXPECT("REVOKE EXECUTE ON PROCEDURE s.r FROM u@h", true,
-         {false, Level::ROUTINE, "s", "r", {"EXECUTE"}});
+         {false, Level::ROUTINE, "s", "r", {"EXECUTE"}, "u@h"});
 
   EXPECT("GRANT PROXY ON r TO u@h", false, {});
   EXPECT("GRANT PROXY ON ''@'' TO u@h", false, {});
 
-  EXPECT("GRANT dev TO u@h", true, {true, Level::ROLE, "", "", {"dev"}});
-  EXPECT("REVOKE dev FROM u@h", true, {false, Level::ROLE, "", "", {"dev"}});
+  EXPECT("GRANT dev TO u@h WITH ADMIN OPTION", true,
+         {true, Level::ROLE, "", "", {"dev"}, "u@h", true});
+  EXPECT("REVOKE dev FROM 'u'@'h'", true,
+         {false, Level::ROLE, "", "", {"dev"}, "'u'@'h'"});
 
-  EXPECT("GRANT dev, admin@localhost TO u@h", true,
-         {true, Level::ROLE, "", "", {"dev", "admin@localhost"}});
+  EXPECT("GRANT dev, admin@localhost TO `u`@`h`", true,
+         {true, Level::ROLE, "", "", {"dev", "admin@localhost"}, "`u`@`h`"});
   EXPECT("REVOKE `admin`@`%`, dev FROM u@h", true,
-         {false, Level::ROLE, "", "", {"dev", "`admin`@`%`"}});
+         {false, Level::ROLE, "", "", {"dev", "`admin`@`%`"}, "u@h"});
 
-  EXPECT("GRANT proxy TO u@h", true, {true, Level::ROLE, "", "", {"proxy"}});
+  EXPECT("GRANT proxy TO u@h", true,
+         {true, Level::ROLE, "", "", {"proxy"}, "u@h"});
+}
+
+TEST_F(Compatibility_test, to_grant_statement) {
+  const auto EXPECT = [](const Privilege_level_info &info,
+                         const std::string &expected) {
+    SCOPED_TRACE(expected);
+
+    EXPECT_EQ(expected, to_grant_statement(info));
+  };
+
+  using Level = Privilege_level_info::Level;
+
+  EXPECT({true,
+          Level::SCHEMA,
+          "s",
+          "*",
+          {"EVENT", "LOCK TABLES"},
+          "`u`@`h`",
+          true},
+         "GRANT EVENT, LOCK TABLES ON `s`.* TO `u`@`h` WITH GRANT OPTION");
+  EXPECT({false, Level::SCHEMA, "s", "*", {"LOCK TABLES"}, "u@h"},
+         "REVOKE LOCK TABLES ON `s`.* FROM u@h");
 }
 
 }  // namespace compatibility
