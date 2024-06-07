@@ -251,11 +251,6 @@ py::Release py_register_module(const std::string &name, PyMethodDef *members) {
   return module;
 }
 
-void py_unregister_module(const std::string &name) {
-  // remove from sys.modules to decrement its refcount
-  PyDict_DelItemString(PyImport_GetModuleDict(), name.c_str());
-}
-
 py::Release py_run_string_interactive(const std::string &str, PyObject *globals,
                                       PyObject *locals,
                                       PyCompilerFlags *flags) {
@@ -614,7 +609,6 @@ Python_context::~Python_context() {
     _time_type.reset();
 
     _mysqlsh_globals.reset();
-    py_unregister_module("mysqlsh");
     _mysqlsh_module.reset();
 
     PyGC_Collect();

@@ -644,6 +644,12 @@ class PluginRegistrar:
                 try:
                     plugin_obj = getattr(mysqlsh.globals, name, None)
                 except KeyError:
+                    pass
+
+                # Cannot rely only on the key error, it could be the case
+                # where a global object is set to None, it should be created
+                # in that case too
+                if plugin_obj is None:
                     plugin_obj = shell_obj.create_extension_object()
                     shell_obj.register_global(name, plugin_obj, docs)
             return plugin_obj
