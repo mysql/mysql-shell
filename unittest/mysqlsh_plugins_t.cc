@@ -30,6 +30,7 @@
 #include "unittest/test_utils/command_line_test.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
+#include "my_config.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -994,14 +995,12 @@ shell.add_extension_object_member(global_obj, "common_%s", global_function)
 }
 
 #ifdef PYTHON_DEPS
-// This test emulates a plugins that uses the oci
-TEST_F(Mysqlsh_plugin_test, oci_and_paramiko_plugin) {
-  // Creates oci-paramiko plugin initialization file
-  write_user_plugin("oci-paramiko", R"(import oci
-import paramiko
+// This test emulates a plugins that uses the oci module
+TEST_F(Mysqlsh_plugin_test, oci_plugin) {
+  // Creates oci plugin initialization file
+  write_user_plugin("oci-plugin", R"(import oci
 
 print("OCI Version: {0}".format(oci.__version__))
-print("Paramiko Version: {0}".format(paramiko.__version__))
 )",
                     ".py");
 
@@ -1012,14 +1011,37 @@ print("Paramiko Version: {0}".format(paramiko.__version__))
   // NOTE: it is not important to check the OCI version, but just make sure that
   // there were no failures
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("No module named 'oci'");
-  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("No module named 'paramiko'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("OCI Version: ");
+
+  wipe_out();
+
+  delete_user_plugin("oci-plugin");
+}
+
+#ifndef LINUX_RHEL7
+// This test emulates a plugins that uses the paramiko module
+TEST_F(Mysqlsh_plugin_test, paramiko_plugin) {
+  // Creates paramiko plugin initialization file
+  write_user_plugin("paramiko-plugin", R"(import paramiko
+
+print("Paramiko Version: {0}".format(paramiko.__version__))
+)",
+                    ".py");
+
+  // run the test
+  run();
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+  // NOTE: it is not important to check the paramiko version, but just make sure
+  // that there were no failures
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("No module named 'paramiko'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Paramiko Version: ");
 
   wipe_out();
 
-  delete_user_plugin("oci-paramiko");
+  delete_user_plugin("paramiko-plugin");
 }
+#endif
 #endif
 
 TEST_F(Mysqlsh_plugin_test, error_reporting) {
