@@ -1414,20 +1414,24 @@ def collect_schema_stats(zf: zipfile.ZipFile,
             ("schema object overview",
              "select * from sys.schema_object_overview"),
             ("schema top biggest tables",
-             """select t.table_schema, t.table_name, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation,
-        json_objectagg(idx.index_name, json_object('columns', idx.col, 'type', idx.index_type, 'cardinality', idx.cardinality)) indexes,
-        group_concat((select concat(c.column_name, ':', c.column_type)
-          from information_schema.columns c
-          where c.table_schema = t.table_schema and c.table_name = t.table_name and c.column_type in ('blob'))) blobs
-    from information_schema.tables t
-    join (select s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality, json_arrayagg(concat(c.column_name, ':', c.column_type)) col
-          from information_schema.statistics s left join information_schema.columns c on s.table_schema=c.table_schema and s.table_name=c.table_name and s.column_name=c.column_name
-          group by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality
-          order by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality) idx
-    on idx.table_schema=t.table_schema and idx.table_name = t.table_name
-    where t.table_type = 'BASE TABLE' and t.table_schema not in ('mysql', 'information_schema', 'performance_schema')
-    group by t.table_schema, t.table_name, t.engine, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation
-    order by t.data_length desc limit 20"""),
+             """select t.table_schema, t.table_name, t.engine, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation,
+                    json_objectagg(idx.index_name, json_object('columns', idx.col, 'type', idx.index_type, 'cardinality', idx.cardinality)) indexes, blobs.columns blobs
+                from information_schema.tables t
+                join (
+                    select s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality, json_arrayagg(concat(c.column_name, ':', c.column_type)) col
+                    from information_schema.statistics s left join information_schema.columns c on s.table_schema=c.table_schema and s.table_name=c.table_name and s.column_name=c.column_name
+                    group by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality
+                    order by s.table_schema, s.table_name, s.index_name, s.index_type, s.cardinality
+                ) idx on idx.table_schema = t.table_schema and idx.table_name = t.table_name
+                left outer join (
+                    select c.table_schema, c.table_name, json_arrayagg(concat(c.column_name, ':', c.column_type)) columns
+                    from information_schema.columns c
+                    where c.column_type in ('tinyblob', 'blob', 'mediumblob', 'longblob')
+                    group by c.table_schema, c.table_name
+                ) blobs on blobs.table_schema = t.table_schema and blobs.table_name = t.table_name
+                where t.table_type = 'BASE TABLE' and t.table_schema not in ('mysql', 'information_schema', 'performance_schema')
+                group by t.table_schema, t.table_name, t.engine, t.row_format, t.table_rows, t.avg_row_length, t.data_length, t.max_data_length, t.index_length, t.table_collation
+                order by t.data_length desc limit 20"""),
             ("schema table engines", """SELECT ENGINE, COUNT(*) AS NUM_TABLES,
                 sys.format_bytes(SUM(DATA_LENGTH)) AS DATA_LENGTH,
                 sys.format_bytes(SUM(INDEX_LENGTH)) AS INDEX_LENGTH,

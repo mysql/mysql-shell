@@ -87,6 +87,23 @@ shell.log("info", b"test\xed\xf0")
 outpath = run_collect(__sandbox_uri1, None)
 EXPECT_FILE_CONTENTS(outpath, "mysqlsh.log", b"test\xed\xf0")
 
+#@<> ensure query works with tables with more than one blob (or similar) columns
+
+session1.run_sql("create table test.t1 (col1 int, col2 blob, col3 blob);")
+session1.run_sql("create unique index idx1 on test.t1 (col1);")
+
+session1.run_sql("create table test.t2 (col1 int, col2 blob(10), col3 blob(10));")
+session1.run_sql("create unique index idx2 on test.t2 (col1);")
+
+session1.run_sql("create table test.t3 (col1 int, col2 blob(10));")
+session1.run_sql("create unique index idx3 on test.t3 (col1);")
+
+outpath = run_collect(__sandbox_uri1, None, schemaStats=1)
+
+EXPECT_FILE_CONTENTS(outpath, "schema_top_biggest_tables.yaml", b'[\\"col2:blob\\", \\"col3:blob\\"]')
+EXPECT_FILE_CONTENTS(outpath, "schema_top_biggest_tables.yaml", b'[\\"col2:tinyblob\\", \\"col3:tinyblob\\"]')
+EXPECT_FILE_CONTENTS(outpath, "schema_top_biggest_tables.yaml", b'[\\"col2:tinyblob\\"]')
+
 #@<> BUG#34048754 - 'path' set to an empty string should result in an error - all
 # TSFR_1_3_3
 def check(outpath):
