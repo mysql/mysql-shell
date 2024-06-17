@@ -93,8 +93,9 @@ void File::open(Mode m) {
   bool do_chmod = true;
 
 #ifdef _WIN32
-  const wchar_t *mode =
-      m == Mode::READ ? L"rb" : m == Mode::WRITE ? L"wb" : L"ab";
+  const wchar_t *mode = m == Mode::READ    ? L"rb"
+                        : m == Mode::WRITE ? L"wb"
+                                           : L"ab";
   m_file = _wfsopen(wpath.c_str(), mode, _SH_DENYWR);
 
   if (m_use_mmap == Mmap_preference::REQUIRED)

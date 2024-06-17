@@ -402,7 +402,7 @@ class Progress_thread final {
 
  private:
   template <class T, class... Args>
-  Stage *start_stage(const std::string &description, Args &&... args);
+  Stage *start_stage(const std::string &description, Args &&...args);
 
   void shutdown();
 

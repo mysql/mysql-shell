@@ -1335,11 +1335,10 @@ void Shell_script_tester::load_validations(const std::string &path) {
 void Shell_script_tester::execute_script(const std::string &path,
                                          bool in_chunks, bool is_pre_script) {
   // If no path is provided then executes the setup script
-  std::string script(path.empty()
-                         ? _setup_script
-                         : is_pre_script ? PRE_SCRIPT(path)
-                                         : _new_format ? NEW_TEST_SCRIPT(path)
-                                                       : TEST_SCRIPT(path));
+  std::string script(path.empty()    ? _setup_script
+                     : is_pre_script ? PRE_SCRIPT(path)
+                     : _new_format   ? NEW_TEST_SCRIPT(path)
+                                     : TEST_SCRIPT(path));
   std::ifstream stream(script.c_str());
 
   if (!stream.fail()) {

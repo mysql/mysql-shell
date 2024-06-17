@@ -1702,7 +1702,7 @@ class Dumper::Memory_dumper final {
   template <typename... Args>
   void dump(std::vector<Schema_dumper::Issue> (Schema_dumper::*func)(
                 IFile *, const std20::remove_cvref_t<Args> &...),
-            Args &&... args) {
+            Args &&...args) {
     auto issues = (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
 
     m_issues.insert(m_issues.end(), std::make_move_iterator(issues.begin()),
@@ -1712,7 +1712,7 @@ class Dumper::Memory_dumper final {
   template <typename... Args>
   void dump(void (Schema_dumper::*func)(IFile *,
                                         const std20::remove_cvref_t<Args> &...),
-            Args &&... args) {
+            Args &&...args) {
     (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
   }
 

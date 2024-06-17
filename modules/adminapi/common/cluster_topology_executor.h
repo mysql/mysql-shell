@@ -54,11 +54,11 @@ class Cluster_topology_executor : private TCluster_topology_op {
 
  public:
   template <typename... Args>
-  explicit Cluster_topology_executor(Args &&... args)
+  explicit Cluster_topology_executor(Args &&...args)
       : TCluster_topology_op(std::forward<Args>(args)...) {}
 
   template <typename... TArgs>
-  auto run(TArgs &&... args) {
+  auto run(TArgs &&...args) {
     try {
       shcore::Scoped_callback undo([&]() { m_undo_list.cancel(); });
 

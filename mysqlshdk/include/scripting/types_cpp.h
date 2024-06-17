@@ -1542,7 +1542,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   template <typename R, typename C, typename... A>
   Cpp_function::Metadata *expose_(const std::string &name, R (C::*func)(A...),
                                   const std::vector<std::string> &docs,
-                                  Type_info_t<A> &&... defs) {
+                                  Type_info_t<A> &&...defs) {
     return expose__<R, std::function<R(A...)>, A...>(
         name,
         [this, func](A... args) -> R {
@@ -1555,7 +1555,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   Cpp_function::Metadata *expose_(const std::string &name,
                                   R (C::*func)(A...) const,
                                   const std::vector<std::string> &docs,
-                                  Type_info_t<A> &&... defs) {
+                                  Type_info_t<A> &&...defs) {
     return expose__<R, std::function<R(A...)>, A...>(
         name,
         [this, func](A... args) -> R {
@@ -1567,7 +1567,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   template <typename R, typename... A>
   Cpp_function::Metadata *expose_(const std::string &name, R (*func)(A...),
                                   const std::vector<std::string> &docs,
-                                  Type_info_t<A> &&... defs) {
+                                  Type_info_t<A> &&...defs) {
     return expose__<R, std::function<R(A...)>, A...>(name, func, docs,
                                                      std::move(defs)...);
   }
@@ -1576,7 +1576,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   Cpp_function::Metadata *expose_(const std::string &name,
                                   std::function<R(A...)> &&func,
                                   const std::vector<std::string> &docs,
-                                  Type_info_t<A> &&... defs) {
+                                  Type_info_t<A> &&...defs) {
     return expose__<R, std::function<R(A...)>, A...>(name, std::move(func),
                                                      docs, std::move(defs)...);
   }
@@ -1605,7 +1605,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   template <typename R, typename F, typename... A>
   Cpp_function::Metadata *expose__(const std::string &name, F &&func,
                                    const std::vector<std::string> &docs,
-                                   Type_info_t<A> &&... defs) {
+                                   Type_info_t<A> &&...defs) {
     assert(func != nullptr);
     assert(!name.empty());
     assert(docs.size() == sizeof...(A));

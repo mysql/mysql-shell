@@ -423,7 +423,7 @@ void Progress_thread::terminate() { emergency_shutdown(); }
 
 template <class T, class... Args>
 Progress_thread::Stage *Progress_thread::start_stage(
-    const std::string &description, Args &&... args) {
+    const std::string &description, Args &&...args) {
   if (!m_progress_thread) {
     start();
   }

@@ -241,12 +241,12 @@ class IInstance {
 
   template <typename... Args>
   inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
-      const std::string &sql, const Args &... args) const {
+      const std::string &sql, const Args &...args) const {
     return query(shcore::sqlformat(sql, args...));
   }
 
   template <typename... Args>
-  inline void executef(const std::string &sql, const Args &... args) const {
+  inline void executef(const std::string &sql, const Args &...args) const {
     execute(shcore::sqlformat(sql, args...));
   }
 
@@ -254,7 +254,7 @@ class IInstance {
   inline std::string queryf_one_string(int32_t column_index,
                                        const std::string &default_if_null,
                                        const std::string &sql,
-                                       const Args &... args) const {
+                                       const Args &...args) const {
     auto result = query(shcore::sqlformat(sql, args...));
     if (auto row = result->fetch_one())
       return row->get_as_string(column_index, default_if_null);
@@ -264,7 +264,7 @@ class IInstance {
   template <typename... Args>
   inline int64_t queryf_one_int(int32_t column_index, int64_t default_if_null,
                                 const std::string &sql,
-                                const Args &... args) const {
+                                const Args &...args) const {
     auto result = query(shcore::sqlformat(sql, args...));
     if (auto row = result->fetch_one())
       return row->get_int(column_index, default_if_null);

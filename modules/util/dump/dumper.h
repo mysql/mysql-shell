@@ -87,7 +87,7 @@ class Dumper {
   template <typename... Args>
   static inline void executef(
       const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
-      Args &&... args) {
+      Args &&...args) {
     session->executef(sql, std::forward<Args>(args)...);
   }
 

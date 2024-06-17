@@ -38,8 +38,9 @@ bool decode_base64(const std::string &source, std::string *target) {
   assert(target);
   //--- Unencodes the Public Key Data
   size_t size = source.size();
-  size_t padding =
-      source[size - 2] == '=' ? 2 : source[size - 1] == '=' ? 1 : 0;
+  size_t padding = source[size - 2] == '='   ? 2
+                   : source[size - 1] == '=' ? 1
+                                             : 0;
 
   const size_t expected_size = (size * 3) / 4 - padding;
 

@@ -456,7 +456,7 @@ class Dump_loader {
   template <typename... Args>
   static inline void executef(
       const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
-      Args &&... args) {
+      Args &&...args) {
     session->executef(sql, std::forward<Args>(args)...);
   }
 
@@ -470,7 +470,7 @@ class Dump_loader {
   }
 
   template <typename... Args>
-  inline void executef(const char *sql, Args &&... args) {
+  inline void executef(const char *sql, Args &&...args) {
     executef(m_session, sql, std::forward<Args>(args)...);
   }
 

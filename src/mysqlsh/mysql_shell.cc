@@ -1092,12 +1092,11 @@ bool Mysql_shell::redirect_session_if_needed(bool secondary,
   const auto dev_session = shell_context()->get_dev_session();
   const std::string target = secondary ? "SECONDARY" : "PRIMARY";
   const auto session =
-      opts.has_data()
-          ? establish_session(opts, options().wizards)
-          : dev_session && dev_session->is_open()
-                ? dev_session->get_core_session()
-                : throw std::runtime_error("Redirecting to a " + target +
-                                           " requires an active session.");
+      opts.has_data() ? establish_session(opts, options().wizards)
+      : dev_session && dev_session->is_open()
+          ? dev_session->get_core_session()
+          : throw std::runtime_error("Redirecting to a " + target +
+                                     " requires an active session.");
   auto connection = session->get_connection_options();
   const auto uri = connection.as_uri();
 

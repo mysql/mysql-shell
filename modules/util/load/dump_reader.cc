@@ -937,7 +937,7 @@ void Dump_reader::Table_data_info::rescan_data(const Files &files,
   bool found_data = false;
 
   const auto try_to_add_chunk = [&files, reader, &found_data,
-                                 this](auto &&... params) {
+                                 this](auto &&...params) {
     static_assert(sizeof...(params) == 0 || sizeof...(params) == 2);
 
     // default values for non-chunked case

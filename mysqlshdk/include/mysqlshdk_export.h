@@ -28,18 +28,18 @@
 
 #define SHCORE_PUBLIC
 
-//#ifdef _WIN32
-//# ifdef _DLL
-//#  ifdef SHCORE_EXPORT
-//#   define SHCORE_PUBLIC __declspec(dllexport)
-//#  else
-//#   define SHCORE_PUBLIC __declspec(dllimport)
-//#  endif
-//# else
-//#  define SHCORE_PUBLIC
-//# endif
-//#else
-//# define SHCORE_PUBLIC
-//#endif
+// #ifdef _WIN32
+// # ifdef _DLL
+// #  ifdef SHCORE_EXPORT
+// #   define SHCORE_PUBLIC __declspec(dllexport)
+// #  else
+// #   define SHCORE_PUBLIC __declspec(dllimport)
+// #  endif
+// # else
+// #  define SHCORE_PUBLIC
+// # endif
+// #else
+// # define SHCORE_PUBLIC
+// #endif
 
 #endif

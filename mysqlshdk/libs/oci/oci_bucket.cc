@@ -59,7 +59,7 @@ void encode_json_helper(shcore::JSON_dumper *json, K &&key, V &&value) {
 
 template <typename K, typename V, typename... Args>
 void encode_json_helper(shcore::JSON_dumper *json, K &&key, V &&value,
-                        Args &&... args) {
+                        Args &&...args) {
   encode_json_helper(json, std::forward<K>(key), std::forward<V>(value));
   encode_json_helper(json, std::forward<Args>(args)...);
 }
@@ -67,7 +67,7 @@ void encode_json_helper(shcore::JSON_dumper *json, K &&key, V &&value,
 }  // namespace detail
 
 template <typename... Args>
-std::string encode_json(Args &&... args) {
+std::string encode_json(Args &&...args) {
   shcore::JSON_dumper json;
   json.start_object();
   detail::encode_json_helper(&json, std::forward<Args>(args)...);

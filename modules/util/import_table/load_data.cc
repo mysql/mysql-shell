@@ -588,7 +588,7 @@ void Load_data_worker::execute(
       return session->query(sql);
     };
     const auto execute = [&session](const auto &sql) { session->execute(sql); };
-    const auto executef = [&session](const auto &sql, auto &&... args) {
+    const auto executef = [&session](const auto &sql, auto &&...args) {
       session->executef(sql, std::forward<decltype(args)>(args)...);
     };
 
