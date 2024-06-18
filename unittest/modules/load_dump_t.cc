@@ -599,7 +599,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
   }
 
   template <typename... Options>
-  void load_dump(int num_threads, bool check_scheduling, Options &&... opts) {
+  void load_dump(int num_threads, bool check_scheduling, Options &&...opts) {
     auto dir = std::make_unique<tests::Dummy_dump_directory>(
         shcore::path::join_path(g_test_home, "data/load/test_dump1"),
         test_dump1_files, test_dump1_files_size);

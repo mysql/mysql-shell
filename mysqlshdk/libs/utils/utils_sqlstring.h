@@ -201,7 +201,7 @@ class SHCORE_PUBLIC sqlstring {
  * @return query string with placeholders substituted
  */
 template <typename... Args>
-inline std::string sqlformat(std::string s, Args &&... args) {
+inline std::string sqlformat(std::string s, Args &&...args) {
   sqlstring sqls(std::move(s), 0);
 
   if constexpr (sizeof...(args) > 0) (sqls << ... << args);

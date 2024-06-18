@@ -57,7 +57,7 @@ class [[nodiscard]] Lock_scoped {
   Lock_scoped(const Lock_scoped &) = delete;
   Lock_scoped &operator=(const Lock_scoped &) = delete;
 
-  Lock_scoped(Lock_scoped && o) noexcept { *this = std::move(o); }
+  Lock_scoped(Lock_scoped &&o) noexcept { *this = std::move(o); }
   Lock_scoped &operator=(Lock_scoped &&o) noexcept {
     if (this != &o) std::swap(m_callback, o.m_callback);
     return *this;
@@ -89,7 +89,7 @@ class [[nodiscard]] Lock_scoped_list {
   Lock_scoped_list(const Lock_scoped_list &) = delete;
   Lock_scoped_list &operator=(const Lock_scoped_list &) = delete;
 
-  Lock_scoped_list(Lock_scoped_list && o) noexcept { *this = std::move(o); }
+  Lock_scoped_list(Lock_scoped_list &&o) noexcept { *this = std::move(o); }
   Lock_scoped_list &operator=(Lock_scoped_list &&o) noexcept {
     if (this != &o) std::swap(m_callbacks, o.m_callbacks);
     return *this;
@@ -120,7 +120,7 @@ class [[nodiscard]] Lock_scoped_list {
   }
 
   template <class TCapture>
-  void push_back(Lock_scoped lock, TCapture && capture) {
+  void push_back(Lock_scoped lock, TCapture &&capture) {
     if (!lock) return;
     m_callbacks.push_back(
         [capture = std::forward<TCapture>(capture),

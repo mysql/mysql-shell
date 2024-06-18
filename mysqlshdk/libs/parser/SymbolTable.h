@@ -413,7 +413,7 @@ class PARSERS_PUBLIC_TYPE SymbolTable : public ScopedSymbol {
 
   // The returned symbol instance is managed by this table.
   template <typename T, typename... Args>
-  T *addNewSymbol(ScopedSymbol *parent_, Args &&... args) {
+  T *addNewSymbol(ScopedSymbol *parent_, Args &&...args) {
     T *result = new T(std::forward<Args>(args)...);
 
     lock();

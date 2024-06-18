@@ -39,7 +39,7 @@ constexpr auto k_all_users_old = "ALLUSERS_OLD";
 constexpr auto k_upgrade_code = "UpgradeCode";
 
 template <typename... Args>
-[[nodiscard]] std::string format(const char *fmt, Args &&... args) {
+[[nodiscard]] std::string format(const char *fmt, Args &&...args) {
   const auto size = snprintf(nullptr, 0, fmt, std::forward<Args>(args)...);
 
   if (size < 0) {

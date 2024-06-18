@@ -82,8 +82,9 @@ void ShellBaseResult::dump() {
   bool is_row_result = class_name() == "RowResult";
 
   bool is_query = is_doc_result || is_row_result;
-  std::string item_label =
-      is_doc_result ? "document" : is_result ? "item" : "row";
+  std::string item_label = is_doc_result ? "document"
+                           : is_result   ? "item"
+                                         : "row";
 
   mysqlsh::dump_result(result, item_label, is_query, is_doc_result);
 

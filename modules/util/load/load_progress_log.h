@@ -696,8 +696,9 @@ class Load_progress_log final {
   };
 
   template <typename T>
-  inline static void append(Dumper *json,
-                            const T &entry) requires(!progress::Log_entry<T>) {
+  inline static void append(Dumper *json, const T &entry)
+    requires(!progress::Log_entry<T>)
+  {
     json->append(entry.key, entry.value);
   }
 
@@ -863,8 +864,9 @@ class Load_progress_log final {
   }
 
   template <typename T>
-  inline void write_log(bool done, const T &entry) requires(
-      progress::Log_entry<T> || std::is_same_v<T, Set_server_uuid>) {
+  inline void write_log(bool done, const T &entry)
+    requires(progress::Log_entry<T> || std::is_same_v<T, Set_server_uuid>)
+  {
     if (!m_file) {
       return;
     }
@@ -891,7 +893,8 @@ class Load_progress_log final {
 
   template <typename T>
   Last_state::const_iterator find(const T &entry) const
-      requires(progress::Status_entry<T> || std::is_base_of_v<Server_uuid, T>) {
+    requires(progress::Status_entry<T> || std::is_base_of_v<Server_uuid, T>)
+  {
     if (m_last_state.empty()) {
       return m_last_state.end();
     }

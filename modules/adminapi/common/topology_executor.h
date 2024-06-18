@@ -57,11 +57,11 @@ class Topology_executor final : private TTopology_op {
 
  public:
   template <typename... Args>
-  explicit Topology_executor(Args &&... args)
+  explicit Topology_executor(Args &&...args)
       : TTopology_op(std::forward<Args>(args)...) {}
 
   template <typename... TArgs>
-  auto run(TArgs &&... args) {
+  auto run(TArgs &&...args) {
     try {
       return TTopology_op::do_run(std::forward<TArgs>(args)...);
     } catch (...) {

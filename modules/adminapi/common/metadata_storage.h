@@ -747,7 +747,7 @@ class MetadataStorage {
 
   template <typename... Args>
   inline std::shared_ptr<mysqlshdk::db::IResult> execute_sqlf(
-      const std::string &sql, const Args &... args) const {
+      const std::string &sql, const Args &...args) const {
     return execute_sql(shcore::sqlformat(sql, args...));
   }
 

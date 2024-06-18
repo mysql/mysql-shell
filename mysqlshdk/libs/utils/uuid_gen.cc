@@ -38,10 +38,10 @@
 // clang-format on
 #endif
 
-#include <iostream>
-#include <iomanip>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
 
 #if !defined(__linux__)
 #if !defined(HAVE_ULONG)
@@ -70,10 +70,10 @@ typedef struct thread_attr {
 
 #else
 
-#include <unistd.h>
 #include <fcntl.h>
-#include <fstream>
 #include <sys/time.h>
+#include <unistd.h>
+#include <fstream>
 
 #endif
 
@@ -143,10 +143,10 @@ struct rand_struct uuid_rand;
 #ifdef __FreeBSD__
 
 #include <net/ethernet.h>
-#include <sys/sysctl.h>
-#include <net/route.h>
 #include <net/if.h>
 #include <net/if_dl.h>
+#include <net/route.h>
+#include <sys/sysctl.h>
 
 /*
   my_gethwaddr - FreeBSD version
@@ -188,9 +188,9 @@ err:
 
 #elif __linux__
 
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-#include <net/ethernet.h>
 
 #define MAX_IFS 64
 /*
