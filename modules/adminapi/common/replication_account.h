@@ -174,16 +174,18 @@ class Replication_account {
   std::string get_replication_user_host() const;
 
   template <class T>
-      requires std::is_same_v<T, Cluster_impl> ||
-      std::is_same_v<T, Cluster_set_impl> ||
-      std::is_same_v<T, Replica_set_impl> bool topo_holds() const {
+    requires std::is_same_v<T, Cluster_impl> ||
+             std::is_same_v<T, Cluster_set_impl> ||
+             std::is_same_v<T, Replica_set_impl> bool
+  topo_holds() const {
     return std::holds_alternative<std::reference_wrapper<T>>(m_topo);
   }
 
   template <class T>
-      requires std::is_same_v<T, Cluster_impl> ||
-      std::is_same_v<T, Cluster_set_impl> ||
-      std::is_same_v<T, Replica_set_impl> const auto &topo_as() const {
+    requires std::is_same_v<T, Cluster_impl> ||
+             std::is_same_v<T, Cluster_set_impl> ||
+             std::is_same_v<T, Replica_set_impl>
+  const auto &topo_as() const {
     return std::get<std::reference_wrapper<T>>(m_topo).get();
   }
 

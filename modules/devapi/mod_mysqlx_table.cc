@@ -446,7 +446,7 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  * #### Deleting records with a limit
  * \snippet mysqlx_table_delete.js TableDelete: with limit
  */
-TableDelete Table::delete () {}
+TableDelete Table::delete() {}
 #elif DOXYGEN_PY
 /**
  * #### Deleting records with a condition
@@ -461,7 +461,7 @@ TableDelete Table::delete () {}
  * #### Deleting records with a limit
  * \snippet mysqlx_table_delete.py TableDelete: with limit
  */
-TableDelete Table::delete () {}
+TableDelete Table::delete() {}
 #endif
 shcore::Value Table::delete_(const shcore::Argument_list &args) {
   std::shared_ptr<TableDelete> tableDelete(new TableDelete(shared_from_this()));

@@ -460,7 +460,7 @@ void Progress_thread::hide() { toggle_visibility(false); }
 
 template <class T, class... Args>
 Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
-                                                     Args &&... args) {
+                                                     Args &&...args) {
   auto stage =
       push_stage<T>(std::move(stage_config), std::forward<Args>(args)...);
   stage->start();
@@ -469,7 +469,7 @@ Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
 
 template <class T, class... Args>
 Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
-                                                    Args &&... args) {
+                                                    Args &&...args) {
   if (!m_progress_thread) {
     start();
   }

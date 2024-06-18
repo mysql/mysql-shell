@@ -58,7 +58,7 @@ class TableDelete : public Table_crud_definition,
   shcore::Value order_by(const shcore::Argument_list &args);
   shcore::Value execute(const shcore::Argument_list &args) override;
 #if DOXYGEN_JS
-  TableDelete delete ();
+  TableDelete delete();
   TableDelete where(String expression);
   TableDelete orderBy(List sortCriteria);
   TableDelete orderBy(String sortCriterion[, String sortCriterion, ...]);
@@ -66,7 +66,7 @@ class TableDelete : public Table_crud_definition,
   TableDelete bind(String name, Value value);
   Result execute();
 #elif DOXYGEN_PY
-  TableDelete delete ();
+  TableDelete delete();
   TableDelete where(str expression);
   TableDelete order_by(list sortCriteria);
   TableDelete order_by(str sortCriterion[, str sortCriterion, ...]);

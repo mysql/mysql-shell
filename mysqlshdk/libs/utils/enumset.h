@@ -40,7 +40,7 @@ class Enum_set {
   constexpr Enum_set() noexcept : _value(0) {}
 
   template <typename... T>
-  constexpr explicit Enum_set(Enum value, T &&... values) noexcept
+  constexpr explicit Enum_set(Enum value, T &&...values) noexcept
       : _value(ord(value)) {
     if constexpr (sizeof...(values) > 0)
       _value = ((_value | ord(values)) | ...);

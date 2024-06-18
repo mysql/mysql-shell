@@ -165,7 +165,7 @@ inline bool str_caseeq_pair(std::basic_string_view<Char> a,
 }
 
 template <typename Char, typename... T>
-inline bool str_caseeq(std::basic_string_view<Char> a, T &&... tokens) {
+inline bool str_caseeq(std::basic_string_view<Char> a, T &&...tokens) {
   return (str_caseeq_pair<Char>(a, std::forward<T>(tokens)) || ...);
 }
 
@@ -173,13 +173,13 @@ inline bool str_caseeq(std::basic_string_view<Char> a, T &&... tokens) {
 
 template <typename... T>
 inline bool str_caseeq(std::string_view a, std::string_view token,
-                       T &&... tokens) {
+                       T &&...tokens) {
   return internal::str_caseeq(a, token, std::forward<T>(tokens)...);
 }
 
 template <typename... T>
 inline bool str_caseeq(std::wstring_view a, std::wstring_view token,
-                       T &&... tokens) {
+                       T &&...tokens) {
   return internal::str_caseeq(a, token, std::forward<T>(tokens)...);
 }
 
@@ -193,7 +193,7 @@ inline bool str_beginswith_pair(std::basic_string_view<Char> s,
 }
 
 template <typename Char, typename... T>
-inline bool str_beginswith(std::basic_string_view<Char> s, T &&... prefixes) {
+inline bool str_beginswith(std::basic_string_view<Char> s, T &&...prefixes) {
   return (str_beginswith_pair<Char>(s, std::forward<T>(prefixes)) || ...);
 }
 
@@ -201,13 +201,13 @@ inline bool str_beginswith(std::basic_string_view<Char> s, T &&... prefixes) {
 
 template <typename... T>
 inline bool str_beginswith(std::string_view s, std::string_view prefix,
-                           T &&... prefixes) {
+                           T &&...prefixes) {
   return internal::str_beginswith(s, prefix, std::forward<T>(prefixes)...);
 }
 
 template <typename... T>
 inline bool str_beginswith(std::wstring_view s, std::wstring_view prefix,
-                           T &&... prefixes) {
+                           T &&...prefixes) {
   return internal::str_beginswith(s, prefix, std::forward<T>(prefixes)...);
 }
 
@@ -221,7 +221,7 @@ inline bool str_ibeginswith_pair(std::basic_string_view<Char> s,
 }
 
 template <typename Char, typename... T>
-inline bool str_ibeginswith(std::basic_string_view<Char> s, T &&... prefixes) {
+inline bool str_ibeginswith(std::basic_string_view<Char> s, T &&...prefixes) {
   return (str_ibeginswith_pair<Char>(s, std::forward<T>(prefixes)) || ...);
 }
 
@@ -229,13 +229,13 @@ inline bool str_ibeginswith(std::basic_string_view<Char> s, T &&... prefixes) {
 
 template <typename... T>
 inline bool str_ibeginswith(std::string_view s, std::string_view prefix,
-                            T &&... prefixes) {
+                            T &&...prefixes) {
   return internal::str_ibeginswith(s, prefix, std::forward<T>(prefixes)...);
 }
 
 template <typename... T>
 inline bool str_ibeginswith(std::wstring_view s, std::wstring_view prefix,
-                            T &&... prefixes) {
+                            T &&...prefixes) {
   return internal::str_ibeginswith(s, prefix, std::forward<T>(prefixes)...);
 }
 
@@ -250,7 +250,7 @@ inline bool str_endswith_pair(std::basic_string_view<Char> s,
 }
 
 template <typename Char, typename... T>
-inline bool str_endswith(std::basic_string_view<Char> s, T &&... suffixes) {
+inline bool str_endswith(std::basic_string_view<Char> s, T &&...suffixes) {
   return (str_endswith_pair<Char>(s, std::forward<T>(suffixes)) || ...);
 }
 
@@ -258,13 +258,13 @@ inline bool str_endswith(std::basic_string_view<Char> s, T &&... suffixes) {
 
 template <typename... T>
 inline bool str_endswith(std::string_view s, std::string_view suffix,
-                         T &&... suffixes) {
+                         T &&...suffixes) {
   return internal::str_endswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
 template <typename... T>
 inline bool str_endswith(std::wstring_view s, std::wstring_view suffix,
-                         T &&... suffixes) {
+                         T &&...suffixes) {
   return internal::str_endswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
@@ -279,7 +279,7 @@ inline bool str_iendswith_pair(std::basic_string_view<Char> s,
 }
 
 template <typename Char, typename... T>
-inline bool str_iendswith(std::basic_string_view<Char> s, T &&... suffixes) {
+inline bool str_iendswith(std::basic_string_view<Char> s, T &&...suffixes) {
   return (str_iendswith_pair<Char>(s, std::forward<T>(suffixes)) || ...);
 }
 
@@ -287,13 +287,13 @@ inline bool str_iendswith(std::basic_string_view<Char> s, T &&... suffixes) {
 
 template <typename... T>
 inline bool str_iendswith(std::string_view s, std::string_view suffix,
-                          T &&... suffixes) {
+                          T &&...suffixes) {
   return internal::str_iendswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
 template <typename... T>
 inline bool str_iendswith(std::wstring_view s, std::wstring_view suffix,
-                          T &&... suffixes) {
+                          T &&...suffixes) {
   return internal::str_iendswith(s, suffix, std::forward<T>(suffixes)...);
 }
 
@@ -539,7 +539,7 @@ std::string SHCORE_PUBLIC str_replace(std::string_view s, std::string_view from,
 
 template <typename... Args>
 inline std::string str_replace(std::string_view s, std::string_view from,
-                               std::string_view to, const Args &... rest) {
+                               std::string_view to, const Args &...rest) {
   return str_replace(str_replace(s, from, to), rest...);
 }
 

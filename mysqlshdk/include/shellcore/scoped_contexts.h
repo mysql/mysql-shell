@@ -73,7 +73,7 @@ std::decay_t<T> decay_copy(T &&v) {
 }
 
 template <class Function, class... Args>
-std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
+std::thread spawn_scoped_thread(Function &&f, Args &&...args) {
   auto thd_current_logger = shcore::current_logger(true);
   auto thd_current_shell_opts = mysqlsh::current_shell_options(true);
   auto thd_current_interrupt = shcore::current_interrupt(true);
@@ -84,7 +84,7 @@ std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
       [f = decay_copy(std::forward<Function>(f)), thd_current_logger,
        thd_current_shell_opts, thd_current_interrupt, thd_current_console,
        thd_current_ssh_manager,
-       thd_current_log_sql](const std::decay_t<Args> &... a) {
+       thd_current_log_sql](const std::decay_t<Args> &...a) {
         mysqlsh::Scoped_logger logger(thd_current_logger);
         mysqlsh::Scoped_shell_options shell_opts(thd_current_shell_opts);
         mysqlsh::Scoped_interrupt interrupt(thd_current_interrupt);
@@ -99,7 +99,7 @@ std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
 }  // namespace detail
 
 template <class Function, class... Args>
-std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
+std::thread spawn_scoped_thread(Function &&f, Args &&...args) {
   return detail::spawn_scoped_thread(std::forward<Function>(f),
                                      std::forward<Args>(args)...);
 }
@@ -107,10 +107,10 @@ std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
 template <
     class Function, class C, class... Args,
     std::enable_if_t<std::is_member_pointer<std::decay_t<Function>>{}, int> = 0>
-std::thread spawn_scoped_thread(Function &&f, C &&c, Args &&... args) {
+std::thread spawn_scoped_thread(Function &&f, C &&c, Args &&...args) {
   return detail::spawn_scoped_thread(
       [f = detail::decay_copy(std::forward<Function>(f)),
-       c = std::forward<C>(c)](const std::decay_t<Args> &... a) {
+       c = std::forward<C>(c)](const std::decay_t<Args> &...a) {
         (const_cast<C *>(&c)->*f)(a...);
       },
       std::forward<Args>(args)...);

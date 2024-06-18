@@ -531,7 +531,7 @@ class IRetry_strategy {
    * @returns Pointer to the added condition.
    */
   template <typename T, typename... Args>
-  T *add_condition(Args &&... args) {
+  T *add_condition(Args &&...args) {
     return add_condition(std::make_unique<T>(std::forward<Args>(args)...));
   }
 

@@ -354,7 +354,7 @@ class Private_key_storage {
   Private_key_storage() = default;
 
   template <typename... Args>
-  Private_key from_file_impl(const std::string &path, Args &&... args);
+  Private_key from_file_impl(const std::string &path, Args &&...args);
 
   Key_library m_store;
   mutable std::mutex m_store_mutex;

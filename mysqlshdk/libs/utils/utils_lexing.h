@@ -450,7 +450,7 @@ class SQL_iterator {
   bool inside_hint() const { return m_comment_hint; }
 
   template <class... Types>
-  bool consume_tokens(Types &&... tokens) {
+  bool consume_tokens(Types &&...tokens) {
     if (!valid()) return false;
     return (shcore::str_caseeq(next_token(), std::forward<Types>(tokens)) &&
             ...);

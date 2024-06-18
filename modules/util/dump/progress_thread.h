@@ -393,9 +393,10 @@ class Progress_thread final {
    * @returns stage which was created.
    */
   template <typename T>
-  inline Stage *start_stage(std::string description, T &&config) requires(
-      std::is_same_v<T, Progress_config> ||
-      std::is_same_v<T, Throughput_config>) {
+  inline Stage *start_stage(std::string description, T &&config)
+    requires(std::is_same_v<T, Progress_config> ||
+             std::is_same_v<T, Throughput_config>)
+  {
     return start_stage(Stage_config{std::move(description)},
                        std::forward<T>(config));
   }
@@ -453,9 +454,10 @@ class Progress_thread final {
    * @returns stage which was created.
    */
   template <typename T>
-  inline Stage *push_stage(std::string description, T &&config) requires(
-      std::is_same_v<T, Progress_config> ||
-      std::is_same_v<T, Throughput_config>) {
+  inline Stage *push_stage(std::string description, T &&config)
+    requires(std::is_same_v<T, Progress_config> ||
+             std::is_same_v<T, Throughput_config>)
+  {
     return push_stage(Stage_config{std::move(description)},
                       std::forward<T>(config));
   }
@@ -528,10 +530,10 @@ class Progress_thread final {
 
  private:
   template <class T, class... Args>
-  Stage *start_stage(Stage_config stage_config, Args &&... args);
+  Stage *start_stage(Stage_config stage_config, Args &&...args);
 
   template <class T, class... Args>
-  Stage *push_stage(Stage_config stage_config, Args &&... args);
+  Stage *push_stage(Stage_config stage_config, Args &&...args);
 
   void shutdown();
 

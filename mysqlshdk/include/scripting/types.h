@@ -436,7 +436,7 @@ typedef Value::Array_type_ref Array_t;
 inline Dictionary_t make_dict() { return std::make_shared<Value::Map_type>(); }
 
 template <typename K, typename V, typename... Arg>
-inline Dictionary_t make_dict(K &&key, V &&value, Arg &&... args) {
+inline Dictionary_t make_dict(K &&key, V &&value, Arg &&...args) {
   Dictionary_t dict = make_dict(std::forward<Arg>(args)...);
   dict->emplace(std::forward<K>(key), std::forward<V>(value));
   return dict;
@@ -445,7 +445,7 @@ inline Dictionary_t make_dict(K &&key, V &&value, Arg &&... args) {
 inline Array_t make_array() { return std::make_shared<Value::Array_type>(); }
 
 template <typename... Arg>
-inline Array_t make_array(Arg &&... args) {
+inline Array_t make_array(Arg &&...args) {
   auto array = make_array();
   (void)std::initializer_list<int>{
       (array->emplace_back(std::forward<Arg>(args)), 0)...};

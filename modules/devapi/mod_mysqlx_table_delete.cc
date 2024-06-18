@@ -121,9 +121,9 @@ REGISTER_HELP(TABLEDELETE_DELETE_DETAIL1,
  */
 //@{
 #if DOXYGEN_JS
-TableDelete TableDelete::delete () {}
+TableDelete TableDelete::delete() {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::delete () {}
+TableDelete TableDelete::delete() {}
 #endif
 //@}
 shcore::Value TableDelete::remove(const shcore::Argument_list &args) {

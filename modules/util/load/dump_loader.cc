@@ -114,7 +114,7 @@ inline std::shared_ptr<mysqlshdk::db::IResult> query(const Session_ptr &session,
 
 template <typename... Args>
 inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
-    const Session_ptr &session, const char *sql, Args &&... args) {
+    const Session_ptr &session, const char *sql, Args &&...args) {
   return session->queryf(sql, std::forward<Args>(args)...);
 }
 
@@ -124,14 +124,14 @@ inline void execute(const Session_ptr &session, std::string_view sql) {
 
 template <typename... Args>
 inline void executef(const Session_ptr &session, const char *sql,
-                     Args &&... args) {
+                     Args &&...args) {
   session->executef(sql, std::forward<Args>(args)...);
 }
 
 namespace ar {  // auto-reconnect
 
 template <typename F, typename... Args>
-auto run(const Reconnect &reconnect, const F &execute, Args &&... args) {
+auto run(const Reconnect &reconnect, const F &execute, Args &&...args) {
   bool reconnected = false;
 
   while (true) {
@@ -160,10 +160,10 @@ inline std::shared_ptr<mysqlshdk::db::IResult> query(const Reconnect &reconnect,
 template <typename... Args>
 inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
     const Reconnect &reconnect, const Session_ptr &session, std::string sql,
-    Args &&... args) {
+    Args &&...args) {
   return run(
       reconnect,
-      [&session, sql = std::move(sql)](auto &&... a) {
+      [&session, sql = std::move(sql)](auto &&...a) {
         return session->queryf(std::move(sql), std::forward<decltype(a)>(a)...);
       },
       std::forward<Args>(args)...);
@@ -176,10 +176,10 @@ inline void execute(const Reconnect &reconnect, const Session_ptr &session,
 
 template <typename... Args>
 inline void executef(const Reconnect &reconnect, const Session_ptr &session,
-                     std::string sql, Args &&... args) {
+                     std::string sql, Args &&...args) {
   return run(
       reconnect,
-      [&session, sql = std::move(sql)](auto &&... a) {
+      [&session, sql = std::move(sql)](auto &&...a) {
         session->executef(std::move(sql), std::forward<decltype(a)>(a)...);
       },
       std::forward<Args>(args)...);

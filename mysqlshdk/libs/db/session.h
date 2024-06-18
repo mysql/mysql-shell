@@ -176,13 +176,13 @@ class SHCORE_PUBLIC ISession {
    * auto result = session->queryf("SELECT * FROM tbl WHERE id = ?", my_id);
    */
   template <typename... Args>
-  inline std::shared_ptr<IResult> queryf(std::string sql, Args &&... args) {
+  inline std::shared_ptr<IResult> queryf(std::string sql, Args &&...args) {
     return query(
         shcore::sqlformat(std::move(sql), std::forward<Args>(args)...));
   }
 
   template <typename... Args>
-  inline void executef(std::string sql, Args &&... args) {
+  inline void executef(std::string sql, Args &&...args) {
     execute(shcore::sqlformat(std::move(sql), std::forward<Args>(args)...));
   }
 

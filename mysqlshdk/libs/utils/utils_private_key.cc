@@ -442,7 +442,7 @@ Private_key Private_key_storage::from_file(
 
 template <typename... Args>
 Private_key Private_key_storage::from_file_impl(const std::string &path,
-                                                Args &&... args) {
+                                                Args &&...args) {
   const auto id = Private_key_id::from_path(path);
 
   {

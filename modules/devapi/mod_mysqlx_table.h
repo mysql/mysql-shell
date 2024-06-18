@@ -55,14 +55,14 @@ class Table : public DatabaseObject,
   TableInsert insert(...);
   TableSelect select(...);
   TableUpdate update();
-  TableDelete delete ();
+  TableDelete delete();
   Bool isView();
   Integer count();
 #elif DOXYGEN_PY
   TableInsert insert(...);
   TableSelect select(...);
   TableUpdate update();
-  TableDelete delete ();
+  TableDelete delete();
   bool is_view();
   int count();
 #endif
