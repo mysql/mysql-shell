@@ -25,6 +25,8 @@
 
 #include "modules/adminapi/cluster/add_instance.h"
 
+#include "adminapi/cluster/api_options.h"
+#include "adminapi/cluster_set/cluster_set_impl.h"
 #include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/connectivity_check.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -415,6 +417,61 @@ void Add_instance::prepare(checks::Check_type check_type,
           m_comm_stack);
 
       current_console()->print_info();
+    }
+  }
+
+  // Replication compatibility checks
+  {
+    // If the instance is a potential source for a Read-Replica, check its
+    // replication compatibility
+    m_cluster_impl->execute_in_read_replicas(
+        [this](const std::shared_ptr<Instance> &instance,
+               const Instance_metadata &) {
+          // Get the replication sources
+          auto sources = m_cluster_impl->get_read_replica_replication_sources(
+              instance->get_uuid());
+
+          // If replicationSources is "primary" or "secondary", any added
+          // instance can be a potential. Otherwise, it cannot be a potential
+          // source
+          if (sources.source_type != Source_type::CUSTOM) {
+            m_cluster_impl->check_compatible_replication_sources(
+                *m_target_instance, *instance, nullptr, true);
+          }
+
+          return true;
+        },
+        [](const shcore::Error &, const Instance_metadata &) { return true; });
+
+    // If the Cluster is a PRIMARY Cluster of a ClusterSet, verify if the
+    // instance being added/rejoined is compatible with all active members of
+    // all Replica Clusters (potential replicas). If the Cluster is a REPLICA
+    // Cluster, verify if the instance being added/rejoined is compatible with
+    // all active members of the PRIMARY Cluster (potential sources)
+    if (m_cluster_impl->is_cluster_set_member()) {
+      if (m_cluster_impl->is_primary_cluster()) {
+        auto cs_clusters =
+            m_cluster_impl->get_cluster_set_object()->connect_all_clusters(
+                true, nullptr, false, true);
+
+        for (const auto &replica_cluster : cs_clusters) {
+          const auto potential_replicas =
+              replica_cluster->get_active_instances();
+
+          for (const auto &replica : potential_replicas) {
+            replica_cluster->check_compatible_replication_sources(
+                *m_target_instance, *replica, nullptr, true);
+          }
+        }
+      } else {
+        const auto potential_sources = m_cluster_impl->get_cluster_set_object()
+                                           ->get_primary_cluster()
+                                           ->get_active_instances();
+
+        m_cluster_impl->check_compatible_replication_sources(
+            *m_cluster_impl->get_primary_master(), *m_target_instance,
+            &potential_sources);
+      }
     }
   }
 

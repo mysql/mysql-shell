@@ -32,6 +32,7 @@
 #include <string>
 #include <utility>
 
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"

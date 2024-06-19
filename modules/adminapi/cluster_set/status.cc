@@ -29,7 +29,6 @@
 
 #include "modules/adminapi/cluster_set/status.h"
 #include "modules/adminapi/common/common_status.h"
-#include "modules/adminapi/common/sql.h"
 
 namespace mysqlsh {
 namespace dba {

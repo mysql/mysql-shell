@@ -34,10 +34,10 @@
 
 #include <assert.h>
 #include <list>
-#include <numeric>
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
@@ -344,6 +344,14 @@ void Star_global_topology_manager::validate_adopt_cluster(
       validate_unsupported_options(server->label, *channel, server_version);
 
       console->print_info("Replication state of " + server->label + " is OK.");
+
+      // Verify the versions compatibility
+      Scoped_instance primary_instance(
+          current_ipool()->connect_unchecked_endpoint(
+              primary->get_primary_member()->endpoint));
+
+      Base_cluster_impl::check_compatible_replication_sources(*primary_instance,
+                                                              *instance);
     }
   }
 }

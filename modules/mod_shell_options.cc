@@ -81,6 +81,10 @@ enabled.
 @li dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
 come back after a restart during clone recovery
 
+@li dba.versionCompatibilityChecks: bool, checks version compatibility for
+asynchronous replication when managing a ReplicaSet, ClusterSet, or a Cluster
+with Read-Replicas.
+
 @li defaultCompress: Enable compression in client/server
 protocol by default in global shell sessions.
 

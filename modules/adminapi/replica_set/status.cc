@@ -29,12 +29,14 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/replication_account.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+#include "mysqlshdk/libs/mysql/version_compatibility.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -44,7 +46,8 @@ namespace {
 
 void instance_diagnostics(shcore::Dictionary_t status,
                           const topology::Server &server,
-                          const topology::Instance &instance) {
+                          const topology::Instance &instance,
+                          const topology::Node *primary) {
   shcore::Array_t issues = shcore::make_array();
 
   // invalidated member
@@ -183,12 +186,25 @@ void instance_diagnostics(shcore::Dictionary_t status,
     }
   }
 
+  // Check replication compatibility
+  if (primary && primary->status() == topology::Node_status::ONLINE) {
+    auto src_endpoint = primary->get_primary_member()->endpoint;
+    auto repl_endpoint = instance.endpoint;
+    auto src_version = primary->get_primary_member()->version;
+    auto rpl_version = instance.version;
+
+    Base_cluster_impl::check_replication_version_compatibility(
+        src_endpoint, repl_endpoint, src_version, rpl_version, false, false,
+        &issues);
+  }
+
   if (!issues->empty()) {
     status->set("instanceErrors", shcore::Value(issues));
   }
 }
 
 shcore::Dictionary_t server_status(const topology::Server &server,
+                                   const topology::Node *primary,
                                    int show_details) {
   const topology::Instance *instance = server.get_primary_member();
 
@@ -323,7 +339,7 @@ shcore::Dictionary_t server_status(const topology::Server &server,
       }
     }
 
-    instance_diagnostics(status, server, *instance);
+    instance_diagnostics(status, server, *instance, primary);
   }
 
   return status;
@@ -396,17 +412,17 @@ shcore::Dictionary_t cluster_status(
     const topology::Server_global_topology &topology, int show_details) {
   shcore::Dictionary_t topo_status = shcore::make_dict();
 
+  const topology::Node *primary = topology.get_primary_master_node();
+
   for (const topology::Server &server : topology.servers()) {
-    topo_status->set(server.label,
-                     shcore::Value(server_status(server, show_details)));
+    topo_status->set(server.label, shcore::Value(server_status(server, primary,
+                                                               show_details)));
   }
 
   Global_availability_status astatus;
   std::string astatus_text;
 
   std::tie(astatus, astatus_text) = global_availability_status(topology);
-
-  const topology::Node *primary = topology.get_primary_master_node();
 
   return shcore::make_dict(
       "type", shcore::Value("ASYNC"),                        //

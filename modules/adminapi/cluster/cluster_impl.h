@@ -31,8 +31,6 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -239,12 +237,15 @@ class Cluster_impl final : public Base_cluster_impl,
   void validate_replication_sources(
       const std::set<Managed_async_channel_source,
                      std::greater<Managed_async_channel_source>> &sources,
-      const std::string &target_instance_address,
-      std::string_view target_instance_uuid, bool is_rejoin,
+      const mysqlshdk::mysql::IInstance &target_instance, bool is_rejoin,
       std::vector<std::string> *out_sources_canonical_address = nullptr) const;
 
   cluster::Replication_sources get_read_replica_replication_sources(
       const std::string &replica_uuid) const;
+
+  void ensure_compatible_donor(const mysqlshdk::mysql::IInstance &donor,
+                               const mysqlshdk::mysql::IInstance &recipient,
+                               Member_recovery_method recovery_method);
 
   /**
    * Reset the password of the recovery_account or the target instance's
@@ -402,7 +403,10 @@ class Cluster_impl final : public Base_cluster_impl,
    * @return vector with the Instance definition of the ONLINE
    * and RECOVERING instances.
    */
-  std::vector<Instance_metadata> get_active_instances(
+  std::vector<Instance_metadata> get_active_instances_md(
+      bool online_only = false) const;
+
+  std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> get_active_instances(
       bool online_only = false) const;
 
   /**

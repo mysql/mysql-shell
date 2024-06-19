@@ -29,7 +29,8 @@
 #include <iterator>
 #include <set>
 
-#include "adminapi/common/common.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/server_features.h"
@@ -37,7 +38,6 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "utils/utils_string.h"
 #include "utils/version.h"
@@ -566,6 +566,29 @@ void Rescan::add_instance_to_metadata(
     cnx_opts.set_login_options_from(
         m_cluster->get_cluster_server()->get_connection_options());
   }
+
+  // If the instance is a potential source for a Read-Replica, check its
+  // replication compatibility
+  m_cluster->execute_in_read_replicas(
+      [this, &instance_cnx_opts](const std::shared_ptr<Instance> &instance,
+                                 const Instance_metadata &) {
+        // Get the replication sources
+        auto sources = m_cluster->get_read_replica_replication_sources(
+            instance->get_uuid());
+
+        // If replicationSources is "primary" or "secondary", any added instance
+        // can be a potential. Otherwise, it cannot be a potential source
+        if (sources.source_type != Source_type::CUSTOM) {
+          auto target_instance = Scoped_instance(
+              m_cluster->connect_target_instance(instance_cnx_opts));
+
+          Base_cluster_impl::check_compatible_replication_sources(
+              *target_instance, *instance, nullptr, true);
+        }
+
+        return true;
+      },
+      [](const shcore::Error &, const Instance_metadata &) { return true; });
 
   m_cluster->add_metadata_for_instance(cnx_opts, Instance_type::GROUP_MEMBER);
 

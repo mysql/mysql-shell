@@ -731,6 +731,9 @@ Shell_options::Shell_options(
         "Checks SSL settings and network connectivity between instances when "
         "creating a cluster, replicaset or clusterset, or adding an instance "
         "to one.")
+    (&storage.dba_version_compatibility_checks, true, SHCORE_DBA_VERSION_COMPATIBILITY_CHECKS,
+        "Checks version compatibility for asynchronous replication when "
+        "managing a ReplicaSet, ClusterSet, or a Cluster with Read-Replicas.")
     (&storage.wizards, true, SHCORE_USE_WIZARDS, "Enables wizard mode.")
     (&storage.initial_mode, shcore::IShell_core::Mode::None,
         "defaultMode", "Specifies the shell mode to use when shell is started "

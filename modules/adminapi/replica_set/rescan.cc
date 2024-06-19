@@ -24,8 +24,7 @@
  */
 
 #include "modules/adminapi/replica_set/rescan.h"
-
-#include <ranges>
+#include <cstdio>
 
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/replication_account.h"
@@ -204,6 +203,8 @@ void Rescan::scan_topology(bool add_unmanaged, bool remove_obsolete,
 
       const Scoped_instance target_instance(
           m_rset.connect_target_instance(endpoint));
+
+      m_rset.check_compatible_replication_sources(*primary, target_instance);
 
       Instance_metadata inst = query_instance_info(*target_instance, false);
       inst.cluster_id = m_rset.get_id();

@@ -248,6 +248,16 @@ void Create_replica_cluster::prepare() {
                             SHERR_DBA_CLUSTER_UNSUPPORTED_REPLICATION_CHANNEL);
   }
 
+  // Check if the replication source is compatible and all potential sources
+  // from the primary cluster
+  {
+    const auto potential_sources =
+        m_cluster_set->get_primary_cluster()->get_active_instances();
+
+    m_cluster_set->check_compatible_replication_sources(
+        *m_primary_instance, *m_target_instance, &potential_sources);
+  }
+
   // Store the current value of super_read_only
   bool super_read_only =
       m_target_instance->get_sysvar_bool("super_read_only", false);

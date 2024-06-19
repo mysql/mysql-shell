@@ -311,6 +311,7 @@
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
+ dba.versionCompatibilityChecks  true
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -351,6 +352,7 @@
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
+ dba.versionCompatibilityChecks  true (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
@@ -472,6 +474,7 @@
  dba.gtidWaitTimeout             60
  dba.logSql                      0
  dba.restartWaitTimeout          60
+ dba.versionCompatibilityChecks  true
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
@@ -513,6 +516,7 @@ Switching to SQL mode... Commands end with ;
  dba.gtidWaitTimeout             60 (Compiled default)
  dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
+ dba.versionCompatibilityChecks  true (Compiled default)
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)

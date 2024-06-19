@@ -57,7 +57,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
-#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -895,6 +894,8 @@ void Replica_set_impl::validate_add_instance(
   validate_instance_ssl_mode(Cluster_type::ASYNC_REPLICATION, *target_instance,
                              ar_options->ssl_mode);
 
+  check_compatible_replication_sources(*m_primary_master, *target_instance);
+
   auto console = current_console();
   // check consistency of the global topology
   console->print_info();
@@ -1205,6 +1206,8 @@ topology::Node_status Replica_set_impl::validate_rejoin_instance(
 
   // regular instance checks
   validate_instance(target);
+
+  check_compatible_replication_sources(*m_primary_master, *target);
 
   // Check instance status and consistency with the global topology
   auto status = topology_mng->validate_rejoin_replica(target);
@@ -1823,6 +1826,16 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   console->print_info();
 
   console->print_info("* Performing validation checks");
+
+  // Check if the replication source and potential ones are compatible
+  {
+    std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> potential_sources(
+        instances.list().begin(), instances.list().end());
+
+    check_compatible_replication_sources(*new_master, *master,
+                                         &potential_sources);
+  }
+
   topology->validate_switch_primary(master.get(), new_master.get(),
                                     instances.list());
   console->print_info();
@@ -2161,6 +2174,18 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
 
   // Validate instance to be promoted.
   topology->validate_force_primary(new_master.get(), instances);
+
+  // Check if the replication source and potential ones are compatible
+  {
+    std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> potential_sources(
+        instances.begin(), instances.end());
+
+    Scoped_instance promoted_instance(ipool->connect_unchecked_endpoint(
+        promoted->get_primary_member()->endpoint));
+
+    check_compatible_replication_sources(*new_master, *promoted_instance,
+                                         &potential_sources);
+  }
 
   if (invalidate_ids.size() > 0) {
     console->print_note(shcore::str_format(

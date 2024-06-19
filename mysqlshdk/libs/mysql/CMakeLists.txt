@@ -38,6 +38,7 @@ set(mysql_SOURCE
     gtid_utils.cc
     binlog_utils.cc
     undo.cc
+    version_compatibility.cc
 )
 
 add_convenience_library(mysql ${mysql_SOURCE})

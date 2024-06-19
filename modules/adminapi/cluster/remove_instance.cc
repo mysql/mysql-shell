@@ -63,7 +63,7 @@ void Remove_instance::ensure_not_last_instance_in_cluster(
   }
 
   log_debug("Checking if the instance is the last ONLINE one in the cluster");
-  auto online_instances = m_cluster_impl->get_active_instances(true);
+  auto online_instances = m_cluster_impl->get_active_instances_md(true);
   if (online_instances.size() == 1 &&
       online_instances[0].uuid == removed_uuid) {
     mysqlsh::current_console()->print_error(

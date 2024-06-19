@@ -48,10 +48,12 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/mysql/version_compatibility.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/version.h"
+#include "utils/logger.h"
 
 namespace mysqlsh::dba {
 
@@ -630,6 +632,154 @@ bool Base_cluster_impl::verify_compatible_clone_versions(
   return false;
 }
 
+void Base_cluster_impl::check_replication_version_compatibility(
+    const std::string &source_descr, const std::string &replica_descr,
+    const mysqlshdk::utils::Version &source_version,
+    const mysqlshdk::utils::Version &replica_version, bool is_potential,
+    bool log_only, shcore::Array_t *instance_errors) {
+  const char *potential_str = is_potential ? "potential " : "";
+
+  enum class Message_type { ERROR, WARNING, INFO };
+
+  auto format_message = [&](Message_type type, const std::string &msg) {
+    // If instance_errors, add the info to it and return right away
+    if (instance_errors) {
+      switch (type) {
+        case Message_type::ERROR:
+          (*instance_errors)->push_back(shcore::Value("ERROR: " + msg));
+          break;
+        case Message_type::WARNING:
+          (*instance_errors)->push_back(shcore::Value("WARNING: " + msg));
+          break;
+        case Message_type::INFO:
+          log_debug("%s", msg.c_str());
+          break;
+      }
+      return;
+    }
+
+    switch (type) {
+      case Message_type::ERROR: {
+        if (log_only) {
+          log_info(
+              "%s NOTE: Check ignored due to 'dba.versionCompatibilityChecks' "
+              "being disabled.",
+              msg.c_str());
+        } else {
+          mysqlsh::current_console()->print_error(msg);
+          throw shcore::Exception("Incompatible replication source version",
+                                  SHERR_DBA_REPLICATION_INCOMPATIBLE_SOURCE);
+        }
+        break;
+      }
+      case Message_type::WARNING: {
+        if (log_only) {
+          log_info(
+              "%s NOTE: Check ignored due to 'dba.versionCompatibilityChecks' "
+              "being disabled.",
+              msg.c_str());
+        } else {
+          mysqlsh::current_console()->print_warning(msg);
+          mysqlsh::current_console()->print_info();
+        }
+        break;
+      }
+      case Message_type::INFO: {
+        log_debug("%s", msg.c_str());
+        break;
+      }
+    }
+  };
+
+  auto compatibility = mysqlshdk::mysql::verify_compatible_replication_versions(
+      source_version, replica_version);
+
+  switch (compatibility) {
+    case mysqlshdk::mysql::Replication_version_compatibility::INCOMPATIBLE: {
+      std::string error_message = shcore::str_format(
+          "The %sreplication source ('%s') is running version %s, which is "
+          "incompatible with the target replica's ('%s') version %s. If you "
+          "understand the limitations and potential issues, use the "
+          "'dba.versionCompatibilityChecks' option to bypass this check.",
+          potential_str, source_descr.c_str(),
+          source_version.get_full().c_str(), replica_descr.c_str(),
+          replica_version.get_full().c_str());
+      format_message(Message_type::ERROR, error_message);
+      break;
+    }
+    case mysqlshdk::mysql::Replication_version_compatibility::DOWNGRADE_ONLY: {
+      std::string warning_message = shcore::str_format(
+          "The %sreplication source ('%s') is running version %s, which "
+          "has limited compatibility with the target instance's ('%s') "
+          "version %s. This setup should only be used for rollback purposes, "
+          "where new functionality from version %s is not yet utilized. It "
+          "is not suitable for regular continuous production deployment.",
+          potential_str, source_descr.c_str(),
+          source_version.get_full().c_str(), replica_descr.c_str(),
+          replica_version.get_full().c_str(),
+          source_version.get_full().c_str());
+      format_message(Message_type::WARNING, warning_message);
+      break;
+    }
+    case mysqlshdk::mysql::Replication_version_compatibility::COMPATIBLE: {
+      std::string info_message = shcore::str_format(
+          "The %sreplication source's ('%s') version (%s) is compatible "
+          "with the replica instance's ('%s') version (%s).",
+          potential_str, source_descr.c_str(),
+          source_version.get_full().c_str(), replica_descr.c_str(),
+          replica_version.get_full().c_str());
+      format_message(Message_type::INFO, info_message);
+      break;
+    }
+  }
+}
+
+void Base_cluster_impl::check_compatible_replication_sources(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica,
+    const std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>>
+        *potential_sources,
+    bool potential) {
+  using mysqlshdk::mysql::Replication_version_compatibility;
+
+  // If dba.versionCompatibilityChecks is disabled, all checks are done but only
+  // logged.
+  bool log_only =
+      !current_shell_options()->get().dba_version_compatibility_checks;
+
+  auto check = [&](const mysqlshdk::mysql::IInstance &src, bool is_potential) {
+    auto source_version = src.get_version();
+    auto replica_version = replica.get_version();
+
+    check_replication_version_compatibility(src.descr(), replica.descr(),
+                                            source_version, replica_version,
+                                            is_potential, log_only, nullptr);
+  };
+
+  if (potential_sources && !potential_sources->empty()) {
+    for (const auto &potential_source : *potential_sources) {
+      check(*potential_source,
+            potential_source->get_uuid() != source.get_uuid());
+    }
+  } else {
+    check(source, potential);
+  }
+}
+
+void Base_cluster_impl::add_incompatible_replication_source_issues(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica, bool potential,
+    shcore::Array_t &instance_errors) {
+  auto src_endpoint = source.descr();
+  auto repl_endpoint = replica.descr();
+  auto src_version = source.get_version();
+  auto rpl_version = replica.get_version();
+
+  check_replication_version_compatibility(source.descr(), replica.descr(),
+                                          src_version, rpl_version, potential,
+                                          false, &instance_errors);
+}
+
 void Base_cluster_impl::check_compatible_clone_donor(
     const mysqlshdk::mysql::IInstance &donor,
     const mysqlshdk::mysql::IInstance &recipient) {
@@ -661,8 +811,8 @@ void Base_cluster_impl::check_compatible_clone_donor(
             donor_version, recipient_version)) {
       throw shcore::Exception(
           shcore::str_format(
-              "Instance '%s' cannot be a donor because its version (%s) isn't "
-              "compatible with the recipient's (%s).",
+              "Instance '%s' cannot be a donor because its "
+              "version (%s) isn't compatible with the recipient's (%s).",
               donor.get_canonical_address().c_str(),
               donor_version.get_full().c_str(),
               recipient_version.get_full().c_str()),

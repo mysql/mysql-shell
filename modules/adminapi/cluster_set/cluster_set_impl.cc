@@ -2385,9 +2385,27 @@ void Cluster_set_impl::set_primary_cluster(
     for (auto &c : clusters) c->release_primary();
   });
 
-  // put an exclusive lock on each reachable cluster
-  for (const auto &cluster : clusters)
+  // Check the replication compatibility and put an exclusive lock on each
+  // reachable cluster
+  for (const auto &cluster : clusters) {
+    if (promoted_cluster->get_id() != cluster->get_id()) {
+      // Check if the replication source is compatible, i.e. the primary member
+      // of the primary with with the primary member of the promoted cluster.
+      // Also, check if all potential replicas are compatible
+      for (const auto &replica : cluster->get_active_instances()) {
+        if (replica->get_uuid() == cluster->get_cluster_server()->get_uuid()) {
+          check_compatible_replication_sources(*promoted,
+                                               *cluster->get_cluster_server());
+          continue;
+        }
+
+        check_compatible_replication_sources(*promoted, *replica, nullptr,
+                                             true);
+      }
+    }
+
     api_locks.push_back(cluster->get_lock_exclusive());
+  }
 
   // another set of connections for locks
   // get triggered before server-side timeouts
@@ -2970,10 +2988,28 @@ void Cluster_set_impl::force_primary_cluster(
     for (auto &c : clusters) c->release_primary();
   });
 
-  // put an exclusive lock on each reachable cluster
+  // Check the replication compatibility and put an exclusive lock on each
+  // reachable cluster
   mysqlshdk::mysql::Lock_scoped_list api_locks;
-  for (const auto &cluster : clusters)
+  for (const auto &cluster : clusters) {
+    if (promoted_cluster->get_id() != cluster->get_id()) {
+      // Check if the replication source is compatible, i.e. the primary member
+      // of the primary with with the primary member of the promoted cluster.
+      // Also, check if all potential replicas are compatible
+      for (const auto &replica : cluster->get_active_instances()) {
+        if (replica->get_uuid() == cluster->get_cluster_server()->get_uuid()) {
+          check_compatible_replication_sources(*promoted,
+                                               *cluster->get_cluster_server());
+          continue;
+        }
+
+        check_compatible_replication_sources(*promoted, *replica, nullptr,
+                                             true);
+      }
+    }
+
     api_locks.push_back(cluster->get_lock_exclusive());
+  }
 
   // another set of connections for locks
   // get triggered before server-side timeouts
@@ -3315,6 +3351,20 @@ void Cluster_set_impl::rejoin_cluster(
                                          &reset_repl_channel);
 
   auto repl_source = primary_cluster->get_cluster_server();
+
+  // Check if the replication source is compatible, i.e. the primary member of
+  // the rejoining cluster with the primary member of the primary cluster.
+  // Also, check all potential replicas (all cluster members)
+  const auto potential_replicas = rejoining_cluster->get_active_instances();
+
+  for (const auto &replica : potential_replicas) {
+    if (replica->get_uuid() == rejoining_primary->get_uuid()) {
+      check_compatible_replication_sources(*repl_source, *rejoining_primary);
+      continue;
+    }
+
+    check_compatible_replication_sources(*repl_source, *replica, nullptr, true);
+  }
 
   if (refresh_only) {
     // update replica cluster if the primary isn't the one being "rejoined"

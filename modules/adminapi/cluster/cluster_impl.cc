@@ -71,6 +71,7 @@
 #include "modules/adminapi/common/topology_executor.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba_utils.h"
+#include "mysql/instance.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -621,7 +622,7 @@ void Cluster_impl::ensure_metadata_has_server_id(
       });
 }
 
-std::vector<Instance_metadata> Cluster_impl::get_active_instances(
+std::vector<Instance_metadata> Cluster_impl::get_active_instances_md(
     bool online_only) const {
   if (online_only)
     return get_instances({mysqlshdk::gr::Member_state::ONLINE});
@@ -630,9 +631,24 @@ std::vector<Instance_metadata> Cluster_impl::get_active_instances(
                           mysqlshdk::gr::Member_state::RECOVERING});
 }
 
+std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>>
+Cluster_impl::get_active_instances(bool online_only) const {
+  std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> active_instances;
+
+  auto active_instances_md = get_active_instances_md(online_only);
+
+  for (const auto &active_instance : active_instances_md) {
+    auto potential_source =
+        get_session_to_cluster_instance(active_instance.address);
+    active_instances.push_back(std::move(potential_source));
+  }
+
+  return active_instances;
+}
+
 std::shared_ptr<mysqlsh::dba::Instance> Cluster_impl::get_online_instance(
     const std::string &exclude_uuid) const {
-  std::vector<Instance_metadata> instances(get_active_instances());
+  std::vector<Instance_metadata> instances(get_active_instances_md());
 
   // Get the cluster connection credentials to use to connect to instances.
   mysqlshdk::db::Connection_options cluster_cnx_opts =
@@ -2430,7 +2446,7 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   {
     std::vector<Instance_metadata> online_instances =
-        get_active_instances(false);
+        get_active_instances_md(false);
 
     if (online_instances.empty()) {
       throw shcore::Exception::logic_error(
@@ -2652,6 +2668,33 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   // Restart the replication channel of the Read-Replicas
   for (const auto &rr : online_read_replicas) {
+    cluster::Replication_sources replication_sources =
+        get_read_replica_replication_sources(rr.second.uuid);
+
+    using mysqlshdk::gr::Member_state;
+    execute_in_members(
+        {Member_state::ONLINE, Member_state::RECOVERING, Member_state::OFFLINE},
+        get_cluster_server()->get_connection_options(), {},
+        [&rr, &replication_sources](const std::shared_ptr<Instance> &instance,
+                                    const mysqlshdk::gr::Member &) {
+          // If not a potential source of the read-replica skip it (if primary
+          // or secondary, we must check all members since all of them are
+          // potential sources)
+          if (replication_sources.source_type == cluster::Source_type::CUSTOM) {
+            Managed_async_channel_source managed_src_address(
+                instance->get_canonical_address());
+            if (std::find(replication_sources.replication_sources.begin(),
+                          replication_sources.replication_sources.end(),
+                          managed_src_address) ==
+                replication_sources.replication_sources.end()) {
+              return true;
+            }
+          }
+
+          check_compatible_replication_sources(*instance, *rr.first);
+          return true;
+        });
+
     try {
       start_channel(*rr.first, k_read_replica_async_channel_name, false);
       log_info(
@@ -3088,7 +3131,7 @@ void Cluster_impl::setup_read_replica(
     } else if (replication_sources.source_type ==
                cluster::Source_type::SECONDARY) {
       // Get an online member to use as source, preferably a secondary
-      auto instances_md = get_active_instances();
+      auto instances_md = get_active_instances_md();
 
       for (const auto &instance : instances_md) {
         // Skip the primary only if there are more than 1 ONLINE members,
@@ -3175,9 +3218,11 @@ void Cluster_impl::setup_read_replica(
 void Cluster_impl::validate_replication_sources(
     const std::set<Managed_async_channel_source,
                    std::greater<Managed_async_channel_source>> &sources,
-    const std::string &target_instance_address,
-    std::string_view target_instance_uuid, bool is_rejoin,
+    const mysqlshdk::mysql::IInstance &target_instance, bool is_rejoin,
     std::vector<std::string> *out_sources_canonical_address) const {
+  auto target_instance_address = target_instance.get_canonical_address();
+  auto target_instance_uuid = target_instance.get_uuid();
+
   // Check if the replicationSources are reachable and ONLINE cluster members
   for (const auto &source : sources) {
     std::shared_ptr<Instance> source_instance;
@@ -3299,6 +3344,9 @@ void Cluster_impl::validate_replication_sources(
           "Source is not ONLINE",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
     }
+
+    // Verify the versions compatibility
+    check_compatible_replication_sources(*source_instance, target_instance);
   }
 }
 
@@ -3345,6 +3393,40 @@ cluster::Replication_sources Cluster_impl::get_read_replica_replication_sources(
   }
 
   return replication_sources_opts;
+}
+
+void Cluster_impl::ensure_compatible_donor(
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient,
+    Member_recovery_method recovery_method) {
+  if (recovery_method == Member_recovery_method::CLONE) {
+    ensure_compatible_clone_donor(donor, recipient);
+  } else {
+    // Check if the source is valid
+    auto donor_address = donor.get_canonical_address();
+
+    // check if the source belongs to the cluster (MD)
+    try {
+      get_metadata_storage()->get_instance_by_address(donor_address, get_id());
+    } catch (const shcore::Exception &e) {
+      if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+
+      throw shcore::Exception(
+          shcore::str_format("Instance '%s' does not belong to the Cluster",
+                             donor_address.c_str()),
+          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
+    }
+
+    // check source state
+    if (mysqlshdk::gr::get_member_state(donor) !=
+        mysqlshdk::gr::Member_state::ONLINE) {
+      throw shcore::Exception(
+          shcore::str_format(
+              "Instance '%s' is not an ONLINE member of the Cluster.",
+              donor_address.c_str()),
+          SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+    }
+  }
 }
 
 void Cluster_impl::reset_recovery_password(

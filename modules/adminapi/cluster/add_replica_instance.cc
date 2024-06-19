@@ -29,6 +29,7 @@
 #include <exception>
 #include <memory>
 
+#include "adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/common.h"
@@ -36,6 +37,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysql/instance.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -157,7 +159,7 @@ void Add_replica_instance::validate_source_list() {
   // Cluster has at least 1 SECONDARY member
   if (m_options.replication_sources_option.source_type ==
       Source_type::SECONDARY) {
-    auto online_instances = m_cluster_impl->get_active_instances(true);
+    auto online_instances = m_cluster_impl->get_active_instances_md(true);
     if (online_instances.size() == 1) {
       mysqlsh::current_console()->print_error(
           "Unable to set the 'replicationSources' to 'secondary': the Cluster "
@@ -336,8 +338,31 @@ void Add_replica_instance::do_run() {
     }
 
     // Check if the donor is valid
-    m_cluster_impl->ensure_compatible_clone_donor(*m_donor_instance,
-                                                  *m_target_instance);
+    m_cluster_impl->ensure_compatible_donor(
+        *m_donor_instance, *m_target_instance,
+        *m_options.clone_options.recovery_method);
+
+    // Check if the replication source and potential ones are compatible
+    {
+      std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> potential_sources;
+
+      if (m_options.replication_sources_option.source_type !=
+          Source_type::CUSTOM) {
+        // All instances are potential sources when replicationSources is
+        // "primary" or "secondary"
+        potential_sources = m_cluster_impl->get_active_instances();
+        auto c = m_cluster_impl->get_active_instances_md();
+      } else {
+        for (const auto &source :
+             m_options.replication_sources_option.replication_sources) {
+          auto potential_source = get_source_instance(source.to_string());
+          potential_sources.push_back(std::move(potential_source));
+        }
+      }
+
+      m_cluster_impl->check_compatible_replication_sources(
+          *m_donor_instance, *m_target_instance, &potential_sources);
+    }
 
     console->print_info("* Checking transaction state of the instance...");
     m_options.clone_options.recovery_method = validate_instance_recovery();

@@ -26,6 +26,7 @@
 #include "modules/adminapi/cluster/status.h"
 
 #include <algorithm>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -43,6 +44,7 @@
 #include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/version_compatibility.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -1169,6 +1171,32 @@ shcore::Array_t instance_diagnostics(
     check_auth_type_instance_ssl(issues, *instance, Replica_type::GROUP_MEMBER,
                                  *cluster);
 
+  // Check the replication compatibility with the primary cluster
+  // Conditions:
+  //  - PRIMARY Cluster must be ONLINE
+  //  - Current Cluster must be a Replica Cluster and ONLINE
+  bool is_replica_cluster =
+      cluster->is_cluster_set_member() && !cluster->is_primary_cluster();
+
+  if (instance && is_replica_cluster &&
+      cluster->cluster_availability() == Cluster_availability::ONLINE &&
+      cluster->get_cluster_set_object()
+              ->get_primary_cluster()
+              ->cluster_availability() == Cluster_availability::ONLINE) {
+    const auto potential_sources = cluster->get_cluster_set_object()
+                                       ->get_primary_cluster()
+                                       ->get_active_instances();
+
+    for (const auto &source : potential_sources) {
+      bool potential =
+          !cluster->get_primary_master() ||
+          source->get_uuid() != cluster->get_primary_master()->get_uuid();
+
+      cluster->add_incompatible_replication_source_issues(*source, *instance,
+                                                          potential, issues);
+    }
+  }
+
   return issues;
 }
 
@@ -1965,6 +1993,7 @@ shcore::Array_t Status::read_replica_diagnostics(
     Instance *instance, const Read_replica_info &rr_info,
     bool is_primary) const {
   using mysqlshdk::mysql::Replication_channel;
+  std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>> potential_sources;
 
   shcore::Array_t instance_errors = shcore::make_array();
   auto append_error = [&instance_errors](std::string msg) {
@@ -2002,6 +2031,27 @@ shcore::Array_t Status::read_replica_diagnostics(
         "WARNING: Read Replica's replicationSources is empty. Use "
         "Cluster.setInstanceOption() with the option "
         "'replicationSources' to update the instance's sources.");
+  } else {
+    // Check the replication compatibility:
+    // source_type is not empty and is not CUSTOM, or if it is CUSTOM the
+    // sources list is not empty
+
+    // If "primary" or "secondary", any member of the Cluster is a potential
+    // source
+    if (replication_sources.source_type != Source_type::CUSTOM &&
+        m_cluster->cluster_availability() == Cluster_availability::ONLINE) {
+      potential_sources = m_cluster->get_active_instances();
+    } else {
+      for (const auto &source : replication_sources.replication_sources) {
+        try {
+          auto potential_source =
+              m_cluster->get_session_to_cluster_instance(source.to_string());
+          potential_sources.push_back(std::move(potential_source));
+        } catch (const shcore::Exception &) {
+          // Ignore: we can't run the check without a session to the source
+        }
+      }
+    }
   }
 
   // Check if the channel is missing
@@ -2048,6 +2098,8 @@ shcore::Array_t Status::read_replica_diagnostics(
         "Cluster.rejoinInstance() to fix it.");
   }
 
+  std::shared_ptr<Instance> current_source = nullptr;
+
   // Check the replication channel status
   if (mysqlshdk::mysql::Replication_channel channel;
       mysqlshdk::mysql::get_channel_status(
@@ -2089,8 +2141,39 @@ shcore::Array_t Status::read_replica_diagnostics(
         break;
       }
       case mysqlshdk::mysql::Replication_channel::ON:
-      case mysqlshdk::mysql::Replication_channel::CONNECTING:
+      case mysqlshdk::mysql::Replication_channel::CONNECTING: {
+        // Check replication compatibility with the current source
+        auto current_source_address =
+            m_cluster->get_metadata_storage()
+                ->get_instance_by_uuid(channel.source_uuid)
+                .address;
+
+        // Try to connect to the source. It might not be possible and the
+        // read-replica is simply retrying
+        try {
+          current_source = m_cluster->get_session_to_cluster_instance(
+              current_source_address);
+
+          m_cluster->add_incompatible_replication_source_issues(
+              *current_source, *instance, false, instance_errors);
+        } catch (const shcore::Exception &) {
+          // Ignore: we can't run the check without a session to the source
+        }
         break;
+      }
+    }
+  }
+
+  // Check replication compatibility with all potential sources
+  if (!potential_sources.empty()) {
+    for (const auto &potential : potential_sources) {
+      // Skip the current source
+      if (current_source &&
+          current_source->get_uuid() == potential->get_uuid()) {
+        continue;
+      }
+      m_cluster->add_incompatible_replication_source_issues(
+          *potential, *instance, true, instance_errors);
     }
   }
 

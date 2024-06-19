@@ -42,6 +42,7 @@
 #define SHCORE_DBA_RESTART_WAIT_TIMEOUT "dba.restartWaitTimeout"
 #define SHCORE_DBA_LOG_SQL "dba.logSql"
 #define SHCORE_DBA_CONNECTIVITY_CHECKS "dba.connectivityChecks"
+#define SHCORE_DBA_VERSION_COMPATIBILITY_CHECKS "dba.versionCompatibilityChecks"
 #define SHCORE_LOG_FILE_NAME "logFile"
 #define SHCORE_LOG_SQL "logSql"
 #define SHCORE_LOG_SQL_IGNORE "logSql.ignorePattern"
@@ -139,6 +140,7 @@ class Shell_options final : public shcore::Options {
     int dba_restart_wait_timeout = 60;
     int dba_log_sql = 0;
     bool dba_connectivity_checks = false;
+    bool dba_version_compatibility_checks = true;
     std::string log_sql;  //< Global SQL logging level
     std::string log_sql_ignore;
     std::string log_sql_ignore_unsafe;

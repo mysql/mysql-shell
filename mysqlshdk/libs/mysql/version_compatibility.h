@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,35 +23,22 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_REPLICA_SET_RESCAN_H_
-#define MODULES_ADMINAPI_REPLICA_SET_RESCAN_H_
+#ifndef MYSQLSHDK_LIBS_MYSQL_VERSION_COMPATIBILITY_H_
+#define MYSQLSHDK_LIBS_MYSQL_VERSION_COMPATIBILITY_H_
 
-#include "modules/adminapi/common/instance_pool.h"
+#include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlsh::dba {
-class Replica_set_impl;
-}
+namespace mysqlshdk::mysql {
 
-namespace mysqlsh::dba::replicaset {
-
-class Rescan {
- protected:
-  explicit Rescan(Replica_set_impl &rset) noexcept : m_rset(rset) {}
-
-  void do_run(bool add_unmanaged, bool remove_obsolete);
-  static constexpr bool supports_undo() noexcept { return false; }
-
- private:
-  void scan_topology(bool add_unmanaged, bool remove_obsolete,
-                     bool *changes_ignored);
-  void scan_replication_accounts(const Scoped_instance_list &instances);
-  void scan_server_ids(const Scoped_instance_list &instances);
-
- private:
-  bool m_invalidate_rset{false};
-  Replica_set_impl &m_rset;
+enum class Replication_version_compatibility {
+  COMPATIBLE,
+  INCOMPATIBLE,
+  DOWNGRADE_ONLY
 };
 
-}  // namespace mysqlsh::dba::replicaset
+Replication_version_compatibility verify_compatible_replication_versions(
+    const utils::Version &source, const utils::Version &replica);
 
-#endif  // MODULES_ADMINAPI_REPLICA_SET_RESCAN_H_
+}  // namespace mysqlshdk::mysql
+
+#endif  // MYSQLSHDK_LIBS_MYSQL_VERSION_COMPATIBILITY_H_

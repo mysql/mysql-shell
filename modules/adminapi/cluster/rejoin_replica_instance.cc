@@ -82,8 +82,7 @@ bool Rejoin_replica_instance::check_rejoinable() {
     assert(!m_replication_sources.replication_sources.empty());
     // Check if the replicationSources are reachable and ONLINE cluster members
     m_cluster_impl->validate_replication_sources(
-        m_replication_sources.replication_sources,
-        m_target_read_replica_address, m_target_instance->get_uuid(), true);
+        m_replication_sources.replication_sources, *m_target_instance, true);
   }
 
   auto status = mysqlshdk::mysql::get_read_replica_status(*m_target_instance);
@@ -258,8 +257,13 @@ void Rejoin_replica_instance::prepare() {
   m_options.clone_options.recovery_method = validate_instance_recovery();
 
   // Check if the donor is valid
-  m_cluster_impl->ensure_compatible_clone_donor(*m_donor_instance,
-                                                *m_target_instance);
+  m_cluster_impl->ensure_compatible_donor(
+      *m_donor_instance, *m_target_instance,
+      *m_options.clone_options.recovery_method);
+
+  // Check if the replication source is compatible
+  m_cluster_impl->check_compatible_replication_sources(*m_donor_instance,
+                                                       *m_target_instance);
 }
 
 void Rejoin_replica_instance::do_run() {

@@ -242,6 +242,7 @@ void Set_instance_option::prepare() {
   // and validate the replicationSources:
   //  - All sources must be reachable
   //  - All sources must be ONLINE Cluster members
+  //  - All sources versions are compatible for replication
   if (m_option == kReplicationSources) {
     ensure_instance_is_read_replica();
 
@@ -272,8 +273,7 @@ void Set_instance_option::prepare() {
       std::vector<std::string> updated_list;
 
       m_cluster.validate_replication_sources(
-          managed_src_list, m_target_instance_address,
-          m_target_instance->get_uuid(), false, &updated_list);
+          managed_src_list, *m_target_instance, false, &updated_list);
 
       m_value_value = shcore::Value::new_array();
       auto array = m_value_value->as_array();

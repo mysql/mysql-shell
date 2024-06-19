@@ -295,6 +295,24 @@ class Base_cluster_impl {
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient);
 
+  static void check_replication_version_compatibility(
+      const std::string &source_descr, const std::string &replica_descr,
+      const mysqlshdk::utils::Version &source_version,
+      const mysqlshdk::utils::Version &replica_version, bool is_potential,
+      bool log_only, shcore::Array_t *instance_errors);
+
+  static void check_compatible_replication_sources(
+      const mysqlshdk::mysql::IInstance &source,
+      const mysqlshdk::mysql::IInstance &replica,
+      const std::list<std::shared_ptr<mysqlshdk::mysql::IInstance>>
+          *potential_sources = nullptr,
+      bool potential = false);
+
+  static void add_incompatible_replication_source_issues(
+      const mysqlshdk::mysql::IInstance &source,
+      const mysqlshdk::mysql::IInstance &replica, bool potential,
+      shcore::Array_t &instance_errors);
+
  protected:
   Cluster_id m_id;
   std::string m_cluster_name;

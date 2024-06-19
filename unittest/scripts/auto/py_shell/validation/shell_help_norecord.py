@@ -817,6 +817,9 @@ DESCRIPTION
         context if enabled.
       - dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
         come back after a restart during clone recovery
+      - dba.versionCompatibilityChecks: bool, checks version compatibility for
+        asynchronous replication when managing a ReplicaSet, ClusterSet, or a
+        Cluster with Read-Replicas.
       - defaultCompress: Enable compression in client/server protocol by
         default in global shell sessions.
       - defaultMode: shell mode to use when shell is started, allowed values:
