@@ -533,7 +533,7 @@ Dissolves the ClusterSet.
 This function dissolves the ClusterSet by removing all Clusters that
 belong to it, implicitly dissolving each one.
 
-With the default options, the command keeps all the user's data intact.
+It keeps all the user's data intact.
 
 <b>Options</b>
 
@@ -550,8 +550,8 @@ retrieved from the 'dba.gtidWaitTimeout' shell option).
 ClusterSet are executed, but no changes are actually made.
 
 The force option (set to true) must only be used to dissolve a ClusterSet
-with Clusters that are permanently not available (no longer reachable), or if
-any instance of any Cluster is also permanently not available.
+with Clusters that are permanently unavailable (no longer reachable), or if
+any instance of any Cluster is also permanently unavailable.
 )*");
 
 /**
