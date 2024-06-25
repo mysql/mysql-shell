@@ -61,7 +61,7 @@ Do you want to continue anyway (only the instance metadata will be removed)? [y/
 
 
 //@<ERR> Dissolve stopped because instance is unreachable and user answer 'no' to continue.
-Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve stopped because one instance is unreachable (force: false).
 The cluster has the following registered instances:
@@ -96,7 +96,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot be remov
 
 
 //@<ERR> Dissolve stopped because one instance is unreachable (force: false).
-Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)' (RuntimeError)
 
 //@<OUT> Dissolve continues because instance is unreachable and user answer 'yes' to continue.
 The cluster has the following registered instances:
@@ -220,10 +220,10 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to c
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster and user answer 'n' to continue. {VER(<8.0.23)}
-Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster and user answer 'n' to continue. {VER(>=8.0.23)}
-Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@ Connect to instance on port2 to fix error and add new one
 ||
@@ -273,10 +273,10 @@ ERROR: Coordinator error in replication channel 'group_replication_applier': [[*
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(<8.0.23)}
-Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(>=8.0.23)}
-Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@ Connect to instance on port2 to fix error and add new one, one last time
 ||

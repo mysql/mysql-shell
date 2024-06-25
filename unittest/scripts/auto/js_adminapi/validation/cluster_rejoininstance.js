@@ -2,13 +2,13 @@
 ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<ERR> rejoinInstance async replication error
-Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@<OUT> rejoinInstance async replication error with channels stopped
 ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<ERR> rejoinInstance async replication error with channels stopped
-Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@<OUT> BUG#29754915: rejoin instance 3 successfully.
 <<<(__version_num==80016)?"NOTE: Unable to determine the Group Replication protocol version, while verifying if a protocol upgrade would be possible: Can't initialize function 'group_replication_get_communication_protocol'; A member is joining the group, wait for it to be ONLINE.":"">>>
@@ -61,4 +61,4 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 ||
 |ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target cluster.|
 |Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances. Instance is running MySQL <<<__version>>>.|
-||Cluster.rejoinInstance: Instance provisioning required (MYSQLSH 51153)
+||Instance provisioning required (MYSQLSH 51153)

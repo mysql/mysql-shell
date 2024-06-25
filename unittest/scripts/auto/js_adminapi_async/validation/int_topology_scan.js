@@ -18,7 +18,7 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 
 //@<ERR> master-slave from slave
-Dba.createReplicaSet: Target instance is not the PRIMARY (MYSQLSH 51313)
+Target instance is not the PRIMARY (MYSQLSH 51313)
 
 //@<OUT> master-(slave1,slave2) from master
 * Discovering async replication topology starting with <<<__address1>>>
@@ -43,7 +43,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1,slave2) from slave2
-Dba.createReplicaSet: Target instance is not the PRIMARY (MYSQLSH 51313)
+Target instance is not the PRIMARY (MYSQLSH 51313)
 
 //@<OUT> master-(slave1-slave11,slave2) from master
 * Discovering async replication topology starting with <<<__address1>>>
@@ -60,7 +60,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from master
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-(slave1-slave11,slave2) from slave2
 * Discovering async replication topology starting with <<<__address3>>>
@@ -77,7 +77,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from slave2
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-(slave1-slave11,slave2) from slave11
 * Discovering async replication topology starting with <<<__address4>>>
@@ -94,7 +94,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from slave11
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master1-master2 from master1
 * Discovering async replication topology starting with <<<__address1>>>
@@ -107,7 +107,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master1-master2 from master1
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-master-master
 * Discovering async replication topology starting with <<<__address1>>>
@@ -123,7 +123,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-master-master
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> masterA-slaveA from master
 * Discovering async replication topology starting with <<<__address1>>>
@@ -132,7 +132,7 @@ Discovered topology:
     - has a replica '127.0.0.1:<<<__mysql_sandbox_port2>>>' through an unsupported replication channel
 
 //@<ERR> masterA-slaveA from master
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> masterA-slaveA from slave
 * Discovering async replication topology starting with <<<__address2>>>
@@ -141,7 +141,7 @@ Discovered topology:
     - replicates from 'localhost:<<<__mysql_sandbox_port1>>>' through unsupported channel 'chan'
 
 //@<ERR> masterA-slaveA from slave
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-(slave,slaveB) from master
 * Discovering async replication topology starting with <<<__address1>>>
@@ -153,7 +153,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave,slaveB) from master
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-(slave,slaveB) from slave
 * Discovering async replication topology starting with <<<__address3>>>
@@ -165,7 +165,7 @@ Discovered topology:
     - has a replica '127.0.0.1:<<<__mysql_sandbox_port2>>>' through an unsupported replication channel
 
 //@<ERR> master-(slave,slaveB) from slave
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> master-(slave,slaveB) from slaveB
 * Discovering async replication topology starting with <<<__address2>>>
@@ -174,7 +174,7 @@ Discovered topology:
     - replicates from 'localhost:<<<__mysql_sandbox_port1>>>' through unsupported channel 'chan'
 
 //@<ERR> master-(slave,slaveB) from slaveB
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> masterA-slaveB-slave from slaveB
 * Discovering async replication topology starting with <<<__address2>>>
@@ -186,7 +186,7 @@ Discovered topology:
 <<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> masterA-slaveB-slave from slaveB
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)
 
 //@<OUT> masterA-slaveB-slave from slave
 * Discovering async replication topology starting with <<<__address3>>>
@@ -198,4 +198,4 @@ Discovered topology:
     - replicates from 'localhost:<<<__mysql_sandbox_port1>>>' through unsupported channel 'chan'
 
 //@<ERR> masterA-slaveB-slave from slave
-Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
+Unsupported replication topology (MYSQLSH 51151)

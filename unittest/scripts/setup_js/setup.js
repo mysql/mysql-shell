@@ -1843,16 +1843,16 @@ function CHECK_MYSQLX_EXPECT_THROWS_ERROR(msg, f, classic, ...args) {
   }
 }
 
-function EXPECT_DBA_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
-  CHECK_MYSQLX_EXPECT_THROWS_ERROR([`${context}: ${protocol_error_msg}`, `${context}: ${connection_error_msg}`], f, classic, ...args);
+function EXPECT_DBA_THROWS_PROTOCOL_ERROR(f, classic, ...args) {
+  CHECK_MYSQLX_EXPECT_THROWS_ERROR([`${protocol_error_msg}`, `${connection_error_msg}`], f, classic, ...args);
 }
 
-function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
+function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(f, classic, ...args) {
   for (const uri of get_mysqlx_uris(classic)) {
     const endpoint = get_mysqlx_endpoint(classic);
     WIPE_OUTPUT();
-    EXPECT_THROWS_ERROR([`${context}: Could not open connection to '${endpoint}': ${protocol_error_msg}`,
-        `${context}: Could not open connection to '${endpoint}': ${connection_error_msg}`], f, uri, ...args);
+    EXPECT_THROWS_ERROR([`Could not open connection to '${endpoint}': ${protocol_error_msg}`,
+        `Could not open connection to '${endpoint}': ${connection_error_msg}`], f, uri, ...args);
     EXPECT_STDOUT_CONTAINS(`Unable to connect to the target instance '${endpoint}'. Please verify the connection settings, make sure the instance is available and try again.`);
   }
 }

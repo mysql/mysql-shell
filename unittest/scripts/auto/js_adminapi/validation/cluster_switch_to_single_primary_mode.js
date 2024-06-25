@@ -2,7 +2,7 @@
 Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 
 //@<ERR> WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with members < 8.0.13 {VER(<8.0.13)}
-Cluster.switchToSinglePrimaryMode: Operation not supported on target server version: '<<<__version>>>' (RuntimeError)
+Operation not supported on target server version: '<<<__version>>>' (RuntimeError)
 
 //@ WL#12052: ArgumentErrors of switchToSinglePrimaryMode {VER(>=8.0.13)}
 ||Argument #1: Invalid URI: empty. (ArgumentError)
@@ -13,7 +13,7 @@ Cluster.switchToSinglePrimaryMode: Operation not supported on target server vers
 ||This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
-Cluster.switchToSinglePrimaryMode: There is no quorum to perform the operation (MYSQLSH 51011)
+There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#12052: Re-create the cluster {VER(>=8.0.13)}
 ||

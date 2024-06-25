@@ -47,66 +47,66 @@
 |Updated Carol: 1|
 
 #@# CollectionModify: Error conditions on modify
-||Collection.modify: Invalid number of arguments, expected 1 but got 0
-||Collection.modify: Requires a search condition.
-||Collection.modify: Argument #1 is expected to be a string
-||Collection.modify: Unterminated quoted string starting at position 8
+||Invalid number of arguments, expected 1 but got 0
+||Requires a search condition.
+||Argument #1 is expected to be a string
+||Unterminated quoted string starting at position 8
 
 #@# CollectionModify: Error conditions on set
-||CollectionModify.set: Invalid number of arguments, expected 2 but got 0
-||CollectionModify.set: Argument #1 is expected to be a string
-||CollectionModify.set: Invalid document path
-||CollectionModify.set: Invalid document path
-||CollectionModify.set: Invalid document path
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Invalid document path
+||Invalid document path
+||Invalid document path
 
 #@# CollectionModify: Error conditions on unset
-||CollectionModify.unset: Invalid number of arguments, expected at least 1 but got 0
-||CollectionModify.unset: Argument #1 is expected to be either string or list of strings
-||CollectionModify.unset: Argument #1 is expected to be a string
-||CollectionModify.unset: Element #2 is expected to be a string
-||CollectionModify.unset: Invalid document path
-||CollectionModify.unset: Invalid document path
-||CollectionModify.unset: Invalid document path
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 is expected to be either string or list of strings
+||Argument #1 is expected to be a string
+||Element #2 is expected to be a string
+||Invalid document path
+||Invalid document path
+||Invalid document path
 
 #@# CollectionModify: Error conditions on patch
-||CollectionModify.patch: Invalid number of arguments, expected 1 but got 0
-||CollectionModify.patch: Argument expected to be a JSON object
+||Invalid number of arguments, expected 1 but got 0
+||Argument expected to be a JSON object
 
 #@# CollectionModify: Error conditions on array_insert
-||CollectionModify.array_insert: Invalid number of arguments, expected 2 but got 0
-||CollectionModify.array_insert: Argument #1 is expected to be a string
-||CollectionModify.array_insert: Invalid document path
-||CollectionModify.array_insert: Invalid document path
-||CollectionModify.array_insert: Invalid document path
-||CollectionModify.array_insert: An array document path must be specified
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Invalid document path
+||Invalid document path
+||Invalid document path
+||An array document path must be specified
 
 #@# CollectionModify: Error conditions on array_append
-||CollectionModify.array_append: Invalid number of arguments, expected 2 but got 0
-||CollectionModify.array_append: Argument #1 is expected to be a string
-||CollectionModify.array_append: Invalid document path
-||CollectionModify.array_append: Invalid document path
-||CollectionModify.array_append: Invalid document path
-||CollectionModify.array_append: Unsupported value received: <Session:
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Invalid document path
+||Invalid document path
+||Invalid document path
+||Unsupported value received: <Session:
 
 #@# CollectionModify: Error conditions on sort
-||CollectionModify.sort: Invalid number of arguments, expected at least 1 but got 0
-||CollectionModify.sort: Argument #1 is expected to be a string or an array of strings
-||CollectionModify.sort: Sort criteria can not be empty
-||CollectionModify.sort: Element #2 is expected to be a string
-||CollectionModify.sort: Argument #2 is expected to be a string
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 is expected to be a string or an array of strings
+||Sort criteria can not be empty
+||Element #2 is expected to be a string
+||Argument #2 is expected to be a string
 
 #@# CollectionModify: Error conditions on limit
-||CollectionModify.limit: Invalid number of arguments, expected 1 but got 0
-||CollectionModify.limit: Argument #1 is expected to be an unsigned int
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be an unsigned int
 
 #@# CollectionModify: Error conditions on bind
-||CollectionModify.bind: Invalid number of arguments, expected 2 but got 0
-||CollectionModify.bind: Argument #1 is expected to be a string
-||CollectionModify.bind: Unable to bind value for unexisting placeholder: another
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Unable to bind value for unexisting placeholder: another
 
 #@# CollectionModify: Error conditions on execute
-||CollectionModify.execute: Missing value bindings for the following placeholders: data, years
-||CollectionModify.execute: Missing value bindings for the following placeholders: data
+||Missing value bindings for the following placeholders: data, years
+||Missing value bindings for the following placeholders: data
 
 #@# CollectionModify: Set Execution
 |Set Affected Rows: 1|

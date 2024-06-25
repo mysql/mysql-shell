@@ -55,14 +55,14 @@ CHECK_ALL_ERROR(check, {"innodb_mutex":1})
 #@<> invalid option - slowQuery
 
 outpath = run_collect_sq(__sandbox_uri1, None, "", {"innodb_mutex":1})
-EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: Invalid options at Argument #3: innodb_mutex")
+EXPECT_STDOUT_CONTAINS("Invalid options at Argument #3: innodb_mutex")
 EXPECT_NO_FILE(outpath)
 
 RESET(outpath)
 
 # TSFR_9_0_14
 outpath = run_collect_sq(__sandbox_uri1, None, {})
-EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: Argument #2 is expected to be a string")
+EXPECT_STDOUT_CONTAINS("Argument #2 is expected to be a string")
 EXPECT_NO_FILE(outpath)
 
 #@<> invalid option - pfsInstrumentation garbage TSFR_6_1, TSFR_6_2
@@ -549,12 +549,12 @@ EXPECT_NO_FILE(outpath)
 RESET(outpath)
 
 outpath = run_collect_sq(__sandbox_uri1, None, "garbage")
-EXPECT_STDOUT_CONTAINS("mysql.parse_statement_ast: extraneous input 'garbage' expecting")
+EXPECT_STDOUT_CONTAINS("extraneous input 'garbage' expecting")
 EXPECT_NO_FILE(outpath)
 RESET(outpath)
 
 outpath = run_collect_sq(__sandbox_uri1, None, "")
-EXPECT_STDOUT_CONTAINS("debug.collectSlowQueryDiagnostics: 'query' must contain the query to be analyzed")
+EXPECT_STDOUT_CONTAINS("'query' must contain the query to be analyzed")
 EXPECT_NO_FILE(outpath)
 
 #@<> Cleanup

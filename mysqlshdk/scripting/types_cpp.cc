@@ -670,15 +670,15 @@ Value Cpp_object_bridge::call_function(
     try {
       return func->invoke(args);
     } catch (const shcore::Exception &e) {
-      throw shcore::Exception(e.type(), scope + ": " + e.what(), e.code());
+      throw;
     } catch (const shcore::Error &e) {
-      throw shcore::Exception(scope + ": " + e.what(), e.code());
+      throw shcore::Exception(e.what(), e.code());
     } catch (const std::runtime_error &e) {
-      throw shcore::Exception::runtime_error(scope + ": " + e.what());
+      throw shcore::Exception::runtime_error(e.what());
     } catch (const std::invalid_argument &e) {
-      throw shcore::Exception::argument_error(scope + ": " + e.what());
+      throw shcore::Exception::argument_error(e.what());
     } catch (const std::logic_error &e) {
-      throw shcore::Exception::logic_error(scope + ": " + e.what());
+      throw shcore::Exception::logic_error(e.what());
     } catch (...) {
       throw;
     }
@@ -769,9 +769,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
   }
 
   if (max_error_score != -1) {
-    throw Exception(match_error.type(),
-                    get_function_name(method, true) + ": " + match_error.what(),
-                    match_error.code());
+    throw Exception(match_error.type(), match_error.what(), match_error.code());
   } else {
     throw Exception::argument_error("Call to " +
                                     get_function_name(method, true) +

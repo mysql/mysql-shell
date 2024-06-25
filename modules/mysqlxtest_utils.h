@@ -39,18 +39,16 @@
  */
 #define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(op)                                \
   catch (...) {                                                               \
-    std::string operation(op);                                                \
     try {                                                                     \
       throw;                                                                  \
     } catch (const shcore::Exception &exc) {                                  \
-      throw shcore::Exception(exc.type(), operation + ": " + exc.what(),      \
-                              exc.code());                                    \
+      throw shcore::Exception(exc.type(), exc.what(), exc.code());            \
     } catch (mysqlshdk::db::Error & exc) {                                    \
       throw shcore::Exception::mysql_error_with_code(exc.what(), exc.code()); \
     } catch (std::runtime_error & exc) {                                      \
-      throw shcore::Exception::runtime_error(operation + ": " + exc.what());  \
+      throw shcore::Exception::runtime_error(exc.what());                     \
     } catch (std::logic_error & exc) {                                        \
-      throw shcore::Exception::logic_error(operation + ": " + exc.what());    \
+      throw shcore::Exception::logic_error(exc.what());                       \
     } catch (...) {                                                           \
       throw;                                                                  \
     }                                                                         \

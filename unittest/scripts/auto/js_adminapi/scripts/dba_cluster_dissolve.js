@@ -252,13 +252,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<> Dissolve fail because one instance is not reachable.
 // WL11889 FR4_01: force: true required to dissolve cluster with unreachable instances.
-EXPECT_THROWS_TYPE(function() { single2.dissolve(); }, "Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)'", "RuntimeError");
+EXPECT_THROWS_TYPE(function() { single2.dissolve(); }, "The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)'", "RuntimeError");
 
 EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3}' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the cluster again. If the instance is permanently not reachable, then please use <Cluster>.dissolve() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.`);
 
 //@<> Dissolve fail because one instance is not reachable and force: false.
 // WL11889 FR5_01: error if force: false and any instance is unreachable.
-EXPECT_THROWS_TYPE(function() { single2.dissolve({force: false}); }, "Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)'", "RuntimeError");
+EXPECT_THROWS_TYPE(function() { single2.dissolve({force: false}); }, "The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '(MISSING)'", "RuntimeError");
 
 EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3}' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the cluster again. If the instance is permanently not reachable, then please use <Cluster>.dissolve() with the force option set to true to proceed with the operation and only remove the instance from the Cluster Metadata.`);
 
@@ -386,11 +386,11 @@ session.runSql("CREATE USER 'replication_error'@'%' IDENTIFIED BY 'somepass';");
 //@<> Dissolve stopped because instance cannot catch up with cluster (no force option).
 // WL11889 FR9_01: error, instance cannot catch up (no force option, default false)
 if (__version_num < 80023) {
-EXPECT_THROWS_TYPE(function() { c.dissolve(); }, "Cluster.dissolve: " + hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication applier thread", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { c.dissolve(); }, hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication applier thread", "MYSQLSH");
 
 EXPECT_STDOUT_CONTAINS("ERROR: Applier error in replication channel 'group_replication_applier':");
 } else {
-EXPECT_THROWS_TYPE(function() { c.dissolve(); }, "Cluster.dissolve: " + hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication coordinator thread", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { c.dissolve(); }, hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication coordinator thread", "MYSQLSH");
 
 EXPECT_STDOUT_CONTAINS("ERROR: Coordinator error in replication channel 'group_replication_applier':");
 }
@@ -432,11 +432,11 @@ session.runSql("CREATE USER 'replication_error_2'@'%' IDENTIFIED BY 'somepass';"
 //@<> Dissolve stopped because instance cannot catch up with cluster (force: false).
 // WL11889 FR9_01: error, instance cannot catch up (force: false)
 if (__version_num < 80023) {
-EXPECT_THROWS_TYPE(function() { c.dissolve({force: false}); }, "Cluster.dissolve: " + hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication applier thread", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { c.dissolve({force: false}); }, hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication applier thread", "MYSQLSH");
 
 EXPECT_STDOUT_CONTAINS("ERROR: Applier error in replication channel 'group_replication_applier':");
 } else {
-EXPECT_THROWS_TYPE(function() { c.dissolve({force: false}); }, "Cluster.dissolve: " + hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication coordinator thread", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { c.dissolve({force: false}); }, hostname + ":" + __mysql_sandbox_port2 + ": Error found in replication coordinator thread", "MYSQLSH");
 
 EXPECT_STDOUT_CONTAINS("ERROR: Coordinator error in replication channel 'group_replication_applier':");
 }

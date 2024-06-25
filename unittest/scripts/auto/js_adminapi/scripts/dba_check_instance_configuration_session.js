@@ -28,8 +28,8 @@ session.runSql("REVOKE SELECT on *.* FROM 'test_user'@'%'");
 session.runSql("GRANT SELECT ON `mysql_innodb_cluster_metadata`.* TO 'test_user'@'%'");
 
 // NOTE: This privilege is required or the the generated error will be:
-//Dba.checkInstanceConfiguration: Unable to detect target instance state. Please check account privileges.
-//Dba.checkInstanceConfiguration: Unable to detect state for instance 'me7nw6-mac:3316'. Please check account privileges.
+//Unable to detect target instance state. Please check account privileges.
+//Unable to detect state for instance 'me7nw6-mac:3316'. Please check account privileges.
 session.runSql("GRANT SELECT ON `performance_schema`.* TO 'test_user'@'%'");
 session.runSql("SET sql_log_bin = 1");
 

@@ -287,7 +287,7 @@ reference["accounts"]["root@%"]["create"]=session.runSql("show create user root@
 
 //@<> load a dump with no session
 session.close();
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: An open session is required to perform this operation.");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "An open session is required to perform this operation.");
 
 shell.connect(__sandbox_uri1);
 
@@ -296,7 +296,7 @@ shell.connect(__sandbox_uri1);
 // local_infile is on by default in 5.7
 if(__version_num<80000) session.runSql("SET GLOBAL local_infile=0");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: local_infile disabled in server");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "local_infile disabled in server");
 EXPECT_OUTPUT_CONTAINS("ERROR: The 'local_infile' global system variable must be set to ON in the target server, after the server is verified to be trusted.");
 
 //@<> Enable local-infile for the remaining tests
@@ -309,7 +309,7 @@ if(__version_num>80013) {
     t_vector=", \`t_vector\`";
   }
   session.runSql("set @@global.sql_require_primary_key=ON;");
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: While 'Scanning metadata': sql_require_primary_key enabled at destination server");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "While 'Scanning metadata': sql_require_primary_key enabled at destination server");
   EXPECT_STDOUT_CONTAINS_MULTILINE(`ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump:
 schema \`all_features\`: \`findextable3\`, \`findextable\`
 schema \`xtest\`: \`t_bigint\`, \`t_bit\`, \`t_char\`, \`t_date\`, \`t_decimal1\`, \`t_decimal2\`, \`t_decimal3\`, \`t_double\`, \`t_enum\`, \`t_float\`, \`t_geom_all\`, \`t_geom\`, \`t_int\`, \`t_integer\`, \`t_json\`, \`t_lchar\`, \`t_lob\`, \`t_mediumint\`, \`t_numeric1\`, \`t_numeric2\`, \`t_real\`, \`t_set\`, \`t_smallint\`, \`t_tinyint\`${t_vector}
@@ -407,8 +407,8 @@ if(__version_num>80000) {
   util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, loadIndexes: false, updateGtidSet: "append"})
   EXPECT_OUTPUT_CONTAINS("Appending dumped gtid set to GTID_PURGED");
 } else {
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "append"});}, "Util.loadDump: Target MySQL server does not support updateGtidSet:'append'.");
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "replace"});}, "Util.loadDump: The updateGtidSet option on MySQL 5.7 target server can only be used if the skipBinlog option is enabled.");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "append"});}, "Target MySQL server does not support updateGtidSet:'append'.");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "replace"});}, "The updateGtidSet option on MySQL 5.7 target server can only be used if the skipBinlog option is enabled.");
   wipe_instance(session);
 }
 
@@ -615,7 +615,7 @@ wipe_instance(session);
 //@<> includeTable + excludeSchema
 
 // this should result in an exception
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["sakila"], includeTables: ["sakila.film"]});}, "Util.loadDump: Argument #2: Conflicting filtering options");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["sakila"], includeTables: ["sakila.film"]});}, "Argument #2: Conflicting filtering options");
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `sakila`.`film` which refers to an excluded schema.");
 
 //@<> load dump where some objects already exist
@@ -628,7 +628,7 @@ session.runSql("CREATE FUNCTION mysqlaas_compat.func2 () RETURNS INT NO SQL SQL 
 session.runSql("CREATE PROCEDURE mysqlaas_compat.proc2 () NO SQL SQL SECURITY DEFINER BEGIN END;");
 session.runSql("CREATE EVENT mysqlaas_compat.event2 ON SCHEDULE EVERY 1 DAY DO BEGIN END;");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "While 'Scanning metadata': Duplicate objects found in destination database");
 
 //@<> load dump where some objects already exist, but exclude them from the load
 util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, excludeSchemas: ["sakila", "mysqlaas_compat"]});
@@ -644,7 +644,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, ignoreExistingObjects: true}
 EXPECT_OUTPUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be ignored because the 'ignoreExistingObjects' option was enabled.");
 
 //@<> no dryRun to get errors from mismatched definitions of tables that already exist
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true, deferTableIndexes:"all"});}, "Util.loadDump: Unknown column ");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true, deferTableIndexes:"all"});}, "Unknown column ");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -723,7 +723,7 @@ wipe_instance(session);
 
 //@<> characterSet:invalid (should fail)
 // TSFR14_5
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "bog\"`'us"})}, "Unknown character set: 'bog\"`'us'");
 EXPECT_OUTPUT_CONTAINS("Error opening connection to MySQL: MySQL Error 1115 (42000): Unknown character set: 'bog\"`'us'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
@@ -756,7 +756,7 @@ wipe_instance(session);
 session.runSql("set global max_connections=3");
 
 // This will throw either Too many connections or Aborted
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {threads: 8});}, "Util.loadDump: ");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {threads: 8});}, "");
 
 EXPECT_OUTPUT_CONTAINS("]: Error opening connection to MySQL: MySQL Error 1040 (HY000): Too many connections");
 
@@ -771,7 +771,7 @@ session.runSql("set global max_connections=1000");
 testutil.cpfile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst.bak");
 testutil.createFile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst", "badfile");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Error loading dump");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Error loading dump");
 
 EXPECT_OUTPUT_CONTAINS("xtest@t_json.tsv.zst: MySQL Error 2000 (00000): zstd.read: Unknown frame descriptor:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Aborting load...");
@@ -796,7 +796,7 @@ for (const data of grants_and_errors) {
   shell.connect("mysql://user@localhost:"+__mysql_sandbox_port1);
 
   WIPE_OUTPUT();
-  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk", { "includeSchemas": [ data.schema ]});}, "Util.loadDump: Error loading dump");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk", { "includeSchemas": [ data.schema ]});}, "Error loading dump");
   EXPECT_STDOUT_CONTAINS(data.error);
 
   shell.connect(__sandbox_uri1);
@@ -820,7 +820,7 @@ wipe_instance(session);
 
 //@<> invalid path for progress file
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: "/bad/path"});}, `Util.loadDump: Cannot open file '${__os_type == "windows" ? "\\\\?\\bad\\path" : "/bad/path"}': No such file or directory`);
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: "/bad/path"});}, `Cannot open file '${__os_type == "windows" ? "\\\\?\\bad\\path" : "/bad/path"}': No such file or directory`);
 
 
 //@<> skipBinlog:true
@@ -847,7 +847,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump");
 //@<> load again using a different progress file should assume a fresh load
 // in practice this means the load will fail because of duplicate objects from the previous attempt
 // TSFR12_2
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: __tmp_dir+"/progress", dryRun: 1});}, "While 'Scanning metadata': Duplicate objects found in destination database");
 
 EXPECT_STDOUT_NOT_CONTAINS("Load progress file detected.");
 
@@ -876,7 +876,7 @@ testutil.cpfile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", __tmp_dir+"/ldtest/du
 testutil.createFile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", "call invalid()\n");
 
 WIPE_SHELL_LOG();
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Error loading dump");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Error loading dump");
 
 EXPECT_STDOUT_CONTAINS("Error processing table `xtest`.`t_json`: MySQL Error 1305 (42000): PROCEDURE xtest.invalid does not exist: call invalid()");
 
@@ -971,7 +971,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump-big");
 
 //@<> try loading an already loaded dump after resetting progress (will fail because of duplicate objects)
 WIPE_SHELL_LOG();
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "While 'Scanning metadata': Duplicate objects found in destination database");
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Schema `sakila` already contains a view named ");
@@ -1003,14 +1003,14 @@ new_version[0] += 1;
 data["version"] = new_version.join(".");
 testutil.createFile(__tmp_dir+"/ldtest/dump/@.json", JSON.stringify(data));
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Unsupported dump version");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Unsupported dump version");
 
 new_version = [...dump_version];
 new_version[1] += 1;
 data["version"] = new_version.join(".");
 testutil.createFile(__tmp_dir+"/ldtest/dump/@.json", JSON.stringify(data));
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Unsupported dump version");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Unsupported dump version");
 
 new_version = [...dump_version];
 new_version[2] += 1;
@@ -1183,7 +1183,7 @@ testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@pk.tsv", "1\taaaa\n2\t
 testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@uk.tsv", "1\taaaa\n2\t\1\2\n");
 testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@ukn.tsv", "1\taaaa\n2\t\1\2\n");
 // loading should fail for all tables
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nopktest", {ignoreExistingObjects: true});}, "Util.loadDump: Error loading dump");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nopktest", {ignoreExistingObjects: true});}, "Error loading dump");
 
 // check that the progress file marked all tables are failed
 const nopktest_progress_file = __tmp_dir + "/ldtest/dump-nopktest/load-progress." + uuid + ".json";

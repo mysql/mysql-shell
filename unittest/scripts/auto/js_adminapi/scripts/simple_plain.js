@@ -90,7 +90,7 @@ expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 
 //@<> configureInstance (__mysql_sandbox_port1)
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureInstance, get_uri(__mysql_sandbox_port1, pwd), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
 WIPE_OUTPUT();
 
@@ -109,7 +109,7 @@ session1 = mysql.getSession(__sandbox_uri1, pwd);
 expected_pids1 = get_open_sessions(session1);
 
 //@<> configureInstance (__mysql_sandbox_port2)
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureInstance, get_uri(__mysql_sandbox_port2, pwd), {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 WIPE_OUTPUT();
 
@@ -163,7 +163,7 @@ check_open_sessions(session2, expected_pids2);
 EXPECT_NO_THROWS(function(){ cluster = dba.getCluster(); });
 
 //@<> addInstance unsupported X-protocol error
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.addInstance, get_uri(__mysql_sandbox_port2), {recoveryMethod:'incremental'});
 
 //@<> addInstance using clone recovery {VER(>=8.0.17)}
 EXPECT_NO_THROWS(function(){ cluster.addInstance(get_uri(__mysql_sandbox_port2), {recoveryMethod:'clone'}); });
@@ -186,7 +186,7 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> removeInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, get_uri(__mysql_sandbox_port2));
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.removeInstance, get_uri(__mysql_sandbox_port2));
 
 EXPECT_NO_THROWS(function(){ cluster.removeInstance(get_uri(__mysql_sandbox_port2)); });
 
@@ -208,7 +208,7 @@ EXPECT_NO_THROWS(function(){ cluster.setPrimaryInstance(get_uri(__mysql_sandbox_
 //@<> rejoinInstance
 session2.runSql("STOP group_replication");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, get_uri(__mysql_sandbox_port2));
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.rejoinInstance, get_uri(__mysql_sandbox_port2));
 
 EXPECT_NO_THROWS(function(){ cluster.rejoinInstance(get_uri(__mysql_sandbox_port2)); });
 
@@ -223,7 +223,7 @@ check_open_sessions(session2, expected_pids2);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, get_uri(__mysql_sandbox_port1, pwd));
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.forceQuorumUsingPartitionOf, get_uri(__mysql_sandbox_port1, pwd));
 
 EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(get_uri(__mysql_sandbox_port1, pwd)); });
 
@@ -259,7 +259,7 @@ custom_weigth=50;
 //@<> setInstanceOption
 custom_weigth=20;
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.setInstanceOption, get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth);
 
 EXPECT_NO_THROWS(function(){ cluster.setInstanceOption(get_uri(__mysql_sandbox_port1), "memberWeight", custom_weigth); });
 

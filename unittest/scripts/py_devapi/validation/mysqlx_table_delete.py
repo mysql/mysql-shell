@@ -28,32 +28,32 @@
 
 
 #@# TableDelete: Error conditions on delete
-||TableDelete.delete: Invalid number of arguments, expected 0 but got 1
+||Invalid number of arguments, expected 0 but got 1
 
 #@# TableDelete: Error conditions on where
-||TableDelete.where: Invalid number of arguments, expected 1 but got 0
-||TableDelete.where: Argument #1 is expected to be a string
-||TableDelete.where: Unterminated quoted string starting at position 8
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
+||Unterminated quoted string starting at position 8
 
 #@# TableDelete: Error conditions on order_by
-||TableDelete.order_by: Invalid number of arguments, expected at least 1 but got 0
-||TableDelete.order_by: Argument #1 is expected to be a string or an array of strings
-||TableDelete.order_by: Order criteria can not be empty
-||TableDelete.order_by: Element #2 is expected to be a string
-||TableDelete.order_by: Argument #2 is expected to be a string
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 is expected to be a string or an array of strings
+||Order criteria can not be empty
+||Element #2 is expected to be a string
+||Argument #2 is expected to be a string
 
 #@# TableDelete: Error conditions on limit
-||TableDelete.limit: Invalid number of arguments, expected 1 but got 0
-||TableDelete.limit: Argument #1 is expected to be an unsigned int
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be an unsigned int
 
 #@# TableDelete: Error conditions on bind
-||TableDelete.bind: Invalid number of arguments, expected 2 but got 0
-||TableDelete.bind: Argument #1 is expected to be a string
-||TableDelete.bind: Unable to bind value for unexisting placeholder: another
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Unable to bind value for unexisting placeholder: another
 
 #@# TableDelete: Error conditions on execute
-||TableDelete.execute: Missing value bindings for the following placeholders: data, years
-||TableDelete.execute: Missing value bindings for the following placeholders: data
+||Missing value bindings for the following placeholders: data, years
+||Missing value bindings for the following placeholders: data
 
 #@ TableDelete: delete under condition
 |Affected Rows: 1|

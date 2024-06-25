@@ -229,10 +229,10 @@ EXPECT_EQ(0, count_users_like(session1, "missing_privs", "%"));
 shell.connect(__sandbox_uri1);
 rs=dba.getReplicaSet();
 
-EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:124})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:124})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:null})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
-EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:null})}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:124})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:124})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertIssuer:null})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){rs.setupRouterAccount("cert@%", {requireCertSubject:null})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
 
 EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
 
@@ -271,11 +271,11 @@ EXPECT_EQ(user[1], "/CN=cert4subject");
 EXPECT_EQ(user[2], "");
 
 //@<> WL#15438 - passwordExpiration
-EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: "bla", password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
-EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: -1, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
-EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 0, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
-EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
-EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: {}, password:""});}, "ReplicaSet.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: -1, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 0, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){rs.setupRouterAccount("test1@%", {passwordExpiration: {}, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
 EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
 
 function CHECK_LIFETIME(user, lifetime) {

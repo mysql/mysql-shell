@@ -53,13 +53,13 @@ command: Sleep
 ||
 
 //@ WL11651-TSFR7_2 - null
-||reports.threads: Option 'format' is expected to be of type String, but is Null (TypeError)
+||Option 'format' is expected to be of type String, but is Null (TypeError)
 
 //@ WL11651-TSFR7_2 - undefined
-||reports.threads: Option 'format' is expected to be of type String, but is Undefined (TypeError)
+||Option 'format' is expected to be of type String, but is Undefined (TypeError)
 
 //@ WL11651-TSFR7_2 - bool
-||reports.threads: Argument #3, option 'format' is expected to be a string (TypeError)
+||Argument #3, option 'format' is expected to be a string (TypeError)
 
 //@<OUT> WL11651-TSFR7_2 - string
 {
@@ -85,28 +85,28 @@ command: Sleep
 ||
 
 //@ status - run without variable name
-||reports.threads: Cannot use 'status' in 'format' parameter: Column 'status' requires a variable name, i.e.: status.NAME
+||Cannot use 'status' in 'format' parameter: Column 'status' requires a variable name, i.e.: status.NAME
 
 //@ system - run without variable name
-||reports.threads: Cannot use 'system' in 'format' parameter: Column 'system' requires a variable name, i.e.: system.NAME
+||Cannot use 'system' in 'format' parameter: Column 'system' requires a variable name, i.e.: system.NAME
 
 //@ WL11651-TSFR7_6 - empty value
 ||threads: option --format requires an argument
 
 //@ WL11651-TSFR7_6 - empty value - function call
-||reports.threads: The 'format' parameter cannot be empty. (ArgumentError)
+||The 'format' parameter cannot be empty. (ArgumentError)
 
 //@ WL11651-TSFR7_6 - invalid format
-||reports.threads: Cannot use 'tid cid' in 'format' parameter: Unknown column name: tid cid
+||Cannot use 'tid cid' in 'format' parameter: Unknown column name: tid cid
 
 //@ WL11651-TSFR7_7 - Use the --format (-o) option to request columns different than the ones listed in FR5, validate that an exception is thrown.
-||reports.threads: Cannot use 'invalidcolumn' in 'format' parameter: Unknown column name: invalidcolumn
+||Cannot use 'invalidcolumn' in 'format' parameter: Unknown column name: invalidcolumn
 
 //@ WL11651-TSFR7_8 - Use the --format (-o) option to request columns with certain prefix, validate that all columns matching this prefix are displayed and the alias is ignored.
 ||
 
 //@ WL11651-TSFR7_8 - prefix does not match any column
-||reports.threads: Cannot use 'k' in 'format' parameter: Unknown column name: k
+||Cannot use 'k' in 'format' parameter: Unknown column name: k
 
 //@ WL11651-TSFR7_9 - Use the --format (-o) option to request a column listed in FR5 but using an upper-case name.
 ||
@@ -115,10 +115,10 @@ command: Sleep
 ||
 
 //@ WL11651-TSFR8_3 - Validate that the use of key names different than the columns listed in FR5 causes an exception.
-||reports.threads: Failed to parse 'where' parameter: Unknown column name: invalidcolumn
+||Failed to parse 'where' parameter: Unknown column name: invalidcolumn
 
 //@ WL11651-TSFR8_4 - Try to use non SQL values as the value for a key using the --where option, an exception should be thrown.
-||reports.threads: Failed to parse 'where' parameter: Unknown column name: one
+||Failed to parse 'where' parameter: Unknown column name: one
 
 //@ WL11651-TSFR8_5 - Validate that the following relational operator can be used with the --where option: =, !=, <>, >, >=, <, <=, LIKE.
 ||
@@ -133,10 +133,10 @@ command: Sleep
 ||threads: option --where requires an argument
 
 //@ WL11651-TSFR8_9 - empty value - function call
-||reports.threads: The 'where' parameter cannot be empty. (ArgumentError)
+||The 'where' parameter cannot be empty. (ArgumentError)
 
 //@<ERR> WL11651-TSFR8_10 - Validate that an exception is thrown if the --where option receive an argument that doesn't comply with the form specified.
-reports.threads: Failed to parse 'where' parameter: Expected end of expression, at position 4,
+Failed to parse 'where' parameter: Expected end of expression, at position 4,
 in: one two
         ^^^
 
@@ -153,7 +153,7 @@ in: one two
 ||
 
 //@ WL11651-TSFR9_X - Validate that the --order-by throws an exception if column is unknown.
-||reports.threads: Cannot use 'invalidcolumn' as a column to order by: Unknown column name: invalidcolumn
+||Cannot use 'invalidcolumn' as a column to order by: Unknown column name: invalidcolumn
 
 //@ WL11651-TSFR10_2 - When using the --desc option, validate that the output is sorted in descending order.
 ||

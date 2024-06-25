@@ -28,10 +28,10 @@
 |Connection ID:            <<<__test_ids['cid']>>>|
 
 #@ WL11651-TSFR13_X - Invalid thread ID
-||reports.thread: The specified thread does not exist.
+||The specified thread does not exist.
 
 #@ WL11651-TSFR14_3 - tid + cid
-||reports.thread: Both 'cid' and 'tid' cannot be used at the same time.
+||Both 'cid' and 'tid' cannot be used at the same time.
 
 #@<OUT> WL11651-TSFR15_2 - --brief
 Thread ID: <<<__test_ids['tid']>>>, Connection ID: <<<__test_ids['cid']>>>, User: thread_test@<<<__host>>>.
@@ -287,7 +287,7 @@ N/A
 ||
 
 #@ WL11651-TSFR26_1 - If there is any error in the queries executed by the thread report, validate that an exception is thrown.
-||reports.thread: SELECT command denied to user 'thread_test'@'<<<__host>>>' for table 'threads'
+||SELECT command denied to user 'thread_test'@'<<<__host>>>' for table 'threads'
 
 #@ cleanup - delete the database
 ||

@@ -141,7 +141,7 @@ cluster.options();
 
 //@<> forceQuorum
 // TODO these 2 lines shouldn't be needed, but without them the addInstance
-// fails with Cluster.addInstance: This function is not available through a session to a read only instance (RuntimeError)
+// fails with This function is not available through a session to a read only instance (RuntimeError)
 // everything should be fixed to always work through the PRIMARY
 shell.connect(ssl_sandbox_uri1);
 cluster = dba.getCluster();

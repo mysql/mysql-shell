@@ -176,7 +176,7 @@ WIPE_OUTPUT();
 
 EXPECT_THROWS(function() {
     cs.dissolve();
-}, "ClusterSet.dissolve: Failed to dissolve the ClusterSet: Unable to connect to all instances.");
+}, "Failed to dissolve the ClusterSet: Unable to connect to all instances.");
 
 EXPECT_OUTPUT_CONTAINS(`ERROR: Unable to connect to instance '${hostname}:${__mysql_sandbox_port3}'. Please verify connection credentials and make sure the instance is available.`);
 
@@ -215,7 +215,7 @@ WIPE_OUTPUT();
 
 EXPECT_THROWS(function() {
     cs.dissolve();
-}, "ClusterSet.dissolve: Failed to dissolve the ClusterSet: Detected instances with (MISSING) state.");
+}, "Failed to dissolve the ClusterSet: Detected instances with (MISSING) state.");
 
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port3}' cannot be removed because it is on a 'OFFLINE' state. Please bring the instance back ONLINE and try to dissolve the ClusterSet again. If the instance is permanently not reachable, then please use <ClusterSet>.dissolve() with the 'force' option enabled to proceed with the operation and only remove the instance from the ClusterSet Metadata.`);
 
@@ -249,7 +249,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
 EXPECT_THROWS(function() {
     cs.dissolve();
-}, "ClusterSet.dissolve: Failed to dissolve the ClusterSet: Detected instances with (MISSING) state.");
+}, "Failed to dissolve the ClusterSet: Detected instances with (MISSING) state.");
 
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' cannot be removed because it is on a '(MISSING)' state. Please bring the instance back ONLINE and try to dissolve the ClusterSet again. If the instance is permanently not reachable, then please use <ClusterSet>.dissolve() with the 'force' option enabled to proceed with the operation and only remove the instance from the ClusterSet Metadata.`);
 
@@ -294,7 +294,7 @@ WIPE_OUTPUT();
 
 EXPECT_THROWS(function(){
     cs.dissolve();
-}, "ClusterSet.dissolve: One or more REPLICA Clusters are unreachable.");
+}, "One or more REPLICA Clusters are unreachable.");
 
 EXPECT_OUTPUT_CONTAINS("ERROR: Could not connect to PRIMARY of cluster 'replica': MYSQLSH 51011: Cluster 'replica' has no quorum");
 EXPECT_STDOUT_CONTAINS_MULTILINE("ERROR: Unable to connect to Cluster 'replica'. Please make sure the cluster is reachable. You can also choose to skip this error using the 'force: true' option, but it might leave the cluster in an inconsistent state and lead to errors if you want to reuse it.");

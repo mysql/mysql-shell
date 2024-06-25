@@ -361,14 +361,14 @@ WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql
 ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata (no prompt)
-Cluster.removeInstance: Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
 
 //@<OUT> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port2)>>>' ([[*]])
 ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
-Cluster.removeInstance: Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' not found (MYSQLSH 51104)
 
 //@ Error removing stopped instance on port2 (no prompt if interactive is false)
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
@@ -397,7 +397,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachabl
 To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: false, force: false) - error
-Cluster.removeInstance: [[*]] (MySQL Error 20[[*]])
+[[*]] (MySQL Error 20[[*]])
 
 //@<OUT> Remove unreachable instance (interactive: false, force: true) - success
 NOTE: MySQL Error 20[[*]]
@@ -414,14 +414,14 @@ WARNING: MySQL Error 20[[*]]
 ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive true (should fail)
-Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> remove instance not in MD and unreachable, interactive false (should fail)
 WARNING: MySQL Error 20[[*]]
 ERROR: The instance <<<hostname>>>:<<<__mysql_sandbox_port3>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.
 
 //@<ERR> remove instance not in MD and unreachable, interactive false (should fail)
-Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> Cluster status after removal of instance on port2 and port3
 {
@@ -461,13 +461,13 @@ Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the Cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive false (should fail)
-Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@<OUT> remove reachable instance but not MD, interactive true (should fail)
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the Cluster.
 
 //@<ERR> remove reachable instance but not MD, interactive true (should fail)
-Cluster.removeInstance: Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
+Metadata for instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' not found (MYSQLSH 51104)
 
 //@ Connect to instance2 (removed unreachable)
 ||
@@ -499,7 +499,7 @@ ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachabl
 To safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.
 
 //@<ERR> Remove unreachable instance (interactive: true, force: false) - error
-Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer NO) - error
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
@@ -509,7 +509,7 @@ To safely remove the instance from the Cluster, make sure the instance is back O
 Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:
 
 //@<ERR> Remove unreachable instance (interactive: true, answer NO) - error
-Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
 //@<OUT> Remove unreachable instance (interactive: true, answer YES) - success
 WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])
@@ -567,10 +567,10 @@ ERROR: The instance 'localhost:<<<__mysql_sandbox_port2>>>' was unable to catch 
 ERROR: Applier error in replication channel 'group_replication_applier': [[*]]
 
 //@<ERR> Remove instance with replication error - error {VER(>=8.0.23)}
-Cluster.removeInstance: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@<ERR> Remove instance with replication error - error {VER(<8.0.23)}
-Cluster.removeInstance: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+<<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
 //@ Change shell option dba.gtidWaitTimeout to 10 second
 ||
@@ -588,7 +588,7 @@ NOTE: Transaction sync was skipped
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@ Error removing last instance
-|ERROR: The instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.|Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
+|ERROR: The instance 'localhost:<<<__mysql_sandbox_port1>>>' cannot be removed because it is the only member of the Cluster. Please use <Cluster>.dissolve() instead to remove the last instance and dissolve the Cluster.|The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
 
 //@ Dissolve cluster with success
 ||

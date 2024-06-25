@@ -104,7 +104,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 
 //@<ERR> Check instance must fail if report_host is defined but empty.
-Dba.checkInstanceConfiguration: The value for variable 'report_host' cannot be empty. (RuntimeError)
+The value for variable 'report_host' cannot be empty. (RuntimeError)
 
 //@<OUT> Configure instance must fail if report_host is defined but empty.
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB Cluster...
@@ -113,7 +113,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 
 //@<ERR> Configure instance must fail if report_host is defined but empty.
-Dba.configureInstance: The value for variable 'report_host' cannot be empty. (RuntimeError)
+The value for variable 'report_host' cannot be empty. (RuntimeError)
 
 //@<OUT> Create cluster must fail if report_host is defined but empty.
 A new InnoDB Cluster will be created on instance ':<<<__mysql_sandbox_port2>>>'.
@@ -124,7 +124,7 @@ Please note that sandbox instances are only suitable for deploying test clusters
 ERROR: Invalid 'report_host' value for instance 'localhost:<<<__mysql_sandbox_port2>>>'. The value cannot be empty if defined.
 
 //@<ERR> Create cluster must fail if report_host is defined but empty.
-Dba.createCluster: The value for variable 'report_host' cannot be empty. (RuntimeError)
+The value for variable 'report_host' cannot be empty. (RuntimeError)
 
 //@ Remove the sandboxes
 ||
@@ -153,7 +153,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> fo
 ERROR: New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
 //@<ERR> BUG29018457 - check instance fails because only a localhost account is available.
-Dba.checkInstanceConfiguration: User 'admin_local' can only connect from 'localhost'. (RuntimeError)
+User 'admin_local' can only connect from 'localhost'. (RuntimeError)
 
 //@ BUG29018457 - Create a admin_host user only for report_host.
 ||
@@ -164,7 +164,7 @@ Validating local MySQL instance listening at port <<<__mysql_sandbox_port1>>> fo
 ERROR: New account(s) with proper source address specification to allow remote connection from all instances must be created to manage the cluster.
 
 //@<ERR> BUG29018457 - check instance fails because only report_host account is available.
-Dba.checkInstanceConfiguration: User 'admin_host' can only connect from '<<<hostname_ip>>>'. (RuntimeError)
+User 'admin_host' can only connect from '<<<hostname_ip>>>'. (RuntimeError)
 
 //@ BUG29018457 - clean-up (destroy sandbox).
 ||

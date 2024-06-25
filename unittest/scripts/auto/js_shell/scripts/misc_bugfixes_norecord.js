@@ -52,17 +52,17 @@ session.close();
 //@<> MY-290 JS File with errors generate a ? response with batch mode
 testutil.callMysqlsh([__uripwd, "--js", "--file", __test_data_path + "js/js_err.js"]);
 if (testutil.versionCheck(__version, ">=", "8.0.0")) {
-    EXPECT_OUTPUT_CONTAINS("Session.runSql: Unknown database 'unexisting'");
+    EXPECT_OUTPUT_CONTAINS("Unknown database 'unexisting'");
 } else {
-    EXPECT_OUTPUT_CONTAINS("Session.runSql: Table 'unexisting.whatever' doesn't exist");
+    EXPECT_OUTPUT_CONTAINS("Table 'unexisting.whatever' doesn't exist");
 }
 testutil.wipeAllOutput();
 
 testutil.callMysqlsh([__uripwd, "--interactive=full", "--js", "--file", __test_data_path + "js/js_err.js"]);
 if (testutil.versionCheck(__version, ">=", "8.0.0")) {
-    EXPECT_OUTPUT_CONTAINS("Session.runSql: Unknown database 'unexisting'");
+    EXPECT_OUTPUT_CONTAINS("Unknown database 'unexisting'");
 } else {
-    EXPECT_OUTPUT_CONTAINS("Session.runSql: Table 'unexisting.whatever' doesn't exist");
+    EXPECT_OUTPUT_CONTAINS("Table 'unexisting.whatever' doesn't exist");
 }
 testutil.wipeAllOutput();
 
@@ -124,7 +124,7 @@ session.close();
 shell.connect(__uripwd);
 \status
 EXPECT_OUTPUT_CONTAINS("MySQL Shell version");
-EXPECT_THROWS(function() {session.runSql('kill connection_id()')}, "Session.runSql: Query execution was interrupted");
+EXPECT_THROWS(function() {session.runSql('kill connection_id()')}, "Query execution was interrupted");
 
 \status
 EXPECT_OUTPUT_CONTAINS("MySQL Shell version");

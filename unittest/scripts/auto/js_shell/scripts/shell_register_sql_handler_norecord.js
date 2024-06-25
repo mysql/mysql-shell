@@ -16,16 +16,16 @@ callMysqlsh([__mysqluripwd, "--", "shell", "list-sql-handlers"])
 EXPECT_OUTPUT_CONTAINS('[]')
 
 //@<> SQL Handler Registration Errors
-EXPECT_THROWS(function() {shell.registerSqlHandler(5, 5, 45, null)}, "Shell.registerSqlHandler: Argument #1 is expected to be a string")
-EXPECT_THROWS(function() {shell.registerSqlHandler("", 5, 45, null)}, "Shell.registerSqlHandler: Argument #2 is expected to be a string")
-EXPECT_THROWS(function() {shell.registerSqlHandler("", "", 45, null)}, "Shell.registerSqlHandler: Argument #3 is expected to be an array")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", ["SAMPLE"], 45)}, "Shell.registerSqlHandler: Argument #4 is expected to be a function")
-EXPECT_THROWS(function() {shell.registerSqlHandler("", "", [], null)}, "Shell.registerSqlHandler: An empty name is not allowed")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "", [], null)}, "Shell.registerSqlHandler: An empty description is not allowed")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [], null)}, "Shell.registerSqlHandler: At least one prefix must be specified")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [45], null)}, "Shell.registerSqlHandler: Argument #3 is expected to be an array of strings")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [""], null)}, "Shell.registerSqlHandler: Empty or blank prefixes are not allowed")
-EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", ["SAMPLE", "   "], null)}, "Shell.registerSqlHandler: Empty or blank prefixes are not allowed")
+EXPECT_THROWS(function() {shell.registerSqlHandler(5, 5, 45, null)}, "Argument #1 is expected to be a string")
+EXPECT_THROWS(function() {shell.registerSqlHandler("", 5, 45, null)}, "Argument #2 is expected to be a string")
+EXPECT_THROWS(function() {shell.registerSqlHandler("", "", 45, null)}, "Argument #3 is expected to be an array")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", ["SAMPLE"], 45)}, "Argument #4 is expected to be a function")
+EXPECT_THROWS(function() {shell.registerSqlHandler("", "", [], null)}, "An empty name is not allowed")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "", [], null)}, "An empty description is not allowed")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [], null)}, "At least one prefix must be specified")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [45], null)}, "Argument #3 is expected to be an array of strings")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", [""], null)}, "Empty or blank prefixes are not allowed")
+EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", ["SAMPLE", "   "], null)}, "Empty or blank prefixes are not allowed")
 EXPECT_THROWS(function() {shell.registerSqlHandler("sample", "description", ["SAMPLE"], null)}, "The callback function must be defined.")
 
 // Error registering handler with same name
@@ -160,7 +160,7 @@ shell.registerSqlHandler("showHandler", "Handler for SHOW statements", ["SHOWME"
 testutil.createFile(plugin_path, plugin_code)
 
 callMysqlsh([__mysqluripwd, "--js", "-i", "--tabbed", "-e", "session.runSql('showme')"])
-EXPECT_STDOUT_CONTAINS_MULTILINE(`ClassicSession.runSql: ClassicSession.runSql: Unable to execute a sql handler while another is being executed.
+EXPECT_STDOUT_CONTAINS_MULTILINE(`Unable to execute a sql handler while another is being executed.
 Executing SQL: showme
 Unable to execute: showme databases (LogicError)`)
 

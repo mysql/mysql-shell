@@ -235,7 +235,7 @@ testutil.waitMemberTransactions(__mysql_sandbox_port4, __mysql_sandbox_port1);
 session4.runSql("stop replica for channel 'clusterset_replication'");
 session4.runSql("reset replica all for channel 'clusterset_replication'");
 
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, " Replication channel does not exist", "MYSQLSH");
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "Replication channel does not exist", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: The ClusterSet Replication channel could not be found at the Cluster 'replicacluster'. Use the 'force' option to ignore this check.");
 
 //@<> Remove cluster where repl channel is down + force

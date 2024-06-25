@@ -38,7 +38,7 @@ try {
 } catch (err) {
     // if it failed it is because of GR BUG#31002759 where the in a group with ipv4 instances, sometimes clone selects the IPv6 one
     EXPECT_STDOUT_CONTAINS("Adding instance to the cluster...");
-    EXPECT_EQ(err.message, "Cluster.addInstance: Distributed recovery has failed");
+    EXPECT_EQ(err.message, "Distributed recovery has failed");
 }
 //@<> Cleanup sandboxes
 session.close();

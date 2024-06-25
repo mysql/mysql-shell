@@ -17,7 +17,7 @@ def EXPECT_FAIL(error, msg, sql, options = {}):
     # add extra options
     run_options.update(options)
     is_re = is_re_instance(msg)
-    full_msg = f"{re.escape(error) if is_re else error}: Shell.auto_complete_sql: {msg.pattern if is_re else msg}"
+    full_msg = f"{re.escape(error) if is_re else error}: {msg.pattern if is_re else msg}"
     if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: shell.auto_complete_sql(sql, run_options), full_msg)
@@ -173,13 +173,13 @@ EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", {})
 #@<> WL13397-TSFR_2_2_1
 # WL13397-TSFR_2_2_1_1_3
 # WL13397-TSFR_2_2_2_4
-EXPECT_THROWS(lambda: shell.auto_complete_sql("", {}), "ValueError: Shell.auto_complete_sql: Argument #2: Missing required options: serverVersion, sqlMode")
+EXPECT_THROWS(lambda: shell.auto_complete_sql("", {}), "ValueError: Argument #2: Missing required options: serverVersion, sqlMode")
 EXPECT_FAIL("ValueError", "Argument #2: Invalid options: unknown", "", { "unknown": "unknown" })
 
 #@<> WL13397-TSFR_2_2_2
-EXPECT_THROWS(lambda: shell.auto_complete_sql("", 1), "TypeError: Shell.auto_complete_sql: Argument #2 is expected to be a map")
-EXPECT_THROWS(lambda: shell.auto_complete_sql("", []), "TypeError: Shell.auto_complete_sql: Argument #2 is expected to be a map")
-EXPECT_THROWS(lambda: shell.auto_complete_sql("", ""), "TypeError: Shell.auto_complete_sql: Argument #2 is expected to be a map")
+EXPECT_THROWS(lambda: shell.auto_complete_sql("", 1), "TypeError: Argument #2 is expected to be a map")
+EXPECT_THROWS(lambda: shell.auto_complete_sql("", []), "TypeError: Argument #2 is expected to be a map")
+EXPECT_THROWS(lambda: shell.auto_complete_sql("", ""), "TypeError: Argument #2 is expected to be a map")
 
 #@<> WL13397-TSFR_2_2_1_1
 EXPECT_FAIL("TypeError", "Argument #2: Option 'serverVersion' is expected to be of type String, but is Map", "", { "serverVersion": {} })

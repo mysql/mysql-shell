@@ -46,7 +46,7 @@ EXPECT_EQ(c.status()["clusterName"], "replica");
 //@<> dba.getCluster() bad options while connected to the primary cluster
 EXPECT_THROWS_TYPE(function(){dba.getCluster("foobar")}, "The cluster with the name 'foobar' does not exist.", "MYSQLSH");
 EXPECT_THROWS_TYPE(function(){dba.getCluster("")}, "The cluster with the name '' does not exist.", "MYSQLSH");
-EXPECT_THROWS_TYPE(function(){dba.getCluster(123)}, " Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){dba.getCluster(123)}, "Argument #1 is expected to be a string", "TypeError");
 EXPECT_THROWS_TYPE(function(){dba.getCluster("foo", 123, "bar")}, "Invalid number of arguments, expected 0 to 1 but got 3", "ArgumentError");
 
 //@<> dba.getCluster() on the replica cluster
@@ -63,7 +63,7 @@ EXPECT_EQ(c.status()["clusterName"], "cluster");
 //@<> dba.getCluster() bad options while connected to the replica cluster
 EXPECT_THROWS_TYPE(function(){dba.getCluster("foobar")}, "The cluster with the name 'foobar' does not exist.", "MYSQLSH");
 EXPECT_THROWS_TYPE(function(){dba.getCluster("")}, "The cluster with the name '' does not exist.", "MYSQLSH");
-EXPECT_THROWS_TYPE(function(){dba.getCluster(123)}, " Argument #1 is expected to be a string", "TypeError");
+EXPECT_THROWS_TYPE(function(){dba.getCluster(123)}, "Argument #1 is expected to be a string", "TypeError");
 EXPECT_THROWS_TYPE(function(){dba.getCluster("foo", 123, "bar")}, "Invalid number of arguments, expected 0 to 1 but got 3", "ArgumentError");
 
 

@@ -177,7 +177,7 @@ EXPECT_THROWS(lambda: shell.connect(conn), "Invalid URI: Illegal space found at 
 
 
 conn = {"uri":"mysqlx://user@invalid_host:3306"}
-EXPECT_THROWS(lambda: shell.connect(conn), "MySQL Error (2005): Shell.connect: No such host is known 'invalid_host'")
+EXPECT_THROWS(lambda: shell.connect(conn), "MySQL Error (2005): No such host is known 'invalid_host'")
 conn = {"uri":""}
 EXPECT_THROWS(lambda: shell.connect(conn), "Invalid URI: Expected token at position 0 but no tokens left")
 conn = {"uri":"mysqlx://user@host name:33060"}

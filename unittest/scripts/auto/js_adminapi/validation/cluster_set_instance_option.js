@@ -17,16 +17,16 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption for a target instance that does not belong to the cluster
-Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' does not belong to the cluster. (RuntimeError)
+The instance 'localhost:<<<__mysql_sandbox_port2>>>' does not belong to the cluster. (RuntimeError)
 
 //@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
 ||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption when the target instance is not reachable
-Cluster.setInstanceOption: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>' ([[*]]) (MySQL Error 2003)
+Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>' ([[*]]) (MySQL Error 2003)
 
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum {VER(>=8.0.14)}
-Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)
+There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<OUT> WL#11465: setInstanceOption label
 Setting the value of 'label' to 'newLabel' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
@@ -45,7 +45,7 @@ Successfully set the value of 'memberWeight' to '25' in the cluster member: 'loc
 25
 
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
-Cluster.setInstanceOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
+Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setInstanceOption exitStateAction
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...

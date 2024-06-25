@@ -316,7 +316,7 @@ EXPECT_THROWS(lambda:
             "pow": "pow(@1, @2)",
             "mul": "@1 * @2"
         }
-    }), "Util.import_table: Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
+    }), "Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
 
 EXPECT_THROWS(lambda:
     util.import_table(os.path.join(__import_data_path, 'numbers.tsv'), {
@@ -329,16 +329,16 @@ EXPECT_THROWS(lambda:
             "pow": "pow(@1, @2)",
             "mul": "@1 * @2"
         }
-    }), "Util.import_table: Argument #2: The 'columns' option must be a non-empty list.");
+    }), "Argument #2: The 'columns' option must be a non-empty list.");
 
 #@<> TEST_STRING_OPTION
 def TEST_STRING_OPTION(option):
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: None, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Null")
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: 5, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: -5, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: [], "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Array")
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: {}, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Map")
-    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: False, "schema": target_schema, "table": target_table }), f"TypeError: Util.import_table: Argument #2: Option '{option}' is expected to be of type String, but is Bool")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: None, "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Null")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: 5, "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: -5, "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Integer")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: [], "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Array")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: {}, "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Map")
+    EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { option: False, "schema": target_schema, "table": target_table }), f"TypeError: Argument #2: Option '{option}' is expected to be of type String, but is Bool")
 
 #@<> WL15884-TSFR_1_1 - `ociAuth` help text
 help_text = """
@@ -357,25 +357,25 @@ truncate_table()
 EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "ociAuth": "", "schema": target_schema, "table": target_table }), "should not fail")
 
 #@<> WL15884-TSFR_3_1 - `ociAuth` cannot be used without `osBucketName`
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "", "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "", "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "ociAuth": "api_key", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociAuth' cannot be used when the value of 'osBucketName' option is not set")
 
 #@<> WL15884-TSFR_6_1_1 - `ociAuth` set to instance_principal cannot be used with `ociConfigFile` or `ociProfile`
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "instance_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: instance_principal.")
 
 #@<> WL15884-TSFR_7_1_1 - `ociAuth` set to resource_principal cannot be used with `ociConfigFile` or `ociProfile`
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociConfigFile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
 
 #@<> WL15884-TSFR_9_1 - `ociAuth` set to an invalid value
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "unknown", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: Invalid value of 'ociAuth' option, expected one of: api_key, instance_principal, resource_principal, security_token, but got: unknown.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "unknown", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: Invalid value of 'ociAuth' option, expected one of: api_key, instance_principal, resource_principal, security_token, but got: unknown.")
 
 #@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
 TEST_STRING_OPTION("s3BucketName")
 
 #@<> WL14387-TSFR_1_2_1 - s3BucketName and osBucketName cannot be used at the same time
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "one", "osBucketName": "two", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "one", "osBucketName": "two", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 's3BucketName' cannot be used when the value of 'osBucketName' option is set")
 
 #@<> WL14387-TSFR_1_1_3 - s3BucketName set to an empty string loads from a local directory
 truncate_table()
@@ -385,7 +385,7 @@ EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName"
 TEST_STRING_OPTION("s3CredentialsFile")
 
 #@<> WL14387-TSFR_3_1_1_1 - s3CredentialsFile cannot be used without s3BucketName
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3CredentialsFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3CredentialsFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 's3CredentialsFile' cannot be used when the value of 's3BucketName' option is not set")
 
 #@<> s3BucketName and s3CredentialsFile both set to an empty string loads from a local directory
 truncate_table()
@@ -395,7 +395,7 @@ EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName"
 TEST_STRING_OPTION("s3ConfigFile")
 
 #@<> WL14387-TSFR_4_1_1_1 - s3ConfigFile cannot be used without s3BucketName
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3ConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3ConfigFile": "file", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 's3ConfigFile' cannot be used when the value of 's3BucketName' option is not set")
 
 #@<> s3BucketName and s3ConfigFile both set to an empty string loads from a local directory
 truncate_table()
@@ -405,7 +405,7 @@ EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName"
 TEST_STRING_OPTION("s3Profile")
 
 #@<> WL14387-TSFR_2_1_1_2 - s3Profile cannot be used without s3BucketName
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3Profile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3Profile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 's3Profile' cannot be used when the value of 's3BucketName' option is not set")
 
 #@<> WL14387-TSFR_2_1_2_1 - s3BucketName and s3Profile both set to an empty string loads from a local directory
 truncate_table()
@@ -415,17 +415,17 @@ EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName"
 TEST_STRING_OPTION("s3EndpointOverride")
 
 #@<> WL14387-TSFR_6_1_1 - s3EndpointOverride cannot be used without s3BucketName
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3EndpointOverride": "http://example.org", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3EndpointOverride": "http://example.org", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 's3EndpointOverride' cannot be used when the value of 's3BucketName' option is not set")
 
 #@<> s3BucketName and s3EndpointOverride both set to an empty string loads from a local directory
 truncate_table()
 EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "", "s3EndpointOverride": "", "schema": target_schema, "table": target_table }), "should not fail")
 
 #@<> s3EndpointOverride is missing a scheme
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "bucket", "s3EndpointOverride": "endpoint", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The value of the option 's3EndpointOverride' is missing a scheme, expected: http:// or https://.")
 
 #@<> s3EndpointOverride is using wrong scheme
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "schema": target_schema, "table": target_table }), "ValueError: Util.import_table: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "s3BucketName": "bucket", "s3EndpointOverride": "FTp://endpoint", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The value of the option 's3EndpointOverride' uses an invalid scheme 'FTp://', expected: http:// or https://.")
 
 #@<> BUG#35895247 - importing a file with escaped wildcard characters should load it in chunks {__os_type != "windows"}
 full_path = os.path.join(__tmp_dir, "will *this work?")

@@ -288,7 +288,7 @@ EXPECT_THROWS(lambda: shell.connect({"uri": MYSQL_OVER_SSH_URI, "ssh": SSH_URI_N
                     "ssh-identity-file": key_with_pw,
                     "ssh-identity-file-password": "bad_password",
                     "ssh-config-file": config_file}),
-    "Shell.connect: Tunnel connection cancelled")
+    "Tunnel connection cancelled")
 EXPECT_STDOUT_CONTAINS(f'ERROR: Authentication error opening SSH tunnel: Access denied')
 testutil.assert_no_prompts()
 
@@ -633,11 +633,11 @@ EXPECT_EQ(10250, int(shell.options["ssh.bufferSize"]))
 
 #@<> WL#14246 10_7 check invalid values
 \option ssh.bufferSize=10MB
-EXPECT_STDERR_CONTAINS('ssh.bufferSize: Malformed option value.')
+EXPECT_STDERR_CONTAINS('Malformed option value.')
 WIPE_OUTPUT()
 
 shell.options.set('ssh.bufferSize','10MB')
-EXPECT_STDERR_CONTAINS('ssh.bufferSize: Malformed option value.')
+EXPECT_STDERR_CONTAINS('Malformed option value.')
 WIPE_OUTPUT()
 
-EXPECT_THROWS(lambda: shell.options.set("ssh.bufferSize", -1), "ValueError: Options.set: ssh.bufferSize: value out of range")
+EXPECT_THROWS(lambda: shell.options.set("ssh.bufferSize", -1), "ValueError: ssh.bufferSize: value out of range")

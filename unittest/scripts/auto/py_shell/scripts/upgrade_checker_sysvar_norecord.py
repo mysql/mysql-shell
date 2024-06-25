@@ -12,9 +12,9 @@ WIPE_OUTPUT()
 
 #@<> WL16262-TSFR3_1
 util.check_for_server_upgrade(__mysql_uri, {"targetVersion": "8.4.0", "include":["sysVarsNewDefaults", "removedSysVars", "removedSysLogVars", "sysvarAllowedValues"]})
-EXPECT_STDERR_CONTAINS("ValueError: Util.check_for_server_upgrade: Option include contains unknown values 'removedSysLogVars', 'removedSysVars', 'sysVarsNewDefaults', 'sysvarAllowedValues'")
+EXPECT_STDERR_CONTAINS("ValueError: Option include contains unknown values 'removedSysLogVars', 'removedSysVars', 'sysVarsNewDefaults', 'sysvarAllowedValues'")
 WIPE_OUTPUT()
 
 util.check_for_server_upgrade(__mysql_uri, {"targetVersion": "8.4.0", "exclude":["sysVarsNewDefaults", "removedSysVars", "removedSysLogVars", "sysvarAllowedValues"]})
-EXPECT_STDERR_CONTAINS("ValueError: Util.check_for_server_upgrade: Option exclude contains unknown values 'removedSysLogVars', 'removedSysVars', 'sysVarsNewDefaults', 'sysvarAllowedValues'")
+EXPECT_STDERR_CONTAINS("ValueError: Option exclude contains unknown values 'removedSysLogVars', 'removedSysVars', 'sysVarsNewDefaults', 'sysvarAllowedValues'")
 WIPE_OUTPUT()

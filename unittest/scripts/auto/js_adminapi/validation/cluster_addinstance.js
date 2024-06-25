@@ -31,13 +31,13 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<ERR> AddInstance async replication error
-Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@<OUT> AddInstance async replication error with channels stopped
 ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<ERR> AddInstance async replication error with channels stopped
-Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@ BUG#29305551: Finalization
 ||
@@ -55,7 +55,7 @@ Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' h
 ERROR: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has a 'server_id' already being used by instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
 
 //@<ERR> BUG#29809560: add instance fails because server_id is not unique.
-Cluster.addInstance: Invalid server_id. (MYSQLSH 51606)
+Invalid server_id. (MYSQLSH 51606)
 
 //@ BUG#29809560: clean-up.
 ||

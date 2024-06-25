@@ -68,7 +68,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("WARNING");
 EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 
 //@<> Invalid switch
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "ClusterSet.setPrimaryCluster: The cluster with the name 'cluster3' does not exist.");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "The cluster with the name 'cluster3' does not exist.");
 
 //@<> Switch primary 1/1 (dryRun)
 shell.options["dba.logSql"] = 2;
@@ -264,7 +264,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 //@<> switchover to a cluster with errant trxs
 errant_gtid = inject_errant_gtid(session4);
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "ClusterSet.setPrimaryCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
 // remove the errant trx
 inject_empty_trx(session1, errant_gtid);
@@ -283,7 +283,7 @@ CHECK_CLUSTER_SET(session);
 //@<> timeout at primary cluster during switch (should timeout and revert)
 session1.runSql("flush tables with read lock");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:2});}, "ClusterSet.setPrimaryCluster: Error while resetting password for replication account: "+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:2});}, "Error while resetting password for replication account: "+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], c1, c2);
@@ -295,7 +295,7 @@ session1.runSql("unlock tables");
 //@<> timeout at promoted replica cluster during switch (should timeout and revert)
 session4.runSql("flush tables with read lock");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:2});}, "ClusterSet.setPrimaryCluster: Timeout reached waiting for transactions from "+hostname+":"+__mysql_sandbox_port1+" to be applied on instance '"+hostname+":"+__mysql_sandbox_port4+"'");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:2});}, "Timeout reached waiting for transactions from "+hostname+":"+__mysql_sandbox_port1+" to be applied on instance '"+hostname+":"+__mysql_sandbox_port4+"'");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], c1, c2);
@@ -509,7 +509,7 @@ CHECK_CLUSTER_SET(session);
 testutil.killSandbox(__mysql_sandbox_port6);
 testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "ClusterSet.setPrimaryCluster: Cluster 'cluster2' has no quorum");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "Cluster 'cluster2' has no quorum");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4], c1, c2);
@@ -517,7 +517,7 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri5], c1, c3);
 CHECK_CLUSTER_SET(session);
 
 //@<> Test switchover while a cluster is no_quorum (needs to invalidate cluster2)
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "ClusterSet.setPrimaryCluster: One or more replica clusters are unavailable");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "One or more replica clusters are unavailable");
 
 cs.setPrimaryCluster("cluster3", {invalidateReplicaClusters:["cluster2"]});
 CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c3, c1);
@@ -565,14 +565,14 @@ testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
 
 cs = dba.getClusterSet();
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "ClusterSet.setPrimaryCluster: The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "ClusterSet.setPrimaryCluster: The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
 
 // EXPECT_OUTPUT_CONTAINS("ERROR: A connection to the PRIMARY instance of cluster 'cluster4' could not be established to perform this action.");
 // EXPECT_OUTPUT_CONTAINS("ERROR: MYSQLSH 51011: Group has no quorum");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "ClusterSet.setPrimaryCluster: The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster4");}, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state: Could not connect to an ONLINE member of Primary Cluster within quorum");
 
 //@<> Test switchover while primary cluster is offline
 session4.runSql("stop group_replication");

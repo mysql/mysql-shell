@@ -197,7 +197,7 @@ EXPECT_STDOUT_CONTAINS("| disable_log_bin                  | <present>     | <no
 EXPECT_STDOUT_CONTAINS("| skip_log_bin                     | <present>     | <not present>  | Remove the option and restart the server      |");
 
 testutil.wipeAllOutput();
-EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Dba.configureInstance: Unable to update configuration");
+EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Unable to update configuration");
 var count = testutil.fetchCapturedStdout(false).match(/\| log_bin/g).length;
 EXPECT_EQ(count, 1, "Only a single line with 'log_bin' is expected");
 EXPECT_STDOUT_CONTAINS("| log_bin                          | <not present> | ON             | Update the config file and restart the server |");
@@ -251,7 +251,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <present>     | <not present>  | Remove the option and restart the server      |");
 EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <present>     | <not present>  | Remove the option and restart the server      |");
 
-EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Dba.configureInstance: Unable to update configuration");
+EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1) }, "Unable to update configuration");
 EXPECT_OUTPUT_NOT_CONTAINS("| log_bin ");
 EXPECT_OUTPUT_CONTAINS("| disable_log_bin     | <present>     | <not present>  | Remove the option and restart the server      |");
 EXPECT_OUTPUT_CONTAINS("| skip_log_bin        | <present>     | <not present>  | Remove the option and restart the server      |");
@@ -273,7 +273,7 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 testutil.dbugSet("+d,dba_abort_instance_restart");
 
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
-EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) }, "Dba.configureInstance: restart aborted (debug)");
+EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) }, "restart aborted (debug)");
 EXPECT_OUTPUT_CONTAINS("Please restart MySQL manually (check https://dev.mysql.com/doc/refman/en/restart.html for more details).");
 
 testutil.dbugSet("");

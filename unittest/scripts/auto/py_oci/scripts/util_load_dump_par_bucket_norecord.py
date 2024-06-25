@@ -74,7 +74,7 @@ all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-re
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
@@ -84,7 +84,7 @@ remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": local_progress_file}),
-  f"Error: Shell Error (54404): Util.load_dump: While 'Listing files': Could not access 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+  f"Error: Shell Error (54404): While 'Listing files': Could not access 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_9 - Failed load dump with bucket AnyObjectWrite PAR and ListObjects
@@ -93,7 +93,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite"
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -101,7 +101,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead",
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list),
-  "Util.load_dump: When using a PAR to load a dump, the progressFile option must be defined")
+  "When using a PAR to load a dump, the progressFile option must be defined")
 EXPECT_PAR_IS_SECRET()
 
 #@<> using remote progress file
@@ -127,7 +127,7 @@ all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObje
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Util.load_dump: Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#33332080 - load a dump which is still in progress
@@ -141,7 +141,7 @@ delete_object(OS_BUCKET_NAME, "@.done.json", OS_NAMESPACE)
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "Error: Shell Error (53008): Util.load_dump: Incomplete dump")
+EXPECT_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "Error: Shell Error (53008): Incomplete dump")
 EXPECT_PAR_IS_SECRET()
 
 # asynchronously start the load process

@@ -66,7 +66,7 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0
 
 #@<> Empty wildcard expansion and non-existing file
 EXPECT_THROWS(lambda: util.import_table(['lorem_xxx*', 'lorem_yyy.tsv.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
-    "Util.import_table: File lorem_yyy.tsv.zst does not exist."
+    "File lorem_yyy.tsv.zst does not exist."
 )
 EXPECT_STDOUT_CONTAINS("ERROR: File lorem_yyy.tsv.zst does not exist.")
 EXPECT_STDOUT_CONTAINS("0 files (0 bytes) were imported in ")
@@ -89,22 +89,22 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0
 
 #@<> single file non-existing file bucket directory
 EXPECT_THROWS(lambda: util.import_table('parts/lorem_xxx.gz', {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
-    "Error: Shell Error (54404): Util.import_table: Failed opening object 'parts/lorem_xxx.gz' in READ mode: Failed to get summary for object 'parts/lorem_xxx.gz': Not Found (404)"
+    "Error: Shell Error (54404): Failed opening object 'parts/lorem_xxx.gz' in READ mode: Failed to get summary for object 'parts/lorem_xxx.gz': Not Found (404)"
 )
 
 #@<> single file from non existing bucket directory
 EXPECT_THROWS(lambda: util.import_table('nonexisting/' + raw_files[0], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
-    "Error: Shell Error (54404): Util.import_table: Failed opening object 'nonexisting/lorem_a1.tsv' in READ mode: Failed to get summary for object 'nonexisting/lorem_a1.tsv': Not Found (404)"
+    "Error: Shell Error (54404): Failed opening object 'nonexisting/lorem_a1.tsv' in READ mode: Failed to get summary for object 'nonexisting/lorem_a1.tsv': Not Found (404)"
 )
 
 #@<> expand wildcard from non existing bucket directory
 EXPECT_THROWS(lambda: util.import_table(['nonexisting/lorem*.gz', '', 'parts/*.gz', 'parts/*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
-    "Util.import_table: Directory nonexisting does not exist."
+    "Directory nonexisting does not exist."
 )
 EXPECT_STDOUT_CONTAINS("Directory nonexisting does not exist.")
 
 #@<> oci+os:// scheme is not supported
-EXPECT_THROWS(lambda: util.import_table('oci+os://region/tenancy/bucket/file'), 'Util.import_table: File handling for oci+os protocol is not supported.')
+EXPECT_THROWS(lambda: util.import_table('oci+os://region/tenancy/bucket/file'), 'File handling for oci+os protocol is not supported.')
 
 #@<> test import using OCI
 rc = testutil.call_mysqlsh([__sandbox_uri1, '--schema=' + TARGET_SCHEMA, '--', 'util', 'import-table', SOURCE_FILE, '--table=' + TARGET_TABLE, '--os-bucket-name=' + OS_BUCKET_NAME, '--os-namespace=' + OS_NAMESPACE, '--oci-config-file=' + OCI_CONFIG_FILE])

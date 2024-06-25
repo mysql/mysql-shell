@@ -51,7 +51,7 @@
 @+--------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
-@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+@@Instance check failed (MYSQLSH 51150)
 
 //@# create with bad configs (should fail) {VER(>=8.0.23) && VER(<8.0.26)}
 |NOTE: Some configuration options need to be fixed:|
@@ -67,7 +67,7 @@
 @+----------------------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
-@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+@@Instance check failed (MYSQLSH 51150)
 
 //@# create with bad configs (should fail) {VER(==8.0.26)}
 |NOTE: Some configuration options need to be fixed:|
@@ -83,7 +83,7 @@
 @+----------------------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
-@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+@@Instance check failed (MYSQLSH 51150)
 
 //@# create with bad configs (should fail) {VER(>=8.0.27) && VER(<8.3.0)}
 |NOTE: Some configuration options need to be fixed:|
@@ -97,7 +97,7 @@
 @+----------------------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
-@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+@@Instance check failed (MYSQLSH 51150)
 
 //@# create with bad configs (should fail) {VER(>=8.3.0)}
 |NOTE: Some configuration options need to be fixed:|
@@ -110,7 +110,7 @@
 @+--------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
-@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+@@Instance check failed (MYSQLSH 51150)
 
 //@# replication filters (should fail)
 ||<<<__address1>>>: instance has global replication filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)

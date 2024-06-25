@@ -112,7 +112,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump1", { "loadData":
 # BUG#35359364 - loading from 5.7 into 8.0 should not require the `ignoreVersion` option
 shell.connect(__sandbox_uri3)
 # Currently expected failure
-EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2"), "Util.load_dump: Error loading dump")
+EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2"), "Error loading dump")
 EXPECT_STDOUT_CONTAINS("Unknown collation: 'utf8mb4_0900_ai_ci'")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)

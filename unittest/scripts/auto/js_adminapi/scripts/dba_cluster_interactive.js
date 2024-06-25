@@ -129,21 +129,21 @@ testutil.expectPrompt("*", "yes");
 
 EXPECT_THROWS(function(){
     Cluster.removeInstance();
-}, "Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0", "ArgumentError");
+}, "Invalid number of arguments, expected 1 to 2 but got 0", "ArgumentError");
 EXPECT_THROWS(function(){
     Cluster.removeInstance(1,2,3);
-}, "Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3", "ArgumentError");
+}, "Invalid number of arguments, expected 1 to 2 but got 3", "ArgumentError");
 EXPECT_THROWS(function(){
     Cluster.removeInstance(1);
-}, "Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary", "TypeError");
+}, "Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary", "TypeError");
 EXPECT_THROWS(function(){
     Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", "auth-method":56});
-}, "Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string", "TypeError");
+}, "Argument #1: Argument auth-method is expected to be a string", "TypeError");
 
 // try to remove instance that is not in the cluster using the classic port
 EXPECT_THROWS(function(){
     Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password});
-}, `Cluster.removeInstance: Metadata for instance '${__host}:${__mysql_port}' not found`);
+}, `Metadata for instance '${__host}:${__mysql_port}' not found`);
 
 //@<> Cluster: removeInstance
 EXPECT_NO_THROWS(function(){ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2}); });

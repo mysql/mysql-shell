@@ -1,10 +1,10 @@
 #@<> utils CLI calls
 rc = testutil.call_mysqlsh(["--", "util", "check-for-server-upgrade"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-EXPECT_STDOUT_CONTAINS("ERROR: Please connect the shell to the MySQL server to be checked or specify the server URI as a parameter.")
+EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Please connect the shell to the MySQL server to be checked or specify the server URI as a parameter.")
 WIPE_OUTPUT()
 
 rc = testutil.call_mysqlsh(["--", "util", "check-for-server-upgrade", "--outputFormat=whatever"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-EXPECT_STDOUT_CONTAINS("ERROR: Please connect the shell to the MySQL server to be checked or specify the server URI as a parameter.")
+EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Please connect the shell to the MySQL server to be checked or specify the server URI as a parameter.")
 WIPE_OUTPUT()
 
 rc = testutil.call_mysqlsh(["--", "util", "check-for-server-upgrade", "--dummyOption=whatever"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
@@ -33,7 +33,7 @@ WIPE_OUTPUT()
 #@<> Testing upgrade checker passing option but skipping session {VER(<8.0.0)}
 # NOTE: This test would simply use the global session because an explicit default parameter (null) was passed from CLI mapper
 rc = testutil.call_mysqlsh(["--", "util", "check-for-server-upgrade", "--outputFormat=whatever"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQL_HOME=."])
-EXPECT_STDOUT_CONTAINS("ERROR: Allowed values for outputFormat parameter are TEXT or JSON")
+EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Allowed values for outputFormat parameter are TEXT or JSON")
 EXPECT_NE(0, rc)
 WIPE_OUTPUT()
 
@@ -59,13 +59,13 @@ WIPE_OUTPUT()
 
 #@<> cluster CLI calls
 rc = testutil.call_mysqlsh(["--", "cluster", "status"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-EXPECT_STDOUT_CONTAINS("ERROR: An open session is required to perform this operation.")
+EXPECT_STDOUT_CONTAINS("ERROR: RuntimeError: An open session is required to perform this operation.")
 EXPECT_NE(0, rc)
 WIPE_OUTPUT()
 
 #@<> dba CLI calls
 rc = testutil.call_mysqlsh(["--", "dba", "drop-metadata-schema", "--force"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
-EXPECT_STDOUT_CONTAINS("ERROR: An open session is required to perform this operation.")
+EXPECT_STDOUT_CONTAINS("ERROR: RuntimeError: An open session is required to perform this operation.")
 EXPECT_NE(0, rc)
 WIPE_OUTPUT()
 

@@ -131,7 +131,7 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
 def EXPECT_FAIL(error, msg, schemas, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
     is_re = is_re_instance(msg)
-    full_msg = "{0}: Util.dump_schemas: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    full_msg = "{0}: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
     if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: util.dump_schemas(schemas, outputUrl, options), full_msg)
@@ -371,8 +371,8 @@ EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], 
 EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, [])
 
 #@<> WL13807-TSFR_2_2 - Call dumpSchemas(): giving less parameters than allowed, giving more parameters than allowed
-EXPECT_THROWS(lambda: util.dump_schemas(), "ValueError: Util.dump_schemas: Invalid number of arguments, expected 2 to 3 but got 0")
-EXPECT_THROWS(lambda: util.dump_schemas(["mysql"], test_output_relative, {}, None), "ValueError: Util.dump_schemas: Invalid number of arguments, expected 2 to 3 but got 4")
+EXPECT_THROWS(lambda: util.dump_schemas(), "ValueError: Invalid number of arguments, expected 2 to 3 but got 0")
+EXPECT_THROWS(lambda: util.dump_schemas(["mysql"], test_output_relative, {}, None), "ValueError: Invalid number of arguments, expected 2 to 3 but got 4")
 
 #@<> WL13807-FR2.1 - If the `schemas` parameter is an empty list, an exception must be thrown.
 EXPECT_FAIL("ValueError", "The 'schemas' parameter cannot be an empty list.", [], test_output_relative)
@@ -439,7 +439,7 @@ util.dump_schemas([types_schema], test_output_absolute, { "ddlOnly": True, "show
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 #@<> dump once again to the same directory, should fail
-EXPECT_THROWS(lambda: util.dump_schemas([types_schema], test_output_relative, { "showProgress": False }), "ValueError: Util.dump_schemas: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
+EXPECT_THROWS(lambda: util.dump_schemas([types_schema], test_output_relative, { "showProgress": False }), "ValueError: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
 
 # WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
 # * The `maxRate` option specified in WL#13804, FR5.1.
@@ -1989,7 +1989,7 @@ def dump_with_conflicts(options, throws = True):
     # do the dump
     shutil.rmtree(test_output_absolute, True)
     if throws:
-        EXPECT_THROWS(lambda: util.dump_schemas([ "a", "b" ], test_output_absolute, options), "ValueError: Util.dump_schemas: Conflicting filtering options")
+        EXPECT_THROWS(lambda: util.dump_schemas([ "a", "b" ], test_output_absolute, options), "ValueError: Conflicting filtering options")
     else:
         # there could be some other exceptions, we ignore them
         try:

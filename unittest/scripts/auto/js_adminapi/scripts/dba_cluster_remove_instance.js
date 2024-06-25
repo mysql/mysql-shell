@@ -53,10 +53,10 @@ EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_
 session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("stop group_replication");
 
-EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri1);}, "Cluster.removeInstance: The instance 'localhost:"+__mysql_sandbox_port1+"' is the last member of the cluster");
+EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri1);}, "The instance 'localhost:"+__mysql_sandbox_port1+"' is the last member of the cluster");
 
 // remove instance that's OFFLINE
-EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri2);}, "Cluster.removeInstance: Instance is not ONLINE and cannot be safely removed");
+EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri2);}, "Instance is not ONLINE and cannot be safely removed");
 
 session2.runSql("start group_replication");
 
@@ -355,7 +355,7 @@ shell.options.useWizards=0;
 
 //@<> Remove unreachable instance (interactive: false) - error
 // WL#11862 - FR4_4
-EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
+EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
 EXPECT_STDOUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
 EXPECT_STDOUT_CONTAINS_MULTILINE("ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is not reachable and cannot be safely removed from the cluster.\nTo safely remove the instance from the Cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the Cluster and no longer connectable, use the 'force' option to remove it from the metadata.");
 

@@ -16,7 +16,7 @@ and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 
 //@<ERR> WL#12011: FR2-03 - no interactive option (default: interactive).
-Dba.createCluster: Cancelled (RuntimeError)
+Cancelled (RuntimeError)
 
 //@<OUT> WL#12011: FR2-02 - interactive = false.
 A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.

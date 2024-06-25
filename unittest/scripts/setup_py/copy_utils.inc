@@ -145,7 +145,7 @@ def EXPECT_SUCCESS_IMPL(method, connectionData, options, src, setup, *args):
 
 def EXPECT_FAIL_IMPL(method, error, msg, connectionData, options, src, setup, *args):
     is_re = is_re_instance(msg)
-    full_msg = f"{re.escape(error) if is_re else error}: Util.{method.__name__}: {msg.pattern if is_re else msg}"
+    full_msg = f"{re.escape(error) if is_re else error}: {msg.pattern if is_re else msg}"
     if is_re:
         full_msg = re.compile("^" + full_msg)
     if not session.is_open():

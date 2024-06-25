@@ -138,7 +138,7 @@ def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = [], check_n
 def EXPECT_FAIL(error, msg, schema, tables, output_url, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
     is_re = is_re_instance(msg)
-    full_msg = "{0}: Util.dump_tables: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    full_msg = "{0}: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
     if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: util.dump_tables(schema, tables, output_url, options), full_msg)
@@ -407,8 +407,8 @@ EXPECT_FAIL("TypeError", "Argument #4 is expected to be a map", test_schema, [te
 EXPECT_FAIL("TypeError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, [])
 
 #@<> WL13804-TSFR_6_2 - Call dumpTables(): giving less parameters than allowed, giving more parameters than allowed
-EXPECT_THROWS(lambda: util.dump_tables(), "ValueError: Util.dump_tables: Invalid number of arguments, expected 3 to 4 but got 0")
-EXPECT_THROWS(lambda: util.dump_tables(test_schema, [test_table_non_unique], test_output_relative, {}, None), "ValueError: Util.dump_tables: Invalid number of arguments, expected 3 to 4 but got 5")
+EXPECT_THROWS(lambda: util.dump_tables(), "ValueError: Invalid number of arguments, expected 3 to 4 but got 0")
+EXPECT_THROWS(lambda: util.dump_tables(test_schema, [test_table_non_unique], test_output_relative, {}, None), "ValueError: Invalid number of arguments, expected 3 to 4 but got 5")
 
 #@<> WL13804-FR8.1 - If schema specified by the `schema` parameter does not exist, an exception must be thrown.
 # WL13804-TSFR_8_1
@@ -491,7 +491,7 @@ testutil.call_mysqlsh([uri, '--', 'util', 'dump-tables', types_schema, ','.join(
 EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(types_schema_tables)))
 
 #@<> dump once again to the same directory, should fail
-EXPECT_THROWS(lambda: util.dump_tables(types_schema, types_schema_tables, test_output_relative, { "showProgress": False }), "ValueError: Util.dump_tables: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
+EXPECT_THROWS(lambda: util.dump_tables(types_schema, types_schema_tables, test_output_relative, { "showProgress": False }), "ValueError: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
 
 # WL13804-FR11.1 - The `options` parameter must accept the options described in WL#13807, FR3.
 # WL13804: WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
@@ -1178,12 +1178,12 @@ testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 create_test_schema_objects()
 
 #@<> WL13804-FR13.2 - The `util.loadDump()` function must accept a new option `schema` with a string value, which specifies the schema into which the dump should be loaded.
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": None }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Null")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": 5 }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": -5 }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": [] }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Array")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": {} }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Map")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": False }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Bool")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": None }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Null")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": 5 }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": -5 }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": [] }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Array")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": {} }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Map")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": False }), "TypeError: Argument #2: Option 'schema' is expected to be of type String, but is Bool")
 
 #@<> choose the same active schema, use 'schema' option, expect success
 # WL13804-TSFR_13_2_2
@@ -1255,7 +1255,7 @@ EXPECT_NO_THROWS(lambda: util.dump_schemas([test_schema, verification_schema], t
 
 # loading two schemas with 'schema' option fails
 WIPE_OUTPUT()
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Util.load_dump: Invalid option: schema.")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Invalid option: schema.")
 EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading a single schema, but 2 will be loaded.")
 
 # loading just one schema with 'schema' option succeeds
@@ -1284,7 +1284,7 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSche
 
 # loading two schemas with 'schema' option fails
 WIPE_OUTPUT()
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Util.load_dump: Invalid option: schema.")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "ValueError: Invalid option: schema.")
 EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading a single schema, but 2 will be loaded.")
 
 # loading just one schema with 'schema' option succeeds
@@ -1415,12 +1415,12 @@ with open(schema_config, "w", encoding="utf-8") as json_file:
     json.dump(schema_json, json_file)
 
 #<> loading an old dumpTables() dump without 'schema' option should fail
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "resetProgress": True, "showProgress": False }), "ValueError: Util.load_dump: The target schema was not specified.")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "resetProgress": True, "showProgress": False }), "ValueError: The target schema was not specified.")
 EXPECT_STDOUT_CONTAINS("ERROR: The dump was created by an older version of the util.dump_tables() function and needs to be loaded into an existing schema. Please set the target schema using the 'schema' option.")
 
 #<> loading an old dumpTables() dump with 'schema' option set to non-existing schema should fail
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "ValueError: Util.load_dump: The specified schema does not exist.")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "ValueError: The specified schema does not exist.")
 
 #<> loading an old dumpTables() dump with 'schema' option should succeed
 recreate_verification_schema()
@@ -2147,7 +2147,7 @@ os.mkdir(test_output_absolute)
 # change permissions to write only
 os.chmod(test_output_absolute, stat.S_IWUSR | stat.S_IXUSR | stat.S_IWGRP | stat.S_IXGRP | stat.S_IWOTH | stat.S_IXOTH)
 # expect failure
-EXPECT_THROWS(lambda: util.dump_tables(types_schema, [types_schema_tables[0]], test_output_absolute, { "showProgress": False }), "RuntimeError: Util.dump_tables: {0}: Permission denied".format(test_output_absolute))
+EXPECT_THROWS(lambda: util.dump_tables(types_schema, [types_schema_tables[0]], test_output_absolute, { "showProgress": False }), "RuntimeError: {0}: Permission denied".format(test_output_absolute))
 # remove the directory
 os.chmod(test_output_absolute, stat.S_IRWXU)
 shutil.rmtree(test_output_absolute, True)
@@ -2202,7 +2202,7 @@ os.makedirs(tested_dir)
 # change permissions to read only
 os.chmod(tested_dir, stat.S_IRUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
 # expect failure
-EXPECT_THROWS(lambda: util.dump_tables(types_schema, [types_schema_tables[0]], os.path.join(tested_dir, "test")), "RuntimeError: Util.dump_tables: Could not create directory {0}: Permission denied".format(absolute_path_for_output(os.path.join(tested_dir, "test"))))
+EXPECT_THROWS(lambda: util.dump_tables(types_schema, [types_schema_tables[0]], os.path.join(tested_dir, "test")), "RuntimeError: Could not create directory {0}: Permission denied".format(absolute_path_for_output(os.path.join(tested_dir, "test"))))
 # remove the directory
 os.chmod(tested_dir, stat.S_IRWXU)
 shutil.rmtree(tested_dir, True)
@@ -2248,7 +2248,7 @@ test_session = shell.open_session("mysql://{0}:{1}@{2}:{3}".format("test", "test
 test_session.run_sql("INSERT INTO !.! (id) VALUES (1);", [ verification_schema, tested_tables[1] ])
 test_session.run_sql("INSERT INTO !.! (col) VALUES ('First'), ('Second'), ('Third');", [ verification_schema, tested_tables[0] ])
 test_session.run_sql("UPDATE !.! SET col = 'Fourth' WHERE col = 'Third';", [ verification_schema, tested_tables[0] ])
-EXPECT_THROWS(lambda: test_session.run_sql("DELETE FROM !.! WHERE col = 'Fourth';", [ verification_schema, tested_tables[0] ]), "ClassicSession.run_sql: TRIGGER command denied to user 'test'@'{0}' for table '{1}'".format(__host, tested_tables[0]))
+EXPECT_THROWS(lambda: test_session.run_sql("DELETE FROM !.! WHERE col = 'Fourth';", [ verification_schema, tested_tables[0] ]), "TRIGGER command denied to user 'test'@'{0}' for table '{1}'".format(__host, tested_tables[0]))
 EXPECT_EQ([ 1, 3, 1, 0, 3, 2, 0, "" ], [x for x in test_session.run_sql("SELECT * FROM !.!;", [ verification_schema, tested_tables[1] ]).fetch_one()])
 
 # drop the trigger using root
@@ -2772,7 +2772,7 @@ def dump_with_conflicts(options, throws = True):
     # do the dump
     shutil.rmtree(test_output_absolute, True)
     if throws:
-        EXPECT_THROWS(lambda: util.dump_tables("a", [ "t" , "t1"], test_output_absolute, options), "ValueError: Util.dump_tables: Conflicting filtering options")
+        EXPECT_THROWS(lambda: util.dump_tables("a", [ "t" , "t1"], test_output_absolute, options), "ValueError: Conflicting filtering options")
     else:
         # there could be some other exceptions, we ignore them
         try:

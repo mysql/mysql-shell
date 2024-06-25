@@ -9,18 +9,18 @@ invalid_params = [1, "sample", True, 45.3, sample]
 
 for param in invalid_params:
     EXPECT_THROWS(lambda: shell.create_result(param),
-    "Shell.create_result: Argument #1 is expected to be either a map or an array",
+    "Argument #1 is expected to be either a map or an array",
     f"Using Param {param}")
     WIPE_OUTPUT()
 
 #@<> Parsing Errors
-EXPECT_THROWS(lambda:  shell.create_result({"affectedItemsCount": "whatever"}), "Shell.create_result: Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but value is String")
-EXPECT_THROWS(lambda:  shell.create_result({"affectedItemsCount": -100}), "Shell.create_result: Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but Integer value is out of range")
-EXPECT_THROWS(lambda:  shell.create_result({"executionTime": "whatever"}), "Shell.create_result: Error processing result executionTime: Invalid typecast: Float expected, but value is String")
-EXPECT_THROWS(lambda:  shell.create_result({"executionTime": -100}), "Shell.create_result: Error processing result executionTime: the value can not be negative.")
-EXPECT_THROWS(lambda:  shell.create_result({"info": 45}), "Shell.create_result: Error processing result info: Invalid typecast: String expected, but value is Integer")
-EXPECT_THROWS(lambda:  shell.create_result({"warnings": 45}), "Shell.create_result: Error processing result warnings: Invalid typecast: Array expected, but value is Integer")
-EXPECT_THROWS(lambda:  shell.create_result({"data": {}}), "Shell.create_result: Error processing result data: Invalid typecast: Array expected, but value is Map")
+EXPECT_THROWS(lambda:  shell.create_result({"affectedItemsCount": "whatever"}), "Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but value is String")
+EXPECT_THROWS(lambda:  shell.create_result({"affectedItemsCount": -100}), "Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but Integer value is out of range")
+EXPECT_THROWS(lambda:  shell.create_result({"executionTime": "whatever"}), "Error processing result executionTime: Invalid typecast: Float expected, but value is String")
+EXPECT_THROWS(lambda:  shell.create_result({"executionTime": -100}), "Error processing result executionTime: the value can not be negative.")
+EXPECT_THROWS(lambda:  shell.create_result({"info": 45}), "Error processing result info: Invalid typecast: String expected, but value is Integer")
+EXPECT_THROWS(lambda:  shell.create_result({"warnings": 45}), "Error processing result warnings: Invalid typecast: Array expected, but value is Integer")
+EXPECT_THROWS(lambda:  shell.create_result({"data": {}}), "Error processing result data: Invalid typecast: Array expected, but value is Map")
 
 #@<> Parsing Errors on Warnings
 EXPECT_THROWS(lambda:  shell.create_result({"warnings": [{}]}).get_warnings(), "Error processing result warning message: mandatory field, can not be empty")
@@ -35,40 +35,40 @@ EXPECT_THROWS(lambda:  shell.create_result({"warnings": [{"level":"note", "messa
 #@<> Data Consistency Errors
 
 # Data is scalar
-EXPECT_THROWS(lambda:  shell.create_result({"data": 45}), "Shell.create_result: Error processing result data: Invalid typecast: Array expected, but value is Integer")
+EXPECT_THROWS(lambda:  shell.create_result({"data": 45}), "Error processing result data: Invalid typecast: Array expected, but value is Integer")
 
 # Invalid record format, no columns provided
-EXPECT_THROWS(lambda:  shell.create_result({"data": [1,2,3]}), "Shell.create_result: A record is represented as a dictionary, unexpected format: 1")
+EXPECT_THROWS(lambda:  shell.create_result({"data": [1,2,3]}), "A record is represented as a dictionary, unexpected format: 1")
 
 # Invalid record format, columns provided
-EXPECT_THROWS(lambda:  shell.create_result({"columns":['one','two'], "data": [1,2,3]}), "Shell.create_result: A record is represented as a list of values or a dictionary, unexpected format: 1")
+EXPECT_THROWS(lambda:  shell.create_result({"columns":['one','two'], "data": [1,2,3]}), "A record is represented as a list of values or a dictionary, unexpected format: 1")
 
 # Using list with no columns
-EXPECT_THROWS(lambda:  shell.create_result({"data": [[1,2,3]]}), "Shell.create_result: A record can not be represented as a list of values if the columns are not defined.")
+EXPECT_THROWS(lambda:  shell.create_result({"data": [[1,2,3]]}), "A record can not be represented as a list of values if the columns are not defined.")
 
 # Using mistmatched number of columns/record values
-EXPECT_THROWS(lambda:  shell.create_result({"columns": ['one'], "data": [[1,2,3]]}), "Shell.create_result: The number of values in a record must match the number of columns.")
+EXPECT_THROWS(lambda:  shell.create_result({"columns": ['one'], "data": [[1,2,3]]}), "The number of values in a record must match the number of columns.")
 
 # Using both lists and dictionaries for records
-EXPECT_THROWS(lambda:  shell.create_result({"columns": ['one'], "data": [[1], {"one":1}]}), "Shell.create_result: Inconsistent data in result, all the records should be either lists or dictionaries, but not mixed.")
+EXPECT_THROWS(lambda:  shell.create_result({"columns": ['one'], "data": [[1], {"one":1}]}), "Inconsistent data in result, all the records should be either lists or dictionaries, but not mixed.")
 
 
 #@<> Data Type Validation
-EXPECT_THROWS(lambda:  shell.create_result({"data": [{"one":shell}]}), "Shell.create_result: Unsupported data type")
+EXPECT_THROWS(lambda:  shell.create_result({"data": [{"one":shell}]}), "Unsupported data type")
 
 #@<> Explicit column metadata validations
-EXPECT_THROWS(lambda:  shell.create_result({"columns": {}}), "Shell.create_result: Error processing result columns: Invalid typecast: Array expected, but value is Map")
-EXPECT_THROWS(lambda:  shell.create_result({"columns":[1,2,3], "data": [{}]}), "Shell.create_result: Unsupported column definition format: 1")
-EXPECT_THROWS(lambda:  shell.create_result({"columns":[{}], "data": [{}]}), "Shell.create_result: Missing column name at column #1")
-EXPECT_THROWS(lambda:  shell.create_result({"columns":[{"name":None}], "data": [{}]}), "Shell.create_result: Error processing name for column #1: Invalid typecast: String expected, but value is Null")
-EXPECT_THROWS(lambda:  shell.create_result({"columns":[{"name":'one', "type":'whatever'}], "data": [{}]}), "Shell.create_result: Error processing type for column #1: Unsupported data type.")
-EXPECT_THROWS(lambda:  shell.create_result({'executionTime':-1}), "Shell.create_result: Error processing result executionTime: the value can not be negative.")
+EXPECT_THROWS(lambda:  shell.create_result({"columns": {}}), "Error processing result columns: Invalid typecast: Array expected, but value is Map")
+EXPECT_THROWS(lambda:  shell.create_result({"columns":[1,2,3], "data": [{}]}), "Unsupported column definition format: 1")
+EXPECT_THROWS(lambda:  shell.create_result({"columns":[{}], "data": [{}]}), "Missing column name at column #1")
+EXPECT_THROWS(lambda:  shell.create_result({"columns":[{"name":None}], "data": [{}]}), "Error processing name for column #1: Invalid typecast: String expected, but value is Null")
+EXPECT_THROWS(lambda:  shell.create_result({"columns":[{"name":'one', "type":'whatever'}], "data": [{}]}), "Error processing type for column #1: Unsupported data type.")
+EXPECT_THROWS(lambda:  shell.create_result({'executionTime':-1}), "Error processing result executionTime: the value can not be negative.")
 
 def sample():
     pass
 
-EXPECT_THROWS(lambda: shell.create_result({'data':[{'column':sample}]}), "Shell.create_result: Unsupported data type in custom results: Function")
-EXPECT_THROWS(lambda: shell.create_result({'data':[{'column':mysqlx}]}), "Shell.create_result: Unsupported data type in custom results: Object")
+EXPECT_THROWS(lambda: shell.create_result({'data':[{'column':sample}]}), "Unsupported data type in custom results: Function")
+EXPECT_THROWS(lambda: shell.create_result({'data':[{'column':mysqlx}]}), "Unsupported data type in custom results: Object")
 
 
 #@<> Verifies the allowed data types for user defined columns
@@ -719,5 +719,5 @@ EXPECT_THROWS(lambda:  result.next_result(), "An error occurred in a multiresult
 #@<> Data type validation
 result = shell.create_result({"data": [[1234, 4567], [89, 0.1]], "columns": ["a", "b"]})
 EXPECT_NO_THROWS(lambda: result.fetch_one())
-EXPECT_THROWS(lambda: result.fetch_one(), "ShellResult.fetch_one: Invalid typecast: Integer expected, but Float value is out of range, at row 1, column 'b'")
+EXPECT_THROWS(lambda: result.fetch_one(), "Invalid typecast: Integer expected, but Float value is out of range, at row 1, column 'b'")
 

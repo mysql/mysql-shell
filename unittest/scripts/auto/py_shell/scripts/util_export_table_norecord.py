@@ -147,7 +147,7 @@ def EXPECT_FAIL(error, msg, table, outputUrl, options = {}, expect_file_created 
     shutil.rmtree(test_output_absolute_parent, True)
     os.mkdir(test_output_absolute_parent)
     is_re = is_re_instance(msg)
-    full_msg = "{0}: Util.export_table: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    full_msg = "{0}: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
     if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: util.export_table(table, outputUrl, options), full_msg)
@@ -384,8 +384,8 @@ EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", quote(test_schem
 EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, [])
 
 #@<> WL13804-TSFR_1_5 - Call exportTable(): giving less parameters than allowed, giving more parameters than allowed
-EXPECT_THROWS(lambda: util.export_table(), "ValueError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 0")
-EXPECT_THROWS(lambda: util.export_table(quote(test_schema, test_table_non_unique), test_output_relative, {}, None), "ValueError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 4")
+EXPECT_THROWS(lambda: util.export_table(), "ValueError: Invalid number of arguments, expected 2 to 3 but got 0")
+EXPECT_THROWS(lambda: util.export_table(quote(test_schema, test_table_non_unique), test_output_relative, {}, None), "ValueError: Invalid number of arguments, expected 2 to 3 but got 4")
 
 #@<> WL13804-FR3.1 - If schema is not specified in the `table` parameter, the current schema of the global Shell session must be used. If there is none, an exception must be raised.
 # WL13804-TSFR_3_1_1
@@ -437,7 +437,7 @@ EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
 shutil.rmtree(test_output_absolute_parent, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute_parent))
 os.makedirs(test_output_absolute)
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False }), re.compile(r"Error: Shell Error \(52006\): While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': ".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-FR4.4 - If the output file exists, it must be overwritten.
@@ -1081,11 +1081,11 @@ open(test_output_absolute, 'a').close()
 # change permissions to read only
 os.chmod(test_output_absolute, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 # expect failure
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute), re.compile(r"Error: Shell Error \(52006\): While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-TSFR_4_4_2 - compressed file {__os_type != "windows"}
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd" }), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd" }), re.compile(r"Error: Shell Error \(52006\): While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(test_output_absolute)))
 
 #@<> WL13804-TSFR_4_1_1
@@ -1150,7 +1150,7 @@ os.mkdir(tested_dir)
 # change permissions to read only
 os.chmod(tested_dir, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 # expect failure
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), os.path.join(tested_dir, "test")), re.compile(r"Error: Shell Error \(52006\): Util\.export_table: While '.*': Fatal error during dump"))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), os.path.join(tested_dir, "test")), re.compile(r"Error: Shell Error \(52006\): While '.*': Fatal error during dump"))
 EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolute_path_for_output(os.path.join(tested_dir, "test"))))
 
 #@<> WL13804-TSFR_4_3_3
@@ -1158,7 +1158,7 @@ EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolu
 shutil.rmtree(test_output_absolute_parent, True)
 os.mkdir(test_output_absolute_parent)
 tested_path = os.path.join(test_output_absolute_parent, "deeply", "nested", "none", "of", "which", "exists")
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ValueError: Util.export_table: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location '{1}'.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ValueError: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location '{1}'.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
 
 #@<> WL13804-TSFR_4_3_x
 shutil.rmtree(test_output_absolute_parent, True)

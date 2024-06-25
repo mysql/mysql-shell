@@ -42,7 +42,7 @@
 !+--------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
-!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+!!Instance check failed (MYSQLSH 51150
 
 //@# bad config (should fail) {VER(>=8.0.23) && VER(<8.0.26)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
@@ -58,7 +58,7 @@
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
-!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+!!Instance check failed (MYSQLSH 51150
 
 //@# bad config (should fail) {VER(==8.0.26)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
@@ -74,7 +74,7 @@
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
-!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+!!Instance check failed (MYSQLSH 51150
 
 //@# bad config (should fail) {VER(>=8.0.27) && VER(<8.3.0)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
@@ -88,7 +88,7 @@
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
-!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+!!Instance check failed (MYSQLSH 51150
 
 //@# bad config (should fail) {VER(>=8.3.0)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
@@ -101,7 +101,7 @@
 !+--------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
-!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+!!Instance check failed (MYSQLSH 51150
 
 //@# Invalid loopback ip (should fail)
 |ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port3>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.|
@@ -136,10 +136,10 @@
 ||Could not open connection to 'localhost:1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', '1')>>>'
 
 //@# admin account has mismatched passwords (should fail)
-|ERROR: The administrative account credentials for localhost:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'localhost' (using password: YES) (MySQL Error 1045)
+|ERROR: The administrative account credentials for localhost:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@# admin account doesn't allow connection from source host (should fail)
-|ERROR: The administrative account credentials for <<<hostname>>>:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|ReplicaSet.addInstance: Could not open connection to '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@
+|ERROR: The administrative account credentials for <<<hostname>>>:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|Could not open connection to '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@
 
 //@# bad URI with a different user (should fail)
 |ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|

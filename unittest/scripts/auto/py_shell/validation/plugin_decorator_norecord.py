@@ -186,12 +186,12 @@ anUndefined value: {"anykey": "anyValue"}
 
 #@<OUT> Test calling function with required dictionary parameters 1 (js)
 [[*]]> decorator.testRequiredDictParams('one')
-decorator.testRequiredDictParams: Missing required options at Argument #2: param1, param2 (ArgumentError)
+Missing required options at Argument #2: param1, param2 (ArgumentError)
 [[*]]> 
 
 #@<OUT> Test calling function with required dictionary parameters 2 (js)
 [[*]]> decorator.testRequiredDictParams('one', {'param1': 'value1'})
-decorator.testRequiredDictParams: Missing required options at Argument #2: param2 (ArgumentError)
+Missing required options at Argument #2: param2 (ArgumentError)
 [[*]]> 
 
 #@<OUT> Test calling function with required dictionary parameters 3 (js)
@@ -212,19 +212,19 @@ options: {"anyTypeOption": [1, "one", true], "intOption": 45, "strOption": "Stri
 
 #@ Function Call Errors (js)
 |[[*]]> decorator.testSimpleTypes(1, 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')|
-|decorator.testSimpleTypes: Argument #1 is expected to be a string (TypeError)|
+|Argument #1 is expected to be a string (TypeError)|
 |[[*]]> decorator.testSimpleTypes('one', 'two', false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')|
-|decorator.testSimpleTypes: Argument #2 is expected to be an integer (TypeError)|
+|Argument #2 is expected to be an integer (TypeError)|
 |[[*]]> decorator.testSimpleTypes('one', 2, 'error', {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')|
-|decorator.testSimpleTypes: Argument #3 is expected to be a bool (TypeError)|
+|Argument #3 is expected to be a bool (TypeError)|
 |[[*]]> decorator.testSimpleTypes('one', 2, false, [1,2], [1,2,3], 'Some Value')|
-|decorator.testSimpleTypes: Argument #4 is expected to be a map (TypeError)|
+|Argument #4 is expected to be a map (TypeError)|
 |[[*]]> decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, 'error', 'Some Value')|
-|decorator.testSimpleTypes: Argument #5 is expected to be an array (TypeError)|
+|Argument #5 is expected to be an array (TypeError)|
 |[[*]]> decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3])|
-|decorator.testSimpleTypes: Invalid number of arguments, expected 6 but got 5 (ArgumentError)|
+|Invalid number of arguments, expected 6 but got 5 (ArgumentError)|
 |[[*]]> decorator.inner.testOptions('Passing Options', {invalidOption:'String Option Value'})|
-|inner.testOptions: Invalid options at Argument #2: invalidOption (ArgumentError)|
+|Invalid options at Argument #2: invalidOption (ArgumentError)|
 
 #@<OUT> Lists help of plugin (py)
 [[*]]> \? decorator
@@ -465,11 +465,11 @@ anUndefined value: {"anykey": "anyValue"}
 
 #@ Test calling function with required dictionary parameters 1 (py)
 |[[*]]> decorator.test_required_dict_params('one')|
-|ValueError: decorator.test_required_dict_params: Missing required options at Argument #2: param1, param2|
+|ValueError: Missing required options at Argument #2: param1, param2|
 
 #@ Test calling function with required dictionary parameters 2 (py)
 |[[*]]> decorator.test_required_dict_params('one', {'param1': 'value1'})|
-|ValueError: decorator.test_required_dict_params: Missing required options at Argument #2: param2|
+|ValueError: Missing required options at Argument #2: param2|
 
 #@<OUT> Test calling function with required dictionary parameters 3 (py)
 [[*]]> decorator.test_required_dict_params('one', {'param1': 'value1', 'param2': 'value2'})
@@ -488,17 +488,17 @@ options: {"anyTypeOption": [1, "one", true], "intOption": 45, "strOption": "Stri
 
 #@ Function Call Errors (py)
 |[[*]]> decorator.test_simple_types(1, 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|TypeError: decorator.test_simple_types: Argument #1 is expected to be a string|
+|TypeError: Argument #1 is expected to be a string|
 |[[*]]> decorator.test_simple_types('one', 'two', False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|TypeError: decorator.test_simple_types: Argument #2 is expected to be an integer|
+|TypeError: Argument #2 is expected to be an integer|
 |[[*]]> decorator.test_simple_types('one', 2, 'error', {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|TypeError: decorator.test_simple_types: Argument #3 is expected to be a bool|
+|TypeError: Argument #3 is expected to be a bool|
 |[[*]]> decorator.test_simple_types('one', 2, False, 'error', [1,2,3], 'Some Value')|
-|TypeError: decorator.test_simple_types: Argument #4 is expected to be a map|
+|TypeError: Argument #4 is expected to be a map|
 |[[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, 'error', 'Some Value')|
-|TypeError: decorator.test_simple_types: Argument #5 is expected to be an array|
+|TypeError: Argument #5 is expected to be an array|
 |[[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])|
-|ValueError: decorator.test_simple_types: Invalid number of arguments, expected 6 but got 5|
+|ValueError: Invalid number of arguments, expected 6 but got 5|
 |[[*]]> decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})|
 
 #@<OUT> Lists help of plugin (cli)

@@ -24,9 +24,9 @@
 
 #================= add_or_replace_one ======================
 #@ add_or_replace_one parameter error conditions
-||Collection.add_or_replace_one: Invalid number of arguments, expected 2 but got 0
-||Collection.add_or_replace_one: Argument #1 is expected to be a string
-||Collection.add_or_replace_one: Argument #2 is expected to be a map
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Argument #2 is expected to be a map
 
 #@ add_or_replace_one: adding new document 1
 |Query OK, 1 item affected|
@@ -59,7 +59,7 @@
 }
 
 #@ add_or_replace_one: replacing an existing document, wrong _id
-||Collection.add_or_replace_one: Replacement document has an _id that is different than the matched document
+||Replacement document has an _id that is different than the matched document
 
 #@ add_or_replace_one: adding with key
 |Query OK, 1 item affected|
@@ -82,8 +82,8 @@
 
 #================= get_one ======================
 #@ get_one: parameter error conditions
-||Collection.get_one: Invalid number of arguments, expected 1 but got 0
-||Collection.get_one: Argument #1 is expected to be a string
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
 
 #@<OUT> get_one: returns expected document
 {
@@ -110,8 +110,8 @@
 
 
 #@ remove_one: parameter error conditions
-||Collection.remove_one: Invalid number of arguments, expected 1 but got 0
-||Collection.remove_one: Argument #1 is expected to be a string
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
 
 #@ remove_one: removes the expected document
 |Query OK, 1 item affected|
@@ -141,9 +141,9 @@
 }
 
 #@ replace_one parameter error conditions
-||Collection.replace_one: Invalid number of arguments, expected 2 but got 0
-||Collection.replace_one: Argument #1 is expected to be a string
-||Collection.replace_one: Argument #2 is expected to be a map
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Argument #2 is expected to be a map
 
 #@ replace_one: replacing an existing document
 |Query OK, 1 item affected|
@@ -163,7 +163,7 @@
 |Query OK, 0 items affected|
 
 #@ replace_one: replacing an existing document, wrong _id
-||Collection.replace_one: Replacement document has an _id that is different than the matched document
+||Replacement document has an _id that is different than the matched document
 
 #@ replace_one: error replacing with key {VER(< 8.0.19)}
 ||Duplicate entry 'simple' for key '_name'
@@ -189,14 +189,14 @@
 ||Table 'py_shell_test.replace_one' doesn't exist
 
 #@ WL12412-TS1_1: Count takes no arguments
-||ValueError: Collection.count: Invalid number of arguments, expected 0 but got 1
+||ValueError: Invalid number of arguments, expected 0 but got 1
 
 #@ WL12412-TS1_2: Count returns correct number of documents
 |Initial Document Count: 0|
 |Final Document Count: 3|
 
 #@ WL12412-TS2_1: Count throws error on unexisting collection
-||mysqlsh.DBError: MySQL Error (1146): Collection.count: Table 'py_shell_test.count_collection' doesn't exist
+||MySQL Error (1146): Table 'py_shell_test.count_collection' doesn't exist
 
 #@<OUT> BUG32377134 Add empty list of document crash MySQL Shell
 Records: 2  Duplicates: 0  Warnings: 0

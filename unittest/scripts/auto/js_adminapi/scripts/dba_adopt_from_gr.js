@@ -9,7 +9,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 shell.connect(__sandbox_uri1);
 
 //@<> it's not possible to adopt from GR without existing group replication
-EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: true}); }, "Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt");
+EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: true}); }, "The adoptFromGR option is set to true, but there is no replication group to adopt");
 
 // create cluster with two instances and drop metadata schema
 
@@ -172,7 +172,7 @@ EXPECT_EQ(1, session1.runSql("SELECT @@global.super_read_only").fetchOne()[0]);
 EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0]);
 
 //@<> it's not possible to adopt from GR when cluster was dissolved
-EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: true}); }, "Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt");
+EXPECT_THROWS(function(){ dba.createCluster('testCluster', {adoptFromGR: true}); }, "The adoptFromGR option is set to true, but there is no replication group to adopt");
 
 //@<> Create cluster adopting from GR - answer 'no' / 'yes' to prompt
 shell.options["useWizards"] = true;

@@ -1096,25 +1096,21 @@ shell.register_global('errtest', obj)
   run();
   // The produced error is inconsistent after mysql_native_password was disabled
   // by default, posibilities include:
-  // - errtest.connect: mysql.get_session: Access denied for user
+  // - Access denied for user
   // 'raaat'@'localhost' (using password: YES) (MySQL Error 1045)
-  // - errtest.connect: mysql.get_session: Plugin 'mysql_native_password' is not
+  // - Plugin 'mysql_native_password' is not
   // loaded (MySQL Error 1524)
   // For that reason, only the common part on the errors is verified
 
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("RuntimeError: py error got thrown");
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "RuntimeError: errtest.throw_error: py error got thrown");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "mysqlsh.Error: Shell Error (99999): errtest.throw_error: py another "
+      "Shell Error (99999): py another "
       "error got thrown");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("errtest.connect: mysql.get_session:");
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "errtest.throwError: js error got thrown (RuntimeError)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "errtest.throwError: js another error got thrown (MYSQLSH 99998)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("errtest.connect: mysql.get_session: ");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js error got thrown (RuntimeError)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js another error got thrown (MYSQLSH 99998)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("");
 
   wipe_out();
   delete_user_plugin("error-reporting");
@@ -1217,27 +1213,26 @@ shell.register_global('pyObject', obj);
   add_py_test("\\py");
   // TEST: Missing required parameters
   add_py_test("pyObject.self_describe()",
-              "pyObject.self_describe: Invalid number of arguments, expected 2 "
+              "Invalid number of arguments, expected 2 "
               "to 5 but got 0");
   add_py_test("pyObject.self_describe(1)",
-              "pyObject.self_describe: Invalid number of arguments, expected 2 "
+              "Invalid number of arguments, expected 2 "
               "to 5 but got 1");
   add_py_test("pyObject.self_describe(1, five=10)",
-              "pyObject.self_describe: Missing value for argument 'two'");
+              "Missing value for argument 'two'");
   // TEST: Providing invalid keyword parameters
-  add_py_test(
-      "pyObject.self_describe(1,'some',five=10, six=6)",
-      "ValueError: pyObject.self_describe: Invalid keyword argument: 'six'");
+  add_py_test("pyObject.self_describe(1,'some',five=10, six=6)",
+              "ValueError: Invalid keyword argument: 'six'");
   add_py_test("pyObject.self_describe(1,'some',five=10, six=6, seven=7)",
-              "ValueError: pyObject.self_describe: Invalid keyword "
+              "ValueError: Invalid keyword "
               "arguments: 'seven', 'six'");
   // TEST: Passing keyword parameters in addition to positional parameters
   add_py_test("pyObject.self_describe(1,'some',one=2)",
-              "ValueError: pyObject.self_describe: Got multiple values for "
+              "ValueError: Got multiple values for "
               "argument 'one'");
   // TEST: Passing positional parameter using keyword parameter
   add_py_test("pyObject.self_describe(1, two=10)",
-              "TypeError: pyObject.self_describe: Argument 'two' is "
+              "TypeError: Argument 'two' is "
               "expected to be a string");
   // TEST: Passing keyword parameter skipping optional parameters
   add_py_test("pyObject.self_describe(1,'some',four='other')",
@@ -1315,13 +1310,13 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
-              "ValueError: kwtest.print_args: Got multiple values for "
+              "ValueError: Got multiple values for "
               "argument 'name'");
 
   // TEST: Passing named argument for parameter already defined but in a
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.print_args('Black', 'Pearl', {'name': 'allowed'})",
-              "ScriptingError: kwtest.print_args: print_args() got multiple "
+              "ScriptingError: print_args() got multiple "
               "values for argument 'name'");
 
   // run the test
@@ -1381,7 +1376,7 @@ shell.register_global('kwtest', obj)
   // TEST: Passing named argument for parameter already defined but in a
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.printArgs('Black', 'Pearl', {name: 'allowed'})",
-              "kwtest.printArgs: print_args() got multiple values for argument "
+              "print_args() got multiple values for argument "
               "'name' (ScriptingError)");
 
   // run the test
@@ -1447,7 +1442,7 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', first='dissappears')",
-              "ValueError: kwtest.print_args: Got multiple values for "
+              "ValueError: Got multiple values for "
               "argument 'first'");
 
   // TEST: Passing named argument for parameter already defined but in a
@@ -1579,7 +1574,7 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
-              "ValueError: kwtest.print_args: Got multiple values for "
+              "ValueError: Got multiple values for "
               "argument 'name'");
 
   // TEST: Passing option named as parameter, it's handled as option
@@ -1737,7 +1732,7 @@ shell.register_global('kwtest', obj)
 
   // No option is defined and options is mandatory
   add_py_test("kwtest.print_args(name='John', host='127.0.0.1', port=3307)",
-              "ValueError: kwtest.print_args: Missing value "
+              "ValueError: Missing value "
               "for argument 'options'");
 
   // No option is defined and options is optional
@@ -1827,16 +1822,14 @@ shell.register_global('pyObject', obj);
   // check if jsObject.test_function was properly registered in PY
   add_py_test("\\py");
   // TEST: Missing required parameters
-  add_py_test(
-      "pyObject.self_describe()",
-      "pyObject.self_describe: Invalid number of arguments, expected 10 "
-      "to 12 but got 0");
-  add_py_test(
-      "pyObject.self_describe(1)",
-      "pyObject.self_describe: Invalid number of arguments, expected 10 "
-      "to 12 but got 1");
+  add_py_test("pyObject.self_describe()",
+              "Invalid number of arguments, expected 10 "
+              "to 12 but got 0");
+  add_py_test("pyObject.self_describe(1)",
+              "Invalid number of arguments, expected 10 "
+              "to 12 but got 1");
   add_py_test("pyObject.self_describe(1, five=10)",
-              "pyObject.self_describe: Missing value for argument 'two'");
+              "Missing value for argument 'two'");
 
   // TEST: Passing keyword parameter skipping optional parameters
   // The missed parameter (11) takes its default value of 3

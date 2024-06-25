@@ -61,8 +61,8 @@ testutil.killSandbox(__mysql_sandbox_port3);
 
 shell.connect(__sandbox_uri1);
 
-EXPECT_THROWS(function(){ dba.rebootClusterFromCompleteOutage("cluster", {removeInstances:[`${hostname}:${__mysql_sandbox_port3}`], rejoinInstances:[`${hostname}:${__mysql_sandbox_port3}`]}); }, "Dba.rebootClusterFromCompleteOutage: Argument #2: Invalid options: rejoinInstances, removeInstances");
-EXPECT_THROWS(function(){ dba.rebootClusterFromCompleteOutage("cluster", {removeInstances:[`${hostname}:${__mysql_sandbox_port3}`]}); }, "Dba.rebootClusterFromCompleteOutage: Argument #2: Invalid options: removeInstances");
+EXPECT_THROWS(function(){ dba.rebootClusterFromCompleteOutage("cluster", {removeInstances:[`${hostname}:${__mysql_sandbox_port3}`], rejoinInstances:[`${hostname}:${__mysql_sandbox_port3}`]}); }, "Argument #2: Invalid options: rejoinInstances, removeInstances");
+EXPECT_THROWS(function(){ dba.rebootClusterFromCompleteOutage("cluster", {removeInstances:[`${hostname}:${__mysql_sandbox_port3}`]}); }, "Argument #2: Invalid options: removeInstances");
 
 EXPECT_THROWS(function(){
     dba.rebootClusterFromCompleteOutage();

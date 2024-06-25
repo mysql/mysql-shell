@@ -30,11 +30,11 @@
 
 //@# adopt with existing old metadata, belongs to other (should fail)
 |Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.2.0'. Upgrade the Metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
-|| Metadata version is not compatible (MYSQLSH 51107)
+||Metadata version is not compatible (MYSQLSH 51107)
 
 //@# indirect adopt with existing old metadata, belongs to other (should fail)
 |Incompatible Metadata version. This operation is disallowed because the installed Metadata version '1.0.1' is lower than the required version, '2.2.0'. Upgrade the Metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
-|| Metadata version is not compatible (MYSQLSH 51107)
+||Metadata version is not compatible (MYSQLSH 51107)
 
 //@# replication filters (should fail)
 ||127.0.0.1:<<<__mysql_sandbox_port1>>>: instance has global replication filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)

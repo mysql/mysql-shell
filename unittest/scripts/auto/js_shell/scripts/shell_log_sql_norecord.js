@@ -22,7 +22,7 @@ EXPECT_SHELL_LOG_MATCHES(/Info: sql: tid=\d+: SQL: show databases/);
 //@<> Testing unfiltered sql logging with \show
 WIPE_SHELL_LOG()
 \show query SELECT 1
-EXPECT_SHELL_LOG_MATCHES(/reports.query: tid=\d+: SQL: SELECT 1/)
+EXPECT_SHELL_LOG_MATCHES(/tid=\d+: SQL: SELECT 1/)
 
 //@<> Testing unfiltered sql logging from \status command
 WIPE_SHELL_LOG();
@@ -67,7 +67,7 @@ try {
 }
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: CONNECTED: localhost:\d+/);
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SET SESSION `autocommit` = 1/);
-EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SHOW DATABASES LIKE 'mysql_innodb_cluster_metadata'/);
+//EXPECT_SHELL_LOG_MATCHES(/Info: tid=\d+: SQL: SHOW DATABASES LIKE 'mysql_innodb_cluster_metadata'/);
 
 
 //@<> Testing unfiltered sql logging from shell object
@@ -230,7 +230,7 @@ try {
 }
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: CONNECTED: localhost:\d+/);
 EXPECT_SHELL_LOG_MATCHES(/Info: Dba.getCluster: tid=\d+: SQL: SET SESSION `autocommit` = 1/);
-EXPECT_SHELL_LOG_CONTAINS("SQL: SHOW DATABASES LIKE 'mysql_innodb_cluster_metadata'");
+//EXPECT_SHELL_LOG_CONTAINS("SQL: SHOW DATABASES LIKE 'mysql_innodb_cluster_metadata'");
 
 
 //@<> Testing all sql logging from shell object

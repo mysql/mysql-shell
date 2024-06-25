@@ -19,21 +19,21 @@ EXPECT_STDOUT_CONTAINS('[]')
 
 #@<> SQL Handler Registration Errors
 EXPECT_THROWS(lambda: shell.register_sql_handler(5, 5,
-    45, None), "Shell.register_sql_handler: Argument #1 is expected to be a string")
+    45, None), "Argument #1 is expected to be a string")
 EXPECT_THROWS(lambda: shell.register_sql_handler("", 5,
-    45, None), "Shell.register_sql_handler: Argument #2 is expected to be a string")
+    45, None), "Argument #2 is expected to be a string")
 EXPECT_THROWS(lambda: shell.register_sql_handler("", "",
-    45, None), "Shell.register_sql_handler: Argument #3 is expected to be an array")
+    45, None), "Argument #3 is expected to be an array")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "sample description", 
-    ["SAMPLE"], 45), "Shell.register_sql_handler: Argument #4 is expected to be a function")
+    ["SAMPLE"], 45), "Argument #4 is expected to be a function")
 EXPECT_THROWS(lambda: shell.register_sql_handler("", "", [], None),
-              "Shell.register_sql_handler: An empty name is not allowed")
+              "An empty name is not allowed")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "", [], None),
-              "Shell.register_sql_handler: An empty description is not allowed")
+              "An empty description is not allowed")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "sample description", [], None),
-              "Shell.register_sql_handler: At least one prefix must be specified")
+              "At least one prefix must be specified")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "sample description", 
-    [45], None), "Shell.register_sql_handler: Argument #3 is expected to be an array of strings")
+    [45], None), "Argument #3 is expected to be an array of strings")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "sample description", 
     [""], None), "Empty or blank prefixes are not allowed.")
 EXPECT_THROWS(lambda: shell.register_sql_handler("sample", "sample description", 
@@ -188,7 +188,7 @@ testutil.create_file(plugin_path, plugin_code)
 
 call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--py",
              "-e", "session.run_sql('showme')"])
-EXPECT_STDOUT_CONTAINS("""RuntimeError: LogicError: ClassicSession.run_sql: Unable to execute a sql handler while another is being executed.
+EXPECT_STDOUT_CONTAINS("""RuntimeError: LogicError: Unable to execute a sql handler while another is being executed.
  Executing SQL: showme
  Unable to execute: showme tables
 """)

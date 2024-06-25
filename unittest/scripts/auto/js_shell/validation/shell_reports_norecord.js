@@ -114,34 +114,34 @@ DESCRIPTION
 |upper-case report name with underscore|
 
 //@ try to register the report with function set to undefined
-||Shell.registerReport: Argument #3 is expected to be a function (TypeError)
+||Argument #3 is expected to be a function (TypeError)
 
 //@ try to register the report with options set to invalid type
-||Shell.registerReport: Argument #4 is expected to be a map (TypeError)
+||Argument #4 is expected to be a map (TypeError)
 
 //@ WL11263_TSF9_1 - Try to register a plugin report with a duplicated name, error is expected.
-||Shell.registerReport: Duplicate report: query (ArgumentError)
+||Duplicate report: query (ArgumentError)
 
 //@ WL11263_TSF9_2 - Try to register a plugin report with an invalid identifier as its name, error is expected.
-||Shell.registerReport: The function name '1' is not a valid identifier. (ArgumentError)
+||The function name '1' is not a valid identifier. (ArgumentError)
 
 // WL11263_TSF9_3 - Try to register a plugin report without giving a value to the 'name' dictionary option, error is expected.
 
 //@ WL11263_TSF9_3 - The 'name' key is set to undefined
-||Shell.registerReport: Argument #1 is expected to be a string (TypeError)
+||Argument #1 is expected to be a string (TypeError)
 
 //@ WL11263_TSF9_3 - The 'name' key is set to an empty string
-||Shell.registerReport: The function name '' is not a valid identifier. (ArgumentError)
+||The function name '' is not a valid identifier. (ArgumentError)
 
 // WL11263_TSF9_4 - Try to register a plugin report without giving a value to the 'type' parameter, error is expected.
 
 //@ WL11263_TSF9_4 - The 'type' key is set to undefined
-||Shell.registerReport: Argument #2 is expected to be a string (TypeError)
+||Argument #2 is expected to be a string (TypeError)
 
 // WL11263_TSF9_5 - Try to register a plugin report with a value different than the supported as the value for the 'type' dictionary option, error is expected.
 
 //@ WL11263_TSF9_5 - The 'name' key is set to an empty string
-||Shell.registerReport: Report type must be one of: list, report, print. (ArgumentError)
+||Report type must be one of: list, report, print. (ArgumentError)
 
 //@ Register report with valid type - 'print'
 ||
@@ -158,68 +158,68 @@ DESCRIPTION
 // Try to register a plugin report giving an invalid value to the 'brief' dictionary option, error is expected.
 
 //@ The 'brief' key is set to undefined
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Undefined (TypeError)
+||Option 'brief' is expected to be of type String, but is Undefined (TypeError)
 
 //@ The 'brief' key is set to null
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Null (TypeError)
+||Option 'brief' is expected to be of type String, but is Null (TypeError)
 
 //@ The 'brief' key is set to an invalid type
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Map (TypeError)
+||Option 'brief' is expected to be of type String, but is Map (TypeError)
 
 // Try to register a plugin report giving an invalid value to the 'details' dictionary option, error is expected.
 
 //@ The 'details' key is set to undefined
-||Shell.registerReport: Option 'details' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'details' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ The 'details' key is set to an invalid type
-||Shell.registerReport: Option 'details' is expected to be of type Array, but is Map (TypeError)
+||Option 'details' is expected to be of type Array, but is Map (TypeError)
 
 //@ The 'details' array holds an invalid type
-||Shell.registerReport: Option 'details' String expected, but value is Integer (TypeError)
+||Option 'details' String expected, but value is Integer (TypeError)
 
 //@ The 'options' key is set to undefined
-||Shell.registerReport: Option 'options' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'options' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ The 'options' key is set to an invalid type
-||Shell.registerReport: Option 'options' is expected to be of type Array, but is String (TypeError)
+||Option 'options' is expected to be of type Array, but is String (TypeError)
 
 //@ The 'options' key is set to an array of invalid types
-||Shell.registerReport: Invalid definition at option #1 (ArgumentError)
+||Invalid definition at option #1 (ArgumentError)
 
 // WL11263_TSF9_7 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' key is not provided.
 
 //@ WL11263_TSF9_7 - Missing 'name' key
-||Shell.registerReport: Missing required options at option #1: name (ArgumentError)
+||Missing required options at option #1: name (ArgumentError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to undefined
-||Shell.registerReport: Option 'name' is expected to be of type String, but is Undefined (TypeError)
+||Option 'name' is expected to be of type String, but is Undefined (TypeError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to null
-||Shell.registerReport: Option 'name' is expected to be of type String, but is Null (TypeError)
+||Option 'name' is expected to be of type String, but is Null (TypeError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to an invalid type
-||Shell.registerReport: Option 'name' is expected to be of type String, but is Map (TypeError)
+||Option 'name' is expected to be of type String, but is Map (TypeError)
 
 //@ WL11263_TSF9_7 - The 'name' key is set to an empty string
-||Shell.registerReport: parameter 'options', option #1 is not a valid identifier: ''. (ArgumentError)
+||parameter 'options', option #1 is not a valid identifier: ''. (ArgumentError)
 
 //@ WL11263_TSF9_8 - If the dictionary option 'options' is given when registering a plugin report, validate that an exception is thrown if the 'name' is not a valid identifier.
-||Shell.registerReport: parameter 'options', option #1 is not a valid identifier: '1'. (ArgumentError)
+||parameter 'options', option #1 is not a valid identifier: '1'. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --help
-||Shell.registerReport: Error while adding option 'help' its cmdline name '--help' clashes with existing option. (ArgumentError)
+||Error while adding option 'help' its cmdline name '--help' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --interval
-||Shell.registerReport: Option 'interval' is reserved for use with the \watch command. (ArgumentError)
+||Option 'interval' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --nocls
-||Shell.registerReport: Option 'nocls' is reserved for use with the \watch command. (ArgumentError)
+||Option 'nocls' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Option duplicates --vertical in a 'list' type report
-||Shell.registerReport: Error while adding option 'vertical' its cmdline name '--vertical' clashes with existing option. (ArgumentError)
+||Error while adding option 'vertical' its cmdline name '--vertical' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_9 - Two options with the same name
-||Shell.registerReport: option 'option' is already defined. (ArgumentError)
+||option 'option' is already defined. (ArgumentError)
 
 //@ Report uses --vertical option in a 'print' type report - no error
 ||
@@ -238,28 +238,28 @@ DESCRIPTION
 +-----------------+
 
 //@ The 'shortcut' key is set to undefined
-||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Undefined (TypeError)
+||Option 'shortcut' is expected to be of type String, but is Undefined (TypeError)
 
 //@ The 'shortcut' key is set to null
-||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Null (TypeError)
+||Option 'shortcut' is expected to be of type String, but is Null (TypeError)
 
 //@ The 'shortcut' key is set to an invalid type
-||Shell.registerReport: Option 'shortcut' is expected to be of type String, but is Map (TypeError)
+||Option 'shortcut' is expected to be of type String, but is Map (TypeError)
 
 //@ The 'shortcut' key is set to non-alphanumeric
-||Shell.registerReport: Short name of an option must be an alphanumeric character. (ArgumentError)
+||Short name of an option must be an alphanumeric character. (ArgumentError)
 
 //@ The 'shortcut' key is set to more than one character
-||Shell.registerReport: Short name of an option must be exactly one character long. (ArgumentError)
+||Short name of an option must be exactly one character long. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Option duplicates -i
-||Shell.registerReport: Short name 'i' is reserved for use with the \watch command. (ArgumentError)
+||Short name 'i' is reserved for use with the \watch command. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Option duplicates -E in a 'list' type report
-||Shell.registerReport: Error while adding option 'option' its cmdline name '-E' clashes with existing option. (ArgumentError)
+||Error while adding option 'option' its cmdline name '-E' clashes with existing option. (ArgumentError)
 
 //@ WL11263_TSF9_11 - Two options with the same name
-||Shell.registerReport: Error while adding option 'option2' its cmdline name '-o' clashes with option 'option1'. (ArgumentError)
+||Error while adding option 'option2' its cmdline name '-o' clashes with option 'option1'. (ArgumentError)
 
 //@ Report uses -E option in a 'print' type report - no error
 ||
@@ -278,52 +278,52 @@ DESCRIPTION
 +------------+
 
 //@ The options['brief'] key is set to undefined
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Undefined (TypeError)
+||Option 'brief' is expected to be of type String, but is Undefined (TypeError)
 
 //@ The options['brief'] key is set to null
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Null (TypeError)
+||Option 'brief' is expected to be of type String, but is Null (TypeError)
 
 //@ The options['brief'] key is set to an invalid type
-||Shell.registerReport: Option 'brief' is expected to be of type String, but is Map (TypeError)
+||Option 'brief' is expected to be of type String, but is Map (TypeError)
 
 //@ The options['details'] key is set to undefined
-||Shell.registerReport: Option 'details' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'details' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ The options['details'] key is set to an invalid type
-||Shell.registerReport: Option 'details' is expected to be of type Array, but is Map (TypeError)
+||Option 'details' is expected to be of type Array, but is Map (TypeError)
 
 //@ The options['details'] key holds an invalid type
-||Shell.registerReport: Option 'details' String expected, but value is Integer (TypeError)
+||Option 'details' String expected, but value is Integer (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to undefined
-||Shell.registerReport: Option 'type' is expected to be of type String, but is Undefined (TypeError)
+||Option 'type' is expected to be of type String, but is Undefined (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to null
-||Shell.registerReport: Option 'type' is expected to be of type String, but is Null (TypeError)
+||Option 'type' is expected to be of type String, but is Null (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to an invalid type
-||Shell.registerReport: Option 'type' is expected to be of type String, but is Map (TypeError)
+||Option 'type' is expected to be of type String, but is Map (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to an empty string
-||Shell.registerReport: Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
+||Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to an invalid value
-||Shell.registerReport: Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
+||Unsupported type used at option 'invalid_option'. Allowed types: bool, float, integer, string (ArgumentError)
 
 //@ WL11263_TSF9_13 - The 'type' key has valid values
 ||
 
 //@ The 'required' key is set to undefined
-||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Undefined (TypeError)
+||Option 'required' is expected to be of type Bool, but is Undefined (TypeError)
 
 //@ The 'required' key is set to null
-||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Null (TypeError)
+||Option 'required' is expected to be of type Bool, but is Null (TypeError)
 
 //@ The 'required' key is set to an invalid type
-||Shell.registerReport: Option 'required' is expected to be of type Bool, but is Map (TypeError)
+||Option 'required' is expected to be of type Bool, but is Map (TypeError)
 
 //@ Option cannot be 'required' if it's bool
-||Shell.registerReport: Option of type 'bool' cannot be required. (ArgumentError)
+||Option of type 'bool' cannot be required. (ArgumentError)
 
 //@ WL11263_TSF9_14 - Register the report.
 ||
@@ -349,22 +349,22 @@ DESCRIPTION
 +------------+
 
 //@ The 'values' key is set to undefined
-||Shell.registerReport: Option 'values' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'values' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ The 'values' key is set to an invalid type
-||Shell.registerReport: Option 'values' is expected to be of type Array, but is Map (TypeError)
+||Option 'values' is expected to be of type Array, but is Map (TypeError)
 
 //@ The 'values' list holds invalid type
-||Shell.registerReport: Option 'values' String expected, but value is Map (TypeError)
+||Option 'values' String expected, but value is Map (TypeError)
 
 //@ The 'values' list cannot be defined for an 'integer' type
-||Shell.registerReport: Invalid options at integer option 'invalid_option': values (ArgumentError)
+||Invalid options at integer option 'invalid_option': values (ArgumentError)
 
 //@ The 'values' list cannot be defined for a 'bool' type
-||Shell.registerReport: Invalid options at bool option 'invalid_option': values (ArgumentError)
+||Invalid options at bool option 'invalid_option': values (ArgumentError)
 
 //@ The 'values' list cannot be defined for a 'float' type
-||Shell.registerReport: Invalid options at float option 'invalid_option': values (ArgumentError)
+||Invalid options at float option 'invalid_option': values (ArgumentError)
 
 //@ WL11263_TSF9_16 - Register the report.
 ||
@@ -380,34 +380,34 @@ DESCRIPTION
 +-------+
 
 //@ Option definition cannot contain unknown keys
-||Shell.registerReport: Invalid options at string option 'invalid_option': unknown_key (ArgumentError)
+||Invalid options at string option 'invalid_option': unknown_key (ArgumentError)
 
 //@ The 'argc' key is set to undefined
-||Shell.registerReport: Option 'argc' is expected to be of type String, but is Undefined (TypeError)
+||Option 'argc' is expected to be of type String, but is Undefined (TypeError)
 
 //@ The 'argc' key is set to null
-||Shell.registerReport: Option 'argc' is expected to be of type String, but is Null (TypeError)
+||Option 'argc' is expected to be of type String, but is Null (TypeError)
 
 //@ The 'argc' key is set to an invalid type
-||Shell.registerReport: Option 'argc' is expected to be of type String, but is Map (TypeError)
+||Option 'argc' is expected to be of type String, but is Map (TypeError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains a letter
-||Shell.registerReport: Cannot convert 'x' to an unsigned integer. (ArgumentError)
+||Cannot convert 'x' to an unsigned integer. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains a question mark
-||Shell.registerReport: Cannot convert '?' to an unsigned integer. (ArgumentError)
+||Cannot convert '?' to an unsigned integer. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains two letters
-||Shell.registerReport: Cannot convert 'y' to an unsigned integer. (ArgumentError)
+||Cannot convert 'y' to an unsigned integer. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains asterisk at wrong position
-||Shell.registerReport: Cannot convert '*' to an unsigned integer. (ArgumentError)
+||Cannot convert '*' to an unsigned integer. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains ill defined range
-||Shell.registerReport: The lower limit of 'argc' cannot be greater than upper limit. (ArgumentError)
+||The lower limit of 'argc' cannot be greater than upper limit. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' value contains ill defined range - third number
-||Shell.registerReport: The value associated with the key named 'argc' has wrong format. (ArgumentError)
+||The value associated with the key named 'argc' has wrong format. (ArgumentError)
 
 //@ WL11263_TSF9_17 - The 'argc' is set to 0
 ||
@@ -467,7 +467,7 @@ DESCRIPTION
 ||
 
 //@<ERR> Call JS report which throws in JS mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
@@ -478,12 +478,12 @@ in shell.registerReport('javascript_report_which_throws_an_exception', 'print', 
 ||
 
 //@<ERR> Call JS report which throws in PY mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
 //@<ERR> Call PY report which throws in PY mode
-reports.python_report_which_throws_an_exception: 
+
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception
@@ -492,12 +492,12 @@ Exception: This is a Python exception
 |Switching to SQL mode... Commands end with ;|
 
 //@<ERR> Call JS report which throws in SQL mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
 //@<ERR> Call PY report which throws in SQL mode
-reports.python_report_which_throws_an_exception: 
+
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception
@@ -506,7 +506,7 @@ Exception: This is a Python exception
 |Switching to JavaScript mode...|
 
 //@<ERR> Call PY report which throws in JS mode
-reports.python_report_which_throws_an_exception: 
+
 Traceback (most recent call last):
   File "<string>", line 2, in python_report_which_throws_an_exception
 Exception: This is a Python exception
@@ -575,16 +575,16 @@ after
 ||
 
 //@ WL11263_TSF9_28 - try to register report with the same name but converted to upper-case
-||Shell.registerReport: Name 'SAMPLE_REPORT_WITH_LOWER_CASE_NAME' conflicts with an existing report: sample_report_with_lower_case_name (ArgumentError)
+||Name 'SAMPLE_REPORT_WITH_LOWER_CASE_NAME' conflicts with an existing report: sample_report_with_lower_case_name (ArgumentError)
 
 //@ WL11263_TSF9_28 - register the upper-case report
 ||
 
 //@ WL11263_TSF9_28 - try to register report with the same name but converted to lower-case
-||Shell.registerReport: Name 'sample_report_with_upper_case_name' conflicts with an existing report: SAMPLE_REPORT_WITH_UPPER_CASE_NAME (ArgumentError)
+||Name 'sample_report_with_upper_case_name' conflicts with an existing report: SAMPLE_REPORT_WITH_UPPER_CASE_NAME (ArgumentError)
 
 //@ WL11263_TSF9_28 - it's not possible to register a report name containing hyphen
-||Shell.registerReport: The function name 'sample_report_with-hyphen' is not a valid identifier. (ArgumentError)
+||The function name 'sample_report_with-hyphen' is not a valid identifier. (ArgumentError)
 
 //@ register the report - list_report_testing_various_options
 ||
@@ -2632,21 +2632,21 @@ DESCRIPTION
 |Switching to JavaScript mode...|
 
 //@ call shell.reports.list_report_testing_various_options without options
-||reports.list_report_testing_various_options: Invalid number of arguments, expected 1 to 3 but got 0 (ArgumentError)
+||Invalid number of arguments, expected 1 to 3 but got 0 (ArgumentError)
 
 
 //@ call shell.reports.list_report_testing_various_options with session - undefined
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
+||Argument #1 is expected to be an object (TypeError)
 
 //@ call shell.reports.list_report_testing_various_options with session - null
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
+||Argument #1 is expected to be an object (TypeError)
 
 //@ call shell.reports.list_report_testing_various_options with session - string
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
+||Argument #1 is expected to be an object (TypeError)
 
 
 //@ call shell.reports.list_report_testing_various_options with options - undefined
-||reports.list_report_testing_various_options: Argument #3 is expected to be a map (TypeError)
+||Argument #3 is expected to be a map (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options with options - null
 {
@@ -2660,11 +2660,11 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options with options - string
-||reports.list_report_testing_various_options: Argument #3 is expected to be a map (TypeError)
+||Argument #3 is expected to be a map (TypeError)
 
 
 //@ call shell.reports.list_report_testing_various_options with an unknown option
-||reports.list_report_testing_various_options: Invalid options at Argument #3: unknown (ArgumentError)
+||Invalid options at Argument #3: unknown (ArgumentError)
 
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the first option without value
@@ -2684,7 +2684,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the first option with int
-||reports.list_report_testing_various_options: Argument #3, option 'one' is expected to be a string (TypeError)
+||Argument #3, option 'one' is expected to be a string (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the first option with string
 {
@@ -2720,7 +2720,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the second option with int
-||reports.list_report_testing_various_options: Argument #3, option 'two' is expected to be a string (TypeError)
+||Argument #3, option 'two' is expected to be a string (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the second option with string
 {
@@ -2798,7 +2798,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the third option with string
-||reports.list_report_testing_various_options: Argument #3, option 'three' is expected to be a bool (TypeError)
+||Argument #3, option 'three' is expected to be a bool (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the third option with bool
 {
@@ -2882,7 +2882,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fourth option with string
-||reports.list_report_testing_various_options: Argument #3, option 'four' is expected to be an integer (TypeError)
+||Argument #3, option 'four' is expected to be an integer (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with int
 {
@@ -2933,7 +2933,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fifth option with string
-||reports.list_report_testing_various_options: Argument #3, option 'five' is expected to be a float (TypeError)
+||Argument #3, option 'five' is expected to be a float (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with int
 {
@@ -3005,15 +3005,15 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_argc_default with no arguments
-||reports.list_report_testing_argc_default: Invalid number of arguments, expected 1 but got 2 (ArgumentError)
+||Invalid number of arguments, expected 1 but got 2 (ArgumentError)
 
 
 //@ call shell.reports.list_report_testing_argc_0 with no arguments
-||reports.list_report_testing_argc_0: Invalid number of arguments, expected 1 but got 2 (ArgumentError)
+||Invalid number of arguments, expected 1 but got 2 (ArgumentError)
 
 
 //@ call shell.reports.list_report_testing_argc_1 with no arguments
-||reports.list_report_testing_argc_1: Argument #2 'argv' is expecting 1 argument. (ArgumentError)
+||Argument #2 'argv' is expecting 1 argument. (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_argc_1 with an argument
 {
@@ -3084,7 +3084,7 @@ DESCRIPTION
 
 
 //@ call shell.reports.list_report_testing_argc_1_2 with no arguments
-||reports.list_report_testing_argc_1_2: Argument #2 'argv' is expecting 1-2 arguments. (ArgumentError)
+||Argument #2 'argv' is expecting 1-2 arguments. (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_argc_1_2 with an argument
 {
@@ -3125,7 +3125,7 @@ DESCRIPTION
 
 
 //@ call shell.reports.list_report_testing_argc_1_asterisk with no arguments
-||reports.list_report_testing_argc_1_asterisk: Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
+||Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
 
 //@<OUT> call shell.reports.list_report_testing_argc_1_asterisk with an argument
 {
@@ -3306,73 +3306,73 @@ right: eight
     key: value
 
 //@ The 'examples' key is set to undefined
-||Shell.registerReport: Option 'examples' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'examples' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ The 'examples' key is set to an invalid type
-||Shell.registerReport: Option 'examples' is expected to be of type Array, but is String (TypeError)
+||Option 'examples' is expected to be of type Array, but is String (TypeError)
 
 //@ The 'examples' key is set to an array of invalid types
-||Shell.registerReport: The value associated with the key named 'examples' should be a list of dictionaries. (ArgumentError)
+||The value associated with the key named 'examples' should be a list of dictionaries. (ArgumentError)
 
 //@ 'examples': Dictionary is missing the required key
-||Shell.registerReport: Missing required options: description (ArgumentError)
+||Missing required options: description (ArgumentError)
 
 //@ 'examples': description is null
-||Shell.registerReport: Option 'description' is expected to be of type String, but is Null (TypeError)
+||Option 'description' is expected to be of type String, but is Null (TypeError)
 
 //@ 'examples': description is undefined
-||Shell.registerReport: Option 'description' is expected to be of type String, but is Undefined (TypeError)
+||Option 'description' is expected to be of type String, but is Undefined (TypeError)
 
 //@ 'examples': description is an integer
-||Shell.registerReport: Option 'description' is expected to be of type String, but is Integer (TypeError)
+||Option 'description' is expected to be of type String, but is Integer (TypeError)
 
 //@ 'examples': 'args': is set to undefined
-||Shell.registerReport: Option 'args' is expected to be of type Array, but is Undefined (TypeError)
+||Option 'args' is expected to be of type Array, but is Undefined (TypeError)
 
 //@ 'examples': 'args': is set to an invalid type
-||Shell.registerReport: Option 'args' is expected to be of type Array, but is String (TypeError)
+||Option 'args' is expected to be of type Array, but is String (TypeError)
 
 //@ 'examples': 'args': is set to an array of invalid types
-||Shell.registerReport: Option 'args' String expected, but value is Bool (TypeError)
+||Option 'args' String expected, but value is Bool (TypeError)
 
 //@ 'examples': 'options': is set to undefined
-||Shell.registerReport: Option 'options' is expected to be of type Map, but is Undefined (TypeError)
+||Option 'options' is expected to be of type Map, but is Undefined (TypeError)
 
 //@ 'examples': 'options': is set to an invalid type
-||Shell.registerReport: Option 'options' is expected to be of type Map, but is String (TypeError)
+||Option 'options' is expected to be of type Map, but is String (TypeError)
 
 //@ 'examples': 'options': is set to a map of invalid types
-||Shell.registerReport: Option 'options' String expected, but value is Integer (TypeError)
+||Option 'options' String expected, but value is Integer (TypeError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 0, given 1
-||Shell.registerReport: Report expects 0 arguments, example has: 1 (ArgumentError)
+||Report expects 0 arguments, example has: 1 (ArgumentError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 1, given 0
-||Shell.registerReport: Report expects 1 argument, example has: 0 (ArgumentError)
+||Report expects 1 argument, example has: 0 (ArgumentError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 1, given 2
-||Shell.registerReport: Report expects 1 argument, example has: 2 (ArgumentError)
+||Report expects 1 argument, example has: 2 (ArgumentError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 1-3, given 0
-||Shell.registerReport: Report expects 1-3 arguments, example has: 0 (ArgumentError)
+||Report expects 1-3 arguments, example has: 0 (ArgumentError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 1-3, given 4
-||Shell.registerReport: Report expects 1-3 arguments, example has: 4 (ArgumentError)
+||Report expects 1-3 arguments, example has: 4 (ArgumentError)
 
 //@ 'examples': 'options': unknown long option
-||Shell.registerReport: Option named 'op' used in example does not exist. (ArgumentError)
+||Option named 'op' used in example does not exist. (ArgumentError)
 
 //@ 'examples': 'options': unknown short option
-||Shell.registerReport: Option named 'x' used in example does not exist. (ArgumentError)
+||Option named 'x' used in example does not exist. (ArgumentError)
 
 //@ 'examples': 'options': invalid value for Boolean option
-||Shell.registerReport: Option named 'opt' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
+||Option named 'opt' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
 
 //@ 'examples': 'options': invalid value for Boolean option - empty
-||Shell.registerReport: Option named 'o' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
+||Option named 'o' used in example is a Boolean, should have value 'true' or 'false'. (ArgumentError)
 
 //@ 'examples': 'options': invalid value for String option - empty
-||Shell.registerReport: Option named 'o' used in example cannot be an empty string. (ArgumentError)
+||Option named 'o' used in example cannot be an empty string. (ArgumentError)
 
 //@ valid 'examples' value
 ||
@@ -3547,16 +3547,16 @@ EXAMPLES
             19th
 
 //@ 'empty': invalid value - null
-||Shell.registerReport: Option 'empty' is expected to be of type Bool, but is Null (TypeError)
+||Option 'empty' is expected to be of type Bool, but is Null (TypeError)
 
 //@ 'empty': invalid value - undefined
-||Shell.registerReport: Option 'empty' is expected to be of type Bool, but is Undefined (TypeError)
+||Option 'empty' is expected to be of type Bool, but is Undefined (TypeError)
 
 //@ 'empty': invalid value - string
-||Shell.registerReport: Option 'empty' Bool expected, but value is String (TypeError)
+||Option 'empty' Bool expected, but value is String (TypeError)
 
 //@ 'empty': invalid type - bool
-||Shell.registerReport: Only option of type 'string' can accept empty values. (ArgumentError)
+||Only option of type 'string' can accept empty values. (ArgumentError)
 
 //@ valid 'empty' value
 ||

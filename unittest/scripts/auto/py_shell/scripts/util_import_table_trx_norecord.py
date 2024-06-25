@@ -172,7 +172,7 @@ EXPECT_THROWS(lambda: util.import_table(f"{TESTDIRROOT}/dump-trxlimit/testdb@dat
     "schema": "testdb",
     "table": "data1",
     "maxBytesPerTransaction": "-1"}),
-    'ValueError: Util.import_table: Argument #2: Input number "-1" cannot be negative'
+    'ValueError: Argument #2: Input number "-1" cannot be negative'
 )
 
 #@<> maxBytesPerTransaction less than minimal (4096) value
@@ -180,7 +180,7 @@ EXPECT_THROWS(lambda: util.import_table(f"{TESTDIRROOT}/dump-trxlimit/testdb@dat
     "schema": "testdb",
     "table": "data1",
     "maxBytesPerTransaction": "2048"}),
-    "ValueError: Util.import_table: Argument #2: The value of 'maxBytesPerTransaction' option must be greater than or equal to 4096 bytes."
+    "ValueError: Argument #2: The value of 'maxBytesPerTransaction' option must be greater than or equal to 4096 bytes."
 )
 
 #@<> Cleanup

@@ -773,7 +773,7 @@ mysql-js []> session.runSql('select 1');
 1 row in set)";
   static constexpr auto second_execution =
       R"(mysql-js []> session.runSql('select 1');
-ClassicSession.runSql: Lost connection to MySQL server during query (MySQL Error 2013)
+Lost connection to MySQL server during query (MySQL Error 2013)
 The global session got disconnected..
 Attempting to reconnect to 'mysql://)";
   static constexpr auto third_execution =
@@ -809,7 +809,7 @@ mysql-js []> session.sql('select 1').execute();
 1 row in set)";
   static constexpr auto second_execution =
       R"(mysql-js []> session.sql('select 1').execute();
-SqlExecute.execute: MySQL server has gone away (MySQL Error 2006)
+MySQL server has gone away (MySQL Error 2006)
 The global session got disconnected..
 Attempting to reconnect to 'mysqlx://)";
   static constexpr auto third_execution =
@@ -844,7 +844,7 @@ mysql-py []> session.run_sql('select 1');
 +---+
 1 row in set)";
   static constexpr auto second_execution =
-      R"(MySQL Error (2013): ClassicSession.run_sql: Lost connection to MySQL server during query
+      R"(MySQL Error (2013): Lost connection to MySQL server during query
 The global session got disconnected..
 Attempting to reconnect to 'mysql://)";
   static constexpr auto third_execution =
@@ -879,7 +879,7 @@ mysql-py []> session.sql('select 1').execute();
 +---+
 1 row in set)";
   static constexpr auto second_execution =
-      R"(mysqlsh.DBError: MySQL Error (2006): SqlExecute.execute: MySQL server has gone away
+      R"(MySQL Error (2006): MySQL server has gone away
 The global session got disconnected..
 Attempting to reconnect to 'mysqlx://)";
   static constexpr auto third_execution =

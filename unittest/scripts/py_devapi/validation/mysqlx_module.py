@@ -13,8 +13,8 @@ Type: <mysqlx.Type>
 LockContention: <mysqlx.LockContention>
 
 #@# mysqlx module: expression errors
-||mysqlx.expr: Invalid number of arguments, expected 1 but got 0
-||mysqlx.expr: Argument #1 is expected to be a string
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
 
 #@ mysqlx module: expression
 |<Expression>|

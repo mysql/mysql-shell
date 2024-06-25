@@ -5,19 +5,19 @@ let invalid_params = [1, "sample", true, 45.3, sample];
 
 for (param of invalid_params) {
     EXPECT_THROWS(function() {shell.createResult(param); },
-    "Shell.createResult: Argument #1 is expected to be either a map or an array",
+    "Argument #1 is expected to be either a map or an array",
     `Using Param ${param}`);
     WIPE_OUTPUT();
 }
 
 //@<> Parsing Errors
-EXPECT_THROWS(function() { shell.createResult({affectedItemsCount: -100}); }, "Shell.createResult: Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but Integer value is out of range");
-EXPECT_THROWS(function() { shell.createResult({affectedItemsCount: "whatever"}); }, "Shell.createResult: Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but value is String");
-EXPECT_THROWS(function() { shell.createResult({executionTime: "whatever"}); }, "Shell.createResult: Error processing result executionTime: Invalid typecast: Float expected, but value is String");
-EXPECT_THROWS(function() { shell.createResult({executionTime: -100}); }, "Shell.createResult: Error processing result executionTime: the value can not be negative.");
-EXPECT_THROWS(function() { shell.createResult({info: 45}); }, "Shell.createResult: Error processing result info: Invalid typecast: String expected, but value is Integer");
-EXPECT_THROWS(function() { shell.createResult({warnings: 45}); }, "Shell.createResult: Error processing result warnings: Invalid typecast: Array expected, but value is Integer");
-EXPECT_THROWS(function() { shell.createResult({data: {}}); }, "Shell.createResult: Error processing result data: Invalid typecast: Array expected, but value is Map");
+EXPECT_THROWS(function() { shell.createResult({affectedItemsCount: -100}); }, "Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but Integer value is out of range");
+EXPECT_THROWS(function() { shell.createResult({affectedItemsCount: "whatever"}); }, "Error processing result affectedItemsCount: Invalid typecast: UInteger expected, but value is String");
+EXPECT_THROWS(function() { shell.createResult({executionTime: "whatever"}); }, "Error processing result executionTime: Invalid typecast: Float expected, but value is String");
+EXPECT_THROWS(function() { shell.createResult({executionTime: -100}); }, "Error processing result executionTime: the value can not be negative.");
+EXPECT_THROWS(function() { shell.createResult({info: 45}); }, "Error processing result info: Invalid typecast: String expected, but value is Integer");
+EXPECT_THROWS(function() { shell.createResult({warnings: 45}); }, "Error processing result warnings: Invalid typecast: Array expected, but value is Integer");
+EXPECT_THROWS(function() { shell.createResult({data: {}}); }, "Error processing result data: Invalid typecast: Array expected, but value is Map");
 
 //@<> Parsing Errors on Warnings
 EXPECT_THROWS(function() { shell.createResult({warnings: [{}]}).getWarnings(); }, "Error processing result warning message: mandatory field, can not be empty");
@@ -31,39 +31,39 @@ EXPECT_THROWS(function() { shell.createResult({warnings: [{level:"note", message
 
 //@<> Data Consistency Errors
 // Data is scalar
-EXPECT_THROWS(function() { shell.createResult({data: 45}); }, "Shell.createResult: Error processing result data: Invalid typecast: Array expected, but value is Integer");
+EXPECT_THROWS(function() { shell.createResult({data: 45}); }, "Error processing result data: Invalid typecast: Array expected, but value is Integer");
 
 // Invalid record format, no columns provided
-EXPECT_THROWS(function() { shell.createResult({data: [1,2,3]}); }, "Shell.createResult: A record is represented as a dictionary, unexpected format: 1");
+EXPECT_THROWS(function() { shell.createResult({data: [1,2,3]}); }, "A record is represented as a dictionary, unexpected format: 1");
 
 // Invalid record format, columns provided
-EXPECT_THROWS(function() { shell.createResult({columns:['one','two'], data: [1,2,3]}); }, "Shell.createResult: A record is represented as a list of values or a dictionary, unexpected format: 1");
+EXPECT_THROWS(function() { shell.createResult({columns:['one','two'], data: [1,2,3]}); }, "A record is represented as a list of values or a dictionary, unexpected format: 1");
 
 // Using list with no columns
-EXPECT_THROWS(function() { shell.createResult({data: [[1,2,3]]}); }, "Shell.createResult: A record can not be represented as a list of values if the columns are not defined.");
+EXPECT_THROWS(function() { shell.createResult({data: [[1,2,3]]}); }, "A record can not be represented as a list of values if the columns are not defined.");
 
 // Using mistmatched number of columns/record values
-EXPECT_THROWS(function() { shell.createResult({columns: ['one'], data: [[1,2,3]]}); }, "Shell.createResult: The number of values in a record must match the number of columns.");
+EXPECT_THROWS(function() { shell.createResult({columns: ['one'], data: [[1,2,3]]}); }, "The number of values in a record must match the number of columns.");
 
 // Using both lists and dictionaries for records
-EXPECT_THROWS(function() { shell.createResult({columns: ['one'], data: [[1], {one:1}]}); }, "Shell.createResult: Inconsistent data in result, all the records should be either lists or dictionaries, but not mixed.");
+EXPECT_THROWS(function() { shell.createResult({columns: ['one'], data: [[1], {one:1}]}); }, "Inconsistent data in result, all the records should be either lists or dictionaries, but not mixed.");
 
 
 //@<> Data Type Validation
-EXPECT_THROWS(function() { shell.createResult({data: [{one:shell}]}); }, "Shell.createResult: Unsupported data type");
+EXPECT_THROWS(function() { shell.createResult({data: [{one:shell}]}); }, "Unsupported data type");
 
 //@<> Explicit column metadata validations
-EXPECT_THROWS(function() { shell.createResult({columns: {}}); }, "Shell.createResult: Error processing result columns: Invalid typecast: Array expected, but value is Map");
-EXPECT_THROWS(function() { shell.createResult({columns:[1,2,3], data: [{}]}); }, "Shell.createResult: Unsupported column definition format: 1");
-EXPECT_THROWS(function() { shell.createResult({columns:[{}], data: [{}]}); }, "Shell.createResult: Missing column name at column #1");
-EXPECT_THROWS(function() { shell.createResult({columns:[{name:null}], data: [{}]}); }, "Shell.createResult: Error processing name for column #1: Invalid typecast: String expected, but value is Null");
-EXPECT_THROWS(function() { shell.createResult({columns:[{name:'one', type:'whatever'}], data: [{}]}); }, "Shell.createResult: Error processing type for column #1: Unsupported data type.");
-EXPECT_THROWS(function() {  shell.createResult({executionTime:-1}) }, "Shell.createResult: Error processing result executionTime: the value can not be negative.");
+EXPECT_THROWS(function() { shell.createResult({columns: {}}); }, "Error processing result columns: Invalid typecast: Array expected, but value is Map");
+EXPECT_THROWS(function() { shell.createResult({columns:[1,2,3], data: [{}]}); }, "Unsupported column definition format: 1");
+EXPECT_THROWS(function() { shell.createResult({columns:[{}], data: [{}]}); }, "Missing column name at column #1");
+EXPECT_THROWS(function() { shell.createResult({columns:[{name:null}], data: [{}]}); }, "Error processing name for column #1: Invalid typecast: String expected, but value is Null");
+EXPECT_THROWS(function() { shell.createResult({columns:[{name:'one', type:'whatever'}], data: [{}]}); }, "Error processing type for column #1: Unsupported data type.");
+EXPECT_THROWS(function() {  shell.createResult({executionTime:-1}) }, "Error processing result executionTime: the value can not be negative.");
 
 function sample(){}
 
-EXPECT_THROWS(function() { shell.createResult({data:[{column:sample}]}) }, "Shell.createResult: Unsupported data type in custom results: Function");
-EXPECT_THROWS(function() { shell.createResult({data:[{column:mysqlx}]}) }, "Shell.createResult: Unsupported data type in custom results: Object");
+EXPECT_THROWS(function() { shell.createResult({data:[{column:sample}]}) }, "Unsupported data type in custom results: Function");
+EXPECT_THROWS(function() { shell.createResult({data:[{column:mysqlx}]}) }, "Unsupported data type in custom results: Object");
 
 
 //@<> Verifies the allowed data types for user defined columns
@@ -768,4 +768,4 @@ EXPECT_THROWS(function() { result_11.nextResult(); }, "An error occurred in a mu
 //@<> Data type validation
 let res = shell.createResult({"data": [[1234, 4567], [89, 0.1]], "columns": ["a", "b"]})
 EXPECT_NO_THROWS(function() {res.fetchOne()})
-EXPECT_THROWS(function() { res.fetchOne() }, "ShellResult.fetchOne: Invalid typecast: Integer expected, but Float value is out of range, at row 1, column 'b'")
+EXPECT_THROWS(function() { res.fetchOne() }, "Invalid typecast: Integer expected, but Float value is out of range, at row 1, column 'b'")

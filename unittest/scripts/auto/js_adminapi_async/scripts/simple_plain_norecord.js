@@ -76,7 +76,7 @@ expected_pids2 = get_open_sessions(session2);
 expected_pids3 = get_open_sessions(session3);
 
 //@ configureReplicaSetInstance + create admin user
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, __sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureReplicaSetInstance, __sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
 dba.configureReplicaSetInstance(__sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
 
@@ -150,7 +150,7 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ addInstance (incremental)
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, __sandbox_uri_secure_password3, {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.addInstance, __sandbox_uri_secure_password3, {recoveryMethod:'incremental'});
 
 rs.addInstance(__sandbox_uri_secure_password3, {recoveryMethod:'incremental'});
 
@@ -221,7 +221,7 @@ testutil.waitReplicationChannelState(__mysql_sandbox_port2, "", "ON");
 EXPECT_REPLICAS_USE_SSL(session1, 2);
 
 //@ setPrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, __sandbox_uri_secure_password3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.setPrimaryInstance, __sandbox_uri_secure_password3);
 
 rs.setPrimaryInstance(__sandbox_uri_secure_password3);
 
@@ -241,7 +241,7 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ forcePrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, __sandbox_uri_secure_password1);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.forcePrimaryInstance, __sandbox_uri_secure_password1);
 
 rs.forcePrimaryInstance(__sandbox_uri_secure_password1);
 
@@ -260,7 +260,7 @@ testutil.waitSandboxAlive(__mysql_sandbox_port3);
 session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 expected_pids3 = get_open_sessions(session3);
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, __sandbox_uri_secure_password3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.rejoinInstance, __sandbox_uri_secure_password3);
 
 rs.rejoinInstance(__sandbox_uri_secure_password3);
 

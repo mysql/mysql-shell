@@ -45,11 +45,11 @@ rc = testutil.call_mysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'imp
 EXPECT_EQ(1, rc)
 EXPECT_STDOUT_CONTAINS("File list cannot be empty.")
 
-EXPECT_THROWS(lambda: util.import_table('', {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
-EXPECT_THROWS(lambda: util.import_table('', '', {'table': 'lorem'}), "ValueError: Util.import_table: Invalid number of arguments, expected 1 to 2 but got 3")
-EXPECT_THROWS(lambda: util.import_table([], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
-EXPECT_THROWS(lambda: util.import_table([''], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
-EXPECT_THROWS(lambda: util.import_table(['', ''], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
+EXPECT_THROWS(lambda: util.import_table('', {'table': 'lorem'}), "RuntimeError: File list cannot be empty.")
+EXPECT_THROWS(lambda: util.import_table('', '', {'table': 'lorem'}), "ValueError: Invalid number of arguments, expected 1 to 2 but got 3")
+EXPECT_THROWS(lambda: util.import_table([], {'table': 'lorem'}), "RuntimeError: File list cannot be empty.")
+EXPECT_THROWS(lambda: util.import_table([''], {'table': 'lorem'}), "RuntimeError: File list cannot be empty.")
+EXPECT_THROWS(lambda: util.import_table(['', ''], {'table': 'lorem'}), "RuntimeError: File list cannot be empty.")
 
 #@<> Single file - cli
 rc = testutil.call_mysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', chunked_dir + os.path.sep + raw_files[0], '--table=lorem'])
@@ -118,13 +118,13 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Reco
 
 #@<> Wildcard files from non-existing directory
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting", 'lorem_*.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "Util.import_table: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exist."
+    "Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exist."
 )
 EXPECT_STDOUT_CONTAINS("ERROR: Directory " + filename_for_output(os.path.join(chunked_dir, "nonexisting")) + " does not exist.")
 
 #@<> Select single file from non-existing directory
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True}),
-    "Util.import_table: Cannot open file '" + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + "': No such file or directory"
+    "Cannot open file '" + filename_for_output(os.path.join(chunked_dir, "nonexisting", 'lorem_abc.tsv')) + "': No such file or directory"
 )
 
 #@<> Select multiple files from non-existing directory
@@ -178,17 +178,17 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Reco
 
 #@<> Multifile import does not support byterPerChunk option
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting_a.csv"), os.path.join(chunked_dir, "lorem_a*"), '', os.path.join(chunked_dir, zst_files[0]), os.path.join(chunked_dir, zst_files[1]), os.path.join(chunked_dir, gz_files[0])], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True, 'bytesPerChunk': '1M'}),
-    "Util.import_table: The 'bytesPerChunk' option cannot be used when loading from multiple files."
+    "The 'bytesPerChunk' option cannot be used when loading from multiple files."
 )
 
 #@<> Missing target table + single path with wildcard
 EXPECT_THROWS(lambda: util.import_table(os.path.join(chunked_dir, "lorem*.tsv"), {'schema': target_schema}),
-    "Util.import_table: Target table is not set. The target table for the import operation must be provided in the options."
+    "Target table is not set. The target table for the import operation must be provided in the options."
 )
 
 #@<> Missing target table + multiple expanded paths
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, raw_files[0]), os.path.join(chunked_dir, raw_files[1])], {'schema': target_schema}),
-    "Util.import_table: Target table is not set. The target table for the import operation must be provided in the options."
+    "Target table is not set. The target table for the import operation must be provided in the options."
 )
 
 #@<> Cleanup

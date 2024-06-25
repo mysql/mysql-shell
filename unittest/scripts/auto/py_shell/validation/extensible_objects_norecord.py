@@ -175,8 +175,8 @@ DESCRIPTION
       The data parameter accepts the following values: one, two, three.
 
 #@ Usage, function(string)
-||TypeError: sampleModulePY.string_function: Argument #1 is expected to be a string
-||ValueError: sampleModulePY.string_function: Argument #1 only accepts the following values: one, two, three.
+||TypeError: Argument #1 is expected to be a string
+||ValueError: Argument #1 only accepts the following values: one, two, three.
 |Python Function Definition:  one|
 
 #@ Register, function(dictionary)
@@ -227,10 +227,10 @@ DESCRIPTION
 
 
 #@Usage, function(dictionary)
-||ValueError: sampleModulePY.dict_function: Missing required options at Argument #1: myOption
-||ValueError: sampleModulePY.dict_function: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
-||TypeError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
-||ValueError: sampleModulePY.dict_function: Argument #1, option 'myOption' only accepts the following values: test, value.
+||ValueError: Missing required options at Argument #1: myOption
+||ValueError: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
+||TypeError: Argument #1, option 'myOption' is expected to be a string
+||ValueError: Argument #1, option 'myOption' only accepts the following values: test, value.
 |No function data available|
 |Function data:  test|
 
@@ -293,7 +293,7 @@ DESCRIPTION
       The session parameter must be a Session object.
 
 #@ Usage, function(Session)
-||TypeError: sampleModulePY.object_function1: Argument #1 is expected to be a 'Session' object
+||TypeError: Argument #1 is expected to be a 'Session' object
 |Active Session: <Session:<<<__uri>>>>|
 
 #@ Register, function(Session and ClassicSession)
@@ -351,43 +351,43 @@ DESCRIPTION
 
 
 #@ Registration errors, function definition
-||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an object
-||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object
-||TypeError: Shell.add_extension_object_member: Argument #2 is expected to be a string
-||ValueError: Shell.add_extension_object_member: Invalid options at function definition: extra
-||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
-||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
-||TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
-||TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
-||ValueError: Shell.add_extension_object_member: Invalid definition at parameter #1
+||TypeError: Argument #1 is expected to be an object
+||TypeError: Argument #1 is expected to be an extension object
+||TypeError: Argument #2 is expected to be a string
+||ValueError: Invalid options at function definition: extra
+||TypeError: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'parameters' is expected to be of type Array, but is Integer
+||ValueError: Invalid definition at parameter #1
 
 
 #@ Registration errors, parameters
-||ValueError: Shell.add_extension_object_member: Missing required options at parameter #1: name
-||TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
+||ValueError: Missing required options at parameter #1: name
+||TypeError: Option 'type' is expected to be of type String, but is Integer
 
 #@ Registration errors, integer parameters
-||ValueError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class, classes, options, values
+||ValueError: Invalid options at integer parameter 'sample': class, classes, options, values
 
 #@ Registration errors, float parameters
-||ValueError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': class, classes, options, values
+||ValueError: Invalid options at float parameter 'sample': class, classes, options, values
 
 
 #@ Registration errors, bool parameters
-||ValueError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class, classes, options, values
+||ValueError: Invalid options at bool parameter 'sample': class, classes, options, values
 
 #@ Registration errors, string parameters
-||ValueError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class, classes, options
-||TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
-||TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
+||ValueError: Invalid options at string parameter 'sample': class, classes, options
+||TypeError: Option 'values' is expected to be of type Array, but is Integer
+||TypeError: Option 'values' String expected, but value is Integer
 
 
 #@ Registration errors, dictionary parameters
-||ValueError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class, classes, values
-||ValueError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
-||ValueError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
+||ValueError: Invalid options at dictionary parameter 'sample': class, classes, values
+||ValueError: Invalid definition at parameter 'sample', option #1
+||ValueError: Missing required options at parameter 'sample', option #1: name
 
 #@ Registration errors, invalid identifiers
-||ValueError: Shell.add_extension_object_member: The function name 'my function' is not a valid identifier.
-||ValueError: Shell.add_extension_object_member: parameter #1 is not a valid identifier: 'a sample'.
-||ValueError: Shell.add_extension_object_member: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'.
+||ValueError: The function name 'my function' is not a valid identifier.
+||ValueError: parameter #1 is not a valid identifier: 'a sample'.
+||ValueError: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'.

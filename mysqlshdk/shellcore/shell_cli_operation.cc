@@ -359,48 +359,28 @@ void Shell_cli_operation::print_help() {
 }
 
 Value Shell_cli_operation::execute() {
-  try {
-    prepare();
-    if (help_requested()) {
-      print_help();
-      return shcore::Value();
-    } else {
-      std::shared_ptr<Cpp_object_bridge> object =
-          m_current_provider->get_object(false);
+  prepare();
+  if (help_requested()) {
+    print_help();
+    return shcore::Value();
+  } else {
+    std::shared_ptr<Cpp_object_bridge> object =
+        m_current_provider->get_object(false);
 
-      // Useful to see what the shell actually receives from the terminal
-      if (current_logger()->get_log_level() >= shcore::Logger::LOG_DEBUG) {
-        std::vector<std::string> api_call;
-        api_call.push_back("CLI-API Mapping:");
-        api_call.push_back("\tObject: " + m_object_name);
-        api_call.push_back("\tMethod: " + m_method_name);
-        api_call.push_back("\tArguments:");
-        for (const auto &arg : m_argument_list) {
-          api_call.push_back("\t\t: " + arg.json(false));
-        }
-        log_debug("%s", shcore::str_join(api_call, "\n").c_str());
+    // Useful to see what the shell actually receives from the terminal
+    if (current_logger()->get_log_level() >= shcore::Logger::LOG_DEBUG) {
+      std::vector<std::string> api_call;
+      api_call.push_back("CLI-API Mapping:");
+      api_call.push_back("\tObject: " + m_object_name);
+      api_call.push_back("\tMethod: " + m_method_name);
+      api_call.push_back("\tArguments:");
+      for (const auto &arg : m_argument_list) {
+        api_call.push_back("\t\t: " + arg.json(false));
       }
+      log_debug("%s", shcore::str_join(api_call, "\n").c_str());
+    }
 
-      return object->call(m_method_name, m_argument_list);
-    }
-  } catch (const std::exception &ex) {
-    std::smatch results;
-    std::string error(ex.what());
-    if (std::regex_match(error, results, k_api_general_error)) {
-      if (results[3].matched) {
-        size_t arg_num = std::atoi(results[4].str().c_str());
-        std::string new_error;
-        new_error.append("Argument ");
-        new_error.append(m_cli_mapper.metadata()->signature[arg_num - 1]->name +
-                         ": ");
-        new_error.append(results[5]);
-        throw shcore::Exception::argument_error(new_error);
-      } else {
-        throw shcore::Exception::runtime_error(results[5]);
-      }
-    } else {
-      throw;
-    }
+    return object->call(m_method_name, m_argument_list);
   }
 }
 }  // namespace cli

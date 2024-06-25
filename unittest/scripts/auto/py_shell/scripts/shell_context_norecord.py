@@ -206,4 +206,4 @@ for th in threads:
     th.join()
 
 #@<> Test create_context from main thread (fail)
-EXPECT_THROWS(lambda: shell.create_context({}), "Shell.create_context: This function cannot be called from the main thread")
+EXPECT_THROWS(lambda: shell.create_context({}), "This function cannot be called from the main thread")

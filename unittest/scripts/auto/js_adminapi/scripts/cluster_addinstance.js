@@ -714,7 +714,7 @@ else {
 }
 
 testutil.dbugSet("+d,dba_instance_query_gr_local_address");
-EXPECT_THROWS(function(){ cluster.addInstance(__sandbox_uri2); }, "Cluster.addInstance: group_replication_local_address is empty");
+EXPECT_THROWS(function(){ cluster.addInstance(__sandbox_uri2); }, "group_replication_local_address is empty");
 EXPECT_OUTPUT_CONTAINS("Unable to read Group Replication local address setting for instance '" + hostname + ":" + __mysql_sandbox_port2 + "', probably due to connectivity issues. Please retry the operation.");
 testutil.dbugSet("");
 

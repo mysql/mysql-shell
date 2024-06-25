@@ -147,13 +147,13 @@ TEST_F(Command_line_connection_test, bug25268670) {
        NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.connect: Argument #1: Invalid values in connection options: "
+      "Argument #1: Invalid values in connection options: "
       "invalid_option");
 }
 
 TEST_F(Command_line_connection_test, bug28899522) {
   static constexpr auto expected =
-      "Shell.connect: Argument #1: Host value cannot be an empty string.";
+      "Argument #1: Host value cannot be an empty string.";
 
   execute({_mysqlsh, "--js", "-e", "shell.connect({'user':'root','host':''})",
            nullptr});
@@ -532,7 +532,7 @@ TEST_F(Command_line_connection_test, expired_account) {
 
 TEST_F(Command_line_connection_test, invalid_options_WL10912) {
   const std::string prefix =
-      "Shell.connect: Argument #1: Invalid values in connection options: ";
+      "Argument #1: Invalid values in connection options: ";
   {
     execute({_mysqlsh, "--js", "-e",
              "shell.connect({'user':'root','password':'','host':'localhost','"

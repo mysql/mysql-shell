@@ -118,7 +118,7 @@ CHECK_CLUSTER_SET(session);
 //@<> rejoin primary cluster with bogus channel running
 
 //@<> bad cluster
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster3");}, "ClusterSet.rejoinCluster: The cluster with the name 'cluster3' does not exist.");
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster3");}, "The cluster with the name 'cluster3' does not exist.");
 
 //@<> rejoin invalidated replica cluster
 invalidate_cluster(c2, c1);
@@ -279,9 +279,9 @@ testutil.waitMemberState(__mysql_sandbox_port6, "(MISSING)");
 testutil.killSandbox(__mysql_sandbox_port5);
 testutil.waitMemberState(__mysql_sandbox_port5, "UNREACHABLE");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Cluster 'cluster2' has no quorum");
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "Cluster 'cluster2' has no quorum");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Cluster 'cluster2' has no quorum");
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "Cluster 'cluster2' has no quorum");
 
 //@<> rejoin restored quorum
 
@@ -347,9 +347,9 @@ session4.runSql("create schema diverger");
 gtid_diverge = session4.runSql("select gtid_subtract(@@gtid_executed, @gtid_before)").fetchOne()[0];
 session4.runSql("set global super_read_only=1");
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
 // purge from all members
 session2.runSql("flush binary logs");
@@ -362,9 +362,9 @@ session2.runSql("select @@gtid_purged");
 session3.runSql("select @@gtid_purged");
 
 //@<> rejoin with purged trxs + errant trxs should fail from errant trxs
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2", {dryRun:1});}, "Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
-EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "ClusterSet.rejoinCluster: Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
+EXPECT_THROWS(function(){cs.rejoinCluster("cluster2");}, "Errant transactions detected at "+hostname+":"+__mysql_sandbox_port4);
 
 // fix errants
 inject_empty_trx(session1, gtid_diverge);

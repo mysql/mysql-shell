@@ -44,7 +44,7 @@ function get_mysqlx_endpoint(uri) {
 }
 
 //@ configureReplicaSetInstance + create admin user
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, sockuri1, {clusterAdmin:"admin", clusterAdminPassword:"bla", restart:1});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureReplicaSetInstance, sockuri1, {clusterAdmin:"admin", clusterAdminPassword:"bla", restart:1});
 
 dba.configureReplicaSetInstance(sockuri1, {clusterAdmin:"admin", clusterAdminPassword:"bla", restart:1});
 
@@ -70,7 +70,7 @@ rs.disconnect();
 rs = dba.getReplicaSet();
 
 //@ addInstance (incremental)
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, sockuri2, {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.addInstance, sockuri2, {recoveryMethod:'incremental'});
 
 rs.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
@@ -86,7 +86,7 @@ rs.removeInstance(sockuri2);
 rs.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //@ setPrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, sockuri3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.setPrimaryInstance, sockuri3);
 
 rs.setPrimaryInstance(sockuri3);
 
@@ -97,14 +97,14 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ forcePrimaryInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, sockuri1);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.forcePrimaryInstance, sockuri1);
 
 rs.forcePrimaryInstance(sockuri1);
 
 //@ rejoinInstance
 testutil.startSandbox(__mysql_sandbox_port3);
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, sockuri3);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(rs.rejoinInstance, sockuri3);
 
 rs.rejoinInstance(sockuri3);
 

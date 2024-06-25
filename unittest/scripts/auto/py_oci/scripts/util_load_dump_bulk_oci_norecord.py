@@ -345,9 +345,9 @@ src_session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 
 #@<> WL15432-TSFR_2_1_1 - 'disableBulkLoad' - invalid types
 for opt in [(None, "Null"), ([], "Array"), ({}, "Map")]:
-    EXPECT_THROWS(lambda: util.load_dump("", { "disableBulkLoad": opt[0] }), f"TypeError: Util.load_dump: Argument #2: Option 'disableBulkLoad' is expected to be of type Bool, but is {opt[1]}")
+    EXPECT_THROWS(lambda: util.load_dump("", { "disableBulkLoad": opt[0] }), f"TypeError: Argument #2: Option 'disableBulkLoad' is expected to be of type Bool, but is {opt[1]}")
 
-EXPECT_THROWS(lambda: util.load_dump("", { "disableBulkLoad": "str" }), f"TypeError: Util.load_dump: Argument #2: Option 'disableBulkLoad' Bool expected, but value is String")
+EXPECT_THROWS(lambda: util.load_dump("", { "disableBulkLoad": "str" }), f"TypeError: Argument #2: Option 'disableBulkLoad' Bool expected, but value is String")
 
 #@<> Prepare dump for monitoring tests
 prepare_test_table("(f1 INT PRIMARY KEY, f2 CHAR(200))", nrows = 10000)

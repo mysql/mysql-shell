@@ -89,7 +89,7 @@ session2.close()
 testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 
 outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
 
 #@<> Uninstall GR in one of the instances
 
@@ -97,13 +97,13 @@ CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_sessi
 session1.run_sql("uninstall plugin group_replication")
 
 outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
 
 #@<> Take offline
 session3.run_sql("stop group_replication")
 
 outpath = run_collect(hostname_uri, None, allMembers=1)
-CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): mysql.get_session: Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
+CHECK_DIAGPACK(outpath, [(1, session1), (2, "MySQL Error (2003): Can't connect to MySQL server on"), (3, session3)], is_cluster=True, innodbMutex=False)
 
 #@<> Expand to ClusterSet {VER(>8.0.0)}
 testutil.start_sandbox(__mysql_sandbox_port2)

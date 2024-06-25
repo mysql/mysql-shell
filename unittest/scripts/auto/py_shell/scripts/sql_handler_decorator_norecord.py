@@ -44,7 +44,7 @@ testutil.create_file(plugin_path, plugin_code)
 WIPE_SHELL_LOG()
 call_mysqlsh([__mysqluripwd, "--sql", "-e", "show databases"])
 EXPECT_STDOUT_CONTAINS("WARNING: Found errors loading plugins, for more details look at the log")
-EXPECT_SHELL_LOG_CONTAINS("Shell.register_sql_handler: Argument #1 is expected to be a string")
+EXPECT_SHELL_LOG_CONTAINS("Argument #1 is expected to be a string")
 
 
 #@<> Errors Registering SQL Handler - Missing Prefixes
@@ -221,7 +221,7 @@ testutil.create_file(plugin_path, plugin_code)
 call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--py",
              "-e", "session.run_sql('showme')"])
 
-EXPECT_STDOUT_CONTAINS("""RuntimeError: LogicError: ClassicSession.run_sql: Unable to execute a sql handler while another is being executed.
+EXPECT_STDOUT_CONTAINS("""RuntimeError: LogicError: Unable to execute a sql handler while another is being executed.
  Executing SQL: showme
  Unable to execute: showme databases
 """)

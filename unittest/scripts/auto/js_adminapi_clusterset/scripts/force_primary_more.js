@@ -151,7 +151,7 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 shell.connect(__sandbox_uri2);
 cs = dba.getClusterSet();
 
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster3");}, "ClusterSet.forcePrimaryCluster: Target cluster is behind other candidates");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster3");}, "Target cluster is behind other candidates");
 
 //@<> failover to the most up-to-date cluster should succeed
 

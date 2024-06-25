@@ -37,7 +37,7 @@ function get_mysqlx_endpoint(uri) {
 }
 
 //@<> configureInstance uri
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureInstance, sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
 dba.configureInstance(sockuri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 testutil.restartSandbox(__mysql_sandbox_port1);
@@ -45,7 +45,7 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 session1 = mysql.getSession(sockuri1);
 
 //@<> configureInstance endpoint
-EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, sockuri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureInstance, sockuri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
 dba.configureInstance(sockuri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
@@ -69,13 +69,13 @@ cluster.disconnect();
 cluster = dba.getCluster();
 
 //@<> addInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, sockuri2, {recoveryMethod:'incremental'});
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.addInstance, sockuri2, {recoveryMethod:'incremental'});
 
 cluster.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //@<> removeInstance
 //TODO(alfredo) - not supported yet
-//EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, sockuri2);
+//EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.removeInstance, sockuri2);
 
 //cluster.removeInstance(sockuri2);
 
@@ -91,7 +91,7 @@ cluster.setPrimaryInstance(sockuri1);
 //@<> rejoinInstance
 session2.runSql("STOP group_replication");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, sockuri2);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.rejoinInstance, sockuri2);
 
 cluster.rejoinInstance(sockuri2);
 
@@ -99,7 +99,7 @@ cluster.rejoinInstance(sockuri2);
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
 
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, sockuri1);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.forceQuorumUsingPartitionOf, sockuri1);
 
 cluster.forceQuorumUsingPartitionOf(sockuri1);
 
@@ -121,7 +121,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.setOption("clusterName", "clooster");
 
 //@<> setInstanceOption
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, sockuri1, "memberWeight", 20);
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(cluster.setInstanceOption, sockuri1, "memberWeight", 20);
 
 cluster.setInstanceOption(sockuri1, "memberWeight", 20);
 

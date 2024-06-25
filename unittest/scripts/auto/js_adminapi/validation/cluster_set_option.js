@@ -10,7 +10,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum {VER(>=8.0.14)}
-Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
+There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#11465: setOption clusterName with invalid value for cluster-name
 ||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (0_a)
@@ -31,7 +31,7 @@ Setting the value of 'memberWeight' to '25' in all cluster members ...
 Successfully set the value of 'memberWeight' to '25' in the 'newName' cluster.
 
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
-Cluster.setOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
+Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setOption exitStateAction
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all cluster members ...

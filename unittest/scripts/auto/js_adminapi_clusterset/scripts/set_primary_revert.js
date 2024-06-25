@@ -51,7 +51,7 @@ session1.runSql("lock tables mysql_innodb_cluster_metadata.clusterset_views read
 // 2 - password of primary cluster gets changed (can't revert, but no need either)
 // 3 - timeout during metadata change
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:1});}, "ClusterSet.setPrimaryCluster: Failed to execute query on Metadata server "+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:1});}, "Failed to execute query on Metadata server "+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
 
 session1.runSql("unlock tables");
 
@@ -70,7 +70,7 @@ session1.runSql("revoke replication_slave_admin on *.* from admin@'%'");
 
 session1.runSql("select * from mysql_innodb_cluster_metadata.v2_cs_members");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "ClusterSet.setPrimaryCluster: "+hostname+":"+__mysql_sandbox_port2+": Access denied");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, ""+hostname+":"+__mysql_sandbox_port2+": Access denied");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], c1, c2);
@@ -83,7 +83,7 @@ session1.runSql("grant replication_slave_admin on *.* to admin@'%'");
 // this will cause FTWRL to freeze
 session1.runSql("lock tables test.t1 read");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:1});}, "ClusterSet.setPrimaryCluster: "+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2", {timeout:1});}, ""+hostname+":"+__mysql_sandbox_port1+": Lock wait timeout exceeded; try restarting transaction");
 
 session1.runSql("unlock tables");
 
@@ -102,7 +102,7 @@ session5.runSql("set global super_read_only=1");
 shell.options.verbose=3;
 shell.options["dba.logSql"]=1;
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "ClusterSet.setPrimaryCluster: Could not update replication source of "+hostname+":"+__mysql_sandbox_port5);
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "Could not update replication source of "+hostname+":"+__mysql_sandbox_port5);
 
 shell.options.verbose=0;
 

@@ -16,7 +16,7 @@ setup_copy_tests(2)
 create_test_user(src_session)
 
 #@<> WL15298_TSFR_1_2
-EXPECT_THROWS(lambda: util.copy_instance(), "ValueError: Util.copy_instance: Invalid number of arguments, expected 1 to 2 but got 0")
+EXPECT_THROWS(lambda: util.copy_instance(), "ValueError: Invalid number of arguments, expected 1 to 2 but got 0")
 
 #@<> WL15298_TSFR_1_1_1
 for connection_options in [None, 1, [], False]:
@@ -831,13 +831,13 @@ EXPECT_NO_THROWS(lambda: util.copy_tables(schema_name, [test_table_primary], __s
 # WL15947-TSFR_3_2_13 - target has the same data
 # WL15947-TSFR_3_2_14 - target already has other data
 WIPE_OUTPUT()
-EXPECT_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False, "users": False  }), "Error: Shell Error (53031): Util.copy_instance: Checksum verification failed")
+EXPECT_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False, "users": False  }), "Error: Shell Error (53031): Checksum verification failed")
 EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`.")
 
 # WL15947-TSFR_3_2_12 - tables are empty - checksum errors
 WIPE_OUTPUT()
 tgt_session.run_sql("TRUNCATE TABLE !.!", [ schema_name, test_table_primary ])
-EXPECT_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False, "users": False  }), "Error: Shell Error (53031): Util.copy_instance: Checksum verification failed")
+EXPECT_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "checksum": True, "ddlOnly": True, "ignoreExistingObjects": True, "includeTables": [ quote_identifier(schema_name, test_table_primary) ], "showProgress": False, "users": False  }), "Error: Shell Error (53031): Checksum verification failed")
 EXPECT_STDOUT_CONTAINS(f"Checksum verification failed for: `{schema_name}`.`{test_table_primary}`. Mismatched number of rows, expected: 4, actual: 0.")
 
 #@<> WL15947-TSFR_3_2_16 - create primary key in target instance {gipk_supported}

@@ -15,7 +15,7 @@ Result of the rescanning operation for the 'c' cluster:
 ERROR: The following instances cannot be added because they are not active members of the cluster: 'localhost:1111'. Please verify if the specified addresses are correct, or if the instances are currently inactive.
 
 //@<ERR> WL10644 - TSF2_10: not active member in addInstances throw RuntimeError.
-Cluster.rescan: The following instances are not active members of the cluster: 'localhost:1111'. (RuntimeError)
+The following instances are not active members of the cluster: 'localhost:1111'. (RuntimeError)
 
 //@<OUT> WL10644 - TSF2_11: warning for already members in addInstances.
 Rescanning the cluster...
@@ -36,7 +36,7 @@ WARNING: The following instances were not added to the metadata because they are
 ERROR: The following instances cannot be removed because they are active members of the cluster: '<<<member_address>>>'. Please verify if the specified addresses are correct.
 
 //@<ERR> WL10644 - TSF3_10: active member in removeInstances throw RuntimeError.
-Cluster.rescan: The following instances are active members of the cluster: '<<<member_address>>>'. (RuntimeError)
+The following instances are active members of the cluster: '<<<member_address>>>'. (RuntimeError)
 
 //@<OUT> WL10644 - TSF3_11: warning for not members in removeInstances.
 Rescanning the cluster...

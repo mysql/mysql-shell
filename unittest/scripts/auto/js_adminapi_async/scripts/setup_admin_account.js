@@ -248,7 +248,7 @@ session.close();
 // configure instance for replica set
 shell.connect({user: 'irsA', password: 'irspass', host: 'localhost', port: __mysql_sandbox_port1});
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},
-    "Dba.configureReplicaSetInstance: The account 'irsA'@'localhost' is missing privileges required to manage an InnoDB ReplicaSet.");
+    "The account 'irsA'@'localhost' is missing privileges required to manage an InnoDB ReplicaSet.");
 session.close();
 
 // try to setup an admin account in the replica set
@@ -264,7 +264,7 @@ rset = dba.getReplicaSet();
 
 // try to setup admin account
 EXPECT_THROWS(function(){rset.setupAdminAccount("irsC")},
-    "ReplicaSet.setupAdminAccount: Account currently in use ('irsB'@'localhost') does not have enough privileges to execute the operation.");
+    "Account currently in use ('irsB'@'localhost') does not have enough privileges to execute the operation.");
 EXPECT_OUTPUT_CONTAINS("The account 'irsB'@'localhost' is missing privileges required to manage an InnoDB ReplicaSet:");
 
 session.close();
@@ -274,10 +274,10 @@ session.close();
 shell.connect(__sandbox_uri1);
 rs=dba.getReplicaSet();
 
-EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertIssuer:124})}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertSubject:124})}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertIssuer:null})}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
-EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertSubject:null})}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertIssuer:124})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertSubject:124})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertIssuer:null})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){rs.setupAdminAccount("cert@%", {requireCertSubject:null})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
 
 EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
 
@@ -316,11 +316,11 @@ EXPECT_EQ(user[1], "/CN=cert4subject");
 EXPECT_EQ(user[2], "");
 
 //@<> WL#15438 - passwordExpiration
-EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: "bla", password:""});}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
-EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: -1, password:""});}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
-EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: 0, password:""});}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
-EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
-EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: {}, password:""});}, "ReplicaSet.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: -1, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: 0, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){rs.setupAdminAccount("test1@%", {passwordExpiration: {}, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
 EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
 
 function CHECK_LIFETIME(user, lifetime) {

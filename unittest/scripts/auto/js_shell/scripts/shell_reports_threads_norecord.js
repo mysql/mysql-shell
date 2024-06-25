@@ -755,7 +755,7 @@ test_operator("<=");
 test_operator("LIKE");
 
 // disallowed operator
-EXPECT_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'where': "tid | " + __session_ids.tid}); }, "reports.threads: Failed to parse 'where' parameter: Disallowed operator: |");
+EXPECT_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'where': "tid | " + __session_ids.tid}); }, "Failed to parse 'where' parameter: Disallowed operator: |");
 
 //@ WL11651-TSFR8_6 - Validate that the --where option support the following logical operators: AND, OR, NOT. (case insensitive)
 function test_logic_operator(op) {
@@ -774,7 +774,7 @@ EXPECT_NO_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'w
 EXPECT_NO_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'where': "Not tid = " + __session_ids.tid}); }, "Not");
 
 // disallowed logic operator
-EXPECT_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'where': "tid = " + __session_ids.tid + " IS cid = " + __session_ids.cid}); }, "reports.threads: Failed to parse 'where' parameter: Disallowed operator: is");
+EXPECT_THROWS(function(){ shell.reports.threads(session, [], {'all': true, 'where': "tid = " + __session_ids.tid + " IS cid = " + __session_ids.cid}); }, "Failed to parse 'where' parameter: Disallowed operator: is");
 
 //@ WL11651-TSFR8_7 - Validate that the --where option support multiple logical operations.
 //  WL11651-TSFR8_8 - Validate that the --where option support grouping logical operations using parenthesis.

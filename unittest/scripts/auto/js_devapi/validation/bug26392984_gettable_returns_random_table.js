@@ -1,20 +1,20 @@
 //@ db.getTable() with %
-||Schema.getTable: The table mysql.% does not exist (RuntimeError)
+||The table mysql.% does not exist (RuntimeError)
 
 //@ db.getTable() with _
-||Schema.getTable: The table mysql.____ does not exist (RuntimeError)
+||The table mysql.____ does not exist (RuntimeError)
 
 //@ db.getCollection() with %
-||Schema.getCollection: The collection mysql.% does not exist (RuntimeError)
+||The collection mysql.% does not exist (RuntimeError)
 
 //@ db.getCollection() with _
-||Schema.getCollection: The collection mysql.____ does not exist (RuntimeError)
+||The collection mysql.____ does not exist (RuntimeError)
 
 //@ session.getSchema() with %
-||Session.getSchema: Unknown database '%' (RuntimeError)
+||Unknown database '%' (RuntimeError)
 
 //@ session.getSchema() with _
-||Session.getSchema: Unknown database '_____' (RuntimeError)
+||Unknown database '_____' (RuntimeError)
 
 //@ create tables
 |Query OK, 0 rows affected|
@@ -29,22 +29,22 @@
 |<Schema:f_>|
 
 //@ db.getTable() with % (2)
-||Schema.getTable: The table mysql.% does not exist (RuntimeError)
+||The table mysql.% does not exist (RuntimeError)
 
 //@ db.getTable() with _ (2)
-||Schema.getTable: The table mysql.__ does not exist (RuntimeError)
+||The table mysql.__ does not exist (RuntimeError)
 
 //@ db.getCollection() with % (2)
-||Schema.getCollection: The collection mysql.% does not exist (RuntimeError)
+||The collection mysql.% does not exist (RuntimeError)
 
 //@ db.getCollection() with _ (2)
-||Schema.getCollection: The collection mysql.__ does not exist (RuntimeError)
+||The collection mysql.__ does not exist (RuntimeError)
 
 //@ session.getSchema() with % (2)
-||Session.getSchema: Unknown database '%' (RuntimeError)
+||Unknown database '%' (RuntimeError)
 
 //@ session.getSchema() with _ (2)
-||Session.getSchema: Unknown database '__' (RuntimeError)
+||Unknown database '__' (RuntimeError)
 
 //@ db.getTable() existing table with %
 |<Table:%a>|

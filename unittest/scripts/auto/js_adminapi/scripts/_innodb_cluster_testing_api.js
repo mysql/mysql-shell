@@ -30,22 +30,22 @@ exports.test_cluster_describe = function(cluster, ports) {
     for(index in ports) {
         EXPECT_EQ(common.end_point(ports[index]),
             desc.defaultReplicaSet.topology[index].address,
-            "Cluster.describe: mismatched endpoints");
+            "mismatched endpoints");
     }
 }
 
 exports.test_cluster_status = function(cluster, ports, roles, states) {
     var status = cluster.status({extended:3})
     EXPECT_EQ(ports.length, Object.keys(status.defaultReplicaSet.topology).length,
-        "Cluster.status: unexpected number of nodes in topology");
+        "unexpected number of nodes in topology");
     for(index in ports) {
         EXPECT_EQ(states[index],
             status.defaultReplicaSet.topology[common.end_point(ports[index])].status,
-            `Cluster.status: unexpected state for instance ${common.end_point(ports[index])}`);
+            `unexpected state for instance ${common.end_point(ports[index])}`);
 
         EXPECT_EQ(roles[index],
             status.defaultReplicaSet.topology[common.end_point(ports[index])].memberRole,
-            `Cluster.status: unexpected memberRole for instance ${common.end_point(ports[index])}`);
+            `unexpected memberRole for instance ${common.end_point(ports[index])}`);
     }
 }
 
@@ -106,7 +106,7 @@ exports.test_cluster_set_instance_option = function(cluster, port, option, value
         var ioption = ioptions[index]
         if (ioption["option"] == option) {
             EXPECT_EQ(value.toString(), ioption["value"],
-            "Cluster.setInstanceOption: unexpected value");
+            "unexpected value");
             break;
         }
     }
@@ -162,11 +162,11 @@ exports.test_router_functions = function(cluster, port) {
     }
 
     var routers = cluster.listRouters();
-    EXPECT_EQ(2+old_num_routers, Object.keys(routers.routers).length, "Cluster.listRouters: unexpected router count");
+    EXPECT_EQ(2+old_num_routers, Object.keys(routers.routers).length, "unexpected router count");
 
     cluster.removeRouterMetadata(Object.keys(routers.routers)[old_num_routers]);
     var new_routers = cluster.listRouters();
-    EXPECT_EQ(1+old_num_routers, Object.keys(new_routers.routers).length, "Cluster.listRouters: unexpected router count after deletion");
+    EXPECT_EQ(1+old_num_routers, Object.keys(new_routers.routers).length, "unexpected router count after deletion");
 }
 
 exports.test_setup_accounts = function(cluster, port) {

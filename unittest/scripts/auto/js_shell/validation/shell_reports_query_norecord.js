@@ -110,10 +110,10 @@ DESCRIPTION
       The session parameter must be any of ClassicSession, Session.
 
 //@ 'query' - call method with null arguments
-||reports.query: Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
+||Argument #2 'argv' is expecting 1-* arguments. (ArgumentError)
 
 //@ 'query' - call method with null options
-||reports.query: Invalid number of arguments, expected 2 but got 3 (ArgumentError)
+||Invalid number of arguments, expected 2 but got 3 (ArgumentError)
 
 //@ cleanup - disconnect the session
 ||

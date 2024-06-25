@@ -198,7 +198,7 @@ WARNING: You are about to dissolve the whole cluster and lose the high availabil
 Are you sure you want to dissolve the cluster? [y/N]:
 
 //@<ERR> Cluster: dissolve error: not empty
-Cluster.dissolve: Operation canceled by user. (RuntimeError)
+Operation canceled by user. (RuntimeError)
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...

@@ -11,12 +11,12 @@
 |No additional functions are available|
 
 #@# CollectionAdd: Error conditions on add
-||CollectionAdd.add: Invalid number of arguments, expected at least 1 but got 0
-||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
-||CollectionAdd.add: Element #1 expected to be a document, JSON expression or a list of documents
-||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
-||CollectionAdd.add: Element #2 expected to be a document, JSON expression or a list of documents
-||CollectionAdd.add: Argument #2 expected to be a document, JSON expression or a list of documents
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 expected to be a document, JSON expression or a list of documents
+||Element #1 expected to be a document, JSON expression or a list of documents
+||Argument #1 expected to be a document, JSON expression or a list of documents
+||Element #2 expected to be a document, JSON expression or a list of documents
+||Argument #2 expected to be a document, JSON expression or a list of documents
 
 #@ WL11435_ET1_1 Collection.add error no id
 ||Document is missing a required field

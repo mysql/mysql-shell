@@ -143,7 +143,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |dryRun finished.|
 
 //@# timeout (should fail)
-||ReplicaSet.forcePrimaryInstance: 1 instance(s) failed to apply retrieved transactions (MYSQLSH 51160)
+||1 instance(s) failed to apply retrieved transactions (MYSQLSH 51160)
 
 //@# ensure switch over rolls back after the timeout
 |        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|

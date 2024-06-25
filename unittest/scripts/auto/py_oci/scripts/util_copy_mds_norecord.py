@@ -32,7 +32,7 @@ restricted_privileges_removed_msg = f"User {test_user_account} had restricted pr
 clean_instance(tgt_session)
 setup_session(__sandbox_uri1)
 
-EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
+EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], "showProgress": False }), "Error: Shell Error (52004): While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
 # WL15887-TSFR_7_1 - version of target instance is used during compatibility checks
 EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {tgt_version[:tgt_version.find('-')]}")
@@ -60,7 +60,7 @@ EXPECT_STDOUT_CONTAINS(strip_definers_security_clause("sakila", "get_customer_ba
 clean_instance(tgt_session)
 setup_session(__sandbox_uri1)
 
-EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): Util.copy_instance: While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
+EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", "copy should throw")
 
 EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
 EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_msg)

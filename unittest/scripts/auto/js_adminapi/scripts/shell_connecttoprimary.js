@@ -106,14 +106,14 @@ expect_connect_using_uri();
 //@<> connect using wrong password, exect error
 EXPECT_THROWS(function() {
   shell.connectToPrimary(__sandbox_uri2, 'w00t');
-}, `Shell.connectToPrimary: Access denied for user 'root'@'${__host}' (using password: YES)`);
+}, `Access denied for user 'root'@'${__host}' (using password: YES)`);
 
 ////////////////////////////////////////////////////////////////////////////////
 //@<> connect using no password - wizards disabled, exect error
 shell.options.useWizards = false;
 EXPECT_THROWS(function() {
   shell.connectToPrimary(__sandbox_uri2.replace(':root', ''));
-}, `Shell.connectToPrimary: Access denied for user 'root'@'${__host}' (using password: NO)`);
+}, `Access denied for user 'root'@'${__host}' (using password: NO)`);
 shell.options.useWizards = wizards_backup;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -182,7 +182,7 @@ expect_connect_using_uri();
 
 //@<> try to connect to an instance that is not a member of a cluster, expect error
 function expect_standalone_error(func) {
-  EXPECT_THROWS(func, 'Shell.connectToPrimary: Metadata schema of an InnoDB Cluster or ReplicaSet not found');
+  EXPECT_THROWS(func, 'Metadata schema of an InnoDB Cluster or ReplicaSet not found');
 }
 
 expect_standalone_error(function() {
@@ -235,7 +235,7 @@ session.close();
 //@<> call shell.connectToPrimary() with no arguments and no active session, expect error
 EXPECT_THROWS(function () {
   shell.connectToPrimary();
-}, 'Shell.connectToPrimary: Redirecting to a PRIMARY requires an active session.');
+}, 'Redirecting to a PRIMARY requires an active session.');
 
 ////////////////////////////////////////////////////////////////////////////////
 

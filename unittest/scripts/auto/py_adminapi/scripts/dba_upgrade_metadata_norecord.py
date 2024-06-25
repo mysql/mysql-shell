@@ -39,7 +39,7 @@ shell.options.useWizards = False
 #@ Upgrades the metadata, interactive off, error
 set_metadata_1_0_1()
 EXPECT_THROWS(lambda: dba.upgrade_metadata(),
-    "Dba.upgrade_metadata: Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema")
+    "Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema")
 
 #@ Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
 session.run_sql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (2, 'second', 2, NULL)")

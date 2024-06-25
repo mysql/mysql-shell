@@ -243,10 +243,10 @@ c.setupAdminAccount("missing_privs@%", {password: "plusultra"});
 shell.connect(__sandbox_uri1);
 c=dba.getCluster();
 
-EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:124})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:124})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:null})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
-EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:null})}, "Cluster.setupAdminAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:124})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:124})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertIssuer:null})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){c.setupAdminAccount("cert@%", {requireCertSubject:null})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
 
 EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
 
@@ -318,11 +318,11 @@ EXPECT_EQ(user[3], 42);
 
 
 //@<> WL#15438 - passwordExpiration
-EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
-EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: -1, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
-EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 0, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
-EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
-EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: {}, password:""});}, "Cluster.setupAdminAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: -1, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 0, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){c.setupAdminAccount("test1@%", {passwordExpiration: {}, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
 EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
 
 function CHECK_LIFETIME(user, lifetime) {

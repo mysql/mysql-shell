@@ -95,24 +95,24 @@ c3 = dba.getCluster("cluster3");
 // cluster3 is totally down now
 session5.runSql("stop group_replication");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "ClusterSet.setPrimaryCluster: One or more replica clusters are unavailable");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1");}, "One or more replica clusters are unavailable");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "ClusterSet.setPrimaryCluster: One or more replica clusters are unavailable");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {dryRun:1});}, "One or more replica clusters are unavailable");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "ClusterSet.setPrimaryCluster: Could not connect to a PRIMARY member of cluster 'cluster3'");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "Could not connect to a PRIMARY member of cluster 'cluster3'");
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "ClusterSet.setPrimaryCluster: Cluster 'cluster2' is already the PRIMARY cluster");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "Cluster 'cluster2' is already the PRIMARY cluster");
 
 // cluster1=up, cluster2=gone, cluster3=down, cluster2(primary)=up
 
 //@<> can't switch to unavailable cluster even with invalidate
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3", {invalidateReplicaClusters:["cluster3"]});}, "ClusterSet.setPrimaryCluster: Could not connect to a PRIMARY member of cluster 'cluster3'");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3", {invalidateReplicaClusters:["cluster3"]});}, "Could not connect to a PRIMARY member of cluster 'cluster3'");
 
 //@<> invalidate bogus cluster
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {invalidateReplicaClusters:["cluster5"]});}, "ClusterSet.setPrimaryCluster: Invalid cluster name 'cluster5' in option invalidateReplicaClusters");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {invalidateReplicaClusters:["cluster5"]});}, "Invalid cluster name 'cluster5' in option invalidateReplicaClusters");
 
 //@<> invalidate available cluster
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {invalidateReplicaClusters:["cluster1", "cluster3"]});}, "ClusterSet.setPrimaryCluster: Invalid value for option invalidateReplicaClusters");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster1", {invalidateReplicaClusters:["cluster1", "cluster3"]});}, "Invalid value for option invalidateReplicaClusters");
 EXPECT_OUTPUT_CONTAINS("ERROR: Cluster 'cluster1' is available and cannot be INVALIDATED");
 
 //@<> switchover with 1 cluster offline, invalidate it
@@ -149,7 +149,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 
 //@<> Test switchover to an invalidated cluster
 
-EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "ClusterSet.setPrimaryCluster: Cluster 'cluster3' is invalidated");
+EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "Cluster 'cluster3' is invalidated");
 
 cs.status();
 

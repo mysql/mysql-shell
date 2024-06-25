@@ -48,58 +48,58 @@
 
 
 #@# TableSelect: Error conditions on select
-||TableSelect.select: Argument #1 is expected to be a string or an array of strings
-||TableSelect.select: Field selection criteria can not be empty
-||TableSelect.select: Element #2 is expected to be a string
-||TableSelect.select: Argument #2 is expected to be a string
+||Argument #1 is expected to be a string or an array of strings
+||Field selection criteria can not be empty
+||Element #2 is expected to be a string
+||Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on where
-||TableSelect.where: Invalid number of arguments, expected 1 but got 0
-||TableSelect.where: Argument #1 is expected to be a string
-||TableSelect.where: Unterminated quoted string starting at position 8
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
+||Unterminated quoted string starting at position 8
 
 #@# TableSelect: Error conditions on group_by
-||TableSelect.group_by: Invalid number of arguments, expected at least 1 but got 0
-||TableSelect.group_by: Argument #1 is expected to be a string or an array of strings
-||TableSelect.group_by: Grouping criteria can not be empty
-||TableSelect.group_by: Element #2 is expected to be a string
-||TableSelect.group_by: Argument #2 is expected to be a string
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 is expected to be a string or an array of strings
+||Grouping criteria can not be empty
+||Element #2 is expected to be a string
+||Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on having
-||TableSelect.having: Invalid number of arguments, expected 1 but got 0
-||TableSelect.having: Argument #1 is expected to be a string
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be a string
 
 #@# TableSelect: Error conditions on order_by
-||TableSelect.order_by: Invalid number of arguments, expected at least 1 but got 0
-||TableSelect.order_by: Argument #1 is expected to be a string or an array of strings
-||TableSelect.order_by: Order criteria can not be empty
-||TableSelect.order_by: Element #2 is expected to be a string
-||TableSelect.order_by: Argument #2 is expected to be a string
+||Invalid number of arguments, expected at least 1 but got 0
+||Argument #1 is expected to be a string or an array of strings
+||Order criteria can not be empty
+||Element #2 is expected to be a string
+||Argument #2 is expected to be a string
 
 #@# TableSelect: Error conditions on limit
-||TableSelect.limit: Invalid number of arguments, expected 1 but got 0
-||TableSelect.limit: Argument #1 is expected to be an unsigned int
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be an unsigned int
 
 #@# TableSelect: Error conditions on offset
-||TableSelect.offset: Invalid number of arguments, expected 1 but got 0
-||TableSelect.offset: Argument #1 is expected to be an unsigned int
+||Invalid number of arguments, expected 1 but got 0
+||Argument #1 is expected to be an unsigned int
 
 #@# TableSelect: Error conditions on lock_shared
-||TableSelect.lock_shared: Invalid number of arguments, expected 0 to 1 but got 2
-||TableSelect.lock_shared: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
+||Invalid number of arguments, expected 0 to 1 but got 2
+||Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on lock_exclusive
-||TableSelect.lock_exclusive: Invalid number of arguments, expected 0 to 1 but got 2
-||TableSelect.lock_exclusive: Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
+||Invalid number of arguments, expected 0 to 1 but got 2
+||Argument #1 is expected to be one of DEFAULT, NOWAIT or SKIP_LOCKED
 
 #@# TableSelect: Error conditions on bind
-||TableSelect.bind: Invalid number of arguments, expected 2 but got 0
-||TableSelect.bind: Argument #1 is expected to be a string
-||TableSelect.bind: Unable to bind value for unexisting placeholder: another
+||Invalid number of arguments, expected 2 but got 0
+||Argument #1 is expected to be a string
+||Unable to bind value for unexisting placeholder: another
 
 #@# TableSelect: Error conditions on execute
-||TableSelect.execute: Missing value bindings for the following placeholders: data, years
-||TableSelect.execute: Missing value bindings for the following placeholders: data
+||Missing value bindings for the following placeholders: data, years
+||Missing value bindings for the following placeholders: data
 
 
 
@@ -285,6 +285,6 @@ Mark
 3 rows in set ([[*]])
 
 #@<ERR> BUG29794340: Expected token type QUOTE
-RuntimeError: TableSelect.select: Expected ' but found >, at position 6,
+RuntimeError: Expected ' but found >, at position 6,
 in: doc->>>'$.name' as names
           ^

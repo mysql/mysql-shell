@@ -7,7 +7,7 @@ let prompt_types = [...prompt_text_types, {type:"password"}, {type:"confirm"}, {
 //@<> TEST Invalid prompt type
 EXPECT_THROWS(function() {
     shell.prompt("Invalid Prompt Type", {type:"unexisting"});
-}, "Shell.prompt: Argument #2: Invalid prompt type: 'unexisting'.");
+}, "Argument #2: Invalid prompt type: 'unexisting'.");
 
 
 //@<> TEST valid prompt types with invalid options
@@ -18,11 +18,11 @@ for(type_index in prompt_types){
     if (type=={} || type["type"]!="select") {
         EXPECT_THROWS(function() {
             shell.prompt("Wrong default value type", {...type, defaultValue: 45});
-        }, "Shell.prompt: Argument #2: Invalid data type on 'defaultValue': String expected, but value is Integer");
+        }, "Argument #2: Invalid data type on 'defaultValue': String expected, but value is Integer");
     } else {
         EXPECT_THROWS(function() {
             shell.prompt("Wrong default value type", {...type, defaultValue: "whatever", options:['One', 'Two']});
-        }, "Shell.prompt: Argument #2: Invalid data type on 'defaultValue': UInteger expected, but value is String");
+        }, "Argument #2: Invalid data type on 'defaultValue': UInteger expected, but value is String");
     }
 
     // TEST invalid confirm prompt options
@@ -31,7 +31,7 @@ for(type_index in prompt_types){
         for(index in confirm_options){
             EXPECT_THROWS(function() {
                 shell.prompt("Invalid confirm option", {...type, ...confirm_options[index]});
-            }, "Shell.prompt: Argument #2: The 'yes', 'no' and 'alt' options only can be used on 'confirm' prompts.");
+            }, "Argument #2: The 'yes', 'no' and 'alt' options only can be used on 'confirm' prompts.");
         }
     }
 
@@ -40,7 +40,7 @@ for(type_index in prompt_types){
     if (type=={} || type["type"]!="select") {
         EXPECT_THROWS(function() {
             shell.prompt("Wrong default value type", {...type, options: ['one', 'two', 'three']});
-        }, "Shell.prompt: Argument #2: The 'options' list only can be used on 'select' prompts.");
+        }, "Argument #2: The 'options' list only can be used on 'select' prompts.");
     }
 }
 
@@ -76,22 +76,22 @@ EXPECT_EQ("Whatever", result)
 //@<> TEST Invalid defaultValue in confirm prompts
 EXPECT_THROWS(function() {
     shell.prompt("Invalid Prompt Type", {type:"confirm", defaultValue:'other'});
-}, "Shell.prompt: Argument #2: Invalid 'defaultValue', allowed values include: &No, &Yes, N, No, Y, Yes");
+}, "Argument #2: Invalid 'defaultValue', allowed values include: &No, &Yes, N, No, Y, Yes");
 
 //@<> TEST confirm prompts with duplicated labels/values/shortcuts
 // WL14872-TSFR_4_3
 EXPECT_THROWS(function() {
     shell.prompt("Duplicated label", {type:"confirm", alt: '&no'});
-}, "Shell.prompt: Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: '&no' label is duplicated");
+}, "Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: '&no' label is duplicated");
 
 EXPECT_THROWS(function() {
     shell.prompt("Duplicated label", {type:"confirm", alt: 'n&o'});
-}, "Shell.prompt: Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: 'no' value is duplicated");
+}, "Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: 'no' value is duplicated");
 
 // WL14872-TSFR_4_4
 EXPECT_THROWS(function() {
     shell.prompt("Duplicated shortcut", {type:"confirm", alt: 'A&nother'});
-}, "Shell.prompt: Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: 'n' shortcut is duplicated");
+}, "Argument #2: Labels, shortcuts and values in 'confirm' prompts must be unique: 'n' shortcut is duplicated");
 
 //@<> TEST invalid answers in confirm prompt using default labels
 // WL14872-TSFR_4_1
@@ -150,32 +150,32 @@ EXPECT_EQ('&Clone', result)
 //@<> TEST default value out of range
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:['One', 'Two', 'Three'], defaultValue:4});
-}, "Shell.prompt: Argument #2: The 'defaultValue' should be the 1 based index of the default option.");
+}, "Argument #2: The 'defaultValue' should be the 1 based index of the default option.");
 
 
 //@<> TEST option of wrong type
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:['One', 2, 'Three'], defaultValue:4});
-}, "Shell.prompt: Argument #2: Option 'options' String expected, but value is Integer");
+}, "Argument #2: Option 'options' String expected, but value is Integer");
 
 //@<> TEST empty options
 // WL14872-TSFR_5_4
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select"});
-}, "Shell.prompt: Argument #2: The 'options' list can not be empty.");
+}, "Argument #2: The 'options' list can not be empty.");
 
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:[]});
-}, "Shell.prompt: Argument #2: The 'options' list can not be empty.");
+}, "Argument #2: The 'options' list can not be empty.");
 
 // WL14872-TSFR_5_3
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:[""]});
-}, "Shell.prompt: Argument #2: The 'options' list can not contain empty or blank elements.");
+}, "Argument #2: The 'options' list can not contain empty or blank elements.");
 
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:["   "]});
-}, "Shell.prompt: Argument #2: The 'options' list can not contain empty or blank elements.");
+}, "Argument #2: The 'options' list can not contain empty or blank elements.");
 
 //@<> TEST return on user selection
 // WL14872-TSFR_5_1

@@ -466,7 +466,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: Argument #2: Option 'columns' String (column name) or non-negative Integer (user variable binding) expected, but value is Map");
+}, "Argument #2: Option 'columns' String (column name) or non-negative Integer (user variable binding) expected, but value is Map");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -485,7 +485,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: Argument #2: User variable binding in 'columns' option must be non-negative integer value");
+}, "Argument #2: User variable binding in 'columns' option must be non-negative integer value");
 
 //@<> Unbalanced brackets in transformations
 EXPECT_THROWS(function () {
@@ -505,7 +505,7 @@ EXPECT_THROWS(function () {
             "mul": ")@1 * @2"
         }
     });
-}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 //@<> Invalid brackets in transformations
 EXPECT_THROWS(function () {
@@ -525,7 +525,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2\""
         }
     });
-}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -544,7 +544,7 @@ EXPECT_THROWS(function () {
             "mul": "(@1 * @2))"
         }
     });
-}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -563,7 +563,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * ((@2)"
         }
     });
-}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -582,7 +582,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2\"\\"
         }
     });
-}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 //@<> boolean operators in preprocessing transformations
 session.runSql("CREATE TABLE IF NOT EXISTS `t_bools` ("+
@@ -646,7 +646,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
+}, "Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
 
 EXPECT_THROWS(function () {
     util.importTable(os.path.join(__import_data_path, 'numbers.tsv'), {
@@ -660,7 +660,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2"
         }
     });
-}, "Util.importTable: Argument #2: The 'columns' option must be a non-empty list.");
+}, "Argument #2: The 'columns' option must be a non-empty list.");
 
 //@<> Teardown
 session.runSql("DROP SCHEMA IF EXISTS " + target_schema);

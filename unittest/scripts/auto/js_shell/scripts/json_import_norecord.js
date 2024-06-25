@@ -97,7 +97,7 @@ EXPECT_THROWS(function() {
 /// imported successfully - DEV
 EXPECT_THROWS(function() {
   util.importJson(__import_data_path + '/sample_invalid.json', {schema : target_schema});
-}, "Util.importJson: Unexpected character, expected field/value separator ':' at offset 1783");
+}, "Unexpected character, expected field/value separator ':' at offset 1783");
 EXPECT_STDOUT_CONTAINS(
     "Importing from file \"" + __import_data_path + '/sample_invalid.json' +
     "\" to collection `wl10606`.`sample_invalid` in MySQL Server at");
@@ -153,7 +153,7 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 6 ");
 /// error regarding invalid schema (Shell API call raise error about non-empty path)
 EXPECT_THROWS(function() {
   util.importJson("", {schema : "non_existing_schema", collection : 'sample'});
-}, "Util.importJson: Path cannot be empty.");
+}, "Path cannot be empty.");
 
 //@<> FR2-03 Using mysqlsh command line arguments
 var rc = testutil.callMysqlsh(
@@ -257,7 +257,7 @@ oidcoll.find().sort("_id");
 /// session) raise an error  - DEV
 EXPECT_THROWS(function() {
   util.importJson(__import_data_path + '/sample.json');
-}, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
+}, "There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json',  __import_data_path + '/sample.json', '--table', 'sample']);
 EXPECT_NE(0, rc);
@@ -281,7 +281,7 @@ EXPECT_STDOUT_CONTAINS("Total successfully imported documents 18 ");
 /// error. - DEV
 EXPECT_THROWS(function() {
   util.importJson('', {schema: target_schema});
-}, "Util.importJson: Path cannot be empty.");
+}, "Path cannot be empty.");
 
 var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', '-', '--schema=' + target_schema]);
 EXPECT_NE(0, rc);
@@ -326,7 +326,7 @@ coll_.select("doc").orderBy("id");
 /// FRB1-04 Validates that missing schema name is an error  - DEV
 EXPECT_THROWS(function() {
   util.importJson(__import_data_path + '/sample.json');
-}, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
+}, "There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 //@ FRB1-04 cli
 var rc = testutil.callMysqlsh([xuri, '--', 'util', 'import-json', __import_data_path + '/sample.json']);
@@ -337,11 +337,11 @@ EXPECT_STDOUT_CONTAINS("There is no active schema on the current session, the ta
 /// FRB1-05 Validate that missing table name when input is STDIN is an error
 EXPECT_THROWS(function() {
   util.importJson('');
-}, "Util.importJson: There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
+}, "There is no active schema on the current session, the target schema for the import operation must be provided in the options.");
 
 EXPECT_THROWS(function() {
   util.importJson('', {schema: target_schema});
-}, "Util.importJson: Path cannot be empty.");
+}, "Path cannot be empty.");
 
 var rc =
     testutil.callMysqlsh([ xuri, '--', 'util', 'import-json', '-', '--schema=' + target_schema],
@@ -445,7 +445,7 @@ var rc = testutil.callMysqlsh([
 
 EXPECT_EQ(1, rc);
 EXPECT_STDOUT_CONTAINS(
-    'ERROR: Table \'wl10606.blubb_table_view\' exists but is not a collection');
+    'ERROR: MYSQLSH 5156: Table \'wl10606.blubb_table_view\' exists but is not a collection');
 
 //@<> E6 Missing connection options on cli returns error
 var rc = testutil.callMysqlsh(['--', 'util', 'import-json', __import_data_path + '/sample.json', '--table', 'sample']);
@@ -544,7 +544,7 @@ EXPECT_THROWS(function() {
     collection: "2MB_less________",
     unexisting: 5
   });
-}, "Util.importJson: Argument #2: Invalid options: unexisting");
+}, "Argument #2: Invalid options: unexisting");
 
 //@ Teardown
 session.close();

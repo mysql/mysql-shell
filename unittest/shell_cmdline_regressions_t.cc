@@ -345,7 +345,7 @@ TEST_F(Command_line_test, bug28814112_js) {
       {_mysqlsh, "--js", "-e", "shell.setCurrentSchema('mysql')", NULL});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.setCurrentSchema: An open session is required to perform this "
+      "An open session is required to perform this "
       "operation. "
       "(RuntimeError)");
 }
@@ -356,7 +356,7 @@ TEST_F(Command_line_test, bug28814112_py) {
   int rc = execute({_mysqlsh, "-e", "shell.set_current_schema('mysql')", NULL});
   EXPECT_EQ(1, rc);
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "Shell.set_current_schema: An open session is required to perform this "
+      "An open session is required to perform this "
       "operation.");
 }
 #endif

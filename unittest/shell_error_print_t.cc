@@ -88,7 +88,7 @@ TEST_F(Shell_error_printing, python_stack) {
   EXPECT_EQ(
       "Traceback (most recent call last):\n"
       "  File \"<string>\", line 1, in <module>\n"
-      "ValueError: Dba.deploy_sandbox_instance: "
+      "ValueError: "
       "Invalid value for 'port': Please use a valid TCP port number >= 1024 "
       "and <= 65535\n\n",
       output_handler.std_err);
@@ -120,7 +120,7 @@ in throw 'SomethingWrong'
   wipe_all();
   execute("dba.deploySandboxInstance(-1, {'password':''})");
   EXPECT_EQ(
-      R"(Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535 (ArgumentError)
+      R"(Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535 (ArgumentError)
  at (shell):1:5
 in dba.deploySandboxInstance(-1, {'password':''})
        ^

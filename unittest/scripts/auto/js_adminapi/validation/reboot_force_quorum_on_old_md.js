@@ -1,5 +1,5 @@
 //@<ERR> Testing upgrade metadata on total lost
-Dba.upgradeMetadata: This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata) (MYSQLSH 51314)
+This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata) (MYSQLSH 51314)
 
 //@<OUT> Testing rebootClusterFromCompleteOutage
 WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.2.0'. It is recommended to upgrade the Metadata. See \? dba.upgradeMetadata for additional details.
@@ -67,11 +67,11 @@ Removing metadata backup...
 Upgrade process successfully finished, metadata schema is now on version 2.2.0
 
 //@<ERR> Testing upgrade metadata with no quorum
-Dba.upgradeMetadata: There is no quorum to perform the operation (MYSQLSH 51011)
+There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<OUT> Getting cluster with quorum
 WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.2.0'. It is recommended to upgrade the Metadata. See \? dba.upgradeMetadata for additional details.
 
 //@<ERR> Metadata continues failing...
-Dba.upgradeMetadata: There is no quorum to perform the operation (MYSQLSH 51011)
+There is no quorum to perform the operation (MYSQLSH 51011)
 

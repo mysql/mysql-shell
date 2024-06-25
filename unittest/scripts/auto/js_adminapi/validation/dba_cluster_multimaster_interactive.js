@@ -13,7 +13,7 @@ and limitations of advanced Multi-Primary Mode.
 Confirm [y/N]:
 
 //@<ERR> Dba: createCluster multiPrimary with interaction, cancel
-Dba.createCluster: Cancelled (RuntimeError)
+Cancelled (RuntimeError)
 
 //@<OUT> Dba: createCluster multiPrimary with interaction, ok
 A new InnoDB Cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.

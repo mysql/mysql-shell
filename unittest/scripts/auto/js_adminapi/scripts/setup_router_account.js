@@ -229,10 +229,10 @@ EXPECT_EQ(0, count_users_like(session1, "missing_privs", "%"));
 shell.connect(__sandbox_uri1);
 c=dba.getCluster();
 
-EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertIssuer:124})}, "Cluster.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertSubject:124})}, "Cluster.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
-EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertIssuer:null})}, "Cluster.setupRouterAccount: Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
-EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertSubject:null})}, "Cluster.setupRouterAccount: Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertIssuer:124})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertSubject:124})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Integer");
+EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertIssuer:null})}, "Argument #2: Option 'requireCertIssuer' is expected to be of type String, but is Null");
+EXPECT_THROWS(function(){c.setupRouterAccount("cert@%", {requireCertSubject:null})}, "Argument #2: Option 'requireCertSubject' is expected to be of type String, but is Null");
 
 EXPECT_EQ(session.runSql("select * from mysql.user where user='cert'").fetchOne(), null);
 
@@ -303,11 +303,11 @@ EXPECT_NE(user[2], "");
 EXPECT_EQ(user[3], 42);
 
 //@<> WL#15438 - passwordExpiration
-EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Cluster.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
-EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: -1, password:""});}, "Cluster.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
-EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: 0, password:""});}, "Cluster.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
-EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Cluster.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
-EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: {}, password:""});}, "Cluster.setupRouterAccount: Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
+EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: "bla", password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is 'bla'");
+EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: -1, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '-1'");
+EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: 0, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is '0'");
+EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: 1.45, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Float");
+EXPECT_THROWS(function(){c.setupRouterAccount("test1@%", {passwordExpiration: {}, password:""});}, "Argument #2: Option 'passwordExpiration' UInteger, 'NEVER' or 'DEFAULT' expected, but value is Map");
 EXPECT_EQ(session.runSql("select * from mysql.user where user='test1'").fetchOne(), null);
 
 function CHECK_LIFETIME(user, lifetime) {

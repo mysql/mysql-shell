@@ -380,7 +380,7 @@ cluster.removeInstance(__hostname_uri2, {force: false});
 //@<> Remove unreachable instance (interactive: false) - error
 // WL#11862 - FR4_4
 shell.options.useWizards=0;
-EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Cluster.removeInstance: Lost connection to MySQL server at "]);
+EXPECT_THROWS(function() { cluster.removeInstance(__hostname_uri3); }, ["Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "Lost connection to MySQL server at "]);
 shell.options.useWizards=1;
 
 EXPECT_STDOUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>'", "WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at "])

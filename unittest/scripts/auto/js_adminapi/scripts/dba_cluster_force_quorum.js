@@ -21,7 +21,7 @@ testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
 
 //@<> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
 // Regression for BUG#27508698: forceQuorumUsingPartitionOf() on cluster with quorum should be forbidden
-EXPECT_THROWS(function() {cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});}, `Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instance 'localhost:${__mysql_sandbox_port1}'`)
+EXPECT_THROWS(function() {cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});}, `The cluster has quorum according to instance 'localhost:${__mysql_sandbox_port1}'`)
 EXPECT_STDOUT_CONTAINS("ERROR: Cannot perform operation on an healthy cluster because it can only be used to restore a cluster from quorum loss.");
 
 //@<> Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}

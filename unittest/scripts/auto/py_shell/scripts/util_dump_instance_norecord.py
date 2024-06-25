@@ -338,7 +338,7 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
 def EXPECT_FAIL(error, msg, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
     is_re = is_re_instance(msg)
-    full_msg = "{0}: Util.dump_instance: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
+    full_msg = "{0}: {1}".format(re.escape(error) if is_re else error, msg.pattern if is_re else msg)
     if is_re:
         full_msg = re.compile("^" + full_msg)
     EXPECT_THROWS(lambda: util.dump_instance(outputUrl, options), full_msg)
@@ -637,7 +637,7 @@ testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_absolute,
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 #@<> dump once again to the same directory, should fail
-EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ValueError: Util.dump_instance: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
+EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ValueError: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
 
 # WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
 # * The `maxRate` option specified in WL#13804, FR5.1.
@@ -2746,7 +2746,7 @@ def dump_with_conflicts(options, throws = True):
     # do the dump
     shutil.rmtree(test_output_absolute, True)
     if throws:
-        EXPECT_THROWS(lambda: util.dump_instance(test_output_absolute, options), "ValueError: Util.dump_instance: Conflicting filtering options")
+        EXPECT_THROWS(lambda: util.dump_instance(test_output_absolute, options), "ValueError: Conflicting filtering options")
     else:
         # there could be some other exceptions, we ignore them
         try:

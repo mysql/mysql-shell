@@ -175,8 +175,8 @@ DESCRIPTION
       The data parameter accepts the following values: one, two, three.
 
 //@ Usage, function(string)
-||sampleModuleJS.stringFunction: Argument #1 is expected to be a string (TypeError)
-||sampleModuleJS.stringFunction: Argument #1 only accepts the following values: one, two, three. (ArgumentError)
+||Argument #1 is expected to be a string (TypeError)
+||Argument #1 only accepts the following values: one, two, three. (ArgumentError)
 |JavaScript Function Definition: one|
 
 //@ Register, function(dictionary)
@@ -227,10 +227,10 @@ DESCRIPTION
 
 
 //@ Usage, function(dictionary)
-||sampleModuleJS.dictFunction: Missing required options at Argument #1: myOption (ArgumentError)
-||sampleModuleJS.dictFunction: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption) (ArgumentError)
-||sampleModuleJS.dictFunction: Argument #1, option 'myOption' is expected to be a string (TypeError)
-||sampleModuleJS.dictFunction: Argument #1, option 'myOption' only accepts the following values: test, value. (ArgumentError)
+||Missing required options at Argument #1: myOption (ArgumentError)
+||Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption) (ArgumentError)
+||Argument #1, option 'myOption' is expected to be a string (TypeError)
+||Argument #1, option 'myOption' only accepts the following values: test, value. (ArgumentError)
 |No function data available|
 |Function data: test|
 
@@ -292,7 +292,7 @@ DESCRIPTION
       The session parameter must be a Session object.
 
 //@ Usage, function(Session)
-||sampleModuleJS.objectFunction1: Argument #1 is expected to be a 'Session' object (TypeError)
+||Argument #1 is expected to be a 'Session' object (TypeError)
 |Active Session: <Session:<<<__uri>>>>|
 
 //@ Register, function(Session and ClassicSession)
@@ -349,46 +349,46 @@ DESCRIPTION
 |Active Session: <Session:<<<__uri>>>>|
 
 //@ Registration errors, function definition
-||Shell.addExtensionObjectMember: Argument #1 is expected to be an object (TypeError)
-||Shell.addExtensionObjectMember: Argument #1 is expected to be an extension object (TypeError)
-||Shell.addExtensionObjectMember: Argument #2 is expected to be a string (TypeError)
-||Shell.addExtensionObjectMember: Invalid options at function definition: extra (ArgumentError)
-||Shell.addExtensionObjectMember: Option 'brief' is expected to be of type String, but is Integer (TypeError)
-||Shell.addExtensionObjectMember: Option 'details' is expected to be of type Array, but is Integer (TypeError)
-||Shell.addExtensionObjectMember: Option 'details' String expected, but value is Integer (TypeError)
-||Shell.addExtensionObjectMember: Option 'parameters' is expected to be of type Array, but is Integer (TypeError)
-||Shell.addExtensionObjectMember: Invalid definition at parameter #1 (ArgumentError)
+||Argument #1 is expected to be an object (TypeError)
+||Argument #1 is expected to be an extension object (TypeError)
+||Argument #2 is expected to be a string (TypeError)
+||Invalid options at function definition: extra (ArgumentError)
+||Option 'brief' is expected to be of type String, but is Integer (TypeError)
+||Option 'details' is expected to be of type Array, but is Integer (TypeError)
+||Option 'details' String expected, but value is Integer (TypeError)
+||Option 'parameters' is expected to be of type Array, but is Integer (TypeError)
+||Invalid definition at parameter #1 (ArgumentError)
 
 //@ Registration errors, parameters
-||Shell.addExtensionObjectMember: Missing required options at parameter #1: name (ArgumentError)
-||Shell.addExtensionObjectMember: Option 'type' is expected to be of type String, but is Integer (TypeError)
+||Missing required options at parameter #1: name (ArgumentError)
+||Option 'type' is expected to be of type String, but is Integer (TypeError)
 
 //@ Registration errors, integer parameters
-||Shell.addExtensionObjectMember: Invalid options at integer parameter 'sample': class, classes, options, values (ArgumentError)
+||Invalid options at integer parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, float parameters
-||Shell.addExtensionObjectMember: Invalid options at float parameter 'sample': class, classes, options, values (ArgumentError)
+||Invalid options at float parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, bool parameters
-||Shell.addExtensionObjectMember: Invalid options at bool parameter 'sample': class, classes, options, values (ArgumentError)
+||Invalid options at bool parameter 'sample': class, classes, options, values (ArgumentError)
 
 //@ Registration errors, string parameters
-||Shell.addExtensionObjectMember: Invalid options at string parameter 'sample': class, classes, options (ArgumentError)
-||Shell.addExtensionObjectMember: Option 'values' is expected to be of type Array, but is Integer (TypeError)
-||Shell.addExtensionObjectMember: Option 'values' String expected, but value is Integer (TypeError)
+||Invalid options at string parameter 'sample': class, classes, options (ArgumentError)
+||Option 'values' is expected to be of type Array, but is Integer (TypeError)
+||Option 'values' String expected, but value is Integer (TypeError)
 
 //@ Registration errors, object parameters
-||Shell.addExtensionObjectMember: Invalid options at object parameter 'sample': options, values (ArgumentError)
-||Shell.addExtensionObjectMember: Option 'class' is expected to be of type String, but is Integer (TypeError)
-||Shell.addExtensionObjectMember: Option 'classes' String expected, but value is Integer (TypeError)
+||Invalid options at object parameter 'sample': options, values (ArgumentError)
+||Option 'class' is expected to be of type String, but is Integer (TypeError)
+||Option 'classes' String expected, but value is Integer (TypeError)
 
 //@ Registration errors, dictionary parameters
-||Shell.addExtensionObjectMember: Invalid options at dictionary parameter 'sample': class, classes, values (ArgumentError)
-||Shell.addExtensionObjectMember: Invalid definition at parameter 'sample', option #1 (ArgumentError)
-||Shell.addExtensionObjectMember: Missing required options at parameter 'sample', option #1: name (ArgumentError)
+||Invalid options at dictionary parameter 'sample': class, classes, values (ArgumentError)
+||Invalid definition at parameter 'sample', option #1 (ArgumentError)
+||Missing required options at parameter 'sample', option #1: name (ArgumentError)
 
 //@ Registration errors, invalid identifiers
-||Shell.addExtensionObjectMember: The function name 'my function' is not a valid identifier. (ArgumentError)
-||Shell.addExtensionObjectMember: parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
-||Shell.addExtensionObjectMember: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
+||The function name 'my function' is not a valid identifier. (ArgumentError)
+||parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
+||parameter 'sample', option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
 

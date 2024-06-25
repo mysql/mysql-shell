@@ -58,10 +58,10 @@ c2 = dba.getCluster();
 EXPECT_DRYRUN(function(){cs.forcePrimaryCluster("cluster2", {dryRun:1});}, __mysql_sandbox_port4);
 
 //@<> bad args
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("1234");}, "ClusterSet.forcePrimaryCluster: The cluster with the name '1234' does not exist.");
-EXPECT_THROWS(function(){cs.forcePrimaryCluster();}, "ClusterSet.forcePrimaryCluster: Invalid number of arguments, expected 1 to 2 but got 0");
-EXPECT_THROWS(function(){cs.forcePrimaryCluster(1234);}, "ClusterSet.forcePrimaryCluster: Argument #1 is expected to be a string");
-EXPECT_THROWS(function(){cs.forcePrimaryCluster(null);}, "ClusterSet.forcePrimaryCluster: Argument #1 is expected to be a string");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("1234");}, "The cluster with the name '1234' does not exist.");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster();}, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster(1234);}, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster(null);}, "Argument #1 is expected to be a string");
 
 //@<> check failover positive case
 cs.forcePrimaryCluster("cluster2");
@@ -117,8 +117,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 
 cs = dba.getClusterSet();
 
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2");}, "ClusterSet.forcePrimaryCluster: Target cluster 'cluster2' is the current PRIMARY");
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2", {dryRun:1});}, "ClusterSet.forcePrimaryCluster: Target cluster 'cluster2' is the current PRIMARY");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2");}, "Target cluster 'cluster2' is the current PRIMARY");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2", {dryRun:1});}, "Target cluster 'cluster2' is the current PRIMARY");
 
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1");}, "Cluster 'cluster1' has no quorum");
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1", {dryRun:1});}, "Cluster 'cluster1' has no quorum");
@@ -128,7 +128,7 @@ EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster3", {dryRun:1});}, "One 
 
 //@<> failover while a replica (or target replica) (cluster1) is no_quorum + invalidate
 
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2", {invalidateReplicaClusters:["cluster1"]});}, "ClusterSet.forcePrimaryCluster: Target cluster 'cluster2' is the current PRIMARY");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster2", {invalidateReplicaClusters:["cluster1"]});}, "Target cluster 'cluster2' is the current PRIMARY");
 
 EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1", {invalidateReplicaClusters:["cluster1"]});}, "Cluster 'cluster1' has no quorum");
 
@@ -163,9 +163,9 @@ cs = dba.getClusterSet();
 
 cs.status();
 
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1");}, "ClusterSet.forcePrimaryCluster: Cluster 'cluster1' is invalidated");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1");}, "Cluster 'cluster1' is invalidated");
 
-EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1", {dryRun:1});}, "ClusterSet.forcePrimaryCluster: Cluster 'cluster1' is invalidated");
+EXPECT_THROWS(function(){cs.forcePrimaryCluster("cluster1", {dryRun:1});}, "Cluster 'cluster1' is invalidated");
 
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);

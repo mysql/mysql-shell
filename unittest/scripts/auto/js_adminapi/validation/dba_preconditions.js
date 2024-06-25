@@ -40,4 +40,4 @@
 ||This function is not available through a session to a standalone instance (metadata exists, instance belongs to that metadata, but GR is not active)
 
 //@ Dba_preconditions_standalone_in_metadata, create_cluster_fails
-||dba.createCluster: Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has a populated Metadata schema and belongs to that Metadata. Use either dba.dropMetadataSchema() to drop the schema, or dba.rebootClusterFromCompleteOutage() to reboot the cluster from complete outage.
+||Unable to create cluster. The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has a populated Metadata schema and belongs to that Metadata. Use either dba.dropMetadataSchema() to drop the schema, or dba.rebootClusterFromCompleteOutage() to reboot the cluster from complete outage.

@@ -63,7 +63,7 @@ testutil.rmdir(output_url, true);
 //@<> CLI dump-instance - WL14297 - TSFR_6_1_1 - 4
 var rc = callMysqlsh(["--", "util", "dump-instance", `${output_url}`, '--compatibility', '["\\\"force_innodb\\\"","\\\"strip_definers\\\""]']);
 EXPECT_EQ(1, rc);
-EXPECT_OUTPUT_CONTAINS('ERROR: Argument options: Unknown compatibility option: "force_innodb"');
+EXPECT_OUTPUT_CONTAINS('ERROR: ArgumentError: Argument #2: Unknown compatibility option: "force_innodb"');
 
 //@<> CLI dump-instance - WL14297 - TSFR_6_1_1 - 5
 WIPE_SHELL_LOG()
@@ -90,7 +90,7 @@ EXPECT_EQ(1, rc);
 
 // This error is the same produced if calling util.dumpInstance(<path>, {excludeTables:["\"schema_a.table_a\"", "schema_b.table_b"]})
 // Which indicates the data is passed as expected to the API call
-EXPECT_OUTPUT_CONTAINS("ERROR: Argument options: Failed to parse table to be excluded '\\\"schema_a.table_a\\\"': Invalid character in identifier")
+EXPECT_OUTPUT_CONTAINS("ERROR: ArgumentError: Argument #2: Failed to parse table to be excluded '\\\"schema_a.table_a\\\"': Invalid character in identifier")
 
 //@<> CLI dump-instance - WL14297 - TSFR_8_1_1
 var rc = callMysqlsh(["--", "util", "dump-instance", `${output_url}`, "--exclude--Tables", "table_a", "table_b", "table_c"]);

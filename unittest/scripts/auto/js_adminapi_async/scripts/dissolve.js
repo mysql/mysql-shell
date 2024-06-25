@@ -194,7 +194,7 @@ EXPECT_THROWS(function() {
     testutil.expectPrompt("Are you sure you want to dissolve the ReplicaSet?", "y");
     testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:", "n");
     rset.dissolve();
-}, `ReplicaSet.dissolve: The instance '${hostname}:${__mysql_sandbox_port3}' is 'UNREACHABLE'`);
+}, `The instance '${hostname}:${__mysql_sandbox_port3}' is 'UNREACHABLE'`);
 
 EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port3}' cannot be removed because it is on a 'UNREACHABLE' state. Please bring the instance back ONLINE and try to dissolve the ReplicaSet again. If the instance is permanently not reachable, then you can choose to proceed with the operation and only remove the instance from the ReplicaSet Metadata.`);
 
@@ -260,7 +260,7 @@ shell.options.useWizards=0;
 
 EXPECT_THROWS(function() {
     rset.dissolve();
-}, `ReplicaSet.dissolve: The instance '${hostname}:${__mysql_sandbox_port2}' is 'OFFLINE'`);
+}, `The instance '${hostname}:${__mysql_sandbox_port2}' is 'OFFLINE'`);
 EXPECT_OUTPUT_CONTAINS(`ERROR: The instance '${hostname}:${__mysql_sandbox_port2}' cannot be removed because it is on a 'OFFLINE' state. Please bring the instance back ONLINE and try to dissolve the ReplicaSet again. If the instance is permanently not reachable, then please use <ReplicaSet>.dissolve() with the force option set to true to proceed with the operation and only remove the instance from the ReplicaSet Metadata.`);
 
 shell.options.useWizards=1;
@@ -279,7 +279,7 @@ try {
     dba.createReplicaSet('rset', {gtidSetIsComplete: true});
 } catch (err) {
     msg = err.message.replaceAll('<','').replaceAll('>','');
-    EXPECT_EQ(`Dba.createReplicaSet: Unable to create replicaset. The instance '${hostname}:${__mysql_sandbox_port2}' already belongs to a replicaset. Use dba.getReplicaSet() to access it or dba.dropMetadataSchema() to drop the metadata if the replicaset was dissolved.`, msg);
+    EXPECT_EQ(`Unable to create replicaset. The instance '${hostname}:${__mysql_sandbox_port2}' already belongs to a replicaset. Use dba.getReplicaSet() to access it or dba.dropMetadataSchema() to drop the metadata if the replicaset was dissolved.`, msg);
 }
 
 shell.connect(__sandbox_uri2);

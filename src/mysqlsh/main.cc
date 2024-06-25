@@ -853,7 +853,7 @@ int main(int argc, char **argv) {
           mysqlsh::current_console()->print_error(e.what());
           ret_val = 10;
         } catch (const shcore::Error &e) {
-          mysqlsh::current_console()->print_error(e.what());
+          mysqlsh::current_console()->print_error(e.format());
           ret_val = 1;
         } catch (const std::exception &e) {
           mysqlsh::current_console()->print_error(e.what());

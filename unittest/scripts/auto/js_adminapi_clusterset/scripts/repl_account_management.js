@@ -190,7 +190,7 @@ reset_instance(session2);
 reset_instance(session3);
 reset_instance(session4);
 
-// workaround ClusterSet.createReplicaCluster: asynchronous_connection_failover_delete_managed UDF failed; Error no matching row was found to be deleted. (MySQL Error 3200)
+// workaround asynchronous_connection_failover_delete_managed UDF failed; Error no matching row was found to be deleted. (MySQL Error 3200)
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host:hostname_ip, server_id:"2222"});
 session2 = mysql.getSession(__sandbox_uri2);

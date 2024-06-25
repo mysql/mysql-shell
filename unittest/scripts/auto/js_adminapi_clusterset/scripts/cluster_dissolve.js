@@ -12,10 +12,10 @@ cs = c.createClusterSet("cs");
 r = cs.createReplicaCluster(__sandbox_uri2, "replica");
 
 //@<> dissolve on PC in a clusterset should fail
-EXPECT_THROWS(function () { c.dissolve() }, "Cluster.dissolve: Cluster 'cluster' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
+EXPECT_THROWS(function () { c.dissolve() }, "Cluster 'cluster' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
 
 //@<> dissolve on RC in a clusterset should fail
-EXPECT_THROWS(function () { r.dissolve() }, "Cluster.dissolve: Cluster 'replica' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
+EXPECT_THROWS(function () { r.dissolve() }, "Cluster 'replica' cannot be dissolved because it is part of a ClusterSet with other Clusters.");
 
 //@<> dissolve on last cluster in a clusterset should work
 cs.removeCluster("replica");
