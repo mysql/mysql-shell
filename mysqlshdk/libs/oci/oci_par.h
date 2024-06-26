@@ -32,7 +32,6 @@
 
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/utils/masked_value.h"
-#include "mysqlshdk/libs/utils/utils_file.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -127,17 +126,7 @@ class IPAR_config : public storage::Config {
   IPAR_config &operator=(const IPAR_config &) = delete;
   IPAR_config &operator=(IPAR_config &&) = default;
 
-  ~IPAR_config() override {
-    if (!m_temp_folder.empty()) {
-      shcore::remove_directory(m_temp_folder);
-    }
-  }
-
   const PAR_structure &par() const { return m_par; }
-
-  const std::string &temp_folder() const { return m_temp_folder; }
-
-  void set_temp_folder(const std::string &path) { m_temp_folder = path; }
 
  protected:
   PAR_structure m_par;
@@ -146,8 +135,6 @@ class IPAR_config : public storage::Config {
   std::string describe_self() const override;
 
   std::string describe_url(const std::string &url) const override;
-
-  std::string m_temp_folder;
 };
 
 template <PAR_type Type>
@@ -160,9 +147,6 @@ class PAR_config : public IPAR_config {
   explicit PAR_config(const PAR_structure &par) {
     if (Type == par.type()) {
       m_par = par;
-      if (Type == PAR_type::PREFIX) {
-        set_temp_folder(shcore::create_temporary_folder());
-      }
     }
   }
 

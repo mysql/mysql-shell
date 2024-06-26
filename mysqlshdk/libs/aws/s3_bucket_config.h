@@ -85,6 +85,13 @@ class S3_bucket_config
   const std::string &service() const override { return m_service; }
 
  private:
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Object_storage_test, file_write_multipart_upload);
+  FRIEND_TEST(Object_storage_test, file_append_resume_interrupted_upload);
+  FRIEND_TEST(Object_storage_test, file_write_multipart_errors);
+  FRIEND_TEST(Object_storage_test, file_auto_cancel_multipart_upload);
+#endif
+
   std::string describe_self() const override;
 
   void load_profile(std::optional<Aws_config_file::Profile> *target);

@@ -32,7 +32,8 @@ using mysqlshdk::rest::Response_error;
 using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::object_storage::Directory;
 
-namespace testing {
+namespace mysqlshdk {
+namespace oci {
 
 TEST_F(Oci_os_tests, directory_list_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
@@ -522,4 +523,5 @@ TEST_F(Oci_os_tests, file_auto_cancel_multipart_upload) {
   EXPECT_TRUE(bucket.list_multipart_uploads().empty());
 }
 
-}  // namespace testing
+}  // namespace oci
+}  // namespace mysqlshdk

@@ -39,7 +39,7 @@ namespace mysqlshdk {
 namespace oci {
 namespace {
 
-class Oci_data_plane_client_tests : public testing::Oci_tests {
+class Oci_data_plane_client_tests : public Oci_tests {
  protected:
   void SetUp() override {
     Oci_tests::SetUp();

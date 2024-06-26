@@ -43,6 +43,7 @@ set(library_SRC
   backend/directory.cc
   backend/file.cc
   backend/http.cc
+  backend/multipart_upload.cc
   backend/object_storage.cc
   backend/object_storage_bucket.cc
   backend/object_storage_config.cc

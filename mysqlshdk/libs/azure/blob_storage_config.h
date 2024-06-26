@@ -69,8 +69,6 @@ class Blob_storage_config
 
   std::string describe_url(const std::string &url) const override;
 
-  static constexpr std::size_t DEFAULT_BLOB_BLOCK_SIZE = 128 * 1024 * 1024;
-
   // Signature Caching in Azure is based not only in PATH and METHOD but also
   // in the HEADERS, so it is less likely to be a time saver considering
   // encoding of the headers is needed anyway to get the cache key
@@ -85,6 +83,13 @@ class Blob_storage_config
  private:
   friend class Signer;
   friend class Blob_container;
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Azure_blob_storage_tests, file_write_multipart_upload);
+  FRIEND_TEST(Azure_blob_storage_tests, file_append_resume_interrupted_upload);
+  FRIEND_TEST(Azure_blob_storage_tests, file_write_multipart_errors);
+  FRIEND_TEST(Azure_blob_storage_tests, file_auto_cancel_multipart_upload);
+#endif
 
   std::string describe_self() const override;
 

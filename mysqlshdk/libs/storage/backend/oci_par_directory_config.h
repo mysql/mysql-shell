@@ -30,6 +30,7 @@
 #include <string>
 
 #include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/storage/backend/object_storage_config.h"
 #include "mysqlshdk/libs/storage/config.h"
 
 namespace mysqlshdk {
@@ -38,11 +39,19 @@ namespace backend {
 namespace oci {
 
 class Oci_par_directory_config
-    : public mysqlshdk::oci::PAR_config<mysqlshdk::oci::PAR_type::PREFIX> {
+    : public mysqlshdk::oci::PAR_config<mysqlshdk::oci::PAR_type::PREFIX>,
+      public storage::backend::object_storage::mixin::Part_size {
  public:
   using PAR_config::PAR_config;
 
+  Masked_string anonymized_full_url() const;
+
  private:
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Oci_par_directory_tests, file_write_multipart_upload);
+  FRIEND_TEST(Oci_par_directory_tests, file_auto_cancel_multipart_upload);
+#endif
+
   std::unique_ptr<mysqlshdk::storage::IFile> file(
       const std::string &path) const override;
 

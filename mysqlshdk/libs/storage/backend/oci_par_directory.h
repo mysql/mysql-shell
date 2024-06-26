@@ -26,14 +26,16 @@
 #ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
 
-#include <cstdio>
+#include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "mysqlshdk/libs/oci/oci_par.h"
 
 #include "mysqlshdk/libs/storage/backend/http.h"
+#include "mysqlshdk/libs/storage/backend/multipart_upload.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 
 namespace mysqlshdk {
@@ -43,35 +45,27 @@ namespace oci {
 
 class Oci_par_file : public Http_object {
  public:
-  using Http_object::Http_object;
+  Oci_par_file(const Oci_par_directory_config_ptr &config,
+               const Masked_string &base, const std::string &path);
 
   Oci_par_file &operator=(const Oci_par_file &other) = delete;
   Oci_par_file &operator=(Oci_par_file &&other) = default;
 
-  ~Oci_par_file() override { do_close(); }
+  ~Oci_par_file() override;
 
   int error() const override { return 0; }
 
   off64_t tell() const override { return m_offset; }
 
-  size_t file_size() const override;
-
-  void open(Mode m) override;
-
-  void close() override;
-
-  ssize_t read(void *buffer, size_t length) override;
-
   ssize_t write(const void *, size_t) override;
 
  private:
-  void do_close();
+  class Multipart_upload_helper;
 
-  void set_write_data(Http_request *request) override;
+  void flush_on_close() override;
 
-  std::string m_file_path;
-
-  std::FILE *m_file = nullptr;
+  std::unique_ptr<Multipart_upload_helper> m_helper;
+  Multipart_uploader m_uploader;
 };
 
 class Oci_par_directory : public Http_directory {

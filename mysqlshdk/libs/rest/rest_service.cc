@@ -38,7 +38,6 @@
 #include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
-#include "mysqlshdk/libs/storage/ifile.h"
 
 #include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/rest/signed/credentials_error.h"
@@ -59,13 +58,9 @@ static constexpr auto k_application_json = "application/json";
 
 std::string get_user_agent() { return "mysqlsh/" MYSH_VERSION; }
 
-size_t request_callback(char *ptr, size_t size, size_t nitems, void *userdata) {
+size_t request_callback(char *, size_t, size_t, void *) {
   // some older versions of CURL may call this callback when performing
   // POST-like request with Content-Length set to 0
-  if (userdata) {
-    auto file = static_cast<mysqlshdk::storage::IFile *>(userdata);
-    return file->read(ptr, size * nitems);
-  }
   return 0;
 }
 
@@ -300,10 +295,7 @@ class Rest_service::Impl {
     set_url(request->full_path().real());
     // body needs to be set before the type, because it implicitly sets type
     // to POST
-    if (request->file == nullptr) {
-      set_body(request->body, request->size, synch);
-    }
-
+    set_body(request->body, request->size, synch);
     set_type(request);
 
     const auto headers_deleter =
@@ -406,16 +398,8 @@ class Rest_service::Impl {
         break;
 
       case Type::PUT:
-        if (request->file) {
-          curl_easy_setopt(m_handle.get(), CURLOPT_UPLOAD, 1L);
-          auto size = request->file->file_size();
-          curl_easy_setopt(m_handle.get(), CURLOPT_INFILESIZE_LARGE,
-                           (curl_off_t)size);
-          curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, request->file);
-        } else {
-          curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
-          curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "PUT");
-        }
+        curl_easy_setopt(m_handle.get(), CURLOPT_NOBODY, 0L);
+        curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, "PUT");
         break;
 
       case Type::PATCH:

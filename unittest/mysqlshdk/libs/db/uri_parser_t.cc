@@ -474,6 +474,11 @@ TEST(Uri_parser, parse_user_info) {
   validate_bad_uri("ssh://user%2Aname:p@ssword@mysql.com",
                    "Illegal character [@] found at position 26", Type::Ssh);
   validate_bad_uri("ssh://:password@mysql.com", "Missing user name", Type::Ssh);
+
+  // BUG#36105235 - an unescaped '@' character in the target path
+  validate_uri("mysqlx://mysql.com/@.manifest.json", "mysqlx", NO_USER,
+               NO_PASSWORD, "mysql.com", NO_PORT, NO_SOCK, "@.manifest.json",
+               HAS_NO_PASSWORD, HAS_NO_PORT, Transport_type::Tcp, false);
 }
 
 TEST(Uri_parser, parse_host_name) {

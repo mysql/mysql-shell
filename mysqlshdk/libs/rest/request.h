@@ -37,8 +37,6 @@
 
 #include "mysqlshdk/libs/rest/headers.h"
 
-#include "mysqlshdk/libs/storage/ifile.h"
-
 namespace mysqlshdk {
 namespace rest {
 
@@ -128,11 +126,6 @@ struct Request {
    * Retry strategy to use.
    */
   IRetry_strategy *retry_strategy = nullptr;
-
-  /**
-   * Causes a PUT request to load the data from this file
-   */
-  mysqlshdk::storage::IFile *file = nullptr;
 
  protected:
   Masked_string m_path;

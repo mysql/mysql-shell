@@ -26,6 +26,9 @@
 #include "mysqlshdk/libs/storage/backend/http.h"
 
 #include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/rest/error_codes.h"
@@ -207,22 +210,33 @@ std::unique_ptr<IDirectory> Http_object::parent() const {
   return make_directory(m_base.real(), m_parent_config);
 }
 
-void Http_object::set_write_data(Http_request *request) {
-  request->body = m_buffer.data();
-  request->size = m_buffer.size();
+void Http_object::flush_on_close() { put(m_buffer.c_str(), m_buffer.length()); }
+
+Rest_service *Http_object::rest_service() const {
+  return get_rest_service(m_base);
+}
+
+Http_request Http_object::http_request(Masked_string path,
+                                       rest::Headers headers) const {
+  return Http_request(std::move(path), m_use_retry, std::move(headers));
+}
+
+void Http_object::put(const char *data, std::size_t length) {
+  auto request =
+      http_request(m_path, {{"content-type", "application/octet-stream"}});
+
+  request.body = data;
+  request.size = length;
+
+  throw_if_error(rest_service()->put(&request).get_error(),
+                 "Failed to put object");
 }
 
 void Http_object::close() {
   assert(is_open());
 
   if (Mode::WRITE == *m_open_mode) {
-    auto request = Http_request(m_path, m_use_retry,
-                                {{"content-type", "application/octet-stream"}});
-
-    set_write_data(&request);
-
-    throw_if_error(get_rest_service(m_base)->put(&request).get_error(),
-                   "Failed to put object");
+    flush_on_close();
     m_buffer.clear();
   }
 
@@ -261,12 +275,11 @@ ssize_t Http_object::read(void *buffer, size_t length) {
   const size_t last_unbounded = m_offset + length - 1;
   // http range request is both sides inclusive
   const size_t last = std::min(file_size() - 1, last_unbounded);
-  const std::string range =
-      "bytes=" + std::to_string(first) + "-" + std::to_string(last);
-  Headers h{{"range", range}};
 
-  auto request = Http_request(m_path, m_use_retry, std::move(h));
-  auto response = get_rest_service(m_base)->get(&request);
+  auto request =
+      http_request(m_path, {{"range", "bytes=" + std::to_string(first) + "-" +
+                                          std::to_string(last)}});
+  auto response = rest_service()->get(&request);
 
   if (Response::Status_code::PARTIAL_CONTENT == response.status) {
     const auto &content = response.buffer;
@@ -289,23 +302,22 @@ ssize_t Http_object::read(void *buffer, size_t length) {
 ssize_t Http_object::write(const void *buffer, size_t length) {
   assert(is_open() && Mode::WRITE == *m_open_mode);
 
-  const auto incoming = reinterpret_cast<char *>(const_cast<void *>(buffer));
-  m_buffer.append(incoming, length);
+  m_buffer.append(reinterpret_cast<const char *>(buffer), length);
   m_file_size += length;
 
   return length;
 }
 
 void Http_object::remove() {
-  auto request = Http_request(m_path, m_use_retry,
-                              {{"content-type", "application/octet-stream"}});
+  auto request =
+      http_request(m_path, {{"content-type", "application/octet-stream"}});
 
   // truncate the file
   char body = 0;
   request.body = &body;
   request.size = 0;
 
-  throw_if_error(get_rest_service(m_base)->put(&request).get_error(),
+  throw_if_error(rest_service()->put(&request).get_error(),
                  "Failed to truncate object");
 
   m_exists = false;
@@ -323,8 +335,8 @@ void Http_object::throw_if_error(
 
 std::optional<rest::Response_error> Http_object::fetch_file_size() const {
   if (!m_exists) {
-    auto request = Http_request(m_path, m_use_retry);
-    auto response = get_rest_service(m_base)->head(&request);
+    auto request = http_request(m_path);
+    auto response = rest_service()->head(&request);
     auto error = response.get_error();
 
     if (error.has_value()) {

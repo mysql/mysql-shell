@@ -808,7 +808,10 @@ void Uri_parser::preprocess(const std::string &input) {
   // It is safe to look for the first @ symbol since before the
   // userinfo@targetinfo the @ should come pct-encoded. i.e. in a password
   position = input.find("@", first_char);
-  if (position != std::string::npos) {
+
+  // BUG#36105235 - make sure that '@' was not found in the path part of query
+  // NOTE: if '/' is not found, second condition is also true
+  if (position != std::string::npos && position < input.find("/", first_char)) {
     if (position > first_char) {
       _chunks[URI_USER_INFO] = {first_char, position - 1};
       first_char = position + 1;
@@ -835,9 +838,9 @@ void Uri_parser::preprocess(const std::string &input) {
   // definition
 
   int path_offset = 0;
-  if (m_type == Type::Generic)
+  if (m_type == Type::Generic) {
     position = input.find("/", first_char);
-  else {
+  } else {
     position = input.rfind("/", last_char);
     path_offset = 1;
   }

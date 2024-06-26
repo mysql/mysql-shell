@@ -41,79 +41,6 @@ namespace object_storage {
 class Container;
 class Object_storage_options;
 
-class Config : public storage::Config, public rest::Signed_rest_service_config {
- public:
-  Config() = delete;
-
-  Config(const Config &) = delete;
-  Config(Config &&) = default;
-
-  Config &operator=(const Config &) = delete;
-  Config &operator=(Config &&) = default;
-
-  ~Config() override = default;
-
-  bool valid() const override { return true; }
-
-  const std::string &container_name() const { return m_container_name; }
-
-  std::size_t part_size() const { return m_part_size; }
-  void set_part_size(std::size_t size) { m_part_size = size; }
-
-  virtual const std::string &hash() const = 0;
-
-  virtual std::unique_ptr<Container> container() const = 0;
-
-  const std::string &service_endpoint() const override { return m_endpoint; }
-
-  const std::string &service_label() const override { return m_label; }
-
- protected:
-  explicit Config(const Object_storage_options &options, std::size_t part_size);
-
-  std::string m_container_name;
-  std::size_t m_part_size;
-
-  std::string m_label;
-  std::string m_endpoint;
-
- private:
-  std::string describe_url(const std::string &url) const override;
-
-  std::unique_ptr<storage::IFile> file(const std::string &path) const override;
-
-  std::unique_ptr<storage::IDirectory> directory(
-      const std::string &path) const override;
-
-  void fail_if_uri(const std::string &path) const;
-
-  std::string m_container_name_option;
-};
-
-using Config_ptr = std::shared_ptr<const Config>;
-
-class Bucket_config : public Config {
- public:
-  // 128 MB
-  static constexpr std::size_t DEFAULT_MULTIPART_PART_SIZE = 128 * 1024 * 1024;
-
-  const std::string &bucket_name() const { return container_name(); }
-
- protected:
-  Bucket_config() = delete;
-
-  Bucket_config(const Bucket_config &) = delete;
-  Bucket_config(Bucket_config &&) = default;
-
-  Bucket_config &operator=(const Bucket_config &) = delete;
-  Bucket_config &operator=(Bucket_config &&) = default;
-
-  ~Bucket_config() override = default;
-
- protected:
-  explicit Bucket_config(const Object_storage_options &options);
-};
-
 namespace mixin {
 // Various mixins, note that destuctors are not virtual.
 
@@ -195,7 +122,97 @@ class Host {
   std::string m_host;
 };
 
+class Part_size {
+ public:
+  Part_size(const Part_size &) = default;
+  Part_size(Part_size &&) = default;
+
+  Part_size &operator=(const Part_size &) = default;
+  Part_size &operator=(Part_size &&) = default;
+
+  ~Part_size() = default;
+
+  inline std::size_t part_size() const noexcept { return m_part_size; }
+
+ protected:
+  Part_size() = default;
+
+  void set_part_size(std::size_t size) { m_part_size = size; }
+
+ private:
+  // default size of a part when using multipart upload: 128 MB
+  std::size_t m_part_size = 128 * 1024 * 1024;
+};
+
 }  // namespace mixin
+
+class Config : public storage::Config,
+               public rest::Signed_rest_service_config,
+               public mixin::Part_size {
+ public:
+  Config() = delete;
+
+  Config(const Config &) = delete;
+  Config(Config &&) = default;
+
+  Config &operator=(const Config &) = delete;
+  Config &operator=(Config &&) = default;
+
+  ~Config() override = default;
+
+  bool valid() const override { return true; }
+
+  const std::string &container_name() const { return m_container_name; }
+
+  virtual const std::string &hash() const = 0;
+
+  virtual std::unique_ptr<Container> container() const = 0;
+
+  const std::string &service_endpoint() const override { return m_endpoint; }
+
+  const std::string &service_label() const override { return m_label; }
+
+ protected:
+  explicit Config(const Object_storage_options &options);
+
+  std::string m_container_name;
+
+  std::string m_label;
+  std::string m_endpoint;
+
+ private:
+  std::string describe_url(const std::string &url) const override;
+
+  std::unique_ptr<storage::IFile> file(const std::string &path) const override;
+
+  std::unique_ptr<storage::IDirectory> directory(
+      const std::string &path) const override;
+
+  void fail_if_uri(const std::string &path) const;
+
+  std::string m_container_name_option;
+};
+
+using Config_ptr = std::shared_ptr<const Config>;
+
+class Bucket_config : public Config {
+ public:
+  const std::string &bucket_name() const { return container_name(); }
+
+ protected:
+  Bucket_config() = delete;
+
+  Bucket_config(const Bucket_config &) = delete;
+  Bucket_config(Bucket_config &&) = default;
+
+  Bucket_config &operator=(const Bucket_config &) = delete;
+  Bucket_config &operator=(Bucket_config &&) = default;
+
+  ~Bucket_config() override = default;
+
+ protected:
+  explicit Bucket_config(const Object_storage_options &options);
+};
 
 }  // namespace object_storage
 }  // namespace backend

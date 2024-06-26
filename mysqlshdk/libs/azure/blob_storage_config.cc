@@ -67,7 +67,7 @@ constexpr const char k_config_sas_token[] = "sas_token";
 
 Blob_storage_config::Blob_storage_config(const Blob_storage_options &options,
                                          bool enable_env_vars)
-    : Config(options, DEFAULT_BLOB_BLOCK_SIZE),
+    : Config(options),
       Config_file(options),
       m_account_name(options.m_storage_account),
       m_sas_token(options.m_storage_sas_token),

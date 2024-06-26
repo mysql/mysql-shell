@@ -313,6 +313,24 @@ wipeout_server(session2)
 
 EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "load_dump() with `ociAuth` = 'security_token'")
 
+#@<> BUG#34891382 - Dump fails if an empty table is dumped when compression is set to none.
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+dump_dir = "bug_34891382"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> BUG#34891382 - test
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, {"compression": "none", "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file}), "dump an empty table with no compression")
+
+#@<> BUG#34891382 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)

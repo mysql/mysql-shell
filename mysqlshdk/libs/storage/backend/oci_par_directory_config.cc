@@ -27,8 +27,8 @@
 
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
-#include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 
 namespace mysqlshdk {
@@ -36,19 +36,20 @@ namespace storage {
 namespace backend {
 namespace oci {
 
+Masked_string Oci_par_directory_config::anonymized_full_url() const {
+  return ::mysqlshdk::oci::anonymize_par(par().full_url());
+}
+
 std::unique_ptr<IFile> Oci_par_directory_config::file(
     const std::string &name) const {
-  const auto full = ::mysqlshdk::oci::anonymize_par(par().full_url());
+  const auto full = anonymized_full_url();
   auto real = full.real();
   auto masked = full.masked();
 
   Masked_string copy = {std::move(real), std::move(masked)};
 
-  auto file =
-      std::make_unique<Oci_par_file>(copy, db::uri::pctencode_path(name), true);
-  file->set_parent_config(shared_from_this());
-
-  return file;
+  return std::make_unique<Oci_par_file>(shared_ptr<Oci_par_directory_config>(),
+                                        copy, name);
 }
 
 std::unique_ptr<IDirectory> Oci_par_directory_config::directory(

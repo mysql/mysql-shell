@@ -25,7 +25,11 @@
 
 #include "mysqlshdk/libs/storage/backend/object_storage.h"
 
+#include <algorithm>
 #include <iterator>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/rest/error_codes.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -165,14 +169,8 @@ Object::Object(const Config_ptr &config, const std::string &name,
     : m_name(name),
       m_prefix(prefix),
       m_container(config->container()),
-      m_max_part_size(config->part_size()),
       m_writer{},
       m_reader{} {}
-
-void Object::set_max_part_size(size_t new_size) {
-  assert(!is_open());
-  m_max_part_size = new_size;
-}
 
 void Object::open(storage::Mode mode) {
   switch (mode) {
@@ -320,167 +318,96 @@ void Object::rename(const std::string &new_name) {
 
 void Object::remove() { m_container->delete_object(full_path().real()); }
 
-Object::Writer::Writer(Object *owner, Multipart_object *object)
-    : File_handler(owner), m_is_multipart(false) {
-  // This is the writer for an already started multipart object
-  if (object) {
-    m_multipart = *object;
-    m_is_multipart = true;
+class Object::Writer::Multipart_upload_helper
+    : public IMultipart_upload_helper {
+ public:
+  Multipart_upload_helper(std::string full_path, Container *container,
+                          Multipart_object *object)
+      : m_full_path(std::move(full_path)), m_container(container) {
+    if (object) {
+      m_multipart = *object;
 
-    try {
-      m_parts =
-          m_object->m_container->list_multipart_uploaded_parts(m_multipart);
-    } catch (const rest::Response_error &error) {
-      throw rest::to_exception(error);
-    }
-
-    for (const auto &part : m_parts) {
-      m_size += part.size;
+      try {
+        m_parts = m_container->list_multipart_uploaded_parts(m_multipart);
+      } catch (const rest::Response_error &error) {
+        throw rest::to_exception(error);
+      }
     }
   }
+
+  void upload(const char *body, std::size_t size) override {
+    m_container->put_object(m_full_path, body, size);
+  }
+
+  void create() override {
+    m_multipart = m_container->create_multipart_upload(m_full_path);
+  }
+
+  bool is_active() const override { return !m_multipart.name.empty(); }
+
+  void upload_part(const char *body, std::size_t size) override {
+    m_parts.push_back(
+        m_container->upload_part(m_multipart, m_parts.size() + 1, body, size));
+  }
+
+  void commit() override {
+    m_container->commit_multipart_upload(m_multipart, m_parts);
+  }
+
+  void abort() override { m_container->abort_multipart_upload(m_multipart); }
+
+  const std::string &name() const override { return m_full_path; }
+
+  const std::string &upload_id() const override {
+    return m_multipart.upload_id;
+  }
+
+  std::size_t parts_size() const {
+    std::size_t size = 0;
+
+    for (const auto &part : m_parts) {
+      size += part.size;
+    }
+
+    return size;
+  }
+
+ private:
+  void cleanup() override {
+    m_multipart.name.clear();
+    m_multipart.upload_id.clear();
+    m_parts.clear();
+  }
+
+  std::string m_full_path;
+  Container *m_container;
+
+  Multipart_object m_multipart;
+  std::vector<Multipart_object_part> m_parts;
+};
+
+Object::Writer::Writer(Object *owner, Multipart_object *object)
+    : File_handler(owner),
+      m_helper(std::make_unique<Multipart_upload_helper>(
+          owner->full_path().real(), owner->m_container.get(), object)),
+      m_uploader(m_helper.get(), owner->m_container->config()->part_size()) {
+  m_size = m_helper->parts_size();
 }
 
-Object::Writer::~Writer() {
-  // if there's a pending multipart upload (in other words multipart upload was
-  // started, but close() was not called before writer has been destroyed),
-  // attempt to cancel it
-  abort_multipart_upload("unexpected inner state");
-}
+Object::Writer::~Writer() = default;
 
 off64_t Object::Writer::seek(off64_t /*offset*/) { return 0; }
 
 off64_t Object::Writer::tell() const { return size(); }
 
 ssize_t Object::Writer::write(const void *buffer, size_t length) {
-  const size_t MY_MAX_PART_SIZE = m_object->m_max_part_size;
-  size_t to_send = m_buffer.size() + length;
-
-  // Initializes the multipart as soon as FILE_PART_SIZE data is provided
-  if (!m_is_multipart && to_send > MY_MAX_PART_SIZE) {
-    try {
-      m_multipart = m_object->m_container->create_multipart_upload(
-          m_object->full_path().real());
-    } catch (const rest::Response_error &error) {
-      throw rest::to_exception(error);
-    }
-
-    m_is_multipart = true;
-  }
-
-  size_t incoming_offset = 0;
-  auto incoming = reinterpret_cast<char *>(const_cast<void *>(buffer));
-
-  // This loops handles the upload of N number of chunks of size
-  // MY_MAX_PART_SIZE including the buffered data and the incoming data
-  while (to_send > MY_MAX_PART_SIZE) {
-    const char *part = nullptr;
-
-    if (!m_buffer.empty()) {
-      // BUFFERED DATA: fills the buffer and sends it
-      const auto buffer_space = MY_MAX_PART_SIZE - m_buffer.size();
-      m_buffer.append(incoming + incoming_offset, buffer_space);
-
-      part = m_buffer.data();
-      incoming_offset += buffer_space;
-    } else {
-      // NO BUFFERED DATA: sends the data directly from the incoming buffer
-      part = incoming + incoming_offset;
-      incoming_offset += MY_MAX_PART_SIZE;
-    }
-
-    try {
-      m_parts.push_back(m_object->m_container->upload_part(
-          m_multipart, m_parts.size() + 1, part, MY_MAX_PART_SIZE));
-    } catch (const rest::Response_error &error) {
-      abort_multipart_upload("failure uploading part", error.format());
-      throw rest::to_exception(error);
-    }
-
-    m_buffer.clear();
-    to_send -= MY_MAX_PART_SIZE;
-  }
-
-  // REMAINING DATA: gets buffered again
-  const auto remaining_input = length - incoming_offset;
-  if (remaining_input)
-    m_buffer.append(incoming + incoming_offset, remaining_input);
-
+  m_uploader.append(buffer, length);
   m_size += length;
 
   return length;
 }
 
-void Object::Writer::close() {
-  if (m_is_multipart) {
-    // MULTIPART UPLOAD STARTED: Sends last part if any and commits the upload
-    try {
-      if (!m_buffer.empty()) {
-        m_parts.push_back(m_object->m_container->upload_part(
-            m_multipart, m_parts.size() + 1, m_buffer.data(), m_buffer.size()));
-      }
-
-      m_object->m_container->commit_multipart_upload(m_multipart, m_parts);
-    } catch (const rest::Response_error &error) {
-      abort_multipart_upload("failure completing the upload", error.format());
-      throw rest::to_exception(error);
-    } catch (const rest::Connection_error &error) {
-      throw shcore::Exception::runtime_error(error.what());
-    }
-
-  } else {
-    // NO UPLOAD STARTED: Sends whatever buffered data in a single PUT
-    try {
-      if (!m_buffer.empty()) {
-        m_object->m_container->put_object(m_object->full_path().real(),
-                                          m_buffer.data(), m_buffer.size());
-      }
-    } catch (const rest::Response_error &error) {
-      throw rest::to_exception(error);
-    } catch (const rest::Connection_error &error) {
-      throw shcore::Exception::runtime_error(error.what());
-    }
-  }
-
-  reset();
-}
-
-void Object::Writer::reset() {
-  // clean up
-  m_is_multipart = false;
-  m_buffer.clear();
-  m_parts.clear();
-}
-
-void Object::Writer::abort_multipart_upload(const char *context,
-                                            const std::string &error) {
-  if (m_is_multipart) {
-    std::string maybe_error;
-
-    if (!error.empty()) {
-      maybe_error = ", error: ";
-      maybe_error += error;
-    }
-
-    log_info(
-        "Cancelling multipart upload after %s%s\nobject: %s\nupload id: %s",
-        context, maybe_error.c_str(), m_multipart.name.c_str(),
-        m_multipart.upload_id.c_str());
-
-    // call reset() before aborting the upload, if abort throws it's not going
-    // to be attempted again
-    reset();
-
-    try {
-      m_object->m_container->abort_multipart_upload(m_multipart);
-    } catch (const rest::Response_error &inner_error) {
-      log_error(
-          "Error cancelling multipart upload after %s, error: %s\nobject: "
-          "%s\nupload id: %s",
-          context, inner_error.format().c_str(), m_multipart.name.c_str(),
-          m_multipart.upload_id.c_str());
-    }
-  }
-}
+void Object::Writer::close() { m_uploader.commit(); }
 
 Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {

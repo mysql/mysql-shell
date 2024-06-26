@@ -29,6 +29,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "mysqlshdk/libs/rest/rest_service.h"
@@ -115,7 +116,14 @@ class Http_object : public IFile {
   void throw_if_error(const std::optional<rest::Response_error> &error,
                       const std::string &context) const;
 
-  virtual void set_write_data(Http_request *request);
+  virtual void flush_on_close();
+
+  mysqlshdk::rest::Rest_service *rest_service() const;
+
+  Http_request http_request(Masked_string path,
+                            rest::Headers headers = {}) const;
+
+  void put(const char *data, std::size_t length);
 
   std::optional<rest::Response_error> fetch_file_size() const;
 

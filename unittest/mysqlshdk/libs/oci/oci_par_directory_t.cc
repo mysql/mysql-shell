@@ -27,26 +27,26 @@
 #include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
-namespace testing {
+namespace mysqlshdk {
+namespace storage {
+namespace backend {
+namespace oci {
 
 using mysqlshdk::oci::Oci_bucket;
 using mysqlshdk::oci::Oci_bucket_config_ptr;
 using mysqlshdk::oci::PAR;
-using mysqlshdk::storage::backend::oci::Oci_par_directory;
-using mysqlshdk::storage::backend::oci::Oci_par_directory_config;
-using mysqlshdk::storage::backend::oci::Oci_par_directory_config_ptr;
 
 namespace {
 
-Oci_par_directory_config_ptr create_config(const Oci_bucket_config_ptr &cfg,
-                                           const PAR &par) {
+std::shared_ptr<Oci_par_directory_config> create_config(
+    const Oci_bucket_config_ptr &cfg, const PAR &par) {
   return std::make_shared<Oci_par_directory_config>(
       cfg->service_endpoint() + par.access_uri + par.object_name);
 }
 
 }  // namespace
 
-class Oci_par_directory_tests : public Oci_os_tests {};
+class Oci_par_directory_tests : public mysqlshdk::oci::Oci_os_tests {};
 
 TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
@@ -231,4 +231,82 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_file) {
   bucket.delete_pre_authenticated_request(par.id);
 }
 
-}  // namespace testing
+TEST_F(Oci_par_directory_tests, file_write_multipart_upload) {
+  SKIP_IF_NO_OCI_CONFIGURATION;
+
+  const auto oci_config = get_config();
+  Oci_bucket bucket{oci_config};
+
+  const auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
+  const auto par = bucket.create_pre_authenticated_request(
+      mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ_WRITE, time,
+      "sample-par", "test/", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
+
+  auto par_config = create_config(oci_config, par);
+  par_config->set_part_size(3);
+
+  Oci_par_directory par_dir{par_config};
+  const auto file = par_dir.file("sample\".txt");
+
+  {
+    const std::string data = "0123456789ABCDE";
+    size_t offset = 0;
+
+    file->open(Mode::WRITE);
+    offset += file->write(data.data() + offset, 5);
+    offset += file->write(data.data() + offset, 5);
+    offset += file->write(data.data() + offset, 5);
+    EXPECT_EQ(offset, data.size());
+
+    file->close();
+  }
+
+  {
+    file->open(Mode::READ);
+    char buffer[20];
+    const auto read = file->read(buffer, 20);
+    EXPECT_EQ(15, read);
+
+    const std::string final_data(buffer, read);
+    EXPECT_STREQ("0123456789ABCDE", final_data.c_str());
+
+    file->close();
+  }
+}
+
+TEST_F(Oci_par_directory_tests, file_auto_cancel_multipart_upload) {
+  SKIP_IF_NO_OCI_CONFIGURATION;
+
+  const auto oci_config = get_config();
+  Oci_bucket bucket{oci_config};
+
+  const auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
+  const auto par = bucket.create_pre_authenticated_request(
+      mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ_WRITE, time,
+      "sample-par", "test/", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
+
+  auto par_config = create_config(oci_config, par);
+  par_config->set_part_size(3);
+
+  Oci_par_directory par_dir{par_config};
+  auto file = par_dir.file("sample@db.txt");
+
+  {
+    const std::string data = "0123456789ABCDE";
+    size_t offset = 0;
+
+    file->open(Mode::WRITE);
+    offset += file->write(data.data() + offset, 5);
+    offset += file->write(data.data() + offset, 5);
+    offset += file->write(data.data() + offset, 5);
+  }
+
+  // release the file, simulating abnormal situation (close() was not called,
+  // destructor should clean up the upload)
+  file.reset();
+}
+
+}  // namespace oci
+}  // namespace backend
+}  // namespace storage
+}  // namespace mysqlshdk

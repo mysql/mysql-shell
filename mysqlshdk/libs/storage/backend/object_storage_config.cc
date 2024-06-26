@@ -37,9 +37,8 @@ namespace storage {
 namespace backend {
 namespace object_storage {
 
-Config::Config(const Object_storage_options &options, std::size_t part_size)
+Config::Config(const Object_storage_options &options)
     : m_container_name(options.m_container_name),
-      m_part_size(part_size),
       m_container_name_option(options.get_main_option()) {
   assert(!m_container_name.empty());
 }
@@ -70,7 +69,7 @@ void Config::fail_if_uri(const std::string &path) const {
 }
 
 Bucket_config::Bucket_config(const Object_storage_options &options)
-    : Config(options, DEFAULT_MULTIPART_PART_SIZE) {}
+    : Config(options) {}
 
 }  // namespace object_storage
 }  // namespace backend

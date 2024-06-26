@@ -28,14 +28,17 @@
 #include <algorithm>
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 #include <unordered_set>
 #include <utility>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -44,97 +47,107 @@ namespace oci {
 
 using mysqlshdk::db::uri::pctencode_query_value;
 
-size_t Oci_par_file::file_size() const {
-  if (Mode::WRITE != m_open_mode) {
-    return Http_object::file_size();
+class Oci_par_file::Multipart_upload_helper : public IMultipart_upload_helper {
+ public:
+  Multipart_upload_helper(Oci_par_file *parent, std::string endpoint)
+      : m_parent(parent), m_endpoint(std::move(endpoint)) {}
+
+  void upload(const char *body, std::size_t size) override {
+    m_parent->put(body, size);
   }
 
-  return m_file_size;
-}
+  void create() override {
+    auto request =
+        m_parent->http_request(m_parent->m_path, {{"opc-multipart", "true"}});
+    const auto response = m_parent->rest_service()->put(&request);
 
-void Oci_par_file::open(Mode m) {
-  Http_object::open(m);
+    m_parent->throw_if_error(response.get_error(),
+                             "Failed to create a multipart upload");
 
-  if (Mode::WRITE == m_open_mode) {
-    auto config = std::dynamic_pointer_cast<const mysqlshdk::oci::IPAR_config>(
-        m_parent_config);
-
-    m_file_path = shcore::path::join_path(config->temp_folder(), m_path);
-
-    m_file = shcore::create_private_file(m_file_path);
-  }
-}
-
-void Oci_par_file::set_write_data(Http_request *request) {
-  request->file = this;
-}
-
-void Oci_par_file::close() {
-  assert(is_open());
-
-  if (Mode::WRITE == *m_open_mode) {
-    // Resets the file position so it is read from the beginning by the HTTP Put
-    // request
-    fseek(m_file, 0, SEEK_SET);
+    try {
+      const auto json = response.json().as_map();
+      m_upload_id = json->at("uploadId").as_string();
+      m_service = std::make_unique<mysqlshdk::rest::Rest_service>(
+          m_endpoint + json->at("accessUri").as_string(), true, "m-PAR");
+    } catch (const std::exception &e) {
+      throw shcore::Exception::runtime_error(shcore::str_format(
+          "Failed to create a PAR multipart upload of '%s': %s", name().c_str(),
+          e.what()));
+    }
   }
 
-  Http_object::close();
+  bool is_active() const override { return !!m_service; }
 
-  do_close();
-}
+  void upload_part(const char *body, std::size_t size) override {
+    auto request =
+        m_parent->http_request(std::to_string(++m_parts),
+                               {{"content-type", "application/octet-stream"}});
 
-void Oci_par_file::do_close() {
-  if (m_file) {
-    std::fclose(m_file);
-    m_file = nullptr;
-    shcore::delete_file(m_file_path);
-    m_file_path.clear();
+    request.body = body;
+    request.size = size;
+
+    m_parent->throw_if_error(m_service->put(&request).get_error(),
+                             "Failed to put part of a PAR multipart upload");
   }
-}
 
-ssize_t Oci_par_file::read(void *buffer, size_t length) {
-  assert(is_open());
-  if (Mode::READ == *m_open_mode) {
-    return Http_object::read(buffer, length);
-  } else {
-    if (!(length > 0)) return 0;
-    const auto fsize = file_size();
-    if (m_offset >= static_cast<off64_t>(fsize)) return 0;
+  void commit() override {
+    auto request = m_parent->http_request({});
 
-    size_t count = fread(buffer, 1, length, m_file);
-
-    m_offset += count;
-
-    return count;
+    m_parent->throw_if_error(m_service->post(&request).get_error(),
+                             "Failed to commit a PAR multipart upload");
   }
+
+  void abort() override {
+    auto request = m_parent->http_request({});
+
+    m_parent->throw_if_error(m_service->delete_(&request).get_error(),
+                             "Failed to abort a PAR multipart upload");
+  }
+
+  const std::string &name() const override { return m_parent->m_path; }
+
+  const std::string &upload_id() const override { return m_upload_id; }
+
+ private:
+  void cleanup() override {
+    m_parts = 0;
+    m_upload_id.clear();
+    m_service.reset();
+  }
+
+  Oci_par_file *m_parent;
+  std::string m_endpoint;
+
+  std::size_t m_parts = 0;
+  std::string m_upload_id;
+  std::unique_ptr<mysqlshdk::rest::Rest_service> m_service;
+};
+
+Oci_par_file::Oci_par_file(const Oci_par_directory_config_ptr &config,
+                           const Masked_string &base, const std::string &path)
+    : Http_object(base, db::uri::pctencode_path(path), true),
+      m_helper(std::make_unique<Multipart_upload_helper>(
+          this, config->par().endpoint())),
+      m_uploader(m_helper.get(), config->part_size()) {
+  set_parent_config(config);
 }
+
+Oci_par_file::~Oci_par_file() = default;
 
 ssize_t Oci_par_file::write(const void *buffer, size_t length) {
   assert(is_open() && Mode::WRITE == *m_open_mode);
 
-  size_t written = fwrite(buffer, 1, length, m_file);
-  if (length != written) {
-    throw std::runtime_error(shcore::str_format(
-        "Unexpected error writing %zi bytes to file %s, written: %zi", length,
-        this->full_path().masked().c_str(), written));
-  }
-
+  m_uploader.append(buffer, length);
   m_file_size += length;
 
   return length;
 }
 
+void Oci_par_file::flush_on_close() { m_uploader.commit(); }
+
 std::unique_ptr<IFile> Oci_par_directory::file(
     const std::string &name, const File_options & /*options*/) const {
-  // file may outlive the directory, need to copy the values
-  const auto full = full_path();
-  auto real = full.real();
-  auto masked = full.masked();
-  Masked_string copy = {std::move(real), std::move(masked)};
-  auto file = std::make_unique<Oci_par_file>(
-      copy, db::uri::pctencode_path(name), m_use_retry);
-  file->set_parent_config(m_config);
-  return file;
+  return make_file(name, m_config);
 }
 
 Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
@@ -143,7 +156,7 @@ Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
 }
 
 Masked_string Oci_par_directory::full_path() const {
-  return ::mysqlshdk::oci::anonymize_par(m_config->par().full_url());
+  return m_config->anonymized_full_url();
 }
 
 bool Oci_par_directory::exists() const {
@@ -158,7 +171,8 @@ bool Oci_par_directory::exists() const {
   return m_exists.value_or(false);
 }
 
-void Oci_par_directory::create() { /*NOOP*/
+void Oci_par_directory::create() {
+  // NOOP
 }
 
 std::string Oci_par_directory::get_list_url() const {

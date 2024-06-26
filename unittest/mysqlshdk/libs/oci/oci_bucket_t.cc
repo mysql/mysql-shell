@@ -26,7 +26,8 @@
 #include "mysqlshdk/libs/utils/utils_time.h"
 #include "unittest/mysqlshdk/libs/oci/oci_tests.h"
 
-namespace testing {
+namespace mysqlshdk {
+namespace oci {
 
 using mysqlshdk::oci::Multipart_object;
 using mysqlshdk::oci::Multipart_object_part;
@@ -403,4 +404,5 @@ TEST_F(Oci_os_tests, exists) {
   }
 }
 
-}  // namespace testing
+}  // namespace oci
+}  // namespace mysqlshdk

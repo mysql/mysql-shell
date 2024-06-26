@@ -80,6 +80,13 @@ class Oci_bucket_config
   std::string describe_self() const override;
 
  private:
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Oci_os_tests, file_write_multipart_upload);
+  FRIEND_TEST(Oci_os_tests, file_append_resume_interrupted_upload);
+  FRIEND_TEST(Oci_os_tests, file_write_multipart_errors);
+  FRIEND_TEST(Oci_os_tests, file_auto_cancel_multipart_upload);
+#endif
+
   void resolve_credentials(Oci_bucket_options::Auth auth);
 
   void fetch_namespace();

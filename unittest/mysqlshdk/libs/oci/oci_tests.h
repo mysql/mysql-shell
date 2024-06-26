@@ -46,7 +46,8 @@
 
 extern "C" const char *g_oci_config_path;
 
-namespace testing {
+namespace mysqlshdk {
+namespace oci {
 
 #define SKIP_IF_NO_OCI_CONFIGURATION \
   do {                               \
@@ -209,6 +210,7 @@ class Oci_os_tests : public Oci_tests {
   }
 };
 
-}  // namespace testing
+}  // namespace oci
+}  // namespace mysqlshdk
 
 #endif  // UNITTEST_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_

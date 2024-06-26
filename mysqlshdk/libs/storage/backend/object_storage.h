@@ -29,10 +29,13 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_set>
+#include <vector>
 
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
+#include "mysqlshdk/libs/storage/backend/multipart_upload.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_bucket.h"
 
 // TODO(rennox): Add handling for read only bucket (public)
@@ -261,19 +264,11 @@ class Object : public mysqlshdk::storage::IFile {
 
   bool is_local() const override { return false; }
 
-  /**
-   * Use this function to custimize the part size for multipart uploads.
-   *
-   * The default size is 10MiB.
-   */
-  void set_max_part_size(size_t new_size);
-
  protected:
   std::string m_name;
   std::string m_prefix;
   std::unique_ptr<Container> m_container;
   std::optional<Mode> m_open_mode;
-  size_t m_max_part_size;
 
   /**
    * Base class for the Read and Write Object handlers
@@ -295,6 +290,7 @@ class Object : public mysqlshdk::storage::IFile {
   class Writer : public File_handler {
    public:
     explicit Writer(Object *owner, Multipart_object *object = nullptr);
+
     ~Writer() override;
 
     off64_t seek(off64_t offset);
@@ -303,15 +299,10 @@ class Object : public mysqlshdk::storage::IFile {
     void close();
 
    private:
-    void reset();
+    class Multipart_upload_helper;
 
-    void abort_multipart_upload(const char *context,
-                                const std::string &error = {});
-
-    std::string m_buffer;
-    bool m_is_multipart;
-    Multipart_object m_multipart;
-    std::vector<Multipart_object_part> m_parts;
+    std::unique_ptr<Multipart_upload_helper> m_helper;
+    Multipart_uploader m_uploader;
   };
 
   /**
