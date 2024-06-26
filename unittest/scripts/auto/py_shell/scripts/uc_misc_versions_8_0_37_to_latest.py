@@ -86,10 +86,13 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
    removed, please review the details below.
 
    Warning: The following users are using the 'mysql_native_password'
-   authentication method which is deprecated as of MySQL 8.0.0 and will be
+   authentication method which is deprecated as of MySQL 8.0.34 and will be
    removed in a future release.
    Consider switching the users to a different authentication method (i.e.
    caching_sha2_password).
+   The 'mysql_native_password' authentication type is disabled by default in
+   MySQL 8.4, but can still be enabled by setting
+   loose_mysql_native_password=ON.
    - sample1@localhost
    - sample2@localhost
 
@@ -97,8 +100,8 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
      https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
 
    Warning: The following users are using the 'sha256_password' authentication
-   method which is deprecated as of MySQL 8.0.0 and will be removed in a future
-   release.
+   method which is deprecated as of MySQL 8.0.16 and will be removed in a
+   future release.
    Consider switching the users to a different authentication method (i.e.
    caching_sha2_password).
    - sample3@localhost
@@ -135,28 +138,28 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
                 {
                     "level": "Warning",
                     "dbObject": "sample1@localhost",
-                    "description": "The following users are using the 'mysql_native_password' authentication method which is deprecated as of MySQL 8.0.0 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
+                    "description": "The following users are using the 'mysql_native_password' authentication method which is deprecated as of MySQL 8.0.34 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).\\nThe 'mysql_native_password' authentication type is disabled by default in MySQL 8.4, but can still be enabled by setting loose_mysql_native_password=ON.",
                     "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html",
                     "dbObjectType": "User"
                 },
                 {
                     "level": "Warning",
                     "dbObject": "sample2@localhost",
-                    "description": "The following users are using the 'mysql_native_password' authentication method which is deprecated as of MySQL 8.0.0 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
+                    "description": "The following users are using the 'mysql_native_password' authentication method which is deprecated as of MySQL 8.0.34 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).\\nThe 'mysql_native_password' authentication type is disabled by default in MySQL 8.4, but can still be enabled by setting loose_mysql_native_password=ON.",
                     "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html",
                     "dbObjectType": "User"
                 },
                 {
                     "level": "Warning",
                     "dbObject": "sample3@localhost",
-                    "description": "The following users are using the 'sha256_password' authentication method which is deprecated as of MySQL 8.0.0 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
+                    "description": "The following users are using the 'sha256_password' authentication method which is deprecated as of MySQL 8.0.16 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
                     "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html",
                     "dbObjectType": "User"
                 },
                 {
                     "level": "Warning",
                     "dbObject": "sample4@localhost",
-                    "description": "The following users are using the 'sha256_password' authentication method which is deprecated as of MySQL 8.0.0 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
+                    "description": "The following users are using the 'sha256_password' authentication method which is deprecated as of MySQL 8.0.16 and will be removed in a future release.\\nConsider switching the users to a different authentication method (i.e. caching_sha2_password).",
                     "documentationLink": "https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html",
                     "dbObjectType": "User"
                 }
