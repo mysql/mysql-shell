@@ -278,7 +278,7 @@ IF(HAVE_PYTHON)
     set(EXTRA_COPY_COMMANDS "")
 
     if(APPLE)
-      get_use_bundled_openssl_command(PATTERN "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so" OUT_COMMAND EXTRA_COPY_COMMANDS)
+      get_use_bundled_openssl_command(PATTERN "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_[sh]*.so" OUT_COMMAND EXTRA_COPY_COMMANDS)
       list(INSERT EXTRA_COPY_COMMANDS 0 COMMAND)
     endif()
 
