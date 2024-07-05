@@ -34,6 +34,7 @@
 #include <utility>
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/mysqlx/util/setter_any.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -272,16 +273,16 @@ void Json_importer::load_from(shcore::Buffered_input *input,
 
   m_session->execute("START TRANSACTION");
 
-  bool cancel = false;
+  shcore::atomic_flag cancel;
   shcore::Interrupt_handler intr_handler([&cancel]() -> bool {
-    cancel = true;
+    cancel.test_and_set();
     return false;
   });
 
   shcore::Json_reader reader(input, options);
   reader.parse_bom();
 
-  while (!reader.eof() && !cancel) {
+  while (!reader.eof() && !cancel.test()) {
     std::string jd = reader.next();
 
     if (!jd.empty()) {
@@ -294,7 +295,9 @@ void Json_importer::load_from(shcore::Buffered_input *input,
   flush();
   commit(true);
 
-  if (cancel) throw shcore::cancelled("JSON documents import cancelled.");
+  if (cancel.test()) {
+    throw shcore::cancelled("JSON documents import cancelled.");
+  }
 }
 
 void Json_importer::put(const std::string &item) {

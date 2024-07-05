@@ -126,10 +126,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   std::string uri() { return _uri; }
 
   // Utility functions to retrieve session status
-  uint64_t get_thread_id() {
-    if (_mysql) return mysql_thread_id(_mysql);
-    return 0;
-  }
+  uint64_t get_thread_id() const { return m_thread_id; }
+
   uint64_t get_protocol_info() {
     if (_mysql) return mysql_get_proto_info(_mysql);
     return 0;
@@ -224,6 +222,7 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
+  uint64_t m_thread_id = 0;
   std::unique_ptr<Error> m_last_error;
 
   struct Local_infile_callbacks {

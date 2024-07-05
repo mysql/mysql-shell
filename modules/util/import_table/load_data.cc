@@ -584,7 +584,7 @@ int local_infile_read(void *userdata, char *buffer,
     file_info->rate_limit.throttle(bytes);
   }
 
-  if (*file_info->user_interrupt) {
+  if (file_info->user_interrupt->test()) {
     return -1;
   }
 
@@ -613,7 +613,7 @@ int local_infile_error(void *userdata, char *error_msg,
     } catch (...) {
       snprintf(error_msg, error_msg_len, "Unknown exception during LOAD DATA");
     }
-  } else if (*file_info->user_interrupt) {
+  } else if (file_info->user_interrupt->test()) {
     snprintf(error_msg, error_msg_len, "Interrupted");
   } else {
     snprintf(error_msg, error_msg_len, "Unknown error during LOAD DATA");
@@ -624,7 +624,7 @@ int local_infile_error(void *userdata, char *error_msg,
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
     std::atomic<size_t> *prog_data_bytes, std::atomic<size_t> *prog_file_bytes,
-    volatile bool *interrupt,
+    shcore::atomic_flag *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
     std::exception_ptr *thread_exception, Stats *stats,
     const std::string &query_comment)

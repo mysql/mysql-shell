@@ -41,7 +41,7 @@ constexpr auto k_sleep_interval = 100ms;
 }  // namespace
 
 Synchronized_file::Synchronized_file(const std::string &name,
-                                     std::atomic<bool> *interrupted)
+                                     shcore::atomic_flag *interrupted)
     : IFile(name), m_interrupted(interrupted) {}
 
 bool Synchronized_file::is_open() const { return m_reading || m_writing; }
@@ -179,7 +179,7 @@ ssize_t Synchronized_file::write(const void *buffer, std::size_t length) {
 }
 
 bool Synchronized_file::is_interrupted() const {
-  return m_interrupted && *m_interrupted;
+  return m_interrupted && m_interrupted->test();
 }
 
 }  // namespace in_memory

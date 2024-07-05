@@ -47,6 +47,7 @@
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -100,6 +101,8 @@ class Dumper {
   void run();
 
   void interrupt();
+
+  void interruption_notification();
 
   void abort();
 
@@ -401,8 +404,6 @@ class Dumper {
 
   bool compressed() const;
 
-  void kill_query() const;
-
   std::string get_query_comment(const std::string &quoted_name,
                                 const std::string &id,
                                 const char *context) const;
@@ -516,7 +517,7 @@ class Dumper {
   Progress_thread::Duration m_checksum_duration;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
   std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
-  volatile bool m_worker_interrupt = false;
+  shcore::atomic_flag m_worker_interrupt;
 
   // progress thread needs to be placed after any of the fields it uses, in
   // order to ensure that it is destroyed (and stopped) before any of those

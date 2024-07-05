@@ -537,6 +537,8 @@ class Progress_thread final {
    */
   bool visible() const { return m_show_progress; }
 
+  inline std::shared_ptr<IConsole> console() const { return m_console->get(); }
+
  private:
   template <class T, class... Args>
   Stage *start_stage(Stage_config stage_config, Args &&...args);

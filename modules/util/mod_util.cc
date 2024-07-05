@@ -53,6 +53,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -981,29 +982,32 @@ void Util::import_table_files(
 
   opt.validate();
 
-  volatile bool interrupt = false;
-  shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
-    mysqlsh::current_console()->print_note(
-        "Interrupted by user. Cancelling...");
-    interrupt = true;
-    return false;
-  });
+  shcore::atomic_flag interrupt;
+  shcore::Interrupt_handler intr_handler(
+      [&interrupt]() {
+        interrupt.test_and_set();
+        return false;
+      },
+      []() {
+        mysqlsh::current_console()->print_note(
+            "Interrupted by user. Cancelling...");
+      });
 
   Import_table importer(opt);
-  importer.interrupt(&interrupt);
+  importer.setup_interrupt(&interrupt);
 
   const auto console = mysqlsh::current_console();
   console->print_info(opt.target_import_info());
 
   importer.import();
 
-  if (!interrupt && !importer.any_exception()) {
+  if (!importer.interrupted()) {
     console->print_info(importer.import_summary());
   }
 
   console->print_info(importer.rows_affected_info());
 
-  if (interrupt) {
+  if (interrupt.test()) {
     throw shcore::cancelled("Interrupted by user");
   }
 
@@ -1309,10 +1313,12 @@ void Util::load_dump(
 
   Dump_loader loader(opt);
 
-  shcore::Interrupt_handler intr_handler([&loader]() -> bool {
-    loader.interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [&loader]() {
+        loader.interrupt();
+        return false;
+      },
+      [&loader]() { loader.interruption_notification(); });
 
   auto console = mysqlsh::current_console();
   console->print_info(opt.target_import_info());
@@ -1894,10 +1900,15 @@ void Util::export_table(
 
   Export_table dumper{opts};
 
-  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
-    dumper.interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [&dumper]() {
+        dumper.interrupt();
+        return false;
+      },
+      [&dumper]() {
+        dumper.interruption_notification();
+        dumper.abort();
+      });
 
   dumper.run();
 }
@@ -2015,10 +2026,15 @@ void Util::dump_tables(
 
   Dump_tables dumper{opts};
 
-  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
-    dumper.interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [&dumper]() {
+        dumper.interrupt();
+        return false;
+      },
+      [&dumper]() {
+        dumper.interruption_notification();
+        dumper.abort();
+      });
 
   dumper.run();
 }
@@ -2104,10 +2120,15 @@ void Util::dump_schemas(
 
   Dump_schemas dumper{opts};
 
-  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
-    dumper.interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [&dumper]() {
+        dumper.interrupt();
+        return false;
+      },
+      [&dumper]() {
+        dumper.interruption_notification();
+        dumper.abort();
+      });
 
   dumper.run();
 }
@@ -2213,10 +2234,15 @@ void Util::dump_instance(
 
   Dump_instance dumper{opts};
 
-  shcore::Interrupt_handler intr_handler([&dumper]() -> bool {
-    dumper.interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [&dumper]() {
+        dumper.interrupt();
+        return false;
+      },
+      [&dumper]() {
+        dumper.interruption_notification();
+        dumper.abort();
+      });
 
   dumper.run();
 }

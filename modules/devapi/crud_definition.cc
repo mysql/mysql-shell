@@ -38,6 +38,8 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/protobuf_bridge.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_string.h"
@@ -90,24 +92,16 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
 
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
     const std::function<std::shared_ptr<mysqlshdk::db::IResult>()> &func) {
-  bool interrupted = false;
+  shcore::atomic_flag interrupted;
 
-  std::weak_ptr<ShellBaseSession> weak_session(_owner->session());
-
-  shcore::Interrupt_handler intrl([weak_session, &interrupted]() {
-    try {
-      if (auto session = weak_session.lock()) {
-        interrupted = true;
-        session->kill_query();
-
-        // don't propagate
+  shcore::Interrupt_handler intrl(
+      [&interrupted] {
+        interrupted.test_and_set();
         return false;
-      }
-    } catch (const std::exception &e) {
-      log_warning("Exception trying to kill query: %s", e.what());
-    }
-    return true;
-  });
+      },
+      [weak_session = std::weak_ptr{_owner->session()->get_core_session()}]() {
+        kill_query(weak_session);
+      });
 
   std::shared_ptr<mysqlshdk::db::IResult> result;
 
@@ -145,7 +139,7 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
     result = func();
   }
 
-  if (result && interrupted) {
+  if (result && interrupted.test()) {
     // If the query was interrupted but it didn't throw an exception
     // from "Error 1317 Query execution was interrupted", it means the
     // interruption happened at a time the query was not active. But we
@@ -156,14 +150,19 @@ std::shared_ptr<mysqlshdk::db::mysqlx::Result> Crud_definition::safe_exec(
 
     log_warning("Flushing resultset data from interrupted query...");
     try {
-      while (result->next_resultset())
-        ;
+      while (result->next_resultset()) {
+      }
       result.reset();
     } catch (const mysqlshdk::db::Error &) {
       throw;
     }
     throw shcore::Exception::runtime_error(
-        "Query interrupted. Results where flushed");
+        "Query interrupted. Results were flushed");
+  }
+
+  if (interrupted.test()) {
+    // query was interrupted but it didn't throw an exception
+    throw shcore::Exception::runtime_error("Query interrupted");
   }
 
   m_execution_count++;

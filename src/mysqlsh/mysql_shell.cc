@@ -48,6 +48,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -1962,14 +1963,15 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     if (!force) print("The global session got disconnected..\n");
     print("Attempting to reconnect to '" + co.as_uri() + "'..");
 
-    std::atomic<int> attempts{6};
-    shcore::Interrupt_handler intr_handler([&attempts]() -> bool {
-      attempts = 0;
+    int attempts{6};
+    shcore::atomic_flag interrupt;
+    shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
+      interrupt.test_and_set();
       return false;
     });
     shcore::sleep_ms(500);
 
-    while (!ret_val && attempts > 0) {
+    while (!ret_val && attempts > 0 && !interrupt.test()) {
       try {
         const auto &ssh_data = co.get_ssh_options();
         // we need to increment port usage and decrement it later cause during
@@ -1996,7 +1998,7 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
       }
       if (!ret_val) {
         print("..");
-        attempts--;
+        --attempts;
         if (attempts > 0) {
           // Try again
           shcore::sleep_ms(1000);

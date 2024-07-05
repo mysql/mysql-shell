@@ -129,8 +129,6 @@ class SHCORE_PUBLIC ClassicSession
  public:
   SessionType session_type() const override { return SessionType::Classic; }
 
-  void kill_query() override;
-
 #if DOXYGEN_JS
   String uri;     //!< $(CLASSICSESSION_GETURI_BRIEF)
   String sshUri;  //!< $(CLASSICSESSION_GETSSHURI_BRIEF)

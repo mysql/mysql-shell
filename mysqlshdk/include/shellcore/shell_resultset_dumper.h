@@ -34,7 +34,9 @@
 #include <optional>
 #include <string>
 #include <tuple>
+
 #include "mysqlshdk/libs/db/result.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 
 namespace mysqlsh {
@@ -143,7 +145,7 @@ class Resultset_dumper_base {
   mysqlshdk::db::IResult *m_result;
   std::string m_wrap_json;
   std::string m_format;
-  bool m_cancelled = false;
+  shcore::atomic_flag m_cancelled;
   std::unique_ptr<Resultset_printer> m_printer;
   bool m_show_column_type_info;
 };

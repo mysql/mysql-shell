@@ -283,12 +283,12 @@ void Result::buffer() {
 bool Result::pre_fetch_rows(bool persistent) {
   if (_result) {
     _persistent_pre_fetch = persistent;
-    _stop_pre_fetch = false;
+    _stop_pre_fetch.clear();
     if (!_result->has_resultset()) return false;
     Row wrapper(this);
     xcl::XError error;
     while (const ::xcl::XRow *row = _result->get_next_row(&error)) {
-      if (_stop_pre_fetch) return true;
+      if (_stop_pre_fetch.test()) return true;
       wrapper.reset(row);
       _pre_fetched_rows.emplace_back(wrapper);
     }
@@ -304,7 +304,7 @@ bool Result::pre_fetch_rows(bool persistent) {
   return true;
 }
 
-void Result::stop_pre_fetch() { _stop_pre_fetch = true; }
+void Result::stop_pre_fetch() { _stop_pre_fetch.test_and_set(); }
 
 bool Result::has_resultset() {
   // Determining whether there is data or not is based on the metadata which is

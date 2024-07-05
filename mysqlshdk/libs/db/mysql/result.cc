@@ -368,10 +368,10 @@ bool Result::pre_fetch_rows(bool persistent) {
   auto result = _result.lock();
   if (result) {
     _persistent_pre_fetch = persistent;
-    _stop_pre_fetch = false;
+    _stop_pre_fetch.clear();
     if (!has_resultset()) return false;
     while (auto row = fetch_one()) {
-      if (_stop_pre_fetch) return true;
+      if (_stop_pre_fetch.test()) return true;
       _pre_fetched_rows.emplace_back(*row);
     }
     _fetched_row_count = 0;
@@ -381,7 +381,7 @@ bool Result::pre_fetch_rows(bool persistent) {
   return true;
 }
 
-void Result::stop_pre_fetch() { _stop_pre_fetch = true; }
+void Result::stop_pre_fetch() { _stop_pre_fetch.test_and_set(); }
 
 std::shared_ptr<Field_names> Result::field_names() const {
   if (!_field_names) {

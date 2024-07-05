@@ -210,12 +210,18 @@ setup_virtual_storage() {
 void copy(dump::Ddl_dumper *dumper, Dump_loader *loader,
           const std::shared_ptr<mysqlshdk::storage::in_memory::Virtual_config>
               &storage) {
-  shcore::Interrupt_handler intr_handler([dumper, loader, &storage]() -> bool {
-    storage->fs()->interrupt();
-    dumper->interrupt();
-    loader->hard_interrupt();
-    return false;
-  });
+  shcore::Interrupt_handler intr_handler(
+      [dumper, loader, &storage]() {
+        storage->fs()->interrupt();
+        dumper->interrupt();
+        loader->hard_interrupt();
+        return false;
+      },
+      [dumper, loader]() {
+        dumper->interruption_notification();
+        dumper->abort();
+        loader->interruption_notification();
+      });
 
   enum class Status {
     DUMPER_DONE,
@@ -318,7 +324,7 @@ void copy(dump::Ddl_dumper *dumper, Dump_loader *loader,
         continue;
 
       case Status::DUMPER_EXCEPTION:
-        loader->abort();
+        loader->hard_interrupt();
         set_current_exception(dumper_exception);
         break;
 

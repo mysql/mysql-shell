@@ -24,13 +24,41 @@
  */
 
 #include "shellcore/interrupt_handler.h"
-#include <cassert>
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#else  // !_WIN32
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif  // !_WIN32
+
+#include <cassert>
 #include <stdexcept>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+
+#ifdef _WIN32
+#define MYSQLSH_SYNCHRONOUS_SIGNAL_DELIVERY 0
+#else  // !_WIN32
+#define MYSQLSH_SYNCHRONOUS_SIGNAL_DELIVERY 1
+#endif  // !_WIN32
+
+#ifdef _WIN32
+
+namespace {
+
+int pipe(int pipefd[2]) { return _pipe(pipefd, 256, _O_BINARY); }
+
+}  // namespace
+
+#endif  // !_WIN32
 
 namespace shcore {
+
 /** User interruption (^C) handler. Called by SIGINT handler in console shell.
 
   ### User Interruption Handling Mechanics
@@ -39,8 +67,7 @@ namespace shcore {
   In a console program, setup() would install a signal handler that calls
   Interrupts::interrupt() on SIGINT. It must also implement block() and
   unblock(), which would block and unblock SIGINT from being delivered
-  (using sigprocmask). unblock() takes a flag, which tells whether pending
-  signals (if any) should be flushed when unblocking.
+  (using sigprocmask).
 
   The interrupt manager keeps a stack of callbacks installed by the program.
   Whenever the program is about to start an action that can be interrupted,
@@ -123,14 +150,6 @@ namespace shcore {
   properly cancel the rest of whatever it was doing. The child process must
   correctly handle SIGINT itself.
 
-  #### Blocking interruptions
-
-  Sometimes it may be necessary to block interruptions, for example, during
-  a critical operation. In that case, the Interrupts::block() function must be
-  called. If a SIGINT is received during block(), it will be queued up for
-  delivery on unblock(). unblock() accepts a boolean arg and if it is true, it
-  will clear any pending SIGINTs.
-
   #### Interrupting MySQL Queries
 
   A ^C during a MySQL query is being executed is a case of external code.
@@ -168,46 +187,82 @@ namespace shcore {
   specific signal-like actions.
 */
 
+class Interrupts::Lock_guard final {
+ public:
+  explicit Lock_guard(Interrupts *parent) noexcept : m_parent(parent) {
+    m_parent->lock();
+  }
+
+  Lock_guard(const Lock_guard &) = delete;
+  Lock_guard(Lock_guard &&) = delete;
+
+  Lock_guard &operator=(const Lock_guard &) = delete;
+  Lock_guard &operator=(Lock_guard &&) = delete;
+
+  ~Lock_guard() noexcept { m_parent->unlock(); }
+
+ private:
+  Interrupts *m_parent;
+};
+
 std::shared_ptr<Interrupts> Interrupts::create(Interrupt_helper *helper) {
-  return std::shared_ptr<Interrupts>(new Interrupts(helper));
+  auto intr = std::shared_ptr<Interrupts>(new Interrupts(helper));
+  intr->setup();
+  return intr;
 }
 
-Interrupts::Interrupts(Interrupt_helper *helper)
-    : m_helper(helper), m_num_handlers(0), m_propagates_interrupt(false) {
+Interrupts::Interrupts(Interrupt_helper *helper) : m_helper(helper) {
   m_creator_thread_id = std::this_thread::get_id();
+}
+
+Interrupts::~Interrupts() {
+  if (m_thread.joinable()) {
+    terminate_thread();
+  }
 }
 
 void Interrupts::setup() {
   if (m_helper) {
-    m_helper->setup();
+    m_helper->setup(this);
   }
 }
 
-bool Interrupts::in_creator_thread() {
+bool Interrupts::in_creator_thread() const {
   return std::this_thread::get_id() == m_creator_thread_id;
 }
 
-void Interrupts::push_handler(const std::function<bool()> &handler) {
+void Interrupts::push_handler(const std::function<bool()> &signal_safe,
+                              const std::function<void()> &signal_unsafe) {
   // Only allow cancellation handlers registered in the creator thread.
   // We don't want background threads to be affected directly by ^C
   // If you do want a background thread to be cancelled, the creator thread
   // should register a handler that will in turn result in the cancellation of
   // the background thread.
-  if (!in_creator_thread()) return;
+  if (!in_creator_thread()) {
+    return;
+  }
+
+  Lock_guard guard{this};
 
   // Note: If you're getting a stack overflow pushing handlers, there may be
   // something wrong with how your code is working.
   // Interrupt handlers should be installed once per language. If code in a
   // scripting language can call code in the language, that should probably
   // not result in the installation of another interrupt handler.
-  std::lock_guard lock(m_handler_mutex);
-
   if (m_num_handlers >= k_max_interrupt_handlers) {
     throw std::logic_error(
         "Internal error: interrupt handler stack overflow during "
-        "push_interrupt_handler()");
+        "push_handler()");
   }
-  m_handlers[m_num_handlers++] = handler;
+
+  if (!m_thread.joinable()) {
+    // we cannot initialize thread in the constructor, as spawning the thread
+    // copies the current interrupt handler
+    init_thread();
+  }
+
+  m_safe_handlers[m_num_handlers] = signal_safe;
+  m_unsafe_handlers[m_num_handlers++] = signal_unsafe;
 }
 
 void Interrupts::pop_handler() {
@@ -215,60 +270,160 @@ void Interrupts::pop_handler() {
     return;
   }
 
-  std::lock_guard lock(m_handler_mutex);
+  Lock_guard guard{this};
 
   if (m_num_handlers == 0) {
     throw std::logic_error(
         "Internal error: interrupt handler stack underflow during "
-        "pop_interrupt_handler()");
+        "pop_handler()");
   }
-  m_handlers[--m_num_handlers] = 0;
+
+  m_safe_handlers[--m_num_handlers] = 0;
+  m_unsafe_handlers[m_num_handlers] = 0;
 }
 
 void Interrupts::interrupt() {
-  Block_interrupts block_ints;
-  std::lock_guard lock(m_handler_mutex);
+  // lock this object, is can be unlocked only after asynchronous handling is
+  // done
+#if MYSQLSH_SYNCHRONOUS_SIGNAL_DELIVERY
+  // signal is delivered from the main thread, if this happens when we're
+  // locked, we're going to deadlock
+  if (!try_lock()) {
+    // handler is being added/removed or asynchronous callbacks are still being
+    // executed, ignore the signal
+    return;
+  }
+#else   // !MYSQLSH_SYNCHRONOUS_SIGNAL_DELIVERY
+  // signal is delivered from a new thread, we can lock here
+  lock();
+#endif  // !MYSQLSH_SYNCHRONOUS_SIGNAL_DELIVERY
 
   if (m_num_handlers > 0) {
-    for (int i = m_num_handlers - 1; i >= 0; --i) {
-      try {
-        if (!m_handlers[i]()) break;
-      } catch (const std::exception &e) {
-        log_error("Unexpected exception in interruption handler: %s", e.what());
-        assert(0);
-        throw;
+    try {
+      auto stop_at = m_num_handlers;
+
+      for (auto i = stop_at - 1; i >= 0; --i) {
+        --stop_at;
+
+        if (!m_safe_handlers[i]()) {
+          break;
+        }
       }
-      block_ints.clear_pending(true);
+
+      write_to_thread(stop_at);
+      return;
+    } catch (const std::exception &e) {
+      // logging is not signal safe, but this is an extraordinary situation
+      log_error("Unexpected exception in safe interrupt handler: %s", e.what());
+      assert(0);
+      // this is a signal handler, we cannot throw here
     }
   }
 
-  s_sigint_event.interrupt();
+  // there are no handlers, or abnormal situation, just unlock right away
+  unlock();
 }
 
-void Interrupts::set_propagate_interrupt(bool flag) {
-  m_propagates_interrupt = flag;
+void Interrupts::wait(uint32_t ms) { m_sigint_event.wait(ms); }
+
+void Interrupts::lock() noexcept {
+  // simple spin-lock
+  while (m_lock.test_and_set(std::memory_order_acquire)) {
+    while (m_lock.test(std::memory_order_relaxed)) {
+    }
+  }
 }
 
-bool Interrupts::propagates_interrupt() { return m_propagates_interrupt; }
+bool Interrupts::try_lock() noexcept {
+  if (m_lock.test_and_set(std::memory_order_acquire)) {
+    return false;
+  }
 
-void Interrupts::block() {
-  if (m_helper) m_helper->block();
+  return true;
 }
 
-void Interrupts::unblock(bool clear_pending) {
-  if (m_helper) m_helper->unblock(clear_pending);
+void Interrupts::unlock() noexcept { m_lock.clear(std::memory_order_release); }
+
+void Interrupts::init_thread() {
+  if (0 != ::pipe(m_pipe)) {
+    throw std::runtime_error("Interrupts: failed to initialize pipe");
+  }
+
+  m_thread = mysqlsh::spawn_scoped_thread([this]() { background_thread(); });
 }
 
-void Interrupts::wait(uint32_t ms) { s_sigint_event.wait(ms); }
+void Interrupts::terminate_thread() {
+  write_to_thread(-1);
+  m_thread.join();
 
-Interrupt_handler::Interrupt_handler(const std::function<bool()> &handler,
-                                     bool skip)
-    : m_skip(skip) {
-  if (!m_skip) current_interrupt()->push_handler(handler);
+  ::close(m_pipe[0]);
+  ::close(m_pipe[1]);
 }
 
-Interrupt_handler::~Interrupt_handler() {
-  if (!m_skip) current_interrupt()->pop_handler();
+void Interrupts::background_thread() {
+  const auto fd = m_pipe[0];
+  int ret;
+  std::int8_t stop_at;
+
+  const auto report_error = [](const char *msg, const char *context = nullptr) {
+    log_error("Interrupts: %s: %s", msg,
+              context ? context : shcore::get_last_error().c_str());
+  };
+
+  while (true) {
+    ret = ::read(fd, &stop_at, sizeof(stop_at));
+
+    if (ret < 0) {
+      if (EINTR == errno) {
+        continue;
+      } else {
+        report_error("failed to read");
+        return;
+      }
+    } else if (0 == ret) {
+      // end of file
+      break;
+    } else if (1 == ret) {
+      if (stop_at < 0) {
+        // terminate
+        break;
+      } else {
+        try {
+          for (auto i = m_num_handlers - 1; i >= stop_at; --i) {
+            if (m_unsafe_handlers[i]) {
+              m_unsafe_handlers[i]();
+            }
+          }
+        } catch (const std::exception &e) {
+          report_error("exception in unsafe interrupt handler", e.what());
+          assert(0);
+          // this is not a fatal error in release builds
+        }
+
+        // wake up any waiting threads
+        m_sigint_event.interrupt();
+
+        // asynchronous processing is done, unlock the handler
+        unlock();
+      }
+    } else {
+      report_error("read returned unexpected value",
+                   std::to_string(ret).c_str());
+      return;
+    }
+  }
 }
+
+bool Interrupts::write_to_thread(std::int8_t code) {
+  return 1 == ::write(m_pipe[1], &code, 1);
+}
+
+Interrupt_handler::Interrupt_handler(
+    const std::function<bool()> &signal_safe,
+    const std::function<void()> &signal_unsafe) {
+  current_interrupt()->push_handler(signal_safe, signal_unsafe);
+}
+
+Interrupt_handler::~Interrupt_handler() { current_interrupt()->pop_handler(); }
 
 }  // namespace shcore

@@ -557,7 +557,7 @@ class Dump_loader::Monitoring final {
       const auto session = m_loader->create_session();
 
       while (!m_terminating) {
-        if (m_loader->m_worker_hard_interrupt) {
+        if (m_loader->m_worker_hard_interrupt.test()) {
           kill_queries(session);
         } else {
           monitor(session);
@@ -630,7 +630,8 @@ class Dump_loader::Bulk_load_support {
       m_monitoring_started = true;
     }
 
-    DBUG_EXECUTE_IF("dump_loader_bulk_interrupt", { m_loader->abort(); });
+    DBUG_EXECUTE_IF("dump_loader_bulk_interrupt",
+                    { m_loader->hard_interrupt(); });
   }
 
   void on_bulk_load_end(Worker *worker) {
@@ -853,7 +854,7 @@ class Dump_loader::Bulk_load_support {
   }
 
   bool wait_for_retry(const mysqlshdk::db::Error &e) {
-    if (m_loader->m_worker_interrupt) {
+    if (m_loader->m_worker_interrupt.test()) {
       return false;
     }
 
@@ -1897,7 +1898,7 @@ void Dump_loader::Worker::do_run() {
 
     // wait for signal that there's work to do... false means stop worker
     bool work = m_work_ready.pop();
-    if (!work || m_owner->m_worker_interrupt) {
+    if (!work || m_owner->m_worker_interrupt.test()) {
       m_owner->post_worker_event(this, Worker_event::EXIT);
       break;
     }
@@ -1959,7 +1960,7 @@ void Dump_loader::Worker::handle_current_exception(Dump_loader *loader,
   }
 
   loader->m_num_errors += 1;
-  loader->m_worker_interrupt = true;
+  loader->m_worker_interrupt.test_and_set();
   loader->post_worker_event(this, Worker_event::FATAL_ERROR);
 }
 
@@ -2653,7 +2654,7 @@ size_t Dump_loader::handle_worker_events(
         if (!m_abort) {
           current_console()->print_error("Aborting load...");
         }
-        m_worker_interrupt = true;
+        m_worker_interrupt.test_and_set();
         m_abort = true;
 
         clear_worker(event.worker);
@@ -2672,7 +2673,8 @@ size_t Dump_loader::handle_worker_events(
     // schedule more work if the worker became free
     if (event.event == Worker_event::READY) {
       // no more work to do
-      if (m_worker_interrupt || (!schedule_next() && m_pending_tasks.empty())) {
+      if (m_worker_interrupt.test() ||
+          (!schedule_next() && m_pending_tasks.empty())) {
         idle_workers.push_back(event.worker);
       } else {
         assert(!m_pending_tasks.empty());
@@ -2791,26 +2793,28 @@ bool Dump_loader::schedule_next_task() {
 void Dump_loader::interrupt() {
   // 1st ^C does a soft interrupt (stop new tasks but let current work finish)
   // 2nd ^C sends kill to all workers
-  if (!m_worker_interrupt) {
-    m_worker_interrupt = true;
-    current_console()->print_info(
-        "^C -- Load interrupted. Canceling remaining work. "
-        "Press ^C again to abort current tasks and rollback active "
-        "transactions (slow).");
+  if (!m_worker_interrupt.test()) {
+    m_worker_interrupt.test_and_set();
   } else {
     hard_interrupt();
   }
 }
 
 void Dump_loader::hard_interrupt() {
-  abort();
-  current_console()->print_info(
-      "^C -- Aborting active transactions. This may take a while...");
+  m_worker_interrupt.test_and_set();
+  m_worker_hard_interrupt.test_and_set();
 }
 
-void Dump_loader::abort() {
-  m_worker_interrupt = true;
-  m_worker_hard_interrupt = true;
+void Dump_loader::interruption_notification() {
+  if (m_worker_hard_interrupt.test()) {
+    m_progress_thread.console()->print_info(
+        "^C -- Aborting active transactions. This may take a while...");
+  } else {
+    m_progress_thread.console()->print_info(
+        "^C -- Load interrupted. Canceling remaining work. "
+        "Press ^C again to abort current tasks and rollback active "
+        "transactions (slow).");
+  }
 }
 
 void Dump_loader::run() {
@@ -2837,7 +2841,7 @@ void Dump_loader::run() {
 
   show_summary();
 
-  if (m_worker_interrupt && !m_abort) {
+  if (m_worker_interrupt.test() && !m_abort) {
     // If interrupted by the user and not by a fatal error
     throw shcore::cancelled("Aborted");
   }
@@ -3615,10 +3619,10 @@ void Dump_loader::execute_threaded(const std::function<bool()> &schedule_next) {
       // make sure that there's really no more work. schedule_work() is
       // supposed to just return false without doing anything. If it does
       // something (and returns true), then we have a bug.
-      assert(!schedule_next() || m_worker_interrupt);
+      assert(!schedule_next() || m_worker_interrupt.test());
       break;
     }
-  } while (!m_worker_interrupt);
+  } while (!m_worker_interrupt.test());
 }
 
 void Dump_loader::execute_table_ddl_tasks() {
@@ -3715,7 +3719,7 @@ void Dump_loader::execute_table_ddl_tasks() {
   pool->start_threads();
   const auto &pool_status = pool->process_async();
 
-  while (!m_worker_interrupt) {
+  while (!m_worker_interrupt.test()) {
     // fetch next schema and process it
     if (!m_dump->next_schema_and_tables(&schema, &tables, &view_placeholders)) {
       break;
@@ -3769,10 +3773,10 @@ void Dump_loader::execute_table_ddl_tasks() {
 
     execute_threaded([this, &pool_status, &worker_tasks, &pending_tasks,
                       &schema_tasks, &table_tasks]() {
-      while (!m_worker_interrupt) {
+      while (!m_worker_interrupt.test()) {
         // if there was an exception in the thread pool, interrupt the process
         if (pool_status == shcore::Thread_pool::Async_state::TERMINATED) {
-          m_worker_interrupt = true;
+          m_worker_interrupt.test_and_set();
           break;
         }
 
@@ -3852,7 +3856,7 @@ void Dump_loader::execute_table_ddl_tasks() {
     });
 
     // notify the pool in case of an interrupt
-    if (m_worker_interrupt) {
+    if (m_worker_interrupt.test()) {
       pool->terminate();
     }
 
@@ -3902,7 +3906,7 @@ void Dump_loader::execute_view_ddl_tasks() {
 
   pool->start_threads();
 
-  while (!m_worker_interrupt) {
+  while (!m_worker_interrupt.test()) {
     if (!m_dump->next_schema_and_views(&schema, &views)) {
       break;
     }
@@ -3966,7 +3970,7 @@ void Dump_loader::execute_view_ddl_tasks() {
                   m_load_log->log(progress::end::Schema_ddl{schema});
                 }
 
-                if (m_worker_interrupt) {
+                if (m_worker_interrupt.test()) {
                   pool->terminate();
                 }
               });
@@ -4022,7 +4026,7 @@ void Dump_loader::execute_tasks(bool testing) {
       if (m_options.load_ddl() || m_options.load_deferred_indexes()) {
         // exec DDL for all tables in parallel (fetching DDL for
         // thousands of tables from remote storage can be slow)
-        if (!m_worker_interrupt) execute_table_ddl_tasks();
+        if (!m_worker_interrupt.test()) execute_table_ddl_tasks();
 
         // users have to be loaded after all objects and view placeholders are
         // created, because GRANTs on specific objects require the objects to
@@ -4030,28 +4034,28 @@ void Dump_loader::execute_tasks(bool testing) {
         // users have to be loaded before view placeholders are replaced with
         // views, because creating a view which uses another view with the
         // DEFINER clause requires that user to exist
-        if (!m_worker_interrupt) load_users();
+        if (!m_worker_interrupt.test()) load_users();
 
         // exec DDL for all views after all tables and users are created
-        if (!m_worker_interrupt && m_options.load_ddl())
+        if (!m_worker_interrupt.test() && m_options.load_ddl())
           execute_view_ddl_tasks();
       }
 
-      if (!m_worker_interrupt && !testing) setup_temp_tables();
+      if (!m_worker_interrupt.test() && !testing) setup_temp_tables();
 
       m_init_done = true;
 
-      if (!m_worker_interrupt && m_options.load_data()) {
+      if (!m_worker_interrupt.test() && m_options.load_data()) {
         setup_load_data_progress();
       }
     }
 
-    if (!m_worker_interrupt &&
+    if (!m_worker_interrupt.test() &&
         m_dump->status() != Dump_reader::Status::COMPLETE) {
       scan_for_more_data();
     }
 
-    if (!m_worker_interrupt) {
+    if (!m_worker_interrupt.test()) {
       m_total_tables_with_data = m_dump->tables_with_data();
 
       // handle events from workers and schedule more chunks when a worker
@@ -4062,7 +4066,7 @@ void Dump_loader::execute_tasks(bool testing) {
 
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
-    if (!m_worker_interrupt &&
+    if (!m_worker_interrupt.test() &&
         m_dump->status() == Dump_reader::Status::COMPLETE &&
         !m_dump->data_available() && num_idle_workers == m_workers.size()) {
       if (!m_dump->work_available()) {
@@ -4072,9 +4076,9 @@ void Dump_loader::execute_tasks(bool testing) {
         THROW_ERROR(SHERR_LOAD_CORRUPTED_DUMP_MISSING_DATA);
       }
     }
-  } while (!m_worker_interrupt);
+  } while (!m_worker_interrupt.test());
 
-  if (!m_worker_interrupt) {
+  if (!m_worker_interrupt.test()) {
     on_dump_end();
     m_load_log->cleanup();
   }
@@ -4089,7 +4093,7 @@ void Dump_loader::wait_for_metadata() {
 
   // we need to have the whole metadata before we proceed with the load
 
-  while (!m_dump->ready() && !m_worker_interrupt) {
+  while (!m_dump->ready() && !m_worker_interrupt.test()) {
     log_debug("Scanning for metadata");
 
     m_dump->rescan(&m_progress_thread);
@@ -4121,7 +4125,7 @@ bool Dump_loader::scan_for_more_data(bool wait) {
 
   // if there are still idle workers, check if there's more that was dumped
   while (m_dump->status() != Dump_reader::Status::COMPLETE &&
-         !m_worker_interrupt) {
+         !m_worker_interrupt.test()) {
     log_debug("Scanning for more data");
 
     m_dump->rescan();
@@ -4176,7 +4180,7 @@ void Dump_loader::wait_for_dump(
     // wait for at most 5s at a time and try again
     for (uint64_t j = 0;
          j < std::min<uint64_t>(5000, m_options.dump_wait_timeout_ms()) &&
-         !m_worker_interrupt;
+         !m_worker_interrupt.test();
          j += 1000) {
       shcore::sleep_ms(1000);
     }

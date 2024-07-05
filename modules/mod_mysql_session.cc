@@ -33,7 +33,9 @@
 #include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/utils_help.h"
@@ -258,8 +260,6 @@ std::shared_ptr<ClassicResult> ClassicSession::run_sql(
   if (!_session || !_session->is_open()) {
     throw Exception::logic_error("Not connected.");
   } else {
-    Interruptible intr(this);
-
     shcore::Scoped_callback finally(
         [this]() { query_attribute_store().clear(); });
 
@@ -282,7 +282,12 @@ std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::execute_sql(
     if (query.empty()) {
       throw Exception::argument_error("No query specified.");
     } else {
-      Interruptible intr(this);
+      shcore::Interrupt_handler intr(
+          []() { return true; },
+          [weak_session = std::weak_ptr{get_core_session()}]() {
+            kill_query(weak_session);
+          });
+
       try {
         result = _session->query(sub_query_placeholders(query, args), false,
                                  query_attributes);
@@ -728,21 +733,6 @@ std::string ClassicSession::query_one_string(const std::string &query,
     return row->get_string(field);
   }
   return "";
-}
-
-void ClassicSession::kill_query() {
-  uint64_t cid = get_connection_id();
-  try {
-    auto kill_session = mysqlshdk::db::mysql::Session::create();
-
-    kill_session->connect(_session->get_connection_options());
-
-    kill_session->execute("kill query " + std::to_string(cid));
-
-    kill_session->close();
-  } catch (const std::exception &e) {
-    log_warning("Error cancelling SQL query: %s", e.what());
-  }
 }
 
 socket_t ClassicSession::_get_socket_fd() const {

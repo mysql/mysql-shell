@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_fs.h"
 
 #include <stdexcept>
+#include <utility>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -213,7 +214,7 @@ std::vector<std::string> Virtual_fs::split_path(const std::string &path) {
   return shcore::str_split(path, std::string{1, k_path_separator});
 }
 
-void Virtual_fs::interrupt() { m_interrupted = true; }
+void Virtual_fs::interrupt() { m_interrupted.test_and_set(); }
 
 void Virtual_fs::set_uses_synchronized_io(
     std::function<bool(std::string_view)> callback) {

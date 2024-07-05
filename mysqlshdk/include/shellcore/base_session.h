@@ -153,8 +153,6 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   virtual void commit() = 0;
   virtual void rollback() = 0;
 
-  virtual void kill_query() = 0;
-
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const = 0;
 
   void enable_sql_mode_tracking();
@@ -181,25 +179,6 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   mysqlshdk::db::Connection_options _connection_options;
 
  protected:
-  // Wrap around query executions, to make them cancellable
-  // If a lot of statements must be executed in a loop, it may be a good idea
-  // to wrap the whole loop with an Interruptible block, so that a single
-  // handler is used for the whole loop.
-  class Interruptible {
-   public:
-    explicit Interruptible(ShellBaseSession *owner) : _owner(owner) {
-      _owner->begin_query();
-    }
-
-    ~Interruptible() { _owner->end_query(); }
-
-   private:
-    ShellBaseSession *_owner;
-  };
-
-  // mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
-  // std::function<void(const std::string&, bool exists)> update_schema_cache;
-
   std::string sub_query_placeholders(const std::string &query,
                                      const shcore::Array_t &args);
 
@@ -208,13 +187,6 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   Query_attribute_store m_query_attributes;
 
  private:
-  void init();
-
-  friend class Query_guard;
-  void begin_query();
-  void end_query();
-  mutable int _guard_active = 0;
-
   bool m_is_sql_mode_tracking_enabled = false;
 
 #ifdef FRIEND_TEST

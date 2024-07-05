@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_fs.h"
@@ -53,7 +54,7 @@ class Synchronized_file : public Virtual_fs::IFile {
    * @param interrupted Callback which signals that I/O should be aborted.
    */
   explicit Synchronized_file(const std::string &name,
-                             std::atomic<bool> *interrupted);
+                             shcore::atomic_flag *interrupted);
 
   Synchronized_file(const Synchronized_file &) = delete;
   Synchronized_file(Synchronized_file &&) = delete;
@@ -149,7 +150,7 @@ class Synchronized_file : public Virtual_fs::IFile {
 
   bool is_interrupted() const;
 
-  std::atomic<bool> *m_interrupted;
+  shcore::atomic_flag *m_interrupted;
 
   std::mutex m_open_close_mutex;
   std::atomic<bool> m_reading = false;

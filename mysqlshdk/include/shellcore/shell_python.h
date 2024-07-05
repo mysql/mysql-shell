@@ -26,9 +26,11 @@
 #ifndef _SHELLCORE_PYTHON_H_
 #define _SHELLCORE_PYTHON_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "shellcore/shell_core.h"
 
 namespace shcore {
@@ -63,11 +65,13 @@ class Shell_python : public Shell_language {
   std::string get_continued_input_context() override;
 
  private:
-  void abort() noexcept;
+  void interrupt() noexcept;
+
+  void interruption_notification();
 
   std::shared_ptr<Python_context> _py;
   std::function<void(shcore::Value, bool)> _result_processor;
-  bool m_aborted = false;
+  shcore::atomic_flag m_aborted;
 
   void handle_input(std::string &code, bool flush);
 };

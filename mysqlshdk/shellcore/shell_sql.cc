@@ -29,9 +29,8 @@
 #include <functional>
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -134,26 +133,6 @@ Shell_sql::Shell_sql(IShell_core *owner)
                            IShell_core::Mode_mask(IShell_core::Mode::SQL));
 }
 
-void Shell_sql::kill_query(uint64_t conn_id,
-                           const mysqlshdk::db::Connection_options &conn_opts) {
-  try {
-    std::shared_ptr<mysqlshdk::db::ISession> kill_session;
-
-    if (conn_opts.get_scheme() == "mysqlx")
-      kill_session = mysqlshdk::db::mysqlx::Session::create();
-    else
-      kill_session = mysqlshdk::db::mysql::Session::create();
-    kill_session->connect(conn_opts);
-    kill_session->executef("kill query ?", conn_id);
-    mysqlsh::current_console()->print("-- query aborted\n");
-
-    kill_session->close();
-  } catch (const std::exception &e) {
-    mysqlsh::current_console()->print(std::string("-- error aborting query: ") +
-                                      e.what() + "\n");
-  }
-}
-
 bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
                             size_t line_num,
                             std::shared_ptr<mysqlshdk::db::ISession> session,
@@ -168,14 +147,14 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
       try {
         mysqlshdk::utils::Profile_timer timer;
         timer.stage_begin("query");
-        // Install kill query as ^C handler
-        uint64_t conn_id = session->get_connection_id();
-        const auto &conn_opts = session->get_connection_options();
+
         {
-          shcore::Interrupt_handler interrupt([this, conn_id, conn_opts]() {
-            kill_query(conn_id, conn_opts);
-            return true;
-          });
+          // Install kill query as ^C handler
+          shcore::Interrupt_handler interrupt(
+              []() { return true; },
+              [weak_session = std::weak_ptr{session}]() {
+                mysqlshdk::db::kill_query(weak_session);
+              });
 
           result =
               session->querys(query.data(), query.size(), false,

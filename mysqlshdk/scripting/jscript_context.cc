@@ -59,6 +59,7 @@
 #include "scripting/jscript_type_conversion.h"
 
 #include "mysqlshdk/include/shellcore/base_shell.h"  // FIXME
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 
 #include <cerrno>
 #ifdef HAVE_UNISTD_H
@@ -294,7 +295,7 @@ class JScript_context::Impl {
   v8::Isolate *m_isolate = nullptr;
   v8::Persistent<v8::Context> m_context;
   std::unique_ptr<v8::ArrayBuffer::Allocator> m_allocator;
-  bool m_terminating = false;
+  shcore::atomic_flag m_terminating;
   std::vector<v8::Global<v8::Context>> m_stored_contexts;
   std::list<std::shared_ptr<JScript_function_storage>> m_stored_functions;
   Current_script m_current_script;
@@ -764,13 +765,15 @@ void JScript_context::Impl::terminate() {
   //   function fail() { println('failed'); } os.sleep(10); fail();
   // in the same scenario will work fine. For this reason we need to manually
   // check the `m_terminating` flag before executing native code.
-  m_terminating = true;
+  m_terminating.test_and_set();
   m_isolate->TerminateExecution();
 }
 
-bool JScript_context::Impl::is_terminating() const { return m_terminating; }
+bool JScript_context::Impl::is_terminating() const {
+  return m_terminating.test();
+}
 
-void JScript_context::Impl::clear_is_terminating() { m_terminating = false; }
+void JScript_context::Impl::clear_is_terminating() { m_terminating.clear(); }
 
 v8::Local<v8::FunctionTemplate> JScript_context::Impl::wrap_callback(
     v8::FunctionCallback callback) const {

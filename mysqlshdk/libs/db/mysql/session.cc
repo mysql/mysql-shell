@@ -456,6 +456,8 @@ void Session_impl::connect(
 #endif
     }
   }
+
+  m_thread_id = mysql_thread_id(_mysql);
 }
 
 std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
@@ -525,6 +527,7 @@ void Session_impl::close() {
   if (_mysql) {
     DBUG_LOG("sql", get_thread_id() << ": DISCONNECT");
     mysql_close(_mysql);
+    m_thread_id = 0;
     _mysql = nullptr;
   }
 }

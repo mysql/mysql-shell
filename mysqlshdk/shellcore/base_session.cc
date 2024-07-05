@@ -28,7 +28,6 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
-#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -376,22 +375,6 @@ std::string ShellBaseSession::sub_query_placeholders(
   }
 
   return query;
-}
-
-void ShellBaseSession::begin_query() {
-  if (_guard_active++ == 0) {
-    // Install kill query as ^C handler
-    current_interrupt()->push_handler([this]() {
-      kill_query();
-      return true;
-    });
-  }
-}
-
-void ShellBaseSession::end_query() {
-  if (--_guard_active == 0) {
-    current_interrupt()->pop_handler();
-  }
 }
 
 void ShellBaseSession::set_query_attributes(const shcore::Dictionary_t &args) {

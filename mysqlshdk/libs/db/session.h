@@ -122,10 +122,12 @@ class SHCORE_PUBLIC ISession {
 
   void connect(const mysqlshdk::db::Connection_options &data);
 
+  // thread safe
   virtual uint64_t get_connection_id() const = 0;
 
   virtual socket_t get_socket_fd() const = 0;
 
+  // thread safe
   virtual const mysqlshdk::db::Connection_options &get_connection_options()
       const = 0;
 

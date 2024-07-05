@@ -40,7 +40,7 @@ std::unique_ptr<common::Helper> get_helper();
 int main(int argc, char *argv[]) {
   using mysql::secret_store::client::get_helper;
   using mysql::secret_store::core::Program;
-  Interrupt_helper helper;
+  shcore::Signal_interrupt_helper helper;
   mysqlsh::Scoped_interrupt interrupt_handler(
       shcore::Interrupts::create(&helper));
 
