@@ -46,12 +46,10 @@ function test_add_instance(commStack, recoverMethod) {
     }
 
     EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, { recoveryMethod: recoverMethod, certSubject: `/CN=${hostname}/L=machine2` }); });
+    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
     if (__version_num >= 80023) {
         EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4, { recoveryMethod: recoverMethod, certSubject: `/CN=${hostname}/L=machine4` }); });
-    }
-
-    testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-    if (__version_num >= 80023) {
         testutil.waitReplicationChannelState(__mysql_sandbox_port4, "read_replica_replication", "ON");
     }
 
