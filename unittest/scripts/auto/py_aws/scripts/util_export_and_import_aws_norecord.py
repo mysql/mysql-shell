@@ -55,7 +55,7 @@ def EXPECT_FAIL(error, msg, options = {}, excluded_options = [], argument_error 
     print(f"--> EXPECT_FAIL -> {aws_options}")
     def full_msg(method, options_arg):
         is_re = is_re_instance(msg)
-        m = f"{re.escape(error) if is_re else error}: Util.{method}: {f'Argument #{options_arg}: ' if argument_error else ''}{msg.pattern if is_re else msg}"
+        m = f"{re.escape(error) if is_re else error}: {f'Argument #{options_arg}: ' if argument_error else ''}{msg.pattern if is_re else msg}"
         if is_re:
             m = re.compile("^" + m)
         return m

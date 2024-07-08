@@ -63,7 +63,7 @@ EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 shell.connect(MDS_URI)
 cleanup_mds(session)
 
-EXPECT_THROWS(lambda: util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE}), "Util.load_dump: Dump is not compatible with MySQL HeatWave Service")
+EXPECT_THROWS(lambda: util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE}), "Dump is not compatible with MySQL HeatWave Service")
 
 #@<> Dump mysqlaas_compat to OS with MDS compatibility
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
