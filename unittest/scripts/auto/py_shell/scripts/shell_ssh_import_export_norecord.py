@@ -55,6 +55,12 @@ testutil.expect_prompt("The authenticity of host '{}' can't be established.".for
 shell.connect({"uri": MYSQL_OVER_SSH_URI, "ssh": SSH_URI_NOPASS, "ssh-password": SSH_PASS, "ssh-CONFIG-file": config_file})
 EXPECT_TRUE(session.is_open(), "Unable to open connection using shell.connect through SSH tunnel")
 clean_server(session)
+
+v = session.run_sql("SELECT @@version").fetch_one()[0]
+v = [int(m) for m in v.split("-")[0].split(".")]
+v = v[0] * 10000 + v[1] * 100 + v[2]
+mysql_over_ssh_version = v
+
 session.close()
 
 #@<> test import_table over SSH
@@ -97,7 +103,7 @@ def compare_instances():
   remote_session.close()
 
 
-# 1: Creates a sandbox with some data and creates a dump
+# Creates a sandbox with some data and creates a dump
 shell.options["useWizards"] = False
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {"local_infile":1})
 shell.connect(__sandbox_uri1)
@@ -110,29 +116,27 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(os.path.join(outdir, "dump_from_loca
 session.close()
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
-# 2: Connects to the instance over SSH to load the dump
+# Connects to the instance over SSH to load the dump
 load_dump_on_remote("dump_from_local")
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
-# 3: Compares the data in sandbox and the instance over SSH
+# Compares the data in sandbox and the instance over SSH
 compare_instances()
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
-# 4: Now creates a dump from the instance over SSH
-dump_remote_instance("dump_from_ssh")
-EXPECT_EQ(0, len(shell.list_ssh_connections()))
-
-# 6 Cleans the data and load it from the ssh dump
-shell.connect(__sandbox_uri1)
-clean_server(session)
-EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_ssh"), {"ignoreVersion": True}), "Unable to load dump")
-session.close()
-
-
-# 8 Compares both instances again
-compare_instances()
-EXPECT_EQ(0, len(shell.list_ssh_connections()))
-
+# make sure that the instance over SSH has a supported version
+if __mysh_version_num >= mysql_over_ssh_version:
+  # Now creates a dump from the instance over SSH
+  dump_remote_instance("dump_from_ssh")
+  EXPECT_EQ(0, len(shell.list_ssh_connections()))
+  # Cleans the data and load it from the ssh dump
+  shell.connect(__sandbox_uri1)
+  clean_server(session)
+  EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_ssh"), {"ignoreVersion": True}), "Unable to load dump")
+  session.close()
+  # Compares both instances again
+  compare_instances()
+  EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
 # Clean the data in both places
 local_session = mysql.get_session(__sandbox_uri1)
@@ -169,28 +173,27 @@ with open(tmp_sql, "w") as f:
 EXPECT_NO_THROWS(lambda: util.dump_instance(os.path.join(outdir, "dump_from_local_big")), "Unable to dump instance")
 
 
-# 2: Connects to the instance over SSH to load the dump
+# Connects to the instance over SSH to load the dump
 load_dump_on_remote("dump_from_local_big")
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
-# 3: Compares the data in sandbox and the instance over SSH
+# Compares the data in sandbox and the instance over SSH
 compare_instances()
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
-# 4: Now creates a dump from the instance over SSH
-dump_remote_instance("dump_from_ssh_big")
-EXPECT_EQ(0, len(shell.list_ssh_connections()))
-
-# 6 Cleans the data and load it from the ssh dump
-shell.connect(__sandbox_uri1)
-clean_server(session)
-EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_ssh_big"), {"ignoreVersion": True}), "Unable to load dump")
-session.close()
-
-# 8 Compares both instances again
-compare_instances()
-EXPECT_EQ(0, len(shell.list_ssh_connections()))
-
+# make sure that the instance over SSH has a supported version
+if __mysh_version_num >= mysql_over_ssh_version:
+  # Now creates a dump from the instance over SSH
+  dump_remote_instance("dump_from_ssh_big")
+  EXPECT_EQ(0, len(shell.list_ssh_connections()))
+  # Cleans the data and load it from the ssh dump
+  shell.connect(__sandbox_uri1)
+  clean_server(session)
+  EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_ssh_big"), {"ignoreVersion": True}), "Unable to load dump")
+  session.close()
+  # Compares both instances again
+  compare_instances()
+  EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
 # Clean the data in both places
 local_session = mysql.get_session(__sandbox_uri1)
@@ -202,21 +205,23 @@ remote_session.close()
 EXPECT_EQ(0, len(shell.list_ssh_connections()))
 
 #@<> X Protocol Tests {VER(> 8.0.0)}
-#1) Loads a dump using SSH session through X protocol
+# Loads a dump using SSH session through X protocol
 shell.connect({"uri": f"mysqlx://{MYSQL_OVER_SSH_URI}0", "ssh": SSH_URI_NOPASS, "ssh-password": SSH_PASS, "ssh-config-file": config_file})
 EXPECT_TRUE(session.is_open(), "Unable to open connection using shell.connect through SSH tunnel using password")
-EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_ssh"), {"ignoreVersion": True}), "Unable to load dump")
+EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_local"), {"ignoreVersion": True, "resetProgress": True}), "Unable to load dump")
 
-#3) Creates a dump using X protocol
-EXPECT_NO_THROWS(lambda: util.dump_instance(os.path.join(outdir, "dump_from_ssh_x")), "Unable to dump instance")
-session.close()
-EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
+# make sure that the instance over SSH has a supported version
+if __mysh_version_num >= mysql_over_ssh_version:
+  # Creates a dump using X protocol
+  EXPECT_NO_THROWS(lambda: util.dump_instance(os.path.join(outdir, "dump_from_ssh_x")), "Unable to dump instance")
+  session.close()
+  EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 # Clean the data
 remote_session = mysql.get_session({"uri": MYSQL_OVER_SSH_URI, "ssh": SSH_URI_NOPASS, "ssh-password": SSH_PASS, "ssh-config-file": config_file})
 clean_server(remote_session)
 remote_session.close()
 
-# check if ssh connections are properly closed, since util.*dump create multiple connections.
+#@<>check if ssh connections are properly closed, since util.*dump create multiple connections.
 testutil.stop_sandbox(__mysql_sandbox_port1, {"wait":1})
 testutil.destroy_sandbox(__mysql_sandbox_port1)

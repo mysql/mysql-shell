@@ -83,6 +83,7 @@ namespace dump {
 
 using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
+using mysqlshdk::utils::k_shell_version;
 using mysqlshdk::utils::Version;
 
 using Row = std::vector<std::string>;
@@ -4240,6 +4241,22 @@ void Dumper::fetch_server_information() {
 
   DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
+
+  // given that minor versions may introduce breaking changes, we disallow
+  // dumps starting with the next minor version (8.0.x -> 8.1.0, 8.4.0 -> 8.5.0
+  // -> does not exist, but handles also 9.0.0)
+  const auto unsupported_version =
+      Version{k_shell_version.get_major(), k_shell_version.get_minor() + 1, 0};
+
+  DBUG_EXECUTE_IF("dumper_unsupported_server_version",
+                  { m_server_version.version = unsupported_version; });
+
+  if (m_server_version.version >= unsupported_version) {
+    throw std::runtime_error(
+        shcore::str_format("Unsupported MySQL Server %s detected, please "
+                           "upgrade the MySQL Shell first",
+                           m_server_version.version.get_base().c_str()));
+  }
 }
 
 bool Dumper::check_for_upgrade_errors() const {
