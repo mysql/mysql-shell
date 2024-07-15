@@ -165,45 +165,55 @@ TEST(Version, corresponding_versions) {
   EXPECT_THAT(corresponding_versions(Version(8, 4, 1)),
               ElementsAre(Version(8, 0, 38), Version(8, 4, 1)));
 
+  EXPECT_THAT(corresponding_versions(Version(8, 4, 2)),
+              ElementsAre(Version(8, 0, 39), Version(8, 4, 2)));
+
+  EXPECT_THAT(corresponding_versions(Version(8, 4, 3)),
+              ElementsAre(Version(8, 0, 40), Version(8, 4, 3)));
+
   EXPECT_THAT(
       corresponding_versions(Version(9, 0, 0)),
       ElementsAre(Version(8, 0, 38), Version(8, 4, 1), Version(9, 0, 0)));
 
   EXPECT_THAT(
       corresponding_versions(Version(9, 0, 1)),
-      ElementsAre(Version(8, 0, 38), Version(8, 4, 1), Version(9, 0, 1)));
+      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 0, 1)));
+
+  EXPECT_THAT(
+      corresponding_versions(Version(9, 0, 2)),
+      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 0, 2)));
 
   EXPECT_THAT(
       corresponding_versions(Version(9, 1, 0)),
-      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 1, 0)));
+      ElementsAre(Version(8, 0, 40), Version(8, 4, 3), Version(9, 1, 0)));
 
   EXPECT_THAT(
       corresponding_versions(Version(9, 1, 1)),
-      ElementsAre(Version(8, 0, 39), Version(8, 4, 2), Version(9, 1, 1)));
+      ElementsAre(Version(8, 0, 40), Version(8, 4, 3), Version(9, 1, 1)));
 
   EXPECT_THAT(
       corresponding_versions(Version(9, 7, 0)),
-      ElementsAre(Version(8, 0, 45), Version(8, 4, 8), Version(9, 7, 0)));
+      ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 0)));
 
   EXPECT_THAT(
       corresponding_versions(Version(9, 7, 1)),
-      ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1)));
+      ElementsAre(Version(8, 0, 47), Version(8, 4, 10), Version(9, 7, 1)));
 
   EXPECT_THAT(corresponding_versions(Version(10, 0, 0)),
-              ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1),
-                          Version(10, 0, 0)));
+              ElementsAre(Version(8, 0, 47), Version(8, 4, 10),
+                          Version(9, 7, 1), Version(10, 0, 0)));
 
   EXPECT_THAT(corresponding_versions(Version(10, 0, 1)),
-              ElementsAre(Version(8, 0, 46), Version(8, 4, 9), Version(9, 7, 1),
-                          Version(10, 0, 1)));
+              ElementsAre(Version(8, 0, 47), Version(8, 4, 10),
+                          Version(9, 7, 1), Version(10, 0, 1)));
 
   EXPECT_THAT(corresponding_versions(Version(10, 7, 0)),
-              ElementsAre(Version(8, 0, 53), Version(8, 4, 16),
+              ElementsAre(Version(8, 0, 54), Version(8, 4, 17),
                           Version(9, 7, 8), Version(10, 7, 0)));
 
   EXPECT_THAT(
       corresponding_versions(Version(11, 0, 0)),
-      ElementsAre(Version(8, 0, 54), Version(8, 4, 17), Version(9, 7, 9),
+      ElementsAre(Version(8, 0, 55), Version(8, 4, 18), Version(9, 7, 9),
                   Version(10, 7, 1), Version(11, 0, 0)));
 }
 
