@@ -29,11 +29,11 @@
 #include <cassert>
 #include <charconv>
 #include <map>
+#include <set>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include <iostream>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -203,37 +203,233 @@ int major_version_difference(const Version &source, const Version &target) {
   return major_version(target) - major_version(source);
 }
 
+namespace {
+namespace lts {
+
+using off_cycle_releases_t = std::set<int>;
+
+constexpr int k_minor_version_8_0 = 0;
+constexpr int k_minor_version_8_4 = 4;
+constexpr int k_minor_version = 7;
+
+namespace detail {
+
+// ID of an 8.0 LTS release
+constexpr int k_release_8_0_id = 7;
+
+// LTS off-cycle releases
+const std::unordered_map<int, off_cycle_releases_t> k_off_cycle_releases{
+    {
+        k_release_8_0_id,  // 8.0.x
+        {
+            39,
+        },
+    },
+    {
+        8,  // 8.4.x
+        {
+            2,
+        },
+    },
+};
+
+bool off_cycle_releases(int version_id, const off_cycle_releases_t **releases) {
+  assert(releases);
+
+  if (const auto found = k_off_cycle_releases.find(version_id);
+      k_off_cycle_releases.end() != found) {
+    *releases = &found->second;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+}  // namespace detail
+
+/**
+ * Checks if this is an LTS release.
+ */
+inline bool is_lts_release(const Version &v) {
+  if (8 == v.get_major()) {
+    return k_minor_version_8_0 == v.get_minor() ||
+           k_minor_version_8_4 == v.get_minor();
+  } else {
+    return k_minor_version == v.get_minor();
+  }
+}
+
+/**
+ * Patch versions of the off-cycle releases of the given LTS release series.
+ *
+ * @returns false, if there are no off-cycle releases
+ */
+inline bool off_cycle_releases(const Version &v,
+                               const off_cycle_releases_t **releases) {
+  assert(is_lts_release(v));
+
+  int major = v.get_major();
+
+  if (8 == major && k_minor_version_8_0 == v.get_minor()) {
+    major = detail::k_release_8_0_id;
+  }
+
+  return detail::off_cycle_releases(major, releases);
+}
+
+/**
+ * Off-cycle release is an innovation release with non-zero patch version, or
+ * one of the LTS versions listed above.
+ */
+inline bool is_off_cycle_release(const Version &v) {
+  if (!is_lts_release(v)) {
+    return v.get_patch();
+  }
+
+  if (const lts::off_cycle_releases_t * patch_versions;
+      lts::off_cycle_releases(v, &patch_versions)) {
+    return std::binary_search(patch_versions->begin(), patch_versions->end(),
+                              v.get_patch());
+  }
+
+  return false;
+}
+
+/**
+ * Counts the number of planned releases in this series up to and including the
+ * given major.minor version.
+ */
+inline int count_planned_releases(int major, int minor) {
+  assert(major > 8 || minor > 0);  // major.minor >= 8.1
+  int count = minor;
+
+  if (8 != major) {
+    // first innovation release is x.0.0, need to add 1 accommodate for this
+    ++count;
+  }
+
+  return count;
+}
+
+inline int count_planned_releases(const Version &v) {
+  return count_planned_releases(v.get_major(), v.get_minor());
+}
+
+/**
+ * Counts the number of off-cycle releases in this series up to and including
+ * the given major.minor.patch version.
+ */
+inline int count_off_cycle_releases(const Version &v) {
+  assert(is_lts_release(v));
+
+  if (const lts::off_cycle_releases_t * patch_versions;
+      lts::off_cycle_releases(v, &patch_versions)) {
+    int count = patch_versions->size();
+
+    // starting with the latest off-cycle release, count the number of these
+    // releases which are less than or equal to the requested version
+    for (auto it = patch_versions->rbegin(); it != patch_versions->rend();
+         ++it) {
+      if (*it > v.get_patch()) {
+        --count;
+      } else {
+        break;
+      }
+    }
+
+    return count;
+  } else {
+    // no off-cycle releases
+    return 0;
+  }
+}
+
+}  // namespace lts
+}  // namespace
+
 std::vector<Version> corresponding_versions(Version version) {
   // first innovation release
   assert(version >= Version(8, 1, 0));
-  // LTS releases are 8.4.0, then X.7.0
-  assert((version.get_major() == 8 && version.get_minor() <= 4) ||
-         (version.get_major() > 8 && version.get_minor() <= 7));
+  // LTS releases are 8.4.0, then x.7.0
+  assert(
+      (version.get_major() == 8 &&
+       version.get_minor() <= lts::k_minor_version_8_4) ||
+      (version.get_major() > 8 && version.get_minor() <= lts::k_minor_version));
 
-  // number of releases so far
-  int releases = (version.get_major() == 8)
-                     ? version.get_minor() +
-                           (version.get_minor() < 4 ? 0 : version.get_patch())
-                     : 1 + version.get_minor() +
-                           (version.get_minor() < 7 ? 0 : version.get_patch());
+  // this holds number of planned releases released so far
+  int planned_releases = lts::count_planned_releases(version);
 
+  if (lts::is_lts_release(version)) {
+    // this is an LTS release, count number of releases in the LTS series
+    planned_releases += version.get_patch();
+    // but don't count off-cycle releases
+    planned_releases -= lts::count_off_cycle_releases(version);
+  }
+
+  static const auto lts_release_patch = [](int major, int releases,
+                                           bool allow_off_cycle) {
+    // we have the number of planned releases, but we need to adjust this
+    // number by the number of off-cycle releases that happened in between
+    if (const lts::off_cycle_releases_t * patch_versions;
+        lts::detail::off_cycle_releases(major, &patch_versions)) {
+      // add all off-cycle releases
+      releases += patch_versions->size();
+
+      // starting from the end, find the off-cycle release that's smaller than
+      // the requested number of releases
+      for (auto it = patch_versions->rbegin(); it != patch_versions->rend();
+           ++it) {
+        if (*it < releases) {
+          // patch version of the off-cycle release is smaller than the
+          // requested number, stop here
+          break;
+        } else if (*it == releases) {
+          // patch version is equal to the requested number, return this version
+          // when off-cycle versions are not allowed, return previous version
+          // NOTE: off-cycle versions are allowed only when we're looking for a
+          // version corresponding to an off-cycle version
+          if (!allow_off_cycle) {
+            --releases;
+          }
+
+          break;
+        } else {
+          --releases;
+        }
+      }
+    }
+
+    return releases;
+  };
+
+  const auto is_off_cycle = lts::is_off_cycle_release(version);
+
+  // start with the requested version
   std::vector<Version> result;
   result.emplace_back(std::move(version));
 
   while (true) {
-    const auto &prev = result.back();
+    // get the major version of the previous LTS release
+    const auto lts_release_major = result.back().get_major() - 1;
 
-    if (prev.get_major() == 8) {
-      result.emplace_back(8, 0, 33 + releases);
+    if (lts::detail::k_release_8_0_id == lts_release_major) {
+      // 8.0 series
+      result.emplace_back(
+          8, lts::k_minor_version_8_0,
+          lts_release_patch(lts::detail::k_release_8_0_id,
+                            33 + planned_releases, is_off_cycle));
       break;
-    } else if (prev.get_major() == 9) {
-      result.emplace_back(8, 4, releases);
-      // three innovation releases + LTS
-      releases += 4;
     } else {
-      result.emplace_back(prev.get_major() - 1, 7, releases);
-      // seven innovation releases + LTS
-      releases += 8;
+      // minor version of the previous LTS release
+      const auto lts_release_minor = (8 == lts_release_major)
+                                         ? lts::k_minor_version_8_4
+                                         : lts::k_minor_version;
+
+      result.emplace_back(
+          lts_release_major, lts_release_minor,
+          lts_release_patch(lts_release_major, planned_releases, is_off_cycle));
+      planned_releases +=
+          lts::count_planned_releases(lts_release_major, lts_release_minor);
     }
   }
 
