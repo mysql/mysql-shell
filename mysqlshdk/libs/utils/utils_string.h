@@ -749,6 +749,14 @@ using heterogeneous_map =
 template <typename Key>
 using heterogeneous_set = std::unordered_set<Key, string_hash, std::equal_to<>>;
 
+inline std::string utf8_upper(std::string_view s) {
+  return wide_to_utf8(str_upper(utf8_to_wide(s.data(), s.length())));
+}
+
+inline std::string utf8_lower(std::string_view s) {
+  return wide_to_utf8(str_lower(utf8_to_wide(s.data(), s.length())));
+}
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

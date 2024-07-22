@@ -34,6 +34,8 @@
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -171,9 +173,6 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("version"))
     m_contents.dump_version = Version(md->get_string("version"));
 
-  if (md->has_key("serverVersion"))
-    m_contents.server_version = Version(md->get_string("serverVersion"));
-
   if (md->has_key("targetVersion"))
     m_contents.target_version = Version(md->get_string("targetVersion"));
 
@@ -181,15 +180,6 @@ Dump_reader::Status Dump_reader::open() {
 
   if (md->has_key("defaultCharacterSet"))
     m_contents.default_charset = md->get_string("defaultCharacterSet");
-
-  if (md->has_key("binlogFile"))
-    m_contents.binlog_file = md->get_string("binlogFile");
-
-  if (md->has_key("binlogPosition"))
-    m_contents.binlog_position = md->get_uint("binlogPosition");
-
-  if (md->has_key("gtidExecuted"))
-    m_contents.gtid_executed = md->get_string("gtidExecuted");
 
   if (md->has_key("gtidExecutedInconsistent")) {
     m_contents.gtid_executed_inconsistent =
@@ -201,8 +191,58 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("mdsCompatibility"))
     m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
 
-  if (md->has_key("partialRevokes"))
-    m_contents.partial_revokes = md->get_bool("partialRevokes");
+  if (md->has_key("source")) {
+    const auto source = md->at("source").as_map();
+
+    if (source->has_key("binlog")) {
+      const auto binlog = source->at("binlog").as_map();
+
+      m_contents.binlog_file = binlog->get_string("file");
+      m_contents.binlog_position = binlog->get_uint("position");
+    }
+
+    {
+      const auto sysvars = source->at("sysvars").as_map();
+
+      if (const auto version = sysvars->find("version");
+          sysvars->end() != version) {
+        m_contents.server_version = Version{version->second.as_string()};
+      }
+
+      if (const auto gtid_executed = sysvars->find("gtid_executed");
+          sysvars->end() != gtid_executed) {
+        m_contents.gtid_executed = gtid_executed->second.as_string();
+      }
+
+      if (const auto partial_revokes = sysvars->find("partial_revokes");
+          sysvars->end() != partial_revokes) {
+        m_contents.partial_revokes = mysqlshdk::mysql::sysvar_to_bool(
+            "partial_revokes", partial_revokes->second.as_string());
+      }
+
+      if (const auto lower_case_table_names =
+              sysvars->find("lower_case_table_names");
+          sysvars->end() != lower_case_table_names) {
+        m_contents.lower_case_table_names = shcore::lexical_cast<int8_t>(
+            lower_case_table_names->second.as_string());
+      }
+    }
+  } else {
+    if (md->has_key("serverVersion"))
+      m_contents.server_version = Version(md->get_string("serverVersion"));
+
+    if (md->has_key("binlogFile"))
+      m_contents.binlog_file = md->get_string("binlogFile");
+
+    if (md->has_key("binlogPosition"))
+      m_contents.binlog_position = md->get_uint("binlogPosition");
+
+    if (md->has_key("gtidExecuted"))
+      m_contents.gtid_executed = md->get_string("gtidExecuted");
+
+    if (md->has_key("partialRevokes"))
+      m_contents.partial_revokes = md->get_bool("partialRevokes");
+  }
 
   if (md->has_key("compatibilityOptions")) {
     const auto options = md->at("compatibilityOptions")
@@ -1616,6 +1656,15 @@ void Dump_reader::Dump_info::parse_done_metadata(
     if (metadata->has_key("chunkFileBytes")) {
       for (const auto &file : *metadata->get_map("chunkFileBytes")) {
         chunk_data_sizes[file.first] = file.second.as_uint();
+      }
+    }
+
+    if (metadata->has_key("issues")) {
+      const auto issues = metadata->get_map("issues");
+
+      if (const auto issue = issues->find("hasInvalidViewReferences");
+          issues->end() != issue) {
+        has_invalid_view_references = issue->second.as_bool();
       }
     }
   } else {

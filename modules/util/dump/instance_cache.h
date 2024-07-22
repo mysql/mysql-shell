@@ -26,6 +26,7 @@
 #ifndef MODULES_UTIL_DUMP_INSTANCE_CACHE_H_
 #define MODULES_UTIL_DUMP_INSTANCE_CACHE_H_
 
+#include <cinttypes>
 #include <functional>
 #include <map>
 #include <memory>
@@ -41,6 +42,7 @@
 #include "mysqlshdk/libs/db/query_helper.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -121,12 +123,15 @@ struct Instance_cache {
   struct View : public Table {
     std::string character_set_client;
     std::string collation_connection;
+    std::set<mysqlshdk::parser::Table_reference> table_references;
   };
 
   struct Schema {
     std::string collation;
     std::unordered_map<std::string, Table> tables;
+    std::unordered_map<std::string, Table *> tables_lowercase;
     std::unordered_map<std::string, View> views;
+    std::unordered_map<std::string, View *> views_lowercase;
     std::unordered_set<std::string> events;
     std::unordered_set<std::string> functions;
     std::unordered_set<std::string> procedures;
@@ -156,26 +161,35 @@ struct Instance_cache {
   };
 
   struct Server_version {
-    mysqlshdk::utils::Version version;
+    mysqlshdk::utils::Version number;
     bool is_5_6 = false;
     bool is_5_7 = false;
     bool is_8_0 = false;
     bool is_maria_db = false;
   };
 
+  struct Server_info {
+    Server_version version;
+    Binlog binlog;
+    std::string gtid_executed;
+    std::string hostname;
+    int8_t lower_case_table_names = 0;
+    bool partial_revokes = false;
+    std::map<std::string, std::string> sysvars;
+  };
+
   bool has_ndbinfo = false;
   std::string user;
   std::string hostname;
-  std::string server;
-  Server_version server_version;
-  Binlog binlog;
-  std::string gtid_executed;
+  Server_info server;
+
   std::unordered_map<std::string, Schema> schemas;
+  std::unordered_map<std::string, Schema *> schemas_lowercase;
   std::vector<shcore::Account> users;
   std::vector<shcore::Account> roles;
+
   Stats total;
   Stats filtered;
-  bool partial_revokes = false;
 };
 
 class Instance_cache_builder final {
@@ -318,6 +332,8 @@ class Instance_cache_builder final {
    */
   uint64_t count(const Iterate_table &info,
                  const std::string &where = {}) const;
+
+  void initialize_lowercase_names();
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 

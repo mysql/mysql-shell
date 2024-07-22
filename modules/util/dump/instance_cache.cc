@@ -35,9 +35,11 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/query_helper.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -271,7 +273,7 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
 Instance_cache_builder &Instance_cache_builder::binlog_info() {
   Profiler profiler{"fetching binlog info"};
 
-  m_cache.binlog = Schema_dumper{m_session}.binlog();
+  m_cache.server.binlog = Schema_dumper{m_session}.binlog();
 
   return *this;
 }
@@ -384,7 +386,7 @@ void Instance_cache_builder::fetch_metadata(
 void Instance_cache_builder::fetch_version() {
   Profiler profiler{"fetching version"};
 
-  m_cache.server_version = Schema_dumper{m_session}.server_version();
+  m_cache.server.version = Schema_dumper{m_session}.server_version();
 }
 
 void Instance_cache_builder::fetch_server_metadata() {
@@ -393,24 +395,54 @@ void Instance_cache_builder::fetch_server_metadata() {
   const auto &co = m_session->get_connection_options();
 
   m_cache.user = co.get_user();
+  m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
   {
     const auto result = query("SELECT @@GLOBAL.HOSTNAME;");
 
     if (const auto row = result->fetch_one()) {
-      m_cache.server = row->get_string(0);
+      m_cache.server.hostname = row->get_string(0);
     } else {
-      m_cache.server = co.has_host() ? co.get_host() : "localhost";
+      m_cache.server.hostname = co.has_host() ? co.get_host() : "localhost";
     }
   }
 
-  m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
+  {
+    const auto result = query("SHOW GLOBAL VARIABLES");
 
-  Schema_dumper dumper{m_session};
-  m_cache.gtid_executed = dumper.gtid_executed();
+    while (const auto row = result->fetch_one()) {
+      m_cache.server.sysvars.emplace(row->get_string(0), row->get_string(1));
+    }
+  }
 
-  if (m_cache.server_version.version >= mysqlshdk::utils::Version(8, 0, 16)) {
-    m_cache.partial_revokes = dumper.partial_revokes();
+  if (const auto gtid_executed = m_cache.server.sysvars.find("gtid_executed");
+      m_cache.server.sysvars.end() != gtid_executed &&
+      !DBUG_EVALUATE_IF("dumper_gtid_executed_missing", true, false)) {
+    m_cache.server.gtid_executed = gtid_executed->second;
+  } else {
+    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
+    current_console()->print_warning(
+        "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
+  }
+
+  if (m_cache.server.version.number >= mysqlshdk::utils::Version(8, 0, 16)) {
+    if (const auto partial_revokes =
+            m_cache.server.sysvars.find("partial_revokes");
+        m_cache.server.sysvars.end() != partial_revokes) {
+      m_cache.server.partial_revokes = mysqlshdk::mysql::sysvar_to_bool(
+          "partial_revokes", partial_revokes->second);
+    }
+  }
+
+  if (const auto lower_case_table_names =
+          m_cache.server.sysvars.find("lower_case_table_names");
+      m_cache.server.sysvars.end() != lower_case_table_names) {
+    m_cache.server.lower_case_table_names =
+        shcore::lexical_cast<int8_t>(lower_case_table_names->second);
+
+    if (2 == m_cache.server.lower_case_table_names) {
+      initialize_lowercase_names();
+    }
   }
 }
 
@@ -439,14 +471,54 @@ void Instance_cache_builder::fetch_view_metadata() {
       "CHARACTER_SET_CLIENT",  // NOT NULL
       "COLLATION_CONNECTION"   // NOT NULL
   };
+
+  // BUG#36509026 - we're fetching view definitions to extract table references,
+  // starting with 8.0.13 we get those from I_S.VIEW_TABLE_USAGE
+  static const mysqlshdk::utils::Version k_has_view_table_usage{8, 0, 13};
+
+  if (m_cache.server.version.number < k_has_view_table_usage) {
+    info.extra_columns.emplace_back("VIEW_DEFINITION");  // can be NULL in 8.x
+  }
+
   info.table_name = "views";
 
-  iterate_views(info, [](const std::string &, const std::string &,
-                         Instance_cache::View *view,
-                         const mysqlshdk::db::IRow *row) {
+  iterate_views(info, [this](const std::string &schema, const std::string &,
+                             Instance_cache::View *view,
+                             const mysqlshdk::db::IRow *row) {
     view->character_set_client = row->get_string(2);  // CHARACTER_SET_CLIENT
     view->collation_connection = row->get_string(3);  // COLLATION_CONNECTION
+
+    if (row->num_fields() > 4) {
+      for (auto &ref : mysqlshdk::parser::extract_table_references(
+               row->get_string(4, {}),  // VIEW_DEFINITION
+               m_cache.server.version.number)) {
+        if (ref.schema.empty()) {
+          ref.schema = schema;
+        }
+
+        view->table_references.emplace(std::move(ref));
+      }
+    }
   });
+
+  if (m_cache.server.version.number >= k_has_view_table_usage) {
+    Iterate_table usage;
+    usage.schema_column = "VIEW_SCHEMA";  // NOT NULL
+    usage.table_column = "VIEW_NAME";     // NOT NULL
+    usage.extra_columns = {
+        "TABLE_SCHEMA",  // NOT NULL
+        "TABLE_NAME"     // NOT NULL
+    };
+    usage.table_name = "view_table_usage";
+
+    iterate_views(
+        usage, [](const std::string &, const std::string &,
+                  Instance_cache::View *view, const mysqlshdk::db::IRow *row) {
+          view->table_references.emplace(mysqlshdk::parser::Table_reference{
+              row->get_string(2),    // TABLE_SCHEMA
+              row->get_string(3)});  // TABLE_NAME
+        });
+  }
 }
 
 void Instance_cache_builder::fetch_columns() {
@@ -667,7 +739,7 @@ void Instance_cache_builder::fetch_table_indexes() {
 void Instance_cache_builder::fetch_table_histograms() {
   Profiler profiler{"fetching table histograms"};
 
-  if (!has_tables() || !m_cache.server_version.is_8_0) {
+  if (!has_tables() || !m_cache.server.version.is_8_0) {
     return;
   }
 
@@ -957,6 +1029,23 @@ uint64_t Instance_cache_builder::count(const Iterate_table &info,
   filter += where;
 
   return count(info.table_name, filter);
+}
+
+void Instance_cache_builder::initialize_lowercase_names() {
+  for (auto &schema : m_cache.schemas) {
+    auto &s = schema.second;
+
+    m_cache.schemas_lowercase.emplace(shcore::utf8_lower(schema.first), &s);
+
+    for (auto &table : s.tables) {
+      s.tables_lowercase.emplace(shcore::utf8_lower(table.first),
+                                 &table.second);
+    }
+
+    for (auto &view : s.views) {
+      s.views_lowercase.emplace(shcore::utf8_lower(view.first), &view.second);
+    }
+  }
 }
 
 }  // namespace dump

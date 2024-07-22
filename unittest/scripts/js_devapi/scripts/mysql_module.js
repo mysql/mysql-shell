@@ -45,6 +45,9 @@ mysql.parseStatementAst("this is not valid sql");
 mysql.parseStatementAst("");
 mysql.parseStatementAst("SELECT");
 
+//@<> BUG#37018247 - quoted literals when ANSI quotes is disabled - TODO
+EXPECT_NO_THROWS(function () { mysql.parseStatementAst('SELECT "1"'); });
+
 //@ splitScript
 mysql.splitScript("select 1")
 mysql.splitScript("select 1; select 2;")

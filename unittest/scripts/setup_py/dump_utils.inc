@@ -393,6 +393,14 @@ def deprecated_and_disabled_authentication_plugin(user):
     warning = f"User {user} is using a deprecated authentication plugin 'mysql_native_password' which is disabled by default"
     return Compatibility_issue(None, None, warning)
 
+def view_references_excluded_table(schema, view, ref_schema, ref_table):
+    warning = f"View `{schema}`.`{view}` references table/view `{ref_schema}`.`{ref_table}` which is not included in the dump"
+    return Compatibility_issue(None, None, warning)
+
+def view_references_invalid_table(schema, view, ref_schema, ref_table):
+    warning = f"View `{schema}`.`{view}` references table/view `{ref_schema}`.`{ref_table}` which was not found using case-sensitive search"
+    return Compatibility_issue(warning, None, warning)
+
 def supports_set_any_definer_privilege(ver):
     return testutil.version_check(ver, ">=", "8.2.0")
 

@@ -2942,7 +2942,7 @@ for f in os.listdir(dump_dir):
         continue
     p = os.path.join(dump_dir, f)
     os.rename(p, p + ".bak")
-    if e.success:     
+    if e.success:
         EXPECT_NO_THROWS(l, f"Load should not fail when file {f} is missing")
     else:
         EXPECT_THROWS(l, e.msg)
@@ -3312,6 +3312,47 @@ EXPECT_SHELL_LOG_CONTAINS(f"Chunking {quote_identifier(test_schema, test_table)}
 session.run_sql("SET @@GLOBAL.explain_json_format_version = @saved_explain_json_format_version")
 
 #@<> BUG#36470302 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+
+#@<> BUG#36509026 - warn if there's mismatch between source's and target's lower_case_table_names
+# constants
+dump_dir = os.path.join(outdir, "bug_36509026")
+test_schema = "test_schema"
+lower_case_table_names_message = "WARNING: The dump was created on an instance where the 'lower_case_table_names' system variable was set to -1, however the target instance has it set to "
+invalid_view_message = "WARNING: The dump contains views that reference tables using the wrong case which will not work in the target instance. You must either fix these views prior to dumping them or exclude them from the load."
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session.run_sql("CREATE SCHEMA !", [ test_schema ])
+
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "showProgress": False }), "Dump should not throw")
+
+# alter the @.json, set lower_case_table_names to -1
+j = read_json(os.path.join(dump_dir, "@.json"))
+j["source"]["sysvars"]["lower_case_table_names"] = -1
+write_json(os.path.join(dump_dir, "@.json"), j)
+
+#@<> BUG#36509026 - test
+wipeout_server(session2)
+shell.connect(__sandbox_uri2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "load should succeed")
+EXPECT_STDOUT_CONTAINS(lower_case_table_names_message)
+EXPECT_STDOUT_NOT_CONTAINS(invalid_view_message)
+
+#@<> BUG#36509026 - test simulating a dump with an invalid view
+# alter the @.done.json, insert the issue
+j = read_json(os.path.join(dump_dir, "@.done.json"))
+j.setdefault("issues", {})["hasInvalidViewReferences"] = True
+write_json(os.path.join(dump_dir, "@.done.json"), j)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "load should succeed")
+EXPECT_STDOUT_CONTAINS(lower_case_table_names_message)
+EXPECT_STDOUT_CONTAINS(invalid_view_message)
+
+#@<> BUG#36509026 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 

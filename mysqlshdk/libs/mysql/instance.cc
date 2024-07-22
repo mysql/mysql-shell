@@ -31,6 +31,7 @@
 
 #include <mysqld_error.h>
 
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -177,12 +178,7 @@ std::optional<bool> Instance::get_sysvar_bool(std::string_view name,
   auto value = get_system_variable(name, scope);
   if (!value.has_value()) return {};
 
-  if (shcore::str_caseeq(*value, "YES", "TRUE", "1", "ON")) return true;
-  if (shcore::str_caseeq(*value, "NO", "FALSE", "0", "OFF")) return false;
-
-  throw std::runtime_error(
-      shcore::str_format("The variable %.*s is not boolean.",
-                         static_cast<int>(name.size()), name.data()));
+  return sysvar_to_bool(name, *value);
 }
 
 std::optional<std::string> Instance::get_sysvar_string(

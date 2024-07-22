@@ -26,21 +26,14 @@
 #ifndef MYSQLSHDK_LIBS_PARSER_MYSQL_PARSER_UTILS_H_
 #define MYSQLSHDK_LIBS_PARSER_MYSQL_PARSER_UTILS_H_
 
+#include <cassert>
 #include <functional>
-#include <memory>
+#include <ostream>
+#include <stack>
 #include <string>
-#include <utility>
+#include <string_view>
 #include <vector>
 
-#include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
-
-// hack to workaround antlr4 trying to include Token.h but getting token.h from
-// Python in macos
-#define Py_LIMITED_API
-
-#include "mysqlshdk/libs/parser/mysql/MySQLLexer.h"
-#include "mysqlshdk/libs/parser/mysql/MySQLParser.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlshdk {
@@ -66,6 +59,59 @@ struct AST_error_node {
   int offset;
 };
 
+struct IParser_listener {
+  virtual ~IParser_listener() = default;
+
+  virtual void on_rule(const AST_rule_node &node, bool enter) = 0;
+
+  virtual void on_terminal(const AST_terminal_node &node) = 0;
+
+  virtual void on_error(const AST_error_node &node) = 0;
+};
+
+template <typename T>
+class Parser_listener : public IParser_listener {
+ public:
+  explicit Parser_listener(T *root) { m_contexts.emplace(root); }
+
+  ~Parser_listener() override = default;
+
+  virtual T *on_rule_enter(const AST_rule_node &node, T *) = 0;
+
+  virtual void on_rule_exit(const AST_rule_node &node, T *) = 0;
+
+  virtual void on_terminal(const AST_terminal_node &node, T *) = 0;
+
+  virtual void on_error(const AST_error_node &node, T *) = 0;
+
+ private:
+  void on_rule(const AST_rule_node &node, bool enter) override {
+    if (enter) {
+      m_contexts.push(on_rule_enter(node, m_contexts.top()));
+    } else {
+      m_contexts.pop();
+      assert(!m_contexts.empty());
+      on_rule_exit(node, m_contexts.top());
+    }
+  }
+
+  void on_terminal(const AST_terminal_node &node) override {
+    on_terminal(node, m_contexts.top());
+  }
+
+  void on_error(const AST_error_node &node) override {
+    on_error(node, m_contexts.top());
+  }
+
+  std::stack<T *> m_contexts;
+};
+
+struct Parser_config {
+  mysqlshdk::utils::Version mysql_version;
+  bool ansi_quotes = false;
+  bool no_backslash_escapes = false;
+};
+
 class Sql_syntax_error : public std::runtime_error {
  public:
   Sql_syntax_error(const std::string &msg,
@@ -86,175 +132,42 @@ class Sql_syntax_error : public std::runtime_error {
   size_t m_offset;
 };
 
-namespace internal {
-template <typename T>
-void do_traverse_statement_ast(
-    const std::vector<std::string> &rule_names,
-    const antlr4::dfa::Vocabulary &vocabulary, antlr4::tree::ParseTree *tree,
-    T *parent_data,
-    const std::function<T *(const AST_rule_node &, bool, T *)> &on_rule,
-    const std::function<T *(const AST_terminal_node &, T *)> &on_term,
-    const std::function<T *(const AST_error_node &, T *)> &on_error) {
-  switch (tree->getTreeType()) {
-    case antlr4::tree::ParseTreeType::TERMINAL: {
-      auto term = dynamic_cast<antlr4::tree::TerminalNode *>(tree);
+void traverse_statement_ast(std::string_view stmt, const Parser_config &config,
+                            IParser_listener *listener);
 
-      antlr4::Token *token = term->getSymbol();
-
-      AST_terminal_node node;
-
-      node.offset = token->getStartIndex();
-
-      node.terminal_symbol = token->getType();
-      node.name = vocabulary.getSymbolicName(node.terminal_symbol);
-      node.text = term->getText();
-
-      on_term(node, parent_data);
-      break;
-    }
-    case antlr4::tree::ParseTreeType::RULE: {
-      auto rule = dynamic_cast<antlr4::RuleContext *>(tree);
-
-      AST_rule_node node;
-
-      node.rule_index = rule->getRuleIndex();
-      node.name = rule_names[rule->getRuleIndex()];
-
-      parent_data = on_rule(node, true, parent_data);
-
-      for (const auto child : tree->children) {
-        do_traverse_statement_ast(rule_names, vocabulary, child, parent_data,
-                                  on_rule, on_term, on_error);
-      }
-
-      on_rule(node, false, parent_data);
-      break;
-    }
-    case antlr4::tree::ParseTreeType::ERROR: {
-      auto error = dynamic_cast<antlr4::tree::ErrorNode *>(tree);
-
-      antlr4::Token *token = error->getSymbol();
-
-      AST_error_node node;
-
-      node.terminal_symbol = token->getType();
-      node.name = vocabulary.getSymbolicName(token->getType());
-      node.text = error->getText();
-      node.line = token->getLine();
-      node.offset = token->getCharPositionInLine();
-
-      on_error(node, parent_data);
-      break;
-    }
-  }
-}
-
-class ParserErrorListener : public antlr4::BaseErrorListener {
- public:
-  void syntaxError(antlr4::Recognizer * /* recognizer */,
-                   antlr4::Token *offendingSymbol, size_t line,
-                   size_t charPositionInLine, const std::string &msg,
-                   std::exception_ptr /* e */) override {
-    throw Sql_syntax_error(msg, std::string(offendingSymbol->getText()), line,
-                           charPositionInLine);
-  }
-};
-
-}  // namespace internal
-
-void prepare_lexer_parser(parsers::MySQLLexer *lexer,
-                          parsers::MySQLParser *parser,
-                          const mysqlshdk::utils::Version &mysql_version,
-                          bool ansi_quotes, bool no_backslash_escapes);
-
-template <typename T>
 void traverse_script_ast(
-    const std::string &script, const mysqlshdk::utils::Version &mysql_version,
-    bool ansi_quotes, bool no_backslash_escapes, T *root_data,
-    const std::function<void(const std::string &, size_t, bool enter)> &on_stmt,
-    const std::function<T *(const AST_rule_node &, bool enter, T *)> &on_rule,
-    const std::function<T *(const AST_terminal_node &, T *)> &on_term,
-    const std::function<T *(const AST_error_node &, T *)> &on_error) {
-  antlr4::ANTLRInputStream input;
-  parsers::MySQLLexer lexer(&input);
-  antlr4::CommonTokenStream tokens(&lexer);
-  parsers::MySQLParser parser(&tokens);
-
-  internal::ParserErrorListener error_listener;
-  lexer.addErrorListener(&error_listener);
-  parser.addErrorListener(&error_listener);
-
-  prepare_lexer_parser(&lexer, &parser, mysql_version, ansi_quotes,
-                       no_backslash_escapes);
-
-  parser.setBuildParseTree(true);
-
-  auto &rule_names = parser.getRuleNames();
-  auto &vocabulary = parser.getVocabulary();
-
-  std::stringstream stream(script);
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, 4098,
-      [&](std::string_view stmt, std::string_view /*delim*/, size_t /*lnum*/,
-          size_t offs) {
-        if (shcore::str_ibeginswith(stmt, "delimiter")) return true;
-
-        std::string sql(stmt);
-
-        parser.reset();
-        lexer.reset();
-        input.load(sql);
-        lexer.setInputStream(&input);
-        tokens.setTokenSource(&lexer);
-        parser.setTokenStream(&tokens);
-
-        on_stmt(sql, offs, true);
-        internal::do_traverse_statement_ast(rule_names, vocabulary,
-                                            parser.query(), root_data, on_rule,
-                                            on_term, on_error);
-        on_stmt(sql, offs, false);
-        return true;
-      },
-      [](std::string_view msg) {
-        throw std::runtime_error(
-            shcore::str_format("Error splitting SQL: %.*s",
-                               static_cast<int>(msg.size()), msg.data()));
-      },
-      ansi_quotes);
-}
-
-template <typename T>
-void traverse_statement_ast(
-    const std::string &stmt, const mysqlshdk::utils::Version &mysql_version,
-    bool ansi_quotes, bool no_backslash_escapes, T *root_data,
-    const std::function<T *(const AST_rule_node &, bool enter, T *)> &on_rule,
-    const std::function<T *(const AST_terminal_node &, T *)> &on_term,
-    const std::function<T *(const AST_error_node &, T *)> &on_error) {
-  antlr4::ANTLRInputStream input(stmt);
-  parsers::MySQLLexer lexer(&input);
-  antlr4::CommonTokenStream tokens(&lexer);
-  parsers::MySQLParser parser(&tokens);
-
-  internal::ParserErrorListener error_listener;
-  lexer.addErrorListener(&error_listener);
-  parser.addErrorListener(&error_listener);
-
-  prepare_lexer_parser(&lexer, &parser, mysql_version, ansi_quotes,
-                       no_backslash_escapes);
-
-  parser.setBuildParseTree(true);
-
-  auto &rule_names = parser.getRuleNames();
-  auto &vocabulary = parser.getVocabulary();
-
-  internal::do_traverse_statement_ast(rule_names, vocabulary, parser.query(),
-                                      root_data, on_rule, on_term, on_error);
-}
+    const std::string &script, const Parser_config &config,
+    const std::function<void(std::string_view, size_t, bool enter)> &on_stmt,
+    IParser_listener *listener);
 
 void check_sql_syntax(const std::string &script,
-                      const mysqlshdk::utils::Version &mysql_version = {},
-                      bool ansi_quotes = false,
-                      bool no_backslash_escapes = false);
+                      const Parser_config &config = {});
+
+struct Table_reference {
+  std::string schema;
+  std::string table;
+
+  bool operator==(const Table_reference &other) const;
+
+  bool operator<(const Table_reference &other) const;
+
+  // helper used by gtest
+  friend std::ostream &operator<<(std::ostream &os, const Table_reference &r);
+};
+
+/**
+ * Extracts all table references from the given statement. If reference is not
+ * fully qualified, schema name is going to be empty.
+ *
+ * NOTE: Statements needs to be in canonical form.
+ *
+ * @param stmt Statement to be analyzed.
+ * @param version Server version where this statement is valid.
+ *
+ * @returns Extracted table references.
+ */
+std::vector<Table_reference> extract_table_references(
+    std::string_view stmt, const mysqlshdk::utils::Version &version);
 
 }  // namespace parser
 }  // namespace mysqlshdk

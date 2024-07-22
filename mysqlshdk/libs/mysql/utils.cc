@@ -33,6 +33,7 @@
 #include <memory>
 #include <random>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -955,6 +956,15 @@ size_t iterate_thread_variables(
   }
 
   return num_vars;
+}
+
+bool sysvar_to_bool(std::string_view name, std::string_view value) {
+  if (shcore::str_caseeq(value, "YES", "TRUE", "1", "ON")) return true;
+  if (shcore::str_caseeq(value, "NO", "FALSE", "0", "OFF")) return false;
+
+  throw std::runtime_error(
+      shcore::str_format("The variable %.*s is not boolean.",
+                         static_cast<int>(name.size()), name.data()));
 }
 
 }  // namespace mysql

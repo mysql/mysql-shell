@@ -60,9 +60,11 @@ class Schema_dumper {
       FIXED,
       WARNING_DEPRECATED_DEFINERS,
       WARNING_ESCAPED_WILDCARDS,
+      WARNING_INVALID_VIEW_REFERENCE,
       WARNING,
       FIX_MANUALLY,
       FIX_WILDCARD_GRANTS,
+      FIX_INVALID_VIEW_REFERENCE,
       USE_CREATE_OR_IGNORE_PKS,
       USE_FORCE_INNODB,
       USE_STRIP_DEFINERS,
@@ -152,7 +154,7 @@ class Schema_dumper {
 
   void use_cache(const Instance_cache *cache) { m_cache = cache; }
 
-  std::string gtid_executed(bool quiet = false);
+  std::string gtid_executed();
 
   Instance_cache::Binlog binlog(bool quiet = false);
 
@@ -371,6 +373,10 @@ class Schema_dumper {
   std::vector<std::string> strip_restricted_grants(
       const std::string &user, std::string *ddl,
       std::vector<Issue> *issues) const;
+
+  void check_view_for_table_references(const std::string &db,
+                                       const std::string &name,
+                                       std::vector<Issue> *issues) const;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);

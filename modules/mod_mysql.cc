@@ -388,49 +388,62 @@ Dictionary parseStatementAst(String statements) {}
 dict parse_statement_ast(str statements) {}
 #endif
 shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
-  auto array = shcore::make_array();
-  int errors = 0;
-  shcore::Value root =
-      shcore::Value(shcore::make_dict("children", shcore::Value(array)));
+  class Listener : public mysqlshdk::parser::Parser_listener<shcore::Value> {
+   public:
+    Listener() : Parser_listener(&m_root) {}
 
-  mysqlshdk::parser::traverse_script_ast<shcore::Value>(
-      sql, {}, false, false, &root, [](const std::string &, size_t, bool) {},
-      [](const mysqlshdk::parser::AST_rule_node &node, bool enter,
-         shcore::Value *parent) -> shcore::Value * {
-        if (enter) {
-          auto parent_list = parent->as_map()->get_array("children");
-          parent_list->emplace_back(shcore::make_dict(
-              "rule", node.name, "children", shcore::make_array()));
-          return &parent_list->back();
-        }
-        return nullptr;
-      },
-      [](const mysqlshdk::parser::AST_terminal_node &node,
-         shcore::Value *parent) {
-        auto parent_list = parent->as_map()->get_array("children");
+    auto ast() {
+      // this is only supposed to return 1 node, so remove the parent
+      assert(m_array->size() <= 1);
+      if (m_array->size() == 0) return shcore::Value{};
 
-        parent_list->emplace_back(
-            shcore::make_dict("symbol", node.name, "text", node.text));
+      return m_array->at(0);
+    }
 
-        return &parent_list->back();
-      },
-      [&errors](const mysqlshdk::parser::AST_error_node &node,
-                shcore::Value *parent) {
-        auto parent_list = parent->as_map()->get_array("children");
+   private:
+    auto children(shcore::Value *parent) {
+      return parent->as_map()->get_array("children");
+    }
 
-        ++errors;
-        parent_list->emplace_back(shcore::make_dict(
-            "symbol", node.name, "text", node.text, "line", node.line, "offset",
-            node.offset, "error", shcore::Value(1)));
+    shcore::Value *on_rule_enter(const mysqlshdk::parser::AST_rule_node &node,
+                                 shcore::Value *parent) override {
+      const auto parent_list = children(parent);
 
-        return &parent_list->back();
-      });
+      parent_list->emplace_back(shcore::make_dict("rule", node.name, "children",
+                                                  shcore::make_array()));
 
-  // this is only supposed to return 1 node, so remove the parent
-  assert(array->size() <= 1);
-  if (array->size() == 0) return {};
+      return &parent_list->back();
+    }
 
-  return array->at(0);
+    void on_rule_exit(const mysqlshdk::parser::AST_rule_node &,
+                      shcore::Value *) override {}
+
+    void on_terminal(const mysqlshdk::parser::AST_terminal_node &node,
+                     shcore::Value *parent) override {
+      const auto parent_list = children(parent);
+
+      parent_list->emplace_back(
+          shcore::make_dict("symbol", node.name, "text", node.text));
+    }
+
+    void on_error(const mysqlshdk::parser::AST_error_node &node,
+                  shcore::Value *parent) override {
+      const auto parent_list = children(parent);
+
+      parent_list->emplace_back(shcore::make_dict(
+          "symbol", node.name, "text", node.text, "line", node.line, "offset",
+          node.offset, "error", shcore::Value(1)));
+    }
+
+    shcore::Array_t m_array = shcore::make_array();
+    shcore::Value m_root{shcore::make_dict("children", shcore::Value{m_array})};
+  };
+
+  Listener listener;
+
+  mysqlshdk::parser::traverse_script_ast(sql, {}, {}, &listener);
+
+  return listener.ast();
 }
 
 REGISTER_HELP_FUNCTION(quoteIdentifier, mysql);

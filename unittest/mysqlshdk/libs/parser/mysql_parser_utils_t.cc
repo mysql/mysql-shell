@@ -25,9 +25,6 @@
 
 #include "unittest/gtest_clean.h"
 
-// hack to workaround antlr4 trying to include Token.h but getting token.h from
-// Python in macos
-#define Py_LIMITED_API
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 
 namespace mysqlshdk {
@@ -89,14 +86,16 @@ DELIMITER ;
 }
 
 TEST(MysqlParserUtils, syntax_deprecated_but_not_removed) {
-  EXPECT_NO_THROW(check_sql_syntax("show master status", Version(8, 3, 0)));
-  EXPECT_THROW(check_sql_syntax("show master status", Version(8, 4, 0)),
-               mysqlshdk::parser::Sql_syntax_error);
+  EXPECT_NO_THROW(
+      check_sql_syntax("show master status", Parser_config{Version(8, 3, 0)}));
+  EXPECT_THROW(
+      check_sql_syntax("show master status", Parser_config{Version(8, 4, 0)}),
+      mysqlshdk::parser::Sql_syntax_error);
 
   EXPECT_NO_THROW(check_sql_syntax("change master to master_auto_position=1",
-                                   Version(8, 3, 0)));
+                                   Parser_config{Version(8, 3, 0)}));
   EXPECT_THROW(check_sql_syntax("change master to master_auto_position=1",
-                                Version(8, 4, 0)),
+                                Parser_config{Version(8, 4, 0)}),
                mysqlshdk::parser::Sql_syntax_error);
 }
 
@@ -141,6 +140,129 @@ DELIMITER ;
 )*",
                                 {}),
                Sql_syntax_error);
+}
+
+TEST(MysqlParserUtils, extract_table_references) {
+  const auto EXPECT = [](const std::string &stmt,
+                         const std::vector<Table_reference> &expected) {
+    SCOPED_TRACE(stmt);
+
+    std::vector<Table_reference> actual;
+    EXPECT_NO_THROW(actual = extract_table_references(
+                        stmt, mysqlshdk::utils::k_shell_version));
+    EXPECT_EQ(expected, actual);
+  };
+
+  EXPECT("SELECT * FROM DUAL", {});
+
+  EXPECT("SELECT * FROM t", {{"", "t"}});
+  EXPECT("SELECT * FROM s.t", {{"s", "t"}});
+
+  EXPECT("SELECT * FROM `t`", {{"", "t"}});
+  EXPECT("SELECT * FROM `s`.t", {{"s", "t"}});
+  EXPECT("SELECT * FROM s.`t`", {{"s", "t"}});
+  EXPECT("SELECT * FROM `s`.`t`", {{"s", "t"}});
+
+  EXPECT("SELECT * FROM s.t WHERE 1=0", {{"s", "t"}});
+  EXPECT("SELECT * FROM s.t, t2", {{"s", "t"}, {"", "t2"}});
+  EXPECT("SELECT * FROM s.t, s2.t2 WHERE 1=0", {{"s", "t"}, {"s2", "t2"}});
+
+  EXPECT("SELECT * FROM t PARTITION (p1, p2) AS a FORCE KEY (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t PARTITION (p) FORCE KEY FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t FORCE KEY FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t FORCE KEY FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t FORCE INDEX (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t FORCE INDEX FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t FORCE INDEX FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t FORCE INDEX FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t IGNORE KEY (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE KEY FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE KEY FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE KEY FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t IGNORE INDEX (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE INDEX FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE INDEX FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t IGNORE INDEX FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t USE KEY (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE KEY FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE KEY FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE KEY FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t USE INDEX (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE INDEX FOR JOIN (i)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE INDEX FOR ORDER BY (i1, i2)", {{"", "t"}});
+  EXPECT("SELECT * FROM t USE INDEX FOR GROUP BY (PRIMARY)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t USE INDEX ()", {{"", "t"}});
+
+  EXPECT("SELECT * FROM t USE KEY (i1) USE KEY (i2)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM (t)", {{"", "t"}});
+  EXPECT("SELECT * FROM ((t))", {{"", "t"}});
+  EXPECT("SELECT * FROM (t USE KEY (i))", {{"", "t"}});
+
+  EXPECT("SELECT * FROM (SELECT * FROM t) AS s", {{"", "t"}});
+  EXPECT("SELECT * FROM LATERAL (SELECT * FROM t) AS s (c1, c2)", {{"", "t"}});
+
+  EXPECT("SELECT * FROM (t1 JOIN t2)", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM ((t1 JOIN t2))", {{"", "t1"}, {"", "t2"}});
+
+  EXPECT("SELECT * FROM (t1, t2)", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM ((t1), (t2))", {{"", "t1"}, {"", "t2"}});
+
+  EXPECT(
+      "SELECT * FROM JSON_TABLE('[{\"c1\":null}]','$[*]' COLUMNS(c1 INT PATH "
+      "'$.c1' ERROR ON ERROR)) AS jt, t",
+      {{"", "t"}});
+
+  EXPECT("SELECT * FROM t1 JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 INNER JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 CROSS JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 STRAIGHT_JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 JOIN t2 ON c1=c2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 JOIN t2 USING (c)", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 JOIN t2 USING (c1, c2)", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 JOIN t2 JOIN t3",
+         {{"", "t1"}, {"", "t2"}, {"", "t3"}});
+  EXPECT("SELECT * FROM t1 JOIN t2 JOIN { OJ t3 }",
+         {{"", "t1"}, {"", "t2"}, {"", "t3"}});
+
+  EXPECT("SELECT * FROM t1 LEFT JOIN t2 ON c1=c2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 LEFT OUTER JOIN t2 USING (c)",
+         {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 RIGHT JOIN t2 USING (c1, c2)",
+         {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 RIGHT OUTER JOIN t2 ON c1=c2",
+         {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 LEFT JOIN t2 USING (c) JOIN t3",
+         {{"", "t1"}, {"", "t2"}, {"", "t3"}});
+  EXPECT("SELECT * FROM t1 LEFT JOIN t2 USING (c1, c2) JOIN { OJ t3 }",
+         {{"", "t1"}, {"", "t2"}, {"", "t3"}});
+
+  EXPECT("SELECT * FROM t1 NATURAL JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 NATURAL INNER JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 NATURAL RIGHT JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 NATURAL RIGHT OUTER JOIN t2",
+         {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 NATURAL LEFT JOIN t2", {{"", "t1"}, {"", "t2"}});
+  EXPECT("SELECT * FROM t1 NATURAL LEFT OUTER JOIN t2",
+         {{"", "t1"}, {"", "t2"}});
+
+  EXPECT("SELECT * FROM { OJ t }", {{"", "t"}});
+  EXPECT("SELECT * FROM { OJ t1 JOIN t2 }", {{"", "t1"}, {"", "t2"}});
+
+  EXPECT("TABLE t", {{"", "t"}});
+  EXPECT("TABLE t ORDER BY c LIMIT 1 OFFSET 2", {{"", "t"}});
+
+  EXPECT("WITH cte AS (SELECT c FROM t) SELECT c FROM cte", {{"", "t"}});
+  EXPECT(
+      "WITH cte (c1, c2) AS (SELECT 1, 2 UNION ALL SELECT 3, 4) SELECT c1, c2 "
+      "FROM cte;",
+      {});
 }
 
 }  // namespace parser

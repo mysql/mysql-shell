@@ -11,6 +11,7 @@ import random
 import shutil
 import threading
 import time
+from typing import NamedTuple
 
 outdir = __tmp_dir+"/ldtest"
 try:
@@ -233,23 +234,25 @@ metadata_file = os.path.join(outdir, "fulldump", "@.json")
 wipeout_server(session2)
 shell.connect(__sandbox_uri2)
 
-def set_binlog_info(file, position, gtid):
+class Binlog(NamedTuple):
+    file: str
+    position: int
+
+def set_binlog_info(binlog: Binlog, gtid):
     with open(metadata_file, "r+", encoding="utf-8") as json_file:
         # read contents
         metadata = json.load(json_file)
+        source = metadata['source']
         # modify data
-        if file is None:
-            metadata.pop('binlogFile', None)
+        if binlog is None:
+            source.pop('binlog', None)
         else:
-            metadata['binlogFile'] = file
-        if position is None:
-            metadata.pop('binlogPosition', None)
-        else:
-            metadata['binlogPosition'] = position
+            source.setdefault('binlog', {})['file'] = binlog.file
+            source.setdefault('binlog', {})['position'] = binlog.position
         if gtid is None:
-            metadata.pop('gtidExecuted', None)
+            source['sysvars'].pop('gtid_executed', None)
         else:
-            metadata['gtidExecuted'] = gtid
+            source['sysvars']['gtid_executed'] = gtid
         # write back to file
         json_file.seek(0)
         json.dump(metadata, json_file)
@@ -280,23 +283,23 @@ EXPECT_BINLOG_INFO(binlog_file, binlog_position, gtid_executed)
 testutil.cpfile(metadata_file, metadata_file + ".bak")
 
 #@<> no binary log information
-set_binlog_info(None, None, None)
+set_binlog_info(None, None)
 EXPECT_BINLOG_INFO("", 0, "", { "loadData": True, "loadDdl": False, "loadUsers": False })
 
 #@<> only executed GTID set
-set_binlog_info(None, None, "gtid_executed")
+set_binlog_info(None, "gtid_executed")
 EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": True, "loadUsers": False })
 
 #@<> executed GTID set + empty binlog file + zero binlog position
-set_binlog_info("", 0, "gtid_executed")
+set_binlog_info(Binlog("", 0), "gtid_executed")
 EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": False, "loadUsers": True })
 
 #@<> executed GTID set + empty binlog file + non-zero binlog position
-set_binlog_info("", 5, "gtid_executed")
+set_binlog_info(Binlog("", 5), "gtid_executed")
 EXPECT_BINLOG_INFO("", 5, "gtid_executed")
 
 #@<> everything is available
-set_binlog_info("binlog.file", 1234, "gtid_executed")
+set_binlog_info(Binlog("binlog.file", 1234), "gtid_executed")
 EXPECT_BINLOG_INFO("binlog.file", "1234", "gtid_executed")
 
 #@<> restore backup of @.json

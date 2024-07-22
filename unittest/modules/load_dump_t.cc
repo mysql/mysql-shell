@@ -577,6 +577,13 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
     mock_main_session
         ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('lower_case_table_names')")
+        .then({"Variable_name", "Value"})
+        .add_row({"lower_case_table_names", "0"});
+
+    mock_main_session
+        ->expect_query(
             "SELECT VARIABLE_VALUE = 'OFF' FROM "
             "performance_schema.global_status WHERE variable_name = "
             "'Innodb_redo_log_enabled'")
@@ -702,6 +709,13 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
           "show GLOBAL variables where `variable_name` in ('partial_revokes')")
       .then({"Variable_name", "Value"})
       .add_row({"partial_revokes", "OFF"});
+
+  mock_main_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('lower_case_table_names')")
+      .then({"Variable_name", "Value"})
+      .add_row({"lower_case_table_names", "0"});
 
   options.set_session(mock_main_session);
 

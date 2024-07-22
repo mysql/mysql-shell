@@ -1646,7 +1646,10 @@ excluded_schemas = [ "xtest" ]
 excluded_tables = []
 
 for table in missing_pks[test_schema]:
-    excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
+    excluded_tables.append(quote_identifier(test_schema, table))
+
+# references excluded table
+excluded_tables.append(quote_identifier(test_schema, test_view))
 
 recreate_verification_schema()
 target_version = "8.1.0"
@@ -2423,12 +2426,12 @@ EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
 EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")
 
 #@<> BUG#32515696 dump should not fail if GTID_EXECUTED system variable is not available {not __dbug_off}
-testutil.set_trap("mysql", ["sql == SELECT @@GLOBAL.GTID_EXECUTED;"], { "code": 1193, "msg": "Unknown system variable 'GTID_EXECUTED'.", "state": "HY000" })
+testutil.dbug_set("+d,dumper_gtid_executed_missing")
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch value of @@GLOBAL.GTID_EXECUTED.")
 
-testutil.clear_traps("mysql")
+testutil.dbug_set("")
 
 #@<> BUG#32515696 dump should not fail if table histograms are not available {VER(>=8.0.0) and not __dbug_off}
 testutil.set_trap("mysql", ["sql regex .*number-of-buckets-specified.*"], { "code": 1109, "msg": "Unknown table 'COLUMN_STATISTICS' in information_schema.", "state": "42S02" })

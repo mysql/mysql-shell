@@ -297,6 +297,9 @@ void Load_dump_options::set_session(
     m_partial_revokes =
         instance.get_sysvar_bool("partial_revokes").value_or(false);
   }
+
+  m_lower_case_table_names =
+      instance.get_sysvar_int("lower_case_table_names", 0);
 }
 
 void Load_dump_options::validate() {

@@ -3126,6 +3126,22 @@ void Dump_loader::check_server_version() {
         "will be set to 'OFF'. Please note that creation of foreign keys with "
         "non-standard keys may break the replication.");
   }
+
+  if (m_options.load_ddl() && m_dump->lower_case_table_names().has_value() &&
+      *m_dump->lower_case_table_names() != m_options.lower_case_table_names()) {
+    console->print_warning(shcore::str_format(
+        "The dump was created on an instance where the "
+        "'lower_case_table_names' system variable was set to %d, however the "
+        "target instance has it set to %d.",
+        *m_dump->lower_case_table_names(), m_options.lower_case_table_names()));
+
+    if (m_dump->has_invalid_view_references()) {
+      console->print_warning(
+          "The dump contains views that reference tables using the wrong case "
+          "which will not work in the target instance. You must either fix "
+          "these views prior to dumping them or exclude them from the load.");
+    }
+  }
 }
 
 void Dump_loader::check_tables_without_primary_key() {

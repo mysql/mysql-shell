@@ -160,11 +160,12 @@ issues::Status_set show_issues(
       if (Schema_dumper::Issue::Status::WARNING_DEPRECATED_DEFINERS ==
           issue.status) {
         status.set(issues::Status::WARNING_DEPRECATED_DEFINERS);
-      }
-
-      if (Schema_dumper::Issue::Status::WARNING_ESCAPED_WILDCARDS ==
-          issue.status) {
+      } else if (Schema_dumper::Issue::Status::WARNING_ESCAPED_WILDCARDS ==
+                 issue.status) {
         status.set(issues::Status::WARNING_ESCAPED_WILDCARDS);
+      } else if (Schema_dumper::Issue::Status::WARNING_INVALID_VIEW_REFERENCE ==
+                 issue.status) {
+        status.set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES);
       }
 
       console->print_warning(issue.description);
@@ -181,6 +182,9 @@ issues::Status_set show_issues(
       } else if (Schema_dumper::Issue::Status::FIX_WILDCARD_GRANTS ==
                  issue.status) {
         status.set(issues::Status::ERROR_HAS_WILDCARD_GRANTS);
+      } else if (Schema_dumper::Issue::Status::FIX_INVALID_VIEW_REFERENCE ==
+                 issue.status) {
+        status.set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES);
       } else {
         if (Schema_dumper::Issue::Status::USE_STRIP_INVALID_GRANTS ==
             issue.status) {
@@ -2113,8 +2117,8 @@ void Dumper::do_run() {
   rethrow();
 
 #ifndef NDEBUG
-  if (m_server_version.version < Version(8, 0, 21) ||
-      m_server_version.version > Version(8, 0, 23) || !dump_users()) {
+  if (m_server_version.number < Version(8, 0, 21) ||
+      m_server_version.number > Version(8, 0, 23) || !dump_users()) {
     // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
     // check if transaction is still open in such case if users were dumped
     assert_transaction_is_open(session());
@@ -2220,7 +2224,7 @@ void Dumper::fetch_user_privileges() {
   m_skip_grant_tables_active =
       "'skip-grants user'@'skip-grants host'" == m_user_account;
 
-  if (m_server_version.version >= Version(8, 0, 0)) {
+  if (m_server_version.number >= Version(8, 0, 0)) {
     m_user_has_backup_admin =
         !m_user_privileges->validate({"BACKUP_ADMIN"}).has_missing_privileges();
   }
@@ -2242,9 +2246,9 @@ void Dumper::warn_about_backup_lock() const {
 }
 
 std::string Dumper::why_backup_lock_is_missing() const {
-  return m_server_version.version >= Version(8, 0, 0)
+  return m_server_version.number >= Version(8, 0, 0)
              ? "available to the account " + m_user_account
-             : "supported in MySQL " + m_server_version.version.get_short();
+             : "supported in MySQL " + m_server_version.number.get_short();
 }
 
 void Dumper::lock_all_tables() {
@@ -2397,7 +2401,7 @@ void Dumper::acquire_read_locks() {
   // 8.0.23, FLUSH_TABLES privilege
   const auto execute_ftwrl =
       !m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
-      (m_server_version.version >= Version(8, 0, 23) &&
+      (m_server_version.number >= Version(8, 0, 23) &&
        !m_user_privileges->validate({"FLUSH_TABLES"}).has_missing_privileges());
   m_ftwrl_used = execute_ftwrl;
 
@@ -2706,9 +2710,9 @@ void Dumper::validate_mds() const {
   console->print_info(
       "Checking for compatibility with MySQL HeatWave Service " + version);
 
-  if (!m_cache.server_version.is_8_0) {
+  if (!m_cache.server.version.is_8_0) {
     console->print_note("MySQL Server " +
-                        m_cache.server_version.version.get_short() +
+                        m_cache.server.version.number.get_short() +
                         " detected, please consider upgrading to 8.0 first.");
   }
 
@@ -2837,6 +2841,9 @@ void Dumper::validate_mds() const {
       * Add the "force_non_standard_fks" to the "compatibility" option to ignore these issues. Please note that creation of foreign keys with non-standard keys may break the replication.
     )");
   }
+
+  // this is an error in case of MHS
+  handle_invalid_view_references(status, true);
 
   if (status.is_set(issues::Status::ERROR)) {
     console->print_info(
@@ -3090,6 +3097,8 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
   if (!m_options.mds_compatibility()) {
     // if MDS is on, changes done by compatibility options were printed earlier
     const auto status = show_issues(in_memory.issues());
+
+    handle_invalid_view_references(status, false);
 
     if (status.is_set(issues::Status::ERROR_HAS_INVALID_GRANTS)) {
       THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
@@ -3632,16 +3641,7 @@ void Dumper::write_dump_started_metadata() const {
 
   doc.AddMember(StringRef("user"), refs(m_cache.user), a);
   doc.AddMember(StringRef("hostname"), refs(m_cache.hostname), a);
-  doc.AddMember(StringRef("server"), refs(m_cache.server), a);
-  doc.AddMember(StringRef("serverVersion"),
-                {m_cache.server_version.version.get_full().c_str(), a}, a);
 
-  if (m_options.dump_binlog_info()) {
-    doc.AddMember(StringRef("binlogFile"), refs(m_cache.binlog.file), a);
-    doc.AddMember(StringRef("binlogPosition"), m_cache.binlog.position, a);
-  }
-
-  doc.AddMember(StringRef("gtidExecuted"), refs(m_cache.gtid_executed), a);
   doc.AddMember(StringRef("gtidExecutedInconsistent"),
                 is_gtid_executed_inconsistent(), a);
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
@@ -3653,7 +3653,53 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("targetVersion"),
                 {m_options.target_version().get_full().c_str(), a}, a);
 
-  doc.AddMember(StringRef("partialRevokes"), m_cache.partial_revokes, a);
+  {
+    Value source{Type::kObjectType};
+
+    // this does not necessarily has to be equal to @@GLOBAL.hostname
+    source.AddMember(StringRef("hostname"), refs(m_cache.server.hostname), a);
+
+    if (m_options.dump_binlog_info()) {
+      Value binlog{Type::kObjectType};
+
+      binlog.AddMember(StringRef("file"), refs(m_cache.server.binlog.file), a);
+      binlog.AddMember(StringRef("position"), m_cache.server.binlog.position,
+                       a);
+
+      source.AddMember(StringRef("binlog"), std::move(binlog), a);
+    }
+
+    {
+      Value sysvars{Type::kObjectType};
+
+      for (const auto &var : m_cache.server.sysvars) {
+        sysvars.AddMember(refs(var.first), refs(var.second), a);
+      }
+
+      source.AddMember(StringRef("sysvars"), std::move(sysvars), a);
+    }
+
+    doc.AddMember(StringRef("source"), std::move(source), a);
+  }
+
+  // TODO(pawel): remove these when dumper's version changes
+  {
+    doc.AddMember(StringRef("server"), refs(m_cache.server.hostname), a);
+    doc.AddMember(StringRef("serverVersion"),
+                  {m_cache.server.version.number.get_full().c_str(), a}, a);
+
+    if (m_options.dump_binlog_info()) {
+      doc.AddMember(StringRef("binlogFile"), refs(m_cache.server.binlog.file),
+                    a);
+      doc.AddMember(StringRef("binlogPosition"), m_cache.server.binlog.position,
+                    a);
+    }
+
+    doc.AddMember(StringRef("gtidExecuted"), refs(m_cache.server.gtid_executed),
+                  a);
+    doc.AddMember(StringRef("partialRevokes"), m_cache.server.partial_revokes,
+                  a);
+  }
 
   {
     // list of compatibility options
@@ -3740,6 +3786,18 @@ void Dumper::write_dump_finished_metadata() const {
       files.AddMember(refs(file.first), file.second, a);
 
     doc.AddMember(StringRef("chunkFileBytes"), std::move(files), a);
+  }
+
+  {
+    Value issues{Type::kObjectType};
+
+    if (m_has_invalid_view_references) {
+      issues.AddMember(StringRef("hasInvalidViewReferences"), true, a);
+    }
+
+    if (!issues.ObjectEmpty()) {
+      doc.AddMember(StringRef("issues"), std::move(issues), a);
+    }
   }
 
   write_json(make_file("@.done.json"), &doc);
@@ -4002,13 +4060,13 @@ void Dumper::summarize() const {
   const auto console = current_console();
 
   if (!m_options.consistent_dump() && m_options.threads() > 1) {
-    const auto gtid_executed = schema_dumper(session())->gtid_executed(true);
+    const auto gtid_executed = schema_dumper(session())->gtid_executed();
 
-    if (gtid_executed != m_cache.gtid_executed) {
+    if (gtid_executed != m_cache.server.gtid_executed) {
       console->print_warning(
           "The value of the gtid_executed system variable has changed during "
           "the dump, from: '" +
-          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.");
+          m_cache.server.gtid_executed + "' to: '" + gtid_executed + "'.");
     }
   }
 
@@ -4321,7 +4379,7 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(trigger));
   }
 
-  if (!m_cache.server_version.is_8_0) {
+  if (!m_cache.server.version.is_8_0) {
     // need to explicitly check for SELECT privilege, otherwise some queries
     // will return empty results
     std::string select{"SELECT"};
@@ -4329,7 +4387,7 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(select));
   }
 
-  if (m_cache.server_version.is_5_6 && dump_users()) {
+  if (m_cache.server.version.is_5_6 && dump_users()) {
     // on 5.6, SUPER is required to get the real hash value from SHOW GRANTS
     std::string super{"SUPER"};
     all_required.emplace(super);
@@ -4529,14 +4587,14 @@ void Dumper::validate_dump_consistency(
   };
 
   if (m_gtid_enabled) {
-    const auto gtid_executed = dumper->gtid_executed(true);
-    consistent = gtid_executed == m_cache.gtid_executed;
+    const auto gtid_executed = dumper->gtid_executed();
+    consistent = gtid_executed == m_cache.server.gtid_executed;
 
     if (!consistent) {
       console->print_note(
           "The value of the gtid_executed system variable has changed during "
           "the dump, from: '" +
-          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.");
+          m_cache.server.gtid_executed + "' to: '" + gtid_executed + "'.");
 
       if (m_options.skip_consistency_checks()) {
         skip_check();
@@ -4544,32 +4602,32 @@ void Dumper::validate_dump_consistency(
         // check if executed statements are safe
         // get GTID sets which were executed since the dump has started
 
-        const auto set =
-            Gtid_set::from_normalized_string(gtid_executed)
-                .subtract(
-                    Gtid_set::from_normalized_string(m_cache.gtid_executed),
-                    instance);
+        const auto set = Gtid_set::from_normalized_string(gtid_executed)
+                             .subtract(Gtid_set::from_normalized_string(
+                                           m_cache.server.gtid_executed),
+                                       instance);
 
         consistent = check_if_transactions_are_ddl_safe(
-            instance, m_cache.binlog, dumper->binlog(true), set);
+            instance, m_cache.server.binlog, dumper->binlog(true), set);
       }
     }
   } else {
     // gtid_mode is not enabled, check binlog
     const auto binlog = dumper->binlog(true);
-    consistent = m_cache.binlog == binlog;
+    consistent = m_cache.server.binlog == binlog;
 
     if (!consistent) {
       console->print_note(
           "The binlog position has changed during the dump, from: '" +
-          m_cache.binlog.to_string() + "' to: '" + binlog.to_string() + "'.");
+          m_cache.server.binlog.to_string() + "' to: '" + binlog.to_string() +
+          "'.");
 
       if (m_options.skip_consistency_checks()) {
         skip_check();
       } else {
         // check if executed statements are safe
-        consistent = check_if_transactions_are_ddl_safe(instance,
-                                                        m_cache.binlog, binlog);
+        consistent = check_if_transactions_are_ddl_safe(
+            instance, m_cache.server.binlog, binlog);
       }
     }
   }
@@ -4615,13 +4673,13 @@ void Dumper::fetch_server_information() {
       Version{k_shell_version.get_major(), k_shell_version.get_minor() + 1, 0};
 
   DBUG_EXECUTE_IF("dumper_unsupported_server_version",
-                  { m_server_version.version = unsupported_version; });
+                  { m_server_version.number = unsupported_version; });
 
-  if (m_server_version.version >= unsupported_version) {
+  if (m_server_version.number >= unsupported_version) {
     throw std::runtime_error(
         shcore::str_format("Unsupported MySQL Server %s detected, please "
                            "upgrade the MySQL Shell first",
-                           m_server_version.version.get_base().c_str()));
+                           m_server_version.number.get_base().c_str()));
   }
 }
 
@@ -4636,20 +4694,20 @@ issues::Status_set Dumper::check_for_upgrade_errors() const {
   }
 
   // upgrade checker does not support 5.6 servers
-  if (m_cache.server_version.is_5_6) {
+  if (m_cache.server.version.is_5_6) {
     current_console()->print_note(
         shcore::str_format("MySQL Server %s is not supported, skipping upgrade "
                            "compatibility checks",
-                           m_cache.server_version.version.get_full().c_str()));
+                           m_cache.server.version.number.get_full().c_str()));
     return {};
   }
 
-  if (m_options.target_version() <= m_cache.server_version.version) {
+  if (m_options.target_version() <= m_cache.server.version.number) {
     current_console()->print_note(shcore::str_format(
         "The value of 'targetVersion' option (%s) is not greater than current "
         "version of the server (%s), skipping upgrade compatibility checks",
         m_options.target_version().get_base().c_str(),
-        m_cache.server_version.version.get_base().c_str()));
+        m_cache.server.version.number.get_base().c_str()));
     return {};
   }
 
@@ -4710,6 +4768,27 @@ bool Dumper::all_tasks_produced() const {
   // all other tasks were produced
   return m_main_thread_finished_producing_chunking_tasks &&
          m_chunking_tasks_completed == m_chunking_tasks_total;
+}
+
+void Dumper::handle_invalid_view_references(issues::Status_set status,
+                                            bool as_error) const {
+  if (!status.is_set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES) ||
+      m_has_invalid_view_references) {
+    return;
+  }
+
+  const_cast<Dumper *>(this)->m_has_invalid_view_references = true;
+
+  const auto console = current_console();
+
+  console->print_info();
+  std::invoke(as_error ? &IConsole::print_error : &IConsole::print_note,
+              console,
+              "One or more views that reference tables using the wrong case "
+              "were found.");
+  console->print_info(
+      "Loading them in a system that uses lower_case_table_names=0 (such as "
+      "in the MySQL HeatWave Service) will fail unless they are fixed.");
 }
 
 }  // namespace dump
