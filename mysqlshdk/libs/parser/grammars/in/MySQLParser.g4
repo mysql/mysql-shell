@@ -1463,7 +1463,7 @@ tableAlias:
 ;
 
 indexHintList:
-    indexHint (COMMA_SYMBOL indexHint)*
+    indexHint indexHint*
 ;
 
 indexHint:

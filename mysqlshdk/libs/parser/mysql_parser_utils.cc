@@ -24,60 +24,187 @@
  */
 
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
+
+#include <antlr4-runtime.h>
+
+#include <stdexcept>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
+
+#include "mysqlshdk/libs/parser/mysql/MySQLLexer.h"
+#include "mysqlshdk/libs/parser/mysql/MySQLParser.h"
+#include "mysqlshdk/libs/parser/mysql/MySQLParserBaseListener.h"
+
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace parser {
 
-void prepare_lexer_parser(parsers::MySQLLexer *lexer,
-                          parsers::MySQLParser *parser,
-                          const mysqlshdk::utils::Version &mysql_version,
-                          bool ansi_quotes, bool no_backslash_escapes) {
-  lexer->sqlMode = parsers::MySQLRecognizerCommon::NoMode;
-  if (ansi_quotes)
-    lexer->sqlMode = parsers::MySQLRecognizerCommon::SqlMode(
-        lexer->sqlMode | parsers::MySQLRecognizerCommon::AnsiQuotes);
-  if (no_backslash_escapes)
-    lexer->sqlMode = parsers::MySQLRecognizerCommon::SqlMode(
-        lexer->sqlMode | parsers::MySQLRecognizerCommon::NoBackslashEscapes);
-  parser->sqlMode = lexer->sqlMode;
+namespace {
 
-  if (mysql_version) {
-    lexer->serverVersion = mysql_version.numeric();
-  } else {
-    lexer->serverVersion = mysqlshdk::utils::Version(MYSH_VERSION).numeric();
+using antlr4::ANTLRInputStream;
+using antlr4::CommonTokenStream;
+
+using parsers::MySQLLexer;
+using parsers::MySQLParser;
+using parsers::MySQLRecognizerCommon;
+
+class Parser_error_listener : public antlr4::BaseErrorListener {
+ public:
+  void syntaxError(antlr4::Recognizer * /* recognizer */,
+                   antlr4::Token *offendingSymbol, size_t line,
+                   size_t charPositionInLine, const std::string &msg,
+                   std::exception_ptr /* e */) override {
+    throw Sql_syntax_error(msg, std::string(offendingSymbol->getText()), line,
+                           charPositionInLine);
   }
-  parser->serverVersion = lexer->serverVersion;
+};
+
+class Parser_context {
+ public:
+  Parser_context(std::string_view stmt, const Parser_config &config)
+      : m_input(stmt),
+        m_lexer(&m_input),
+        m_tokens(&m_lexer),
+        m_parser(&m_tokens),
+        m_rule_names(m_parser.getRuleNames()),
+        m_vocabulary(m_parser.getVocabulary()) {
+    configure(config);
+
+    m_parser.setBuildParseTree(true);
+
+    m_lexer.removeErrorListeners();
+    m_lexer.addErrorListener(&m_error_listener);
+
+    m_parser.removeErrorListeners();
+    m_parser.addErrorListener(&m_error_listener);
+  }
+
+  inline MySQLParser::QueryContext *query() { return m_parser.query(); }
+
+  void traverse_ast(IParser_listener *listener) {
+    const auto q = query();
+
+    if (listener) traverse_ast(listener, q);
+  }
+
+ private:
+  void configure(const Parser_config &config) {
+    using SqlMode = parsers::MySQLRecognizerCommon::SqlMode;
+
+    SqlMode mode = SqlMode::NoMode;
+
+    // TODO(alfredo) stop forcing ansi_quotes when BUG#37018247 is fixed
+    if (config.ansi_quotes || true) {
+      mode = SqlMode(mode | SqlMode::AnsiQuotes);
+    }
+
+    if (config.no_backslash_escapes) {
+      mode = SqlMode(mode | SqlMode::NoBackslashEscapes);
+    }
+
+    m_parser.sqlMode = m_lexer.sqlMode = mode;
+    m_parser.serverVersion = m_lexer.serverVersion =
+        (config.mysql_version ? config.mysql_version : utils::k_shell_version)
+            .numeric();
+  }
+
+  void traverse_ast(IParser_listener *listener, antlr4::tree::ParseTree *tree) {
+    switch (tree->getTreeType()) {
+      case antlr4::tree::ParseTreeType::TERMINAL: {
+        const auto term = dynamic_cast<antlr4::tree::TerminalNode *>(tree);
+        const auto token = term->getSymbol();
+
+        AST_terminal_node node;
+
+        node.offset = token->getStartIndex();
+
+        node.terminal_symbol = token->getType();
+        node.name = m_vocabulary.getSymbolicName(node.terminal_symbol);
+        node.text = term->getText();
+
+        listener->on_terminal(node);
+        break;
+      }
+
+      case antlr4::tree::ParseTreeType::RULE: {
+        auto rule = dynamic_cast<antlr4::RuleContext *>(tree);
+
+        AST_rule_node node;
+
+        node.rule_index = rule->getRuleIndex();
+        node.name = m_rule_names[rule->getRuleIndex()];
+
+        listener->on_rule(node, true);
+
+        for (const auto child : tree->children) {
+          traverse_ast(listener, child);
+        }
+
+        listener->on_rule(node, false);
+        break;
+      }
+
+      case antlr4::tree::ParseTreeType::ERROR: {
+        const auto error = dynamic_cast<antlr4::tree::ErrorNode *>(tree);
+        const auto *token = error->getSymbol();
+
+        AST_error_node node;
+
+        node.terminal_symbol = token->getType();
+        node.name = m_vocabulary.getSymbolicName(token->getType());
+        node.text = error->getText();
+        node.line = token->getLine();
+        node.offset = token->getCharPositionInLine();
+
+        listener->on_error(node);
+        break;
+      }
+    }
+  }
+
+  ANTLRInputStream m_input;
+  MySQLLexer m_lexer;
+  CommonTokenStream m_tokens;
+  MySQLParser m_parser;
+  Parser_error_listener m_error_listener;
+
+  const std::vector<std::string> &m_rule_names;
+  const antlr4::dfa::Vocabulary &m_vocabulary;
+};
+
+}  // namespace
+
+void traverse_statement_ast(std::string_view stmt, const Parser_config &config,
+                            IParser_listener *listener) {
+  Parser_context context{stmt, config};
+  context.traverse_ast(listener);
 }
 
-void check_sql_syntax(const std::string &script,
-                      const mysqlshdk::utils::Version &mysql_version,
-                      bool ansi_quotes, bool no_backslash_escapes) {
-  antlr4::ANTLRInputStream input;
-  parsers::MySQLLexer lexer(&input);
-  antlr4::CommonTokenStream tokens(&lexer);
-  parsers::MySQLParser parser(&tokens);
+void traverse_script_ast(
+    const std::string &script, const Parser_config &config,
+    const std::function<void(std::string_view, size_t, bool enter)> &on_stmt,
+    IParser_listener *listener) {
+  std::stringstream stream{script};
 
-  // TODO(alfredo) stop forcing ansi_quotes when parser fixed
-  prepare_lexer_parser(&lexer, &parser, mysql_version, ansi_quotes || true,
-                       no_backslash_escapes);
-
-  std::stringstream stream(script);
   mysqlshdk::utils::iterate_sql_stream(
       &stream, 4098,
       [&](std::string_view stmt, std::string_view /*delim*/, size_t /*lnum*/,
-          size_t /* offs */) {
-        internal::ParserErrorListener error_listener;
-        parser.reset();
-        lexer.reset();
-        lexer.addErrorListener(&error_listener);
-        parser.addErrorListener(&error_listener);
-        input.load(std::string(stmt));
-        lexer.setInputStream(&input);
-        tokens.setTokenSource(&lexer);
-        parser.setTokenStream(&tokens);
+          size_t offs) {
+        if (shcore::str_ibeginswith(stmt, "delimiter")) return true;
 
-        parser.query();
+        if (on_stmt) {
+          on_stmt(stmt, offs, true);
+        }
+
+        traverse_statement_ast(stmt, config, listener);
+
+        if (on_stmt) {
+          on_stmt(stmt, offs, false);
+        }
 
         return true;
       },
@@ -86,7 +213,110 @@ void check_sql_syntax(const std::string &script,
             shcore::str_format("Error splitting SQL: %.*s",
                                static_cast<int>(msg.size()), msg.data()));
       },
-      ansi_quotes, no_backslash_escapes);
+      config.ansi_quotes, config.no_backslash_escapes);
+}
+
+void check_sql_syntax(const std::string &script, const Parser_config &config) {
+  traverse_script_ast(script, config, {}, nullptr);
+}
+
+bool Table_reference::operator==(const Table_reference &other) const {
+  return schema == other.schema && table == other.table;
+}
+
+bool Table_reference::operator<(const Table_reference &other) const {
+  return std::tie(schema, table) < std::tie(other.schema, other.table);
+}
+
+std::ostream &operator<<(std::ostream &os, const Table_reference &r) {
+  os << '`';
+
+  if (!r.schema.empty()) {
+    os << r.schema << "`.`";
+  }
+
+  return os << r.table << '`';
+}
+
+namespace {
+
+class Table_ref_listener : public parsers::MySQLParserBaseListener {
+ public:
+  explicit Table_ref_listener(std::vector<Table_reference> *references)
+      : m_references(references) {}
+
+  void exitTableRef(MySQLParser::TableRefContext *ctx) override {
+    Table_reference reference;
+
+    if (const auto qualified_identifier = ctx->qualifiedIdentifier()) {
+      reference.table = qualified_identifier->identifier()->getText();
+
+      if (const auto dot_identifier = qualified_identifier->dotIdentifier()) {
+        // Full schema.table reference.
+        reference.schema = std::move(reference.table);
+        reference.table = dot_identifier->identifier()->getText();
+      }
+    } else {
+      // No schema reference.
+      reference.table = ctx->dotIdentifier()->identifier()->getText();
+    }
+
+    if (is_quoted(reference.schema)) {
+      reference.schema = shcore::unquote_identifier(reference.schema);
+    }
+
+    if (is_quoted(reference.table)) {
+      reference.table = shcore::unquote_identifier(reference.table);
+    }
+
+    m_references->emplace_back(std::move(reference));
+  }
+
+  void exitCommonTableExpression(
+      MySQLParser::CommonTableExpressionContext *ctx) override {
+    // capture names of Common Table Expressions (CTEs)
+    auto id = ctx->identifier()->getText();
+
+    if (is_quoted(id)) {
+      id = shcore::unquote_identifier(id);
+    }
+
+    m_cte_identifiers.emplace(std::move(id));
+  }
+
+  void exitQuery(MySQLParser::QueryContext *) override {
+    // remove CTEs from list of references
+    m_references->erase(
+        std::remove_if(m_references->begin(), m_references->end(),
+                       [this](const auto &ref) {
+                         return ref.schema.empty() &&
+                                m_cte_identifiers.contains(ref.table);
+                       }),
+        m_references->end());
+  }
+
+ private:
+  inline bool is_quoted(const std::string &s) {
+    return s.length() >= 2 && '`' == s.front() && s.front() == s.back();
+  }
+
+  std::vector<Table_reference> *m_references;
+  std::unordered_set<std::string> m_cte_identifiers;
+};
+
+}  // namespace
+
+std::vector<Table_reference> extract_table_references(
+    std::string_view stmt, const mysqlshdk::utils::Version &version) {
+  Parser_context context{stmt, Parser_config{version}};
+
+  const auto tree = context.query();
+  std::vector<Table_reference> result;
+
+  Table_ref_listener listener{&result};
+  antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+  return result;
 }
 
 }  // namespace parser

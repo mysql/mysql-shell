@@ -26,6 +26,7 @@
 #ifndef MODULES_UTIL_LOAD_DUMP_READER_H_
 #define MODULES_UTIL_LOAD_DUMP_READER_H_
 
+#include <cinttypes>
 #include <list>
 #include <map>
 #include <memory>
@@ -75,6 +76,14 @@ class Dump_reader {
   bool mds_compatibility() const { return m_contents.mds_compatibility; }
 
   bool partial_revokes() const { return m_contents.partial_revokes; }
+
+  inline const std::optional<int8_t> &lower_case_table_names() const noexcept {
+    return m_contents.lower_case_table_names;
+  }
+
+  inline bool has_invalid_view_references() const noexcept {
+    return m_contents.has_invalid_view_references;
+  }
 
   bool should_create_pks() const;
 
@@ -519,6 +528,8 @@ class Dump_reader {
     bool tz_utc = true;
     bool mds_compatibility = false;
     bool partial_revokes = false;
+    std::optional<int8_t> lower_case_table_names;
+    bool has_invalid_view_references = false;
     bool create_invisible_pks = false;
     bool force_non_standard_fks = false;
     bool table_only = false;

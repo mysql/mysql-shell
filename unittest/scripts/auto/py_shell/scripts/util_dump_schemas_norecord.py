@@ -1282,7 +1282,10 @@ missing_pks = {
 excluded_tables = []
 
 for table in missing_pks[test_schema]:
-    excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
+    excluded_tables.append(quote_identifier(test_schema, table))
+
+# references excluded table
+excluded_tables.append(quote_identifier(test_schema, test_view))
 
 target_version = "8.1.0"
 EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [incompatible_schema, test_schema], test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeTables": excluded_tables })
@@ -2768,6 +2771,59 @@ EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "dryRun": True, "checksu
 EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 
 #@<> WL15947 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+
+#@<> BUG#36509026 - warn about views which reference unknown tables
+# setup
+schema_name = "test_36509026"
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA !", [schema_name])
+
+session.run_sql("CREATE TABLE !.t1 (a int)", [schema_name])
+session.run_sql("INSERT INTO !.t1 (a) VALUES (1), (2), (3)", [schema_name])
+session.run_sql("CREATE VIEW !.v1 AS SELECT * FROM !.t1", [schema_name, schema_name])
+
+session.run_sql("CREATE TABLE !.t2 (a int)", [schema_name])
+session.run_sql("INSERT INTO !.t2 (a) VALUES (1), (2), (3)", [schema_name])
+session.run_sql("CREATE VIEW !.v2 AS SELECT * FROM !.t2", [schema_name, schema_name])
+
+lower_case_table_names = session.run_sql("SELECT @@lower_case_table_names").fetch_one()[0]
+
+if 2 == lower_case_table_names:
+    # MacOS: Table and database names are stored on disk using the lettercase
+    # specified in the CREATE TABLE or CREATE DATABASE statement, but MySQL
+    # converts them to lowercase on lookup. Name comparisons are not
+    # case-sensitive.
+    session.run_sql("CREATE TABLE !.T3 (a int)", [schema_name])
+    session.run_sql("INSERT INTO !.T3 (a) VALUES (1), (2), (3)", [schema_name])
+    session.run_sql("CREATE VIEW !.v3 AS SELECT * FROM !.t3", [schema_name, schema_name])
+
+#@<> BUG#36509026 - test
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "excludeTables": [f"{schema_name}.t2"], "showProgress": False })
+
+EXPECT_STDOUT_NOT_CONTAINS(view_references_excluded_table(schema_name, "v1", schema_name, "t1").warning())
+EXPECT_STDOUT_CONTAINS(view_references_excluded_table(schema_name, "v2", schema_name, "t2").warning())
+
+if 2 == lower_case_table_names:
+    EXPECT_STDOUT_CONTAINS(view_references_invalid_table(schema_name, "v3", schema_name, "t3").warning())
+    EXPECT_STDOUT_CONTAINS("""
+NOTE: One or more views that reference tables using the wrong case were found.
+Loading them in a system that uses lower_case_table_names=0 (such as in the MySQL HeatWave Service) will fail unless they are fixed.
+""")
+
+#@<> BUG#36509026 - test with ocimds:true on MacOS {2 == lower_case_table_names}
+EXPECT_FAIL("Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [ schema_name ], test_output_absolute, { "ocimds": True, "excludeTables": [f"{schema_name}.t2"], "showProgress": False })
+
+EXPECT_STDOUT_NOT_CONTAINS(view_references_excluded_table(schema_name, "v1", schema_name, "t1").warning())
+EXPECT_STDOUT_CONTAINS(view_references_excluded_table(schema_name, "v2", schema_name, "t2").warning())
+
+EXPECT_STDOUT_CONTAINS(view_references_invalid_table(schema_name, "v3", schema_name, "t3").error())
+EXPECT_STDOUT_CONTAINS("""
+ERROR: One or more views that reference tables using the wrong case were found.
+Loading them in a system that uses lower_case_table_names=0 (such as in the MySQL HeatWave Service) will fail unless they are fixed.
+""")
+
+#@<> BUG#36509026 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
 #@<> Cleanup

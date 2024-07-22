@@ -5673,8 +5673,6 @@ public:
     virtual size_t getRuleIndex() const override;
     std::vector<IndexHintContext *> indexHint();
     IndexHintContext* indexHint(size_t i);
-    std::vector<antlr4::tree::TerminalNode *> COMMA_SYMBOL();
-    antlr4::tree::TerminalNode* COMMA_SYMBOL(size_t i);
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;

@@ -26,6 +26,7 @@
 #ifndef MODULES_UTIL_LOAD_LOAD_DUMP_OPTIONS_H_
 #define MODULES_UTIL_LOAD_LOAD_DUMP_OPTIONS_H_
 
+#include <cinttypes>
 #include <memory>
 #include <optional>
 #include <string>
@@ -258,6 +259,10 @@ class Load_dump_options {
 
   bool partial_revokes() const { return m_partial_revokes; }
 
+  inline int8_t lower_case_table_names() const noexcept {
+    return m_lower_case_table_names;
+  }
+
   bool fast_sub_chunking() const { return m_use_fast_sub_chunking; }
 
   void enable_fast_sub_chunking() { m_use_fast_sub_chunking = true; }
@@ -342,6 +347,8 @@ class Load_dump_options {
 
   // whether partial revokes are enabled
   bool m_partial_revokes = false;
+
+  int8_t m_lower_case_table_names;
 
   bool m_use_fast_sub_chunking = false;
 

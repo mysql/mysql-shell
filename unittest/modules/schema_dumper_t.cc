@@ -73,6 +73,9 @@ std::string to_string(Schema_dumper::Issue::Status s) {
     case Status::WARNING_ESCAPED_WILDCARDS:
       return "WARNING_ESCAPED_WILDCARDS";
 
+    case Status::WARNING_INVALID_VIEW_REFERENCE:
+      return "WARNING_INVALID_VIEW_REFERENCE";
+
     case Status::WARNING:
       return "WARNING";
 
@@ -81,6 +84,9 @@ std::string to_string(Schema_dumper::Issue::Status s) {
 
     case Status::FIX_WILDCARD_GRANTS:
       return "FIX_WILDCARD_GRANTS";
+
+    case Status::FIX_INVALID_VIEW_REFERENCE:
+      return "FIX_INVALID_VIEW_REFERENCE";
 
     case Status::USE_CREATE_OR_IGNORE_PKS:
       return "USE_CREATE_OR_IGNORE_PKS";

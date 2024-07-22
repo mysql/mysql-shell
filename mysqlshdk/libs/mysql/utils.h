@@ -185,6 +185,17 @@ inline void assert_transaction_is_open(
   }
 }
 
+/**
+ * Converts MySQL system variable to boolean.
+ *
+ * @param name Name of the variable.
+ * @param value Value of the variable.
+ *
+ * @returns Boolean value of the variable.
+ * @throws std::runtime_error If value cannot be converted to boolean.
+ */
+bool sysvar_to_bool(std::string_view name, std::string_view value);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

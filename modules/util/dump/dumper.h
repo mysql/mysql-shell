@@ -70,6 +70,7 @@ enum class Status {
   WARNING,
   WARNING_DEPRECATED_DEFINERS,
   WARNING_ESCAPED_WILDCARDS,
+  WARNING_HAS_INVALID_VIEW_REFERENCES,
   ERROR,
   ERROR_MISSING_PKS,
   ERROR_HAS_INVALID_GRANTS,
@@ -437,6 +438,9 @@ class Dumper {
 
   bool all_tasks_produced() const;
 
+  void handle_invalid_view_references(issues::Status_set status,
+                                      bool as_error) const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
@@ -465,6 +469,7 @@ class Dumper {
   // whether FLUSH TABLES WITH READ LOCK was used
   bool m_ftwrl_used = false;
   std::unordered_set<Capability> m_used_capabilities;
+  bool m_has_invalid_view_references = false;
 
   // counters
   uint64_t m_total_rows = 0;

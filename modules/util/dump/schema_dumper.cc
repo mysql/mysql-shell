@@ -2457,6 +2457,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
     }
 
     check_object_for_definer(db, "View", table, &ds_view, &res);
+    check_view_for_table_references(db, table, &res);
 
     /* Dump view structure to file */
     fprintf(
@@ -2814,7 +2815,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   };
 
   const auto is_5_6 = m_cache
-                          ? m_cache->server_version.is_5_6
+                          ? m_cache->server.version.is_5_6
                           : m_mysql->get_server_version() < Version(5, 7, 0);
   const auto &get_grants = is_5_6 ? get_grants_5_6 : get_grants_all;
 
@@ -3508,7 +3509,7 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
           std::make_move_iterator(users.end())};
 }
 
-std::string Schema_dumper::gtid_executed(bool quiet) {
+std::string Schema_dumper::gtid_executed() {
   try {
     const auto result = m_mysql->query("SELECT @@GLOBAL.GTID_EXECUTED;");
 
@@ -3518,10 +3519,6 @@ std::string Schema_dumper::gtid_executed(bool quiet) {
   } catch (const mysqlshdk::db::Error &e) {
     log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
               e.format().c_str());
-    if (!quiet) {
-      current_console()->print_warning(
-          "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
-    }
   }
 
   return {};
@@ -3530,13 +3527,13 @@ std::string Schema_dumper::gtid_executed(bool quiet) {
 Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
   Instance_cache::Binlog binlog;
 
-  const auto &version = m_cache ? m_cache->server_version : server_version();
+  const auto &version = m_cache ? m_cache->server.version : server_version();
 
   try {
     auto keyword =
         version.is_maria_db
             ? "MASTER"
-            : mysqlshdk::mysql::get_binary_logs_keyword(version.version, true);
+            : mysqlshdk::mysql::get_binary_logs_keyword(version.number, true);
 
     DBUG_EXECUTE_IF("dumper_dump_mariadb", {
       // We need the binlog query to not be affected by this dbug flag, because
@@ -3571,22 +3568,22 @@ Instance_cache::Server_version Schema_dumper::server_version() const {
   Instance_cache::Server_version ret_val;
 
   if (const auto row = result->fetch_one()) {
-    ret_val.version = Version(row->get_string(0));
+    ret_val.number = Version(row->get_string(0));
 
     DBUG_EXECUTE_IF("dumper_dump_mariadb", {
-      ret_val.version = Version("10.4.18-MariaDB-1:10.4.18+maria~focal");
+      ret_val.number = Version("10.4.18-MariaDB-1:10.4.18+maria~focal");
     });
 
     if (std::string::npos !=
-        shcore::str_lower(ret_val.version.get_extra()).find("mariadb")) {
+        shcore::str_lower(ret_val.number.get_extra()).find("mariadb")) {
       // we don't want the numbering used by MariaDB to interfere with various
       // conditions we have in our code, just fall-back to an old version
-      ret_val.version = Version("5.6.0-" + ret_val.version.get_full());
+      ret_val.number = Version("5.6.0-" + ret_val.number.get_full());
       ret_val.is_5_6 = true;
       ret_val.is_maria_db = true;
-    } else if (ret_val.version < Version(5, 7, 0)) {
+    } else if (ret_val.number < Version(5, 7, 0)) {
       ret_val.is_5_6 = true;
-    } else if (ret_val.version < Version(8, 0, 0)) {
+    } else if (ret_val.number < Version(8, 0, 0)) {
       ret_val.is_5_7 = true;
     } else {
       ret_val.is_8_0 = true;
@@ -3600,7 +3597,7 @@ Instance_cache::Server_version Schema_dumper::server_version() const {
 
 bool Schema_dumper::partial_revokes() const {
   if (m_cache) {
-    return m_cache->partial_revokes;
+    return m_cache->server.partial_revokes;
   }
 
   if (!m_partial_revokes.has_value()) {
@@ -3655,6 +3652,71 @@ std::vector<std::string> Schema_dumper::strip_restricted_grants(
   }
 
   return compatibility::check_privileges(*ddl, rewritten, allowed_privs);
+}
+
+void Schema_dumper::check_view_for_table_references(
+    const std::string &db, const std::string &name,
+    std::vector<Issue> *issues) const {
+  if (!m_cache) {
+    return;
+  }
+
+  assert(m_cache->server.lower_case_table_names >= 0 &&
+         m_cache->server.lower_case_table_names <= 2);
+
+  const auto case_insensitive_search =
+      2 == m_cache->server.lower_case_table_names;
+
+  // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
+  // detected earlier (when fetching view information by instance cache) and
+  // result in an error.
+
+  for (const auto &ref :
+       m_cache->schemas.at(db).views.at(name).table_references) {
+    bool included = false;
+
+    if (const auto schema = m_cache->schemas.find(ref.schema);
+        m_cache->schemas.end() != schema) {
+      if (schema->second.tables.contains(ref.table) ||
+          schema->second.views.contains(ref.table)) {
+        included = true;
+      }
+    }
+
+    if (!included && case_insensitive_search) {
+      bool found = false;
+
+      if (const auto schema =
+              m_cache->schemas_lowercase.find(shcore::utf8_lower(ref.schema));
+          m_cache->schemas_lowercase.end() != schema) {
+        const auto table_lowercase = shcore::utf8_lower(ref.table);
+
+        if (schema->second->tables_lowercase.contains(table_lowercase) ||
+            schema->second->views_lowercase.contains(table_lowercase)) {
+          found = true;
+        }
+      }
+
+      if (found) {
+        issues->emplace_back(
+            "View " + quote(db, name) + " references table/view " +
+                quote(ref.schema, ref.table) +
+                " which was not found using case-sensitive search",
+            opt_mysqlaas ? Issue::Status::FIX_INVALID_VIEW_REFERENCE
+                         : Issue::Status::WARNING_INVALID_VIEW_REFERENCE);
+        // don't report the other error
+        included = true;
+      }
+    }
+
+    if (!included) {
+      issues->emplace_back("View " + quote(db, name) +
+                               " references table/view " +
+                               quote(ref.schema, ref.table) +
+                               " which is not included in the dump",
+                           Issue::Status::WARNING);
+    }
+  }
 }
 
 }  // namespace dump
