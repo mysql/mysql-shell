@@ -81,9 +81,6 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
     return m_splitter->delimiter();
   }
 
-  void kill_query(uint64_t conn_id,
-                  const mysqlshdk::db::Connection_options &conn_opts);
-
   void execute(std::string_view sql);
 
  private:

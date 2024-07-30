@@ -134,26 +134,6 @@ Shell_sql::Shell_sql(IShell_core *owner)
                            IShell_core::Mode_mask(IShell_core::Mode::SQL));
 }
 
-void Shell_sql::kill_query(uint64_t conn_id,
-                           const mysqlshdk::db::Connection_options &conn_opts) {
-  try {
-    std::shared_ptr<mysqlshdk::db::ISession> kill_session;
-
-    if (conn_opts.get_scheme() == "mysqlx")
-      kill_session = mysqlshdk::db::mysqlx::Session::create();
-    else
-      kill_session = mysqlshdk::db::mysql::Session::create();
-    kill_session->connect(conn_opts);
-    kill_session->executef("kill query ?", conn_id);
-    mysqlsh::current_console()->print("-- query aborted\n");
-
-    kill_session->close();
-  } catch (const std::exception &e) {
-    mysqlsh::current_console()->print(std::string("-- error aborting query: ") +
-                                      e.what() + "\n");
-  }
-}
-
 bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
                             size_t line_num,
                             std::shared_ptr<mysqlsh::ShellBaseSession> session,
@@ -168,12 +148,12 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
       try {
         mysqlshdk::utils::Profile_timer timer;
         timer.stage_begin("query");
-        // Install kill query as ^C handler
-        uint64_t conn_id = session->get_connection_id();
-        const auto &conn_opts = session->get_connection_options();
+
         {
-          shcore::Interrupt_handler interrupt([this, conn_id, conn_opts]() {
-            kill_query(conn_id, conn_opts);
+          shcore::Interrupt_handler interrupt([]() {
+            // query is going to be interrupted by the handler installed by
+            // the session, here we just print the notification
+            mysqlsh::current_console()->print("-- query aborted\n");
             return true;
           });
 
@@ -209,6 +189,10 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
       _result_processor(result, info);
 
       ret_val = true;
+    } catch (const mysqlshdk::db::Error &exc) {
+      print_exception(shcore::Exception::mysql_error_with_code_and_state(
+          exc.what(), exc.code(), exc.sqlstate()));
+      ret_val = false;
     } catch (const shcore::Exception &exc) {
       print_exception(exc);
       ret_val = false;
