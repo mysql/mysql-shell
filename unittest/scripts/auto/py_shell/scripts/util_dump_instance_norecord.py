@@ -4010,6 +4010,19 @@ EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 #@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#36701854 - dumps from a server with a greater minor version are disallowed {not __dbug_off}
+testutil.dbug_set("+d,dumper_unsupported_server_version")
+
+unsupported_version = __mysh_version_no_extra.split(".")
+unsupported_version[1] = str(int(unsupported_version[1]) + 1)
+unsupported_version[2] = "0"
+unsupported_version = ".".join(unsupported_version)
+
+# trying to dump from an unsupported version results in an error
+EXPECT_FAIL("RuntimeError", f"Unsupported MySQL Server {unsupported_version} detected, please upgrade the MySQL Shell first", test_output_absolute, { "showProgress": False })
+
+testutil.dbug_set("")
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
