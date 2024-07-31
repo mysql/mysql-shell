@@ -27,6 +27,7 @@
 #define MYSQLSHDK_LIBS_OCI_OCI_PAR_H_
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
