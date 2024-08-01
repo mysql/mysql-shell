@@ -34,6 +34,7 @@
 
 #include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
@@ -80,6 +81,9 @@ TEST(Storage, fprintf_off_by_1) {
 }
 
 #ifndef _WIN32
+
+constexpr auto k_mmap_supported = sizeof(void *) >= 8;
+
 TEST(Storage, file_mmap_option) {
   // mmap disabled by default even if requested
   {
@@ -126,8 +130,7 @@ TEST(Storage, file_mmap_option) {
     auto file = dynamic_cast<backend::File *>(ifile.get());
     file->open(Mode::WRITE);
 
-    if (sizeof(void *) < 8) {
-      // no mmap in 32bits
+    if constexpr (!k_mmap_supported) {
       EXPECT_EQ(nullptr, file->mmap_will_write(1024));
     } else {
       char *ptr;
@@ -135,6 +138,7 @@ TEST(Storage, file_mmap_option) {
       ptr[0] = '!';
       EXPECT_EQ(ptr + 1, file->mmap_did_write(1));
     }
+
     file->close();
 
     file->open(Mode::WRITE);
@@ -151,7 +155,7 @@ TEST(Storage, file_mmap_option) {
     shcore::create_file(file->full_path().real(), "123");
 
     file->open(Mode::READ);
-    if (sizeof(void *) < 8)
+    if constexpr (!k_mmap_supported)
       EXPECT_EQ(nullptr, file->mmap_will_read(nullptr));
     else
       EXPECT_NE(nullptr, file->mmap_will_read(nullptr));
@@ -179,7 +183,7 @@ TEST(Storage, file_mmap_option) {
     auto file = dynamic_cast<backend::File *>(ifile.get());
     file->open(Mode::WRITE);
 
-    if (sizeof(void *) < 8) {
+    if constexpr (!k_mmap_supported) {
       EXPECT_EQ(nullptr, file->mmap_will_write(1024));
     } else {
       char *ptr;
@@ -187,9 +191,10 @@ TEST(Storage, file_mmap_option) {
       ptr[0] = '!';
       EXPECT_EQ(ptr + 1, file->mmap_did_write(1));
     }
+
     file->close();
 
-    if (sizeof(void *) >= 8) {
+    if constexpr (k_mmap_supported) {
       file->open(Mode::WRITE);
       // force mmap error by closing the fd of the opened file
       ::close(next_fd);
@@ -200,13 +205,13 @@ TEST(Storage, file_mmap_option) {
     shcore::create_file(file->full_path().real(), "xxx");
 
     file->open(Mode::READ);
-    if (sizeof(void *) < 8)
+    if constexpr (!k_mmap_supported)
       EXPECT_EQ(nullptr, file->mmap_will_read(nullptr));
     else
       EXPECT_NE(nullptr, file->mmap_will_read(nullptr));
     file->close();
 
-    if (sizeof(void *) >= 8) {
+    if constexpr (k_mmap_supported) {
       file->open(Mode::READ);
       // force mmap error by closing the fd of the opened file
       ::close(next_fd);
@@ -218,7 +223,7 @@ TEST(Storage, file_mmap_option) {
 }
 
 TEST(Storage, file_mmap_write) {
-  if (sizeof(void *) < 8) SKIP_TEST("no mmap in 32bits");
+  if constexpr (!k_mmap_supported) SKIP_TEST("mmap() is not supported");
 
   auto ifile =
       make_file(shcore::path::join_path(getenv("TMPDIR"), "testfile.txt"),
@@ -293,7 +298,7 @@ TEST(Storage, file_mmap_write) {
 }
 
 TEST(Storage, file_mmap_read) {
-  if (sizeof(void *) < 8) SKIP_TEST("no mmap in 32bits");
+  if constexpr (!k_mmap_supported) SKIP_TEST("mmap() is not supported");
 
   auto path = shcore::path::join_path(getenv("TMPDIR"), "testfile.txt");
   std::string line1 = "first line\n";
@@ -340,7 +345,64 @@ TEST(Storage, file_mmap_read) {
   file->close();
   file->remove();
 }
-#endif
+
+#ifndef NDEBUG
+
+TEST(Storage, file_mmap_write_bug36836188) {
+  if constexpr (!k_mmap_supported) SKIP_TEST("mmap() is not supported");
+
+  DBUG_SET("+d,mmap_not_supported_by_fs");
+
+  const auto ifile =
+      make_file(shcore::path::join_path(getenv("TMPDIR"), "testfile.txt"),
+                {{"file.mmap", "on"}});
+  const auto file = dynamic_cast<backend::File *>(ifile.get());
+
+  {
+    // empty file
+    file->open(Mode::WRITE);
+    EXPECT_EQ(nullptr, file->mmap_will_write(0, nullptr));
+    file->close();
+
+    EXPECT_EQ(0, file->file_size());
+  }
+
+  {
+    // non-empty file
+    const std::string contents = "hello world!\n";
+
+    file->open(Mode::WRITE);
+    EXPECT_EQ(contents.length(),
+              file->write(contents.c_str(), contents.length()));
+    file->close();
+
+    EXPECT_EQ(contents.length(), file->file_size());
+
+    file->open(Mode::WRITE);
+    EXPECT_EQ(nullptr, file->mmap_will_write(0, nullptr));
+    file->close();
+
+    EXPECT_EQ(contents.length(), file->file_size());
+
+    std::string verification;
+    verification.resize(contents.length());
+
+    file->open(Mode::READ);
+    EXPECT_EQ(contents.length(),
+              file->read(verification.data(), contents.length()));
+    file->close();
+
+    EXPECT_EQ(verification, contents);
+  }
+
+  file->remove();
+
+  DBUG_SET("");
+}
+
+#endif  // !NDEBUG
+
+#endif  // !_WIN32
 
 }  // namespace tests
 }  // namespace storage

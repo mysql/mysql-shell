@@ -42,6 +42,7 @@
 
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -339,8 +340,17 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
 
     m_mmap_ptr = static_cast<char *>(
         ::mmap(0, m_mmap_available, PROT_WRITE | PROT_READ, flags, fd, 0));
+
+    DBUG_EXECUTE_IF(
+        "mmap_not_supported_by_fs",
+        if (m_mmap_ptr && MAP_FAILED != m_mmap_ptr) {
+          ::munmap(m_mmap_ptr, m_mmap_available);
+          m_mmap_ptr = nullptr;
+        });
+
     if (!m_mmap_ptr || m_mmap_ptr == MAP_FAILED) {
       m_mmap_ptr = nullptr;
+      ::ftruncate(fd, m_mmap_used);
 
       if (m_use_mmap == Mmap_preference::REQUIRED)
         throw std::runtime_error("Could not mmap file '" +
