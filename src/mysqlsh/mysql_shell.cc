@@ -250,6 +250,11 @@ class Shell_command_provider : public shcore::completer::Provider {
                                                       size_t *compl_offset) {
     auto cmd = line.substr(0, cmdend);
     auto arg_pos = mysqlshdk::utils::span_spaces(line, cmdend);
+
+    if (std::string::npos == arg_pos) {
+      arg_pos = line.length();
+    }
+
     auto arg = line.substr(arg_pos);
 
     if (cmd == "\\u" || cmd == "\\use") {

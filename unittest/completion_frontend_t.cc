@@ -2488,4 +2488,10 @@ TEST_F(Completer_frontend, bug_34365581) {
   execute("DROP SCHEMA ogÓrek;");
 }
 
+TEST_F(Completer_frontend, bug_36858205) {
+  EXPECT_NO_THROW(complete("\\use "));
+  EXPECT_NO_THROW(complete("\\help "));
+  EXPECT_NO_THROW(complete("\\sql "));
+}
+
 }  // namespace mysqlsh
