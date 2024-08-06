@@ -214,7 +214,5 @@ session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}
 EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() with `ociAuth` = 'security_token'")
 
 #@<> Cleanup
-delete_bucket(OS_BUCKET_NAME)
-
 session.close()
 testutil.destroy_sandbox(__mysql_sandbox_port1)

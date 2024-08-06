@@ -127,6 +127,5 @@ shell.connect(MDS_URI)
 cleanup_mds(session)
 session.close()
 
-delete_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 testutil.rmdir(datadir, True)
 testutil.destroy_sandbox(__mysql_sandbox_port1)

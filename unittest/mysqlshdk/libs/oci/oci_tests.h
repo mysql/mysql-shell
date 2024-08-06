@@ -121,7 +121,7 @@ class Oci_os_tests : public Oci_tests {
     create_bucket();
   }
 
-  void TearDown() override { delete_bucket(); }
+  void TearDown() override { clean_bucket(); }
 
   void create_objects(mysqlshdk::oci::Oci_bucket &bucket) {
     for (const auto &name : m_objects) {
@@ -200,12 +200,11 @@ class Oci_os_tests : public Oci_tests {
     }
   }
 
-  void delete_bucket() {
+  void clean_bucket() {
     if (!should_skip()) {
       mysqlshdk::oci::Oci_bucket bucket(get_config());
 
       clean_bucket(bucket);
-      bucket.delete_();
     }
   }
 };

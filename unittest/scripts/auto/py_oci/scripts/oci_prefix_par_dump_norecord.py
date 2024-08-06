@@ -184,7 +184,6 @@ for par_type, par in good_pars.items():
         session.close()
 
 #@<> Cleanup
-delete_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 testutil.stop_sandbox(__mysql_sandbox_port1, {"wait":1})
 testutil.stop_sandbox(__mysql_sandbox_port2, {"wait":1})
 testutil.destroy_sandbox(__mysql_sandbox_port1)
