@@ -99,7 +99,7 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     create_bucket();
   }
 
-  void TearDown() override { delete_bucket(); }
+  void TearDown() override { clean_bucket(); }
 
  protected:
   std::vector<std::string> m_objects;
@@ -190,12 +190,11 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     }
   }
 
-  void delete_bucket() {
+  void clean_bucket() {
     if (!should_skip()) {
       mysqlshdk::oci::Oci_bucket bucket(get_config());
 
       clean_bucket(bucket);
-      bucket.delete_();
     }
   }
 

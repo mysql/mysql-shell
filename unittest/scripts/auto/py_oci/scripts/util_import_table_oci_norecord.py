@@ -160,7 +160,5 @@ EXPECT_NO_THROWS(lambda: util.import_table("will \\*this work\\?", { "schema": T
 EXPECT_STDOUT_CONTAINS(f"Importing from file 'will *this work?' to table ")
 
 #@<> Cleanup
-delete_bucket(OS_BUCKET_NAME)
-
 session.close()
 testutil.destroy_sandbox(__mysql_sandbox_port1)

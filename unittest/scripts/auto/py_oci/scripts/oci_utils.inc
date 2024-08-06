@@ -61,17 +61,6 @@ def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFI
         t.join()
     print(f"--- wipeout_bucket_mt('{bucket}') took {time.time() - start} seconds ---")
 
-def delete_bucket(bucket, namespace=""):
-  os_client = oci.object_storage.ObjectStorageClient(config)
-  if namespace == "":
-    namespace = os_client.get_namespace().data
-  try:
-    os_client.get_bucket(namespace, bucket)
-  except:
-    print(f"--- delete_bucket('{bucket}') - bucket does not exist ---")
-    return
-  wipeout_bucket_mt(12, bucket, namespace)
-  os_client.delete_bucket(namespace, bucket, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 def delete_object(bucket, name, namespace=""):
   os_client = oci.object_storage.ObjectStorageClient(config)
