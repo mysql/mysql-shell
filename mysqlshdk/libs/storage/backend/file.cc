@@ -350,7 +350,13 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
 
     if (!m_mmap_ptr || m_mmap_ptr == MAP_FAILED) {
       m_mmap_ptr = nullptr;
-      ::ftruncate(fd, m_mmap_used);
+      if (::ftruncate(fd, m_mmap_used) < 0) {
+        if (m_use_mmap == Mmap_preference::REQUIRED) {
+          throw std::runtime_error("Could not restore size of mmapped file '" +
+                                   full_path().masked() +
+                                   "': " + shcore::errno_to_string(errno));
+        }
+      }
 
       if (m_use_mmap == Mmap_preference::REQUIRED)
         throw std::runtime_error("Could not mmap file '" +
