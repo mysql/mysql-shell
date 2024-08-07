@@ -698,5 +698,15 @@ with write_profile(local_aws_config_file, "profile " + local_aws_role_profile, {
 
 shell.options["logLevel"] = current_log_level
 
+#@<> BUG#36916928 - using invalid role ARN fails without any more details
+with write_profile(local_aws_config_file, "profile " + local_aws_role_profile, { "role_arn": "arn:aws:iam::1234567890:role/unknown", "source_profile" : local_aws_profile, "region": aws_settings.get("region", default_aws_region) }):
+    with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"], "aws_secret_access_key" : aws_settings["aws_secret_access_key"] }):
+        EXPECT_FAIL("RuntimeError", re.compile(f"Could not assume role using profile '{local_aws_role_profile}': User: .* is not authorized to perform: sts:AssumeRole on resource: arn:aws:iam::1234567890:role/unknown"), { "s3Profile": local_aws_role_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, all = False)
+
+#@<> BUG#36917083 - using invalid value of duration_seconds fails without any more details {MYSQLSH_AWS_ROLE is not None}
+with write_profile(local_aws_config_file, "profile " + local_aws_role_profile, { "duration_seconds": 123, "role_arn": MYSQLSH_AWS_ROLE, "source_profile" : local_aws_profile, "region": aws_settings.get("region", default_aws_region) }):
+    with write_profile(local_aws_credentials_file, local_aws_profile, { "aws_access_key_id": aws_settings["aws_access_key_id"], "aws_secret_access_key" : aws_settings["aws_secret_access_key"] }):
+        EXPECT_FAIL("RuntimeError", f"Could not assume role using profile '{local_aws_role_profile}': 1 validation error detected: Value '123' at 'durationSeconds' failed to satisfy constraint: Member must have value greater than or equal to 900", { "s3Profile": local_aws_role_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, all = False)
+
 #@<> cleanup
 cleanup_tests(load_tests = True)

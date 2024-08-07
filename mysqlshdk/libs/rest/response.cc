@@ -42,6 +42,7 @@ namespace {
 static constexpr auto k_content_type = "Content-Type";
 static constexpr auto k_application_json = "application/json";
 static constexpr auto k_application_xml = "application/xml";
+static constexpr auto k_text_xml = "text/xml";
 }  // namespace
 
 std::string Response::status_code(Status_code c) {
@@ -186,7 +187,8 @@ bool Response::is_json(const Headers &hdrs) {
 bool Response::is_xml(const Headers &hdrs) {
   const auto content_type = hdrs.find(k_content_type);
   return content_type != hdrs.end() &&
-         shcore::str_ibeginswith(content_type->second, k_application_xml);
+         shcore::str_ibeginswith(content_type->second, k_application_xml,
+                                 k_text_xml);
 }
 
 bool Response::is_error(Status_code c) {
@@ -222,16 +224,40 @@ std::optional<Response_error> Response::get_error() const {
 
       if (tinyxml2::XMLError::XML_SUCCESS ==
           xml.Parse(body->data(), body->size())) {
-        if (const auto root = xml.FirstChildElement("Error")) {
+        // AWS uses two different representations of errors, S3:
+        // Content-Type: application/xml
+        // <Error>
+        //   <Code>ErrorCode</Code>
+        //   <Message>Error message./Message>
+        //   <RequestId>request-id</RequestId>
+        // </Error>
+        // other services:
+        // Content-Type: text/xml
+        // <ErrorResponse>
+        //   <Error>
+        //     <Type>Sender</Type>
+        //     <Code>ErrorCode</Code>
+        //     <Message>Error message.</Message>
+        //   </Error>
+        //   <RequestId>request-id</RequestId>
+        // </ErrorResponse>
+
+        tinyxml2::XMLNode *root = &xml;
+
+        if (const auto response = root->FirstChildElement("ErrorResponse")) {
+          root = response;
+        }
+
+        if (const auto error = root->FirstChildElement("Error")) {
           const char *message = "";
 
-          if (const auto child = root->FirstChildElement("Message")) {
+          if (const auto child = error->FirstChildElement("Message")) {
             message = child->GetText();
           }
 
           const char *code = "";
 
-          if (const auto child = root->FirstChildElement("Code")) {
+          if (const auto child = error->FirstChildElement("Code")) {
             code = child->GetText();
           }
 
