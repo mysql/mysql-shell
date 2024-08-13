@@ -3297,7 +3297,7 @@ session.run_sql("ANALYZE TABLE !.!", [ test_schema, test_table ])
 
 #@<> BUG#36470302 - test
 WIPE_SHELL_LOG()
-EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw");
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw")
 EXPECT_SHELL_LOG_CONTAINS(f"Chunking {quote_identifier(test_schema, test_table)} using integer algorithm with adaptive step")
 
 #@<> BUG#36470302 - test with JSON output version 2 {VER(>=8.3.0)}
@@ -3307,7 +3307,7 @@ session.run_sql("SET @saved_explain_json_format_version = @@GLOBAL.explain_json_
 session.run_sql("SET @@GLOBAL.explain_json_format_version = 2")
 
 WIPE_SHELL_LOG()
-EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw");
+EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), "Dump should not throw")
 EXPECT_SHELL_LOG_CONTAINS(f"Chunking {quote_identifier(test_schema, test_table)} using integer algorithm with adaptive step")
 
 session.run_sql("SET @@GLOBAL.explain_json_format_version = @saved_explain_json_format_version")
@@ -3356,6 +3356,173 @@ EXPECT_STDOUT_CONTAINS(invalid_view_message)
 #@<> BUG#36509026 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+
+#@<> BUG#36561962 - add 'dropExistingObjects' option to drop existing objects before loading the dump
+dump_dir = os.path.join(outdir, "bug_36561962")
+progress_file = os.path.join(dump_dir, "progress.json")
+test_schema = "test_schema"
+test_user = "test_user"
+
+# setup
+def create_user(s):
+    s.run_sql(f"DROP USER IF EXISTS {test_user}")
+    s.run_sql(f"CREATE USER {test_user}")
+
+def create_objects(s, schema):
+    s.run_sql("DROP SCHEMA IF EXISTS !", [ schema ])
+    s.run_sql("CREATE SCHEMA !", [ schema ])
+    s.run_sql("CREATE TABLE !.t (c INT)", [ schema ])
+    s.run_sql("CREATE VIEW !.v AS SELECT * FROM !.t", [ schema, schema ])
+    s.run_sql("CREATE TRIGGER !.tt BEFORE INSERT ON t FOR EACH ROW BEGIN END", [ schema ])
+    s.run_sql("CREATE FUNCTION !.f() RETURNS INT DETERMINISTIC RETURN 1", [ schema ])
+    s.run_sql("CREATE PROCEDURE !.p() BEGIN END", [ schema ])
+    s.run_sql("CREATE EVENT !.e ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR DO BEGIN END", [ schema ])
+
+def alter_user(s):
+    s.run_sql(f"ALTER USER {test_user} IDENTIFIED BY 'password1@'")
+
+def alter_table(s, schema):
+    s.run_sql("ALTER TABLE !.t COMMENT 'modified'", [ schema ])
+
+def alter_trigger(s, schema):
+    s.run_sql("DROP TRIGGER !.tt", [ schema ])
+    s.run_sql("CREATE TRIGGER !.tt AFTER DELETE ON t FOR EACH ROW BEGIN END", [ schema ])
+
+def alter_schema_objects(s, schema):
+    s.run_sql("ALTER VIEW !.v AS SELECT 'modified'", [ schema ])
+    s.run_sql("ALTER FUNCTION !.f COMMENT 'modified'", [ schema ])
+    s.run_sql("ALTER PROCEDURE !.p COMMENT 'modified'", [ schema ])
+    s.run_sql("ALTER EVENT !.e COMMENT 'modified'", [ schema ])
+
+def alter_objects(s, schema):
+    alter_table(s, schema)
+    alter_trigger(s, schema)
+    alter_schema_objects(s, schema)
+
+create_user(session1)
+create_objects(session1, test_schema)
+
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [test_schema], "includeUsers": [test_user], "showProgress": False }), "Dump should not throw")
+
+shell.connect(__sandbox_uri2)
+
+#@<> BUG#36561962 - 'dropExistingObjects' is mutually exclusive with 'ignoreExistingObjects'
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "ignoreExistingObjects": True, "showProgress": False }), "The 'dropExistingObjects' and 'ignoreExistingObjects' options cannot be both set to true.")
+
+#@<> BUG#36561962 - 'dropExistingObjects' requires 'loadDdl': True
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "loadDdl": False, "showProgress": False }), "The 'dropExistingObjects' option cannot be set to true when the 'loadDdl' option is set to false.")
+
+#@<> BUG#36561962 - load normally, then load with 'dropExistingObjects': True and resetting the progress, dropping all the objects
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not throw")
+
+schemas = snapshot_schemas(session2)
+accounts = snapshot_accounts(session2)
+
+alter_user(session2)
+alter_objects(session2, test_schema)
+
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "resetProgress": True, "loadUsers": True, "showProgress": False }), "Load should not throw")
+
+EXPECT_STDOUT_CONTAINS(f"""
+Checking for pre-existing objects...
+NOTE: Account '{test_user}'@'%' already exists, dropping...
+NOTE: Schema `{test_schema}` already contains a table named `t`, dropping...
+NOTE: Schema `{test_schema}` already contains a view named `v`, dropping...
+NOTE: Schema `{test_schema}` already contains a trigger named `tt`, dropping...
+NOTE: Schema `{test_schema}` already contains a function named `f`, dropping...
+NOTE: Schema `{test_schema}` already contains a procedure named `p`, dropping...
+NOTE: Schema `{test_schema}` already contains an event named `e`, dropping...
+NOTE: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.
+""")
+
+EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
+EXPECT_JSON_EQ(accounts, snapshot_accounts(session2), "Verifying accounts")
+
+#@<> BUG#36561962 - resume a load with 'dropExistingObjects': True when trigger DDL was not completed
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+
+with open(progress_file, "r") as f:
+    progress_file_contents = f.readlines()
+
+# copy the progress file, removing the DONE entry for the trigger
+with open(progress_file, "w") as f:
+    for line in progress_file_contents:
+        if line:
+            content = json.loads(line)
+            if "TRIGGERS-DDL" != content["op"] or not content["done"]:
+                f.write(line)
+
+# we expect trigger to be re-created, other objects should be untouched,
+# trigger is snapshotted before modification, as this is the state we're expecting to have
+# objects are snapshotted after modification, as they should not change
+triggers = snapshot_triggers(session2, test_schema, "t")
+alter_objects(session2, test_schema)
+schemas = snapshot_schemas(session2)
+schemas[test_schema]["tables"]["t"]["triggers"] = triggers
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
+
+os.remove(progress_file)
+
+#@<> BUG#36561962 - resume a load with 'dropExistingObjects': True when schema DDL was not completed
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+
+with open(progress_file, "r") as f:
+    progress_file_contents = f.readlines()
+
+# copy the progress file, removing the DONE entry for the schema
+with open(progress_file, "w") as f:
+    for line in progress_file_contents:
+        if line:
+            content = json.loads(line)
+            if "SCHEMA-DDL" != content["op"] or not content["done"]:
+                f.write(line)
+
+# we expect schema objects to be re-created, table and trigger should be untouched,
+# schema objects are snapshotted before modification, as this is the state we're expecting to have
+# table and trigger are snapshotted after modification, as they should not change
+schemas = snapshot_schemas(session2)
+alter_objects(session2, test_schema)
+schemas[test_schema]["tables"] = snapshot_tables_and_triggers(session2, test_schema)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
+
+os.remove(progress_file)
+
+#@<> BUG#36561962 - resume a load with 'dropExistingObjects': True when schema DDL and table DDL was not completed
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+
+with open(progress_file, "r") as f:
+    progress_file_contents = f.readlines()
+
+# copy the progress file, removing the DONE entry for the schema, table and trigger
+with open(progress_file, "w") as f:
+    for line in progress_file_contents:
+        if line:
+            content = json.loads(line)
+            if ("SCHEMA-DDL" != content["op"] and "TABLE-DDL" != content["op"] and "TRIGGERS-DDL" != content["op"]) or not content["done"]:
+                f.write(line)
+
+# all objects will be recreated
+schemas = snapshot_schemas(session2)
+alter_objects(session2, test_schema)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "progressFile": progress_file, "showProgress": False }), "Load should not throw")
+EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
+
+os.remove(progress_file)
+
+#@<> BUG#36561962 - cleanup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+session1.run_sql(f"DROP USER IF EXISTS {test_user}")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

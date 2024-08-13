@@ -157,6 +157,7 @@ Dump_reader::Status Dump_reader::open() {
     if (include_schema(schema.as_string())) {
       auto info = std::make_shared<Schema_info>();
 
+      info->parent = nullptr;
       info->name = schema.get_string();
       if (basenames->has_key(info->name)) {
         info->basename = basenames->get_string(info->name);
@@ -380,42 +381,59 @@ std::vector<shcore::Account> Dump_reader::accounts() const {
   return account_list;
 }
 
-std::vector<std::string> Dump_reader::schemas() const {
-  std::vector<std::string> slist;
+std::list<const Dump_reader::Object_info *> Dump_reader::schemas() const {
+  std::list<const Dump_reader::Object_info *> slist;
 
   for (const auto &s : m_contents.schemas) {
-    slist.push_back(s.second->name);
+    slist.push_back(s.second.get());
   }
 
   return slist;
 }
 
-bool Dump_reader::schema_objects(const std::string &schema,
+bool Dump_reader::schema_objects(std::string_view schema,
                                  std::list<Object_info *> *out_tables,
                                  std::list<Object_info *> *out_views,
                                  std::list<Object_info *> *out_triggers,
                                  std::list<Object_info *> *out_functions,
                                  std::list<Object_info *> *out_procedures,
                                  std::list<Object_info *> *out_events) {
-  auto schema_it = m_contents.schemas.find(schema);
+  auto schema_it = m_contents.schemas.find(
+#if __cpp_lib_generic_unordered_lookup
+      schema
+#else
+      std::string(schema)
+#endif
+  );
   if (schema_it == m_contents.schemas.end()) return false;
   const auto &schema_info = schema_it->second;
 
-  out_tables->clear();
-  out_views->clear();
-  out_triggers->clear();
-  out_functions->clear();
-  out_procedures->clear();
-  out_events->clear();
+  {
+    const auto clear_out = [](auto *out) {
+      if (!out) return;
+      out->clear();
+    };
+
+    clear_out(out_tables);
+    clear_out(out_views);
+    clear_out(out_triggers);
+    clear_out(out_functions);
+    clear_out(out_procedures);
+    clear_out(out_events);
+  }
 
   const auto add_objects = [](auto *src, std::list<Object_info *> *tgt) {
+    if (!tgt) return;
+
     for (auto &s : *src) {
       tgt->emplace_back(&s);
     }
   };
 
   for (const auto &t : schema_info->tables) {
-    out_tables->push_back(t.second.get());
+    if (out_tables) {
+      out_tables->push_back(t.second.get());
+    }
 
     add_objects(&t.second->triggers, out_triggers);
   }
@@ -619,8 +637,8 @@ bool Dump_reader::next_table_chunk(
       tables_being_loaded, &m_tables_with_data, m_options.threads_count());
 
   if (iter != m_tables_with_data.end()) {
-    out_chunk->schema = (*iter)->owner->schema;
-    out_chunk->table = (*iter)->owner->name;
+    out_chunk->schema = (*iter)->table->parent->name;
+    out_chunk->table = (*iter)->table->name;
     out_chunk->partition = (*iter)->partition;
     out_chunk->chunked = (*iter)->chunked;
     out_chunk->index = (*iter)->chunks_consumed;
@@ -641,12 +659,12 @@ bool Dump_reader::next_table_chunk(
           " which is not yet available");
     }
 
-    out_chunk->compression = (*iter)->owner->compression;
+    out_chunk->compression = (*iter)->table->compression;
     out_chunk->file = mysqlshdk::storage::make_file(m_dir->file(info->name()),
                                                     out_chunk->compression);
     out_chunk->file_size = info->size();
     out_chunk->data_size = data_size_in_file(info->name());
-    out_chunk->options = (*iter)->owner->options;
+    out_chunk->options = (*iter)->table->options;
     out_chunk->dump_complete = (*iter)->data_dumped();
     out_chunk->basename = (*iter)->basename;
     out_chunk->extension = (*iter)->extension;
@@ -904,12 +922,7 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
   info->name = schema;
 
   for (const auto &table : info->tables) {
-    table.second->schema = schema;
     table.second->options->set("schema", shcore::Value(schema));
-  }
-
-  for (auto &view : info->views) {
-    view.schema = schema;
   }
 }
 
@@ -995,7 +1008,7 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
   auto md = parse_metadata(data, metadata_name());
 
   Table_data_info di;
-  di.owner = this;
+  di.table = this;
 
   has_sql = md->get_bool("includesDdl", true);
   di.has_data = md->get_bool("includesData", true);
@@ -1073,14 +1086,14 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     for (const auto &t : *trigger_list) {
       auto trigger_name = t.as_string();
 
-      if (reader->include_trigger(schema, name, trigger_name)) {
-        triggers.emplace_back(Object_info{std::move(trigger_name)});
+      if (reader->include_trigger(parent->name, name, trigger_name)) {
+        triggers.emplace_back(Object_info{this, std::move(trigger_name)});
       }
     }
 
     has_triggers = !triggers.empty();
 
-    log_debug("%s.%s has %zi triggers", schema.c_str(), name.c_str(),
+    log_debug("%s.%s has %zi triggers", parent->name.c_str(), name.c_str(),
               triggers.size());
   } else {
     has_triggers = false;
@@ -1252,12 +1265,14 @@ void Dump_reader::Table_data_info::initialize_checksums(
     return;
   }
 
-  const auto list = info->find_checksums(owner->schema, owner->name, partition);
+  const auto list =
+      info->find_checksums(table->parent->name, table->name, partition);
 
   if (list.empty()) {
     log_warning(
         "Could not find checksum information of: %s",
-        schema_table_object_key(owner->schema, owner->name, partition).c_str());
+        schema_table_object_key(table->parent->name, table->name, partition)
+            .c_str());
   } else {
     checksums = std::list(list.begin(), list.end());
     checksums_total = checksums.size();
@@ -1330,7 +1345,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
       if (reader->include_table(name, table_name)) {
         auto info = std::make_shared<Table_info>();
 
-        info->schema = name;
+        info->parent = this;
         info->name = std::move(table_name);
 
         if (basenames->has_key(info->name))
@@ -1358,7 +1373,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
       if (reader->include_table(name, view_name)) {
         View_info info;
 
-        info.schema = name;
+        info.parent = this;
         info.name = std::move(view_name);
         if (basenames->has_key(info.name))
           info.basename = basenames->get_string(info.name);
@@ -1377,7 +1392,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
       auto function_name = f.as_string();
 
       if (reader->include_routine(name, function_name)) {
-        functions.emplace_back(Object_info{std::move(function_name)});
+        functions.emplace_back(Object_info{this, std::move(function_name)});
       }
     }
 
@@ -1389,7 +1404,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
       auto procedure_name = p.as_string();
 
       if (reader->include_routine(name, procedure_name)) {
-        procedures.emplace_back(Object_info{std::move(procedure_name)});
+        procedures.emplace_back(Object_info{this, std::move(procedure_name)});
       }
     }
 
@@ -1401,7 +1416,7 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
       auto event_name = e.as_string();
 
       if (reader->include_event(name, event_name)) {
-        events.emplace_back(Object_info{std::move(event_name)});
+        events.emplace_back(Object_info{this, std::move(event_name)});
       }
     }
 

@@ -55,6 +55,13 @@ def snapshot_table_data(session, schema, table):
     # return {"checksum":cksum, "rowcount":count}
     return md5_table(session, schema, table)
 
+def snapshot_triggers(session, schema, table):
+    triggers = {}
+    for row in session.run_sql("SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema = ? and event_object_table = ?", [schema, table]).fetch_all():
+        trigger = row[0]
+        triggers[trigger] = session.run_sql("SHOW CREATE TRIGGER !.!", [schema, trigger]).fetch_one()[2]
+    return triggers
+
 def snapshot_tables_and_triggers(session, schema):
     tables = {}
     for row in session.run_sql("SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = ? and table_type = 'BASE TABLE'", [schema]).fetch_all():
@@ -63,11 +70,7 @@ def snapshot_tables_and_triggers(session, schema):
         tables[name]["ddl"] = session.run_sql("SHOW CREATE TABLE !.!", [schema, name]).fetch_one()[1]
         # on Windows "SHOW CREATE" keeps adding slashes at the end of a DATA|INDEX directory, mitigate that
         tables[name]["ddl"] = re.compile(r"\/+").sub("/", tables[name]["ddl"])
-        triggers = {}
-        for row in session.run_sql("SELECT trigger_name FROM information_schema.triggers WHERE trigger_schema = ? and event_object_table = ?", [schema, name]).fetch_all():
-            trigger = row[0]
-            triggers[trigger] = session.run_sql("SHOW CREATE TRIGGER !.!", [schema, trigger]).fetch_one()[2]
-        tables[name]["triggers"] = triggers
+        tables[name]["triggers"] = snapshot_triggers(session, schema, name)
     return tables
 
 def snapshot_views(session, schema):

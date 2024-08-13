@@ -1073,6 +1073,49 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(Worker *worker,
   return true;
 }
 
+bool Dump_loader::Worker::Schema_sql_task::execute(Worker *worker,
+                                                   Dump_loader *loader) {
+  log_debug("%swill execute SQL statement for schema %s", log_id(),
+            schema().c_str());
+
+  if (!m_statement.empty()) {
+    try {
+      log_info("Executing SQL statement for schema `%s`", schema().c_str());
+
+      if (!loader->m_options.dry_run()) {
+        sql::ar::executef(worker->reconnect_callback(), worker->session(),
+                          "use !", m_schema.c_str());
+        sql::ar::run(worker->reconnect_callback(), [this, worker]() {
+          // need to use this approach instead of sql::ar::execute() to handle
+          // deadlocks
+          execute_statement(
+              worker->session(), m_statement,
+              "While executing SQL statement for schema " + m_schema,
+              ER_NO_SUCH_TABLE);  // 5.7 server may report this error when
+                                  // dropping a trigger
+        });
+      }
+    } catch (const std::exception &e) {
+      if (const auto &dbe = dynamic_cast<const shcore::Error *>(&e);
+          !dbe || ER_NO_SUCH_TABLE != dbe->code()) {
+        current_console()->print_error(shcore::str_format(
+            "Error executing SQL statement for schema `%s`: %s",
+            schema().c_str(), e.what()));
+        handle_current_exception(
+            worker, loader,
+            shcore::str_format(
+                "While executing SQL statement for schema %s: %s",
+                schema().c_str(), e.what()));
+        return false;
+      }
+    }
+  }
+
+  log_debug("%sdone", log_id());
+
+  return true;
+}
+
 bool Dump_loader::Worker::Table_ddl_task::execute(Worker *worker,
                                                   Dump_loader *loader) {
   log_debug("%swill execute DDL file for table %s", log_id(), key().c_str());
@@ -2187,8 +2230,8 @@ void Dump_loader::on_dump_begin() {
 
 void Dump_loader::on_dump_end() {
   // Execute schema end scripts
-  for (const std::string &schema : m_dump->schemas()) {
-    on_schema_end(schema);
+  for (const auto schema : m_dump->schemas()) {
+    on_schema_end(schema->name);
   }
 
   {
@@ -3409,10 +3452,13 @@ bool Dump_loader::report_duplicates(
     const auto msg = "Schema `" + schema + "` already contains " + what +
                      " named `" + name + "`";
 
-    if (m_options.ignore_existing_objects())
-      current_console()->print_note(msg);
-    else
+    if (m_options.ignore_existing_objects()) {
+      current_console()->print_note(msg + ", ignoring...");
+    } else if (m_options.drop_existing_objects()) {
+      current_console()->print_note(msg + ", dropping...");
+    } else {
       current_console()->print_error(msg);
+    }
 
     has_duplicates = true;
 
@@ -3465,10 +3511,13 @@ void Dump_loader::check_existing_objects() {
       if (accounts.count(shcore::str_lower(grantee))) {
         const auto msg = "Account " + grantee + " already exists";
 
-        if (m_options.ignore_existing_objects())
-          current_console()->print_note(msg);
-        else
+        if (m_options.ignore_existing_objects()) {
+          current_console()->print_note(msg + ", ignoring...");
+        } else if (m_options.drop_existing_objects()) {
+          current_console()->print_note(msg + ", dropping...");
+        } else {
           current_console()->print_error(msg);
+        }
 
         has_duplicates = true;
       }
@@ -3482,9 +3531,9 @@ void Dump_loader::check_existing_objects() {
   // lower_case_table_names
 
   // Get list of schemas being loaded that already exist
-  std::string set = shcore::str_join(
-      m_dump->schemas(), ",",
-      [](const std::string &s) { return shcore::quote_sql_string(s); });
+  std::string set = shcore::str_join(m_dump->schemas(), ",", [](const auto s) {
+    return shcore::quote_sql_string(s->name);
+  });
   if (set.empty()) return;
 
   auto result =
@@ -3561,11 +3610,17 @@ void Dump_loader::check_existing_objects() {
           "One or more objects in the dump already exist in the destination "
           "database but will be ignored because the 'ignoreExistingObjects' "
           "option was enabled.");
+    } else if (m_options.drop_existing_objects()) {
+      console->print_note(
+          "One or more objects in the dump already exist in the destination "
+          "database but will be dropped because the 'dropExistingObjects' "
+          "option was enabled.");
     } else {
       console->print_error(
           "One or more objects in the dump already exist in the destination "
-          "database. You must either DROP these objects or exclude them from "
-          "the load.");
+          "database. You must either exclude these objects from the load, "
+          "enable the 'dropExistingObjects' option to drop them automatically, "
+          "or enable the 'ignoreExistingObjects' option to ignore them.");
       THROW_ERROR(SHERR_LOAD_DUPLICATE_OBJECTS_FOUND);
     }
   }
@@ -3635,6 +3690,111 @@ void Dump_loader::execute_threaded(const std::function<bool()> &schedule_next) {
       break;
     }
   } while (!m_worker_interrupt);
+}
+
+void Dump_loader::execute_drop_ddl_tasks() {
+  if (!m_options.drop_existing_objects()) {
+    return;
+  }
+
+  using list_t = std::list<Dump_reader::Object_info *>;
+
+  struct Objects {
+    list_t *list;
+    const char *type;
+  };
+
+  list_t tables;      // progress::Table_ddl
+  list_t views;       // progress::Schema_ddl
+  list_t triggers;    // progress::Triggers_ddl
+  list_t functions;   // progress::Schema_ddl
+  list_t procedures;  // progress::Schema_ddl
+  list_t events;      // progress::Schema_ddl
+
+  std::vector<Objects> all_objects{
+      {&tables, "TABLE"},         {&views, "VIEW"},
+      {&triggers, "TRIGGER"},     {&functions, "FUNCTION"},
+      {&procedures, "PROCEDURE"}, {&events, "EVENT"},
+  };
+
+  const Dump_reader::Object_info *schema;
+
+  const auto schedule = [this, &schema](const Objects &objects) {
+    if (objects.list->empty()) {
+      return false;
+    }
+
+    auto object = objects.list->front();
+    objects.list->pop_front();
+
+    push_pending_task(std::make_unique<Worker::Schema_sql_task>(
+        schema->name,
+        shcore::str_format("DROP %s IF EXISTS %s", objects.type,
+                           shcore::quote_identifier(object->name).c_str())));
+    object->exists = false;
+
+    return true;
+  };
+
+  const auto remove_completed = [this](list_t *list, const auto &progress) {
+    if (list->empty()) return;
+
+    list->remove_if([this, &progress](const auto o) {
+      return Load_progress_log::DONE == m_load_log->status(progress(o));
+    });
+  };
+
+  const auto table_status = [&schema](const Dump_reader::Object_info *t) {
+    return progress::Table_ddl{schema->name, t->name};
+  };
+
+  const auto trigger_status = [&schema](const Dump_reader::Object_info *t) {
+    // status is tracked per schema.table
+    return progress::Triggers_ddl{schema->name, t->parent->name};
+  };
+
+  auto schemas = m_dump->schemas();
+
+  handle_worker_events([&]() {
+    while (true) {
+      // go over lists, for each element create a task which drops an object
+      for (auto &o : all_objects) {
+        if (schedule(o)) {
+          return true;
+        }
+      }
+
+      if (schemas.empty()) {
+        // all schemas were handled
+        break;
+      }
+
+      // get next schema
+      schema = schemas.front();
+      schemas.pop_front();
+
+      if (Load_progress_log::DONE ==
+          m_load_log->status(progress::Schema_ddl{schema->name})) {
+        // table progress is tracked separately, but once schema DDL is done
+        // all tables are also done, only triggers may be pending
+        m_dump->schema_objects(schema->name, nullptr, nullptr, &triggers,
+                               nullptr, nullptr, nullptr);
+      } else {
+        // fetch all objects
+        m_dump->schema_objects(schema->name, &tables, &views, &triggers,
+                               &functions, &procedures, &events);
+        // some of the tables may be completed
+        remove_completed(&tables, table_status);
+        // just in case drop both views and tables with these names
+        tables.insert(tables.end(), views.begin(), views.end());
+      }
+
+      // triggers are tracked separately from schema DDL
+      remove_completed(&triggers, trigger_status);
+    }
+
+    return false;
+  });
 }
 
 void Dump_loader::execute_table_ddl_tasks() {
@@ -4036,6 +4196,8 @@ void Dump_loader::execute_tasks(bool testing) {
       // NOTE: this assumes that all DDL files are already present
 
       if (m_options.load_ddl() || m_options.load_deferred_indexes()) {
+        if (!m_worker_interrupt) execute_drop_ddl_tasks();
+
         // exec DDL for all tables in parallel (fetching DDL for
         // thousands of tables from remote storage can be slow)
         if (!m_worker_interrupt) execute_table_ddl_tasks();
@@ -4975,6 +5137,22 @@ void Dump_loader::load_users() {
     return;
   }
 
+  const auto drop_account = [this](const std::string &account) {
+    const auto drop = "DROP USER IF EXISTS " + account;
+    execute_statement(m_session, drop, "While dropping the account " + account);
+  };
+
+  if (m_options.drop_existing_objects()) {
+    sql::ar::run(m_reconnect_callback, [&]() {
+      for (const auto &group : statements) {
+        if (dump::Schema_dumper::User_statements::Type::CREATE_USER ==
+            group.type) {
+          drop_account(group.account);
+        }
+      }
+    });
+  }
+
   std::unordered_set<std::string> all_accounts;
   std::unordered_set<std::string> ignored_accounts;
 
@@ -5045,14 +5223,7 @@ void Dump_loader::load_users() {
                       "Due to the above error the account " + group.account +
                       " was dropped, the load operation will continue.");
                   ignored_accounts.emplace(group.account);
-
-                  {
-                    const auto drop = "DROP USER IF EXISTS " + group.account;
-                    execute_statement(
-                        m_session, drop,
-                        "While dropping the account " + group.account);
-                  }
-
+                  drop_account(group.account);
                   ++m_dropped_accounts;
                   break;
 

@@ -628,7 +628,8 @@ session.runSql("CREATE FUNCTION mysqlaas_compat.func2 () RETURNS INT NO SQL SQL 
 session.runSql("CREATE PROCEDURE mysqlaas_compat.proc2 () NO SQL SQL SECURITY DEFINER BEGIN END;");
 session.runSql("CREATE EVENT mysqlaas_compat.event2 ON SCHEDULE EVERY 1 DAY DO BEGIN END;");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "While 'Checking for pre-existing objects': Duplicate objects found in destination database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});}, "While 'Scanning metadata': Duplicate objects found in destination database");
+EXPECT_STDOUT_CONTAINS("One or more objects in the dump already exist in the destination database. You must either exclude these objects from the load, enable the 'dropExistingObjects' option to drop them automatically, or enable the 'ignoreExistingObjects' option to ignore them.");
 
 //@<> load dump where some objects already exist, but exclude them from the load
 util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, excludeSchemas: ["sakila", "mysqlaas_compat"]});

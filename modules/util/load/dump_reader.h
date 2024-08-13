@@ -33,6 +33,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -140,9 +141,9 @@ class Dump_reader {
 
   std::vector<shcore::Account> accounts() const;
 
-  std::vector<std::string> schemas() const;
+  std::list<const Dump_reader::Object_info *> schemas() const;
 
-  bool schema_objects(const std::string &schema,
+  bool schema_objects(std::string_view schema,
                       std::list<Object_info *> *out_tables,
                       std::list<Object_info *> *out_views,
                       std::list<Object_info *> *out_triggers,
@@ -329,12 +330,12 @@ class Dump_reader {
   }
 
   struct Object_info {
+    const Object_info *parent;
     std::string name;
     std::optional<bool> exists{};
   };
 
   struct View_info : public Object_info {
-    std::string schema;
     std::string basename;
 
     bool ready() const { return sql_seen && sql_pre_seen; }
@@ -349,7 +350,7 @@ class Dump_reader {
   };
 
   struct Table_data_info {
-    Table_info *owner = nullptr;
+    Table_info *table = nullptr;
 
     std::string partition;
     std::string basename;
@@ -413,7 +414,8 @@ class Dump_reader {
 
     const std::string &key() const {
       if (m_key.empty()) {
-        m_key = schema_table_object_key(owner->schema, owner->name, partition);
+        m_key = schema_table_object_key(table->parent->name, table->name,
+                                        partition);
       }
 
       return m_key;
@@ -428,7 +430,6 @@ class Dump_reader {
   };
 
   struct Table_info : public Object_info {
-    std::string schema;
     std::string basename;
 
     mysqlshdk::storage::Compression compression =
