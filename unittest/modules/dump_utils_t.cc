@@ -126,14 +126,14 @@ class Dump_scheduler : public ::testing::Test {
                                      size_t size_variation) {
     Dump_reader::Table_info info;
 
-    info.schema = "myschema";
+    info.parent = &m_schema;
     info.name = name;
     info.basename = info.name;
     info.data_info.emplace_back();
 
     auto &di = info.data_info.back();
 
-    // di.owner will be set by test_scheduling()
+    // di.table will be set by test_scheduling()
 
     di.basename = info.basename;
     di.extension = "csv";
@@ -167,7 +167,7 @@ class Dump_scheduler : public ::testing::Test {
     auto copy = tables;
     for (auto &t : copy) {
       for (auto &di : t.data_info) {
-        di.owner = &t;
+        di.table = &t;
         tables_with_data.insert(&di);
       }
     }
@@ -219,7 +219,7 @@ class Dump_scheduler : public ::testing::Test {
 
       std::cout << "\nTables with data:\n";
       for (auto t : tables_with_data) {
-        std::cout << t->owner->schema << "." << t->owner->name << "\t"
+        std::cout << t->table->parent->name << "." << t->table->name << "\t"
                   << t->bytes_available() << "\n";
       }
       std::cout << "\n";
@@ -317,6 +317,9 @@ class Dump_scheduler : public ::testing::Test {
 
     return schedule_order;
   }
+
+ private:
+  Dump_reader::Object_info m_schema{nullptr, "myschema"};
 };
 
 TEST_F(Dump_scheduler, load_scheduler) {

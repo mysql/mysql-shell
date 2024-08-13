@@ -131,7 +131,7 @@ class Dump_loader {
      public:
       Schema_ddl_task(std::string_view schema, std::string &&script,
                       bool resuming)
-          : Task(schema, ""),
+          : Task(schema, {}),
             m_script(std::move(script)),
             m_resuming(resuming) {}
 
@@ -140,6 +140,17 @@ class Dump_loader {
      private:
       std::string m_script;
       bool m_resuming;
+    };
+
+    class Schema_sql_task : public Task {
+     public:
+      Schema_sql_task(std::string_view schema, std::string &&statement)
+          : Task(schema, {}), m_statement(std::move(statement)) {}
+
+      bool execute(Worker *, Dump_loader *) override;
+
+     private:
+      std::string m_statement;
     };
 
     class Table_ddl_task : public Task {
@@ -422,6 +433,7 @@ class Dump_loader {
       std::pair<std::string, std::unique_ptr<mysqlshdk::storage::IFile>>;
 
   void execute_tasks(bool testing = false);
+  void execute_drop_ddl_tasks();
   void execute_table_ddl_tasks();
   void execute_view_ddl_tasks();
 

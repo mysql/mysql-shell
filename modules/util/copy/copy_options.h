@@ -115,6 +115,12 @@ class Copy_options {
     m_load_options.set_load_data(m_dump_options.dump_data());
     m_load_options.set_load_ddl(m_dump_options.dump_ddl());
     m_load_options.set_load_users(m_dump_options.dump_users());
+
+    if (m_load_options.drop_existing_objects() && !m_dump_options.dump_ddl()) {
+      throw std::invalid_argument(
+          "The 'dropExistingObjects' and 'dataOnly' options cannot be both set "
+          "to true.");
+    }
   }
 
   T m_dump_options;

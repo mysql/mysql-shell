@@ -853,5 +853,71 @@ src_session.run_sql("SET @@GLOBAL.time_zone = SYSTEM")
 #@<> WL15947 - cleanup
 src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#36561962 - add 'dropExistingObjects' option to drop existing objects before copying the data
+test_schema = "test_schema"
+test_user = "test_user"
+
+# setup
+def create_objects(s, schema):
+    s.run_sql(f"DROP USER IF EXISTS {test_user}")
+    s.run_sql(f"CREATE USER {test_user}")
+    s.run_sql("DROP SCHEMA IF EXISTS !", [ schema ])
+    s.run_sql("CREATE SCHEMA !", [ schema ])
+    s.run_sql("CREATE TABLE !.t (c INT)", [ schema ])
+    s.run_sql("CREATE VIEW !.v AS SELECT * FROM !.t", [ schema, schema ])
+    s.run_sql("CREATE TRIGGER !.tt BEFORE INSERT ON t FOR EACH ROW BEGIN END", [ schema ])
+    s.run_sql("CREATE FUNCTION !.f() RETURNS INT DETERMINISTIC RETURN 1", [ schema ])
+    s.run_sql("CREATE PROCEDURE !.p() BEGIN END", [ schema ])
+    s.run_sql("CREATE EVENT !.e ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR DO BEGIN END", [ schema ])
+
+def alter_objects(s, schema):
+    s.run_sql(f"ALTER USER {test_user} IDENTIFIED BY 'password1@'")
+    s.run_sql("ALTER TABLE !.t COMMENT 'modified'", [ schema ])
+    s.run_sql("ALTER VIEW !.v AS SELECT 'modified'", [ schema ])
+    s.run_sql("DROP TRIGGER !.tt", [ schema ])
+    s.run_sql("CREATE TRIGGER !.tt AFTER DELETE ON t FOR EACH ROW BEGIN END", [ schema ])
+    s.run_sql("ALTER FUNCTION !.f COMMENT 'modified'", [ schema ])
+    s.run_sql("ALTER PROCEDURE !.p COMMENT 'modified'", [ schema ])
+    s.run_sql("ALTER EVENT !.e COMMENT 'modified'", [ schema ])
+
+create_objects(src_session, test_schema)
+
+#@<> BUG#36561962 - 'dropExistingObjects' is mutually exclusive with 'ignoreExistingObjects'
+EXPECT_FAIL("ValueError: Argument #2", "The 'dropExistingObjects' and 'ignoreExistingObjects' options cannot be both set to true.", __sandbox_uri2, { "dropExistingObjects": True, "ignoreExistingObjects": True })
+
+#@<> BUG#36561962 - 'dropExistingObjects' is mutually exclusive with 'dataOnly'
+EXPECT_FAIL("ValueError: Argument #2", "The 'dropExistingObjects' and 'dataOnly' options cannot be both set to true.", __sandbox_uri2, { "dropExistingObjects": True, "dataOnly": True })
+
+#@<> BUG#36561962 - copy normally, then copy with 'dropExistingObjects': True
+wipeout_server(tgt_session)
+EXPECT_NO_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "includeSchemas": [ test_schema ], "includeUsers": [ test_user ], "showProgress": False }), "Copy should not throw")
+
+schemas = snapshot_schemas(tgt_session)
+accounts = snapshot_accounts(tgt_session)
+
+alter_objects(tgt_session, test_schema)
+
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "dropExistingObjects": True, "includeSchemas": [ test_schema ], "includeUsers": [ test_user ], "showProgress": False }), "Copy should not throw")
+
+EXPECT_STDOUT_CONTAINS(f"""
+TGT: Checking for pre-existing objects...
+NOTE: TGT: Account '{test_user}'@'%' already exists, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains a table named `t`, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains a view named `v`, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains a trigger named `tt`, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains a function named `f`, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains a procedure named `p`, dropping...
+NOTE: TGT: Schema `{test_schema}` already contains an event named `e`, dropping...
+NOTE: TGT: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.
+""")
+
+EXPECT_JSON_EQ(schemas, snapshot_schemas(tgt_session), "Verifying schemas")
+EXPECT_JSON_EQ(accounts, snapshot_accounts(tgt_session), "Verifying accounts")
+
+#@<> BUG#36561962 - cleanup
+src_session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
+src_session.run_sql(f"DROP USER IF EXISTS {test_user}")
+
 #@<> Cleanup
 cleanup_copy_tests()

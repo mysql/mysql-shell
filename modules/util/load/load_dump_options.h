@@ -209,6 +209,8 @@ class Load_dump_options {
 
   bool ignore_existing_objects() const { return m_ignore_existing_objects; }
 
+  bool drop_existing_objects() const { return m_drop_existing_objects; }
+
   bool ignore_version() const { return m_ignore_version; }
 
   Defer_index_mode defer_table_indexes() const { return m_defer_table_indexes; }
@@ -319,6 +321,7 @@ class Load_dump_options {
   bool m_force = false;
   bool m_skip_binlog = false;
   bool m_ignore_existing_objects = false;
+  bool m_drop_existing_objects = false;
   bool m_ignore_version = false;
   Defer_index_mode m_defer_table_indexes = Defer_index_mode::FULLTEXT;
   bool m_load_indexes = true;

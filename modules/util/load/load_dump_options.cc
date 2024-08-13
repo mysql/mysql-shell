@@ -107,6 +107,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("skipBinlog", &Load_dump_options::m_skip_binlog)
           .optional("ignoreExistingObjects",
                     &Load_dump_options::m_ignore_existing_objects)
+          .optional("dropExistingObjects",
+                    &Load_dump_options::m_drop_existing_objects)
           .optional("ignoreVersion", &Load_dump_options::m_ignore_version)
           .optional("analyzeTables", &Load_dump_options::m_analyze_tables,
                     {{"histogram", Analyze_table_mode::HISTOGRAM},
@@ -471,6 +473,20 @@ void Load_dump_options::on_unpacked_options() {
       throw std::invalid_argument(
           "The 'includeUsers' option cannot be used if the 'loadUsers' option "
           "is set to false.");
+    }
+  }
+
+  if (m_drop_existing_objects) {
+    if (m_ignore_existing_objects) {
+      throw std::invalid_argument(
+          "The 'dropExistingObjects' and 'ignoreExistingObjects' options "
+          "cannot be both set to true.");
+    }
+
+    if (!m_load_ddl) {
+      throw std::invalid_argument(
+          "The 'dropExistingObjects' option cannot be set to true when the "
+          "'loadDdl' option is set to false.");
     }
   }
 

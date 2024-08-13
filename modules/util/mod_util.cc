@@ -1177,6 +1177,12 @@ table data is loaded, which in many cases can reduce load times. If "fulltext",
 only full-text indexes will be deferred.
 @li <b>disableBulkLoad</b>: bool (default: false) - Do not use BULK LOAD
 feature to load the data, even when available.
+@li <b>dropExistingObjects</b>: bool (default false) - Load the dump even if
+it contains user accounts or DDL objects that already exist in the target
+database. If this option is set to false, any existing object results in an
+error. Setting it to true drops existing user accounts and objects before
+creating them. Schemas are not dropped. Mutually exclusive with
+<b>ignoreExistingObjects</b>.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
 @li <b>excludeEvents</b>: array of strings (default not set) - Skip loading
@@ -1207,7 +1213,8 @@ continues loading the account.
 it contains user accounts or DDL objects that already exist in the target
 database. If this option is set to false, any existing object results in an
 error. Setting it to true ignores existing objects, but the CREATE statements
-are still going to be executed, except for the tables and views.
+are still going to be executed, except for the tables and views. Mutually
+exclusive with <b>dropExistingObjects</b>.
 @li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
 major version number of the server where it was created is different from where
 it will be loaded.
@@ -2387,16 +2394,22 @@ tables that have histogram information stored in the copy will be analyzed.
 If "all", creation of "all" indexes except PRIMARY is deferred until after
 table data is copied, which in many cases can reduce load times. If "fulltext",
 only full-text indexes will be deferred.
+@li <b>dropExistingObjects</b>: bool (default false) - Perform the copy even if
+it contains objects that already exist in the target database. Drops existing
+user accounts and objects (excluding schemas) before copying them. Mutually
+exclusive with <b>ignoreExistingObjects</b>.
 @li <b>handleGrantErrors</b>: "abort", "drop_account", "ignore" (default: abort)
 - Specifies action to be performed in case of errors related to the GRANT/REVOKE
 statements, "abort": throws an error and aborts the copy, "drop_account":
 deletes the problematic account and continues, "ignore": ignores the error and
 continues copying the account.
-@li <b>ignoreExistingObjects</b>: bool (default false) - Load the copy even if
-it contains objects that already exist in the target database.
-@li <b>ignoreVersion</b>: bool (default false) - Load the copy even if the major
-version number of the server where it was created is different from where it
-will be loaded.
+@li <b>ignoreExistingObjects</b>: bool (default false) - Perform the copy even
+if it contains objects that already exist in the target database. Ignores
+existing user accounts and objects. Mutually exclusive with
+<b>dropExistingObjects</b>.
+@li <b>ignoreVersion</b>: bool (default false) - Perform the copy even if the
+major version number of the server where it was created is different from where
+it will be loaded.
 @li <b>loadIndexes</b>: bool (default: true) - use together with
 <b>deferTableIndexes</b> to control whether secondary indexes should be
 recreated at the end of the copy.

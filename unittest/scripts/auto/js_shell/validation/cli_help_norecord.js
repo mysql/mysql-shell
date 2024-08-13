@@ -385,13 +385,20 @@ OPTIONS
             (set sql_log_bin=0). Default: false.
 
 --ignoreExistingObjects=<bool>
-            Load the copy even if it contains objects that already exist in the
-            target database. Default: false.
+            Perform the copy even if it contains objects that already exist in
+            the target database. Ignores existing user accounts and objects.
+            Mutually exclusive with dropExistingObjects. Default: false.
+
+--dropExistingObjects=<bool>
+            Perform the copy even if it contains objects that already exist in
+            the target database. Drops existing user accounts and objects
+            (excluding schemas) before copying them. Mutually exclusive with
+            ignoreExistingObjects. Default: false.
 
 --ignoreVersion=<bool>
-            Load the copy even if the major version number of the server where
-            it was created is different from where it will be loaded. Default:
-            false.
+            Perform the copy even if the major version number of the server
+            where it was created is different from where it will be loaded.
+            Default: false.
 
 --analyzeTables=<str>
             "off", "on", "histogram" (default: off) - If 'on', executes ANALYZE
@@ -571,13 +578,20 @@ OPTIONS
             (set sql_log_bin=0). Default: false.
 
 --ignoreExistingObjects=<bool>
-            Load the copy even if it contains objects that already exist in the
-            target database. Default: false.
+            Perform the copy even if it contains objects that already exist in
+            the target database. Ignores existing user accounts and objects.
+            Mutually exclusive with dropExistingObjects. Default: false.
+
+--dropExistingObjects=<bool>
+            Perform the copy even if it contains objects that already exist in
+            the target database. Drops existing user accounts and objects
+            (excluding schemas) before copying them. Mutually exclusive with
+            ignoreExistingObjects. Default: false.
 
 --ignoreVersion=<bool>
-            Load the copy even if the major version number of the server where
-            it was created is different from where it will be loaded. Default:
-            false.
+            Perform the copy even if the major version number of the server
+            where it was created is different from where it will be loaded.
+            Default: false.
 
 --analyzeTables=<str>
             "off", "on", "histogram" (default: off) - If 'on', executes ANALYZE
@@ -732,13 +746,20 @@ OPTIONS
             (set sql_log_bin=0). Default: false.
 
 --ignoreExistingObjects=<bool>
-            Load the copy even if it contains objects that already exist in the
-            target database. Default: false.
+            Perform the copy even if it contains objects that already exist in
+            the target database. Ignores existing user accounts and objects.
+            Mutually exclusive with dropExistingObjects. Default: false.
+
+--dropExistingObjects=<bool>
+            Perform the copy even if it contains objects that already exist in
+            the target database. Drops existing user accounts and objects
+            (excluding schemas) before copying them. Mutually exclusive with
+            ignoreExistingObjects. Default: false.
 
 --ignoreVersion=<bool>
-            Load the copy even if the major version number of the server where
-            it was created is different from where it will be loaded. Default:
-            false.
+            Perform the copy even if the major version number of the server
+            where it was created is different from where it will be loaded.
+            Default: false.
 
 --analyzeTables=<str>
             "off", "on", "histogram" (default: off) - If 'on', executes ANALYZE
@@ -1966,7 +1987,16 @@ OPTIONS
             already exist in the target database. If this option is set to
             false, any existing object results in an error. Setting it to true
             ignores existing objects, but the CREATE statements are still going
-            to be executed, except for the tables and views. Default: false.
+            to be executed, except for the tables and views. Mutually exclusive
+            with dropExistingObjects. Default: false.
+
+--dropExistingObjects=<bool>
+            Load the dump even if it contains user accounts or DDL objects that
+            already exist in the target database. If this option is set to
+            false, any existing object results in an error. Setting it to true
+            drops existing user accounts and objects before creating them.
+            Schemas are not dropped. Mutually exclusive with
+            ignoreExistingObjects. Default: false.
 
 --ignoreVersion=<bool>
             Load the dump even if the major version number of the server where
