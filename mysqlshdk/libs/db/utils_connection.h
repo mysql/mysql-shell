@@ -110,6 +110,8 @@ inline constexpr const char kKerberosClientAuthMode[] =
 inline constexpr const char kOciConfigFile[] = "oci-config-file";
 inline constexpr const char kOciAuthenticationClientConfigProfile[] =
     "authentication-oci-client-config-profile";
+inline constexpr const char kOpenIdConnectAuthenticationClientTokenFile[] =
+    "authentication-openid-connect-client-id-token-file";
 
 inline constexpr const char kSslModeDisabled[] = "disabled";
 inline constexpr const char kSslModePreferred[] = "preferred";
@@ -125,6 +127,8 @@ inline constexpr char kAuthMethodClearPassword[] = "mysql_clear_password";
 inline constexpr char kAuthMethodLdapSasl[] = "authentication_ldap_sasl_client";
 inline constexpr char kAuthMethodKerberos[] = "authentication_kerberos_client";
 inline constexpr char kAuthMethodOci[] = "authentication_oci_client";
+inline constexpr char kAuthMethodOpenIdConnect[] =
+    "authentication_openid_connect_client";
 inline constexpr char kKerberosAuthModeSSPI[] = "SSPI";
 inline constexpr char kKerberosAuthModeGSSAPI[] = "GSSAPI";
 

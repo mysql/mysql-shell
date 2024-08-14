@@ -67,6 +67,7 @@ const std::set<std::string> db_connection_attributes = {
 #endif
     kOciConfigFile,
     kOciAuthenticationClientConfigProfile,
+    kOpenIdConnectAuthenticationClientTokenFile,
 };
 
 const std::array<std::string, 6> ssl_modes = {"",

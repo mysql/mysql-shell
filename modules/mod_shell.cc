@@ -584,8 +584,10 @@ PERFORMANCE_SCHEMA connection attributes tables.
 @li plugin-authentication-kerberos-client-mode: (Windows) Allows defining the kerberos
 client mode (SSPI, GSSAPI) when using kerberos authentication.
 @li oci-config-file: Allows defining the OCI configuration file for OCI authentication.
-@li authentication-oci-client-config-profile: Allows defining the OCI profile used from 
+@li authentication-oci-client-config-profile: Allows defining the OCI profile used from
 the configuration for client side OCI authentication.
+@li authentication-openid-connect-client-id-token-file: Allows defining the file path to
+an OpenId Connect authorization token file when using OpenId Connect authentication.
 
 When these options are defined in a URI, their values must be URL encoded.
 

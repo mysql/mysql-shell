@@ -223,8 +223,8 @@ function hasAwsEnvironment() {
 
 
 function hasAuthEnvironment(context) {
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH'].indexOf(context) == -1) {
-    return false
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH', 'OPENID_CONNECT'].indexOf(context) == -1) {
+    return false;
   }
 
   var variables = [];
@@ -346,6 +346,10 @@ function getAuthServerConfig(context) {
       "loose-authentication-webauthn-rp-id": "mysql.com",
       "plugin-load-add": `authentication_webauthn.${ext}`
     };
+  } else if (context == 'OPENID_CONNECT') {
+    return {
+      "plugin-load-add": `authentication_openid_connect.${ext}`,
+    };
   }
 
   return {};
@@ -353,7 +357,7 @@ function getAuthServerConfig(context) {
 
 
 function isAuthMethodSupported(context, uri=__mysqluripwd) {
-  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH'].indexOf(context) == -1) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS', 'FIDO', 'WEBAUTHN', 'OCI_AUTH', 'OPENID_CONNECT'].indexOf(context) == -1) {
     return false;
   }
 
@@ -374,6 +378,8 @@ function isAuthMethodSupported(context, uri=__mysqluripwd) {
   } else if (context == 'OCI_AUTH') {
     // we're using an external server, so this is always supported
     return true;
+  } else if (context == 'OPENID_CONNECT') {
+    plugin = 'authentication_openid_connect';
   }
 
   var plugin_supported = true;

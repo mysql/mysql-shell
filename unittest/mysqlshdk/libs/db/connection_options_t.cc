@@ -384,6 +384,7 @@ TEST(Connection_options, case_insensitive_options) {
 #ifdef _WIN32
   attributes.erase(mysqlshdk::db::kKerberosClientAuthMode);
 #endif
+  attributes.erase(mysqlshdk::db::kOpenIdConnectAuthenticationClientTokenFile);
 
   for (auto property : attributes) {
     combine(property, callback);

@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/openid_connect.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/webauthn.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
@@ -146,6 +147,10 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
       kerberos::set_client_auth_mode(conn);
     }
 #endif
+    else if (0 ==
+             strcmp(args.plugin_name, "authentication_openid_connect_client")) {
+      openid_connect::set_client_token_file(conn);
+    }
   }
 
   return 0;

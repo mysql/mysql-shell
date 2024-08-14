@@ -62,6 +62,7 @@ const std::set<std::string> uri_extra_options = {
 #endif
     kOciConfigFile,
     kOciAuthenticationClientConfigProfile,
+    kOpenIdConnectAuthenticationClientTokenFile,
 };
 
 int lexical_cast_timeout(const std::string &name, const std::string &value) {

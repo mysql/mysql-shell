@@ -353,6 +353,12 @@ Shell_options::Shell_options(
       "Allows defining the OCI profile used from the configuration for client side OCI authentication.",
       [this](const std::string&, const char* value) {
         storage.connection_data.set_oci_client_config_profile(value);
+      })
+    (cmdline("--authentication-openid-connect-client-id-token-file=<path>"),
+      "Allows defining the file path to an OpenId Connect authorization token file when using OpenId Connect authentication",
+      [this](const std::string&, const char* value){
+        storage.connection_data.set(mysqlshdk::db::kOpenIdConnectAuthenticationClientTokenFile, value);
+        storage.connection_data.set(mysqlshdk::db::kAuthMethod, mysqlshdk::db::kAuthMethodOpenIdConnect);
       });
 
   add_startup_options(true)

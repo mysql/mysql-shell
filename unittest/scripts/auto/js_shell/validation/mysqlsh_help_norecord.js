@@ -44,6 +44,10 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    Allows defining the OCI profile used from
                                    the configuration for client side OCI
                                    authentication.
+  --authentication-openid-connect-client-id-token-file=<path>
+                                   Allows defining the file path to an OpenId
+                                   Connect authorization token file when using
+                                   OpenId Connect authentication
   --uri=<value>                    Connect to Uniform Resource Identifier.
                                    Format: [user[:pass]@]host[:port][/db]
   -h, --host=<name>                Connect to host.

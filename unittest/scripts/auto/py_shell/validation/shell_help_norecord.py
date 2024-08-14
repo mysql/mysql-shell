@@ -396,6 +396,9 @@ DESCRIPTION
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
+      - authentication-openid-connect-client-id-token-file: Allows defining the 
+        file path to an OpenId Connect authorization token file when using 
+        OpenId Connect authentication.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -516,6 +519,9 @@ DESCRIPTION
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
+      - authentication-openid-connect-client-id-token-file: Allows defining the 
+        file path to an OpenId Connect authorization token file when using 
+        OpenId Connect authentication.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -1512,6 +1518,9 @@ The following options are valid for use either in a URI or in a dictionary:
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.
+- authentication-openid-connect-client-id-token-file: Allows defining the file
+  path to an OpenId Connect authorization token file when using OpenId Connect
+  authentication.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1786,6 +1795,9 @@ The following options are valid for use either in a URI or in a dictionary:
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.
+- authentication-openid-connect-client-id-token-file: Allows defining the file
+  path to an OpenId Connect authorization token file when using OpenId Connect
+  authentication.
 
 When these options are defined in a URI, their values must be URL encoded.
 

@@ -1,0 +1,2 @@
+[mysqlsh]
+authentication-openid-connect-client-id-token-file="[REPLACE]"
