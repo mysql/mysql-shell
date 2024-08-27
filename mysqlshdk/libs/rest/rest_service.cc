@@ -307,12 +307,18 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA,
                      response ? response->body : nullptr);
 
+    // prior to libcurl 7.60.0, error buffer was not automatically set to an
+    // empty string before the transfer
+    m_error_buffer[0] = '\0';
     // execute the request
     auto ret_val = curl_easy_perform(m_handle.get());
     if (ret_val != CURLE_OK) {
+      const auto error_buffer = '\0' == m_error_buffer[0]
+                                    ? curl_easy_strerror(ret_val)
+                                    : m_error_buffer;
       log_error("%s-%d: %s (CURLcode = %i)", m_id.c_str(), m_request_sequence,
-                m_error_buffer, ret_val);
-      throw Connection_error{m_error_buffer, ret_val};
+                error_buffer, ret_val);
+      throw Connection_error{error_buffer, ret_val};
     }
 
     const auto status = get_status_code();

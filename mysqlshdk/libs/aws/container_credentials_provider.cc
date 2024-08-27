@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "mysqlshdk/libs/aws/aws_settings.h"
@@ -51,11 +52,16 @@ void validate_uri(const std::string &uri) {
   try {
     static constexpr const char *k_allowed_hosts[] = {
         k_container_ip,
+        "169.254.170.23",
+        "fd00:ec2::23",
         "localhost",
-        "127.0.0.1",
     };
 
     mysqlshdk::db::uri::Generic_uri parsed{uri};
+
+    if (utils::Net::is_loopback(parsed.host)) {
+      return;
+    }
 
     for (const auto allowed : k_allowed_hosts) {
       if (allowed == parsed.host) {
@@ -64,7 +70,8 @@ void validate_uri(const std::string &uri) {
     }
 
     throw std::invalid_argument{
-        "Unsupported host '" + parsed.host + "', allowed values: " +
+        "Unsupported host '" + parsed.host +
+        "', allowed values are: a loopback address, or one of: " +
         shcore::str_join(std::begin(k_allowed_hosts), std::end(k_allowed_hosts),
                          ", ")};
   } catch (const std::invalid_argument &e) {

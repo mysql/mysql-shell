@@ -429,8 +429,9 @@ aws_secret_access_key = secret-key
         "Could not obtain credentials to assume role using profile "
         "'source-is-ecs': Could not obtain credentials to assume role using "
         "profile 'uses-ecs': Invalid URI for ECS credentials "
-        "'http://example.com': Unsupported host 'example.com', allowed values: "
-        "169.254.170.2, localhost, 127.0.0.1");
+        "'http://example.com': Unsupported host 'example.com', allowed values "
+        "are: a loopback address, or one of: 169.254.170.2, 169.254.170.23, "
+        "fd00:ec2::23, localhost");
   }
 
   {

@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/sandboxes.h"
@@ -65,24 +66,41 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
     }                                                                  \
   }
 
-#define EXPECT_THROW_LIKE(expr, exc, msg)                                   \
-  try {                                                                     \
-    expr;                                                                   \
-    ADD_FAILURE() << "Expected exception of type " #exc                     \
-                  << "\nwith message: " << msg << "\nbut got none\n";       \
-  } catch (exc & e) {                                                       \
-    if (std::string(e.what()).find(msg) == std::string::npos) {             \
-      ADD_FAILURE() << "Expected exception with message: " << (msg)         \
-                    << "\nbut got: " << e.what() << "\n";                   \
-    }                                                                       \
-  } catch (std::exception & e) {                                            \
-    ADD_FAILURE() << "Expected exception of type " #exc                     \
-                  << "\nwith message: " << (msg) << "\nbut got "            \
-                  << typeid(e).name() << ": " << e.what() << "\n";          \
-  } catch (...) {                                                           \
-    ADD_FAILURE() << "Expected exception of type " #exc                     \
-                  << "\n with message: " << (msg) << "\nbut got another\n"; \
-  }
+#define EXPECT_THROW_LIKE(expr, exc, msg, ...)                               \
+  do {                                                                       \
+    const auto msg__ = []<typename... T>(T &&...m__) {                       \
+      return std::vector<std::string>{std::string{std::forward<T>(m__)}...}; \
+    }(msg __VA_OPT__(, ) __VA_ARGS__);                                       \
+    const auto print_msg__ = [&msg__]() {                                    \
+      return "message" __VA_OPT__("s") ": " __VA_OPT__("\n\t") +             \
+             shcore::str_join(msg__, "\n\t");                                \
+    };                                                                       \
+    try {                                                                    \
+      expr;                                                                  \
+      ADD_FAILURE() << "Expected exception of type " #exc << "\nwith "       \
+                    << print_msg__() << "\nbut got none\n";                  \
+    } catch (const exc &e__) {                                               \
+      bool success__ = false;                                                \
+      const std::string error__ = e__.what();                                \
+      for (const auto m__ : msg__) {                                         \
+        if (std::string::npos != error__.find(m__)) {                        \
+          success__ = true;                                                  \
+          break;                                                             \
+        }                                                                    \
+      }                                                                      \
+      if (!success__) {                                                      \
+        ADD_FAILURE() << "Expected exception with " << print_msg__()         \
+                      << "\nbut got: " << e__.what() << "\n";                \
+      }                                                                      \
+    } catch (const std::exception &e__) {                                    \
+      ADD_FAILURE() << "Expected exception of type " #exc << "\nwith "       \
+                    << print_msg__() << "\nbut got " << typeid(e__).name()   \
+                    << ": " << e__.what() << "\n";                           \
+    } catch (...) {                                                          \
+      ADD_FAILURE() << "Expected exception of type " #exc << "\n with "      \
+                    << print_msg__() << "\nbut got another\n";               \
+    }                                                                        \
+  } while (false)
 
 #define EXPECT_EXECUTE_CALL(obj, query) \
   EXPECT_CALL(obj, executes(StrEq(query), ::strlen(query)))

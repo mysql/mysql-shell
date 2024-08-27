@@ -81,11 +81,11 @@ TEST_F(Config_file_handler_test, test_get_bool) {
                     "boolean.");
   // getting a bool value for option that doesn't exist
   EXPECT_THROW_LIKE(cfg_handler.get_bool("not there"), std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
   // getting bool and mysqld group doesn't exist
   EXPECT_THROW_LIKE(cfg_handler_no_mysql_section.get_bool("not there"),
                     std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
 }
 
 TEST_F(Config_file_handler_test, test_get_int) {
@@ -115,11 +115,11 @@ TEST_F(Config_file_handler_test, test_get_int) {
                     "be converted to an integer.");
   // getting an int value for option that doesn't exist
   EXPECT_THROW_LIKE(cfg_handler.get_int("not there"), std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
   // getting an int value and mysqld group doesn't exist
   EXPECT_THROW_LIKE(cfg_handler_no_mysql_section.get_int("not there"),
                     std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
 }
 
 TEST_F(Config_file_handler_test, test_get_string) {
@@ -158,11 +158,11 @@ TEST_F(Config_file_handler_test, test_get_string) {
   EXPECT_TRUE(!res.has_value());
   // getting a string value for option that doesn't exist
   EXPECT_THROW_LIKE(cfg_handler.get_string("not there"), std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
   // getting a string value and mysqld group doesn't exist
   EXPECT_THROW_LIKE(cfg_handler_no_mysql_section.get_string("not there"),
                     std::out_of_range,
-                    "Option 'not there' does not exist in group 'mysqld'.")
+                    "Option 'not there' does not exist in group 'mysqld'.");
 }
 
 TEST_F(Config_file_handler_test, test_set) {

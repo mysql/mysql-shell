@@ -180,8 +180,9 @@ TEST_F(Aws_container_credentials_provider_test, invalid_full_uri) {
     Container_credentials_provider provider;
     EXPECT_EQ("http://10.11.12.13/auth", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
-                      "Unsupported host '10.11.12.13', allowed values: "
-                      "169.254.170.2, localhost, 127.0.0.1");
+                      "Unsupported host '10.11.12.13', allowed values are: a "
+                      "loopback address, or one of: 169.254.170.2, "
+                      "169.254.170.23, fd00:ec2::23, localhost");
   }
 
   {
@@ -203,22 +204,61 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
 
     Container_credentials_provider provider;
     EXPECT_EQ("http://169.254.170.2/example", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect", "Connection timed out",
+                      "Timeout was reached");
   }
 
   {
     const auto c = Cleanup::set_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI",
-                                        "http://localhost:123/a/b/c");
+                                        "http://localhost:12345/a/b/c");
 
     Container_credentials_provider provider;
-    EXPECT_EQ("http://localhost:123/a/b/c", provider.full_uri());
+    EXPECT_EQ("http://localhost:12345/a/b/c", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect");
   }
 
   {
     const auto c = Cleanup::set_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI",
-                                        "http://127.0.0.1");
+                                        "http://127.0.0.1:12345");
 
     Container_credentials_provider provider;
-    EXPECT_EQ("http://127.0.0.1", provider.full_uri());
+    EXPECT_EQ("http://127.0.0.1:12345", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect");
+  }
+
+  {
+    const auto c = Cleanup::set_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI",
+                                        "http://[::1]:12345");
+
+    Container_credentials_provider provider;
+    EXPECT_EQ("http://[::1]:12345", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect");
+  }
+
+  {
+    const auto c = Cleanup::set_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI",
+                                        "http://169.254.170.23");
+
+    Container_credentials_provider provider;
+    EXPECT_EQ("http://169.254.170.23", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect", "Connection timed out",
+                      "Timeout was reached");
+  }
+
+  {
+    const auto c = Cleanup::set_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI",
+                                        "http://[fd00:ec2::23]");
+
+    Container_credentials_provider provider;
+    EXPECT_EQ("http://[fd00:ec2::23]", provider.full_uri());
+    EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                      "Failed to connect", "Connection timed out",
+                      "Timeout was reached", "Couldn't connect to server");
   }
 }
 

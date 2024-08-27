@@ -458,7 +458,7 @@ TEST_F(ConfigFileTest, test_write) {
     Config_file cfg = Config_file();
     cfg.read(cfg_path);
     EXPECT_THROW_LIKE(cfg.write(res_cfg_path), std::runtime_error,
-                      "Group missing before option at line 1 of file ")
+                      "Group missing before option at line 1 of file ");
     // Delete test file at the end.
     shcore::delete_file(res_cfg_path, true);
   }
