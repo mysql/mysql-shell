@@ -1102,10 +1102,17 @@ DESCRIPTION
       appended to 'http://169.254.170.2'). If this environment variable is not
       set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
       is used instead. If neither of these environment variables are set, ECS
-      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable is set, its value is sent in the request in the
-      'Authorization' header. The reply is expected to be a JSON object in the
-      following form:
+      credentials are not used.
+
+      The request may optionally be sent with an 'Authorization' header. If the
+      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
+      value should specify an absolute file path to a file that contains the
+      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable should be used to explicilty specify that
+      authorization token. If neither of these environment variables are set,
+      the 'Authorization' header is not sent with the request.
+
+      The reply is expected to be a JSON object in the following form:
       {
         "AccessKeyId": "AWS access key",
         "SecretAccessKey": "secret key associated with the AWS access key",
@@ -1797,10 +1804,17 @@ DESCRIPTION
       appended to 'http://169.254.170.2'). If this environment variable is not
       set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
       is used instead. If neither of these environment variables are set, ECS
-      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable is set, its value is sent in the request in the
-      'Authorization' header. The reply is expected to be a JSON object in the
-      following form:
+      credentials are not used.
+
+      The request may optionally be sent with an 'Authorization' header. If the
+      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
+      value should specify an absolute file path to a file that contains the
+      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable should be used to explicilty specify that
+      authorization token. If neither of these environment variables are set,
+      the 'Authorization' header is not sent with the request.
+
+      The reply is expected to be a JSON object in the following form:
       {
         "AccessKeyId": "AWS access key",
         "SecretAccessKey": "secret key associated with the AWS access key",
@@ -2486,10 +2500,17 @@ DESCRIPTION
       appended to 'http://169.254.170.2'). If this environment variable is not
       set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
       is used instead. If neither of these environment variables are set, ECS
-      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable is set, its value is sent in the request in the
-      'Authorization' header. The reply is expected to be a JSON object in the
-      following form:
+      credentials are not used.
+
+      The request may optionally be sent with an 'Authorization' header. If the
+      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
+      value should specify an absolute file path to a file that contains the
+      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable should be used to explicilty specify that
+      authorization token. If neither of these environment variables are set,
+      the 'Authorization' header is not sent with the request.
+
+      The reply is expected to be a JSON object in the following form:
       {
         "AccessKeyId": "AWS access key",
         "SecretAccessKey": "secret key associated with the AWS access key",
@@ -2908,10 +2929,17 @@ DESCRIPTION
       appended to 'http://169.254.170.2'). If this environment variable is not
       set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
       is used instead. If neither of these environment variables are set, ECS
-      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable is set, its value is sent in the request in the
-      'Authorization' header. The reply is expected to be a JSON object in the
-      following form:
+      credentials are not used.
+
+      The request may optionally be sent with an 'Authorization' header. If the
+      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
+      value should specify an absolute file path to a file that contains the
+      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable should be used to explicilty specify that
+      authorization token. If neither of these environment variables are set,
+      the 'Authorization' header is not sent with the request.
+
+      The reply is expected to be a JSON object in the following form:
       {
         "AccessKeyId": "AWS access key",
         "SecretAccessKey": "secret key associated with the AWS access key",
@@ -3376,10 +3404,17 @@ DESCRIPTION
       appended to 'http://169.254.170.2'). If this environment variable is not
       set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
       is used instead. If neither of these environment variables are set, ECS
-      credentials are not used. If the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable is set, its value is sent in the request in the
-      'Authorization' header. The reply is expected to be a JSON object in the
-      following form:
+      credentials are not used.
+
+      The request may optionally be sent with an 'Authorization' header. If the
+      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
+      value should specify an absolute file path to a file that contains the
+      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
+      environment variable should be used to explicilty specify that
+      authorization token. If neither of these environment variables are set,
+      the 'Authorization' header is not sent with the request.
+
+      The reply is expected to be a JSON object in the following form:
       {
         "AccessKeyId": "AWS access key",
         "SecretAccessKey": "secret key associated with the AWS access key",

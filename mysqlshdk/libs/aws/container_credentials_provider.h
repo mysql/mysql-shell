@@ -66,8 +66,11 @@ class Container_credentials_provider : public Aws_credentials_provider {
 
   Credentials parse_credentials(const std::string &json) const;
 
+  void maybe_read_authorization_token_file();
+
   std::string m_full_uri;
   std::string m_authorization_token;
+  std::string m_authorization_token_file;
   std::unique_ptr<rest::Rest_service> m_service;
 };
 

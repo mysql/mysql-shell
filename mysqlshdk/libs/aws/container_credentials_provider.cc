@@ -27,11 +27,13 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -71,6 +73,17 @@ void validate_uri(const std::string &uri) {
   }
 }
 
+void validate_authorization_token(const std::string &token) {
+  if (token.empty()) {
+    return;
+  }
+
+  if (std::string::npos != token.find_first_of(std::string_view{"\r\n"})) {
+    throw std::invalid_argument{
+        "The ECS authorization token contains disallowed newline character"};
+  }
+}
+
 }  // namespace
 
 Container_credentials_provider::Container_credentials_provider()
@@ -96,10 +109,19 @@ Container_credentials_provider::Container_credentials_provider()
 
   log_info("AWS ECS URI: '%s'", m_full_uri.c_str());
 
-  if (auto value = shcore::get_env("AWS_CONTAINER_AUTHORIZATION_TOKEN");
-      value.has_value()) {
-    log_info("The ECS authorization token is set");
-    m_authorization_token = std::move(*value);
+  if (const auto path =
+          shcore::get_env("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE");
+      path.has_value()) {
+    log_info(
+        "The AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is "
+        "set to: %s",
+        *path);
+    m_authorization_token_file = std::move(*path);
+  } else if (auto token = shcore::get_env("AWS_CONTAINER_AUTHORIZATION_TOKEN");
+             token.has_value()) {
+    log_info(
+        "The AWS_CONTAINER_AUTHORIZATION_TOKEN environment variable is set");
+    m_authorization_token = std::move(*token);
   }
 }
 
@@ -110,6 +132,8 @@ bool Container_credentials_provider::available() const noexcept {
 Aws_credentials_provider::Credentials
 Container_credentials_provider::fetch_credentials() {
   validate_uri(m_full_uri);
+  maybe_read_authorization_token_file();
+  validate_authorization_token(m_authorization_token);
 
   if (!m_service) {
     m_service = std::make_unique<rest::Rest_service>(m_full_uri);
@@ -161,6 +185,20 @@ Container_credentials_provider::parse_credentials(
   } catch (const std::exception &e) {
     throw std::runtime_error{"Failed to parse ECS credentials fetched from '" +
                              m_full_uri + "': " + e.what()};
+  }
+}
+
+void Container_credentials_provider::maybe_read_authorization_token_file() {
+  if (m_authorization_token_file.empty()) {
+    return;
+  }
+
+  try {
+    m_authorization_token =
+        shcore::str_strip(shcore::get_text_file(m_authorization_token_file));
+  } catch (const std::exception &e) {
+    throw std::invalid_argument(shcore::str_format(
+        "Failed to read authorization token file: %s", e.what()));
   }
 }
 

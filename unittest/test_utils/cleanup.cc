@@ -87,7 +87,8 @@ void Cleanup::cleanup() {
 }
 
 [[nodiscard]] Cleanup Cleanup::write_file(const std::string &path,
-                                          const std::string &contents) {
+                                          const std::string &contents,
+                                          bool binary_mode) {
   Cleanup c;
   const auto dir = shcore::path::dirname(path);
 
@@ -111,7 +112,7 @@ void Cleanup::cleanup() {
     c.add([path, backup]() { shcore::rename_file(backup, path); });
   }
 
-  shcore::create_file(path, contents);
+  shcore::create_file(path, contents, binary_mode);
   c.add([path]() { shcore::delete_file(path); });
 
   return c;

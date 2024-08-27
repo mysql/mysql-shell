@@ -62,7 +62,8 @@ class Cleanup final {
                                            const std::string &value);
 
   [[nodiscard]] static Cleanup write_file(const std::string &path,
-                                          const std::string &contents);
+                                          const std::string &contents,
+                                          bool binary_mode = false);
 
  private:
   std::deque<Step> m_steps;

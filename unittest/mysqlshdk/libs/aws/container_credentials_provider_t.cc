@@ -31,6 +31,7 @@
 #include <memory>
 #include <stdexcept>
 
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_time.h"
 
 #include "unittest/gtest_clean.h"
@@ -75,6 +76,7 @@ class Aws_container_credentials_provider_test : public ::testing::Test {
 
     c += Cleanup::unset_env_var("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI");
     c += Cleanup::unset_env_var("AWS_CONTAINER_CREDENTIALS_FULL_URI");
+    c += Cleanup::unset_env_var("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE");
     c += Cleanup::unset_env_var("AWS_CONTAINER_AUTHORIZATION_TOKEN");
 
     return c;
@@ -118,6 +120,13 @@ class Aws_container_credentials_provider_test : public ::testing::Test {
     // NOTE: test server sends back the authorization token as the session token
     m_cleanup +=
         Cleanup::set_env_var("AWS_CONTAINER_AUTHORIZATION_TOKEN", token);
+  }
+
+  void set_authorization_token_file(const char *token) {
+    const std::string path = shcore::get_absolute_path("zażółć");
+    m_cleanup += Cleanup::write_file(path, token, true);
+    m_cleanup +=
+        Cleanup::set_env_var("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", path);
   }
 
   static std::unique_ptr<tests::Test_server> s_test_server;
@@ -238,7 +247,7 @@ TEST_F(Aws_container_credentials_provider_test, invalid_access_key) {
 
   Container_credentials_provider provider;
   EXPECT_THROW_LIKE(
-      provider.initialize(), std::runtime_error,
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
       "JSON object should contain a 'AccessKeyId' key with a string value");
 }
 
@@ -260,7 +269,7 @@ TEST_F(Aws_container_credentials_provider_test, invalid_secret_key) {
 
   Container_credentials_provider provider;
   EXPECT_THROW_LIKE(
-      provider.initialize(), std::runtime_error,
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
       "JSON object should contain a 'SecretAccessKey' key with a string value");
 }
 
@@ -287,7 +296,7 @@ TEST_F(Aws_container_credentials_provider_test, invalid_expiration_type) {
 
   Container_credentials_provider provider;
   EXPECT_THROW_LIKE(
-      provider.initialize(), std::runtime_error,
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
       "JSON object should contain a 'Expiration' key with a string value");
 }
 
@@ -327,8 +336,18 @@ TEST_F(Aws_container_credentials_provider_test, invalid_session_token) {
 
   Container_credentials_provider provider;
   EXPECT_THROW_LIKE(
-      provider.initialize(), std::runtime_error,
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
       "JSON object should contain a 'Token' key with a string value");
+}
+
+TEST_F(Aws_container_credentials_provider_test, invalid_session_token_string) {
+  set_full_uri("access-key", "secret-key", nullptr);
+  set_authorization_token("a\rb");
+
+  Container_credentials_provider provider;
+  EXPECT_THROW_LIKE(
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
+      "The ECS authorization token contains disallowed newline character");
 }
 
 TEST_F(Aws_container_credentials_provider_test, valid_session_token) {
@@ -337,6 +356,62 @@ TEST_F(Aws_container_credentials_provider_test, valid_session_token) {
   // WL15885-TSFR_2_4_1
   set_full_uri("access-key", "secret-key", nullptr);
   set_authorization_token("authorization-token");
+
+  Container_credentials_provider provider;
+
+  ASSERT_TRUE(provider.initialize());
+
+  EXPECT_EQ("access-key", provider.credentials()->access_key_id());
+  EXPECT_EQ("secret-key", provider.credentials()->secret_access_key());
+  EXPECT_EQ("authorization-token", provider.credentials()->session_token());
+  EXPECT_EQ(Aws_credentials::NO_EXPIRATION,
+            provider.credentials()->expiration());
+}
+
+TEST_F(Aws_container_credentials_provider_test, missing_session_token_file) {
+  set_full_uri("access-key", "secret-key", nullptr);
+  m_cleanup += Cleanup::set_env_var("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
+                                    "/missing/file");
+
+  Container_credentials_provider provider;
+  EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
+                    "Failed to read authorization token file: ");
+}
+
+TEST_F(Aws_container_credentials_provider_test, invalid_session_token_file) {
+  set_full_uri("access-key", "secret-key", nullptr);
+  set_authorization_token_file("a\nb");
+
+  Container_credentials_provider provider;
+  EXPECT_THROW_LIKE(
+      provider.initialize(), mysqlshdk::rest::Credentials_error,
+      "The ECS authorization token contains disallowed newline character");
+}
+
+TEST_F(Aws_container_credentials_provider_test, valid_session_token_file) {
+  FAIL_IF_NO_SERVER
+
+  set_full_uri("access-key", "secret-key", nullptr);
+  set_authorization_token_file("authorization-token");
+
+  Container_credentials_provider provider;
+
+  ASSERT_TRUE(provider.initialize());
+
+  EXPECT_EQ("access-key", provider.credentials()->access_key_id());
+  EXPECT_EQ("secret-key", provider.credentials()->secret_access_key());
+  EXPECT_EQ("authorization-token", provider.credentials()->session_token());
+  EXPECT_EQ(Aws_credentials::NO_EXPIRATION,
+            provider.credentials()->expiration());
+}
+
+TEST_F(Aws_container_credentials_provider_test, session_token_priority) {
+  FAIL_IF_NO_SERVER
+
+  set_full_uri("access-key", "secret-key", nullptr);
+  // file has higher priority
+  set_authorization_token_file("authorization-token");
+  set_authorization_token("unused-token");
 
   Container_credentials_provider provider;
 

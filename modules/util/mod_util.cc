@@ -672,9 +672,16 @@ variable <b>AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</b> (its value is appended to
 '%http://169.254.170.2'). If this environment variable is not set, the value of
 <b>AWS_CONTAINER_CREDENTIALS_FULL_URI</b> environment variable is used instead.
 If neither of these environment variables are set, ECS credentials are not used.
-If the <b>AWS_CONTAINER_AUTHORIZATION_TOKEN</b> environment variable is set, its
-value is sent in the request in the 'Authorization' header. The reply is
-expected to be a JSON object in the following form:
+
+The request may optionally be sent with an 'Authorization' header. If the
+<b>AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE</b> environment variable is set, its
+value should specify an absolute file path to a file that contains the
+authorization token. Alternatively, the <b>AWS_CONTAINER_AUTHORIZATION_TOKEN</b>
+environment variable should be used to explicilty specify that authorization
+token. If neither of these environment variables are set, the 'Authorization'
+header is not sent with the request.
+
+The reply is expected to be a JSON object in the following form:
 
 @code
 {
