@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 
+#include <regex>
 #include <string_view>
 #include <utility>
 
@@ -1373,6 +1374,36 @@ std::optional<const char *> get_env(const char *name) {
   } else {
     return {};
   }
+}
+
+bool is_valid_hostname(std::string_view hostname) {
+  if (hostname.empty()) {
+    return false;
+  }
+
+  // FQDN can end with a trailing dot
+  if ('.' == hostname.back()) {
+    hostname.remove_suffix(1);
+
+    if (hostname.empty()) {
+      return false;
+    }
+  }
+
+  // maximum hostname length is 255 octets, 2 octets are used by encoding
+  if (hostname.length() > 253) {
+    return false;
+  }
+
+  // each label is up to 63 characters, allowed characters are A-Z (case
+  // insensitive), 0-9 and minus, label cannot begin or end with a minus, labels
+  // are concatenated using periods
+  static const std::regex k_pattern{
+      R"(^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$)",
+      std::regex_constants::ECMAScript | std::regex_constants::icase};
+
+  std::cmatch m;
+  return std::regex_match(hostname.begin(), hostname.end(), m, k_pattern);
 }
 
 }  // namespace shcore

@@ -567,6 +567,11 @@ void parse_schema_and_object(const std::string &str, const std::string &context,
 #define isatty _isatty
 #endif
 
+/**
+ * Checks is hostname is valid.
+ */
+bool is_valid_hostname(std::string_view hostname);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_GENERAL_H_

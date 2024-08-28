@@ -250,6 +250,27 @@ TEST_F(Aws_imds_credentials_provider_test, initialization) {
     }
   }
 
+  {
+    // override endpoint via env var - wrong value (missing scheme)
+    const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT",
+                                        "11.22.33.44");
+    const auto s = settings();
+
+    EXPECT_THROW_LIKE(Imds_credentials_provider{s}, std::invalid_argument,
+                      "Invalid IMDS endpoint '11.22.33.44': Scheme is missing");
+  }
+
+  {
+    // override endpoint via env var - wrong value (malformed URL)
+    const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT",
+                                        "http://11.22.33..44");
+    const auto s = settings();
+
+    EXPECT_THROW_LIKE(
+        Imds_credentials_provider{s}, std::invalid_argument,
+        "Invalid IMDS endpoint 'http://11.22.33..44': Hostname is not valid");
+  }
+
   // override endpoint via profile
   {
     Cleanup cc =
@@ -274,6 +295,25 @@ TEST_F(Aws_imds_credentials_provider_test, initialization) {
         {{Setting::EC2_METADATA_SERVICE_ENDPOINT, "http://22.33.44.55/"}});
     Imds_credentials_provider provider{s};
     EXPECT_EQ("http://22.33.44.55/", provider.endpoint());
+  }
+
+  {
+    // override endpoint via profile - wrong value (missing scheme)
+    const auto s =
+        settings({{Setting::EC2_METADATA_SERVICE_ENDPOINT, "11.22.33.44"}});
+
+    EXPECT_THROW_LIKE(Imds_credentials_provider{s}, std::invalid_argument,
+                      "Invalid IMDS endpoint '11.22.33.44': Scheme is missing");
+  }
+
+  {
+    // override endpoint via profile - wrong value (malformed URL)
+    const auto s = settings(
+        {{Setting::EC2_METADATA_SERVICE_ENDPOINT, "http://11.22.33..44"}});
+
+    EXPECT_THROW_LIKE(
+        Imds_credentials_provider{s}, std::invalid_argument,
+        "Invalid IMDS endpoint 'http://11.22.33..44': Hostname is not valid");
   }
 
   {

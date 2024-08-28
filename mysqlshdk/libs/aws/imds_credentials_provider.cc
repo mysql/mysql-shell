@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "mysqlshdk/libs/db/generic_uri.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
@@ -56,6 +57,23 @@ class Wrong_json : public std::exception {
   }
 };
 
+void validate_endpoint(const std::string &endpoint) {
+  try {
+    mysqlshdk::db::uri::Generic_uri parsed{endpoint};
+
+    if (parsed.scheme.empty()) {
+      throw std::invalid_argument{"Scheme is missing"};
+    }
+
+    if (!shcore::is_valid_hostname(parsed.host)) {
+      throw std::invalid_argument{"Hostname is not valid"};
+    }
+  } catch (const std::exception &e) {
+    throw std::invalid_argument{"Invalid IMDS endpoint '" + endpoint +
+                                "': " + e.what()};
+  }
+}
+
 }  // namespace
 
 Imds_credentials_provider::Imds_credentials_provider(const Settings &settings)
@@ -72,6 +90,7 @@ Imds_credentials_provider::Imds_credentials_provider(const Settings &settings)
   if (const auto endpoint =
           settings.get(Setting::EC2_METADATA_SERVICE_ENDPOINT)) {
     m_endpoint = *endpoint;
+    validate_endpoint(m_endpoint);
 
     if (m_endpoint.back() != '/') {
       m_endpoint.push_back('/');

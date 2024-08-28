@@ -720,4 +720,79 @@ TEST(utils_general, environment_variables) {
   EXPECT_EQ(nullptr, getenv("TEST_ENV_VAR"));
 }
 
+TEST(utils_general, is_valid_hostname) {
+  // empty string
+  EXPECT_FALSE(is_valid_hostname(""));
+  // top level FQDN, results in an empty string
+  EXPECT_FALSE(is_valid_hostname("."));
+
+  // maximum hostname length
+  EXPECT_TRUE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "1234567890123456789012345678901234567890123456789012345678901"));
+  // maximum top-level FQDN length
+  EXPECT_TRUE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "1234567890123456789012345678901234567890123456789012345678901."));
+  // hostname exceeds maximum length
+  EXPECT_FALSE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "12345678901234567890123456789012345678901234567890123456789012"));
+  // top-level FQDN exceeds maximum length
+  EXPECT_FALSE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "123456789012345678901234567890123456789012345678901234567890123."
+      "12345678901234567890123456789012345678901234567890123456789012."));
+
+  // shortest valid hostname
+  EXPECT_TRUE(is_valid_hostname("a"));
+
+  // disallowed characters
+  EXPECT_FALSE(is_valid_hostname("\na"));
+  EXPECT_FALSE(is_valid_hostname("a\n"));
+  EXPECT_FALSE(is_valid_hostname("a\nb"));
+
+  // maximum label length
+  EXPECT_TRUE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123"));
+  // exceeds maximum label length
+  EXPECT_FALSE(is_valid_hostname(
+      "1234567890123456789012345678901234567890123456789012345678901234"));
+
+  // valid characters
+  EXPECT_TRUE(is_valid_hostname(
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789"));
+
+  // minus character cannot be the first character
+  EXPECT_FALSE(is_valid_hostname("-a"));
+  EXPECT_FALSE(is_valid_hostname(
+      "-23456789012345678901234567890123456789012345678901234567890123"));
+  // minus character cannot be the last character
+  EXPECT_FALSE(is_valid_hostname("a-"));
+  EXPECT_FALSE(is_valid_hostname(
+      "12345678901234567890123456789012345678901234567890123456789012-"));
+
+  // period character cannot be the first character
+  EXPECT_FALSE(is_valid_hostname(".a"));
+  EXPECT_FALSE(is_valid_hostname(
+      ".123456789012345678901234567890123456789012345678901234567890123"));
+  // period character can be the last character (FQDN)
+  EXPECT_TRUE(is_valid_hostname("a."));
+  EXPECT_TRUE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123."));
+  // two periods at the end are disallowed
+  EXPECT_FALSE(is_valid_hostname("a.."));
+  EXPECT_FALSE(is_valid_hostname(
+      "123456789012345678901234567890123456789012345678901234567890123.."));
+  // two consecutive periods in the middle are disallowed
+  EXPECT_FALSE(is_valid_hostname("a..a"));
+}
+
 }  // namespace shcore
