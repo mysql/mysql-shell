@@ -1057,7 +1057,7 @@ IF(MYSQL_BUILD_DIR)
 
   IF(AUTH_CLIENT_PLUGINS)
     SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
-    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client" "mysql_native_password")
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client" "mysql_native_password" "authentication_openid_connect_client")
 
     IF(NOT APPLE)
       LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")
