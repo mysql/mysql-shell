@@ -46,13 +46,31 @@ mysql_uri = f"mysql://{uri}"
 mysqlx_uri = f"mysqlx://{uri}"
 
 def execution_time(fun):
+  msg = ""
   start = timer()
-  EXPECT_THROWS(fun, "connect")
+  try:
+    fun()
+  except Exception as e:
+    msg = str(e)
   end = timer()
-  return end - start
+  return (end - start, msg)
 
 def EXPECT_EXECUTION_TIME(time, fun):
-  EXPECT_DELTA(time, 0.1, execution_time(fun))
+  (elapsed, msg) = execution_time(fun)
+  # Connection errors are reported as follows:
+  #  - classic protocol uses error code CR_CONN_HOST_ERROR (2003) and format:
+  #      "Can't connect to MySQL server on '<host>:<port>' (<errno>)"
+  #  - X protocol uses error code CR_CONNECTION_ERROR (2002) and format:
+  #      strerror(errno) + " connecting to <host>:<port>"
+  EXPECT_TRUE("connect" in msg, msg)
+  # Connections may sometimes fail with errors other than ETIMEDOUT (110):
+  # "Connection timed out", i.e. ENETUNREACH (101): "Network is unreachable" or
+  # EHOSTUNREACH (113): "No route to host".
+  # In such case we do not check the execution time to avoid random failures.
+  if "Connection timed out" in msg or "(110)" in msg:
+    EXPECT_DELTA(time, 0.1, elapsed)
+  else:
+    print("-->", "Skipping execution time check, connection failed with:", msg)
 
 #@<> WL14698-ET_1 - classic protocol
 # default value of the "connectTimeout" is 10 seconds
