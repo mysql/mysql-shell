@@ -10,7 +10,7 @@ DESCRIPTION
       attributes:
 
       - autocomplete.nameCache: true if auto-refresh of DB object name cache is
-        enabled. The \rehash command can be used for manual refresh
+        enabled. The \rehash command can be used for manual refresh.
       - batchContinueOnError: read-only, boolean value to indicate if the
         execution of an SQL script in batch mode shall continue if errors occur
       - connectTimeout: float, default connection timeout used by Shell
@@ -27,13 +27,13 @@ DESCRIPTION
         created in AdminAPI operations, in seconds
       - dba.connectivityChecks: bool, checks SSL settings and network
         connectivity between instances when creating a cluster, replicaset or
-        clusterset, or adding an instance to one.
+        clusterset, or adding an instance to one
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
       - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0
         - logging disabled; 1 - log statements other than SELECT and SHOW; 2 -
         log all statements. Option takes precedence over --log-sql in Dba.*
-        context if enabled.
+        context, if enabled.
       - dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
         come back after a restart during clone recovery
       - dba.versionCompatibilityChecks: bool, checks version compatibility for
@@ -44,7 +44,7 @@ DESCRIPTION
       - defaultMode: shell mode to use when shell is started, allowed values:
         "js", "py", "sql" or "none"
       - devapi.dbObjectHandles: true to enable schema collection and table name
-        aliases in the db object, for DevAPI operations.
+        aliases in the db object, for DevAPI operations
       - history.autoSave: true to save command history when exiting the shell
       - history.maxSize: number of entries to keep in command history
       - history.sql.ignorePattern: colon separated list of glob patterns to
@@ -54,14 +54,19 @@ DESCRIPTION
         history.sql.ignorePattern
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
-      - logLevel: current log level
+      - logFile: read-only, path to the log file. Use --log-file to change the
+        location.
+      - logLevel: current log level, allowed values are integers between 1 and
+        8, or one of: "none", "internal", "error", "warning", "info", "debug",
+        "debug2", "debug3". If value is prefixed with '@', log messages are
+        also written to the stderr.
       - logSql: Log SQL statements: off - none of SQL statements will be
         logged; error (default) - SQL statement with error message will be
         logged only when error occurs; on - all SQL statements will be logged
         except these which match any of logSql.ignorePattern and
         logSql.ignorePatternUnsafe glob pattern; all - all SQL statements will
         be logged except these which match any of logSql.ignorePatternUnsafe
-        glob pattern; unfiltered - all SQL statements will be logged.
+        glob pattern; unfiltered - all SQL statements will be logged
       - logSql.ignorePattern: Colon separated list of glob patterns to filter
         out SQL queries to be logged when logSql is set to "on". Default:
         *SELECT*:*SHOW*
@@ -73,11 +78,12 @@ DESCRIPTION
         file
       - oci.profile: Specify which section in oci.configFile will be used as
         profile settings
+      - outputFormat: Deprecated, use resultFormat instead
       - pager: string which specifies the external command which is going to be
         used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should
         read passwords from stdin instead of the tty
-      - resultFormat: controls the type of output produced for SQL results.
+      - resultFormat: controls the type of output produced for SQL results
       - sandboxDir: default path where the new sandbox instances for InnoDB
         cluster will be deployed
       - showColumnTypeInfo: display column type information in SQL mode. Please
@@ -86,17 +92,17 @@ DESCRIPTION
         protocol.
       - showWarnings: boolean value to indicate whether warnings shall be
         included when printing a SQL result
+      - ssh.bufferSize integer, default 10240 bytes, used for tunnel data
+        transfer
+      - ssh.configFile string, default empty, custom path for SSH
+        configuration. If not defined, the standard SSH paths will be used
+        (~/.ssh/config).
       - useWizards: read-only, boolean value to indicate if interactive
         prompting and wizards are enabled by default in AdminAPI and others.
         Use --no-wizard to disable.
       - verbose: 0..4, verbose output level. If >0, additional output that may
         help diagnose issues is printed to the screen. Larger values mean more
         verbose. Default is 0.
-      - ssh.configFile string path default empty, custom path for SSH
-        configuration. If not defined the standard SSH paths will be used
-        (~/.ssh/config).
-      - ssh.bufferSize integer default 10240 bytes, used for tunnel data
-        transfer
 
       The resultFormat option supports the following values to modify the
       format of printed query results:

@@ -40,143 +40,152 @@ REGISTER_HELP_OBJECT(options, shell);
 REGISTER_HELP_TOPIC_WITH_BRIEF_TEXT(OPTIONS, R"*(
 Gives access to options impacting shell behavior.
 
-The options object acts as a dictionary, it may contain
-the following attributes:
+The options object acts as a dictionary, it may contain the following
+attributes:
 
-@li autocomplete.nameCache: true if auto-refresh of DB object
-name cache is enabled. The \rehash command can be used for manual refresh
+@li <b>autocomplete.nameCache</b>: true if auto-refresh of DB object name cache
+is enabled. The <b>\\rehash</b> command can be used for manual refresh.
 
-@li batchContinueOnError: read-only, boolean value to indicate if the
+@li <b>batchContinueOnError</b>: read-only, boolean value to indicate if the
 execution of an SQL script in batch mode shall continue if errors occur
 
-@li connectTimeout: float, default connection timeout used by Shell sessions,
-in seconds
+@li <b>connectTimeout</b>: float, default connection timeout used by Shell
+sessions, in seconds
 
-@li credentialStore.excludeFilters: array of URLs for which
-automatic password storage is disabled, supports glob characters '*' and '?'
+@li <b>credentialStore.excludeFilters</b>: array of URLs for which automatic
+password storage is disabled, supports glob characters '*' and '?'
 
-@li credentialStore.helper: name of the credential helper to
-use to fetch/store passwords; a special value "default" is
-supported to use platform default helper; a special value
-"@<disabled>" is supported to disable the credential store
+@li <b>credentialStore.helper</b>: name of the credential helper to use to
+fetch/store passwords; a special value "default" is supported to use platform
+default helper; a special value "<disabled>" is supported to disable the
+credential store
 
-@li credentialStore.savePasswords: controls automatic password
-storage, allowed values: "always", "prompt" or "never"
+@li <b>credentialStore.savePasswords</b>: controls automatic password storage,
+allowed values: "always", "prompt" or "never"
 
-@li dba.connectTimeout: float, default connection timeout used for sessions
-created in AdminAPI operations, in seconds
+@li <b>dba.connectTimeout</b>: float, default connection timeout used for
+sessions created in AdminAPI operations, in seconds
 
-@li dba.connectivityChecks: bool, checks SSL settings and network connectivity
-between instances when creating a cluster, replicaset or clusterset, or adding
-an instance to one.
+@li <b>dba.connectivityChecks</b>: bool, checks SSL settings and network
+connectivity between instances when creating a cluster, replicaset or
+clusterset, or adding an instance to one
 
-@li dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
+@li <b>dba.gtidWaitTimeout</b>: timeout value in seconds to wait for GTIDs to be
 synchronized
 
-@li dba.logSql: 0..2, log SQL statements executed by AdminAPI operations:
+@li <b>dba.logSql</b>: 0..2, log SQL statements executed by AdminAPI operations:
 0 - logging disabled; 1 - log statements other than SELECT and SHOW; 2 - log
-all statements. Option takes precedence over --log-sql in Dba.* context if
-enabled.
+all statements. Option takes precedence over <b>--log-sql</b> in Dba.* context,
+if enabled.
 
-@li dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
-come back after a restart during clone recovery
+@li <b>dba.restartWaitTimeout</b>: timeout in seconds to wait for MySQL server
+to come back after a restart during clone recovery
 
-@li dba.versionCompatibilityChecks: bool, checks version compatibility for
-asynchronous replication when managing a ReplicaSet, ClusterSet, or a Cluster
-with Read-Replicas.
+@li <b>dba.versionCompatibilityChecks</b>: bool, checks version compatibility
+for asynchronous replication when managing a ReplicaSet, ClusterSet, or a
+Cluster with Read-Replicas.
 
-@li defaultCompress: Enable compression in client/server
-protocol by default in global shell sessions.
+@li <b>defaultCompress</b>: Enable compression in client/server protocol by
+default in global shell sessions.
 
-@li defaultMode: shell mode to use when shell is started,
-allowed values: "js", "py", "sql" or "none"
+@li <b>defaultMode</b>: shell mode to use when shell is started, allowed values:
+"js", "py", "sql" or "none"
 
-@li devapi.dbObjectHandles: true to enable schema collection
-and table name aliases in the db object, for DevAPI operations.
+@li <b>devapi.dbObjectHandles</b>: true to enable schema collection and table
+name aliases in the db object, for DevAPI operations
 
-@li history.autoSave: true to save command history when exiting the shell
+@li <b>history.autoSave</b>: true to save command history when exiting the shell
 
-@li history.maxSize: number of entries to keep in command history
+@li <b>history.maxSize</b>: number of entries to keep in command history
 
-@li history.sql.ignorePattern: colon separated list of glob
-patterns to filter out of the command history in SQL mode
+@li <b>history.sql.ignorePattern</b>: colon separated list of glob patterns to
+filter out of the command history in SQL mode
 
-@li history.sql.syslog: true to log filtered interactive commands to the system
-log, filtering of commands depends on the value of history.sql.ignorePattern
+@li <b>history.sql.syslog</b>: true to log filtered interactive commands to the
+system log, filtering of commands depends on the value of
+<b>history.sql.ignorePattern</b>
 
-@li interactive: read-only, boolean value that indicates if the shell is
+@li <b>interactive</b>: read-only, boolean value that indicates if the shell is
 running in interactive mode
 
-@li logLevel: current log level
+@li <b>logFile</b>: read-only, path to the log file. Use <b>--log-file</b> to
+change the location.
 
-@li logSql:
-Log SQL statements: off - none of SQL statements will be logged;
-error (default) - SQL statement with error message will be logged only when
-error occurs;
-on - all SQL statements will be logged except these which match any of
-logSql.ignorePattern and logSql.ignorePatternUnsafe glob pattern;
-all - all SQL statements will be logged except these which match any of
-logSql.ignorePatternUnsafe glob pattern;
-unfiltered - all SQL statements will be logged.
+@li <b>logLevel</b>: current log level, allowed values are integers between 1
+and 8, or one of: "none", "internal", "error", "warning", "info", "debug",
+"debug2", "debug3". If value is prefixed with '@', log messages are also written
+to the stderr.
 
-@li logSql.ignorePattern: Colon separated list of glob patterns to filter out
-SQL queries to be logged when logSql is set to "on". Default:
+@li <b>logSql</b>: Log SQL statements: off - none of SQL statements will be
+logged; error (default) - SQL statement with error message will be logged only
+when error occurs; on - all SQL statements will be logged except these which
+match any of <b>logSql.ignorePattern</b> and <b>logSql.ignorePatternUnsafe</b>
+glob pattern; all - all SQL statements will be logged except these which match
+any of <b>logSql.ignorePatternUnsafe</b> glob pattern; unfiltered - all SQL
+statements will be logged
+
+@li <b>logSql.ignorePattern</b>: Colon separated list of glob patterns to filter
+out SQL queries to be logged when <b>logSql</b> is set to "on". Default:
 *SELECT*:*SHOW*
 
-@li logSql.ignorePatternUnsafe: Colon separated list of glob patterns to filter out
-SQL queries to be logged when logSql is set to "all". Default:
+@li <b>logSql.ignorePatternUnsafe</b>: Colon separated list of glob patterns to
+filter out SQL queries to be logged when <b>logSql</b> is set to "all". Default:
 *IDENTIFIED*:*PASSWORD*
 
-@li mysqlPluginDir: Directory for client-side authentication plugins
+@li <b>mysqlPluginDir</b>: Directory for client-side authentication plugins
 
-@li oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
-file
+@li <b>oci.configFile</b>: Path to OCI (Oracle Cloud Infrastructure)
+configuration file
 
-@li oci.profile: Specify which section in oci.configFile will be used as
+@li <b>oci.profile</b>: Specify which section in oci.configFile will be used as
 profile settings
 
-@li pager: string which specifies the external command which is
-going to be used to display the paged output
+@li <b>outputFormat</b>: Deprecated, use <b>resultFormat</b> instead
 
-@li passwordsFromStdin: boolean value that indicates if the
-shell should read passwords from stdin instead of the tty
+@li <b>pager</b>: string which specifies the external command which is going to
+be used to display the paged output
 
-@li resultFormat: controls the type of output produced for SQL results.
+@li <b>passwordsFromStdin</b>: boolean value that indicates if the shell should
+read passwords from stdin instead of the tty
 
-@li sandboxDir: default path where the new sandbox instances for InnoDB
+@li <b>resultFormat</b>: controls the type of output produced for SQL results
+
+@li <b>sandboxDir</b>: default path where the new sandbox instances for InnoDB
 cluster will be deployed
 
-@li showColumnTypeInfo: display column type information in SQL mode.
+@li <b>showColumnTypeInfo</b>: display column type information in SQL mode.
 Please be aware that output may depend on the protocol you are using to
 connect to the server, e.g. DbType field is approximated when using X protocol.
 
-@li showWarnings: boolean value to indicate whether warnings shall be
+@li <b>showWarnings</b>: boolean value to indicate whether warnings shall be
 included when printing a SQL result
 
-@li useWizards: read-only, boolean value to indicate if interactive prompting
-and wizards are enabled by default in AdminAPI and others. Use --no-wizard
-to disable.
+@li <b>ssh.bufferSize</b> integer, default 10240 bytes, used for tunnel data
+transfer
 
-@li verbose: 0..4, verbose output level. If >0, additional output that may help
-diagnose issues is printed to the screen. Larger values mean more verbose.
-Default is 0.
+@li <b>ssh.configFile</b> string, default empty, custom path for SSH
+configuration. If not defined, the standard SSH paths will be used
+(<b>~/.ssh/config</b>).
 
-@li ssh.configFile string path default empty, custom path for SSH configuration.
-If not defined the standard SSH paths will be used (~/.ssh/config).
+@li <b>useWizards</b>: read-only, boolean value to indicate if interactive
+prompting and wizards are enabled by default in AdminAPI and others. Use
+<b>--no-wizard</b> to disable.
 
-@li ssh.bufferSize integer default 10240 bytes, used for tunnel data transfer
+@li <b>verbose</b>: 0..4, verbose output level. If >0, additional output that
+may help diagnose issues is printed to the screen. Larger values mean more
+verbose. Default is 0.
 
-The resultFormat option supports the following values to modify the
+The <b>resultFormat</b> option supports the following values to modify the
 format of printed query results:
 
-@li table: tabular format with a ascii character frame (default)
-@li tabbed: tabular format with no frame, columns separated by tabs
-@li vertical: displays the outputs vertically, one line per column value
-@li json: same as json/pretty
-@li ndjson: newline delimited JSON, same as json/raw
-@li json/array: one JSON document per line, inside an array
-@li json/pretty: pretty printed JSON
-@li json/raw: one JSON document per line
+@li <b>table</b>: tabular format with a ascii character frame (default)
+@li <b>tabbed</b>: tabular format with no frame, columns separated by tabs
+@li <b>vertical</b>: displays the outputs vertically, one line per column value
+@li <b>json</b>: same as json/pretty
+@li <b>ndjson</b>: newline delimited JSON, same as json/raw
+@li <b>json/array</b>: one JSON document per line, inside an array
+@li <b>json/pretty</b>: pretty printed JSON
+@li <b>json/raw</b>: one JSON document per line
 )*");
 
 std::string &Options::append_descr(std::string &s_out, int indent,
