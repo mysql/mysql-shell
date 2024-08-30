@@ -116,6 +116,12 @@ Imds_credentials_provider::Imds_credentials_provider(const Settings &settings)
   log_info("The IMDS credentials provider is using endpoint: %s",
            m_endpoint.c_str());
 
+  m_imds_v1_disabled = settings.get_bool(Setting::EC2_METADATA_V1_DISABLED);
+
+  if (m_imds_v1_disabled) {
+    log_info("The IMDSv1 is disabled, the IMDS token is required");
+  }
+
   const auto positive = [&settings](Setting s) {
     try {
       auto v = settings.get_int(s);
@@ -151,6 +157,7 @@ Imds_credentials_provider::fetch_credentials() {
 
   try {
     const auto token = fetch_token();
+    validate_token(token);
     const auto role = fetch_iam_role(token);
 
     return parse_credentials(fetch_iam_credentials(token, role));
@@ -294,6 +301,14 @@ std::string Imds_credentials_provider::execute_request(
   }
 
   throw Too_many_retries{};
+}
+
+void Imds_credentials_provider::validate_token(const std::string &token) const {
+  if (m_imds_v1_disabled && token.empty()) {
+    throw std::runtime_error{
+        "Could not retrieve token required to execute IMDSv2 request, fallback "
+        "to IMDSv1 is disabled"};
+  }
 }
 
 }  // namespace aws

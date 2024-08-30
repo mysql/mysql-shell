@@ -76,6 +76,8 @@ Settings::Settings() : m_cache("cache") {
       "ec2_metadata_service_endpoint_mode",
       {"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE"},
       "ipv4"};
+  m_settings[Setting::EC2_METADATA_V1_DISABLED] = {
+      "ec2_metadata_v1_disabled", {"AWS_EC2_METADATA_V1_DISABLED"}, "false"};
 
   assert(m_settings.size() == static_cast<std::size_t>(Setting::LAST));
 }

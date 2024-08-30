@@ -697,6 +697,7 @@ environment variables:
 @li <b>AWS_EC2_METADATA_DISABLED</b>
 @li <b>AWS_EC2_METADATA_SERVICE_ENDPOINT</b>
 @li <b>AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE</b>
+@li <b>AWS_EC2_METADATA_V1_DISABLED</b>
 @li <b>AWS_METADATA_SERVICE_TIMEOUT</b>
 @li <b>AWS_METADATA_SERVICE_NUM_ATTEMPTS</b>
 
@@ -704,6 +705,7 @@ and the following settings from the AWS <b>config</b> file:
 
 @li <b>ec2_metadata_service_endpoint</b>
 @li <b>ec2_metadata_service_endpoint_mode</b>
+@li <b>ec2_metadata_v1_disabled</b>
 @li <b>metadata_service_timeout</b>
 @li <b>metadata_service_num_attempts</b>
 

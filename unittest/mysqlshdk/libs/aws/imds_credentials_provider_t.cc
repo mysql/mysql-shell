@@ -85,6 +85,7 @@ class Aws_imds_credentials_provider_test : public ::testing::Test {
     c += Cleanup::unset_env_var("AWS_EC2_METADATA_DISABLED");
     c += Cleanup::unset_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT");
     c += Cleanup::unset_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE");
+    c += Cleanup::unset_env_var("AWS_EC2_METADATA_V1_DISABLED");
     c += Cleanup::unset_env_var("AWS_METADATA_SERVICE_TIMEOUT");
     c += Cleanup::unset_env_var("AWS_METADATA_SERVICE_NUM_ATTEMPTS");
 
@@ -418,6 +419,52 @@ TEST_F(Aws_imds_credentials_provider_test, initialization) {
   }
 
   {
+    // disable IMDSv1 via env var
+    Cleanup c = Cleanup::set_env_var("AWS_EC2_METADATA_V1_DISABLED", "TRUE");
+
+    {
+      const auto s = settings();
+      Imds_credentials_provider provider{s};
+      EXPECT_TRUE(provider.is_imds_v1_disabled());
+    }
+
+    {
+      const auto s = settings({{Setting::EC2_METADATA_V1_DISABLED, "FALSE"}});
+      Imds_credentials_provider provider{s};
+      EXPECT_TRUE(provider.is_imds_v1_disabled());
+    }
+
+    {
+      const auto s = settings({{Setting::EC2_METADATA_V1_DISABLED, "bogus"}});
+      Imds_credentials_provider provider{s};
+      EXPECT_TRUE(provider.is_imds_v1_disabled());
+    }
+  }
+
+  {
+    // disable IMDSv1 via env var - wrong value - any other value than 'true' is
+    // interpreted as false
+    Cleanup c = Cleanup::set_env_var("AWS_EC2_METADATA_V1_DISABLED", "wrong");
+    const auto s = settings();
+    Imds_credentials_provider provider{s};
+    EXPECT_FALSE(provider.is_imds_v1_disabled());
+  }
+
+  {
+    // disable IMDSv1 via profile
+    const auto s = settings({{Setting::EC2_METADATA_V1_DISABLED, "true"}});
+    Imds_credentials_provider provider{s};
+    EXPECT_TRUE(provider.is_imds_v1_disabled());
+  }
+
+  {
+    // disable IMDSv1 via profile - wrong value
+    const auto s = settings({{Setting::EC2_METADATA_V1_DISABLED, "wrong"}});
+    Imds_credentials_provider provider{s};
+    EXPECT_FALSE(provider.is_imds_v1_disabled());
+  }
+
+  {
     // set timeout via env var
     const auto c = Cleanup::set_env_var("AWS_METADATA_SERVICE_TIMEOUT", "12");
 
@@ -711,6 +758,39 @@ TEST_F(Aws_imds_credentials_provider_test, invalid_expiration_value) {
   EXPECT_THROW_LIKE(
       provider.initialize(), std::runtime_error,
       "Failed to parse 'Expiration' value '2023-04-17' in IMDS credentials");
+}
+
+TEST_F(Aws_imds_credentials_provider_test, disable_imds_v1_no_token) {
+  FAIL_IF_NO_SERVER
+
+  const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_V1_DISABLED", "true");
+  set_endpoint("access-key", "secret-key", "session-token",
+               m_expiration.c_str(), false);
+
+  const auto s = settings();
+  Imds_credentials_provider provider{s};
+
+  EXPECT_THROW_LIKE(provider.initialize(), std::runtime_error,
+                    "Could not retrieve token required to execute IMDSv2 "
+                    "request, fallback to IMDSv1 is disabled");
+}
+
+TEST_F(Aws_imds_credentials_provider_test, disable_imds_v1_with_token) {
+  FAIL_IF_NO_SERVER
+
+  const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_V1_DISABLED", "true");
+  set_endpoint("access-key", "secret-key", "session-token",
+               m_expiration.c_str(), true);
+
+  const auto s = settings();
+  Imds_credentials_provider provider{s};
+  ASSERT_TRUE(provider.initialize());
+
+  EXPECT_EQ("access-key", provider.credentials()->access_key_id());
+  EXPECT_EQ("secret-key", provider.credentials()->secret_access_key());
+  EXPECT_EQ("session-token", provider.credentials()->session_token());
+  EXPECT_EQ(shcore::rfc3339_to_time_point(m_expiration),
+            provider.credentials()->expiration());
 }
 
 }  // namespace

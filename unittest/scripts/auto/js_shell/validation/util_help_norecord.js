@@ -1126,6 +1126,7 @@ DESCRIPTION
       - AWS_EC2_METADATA_DISABLED
       - AWS_EC2_METADATA_SERVICE_ENDPOINT
       - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_EC2_METADATA_V1_DISABLED
       - AWS_METADATA_SERVICE_TIMEOUT
       - AWS_METADATA_SERVICE_NUM_ATTEMPTS
 
@@ -1133,6 +1134,7 @@ DESCRIPTION
 
       - ec2_metadata_service_endpoint
       - ec2_metadata_service_endpoint_mode
+      - ec2_metadata_v1_disabled
       - metadata_service_timeout
       - metadata_service_num_attempts
 
@@ -1828,6 +1830,7 @@ DESCRIPTION
       - AWS_EC2_METADATA_DISABLED
       - AWS_EC2_METADATA_SERVICE_ENDPOINT
       - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_EC2_METADATA_V1_DISABLED
       - AWS_METADATA_SERVICE_TIMEOUT
       - AWS_METADATA_SERVICE_NUM_ATTEMPTS
 
@@ -1835,6 +1838,7 @@ DESCRIPTION
 
       - ec2_metadata_service_endpoint
       - ec2_metadata_service_endpoint_mode
+      - ec2_metadata_v1_disabled
       - metadata_service_timeout
       - metadata_service_num_attempts
 
@@ -2524,6 +2528,7 @@ DESCRIPTION
       - AWS_EC2_METADATA_DISABLED
       - AWS_EC2_METADATA_SERVICE_ENDPOINT
       - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_EC2_METADATA_V1_DISABLED
       - AWS_METADATA_SERVICE_TIMEOUT
       - AWS_METADATA_SERVICE_NUM_ATTEMPTS
 
@@ -2531,6 +2536,7 @@ DESCRIPTION
 
       - ec2_metadata_service_endpoint
       - ec2_metadata_service_endpoint_mode
+      - ec2_metadata_v1_disabled
       - metadata_service_timeout
       - metadata_service_num_attempts
 
@@ -2953,6 +2959,7 @@ DESCRIPTION
       - AWS_EC2_METADATA_DISABLED
       - AWS_EC2_METADATA_SERVICE_ENDPOINT
       - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_EC2_METADATA_V1_DISABLED
       - AWS_METADATA_SERVICE_TIMEOUT
       - AWS_METADATA_SERVICE_NUM_ATTEMPTS
 
@@ -2960,6 +2967,7 @@ DESCRIPTION
 
       - ec2_metadata_service_endpoint
       - ec2_metadata_service_endpoint_mode
+      - ec2_metadata_v1_disabled
       - metadata_service_timeout
       - metadata_service_num_attempts
 
@@ -3428,6 +3436,7 @@ DESCRIPTION
       - AWS_EC2_METADATA_DISABLED
       - AWS_EC2_METADATA_SERVICE_ENDPOINT
       - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+      - AWS_EC2_METADATA_V1_DISABLED
       - AWS_METADATA_SERVICE_TIMEOUT
       - AWS_METADATA_SERVICE_NUM_ATTEMPTS
 
@@ -3435,6 +3444,7 @@ DESCRIPTION
 
       - ec2_metadata_service_endpoint
       - ec2_metadata_service_endpoint_mode
+      - ec2_metadata_v1_disabled
       - metadata_service_timeout
       - metadata_service_num_attempts
 

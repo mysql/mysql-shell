@@ -62,6 +62,8 @@ class Imds_credentials_provider : public Aws_credentials_provider {
 
   int attempts() const noexcept { return m_attempts; }
 
+  bool is_imds_v1_disabled() const noexcept { return m_imds_v1_disabled; }
+
  private:
   Credentials fetch_credentials() override;
 
@@ -77,7 +79,10 @@ class Imds_credentials_provider : public Aws_credentials_provider {
   std::string execute_request(const std::string &token,
                               const std::string &role = {}) const;
 
+  void validate_token(const std::string &token) const;
+
   std::string m_endpoint;
+  bool m_imds_v1_disabled;
   int m_timeout_s;
   int m_attempts;
   std::unique_ptr<rest::Rest_service> m_service;
