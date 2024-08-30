@@ -26,26 +26,40 @@
 #include "mysqlshdk/libs/utils/logger.h"
 
 #include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/stringbuffer.h>
+
 #include <stdarg.h>
-#include <time.h>
 
 #ifdef _WIN32
-#include <io.h>
 #include <windows.h>
+
+#include <io.h>
+#include <processthreadsapi.h>
 #else  // !_WIN32
 #include <fcntl.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include <pthread.h>
+#elif defined(__linux__)
+#include <sys/syscall.h>
+#elif defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #endif  // !_WIN32
 
 #include <algorithm>
+#include <cstdint>
+#include <ctime>
 #include <filesystem>
 #include <ios>
 #include <map>
+#include <string>
 #include <utility>
-
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/stringbuffer.h>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -69,6 +83,29 @@ namespace {
  */
 std::recursive_mutex g_mutex;
 std::string g_output_format;
+
+#ifdef _WIN32
+
+#define getpid GetCurrentProcessId
+
+#endif  // _WIN32
+
+uint64_t gettid() {
+#ifdef __APPLE__
+  uint64_t tid;
+  pthread_threadid_np(nullptr, &tid);
+#elif defined(__linux__)
+  const auto tid = syscall(SYS_gettid);
+#elif defined(_WIN32)
+  const auto tid = GetCurrentThreadId();
+#elif defined(__FreeBSD__)
+  const auto tid = pthread_getthreadid_np();
+#else
+#error This platform is missing an implementation of gettid()
+#endif
+
+  return static_cast<uint64_t>(tid);
+}
 
 std::string to_string(Logger::LOG_LEVEL level) {
   switch (level) {
@@ -124,6 +161,9 @@ std::string check_logfile_permissions(const std::string &filepath) {
 }
 
 }  // namespace
+
+std::string Logger::Log_entry::pid = std::to_string(getpid());
+thread_local std::string Logger::Log_entry::tid = std::to_string(gettid());
 
 void Logger::attach_log_hook(Log_hook hook, void *user_data, bool catch_all) {
   if (hook) {
@@ -289,6 +329,14 @@ void Logger::out_to_stderr(const Log_entry &entry, void *) {
                   rapidjson::StringRef(timestamp.c_str(), timestamp.length()),
                   allocator);
 
+    doc.AddMember(rapidjson::StringRef("pid"),
+                  rapidjson::StringRef(entry.pid.c_str(), entry.pid.length()),
+                  allocator);
+
+    doc.AddMember(rapidjson::StringRef("tid"),
+                  rapidjson::StringRef(entry.tid.c_str(), entry.tid.length()),
+                  allocator);
+
     const auto level = to_string(entry.level);
     doc.AddMember(rapidjson::StringRef("level"),
                   rapidjson::StringRef(level.c_str(), level.length()),
@@ -356,7 +404,11 @@ std::string Logger::format_message(const Log_entry &entry) {
       result += "." + shcore::str_rjust(std::to_string(now.tv_usec), 6, '0');
     }
 #endif  // MYSQLSH_PRECISE_TIMESTAMP
-    result.append(": ");
+    result.append(" [");
+    result.append(entry.pid);
+    result.append(1, ':');
+    result.append(entry.tid);
+    result.append("]: ");
     result.append(to_string(entry.level));
     result.append(": ");
     if (!entry.domain.empty()) {

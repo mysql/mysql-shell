@@ -37,6 +37,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <utility>
 
 #ifndef _WIN32
 #include <cstdio>
@@ -74,6 +75,8 @@ class SHCORE_PUBLIC Logger final {
     std::string_view domain;
     std::string_view message;
     LOG_LEVEL level{LOG_LEVEL::LOG_NONE};
+    static std::string pid;
+    static thread_local std::string tid;
   };
 
   using Log_hook = void (*)(const Log_entry &entry, void *);
