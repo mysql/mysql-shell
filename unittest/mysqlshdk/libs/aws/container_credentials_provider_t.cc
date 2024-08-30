@@ -206,7 +206,8 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     EXPECT_EQ("http://169.254.170.2/example", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
                       "Failed to connect", "Connection timed out",
-                      "Timeout was reached");
+                      "Connection timeout", "Timeout was reached",
+                      "Couldn't connect to server");
   }
 
   {
@@ -216,7 +217,7 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     Container_credentials_provider provider;
     EXPECT_EQ("http://localhost:12345/a/b/c", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
-                      "Failed to connect");
+                      "Failed to connect", "Connection refused");
   }
 
   {
@@ -226,7 +227,7 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     Container_credentials_provider provider;
     EXPECT_EQ("http://127.0.0.1:12345", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
-                      "Failed to connect");
+                      "Failed to connect", "Connection refused");
   }
 
   {
@@ -236,7 +237,7 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     Container_credentials_provider provider;
     EXPECT_EQ("http://[::1]:12345", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
-                      "Failed to connect");
+                      "Failed to connect", "Connection refused");
   }
 
   {
@@ -247,7 +248,8 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     EXPECT_EQ("http://169.254.170.23", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
                       "Failed to connect", "Connection timed out",
-                      "Timeout was reached");
+                      "Connection timeout", "Timeout was reached",
+                      "Couldn't connect to server");
   }
 
   {
@@ -258,7 +260,8 @@ TEST_F(Aws_container_credentials_provider_test, valid_full_uri) {
     EXPECT_EQ("http://[fd00:ec2::23]", provider.full_uri());
     EXPECT_THROW_LIKE(provider.initialize(), mysqlshdk::rest::Credentials_error,
                       "Failed to connect", "Connection timed out",
-                      "Timeout was reached", "Couldn't connect to server");
+                      "Connection timeout", "Timeout was reached",
+                      "Couldn't connect to server");
   }
 }
 
