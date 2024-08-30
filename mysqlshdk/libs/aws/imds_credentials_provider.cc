@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -65,7 +66,8 @@ void validate_endpoint(const std::string &endpoint) {
       throw std::invalid_argument{"Scheme is missing"};
     }
 
-    if (!shcore::is_valid_hostname(parsed.host)) {
+    if (!shcore::is_valid_hostname(parsed.host) &&
+        !utils::Net::is_ipv6(parsed.host)) {
       throw std::invalid_argument{"Hostname is not valid"};
     }
   } catch (const std::exception &e) {

@@ -261,6 +261,15 @@ TEST_F(Aws_imds_credentials_provider_test, initialization) {
   }
 
   {
+    // override endpoint via env var - IPv6
+    const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT",
+                                        "http://[fe80::260:8ff:fe52:f9d8]");
+    const auto s = settings();
+    Imds_credentials_provider provider{s};
+    EXPECT_EQ("http://[fe80::260:8ff:fe52:f9d8]/", provider.endpoint());
+  }
+
+  {
     // override endpoint via env var - wrong value (malformed URL)
     const auto c = Cleanup::set_env_var("AWS_EC2_METADATA_SERVICE_ENDPOINT",
                                         "http://11.22.33..44");
@@ -295,6 +304,14 @@ TEST_F(Aws_imds_credentials_provider_test, initialization) {
         {{Setting::EC2_METADATA_SERVICE_ENDPOINT, "http://22.33.44.55/"}});
     Imds_credentials_provider provider{s};
     EXPECT_EQ("http://22.33.44.55/", provider.endpoint());
+  }
+
+  {
+    // override endpoint via profile - IPv6
+    const auto s = settings({{Setting::EC2_METADATA_SERVICE_ENDPOINT,
+                              "http://[fe80::260:8ff:fe52:f9d8]"}});
+    Imds_credentials_provider provider{s};
+    EXPECT_EQ("http://[fe80::260:8ff:fe52:f9d8]/", provider.endpoint());
   }
 
   {
