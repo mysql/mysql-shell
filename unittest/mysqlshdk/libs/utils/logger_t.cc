@@ -91,6 +91,16 @@ class Logger_test : public ::testing::Test {
     s_all_hook_executed = 0;
   }
 
+  void EXPECT_LOG(const std::string &level, const std::string &msg,
+                  const std::string &actual) {
+    SCOPED_TRACE("Level: " + level + ", message: " + msg);
+
+    EXPECT_TRUE(is_timestamp(actual.substr(0, 19).c_str()));
+    EXPECT_EQ(" [" + Logger::Log_entry::pid + ':' + Logger::Log_entry::tid +
+                  "]: " + level + ": " + msg,
+              actual.substr(19));
+  }
+
  private:
   static int s_hook_executed;
   static int s_all_hook_executed;
@@ -244,9 +254,7 @@ TEST_F(Logger_test, log_format) {
 
     ASSERT_FALSE(tests.empty());
 
-    EXPECT_EQ(": " + tests.front().second + ": Unit Test Domain: Some message",
-              line.substr(19));
-    EXPECT_TRUE(is_timestamp(line.c_str()));
+    EXPECT_LOG(tests.front().second, "Unit Test Domain: Some message", line);
 
     tests.pop_front();
   }
@@ -382,11 +390,8 @@ TEST_F(Logger_test, stderr_json_output) {
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
   const auto log_lines = shcore::str_split(contents, "\n");
 
-  EXPECT_EQ(": Warning: Unit Test Domain: Third", log_lines[0].substr(19));
-  EXPECT_TRUE(is_timestamp(log_lines[0].c_str()));
-
-  EXPECT_EQ(": Error: Unit Test Domain: Fourth", log_lines[1].substr(19));
-  EXPECT_TRUE(is_timestamp(log_lines[1].c_str()));
+  EXPECT_LOG("Warning", "Unit Test Domain: Third", log_lines[0]);
+  EXPECT_LOG("Error", "Unit Test Domain: Fourth", log_lines[1]);
 
   const auto lines = shcore::str_split(reader.output(), "\n");
 
@@ -395,19 +400,23 @@ TEST_F(Logger_test, stderr_json_output) {
   auto timestamp = lines[1].substr(18, 10);
   EXPECT_TRUE(std::all_of(timestamp.cbegin(), timestamp.cend(), ::isdigit));
   EXPECT_EQ("\",", lines[1].substr(28));
-  EXPECT_EQ("    \"level\": \"Warning\",", lines[2]);
-  EXPECT_EQ("    \"domain\": \"Unit Test Domain\",", lines[3]);
-  EXPECT_EQ("    \"message\": \"Third\"", lines[4]);
-  EXPECT_EQ("}", lines[5]);
-  EXPECT_EQ("{", lines[6]);
-  EXPECT_EQ("    \"timestamp\": \"", lines[7].substr(0, 18));
-  timestamp = lines[7].substr(18, 10);
+  EXPECT_EQ("    \"pid\": \"" + Logger::Log_entry::pid + "\",", lines[2]);
+  EXPECT_EQ("    \"tid\": \"" + Logger::Log_entry::tid + "\",", lines[3]);
+  EXPECT_EQ("    \"level\": \"Warning\",", lines[4]);
+  EXPECT_EQ("    \"domain\": \"Unit Test Domain\",", lines[5]);
+  EXPECT_EQ("    \"message\": \"Third\"", lines[6]);
+  EXPECT_EQ("}", lines[7]);
+  EXPECT_EQ("{", lines[8]);
+  EXPECT_EQ("    \"timestamp\": \"", lines[9].substr(0, 18));
+  timestamp = lines[9].substr(18, 10);
   EXPECT_TRUE(std::all_of(timestamp.cbegin(), timestamp.cend(), ::isdigit));
-  EXPECT_EQ("\",", lines[7].substr(28));
-  EXPECT_EQ("    \"level\": \"Error\",", lines[8]);
-  EXPECT_EQ("    \"domain\": \"Unit Test Domain\",", lines[9]);
-  EXPECT_EQ("    \"message\": \"Fourth\"", lines[10]);
-  EXPECT_EQ("}", lines[11]);
+  EXPECT_EQ("\",", lines[9].substr(28));
+  EXPECT_EQ("    \"pid\": \"" + Logger::Log_entry::pid + "\",", lines[10]);
+  EXPECT_EQ("    \"tid\": \"" + Logger::Log_entry::tid + "\",", lines[11]);
+  EXPECT_EQ("    \"level\": \"Error\",", lines[12]);
+  EXPECT_EQ("    \"domain\": \"Unit Test Domain\",", lines[13]);
+  EXPECT_EQ("    \"message\": \"Fourth\"", lines[14]);
+  EXPECT_EQ("}", lines[15]);
 }
 
 TEST_F(Logger_test, stderr_json_raw_output) {
@@ -436,29 +445,28 @@ TEST_F(Logger_test, stderr_json_raw_output) {
   EXPECT_TRUE(get_log_file_contents("mylog.txt", &contents));
   const auto log_lines = shcore::str_split(contents, "\n");
 
-  EXPECT_EQ(": Warning: Unit Test Domain: Third", log_lines[0].substr(19));
-  EXPECT_TRUE(is_timestamp(log_lines[0].c_str()));
-
-  EXPECT_EQ(": Error: Unit Test Domain: Fourth", log_lines[1].substr(19));
-  EXPECT_TRUE(is_timestamp(log_lines[1].c_str()));
+  EXPECT_LOG("Warning", "Unit Test Domain: Third", log_lines[0]);
+  EXPECT_LOG("Error", "Unit Test Domain: Fourth", log_lines[1]);
 
   const auto lines = shcore::str_split(reader.output(), "\n");
 
   EXPECT_EQ("{\"timestamp\":\"", lines[0].substr(0, 14));
   auto timestamp = lines[0].substr(14, 10);
   EXPECT_TRUE(std::all_of(timestamp.cbegin(), timestamp.cend(), ::isdigit));
-  EXPECT_EQ(
-      "\",\"level\":\"Warning\",\"domain\":\"Unit Test "
-      "Domain\",\"message\":\"Third\"}",
-      lines[0].substr(24));
+  EXPECT_EQ("\",\"pid\":\"" + Logger::Log_entry::pid + "\",\"tid\":\"" +
+                Logger::Log_entry::tid +
+                "\",\"level\":\"Warning\",\"domain\":\"Unit Test "
+                "Domain\",\"message\":\"Third\"}",
+            lines[0].substr(24));
 
   EXPECT_EQ("{\"timestamp\":\"", lines[1].substr(0, 14));
   timestamp = lines[1].substr(14, 10);
   EXPECT_TRUE(std::all_of(timestamp.cbegin(), timestamp.cend(), ::isdigit));
-  EXPECT_EQ(
-      "\",\"level\":\"Error\",\"domain\":\"Unit Test "
-      "Domain\",\"message\":\"Fourth\"}",
-      lines[1].substr(24));
+  EXPECT_EQ("\",\"pid\":\"" + Logger::Log_entry::pid + "\",\"tid\":\"" +
+                Logger::Log_entry::tid +
+                "\",\"level\":\"Error\",\"domain\":\"Unit Test "
+                "Domain\",\"message\":\"Fourth\"}",
+            lines[1].substr(24));
 }
 
 #endif  // !_WIN32
