@@ -54,6 +54,7 @@ const std::unordered_map<std::string_view, std::string_view> k_short_names = {
     {"mad", "eu-madrid-1"},       {"ord", "us-chicago-1"},
     {"mty", "mx-monterrey-1"},    {"aga", "us-saltlake-2"},
     {"bog", "sa-bogota-1"},       {"vap", "sa-valparaiso-1"},
+    {"xsp", "ap-singapore-2"},    {"ruh", "me-riyadh-1"},
     {"lfi", "us-langley-1"},      {"luf", "us-luke-1"},
     {"ric", "us-gov-ashburn-1"},  {"pia", "us-gov-chicago-1"},
     {"tus", "us-gov-phoenix-1"},  {"ltn", "uk-gov-london-1"},
@@ -66,6 +67,7 @@ const std::unordered_map<std::string_view, std::string_view> k_short_names = {
     {"vll", "eu-madrid-2"},       {"str", "eu-frankfurt-2"},
     {"beg", "eu-jovanovac-1"},    {"doh", "me-dcc-doha-1"},
     {"avz", "eu-dcc-zurich-1"},   {"ahu", "me-abudhabi-3"},
+    {"rkt", "me-abudhabi-2"},     {"shj", "me-abudhabi-4"},
 };
 
 }  // namespace
