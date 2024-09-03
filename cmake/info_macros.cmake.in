@@ -104,7 +104,7 @@ MACRO(CREATE_INFO_SRC target_dir)
     # to debug, add: FILE(APPEND ${INFO_SRC} "\nResult ${RESULT}\n")
     # For better readability ...
     FILE(APPEND ${INFO_SRC}
-      "MySQL source ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}")
+      "MySQL Shell source ${MAJOR_VERSION}.${MINOR_VERSION}.${PATCH_VERSION}")
     IF(DEFINED EXTRA_VERSION)
       FILE(APPEND ${INFO_SRC} "${EXTRA_VERSION}")
     ENDIF()
@@ -126,7 +126,7 @@ MACRO(CREATE_INFO_SRC target_dir)
     FILE(WRITE ${INFO_SRC} "${SOURCE_INFO}\n")
   ELSE()
     # This is a fall-back.
-    FILE(WRITE ${INFO_SRC} "\nMySQL source ${VERSION}\n")
+    FILE(WRITE ${INFO_SRC} "\nMySQL Shell source ${VERSION}\n")
   ENDIF()
 ENDMACRO(CREATE_INFO_SRC)
 
@@ -134,8 +134,8 @@ ENDMACRO(CREATE_INFO_SRC)
 # This is for the "real" build, must be run again with each cmake run
 # to make sure we report the current flags (not those of some previous run).
 
-MACRO(CREATE_INFO_BIN)
-  SET(INFO_BIN "Docs/INFO_BIN")
+MACRO(CREATE_INFO_BIN target_dir)
+  SET(INFO_BIN "${target_dir}/INFO_BIN")
   FILE(WRITE ${INFO_BIN} "===== Information about the build process: =====\n")
 
   STRING(TIMESTAMP TMP_DATE "%Y-%m-%d %H:%M:%SZ" UTC)
