@@ -248,8 +248,6 @@ TEST_F(Lock_service_test, uninstall_udfs) {
 }
 
 TEST_F(Lock_service_test, has_lock_service_udfs) {
-  if (!Shell_test_env::check_min_version_skip_test()) return;
-
   using mysqlshdk::db::Type;
 
   // Test to ensure exact plugin name is used in query to check UDFs existence.
@@ -306,6 +304,33 @@ TEST_F(Lock_service_test, has_lock_service_udfs) {
   EXPECT_FALSE(test(2, "macOS"));
   EXPECT_TRUE(test(3, "macOS"));
   EXPECT_FALSE(test(4, "macOS"));
+
+  // 5.7 is no longer supported, so the locking_service checkers should not fail
+  // unexpectedly and compromise the precondition checkers
+  {
+    mock_session
+        ->expect_query(
+            "show GLOBAL variables where `variable_name` in "
+            "('version_compile_os')")
+        .then_return({{"",
+                       {"Variable_name", "Value"},
+                       {Type::String, Type::String},
+                       {{"version_compile_os", "Linux"}}}});
+
+    mock_session
+        ->expect_query(
+            "SELECT count(*) FROM performance_schema.user_defined_functions "
+            "WHERE (udf_library = 'locking_service.so') AND (udf_name IN "
+            "('service_get_read_locks', 'service_get_write_locks', "
+            "'service_release_locks'))")
+        .then_throw(
+            "Table 'performance_schema.user_defined_functions' doesn't exist",
+            1146, "42S02");
+
+    mysqlshdk::mysql::Instance mock_instance{mock_session};
+
+    EXPECT_FALSE(mysqlshdk::mysql::has_lock_service(mock_instance));
+  }
 }
 
 }  // namespace testing

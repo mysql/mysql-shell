@@ -85,14 +85,21 @@ bool has_lock_service(const mysqlshdk::mysql::IInstance &instance) {
       "'service_get_write_locks', 'service_release_locks'))"_sql
       << plugin_lib;
 
-  auto res = instance.query(stmt);
-  if (!res) return false;
+  try {
+    auto res = instance.query(stmt);
+    if (!res) return false;
 
-  auto row = res->fetch_one();
-  if (!row) return false;
+    auto row = res->fetch_one();
+    if (!row) return false;
 
-  // return true only if the 3 lock service functions are available.
-  return (row->get_int(0) == 3);
+    // return true only if the 3 lock service functions are available.
+    return (row->get_int(0) == 3);
+  } catch (const shcore::Error &e) {
+    // this table does not exist in 5.7
+    if (e.code() == ER_NO_SUCH_TABLE) return false;
+
+    throw;
+  }
 }
 
 void uninstall_lock_service(mysqlshdk::mysql::IInstance *instance) {
