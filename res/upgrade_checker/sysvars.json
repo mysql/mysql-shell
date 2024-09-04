@@ -1666,11 +1666,11 @@
     "removal": "5.7.9"
   },
   {
-    "name": "innodb_log_file_size",
+    "name": "innodb_log_files_in_group",
     "deprecation": "8.0.30"
   },
   {
-    "name": "innodb_log_files_in_group",
+    "name": "innodb_log_file_size",
     "deprecation": "8.0.30"
   },
   {
@@ -1689,6 +1689,27 @@
         "all": {
           "default": {
             "64": "400 (Microseconds)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "innodb_log_writer_threads",
+    "version": "8.0.22",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.1.0",
+        "all": {
+          "default": {
+            "all": "ON, if available logical processors >= 32"
           }
         }
       }
@@ -2657,6 +2678,12 @@
     "name": "myisam_repair_threads",
     "deprecation": "5.7.38",
     "removal": "5.7.39"
+  },
+  {
+    "name": "mysql_native_password_proxy_users",
+    "version": "5.7.7",
+    "deprecation": "8.0.16",
+    "removal": "9.0.0"
   },
   {
     "name": "ndb-default-column-format",
@@ -3786,13 +3813,6 @@
         "all": {
           "default": {
             "all": "platform specific"
-          },
-          "allowed": {
-            "all": [
-              "empty string",
-              "dirname",
-              "NULL"
-            ]
           }
         }
       },
@@ -3801,12 +3821,6 @@
         "all": {
           "default": {
             "all": "empty string"
-          },
-          "allowed": {
-            "all": [
-              "empty string",
-              "dirname"
-            ]
           }
         }
       },
@@ -3815,13 +3829,6 @@
         "all": {
           "default": {
             "all": "platform specific"
-          },
-          "allowed": {
-            "all": [
-              "empty string",
-              "dirname",
-              "NULL"
-            ]
           }
         }
       }
