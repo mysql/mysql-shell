@@ -2832,6 +2832,9 @@ int InputBuffer::getInputLine(PromptBase &pi) {
         } else if (c == ctrlChar('D')) {
           keyType = 2;
         }
+      } else {
+        // reading was interrupted (i.e. stdin was closed)
+        keyType = 3;
       }
 
 #ifndef _WIN32
