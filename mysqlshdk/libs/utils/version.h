@@ -28,6 +28,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -105,6 +106,13 @@ class Version {
   bool operator==(const Version &other) const;
   bool operator!=(const Version &other) const;
   explicit operator bool() const;
+
+  // helpers used by gtest
+  friend std::ostream &operator<<(::std::ostream &os, const Version &v) {
+    return os << v.get_full();
+  }
+
+  friend void PrintTo(const Version &v, ::std::ostream *os) { *os << v; }
 
  private:
   int _major = 0;
