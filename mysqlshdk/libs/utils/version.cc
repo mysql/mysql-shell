@@ -217,24 +217,25 @@ namespace detail {
 // ID of an 8.0 LTS release
 constexpr int k_release_8_0_id = 7;
 
-// LTS off-cycle releases
-const std::unordered_map<int, off_cycle_releases_t> k_off_cycle_releases{
-    {
-        k_release_8_0_id,  // 8.0.x
-        {
-            39,
-        },
-    },
-    {
-        8,  // 8.4.x
-        {
-            2,
-        },
-    },
-};
-
 bool off_cycle_releases(int version_id, const off_cycle_releases_t **releases) {
   assert(releases);
+
+  // LTS off-cycle releases
+  static const std::unordered_map<int, off_cycle_releases_t>
+      k_off_cycle_releases{
+          {
+              k_release_8_0_id,  // 8.0.x
+              {
+                  39,
+              },
+          },
+          {
+              8,  // 8.4.x
+              {
+                  2,
+              },
+          },
+      };
 
   if (const auto found = k_off_cycle_releases.find(version_id);
       k_off_cycle_releases.end() != found) {
