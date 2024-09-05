@@ -450,9 +450,10 @@ void Add_instance::prepare(checks::Check_type check_type,
     // all active members of the PRIMARY Cluster (potential sources)
     if (m_cluster_impl->is_cluster_set_member()) {
       if (m_cluster_impl->is_primary_cluster()) {
+        std::list<Cluster_id> unreachable;  // ignore unreachable clusters
         auto cs_clusters =
             m_cluster_impl->get_cluster_set_object()->connect_all_clusters(
-                true, nullptr, false, true);
+                true, &unreachable, false, true);
 
         for (const auto &replica_cluster : cs_clusters) {
           const auto potential_replicas =
