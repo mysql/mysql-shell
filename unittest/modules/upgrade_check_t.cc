@@ -2257,6 +2257,12 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
   ASSERT_NO_THROW(session->execute(
       "create table dt (i integer, dt datetime default '0000-00-00', ts "
       "timestamp default '0000-00-00', d date default '0000-00-00');"));
+
+  // BUG#36403042 - output from NOW() and SYSDATE() is repoted by views
+  // as default zero date, but never being zero, need to be excluded
+
+  ASSERT_NO_THROW(session->execute("create view vt as select NOW() as col1;"));
+
   EXPECT_ISSUES(check.get(), 4);
   EXPECT_NE(std::string::npos,
             issues[0].description.find("1 session(s) does not contain either"));
