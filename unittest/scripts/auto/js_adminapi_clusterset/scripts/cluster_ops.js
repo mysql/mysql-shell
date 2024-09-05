@@ -451,6 +451,10 @@ EXPECT_NO_THROWS(function() {c3.setInstanceOption(__sandbox_uri5,"memberWeight",
 var session5 = mysql.getSession(__sandbox_uri5);
 EXPECT_EQ(20, get_sysvar(session5, "group_replication_member_weight"));
 
+//@<> Adding a new member to the Primary Cluster while one or more Replica Clusters are unreachable should not fail
+EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri2); });
+EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri2); });
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
