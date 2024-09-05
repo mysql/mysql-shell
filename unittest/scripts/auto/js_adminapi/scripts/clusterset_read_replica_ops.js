@@ -200,6 +200,17 @@ var status = c.status();
 EXPECT_EQ("cluster2", status["clusterName"]);
 EXPECT_EQ("REPLICA", status["clusterRole"]);
 
+//@<> clusterset.status() should not break when all members except the read-replicas are unreachable
+testutil.killSandbox(__mysql_sandbox_port6);
+testutil.killSandbox(__mysql_sandbox_port4);
+testutil.killSandbox(__mysql_sandbox_port3);
+
+EXPECT_NO_THROWS(function() { clusterset.status(); });
+
+shell.connect(__sandbox_uri1);
+EXPECT_NO_THROWS(function() { c = dba.getCluster(); });
+EXPECT_NO_THROWS(function() { c.status(); });
+
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
