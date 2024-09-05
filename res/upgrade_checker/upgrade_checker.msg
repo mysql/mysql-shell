@@ -625,7 +625,7 @@ before upgrading to 8.4.0.
 https://dev.mysql.com/doc/refman/8.0/en/partitioning-limitations.html
 
 * foreignKeyReferences.title
-Checks for foreing keys not referencing a full unique index
+Checks for foreign keys not referencing a full unique index
 
 * foreignKeyReferences.description
 Foreign keys to partial indexes may be forbidden as of 8.4.0, this check identifies such

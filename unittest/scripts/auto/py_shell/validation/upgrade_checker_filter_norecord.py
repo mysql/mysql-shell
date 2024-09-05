@@ -149,7 +149,7 @@ Excluded:
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - foreignKeyReferences
-  Checks for foreing keys not referencing a full unique index
+  Checks for foreign keys not referencing a full unique index
   Condition: When the target server is equal or above 8.4.0.
 
 - authMethodUsage
@@ -346,7 +346,7 @@ Included:
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - foreignKeyReferences
-  Checks for foreing keys not referencing a full unique index
+  Checks for foreign keys not referencing a full unique index
   Condition: When the target server is equal or above 8.4.0.
 
 - authMethodUsage

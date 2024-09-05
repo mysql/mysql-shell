@@ -4721,6 +4721,31 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
       "'fk_invalid_reference.child_bbb_partial_fk_to_unique_index(a)' "
       "references a partial key at table 'parent'.",
       issues[2].description);
+
+  // BUG#36975599 false positive if the same table have two foreign key
+  // references of the same field, one not unique
+  PrepareTestDatabase("fk_invalid_reference");
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE `test_table_2` (
+  `cluster_id` char(36) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `view_id` int unsigned NOT NULL,
+  PRIMARY KEY (`cluster_id`,`view_id`),
+  KEY `view_id` (`view_id`)
+  );)"));
+
+  ASSERT_NO_THROW(session->execute(R"(
+  CREATE TABLE `test_table_1` (
+  `cluster_id` char(36) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `view_id` int unsigned NOT NULL,
+  `instance_id` int unsigned NOT NULL,
+  PRIMARY KEY (`cluster_id`,`view_id`,`instance_id`),
+  KEY `view_id` (`view_id`),
+  KEY `instance_id` (`instance_id`),
+  CONSTRAINT `test_table_1_ibfk_1` FOREIGN KEY (`cluster_id`, `view_id`) REFERENCES `test_table_2` (`cluster_id`, `view_id`)
+  );)"));
+
+  EXPECT_NO_ISSUES(check.get());
 }
 
 }  // namespace upgrade_checker

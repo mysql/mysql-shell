@@ -102,7 +102,7 @@ bool UNUSED_VARIABLE(register_nonnative_partitioning) =
         std::bind(&get_nonnative_partitioning_check), Target::ENGINES,
         "8.0.11");
 
-bool UNUSED_VARIABLE(register_foreing_key) =
+bool UNUSED_VARIABLE(register_foreign_key) =
     Upgrade_check_registry::register_check(
         std::bind(&get_foreign_key_length_check), Target::OBJECT_DEFINITIONS,
         "8.0.11");

@@ -123,7 +123,7 @@ session.run_sql("""
 testutil.call_mysqlsh([__sandbox_uri1, "--", "util", "check-for-server-upgrade", "--include=foreignKeyReferences"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 
 EXPECT_STDOUT_CONTAINS_MULTILINE("""
-1) Checks for foreing keys not referencing a full unique index
+1) Checks for foreign keys not referencing a full unique index
 (foreignKeyReferences)
    Foreign keys to partial indexes may be forbidden as of 8.4.0, this check
    identifies such cases to warn the user.
@@ -170,7 +170,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
     "checksPerformed": [
         {
             "id": "foreignKeyReferences",
-            "title": "Checks for foreing keys not referencing a full unique index",
+            "title": "Checks for foreign keys not referencing a full unique index",
             "status": "OK",
             "description": "Foreign keys to partial indexes may be forbidden as of 8.4.0, this check identifies such cases to warn the user.",
             "detectedProblems": [
