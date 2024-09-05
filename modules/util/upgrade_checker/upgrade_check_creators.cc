@@ -1489,25 +1489,50 @@ std::unique_ptr<Upgrade_check> get_foreign_key_references_check() {
       ids::k_foreign_key_references,
       std::vector<Check_query>{
           {
-"SELECT rc.constraint_schema, "
-        "rc.constraint_name, "
-        "''," // column field
-        "CONCAT(rc.table_name, '(', GROUP_CONCAT(DISTINCT kc.column_name),')') as fk_definition, "
-        "rc.REFERENCED_TABLE_NAME as target_table, "
-        "'##fkToNonUniqueKey' FROM "
-"INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc "
-"JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc "
-"ON rc.constraint_schema=kc.constraint_schema AND "
-   "rc.constraint_name=kc.constraint_name "
-"JOIN INFORMATION_SCHEMA.STATISTICS idx "
-"ON rc.referenced_table_name = idx.table_name AND "
-   "rc.constraint_schema=idx.table_schema AND "
-   "kc.referenced_column_name=idx.column_name AND "
-   "idx.non_unique=1 "
-"WHERE <<schema_filter:rc.constraint_schema>> "
-"GROUP BY "
-  "rc.constraint_schema, rc.constraint_name, rc.table_name, "
-  "rc.referenced_table_name",
+R"(select 
+  fk.constraint_schema, 
+  fk.constraint_name,
+  '', 
+  fk.parent_fk_definition as fk_definition,
+  fk.REFERENCED_TABLE_NAME as target_table,
+  '##fkToNonUniqueKey'
+from (select 
+      rc.constraint_schema, 
+      rc.constraint_name,
+      CONCAT(rc.table_name, '(', GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') as parent_fk_definition,
+      CONCAT(kc.REFERENCED_TABLE_SCHEMA,'.',kc.REFERENCED_TABLE_NAME, '(', GROUP_CONCAT(kc.REFERENCED_COLUMN_NAME order by kc.POSITION_IN_UNIQUE_CONSTRAINT),')') as target_fk_definition,
+      rc.REFERENCED_TABLE_NAME
+    from 
+      information_schema.REFERENTIAL_CONSTRAINTS rc
+        join 
+          information_schema.KEY_COLUMN_USAGE kc
+        on 
+          rc.constraint_schema = kc.constraint_schema AND
+          rc.constraint_name = kc.constraint_name AND
+          rc.constraint_schema = kc.REFERENCED_TABLE_SCHEMA AND
+          rc.REFERENCED_TABLE_NAME = kc.REFERENCED_TABLE_NAME AND
+          kc.REFERENCED_TABLE_NAME is not NULL AND
+          kc.REFERENCED_COLUMN_NAME is not NULL
+    where 
+      <<schema_filter:rc.constraint_schema>> 
+    group by
+      rc.constraint_schema,
+      rc.constraint_name,
+      rc.table_name,
+      rc.REFERENCED_TABLE_NAME) fk
+  join (SELECT 
+      CONCAT(table_schema,'.',table_name,'(',GROUP_CONCAT(column_name order by seq_in_index),')') as fk_definition,
+      SUM(non_unique) as non_unique_count
+    FROM 
+      INFORMATION_SCHEMA.STATISTICS 
+    WHERE 
+      <<schema_filter:table_schema>> AND 
+      sub_part IS NULL
+    GROUP BY 
+      table_schema, table_name, index_name) idx
+    on 
+      fk.target_fk_definition = idx.fk_definition AND 
+      idx.non_unique_count > 0)",
                        Upgrade_issue::Object_type::FOREIGN_KEY},
                        {
 "SELECT constraint_schema, "
