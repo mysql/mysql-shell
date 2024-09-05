@@ -807,11 +807,13 @@ std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
            "variable_value not like '%NO_ZERO_DATE%')) as q where "
            "q.thread_count > 0;",
            Upgrade_issue::Object_type::SYSVAR},
-          {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, concat('column has "
-           "zero default value: ', COLUMN_DEFAULT) from "
-           "information_schema.columns where <<schema_and_table_filter>> and "
-           "DATA_TYPE in ('timestamp', 'datetime', 'date') and COLUMN_DEFAULT "
-           "like '0000-00-00%';",
+          {"select ic.TABLE_SCHEMA, ic.TABLE_NAME, ic.COLUMN_NAME, "
+           "concat('column has zero default value: ', ic.COLUMN_DEFAULT) from "
+           "information_schema.columns ic left join information_schema.tables "
+           "it on ic.TABLE_SCHEMA = it.TABLE_SCHEMA and ic.TABLE_NAME = "
+           "it.TABLE_NAME where <<ic.schema_and_table_filter>> "
+           "AND ic.DATA_TYPE in ('timestamp', 'datetime', 'date') and "
+           "ic.COLUMN_DEFAULT like '0000-00-00%' and it.TABLE_TYPE != 'VIEW';",
            Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::WARNING);
 }
