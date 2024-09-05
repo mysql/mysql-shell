@@ -52,6 +52,8 @@ constexpr inline std::array k_mhs_excluded_schemas = {
     "mysql_audit",
     // stores the firewall's configuration
     "mysql_firewall",
+    // stores the options information
+    "mysql_option",
 };
 
 }  // namespace common

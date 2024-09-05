@@ -916,6 +916,11 @@ char *Command_line_shell::readline(const char *prompt) {
     console->enable_global_pager();
   }
 
+  if (3 == linenoiseKeyType()) {
+    // reading was interrupted
+    return nullptr;
+  }
+
   if (!tmp) {
     switch (linenoiseKeyType()) {
       case 1:  // ^C
