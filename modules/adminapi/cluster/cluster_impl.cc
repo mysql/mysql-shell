@@ -3694,6 +3694,23 @@ Cluster_impl::check_and_get_cluster_set_for_cluster() {
 
 std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
     const std::string &instance_address, bool raw_session) const {
+  // If the Cluster's unavailable (offline, unreachable, primary unreachable)
+  // error out immediately
+  auto availability = cluster_availability();
+
+  switch (availability) {
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+    case Cluster_availability::OFFLINE:
+    case Cluster_availability::UNREACHABLE: {
+      throw shcore::Exception::runtime_error(
+          shcore::str_format("Unable to get a session to a Cluster instance. "
+                             "Cluster's status is %s",
+                             to_string(availability).c_str()));
+    }
+    default:
+      break;
+  }
+
   // Set login credentials to connect to instance.
   // use the host and port from the instance address
   Connection_options instance_cnx_opts(instance_address);
