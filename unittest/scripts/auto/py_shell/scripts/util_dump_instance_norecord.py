@@ -3649,8 +3649,9 @@ session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 
 #@<> BUG#35550282 - exclude `mysql_audit` schema if the `ocimds` option is set
 # BUG#35805866 - exclude `mysql_firewall` schema if the `ocimds` option is set
+# BUG#37023079 - exclude `mysql_option` schema if the `ocimds` option is set
 # setup
-schema_names = [ "mysql_audit", "mysql_firewall" ]
+schema_names = [ "mysql_audit", "mysql_firewall", "mysql_option" ]
 
 for schema_name in schema_names:
     session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
