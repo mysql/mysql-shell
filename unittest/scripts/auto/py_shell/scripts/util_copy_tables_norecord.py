@@ -337,16 +337,16 @@ TEST_STRING_OPTION("deferTableIndexes")
 #@<> WL15298_TSFR_4_5_14
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "all" })
 # NOTE: functionality is checked in load tests
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_15
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "fulltext" })
 # NOTE: functionality is checked in load tests
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_16
 EXPECT_SUCCESS(__sandbox_uri2, { "deferTableIndexes": "off" })
-EXPECT_STDOUT_NOT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_NOT_CONTAINS("Building indexes")
 
 #@<> WL15298 - test invalid values of handleGrantErrors option
 TEST_STRING_OPTION("handleGrantErrors")
@@ -388,11 +388,11 @@ EXPECT_FAIL("ValueError", f"Argument #{options_arg_no} 'deferTableIndexes' optio
 
 #@<> WL15298_TSFR_4_5_24
 EXPECT_SUCCESS(__sandbox_uri2, { "loadIndexes": False, "deferTableIndexes": "all" })
-EXPECT_STDOUT_NOT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_NOT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_25
 EXPECT_SUCCESS(__sandbox_uri2, { "loadIndexes": True, "deferTableIndexes": "all" })
-EXPECT_STDOUT_CONTAINS("Recreating indexes")
+EXPECT_STDOUT_CONTAINS("Building indexes")
 
 #@<> WL15298_TSFR_4_5_26
 TEST_STRING_OPTION("schema")
@@ -513,7 +513,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "showProgress": False }, schema = schema_name , tables = test_tables)
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "showProgress": False }, schema = schema_name , tables = test_tables)
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_trigger, "Trigger", account).error(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_view, "View", account).error(True))
 

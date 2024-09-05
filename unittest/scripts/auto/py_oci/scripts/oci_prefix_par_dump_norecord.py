@@ -123,8 +123,8 @@ bad_pars['random-par'] = '/'.join(par_tokens)
 
 anonymous_bucket_par = anonymize_par(bad_pars["bucket-read"])
 no_access_error = f"Could not access '{anonymous_bucket_par}': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)"
-no_write_bucket_error = f"While 'Gathering information': Failed to put object '{anonymous_bucket_par}@.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)"
-no_write_prefix_error = f"While 'Gathering information': Failed to put object '{anonymous_bucket_par}prefix/@.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)"
+no_write_bucket_error = f"Failed to put object '{anonymous_bucket_par}@.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)"
+no_write_prefix_error = f"Failed to put object '{anonymous_bucket_par}prefix/@.json': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it (404)"
 prefix_mistmatch_error = f"Could not access '{anonymous_bucket_par}': NotAuthenticated: The prefix from the request and the prefix from PAR are not compatible (401)"
 random_par_error = f"Could not access '{anonymous_bucket_par}': NotAuthenticated: PAR does not exist (401)"
 

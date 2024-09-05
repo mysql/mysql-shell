@@ -2108,13 +2108,13 @@ void Dumper::do_run() {
     if (!m_worker_interrupt) {
       finalize_dump();
     }
+
+    rethrow();
   }
 
   if (!m_options.is_dry_run() && !m_worker_interrupt) {
     summarize();
   }
-
-  rethrow();
 
 #ifndef NDEBUG
   if (m_server_version.number < Version(8, 0, 21) ||
@@ -2719,49 +2719,53 @@ void Dumper::validate_mds() const {
   console->print_info("Checking for potential upgrade issues.");
   status.set(check_for_upgrade_errors());
 
-  Progress_thread::Progress_config config;
-  std::atomic<uint64_t> objects_checked{0};
+  {
+    Progress_thread::Progress_config config;
+    std::atomic<uint64_t> objects_checked{0};
 
-  config.current = [&objects_checked]() -> uint64_t { return objects_checked; };
-  config.total = [this]() { return m_total_objects; };
+    config.current = [&objects_checked]() -> uint64_t {
+      return objects_checked;
+    };
+    config.total = [this]() { return m_total_objects; };
 
-  const auto stage = m_progress_thread.start_stage(
-      "Validating MySQL HeatWave Service compatibility", std::move(config));
-  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+    const auto stage = m_progress_thread.start_stage(
+        "Validating MySQL HeatWave Service compatibility", std::move(config));
+    shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
-  const auto issues = [&status](const auto &memory) {
-    status.set(show_issues(memory->issues()));
-  };
+    const auto issues = [&status](const auto &memory) {
+      status.set(show_issues(memory->issues()));
+    };
 
-  const auto dumper = schema_dumper(session());
+    const auto dumper = schema_dumper(session());
 
-  if (dump_users()) {
-    issues(dump_users(dumper.get()));
-  }
-
-  if (m_options.dump_ddl()) {
-    for (const auto &schema : m_schema_infos) {
-      issues(dump_schema(dumper.get(), schema.name));
-      ++objects_checked;
+    if (dump_users()) {
+      issues(dump_users(dumper.get()));
     }
 
-    for (const auto &schema : m_schema_infos) {
-      for (const auto &table : schema.tables) {
-        issues(dump_table(dumper.get(), schema.name, table.name));
-
-        if (m_options.dump_triggers() &&
-            dumper->count_triggers_for_table(schema.name, table.name) > 0) {
-          issues(dump_triggers(dumper.get(), schema.name, table.name));
-        }
-
+    if (m_options.dump_ddl()) {
+      for (const auto &schema : m_schema_infos) {
+        issues(dump_schema(dumper.get(), schema.name));
         ++objects_checked;
       }
 
-      for (const auto &view : schema.views) {
-        issues(dump_temporary_view(dumper.get(), schema.name, view.name));
-        issues(dump_view(dumper.get(), schema.name, view.name));
+      for (const auto &schema : m_schema_infos) {
+        for (const auto &table : schema.tables) {
+          issues(dump_table(dumper.get(), schema.name, table.name));
 
-        ++objects_checked;
+          if (m_options.dump_triggers() &&
+              dumper->count_triggers_for_table(schema.name, table.name) > 0) {
+            issues(dump_triggers(dumper.get(), schema.name, table.name));
+          }
+
+          ++objects_checked;
+        }
+
+        for (const auto &view : schema.views) {
+          issues(dump_temporary_view(dumper.get(), schema.name, view.name));
+          issues(dump_view(dumper.get(), schema.name, view.name));
+
+          ++objects_checked;
+        }
       }
     }
   }
@@ -4240,13 +4244,7 @@ void Dumper::update_progress(const Dump_write_result &progress) {
   }
 }
 
-void Dumper::shutdown_progress() {
-  if (m_worker_interrupt) {
-    m_progress_thread.terminate();
-  } else {
-    m_progress_thread.finish();
-  }
-}
+void Dumper::shutdown_progress() { m_progress_thread.finish(); }
 
 std::string Dumper::throughput() const {
   std::lock_guard<std::recursive_mutex> lock(m_throughput_mutex);

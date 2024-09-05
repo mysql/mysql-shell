@@ -1799,10 +1799,12 @@ const std::string &Dump_reader::override_schema(const std::string &s) const {
   return value.first == s ? value.second : s;
 }
 
-void Dump_reader::on_chunk_loaded(const Table_chunk &chunk) {
-  ++find_partition(chunk.schema, chunk.table, chunk.partition,
-                   "chunk was loaded")
-        ->chunks_loaded;
+bool Dump_reader::on_chunk_loaded(const Table_chunk &chunk) {
+  const auto p = find_partition(chunk.schema, chunk.table, chunk.partition,
+                                "chunk was loaded");
+
+  ++p->chunks_loaded;
+  return p->data_loaded();
 }
 
 void Dump_reader::on_table_loaded(const Table_chunk &chunk) {
