@@ -1402,8 +1402,8 @@ bool is_valid_hostname(std::string_view hostname) {
       R"(^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$)",
       std::regex_constants::ECMAScript | std::regex_constants::icase};
 
-  std::cmatch m;
-  return std::regex_match(hostname.begin(), hostname.end(), m, k_pattern);
+  return std::regex_match<std::string_view::const_iterator>(
+      hostname.begin(), hostname.end(), k_pattern);
 }
 
 }  // namespace shcore
