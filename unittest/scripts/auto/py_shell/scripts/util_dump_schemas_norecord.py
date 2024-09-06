@@ -2812,7 +2812,7 @@ Loading them in a system that uses lower_case_table_names=0 (such as in the MySQ
 """)
 
 #@<> BUG#36509026 - test with ocimds:true on MacOS {2 == lower_case_table_names}
-EXPECT_FAIL("Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", [ schema_name ], test_output_absolute, { "ocimds": True, "excludeTables": [f"{schema_name}.t2"], "showProgress": False })
+EXPECT_FAIL("Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_absolute, { "ocimds": True, "excludeTables": [f"{schema_name}.t2"], "showProgress": False })
 
 EXPECT_STDOUT_NOT_CONTAINS(view_references_excluded_table(schema_name, "v1", schema_name, "t1").warning())
 EXPECT_STDOUT_CONTAINS(view_references_excluded_table(schema_name, "v2", schema_name, "t2").warning())
