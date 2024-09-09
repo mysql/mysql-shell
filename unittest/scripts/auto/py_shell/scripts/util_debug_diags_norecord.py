@@ -557,6 +557,14 @@ outpath = run_collect_sq(__sandbox_uri1, None, "")
 EXPECT_STDOUT_CONTAINS("'query' must contain the query to be analyzed")
 EXPECT_NO_FILE(outpath)
 
+#@<> Binary logs disabled and through x protocol
+# Should auto-reconnect using the classic protocol
+testutil.remove_from_sandbox_conf(__mysql_sandbox_port5, "log_bin");
+testutil.change_sandbox_conf(__mysql_sandbox_port5, "skip_log_bin", "ON");
+testutil.restart_sandbox(__mysql_sandbox_port5);
+
+CHECK_ALL(check, uri=f"mysqlx://root:root@localhost:{__mysql_sandbox_port5}0")
+
 #@<> Cleanup
 session1.close()
 
