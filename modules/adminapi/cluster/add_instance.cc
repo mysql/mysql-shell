@@ -570,10 +570,14 @@ void Add_instance::do_run() {
     m_cluster_impl->configure_cluster_set_member(m_target_instance);
   }
 
+  bool stop_group_replication = false;
+
+  // TODO(miguel): refactor this logic to make use of the Undo_tracker
   const auto post_failure_actions = [this, &cfg](bool owns_rpl_user,
                                                  bool drop_rpl_user,
                                                  int64_t restore_clone_thrsh,
-                                                 bool restore_rec_accounts) {
+                                                 bool restore_rec_accounts,
+                                                 bool stop_gr) {
     assert(restore_clone_thrsh >= -1);
 
     bool credentials_exist = m_gr_opts.recovery_credentials &&
@@ -628,6 +632,18 @@ void Add_instance::do_run() {
       if (srv_cfg) {
         srv_cfg->remove_from_undo("group_replication_clone_threshold");
         srv_cfg->undo_changes();
+      }
+    }
+
+    if (stop_gr) {
+      log_debug("revert: Stopping group_replication");
+      try {
+        mysqlshdk::gr::stop_group_replication(*m_target_instance);
+      } catch (const shcore::Error &e) {
+        current_console()->print_error(
+            shcore::str_format("Unable to stop Group Replication on '%s' while "
+                               "reverting changes: %s",
+                               m_target_instance->descr().c_str(), e.what()));
       }
     }
   };
@@ -727,6 +743,7 @@ void Add_instance::do_run() {
         mysqlsh::dba::join_cluster(*m_target_instance, *m_primary_instance,
                                    m_gr_opts, recovery_certificates,
                                    cluster_member_count, cfg.get());
+        stop_group_replication = true;
       }
 
       // Wait until recovery done. Will throw an exception if recovery fails.
@@ -888,12 +905,13 @@ void Add_instance::do_run() {
     }
 
     post_failure_actions(owns_repl_user, drop_replication_user,
-                         restore_clone_threshold, restore_recovery_accounts);
+                         restore_clone_threshold, restore_recovery_accounts,
+                         stop_group_replication);
 
     throw;
   } catch (...) {
     post_failure_actions(owns_repl_user, false, restore_clone_threshold,
-                         restore_recovery_accounts);
+                         restore_recovery_accounts, stop_group_replication);
 
     throw;
   }

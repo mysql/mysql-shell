@@ -4383,6 +4383,8 @@ void Cluster_impl::wait_instance_recovery(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &join_begin_time,
     Recovery_progress_style progress_style) const {
+  DBUG_EXECUTE_IF("dba_clone_trigger_recovery_exception",
+                  { throw shcore::Exception("Debug", 0); });
   try {
     auto post_clone_auth = target_instance.get_connection_options();
     post_clone_auth.set_login_options_from(
