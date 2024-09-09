@@ -85,6 +85,9 @@
                 Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
         </UI>
 
+        <!-- BUG#37033676 -->
+        <UIRef Id="WixUI_ErrorProgressText" />
+
         <?if "1" = "@CPACK_WIX_VS_REDIST_CHECK@" ?>
         <Property Id="VS14REDIST">
             <RegistrySearch Id="FindRedistVS14"
