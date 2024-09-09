@@ -1,5 +1,6 @@
 import os
 import sys
+from urllib.parse import urlparse
 
 outdir = os.path.join(__tmp_dir, "diagout")
 if os.path.exists(outdir):
@@ -349,9 +350,9 @@ def run_collect_hl(uri, path, options={}, *, password="root",env=[],**kwargs):
         path = os.path.join(outdir, f"diag_hl.{g_fn_serial}.zip")
         g_fn_serial += 1
     args = [uri] if uri else []
-    args += ["--js", "-e", f"util.debug.collectHighLoadDiagnostics({repr(path)}, {repr(options)})"]
+    args += ["--passwords-from-stdin", "--js", "-e", f"util.debug.collectHighLoadDiagnostics({repr(path)}, {repr(options)})"]
     print(args)
-    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
+    testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path
 
 def run_collect_sq(uri, path, query="select * from mysql.user join mysql.db", options={}, *, password="root", env=[],**kwargs):
@@ -367,9 +368,9 @@ def run_collect_sq(uri, path, query="select * from mysql.user join mysql.db", op
     if isinstance(query, str):
         query = query.replace("'", "''")
     args = [uri] if uri else []
-    args += ["--js", "-e", f"util.debug.collectSlowQueryDiagnostics({repr(path)}, {repr(query)}, {repr(options)})"]
+    args += ["--passwords-from-stdin", "--js", "-e", f"util.debug.collectSlowQueryDiagnostics({repr(path)}, {repr(query)}, {repr(options)})"]
     print(args)
-    testutil.call_mysqlsh(args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
+    testutil.call_mysqlsh(args, password+"\n", ["MYSQLSH_TERM_COLOR_MODE=nocolor",env_path]+env, mysqlshrec)
     return path
 
 def CHECK_ALL_ERROR(check_fn, options={}, uri=hostname_uri+"/mysql", query="select * from mysql.user join mysql.db", path=None, keep_file=False, nobasic=False):
@@ -385,13 +386,17 @@ def CHECK_ALL_ERROR(check_fn, options={}, uri=hostname_uri+"/mysql", query="sele
     RESET(None if keep_file else outpath)
 
 def CHECK_ALL(check_fn, options={}, uri=hostname_uri+"/mysql", query="select * from mysql.user join mysql.db", path=None, keep_file=False, nobasic=False):
+    # Parse the URI
+    parsed_uri = urlparse(uri)
+    user = parsed_uri.username
+    password = parsed_uri.password
     if not nobasic:
         outpath = run_collect(uri, path, options)
         check_fn(outpath)
         RESET(None if keep_file else outpath)
-    outpath = run_collect_hl(uri, path, options)
+    outpath = run_collect_hl(uri, path, options, password=password)
     check_fn(outpath)
     RESET(None if keep_file else outpath)
-    outpath = run_collect_sq(uri, path, query, options)
+    outpath = run_collect_sq(uri, path, query, options, password=password)
     check_fn(outpath)
     RESET(None if keep_file else outpath)
