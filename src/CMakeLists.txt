@@ -181,7 +181,7 @@ IF(HAVE_PYTHON)
     install_bundled_binaries(
         DESCRIPTION "Python executable"
         BINARIES "${PYTHON_EXECUTABLE}"
-        DESTINATION "bin"
+        DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}"
         TARGET mysqlsh
     )
 

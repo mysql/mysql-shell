@@ -114,9 +114,8 @@ std::wstring python_home() {
 
 std::wstring python_path(const std::wstring &home) {
 #ifdef _WIN32
-  return utf8_to_wide(
-      shcore::path::join_path(shcore::get_mysqlx_home_path(), "bin",
-                              shcore::path::basename(PYTHON_EXECUTABLE)));
+  return utf8_to_wide(shcore::path::join_path(
+      wide_to_utf8(home), shcore::path::basename(PYTHON_EXECUTABLE)));
 #else
   return utf8_to_wide(shcore::path::join_path(
       wide_to_utf8(home), "bin", shcore::path::basename(PYTHON_EXECUTABLE)));
@@ -177,11 +176,10 @@ void initialize_python() {
   config.install_signal_handlers = 1;
 
   if (const auto home = python_home(); !home.empty()) {
-    // home will contain the correct value wether python is bundled or not, the
-    // PYTHONHOME variable must be set so child processes (i.e. python) have the
-    // same context as the python in the shell
-    shcore::setenv("PYTHONHOME", shcore::wide_to_utf8(home));
-
+#ifdef _WIN32
+    // binary folder holds all bundled dlls, including the ones needed by Python
+    SetDllDirectoryW(utf8_to_wide(shcore::get_binary_folder()).c_str());
+#endif
     check_status(PyConfig_SetString(&config, &config.home, home.c_str()),
                  "set Python home");
 

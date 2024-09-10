@@ -150,27 +150,4 @@ TEST_F(Shell_python, non_string_index) {
   }
 }
 
-TEST_F(Shell_python, executable_path) {
-  // ensure that sys.executable points to the right place and that it's in the
-  // same place as the python libraries (including when bundled)
-  execute("import sys");
-  execute("import os");
-  execute("print('executable=', sys.executable)");
-  execute("print('prefix=', sys.prefix)");
-  // check that the executable is called bin/python*
-  execute(
-      "print('filename_ok=', "
-      "sys.executable.lower().split(os.path.sep)[-1].startswith('python'))");
-  execute(
-      "print('bindir_ok=', "
-      "sys.executable.lower().split(os.path.sep)[-2]=='bin')");
-  // check that the executable is where we expect it to be-
-  execute(
-      "print('prefix_ok=', os.path.dirname(os.path.dirname(sys.executable)) in "
-      "sys.prefix)");
-  EXPECT_THAT(output_handler.std_out, testing::HasSubstr("filename_ok= True"));
-  EXPECT_THAT(output_handler.std_out, testing::HasSubstr("bindir_ok= True"));
-  EXPECT_THAT(output_handler.std_out, testing::HasSubstr("prefix_ok= True"));
-}
-
 }  // namespace mysqlsh
