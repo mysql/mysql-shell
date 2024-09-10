@@ -3222,6 +3222,8 @@ void Cluster_impl::validate_replication_sources(
     std::vector<std::string> *out_sources_canonical_address) const {
   auto target_instance_address = target_instance.get_canonical_address();
   auto target_instance_uuid = target_instance.get_uuid();
+  // Set to track unique "host:port" strings
+  std::set<std::string> unique_sources;
 
   // Check if the replicationSources are reachable and ONLINE cluster members
   for (const auto &source : sources) {
@@ -3343,6 +3345,27 @@ void Cluster_impl::validate_replication_sources(
       throw shcore::Exception(
           "Source is not ONLINE",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
+    }
+
+    // Check if the instance is duplicated in the list
+    if (!unique_sources.insert(source_string).second) {
+      auto basic_error = shcore::str_format(
+          "Found multiple entries for '%s': Each entry in the "
+          "'replicationSources' list must be unique.",
+          source_string.c_str());
+
+      if (!is_rejoin)
+        mysqlsh::current_console()->print_error(basic_error);
+      else
+        mysqlsh::current_console()->print_error(shcore::str_format(
+            "Unable to rejoin Read-Replica '%s' to the Cluster: %s Use "
+            "Cluster.setInstanceOption() with the option 'replicationSources' "
+            "to update the instance's sources.",
+            target_instance_address.c_str(), basic_error.c_str()));
+
+      throw shcore::Exception(
+          "Duplicate entries detected in 'replicationSources'",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_DUPLICATE_ENTRY);
     }
 
     // Verify the versions compatibility

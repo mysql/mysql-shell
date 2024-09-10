@@ -248,6 +248,12 @@ reset_instance(session4);
 EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {replicationSources: [__endpoint2, __endpoint3]}); }, "Invalid source type: Read-Replica", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Unable to use '${__endpoint3}' as a source: instance is a Read-Replica of the Cluster`);
 
+//<> .addReadReplica() with replicationSources including duplicates must fail
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {replicationSources: [__endpoint2, __endpoint2]}); }, "Duplicate entries detected in 'replicationSources'", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS(`ERROR: Unable to use '${__endpoint3}' as a source: instance is a Read-Replica of the Cluster`);
+
+EXPECT_OUTPUT_CONTAINS(`Found multiple entries for '${__endpoint2}': Each entry in the 'replicationSources' list must be unique. Please remove any duplicates before retrying the command.`);
+
 // Restore Cluster
 reset_read_replica(__sandbox_uri3, cluster);
 cluster.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"});
