@@ -187,6 +187,9 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
   // ONLINE
   std::shared_ptr<Instance> main_source;
 
+  // Set to track unique "host:port" strings
+  std::set<std::string> unique_sources;
+
   for (const auto &source :
        m_options.replication_sources_option.replication_sources) {
     auto source_instance = get_source_instance(source.to_string());
@@ -196,6 +199,7 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
     //   a) The instance belongs to the MD
     //   b) The instance is not a Read-Replica
     //   c) The instance is ONLINE
+    //   d) The instance is duplicated in the list
 
     try {
       // Check if the address is in the Metadata
@@ -240,6 +244,18 @@ std::shared_ptr<Instance> Add_replica_instance::get_default_source_instance() {
       throw shcore::Exception(
           "Source is not ONLINE",
           SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_NOT_ONLINE);
+    }
+
+    // Check if the instance is duplicated in the list
+    if (!unique_sources.insert(source.to_string()).second) {
+      mysqlsh::current_console()->print_error(shcore::str_format(
+          "Found multiple entries for '%s': Each entry in the "
+          "'replicationSources' list must be unique. Please remove any "
+          "duplicates before retrying the command.",
+          source.to_string().c_str()));
+      throw shcore::Exception(
+          "Duplicate entries detected in 'replicationSources'",
+          SHERR_DBA_READ_REPLICA_INVALID_SOURCE_LIST_DUPLICATE_ENTRY);
     }
 
     // The main source must be the first member of the 'replicationSources'

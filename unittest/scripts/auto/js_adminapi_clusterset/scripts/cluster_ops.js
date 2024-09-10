@@ -69,7 +69,7 @@ EXPECT_THROWS(function(){
 
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port5}' does not belong to the Cluster 'replica'.`);
 
-//@<> The replication sources for read-replica must belong to the cluster, must be non read-replicas, not itself, reachable and with a valid state
+//@<> The replication sources for read-replica must belong to the cluster, must be non read-replicas, not itself, reachable, with a valid state and not duplicate
 
 EXPECT_NO_THROWS(function(){ replicacluster.removeInstance(__sandbox_uri6); });
 EXPECT_NO_THROWS(function(){ cluster.addReplicaInstance(__sandbox_uri6, {recoveryMethod: "clone"}); });
@@ -111,10 +111,17 @@ EXPECT_THROWS(function(){
 
 EXPECT_OUTPUT_CONTAINS(`Unable to use '${hostname}:${__mysql_sandbox_port2}' as source, instance is unreachable.`);
 
-//reset cluster / replicacluster topology
 testutil.startSandbox(__mysql_sandbox_port2);
 cluster.rejoinInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+EXPECT_THROWS(function(){
+    cluster.setInstanceOption(__sandbox_uri5, "replicationSources", [__endpoint2, __endpoint2]);
+}, "Duplicate entries detected in 'replicationSources'");
+
+EXPECT_OUTPUT_CONTAINS(`ERROR: Found multiple entries for '${hostname}:${__mysql_sandbox_port2}': Each entry in the 'replicationSources' list must be unique.`);
+
+//reset cluster / replicacluster topology
 EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri5); });
 EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri6); });
 EXPECT_NO_THROWS(function(){ replicacluster.addReplicaInstance(__sandbox_uri5); });
