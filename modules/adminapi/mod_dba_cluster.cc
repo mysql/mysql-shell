@@ -684,15 +684,35 @@ void Cluster::reset_recovery_accounts_password(
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_RESCAN, R"*(
-Rescans the cluster.
+Rescans the Cluster.
 
 @param options Optional Dictionary with options for the operation.
 
 @returns Nothing.
 
-This function rescans the cluster for new and obsolete Group Replication
-members/instances, as well as changes in the used topology mode (i.e.,
-single-primary and multi-primary).
+This command rescans the Cluster for any changes in the Group Replication
+topology, ensuring proper management of instances, validating metadata
+consistency, and confirming that the correct settings are in place for all
+instances.
+
+It performs the following tasks:
+
+@li Detects new instances that are part of the Group Replication topology but
+not yet managed by the Cluster.
+@li Identifies obsolete instances that are no longer part of the topology.
+@li Validates and updates the Metadata, ensuring it accurately reflects the
+current state of the Cluster, including topology mode changes, recovery
+accounts, server IDs, and other relevant configuration data.
+@li Verifies if 'group_replication_view_change_uuid' is configured for MySQL
+versions from 8.0.27 up to 8.3.0.
+@li Ensures that 'group_replication_transaction_size_limit' is consistent
+across all Cluster members and stored in the Metadata.
+@li Automatically upgrades the MySQL communication protocol version, if
+necessary.
+@li Detects and corrects instances using the wrong account for the recovery
+channel, resetting and updating credentials to use the proper account.
+@li Detects inconsistencies in the metadata, such as invalid Cluster/ClusterSet
+members or other potential issues.
 
 The options dictionary may contain the following attributes:
 
@@ -702,22 +722,22 @@ metadata. Deprecated.
 @li removeInstances: List with the connection data of the obsolete instances to
 remove from the metadata, or "auto" to automatically remove obsolete instances
 from the metadata. Deprecated.
-@li upgradeCommProtocol: boolean. Set to true to upgrade the Group Replication
+@li upgradeCommProtocol: Boolean. Set to true to upgrade the Group Replication
 communication protocol to the highest version possible.
-@li updateViewChangeUuid: boolean value used to indicate if the command should
-generate and set a value for Group Replication View Change UUID in the whole
-Cluster. Required for InnoDB ClusterSet usage (if running MySQL version lower
-than 8.3.0).
-@li addUnmanaged: set to true to automatically add newly discovered instances,
-i.e. already part of the replication topology but not managed in the Cluster,
-to the metadata. Defaults to false.
-@li removeObsolete: set to true to automatically remove all obsolete instances,
-i.e. no longer part of the replication topology, from the metadata. Defaults
-to false.
-@li repairMetadata: boolean. Set to true to repair the Metadata if detected to
+@li updateViewChangeUuid: Boolean. Indicates if the command should generate and
+set a value for the Group Replication View Change UUID in the entire Cluster.
+Required for InnoDB ClusterSet usage (if running MySQL version lower than
+8.3.0).
+@li addUnmanaged: Boolean. Set to true to automatically add newly discovered
+instances, i.e. already part of the replication topology but not managed in the
+Cluster, to the metadata. Defaults to false.
+@li removeObsolete: Boolean. Set to true to automatically remove all obsolete
+instances, i.e. no longer part of the replication topology, from the metadata.
+Defaults to false.
+@li repairMetadata: Boolean. Set to true to repair the Metadata if detected to
 be inconsistent.
 
-The value for addInstances and removeInstances is used to specify which
+The value for 'addInstances' and 'removeInstances' is used to specify which
 instances to add or remove from the metadata, respectively. Both options accept
 list connection data. In addition, the "auto" value can be used for both
 options in order to automatically add or remove the instances in the metadata,
