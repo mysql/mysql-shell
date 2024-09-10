@@ -42,7 +42,7 @@ The following operations are available at 'cluster':
       Removes metadata for a router instance.
 
    rescan
-      Rescans the cluster.
+      Rescans the Cluster.
 
    reset-recovery-accounts-password
       Resets the password of the recovery and replication accounts of the
@@ -288,7 +288,7 @@ RETURNS
 
 //@<OUT> CLI cluster rescan --help
 NAME
-      rescan - Rescans the cluster.
+      rescan - Rescans the Cluster.
 
 SYNTAX
       cluster rescan [<options>]
@@ -308,24 +308,28 @@ OPTIONS
             instances from the metadata. Deprecated.
 
 --addUnmanaged=<bool>
-            Set to true to automatically add newly discovered instances, i.e.
-            already part of the replication topology but not managed in the
-            Cluster, to the metadata. Defaults to false.
+            Boolean. Set to true to automatically add newly discovered
+            instances, i.e. already part of the replication topology but not
+            managed in the Cluster, to the metadata. Defaults to false.
 
 --removeObsolete=<bool>
-            Set to true to automatically remove all obsolete instances, i.e. no
-            longer part of the replication topology, from the metadata.
-            Defaults to false.
+            Boolean. Set to true to automatically remove all obsolete
+            instances, i.e. no longer part of the replication topology, from
+            the metadata. Defaults to false.
 
 --upgradeCommProtocol=<bool>
             Boolean. Set to true to upgrade the Group Replication communication
             protocol to the highest version possible.
 
 --updateViewChangeUuid=<bool>
-            Boolean value used to indicate if the command should generate and
-            set a value for Group Replication View Change UUID in the whole
-            Cluster. Required for InnoDB ClusterSet usage (if running MySQL
-            version lower than 8.3.0).
+            Boolean. Indicates if the command should generate and set a value
+            for the Group Replication View Change UUID in the entire Cluster.
+            Required for InnoDB ClusterSet usage (if running MySQL version
+            lower than 8.3.0).
+
+--repairMetadata=<bool>
+            Boolean. Set to true to repair the Metadata if detected to be
+            inconsistent.
 
 //@<OUT> CLI cluster reset-recovery-accounts-password --help
 NAME
