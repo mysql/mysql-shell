@@ -23,7 +23,7 @@
 
 from mysqlsh.plugin_manager import plugin, plugin_function
 from mysqlsh import globals
-from mysqlsh import Error, DBError
+from mysqlsh import Error, DBError, mysql
 
 from debug.collect_diagnostics import do_collect_diagnostics, do_collect_high_load_diagnostics, do_collect_slow_query_diagnostics
 
@@ -33,6 +33,26 @@ class debug:
     Debugging and diagnostic utilities.
     """
 
+def reconnect_to_classic_session():
+    """
+    Attempts to connect to a MySQL instance using the classic protocol.
+    Fetches the current session, parses the credentials, and connects using the classic protocol.
+    """
+    active_session = globals.shell.get_session()
+    creds = globals.shell.parse_uri(active_session.uri)
+
+    # Fetch the classic port from the current session
+    classic_port = active_session.run_sql("select @@port").fetch_one()[0]
+
+    try:
+        creds["port"] = classic_port
+        creds["scheme"] = "mysql"
+        session = globals.shell.open_session(creds)
+        return session
+    except Error as e:
+        print(f"Could not connect to {creds['host']}:{creds['port']}: {e}")
+        print("Shell must be connected to a member of the desired MySQL topology using a classic session. Please reconnect with --mysql (--mc)")
+        return None
 
 @plugin_function("util.debug.collectDiagnostics", cli=True)
 def collect_diagnostics(path: str, **options):
@@ -95,6 +115,9 @@ def collect_diagnostics(path: str, **options):
             "Shell must be connected to a member of the desired MySQL topology.")
 
     session = globals.shell.open_session()
+
+    if shell.parse_uri(session.uri)["scheme"] == "mysqlx":
+        session = reconnect_to_classic_session();
 
     do_collect_diagnostics(session, path, orig_args=options, **options)
 
@@ -172,6 +195,9 @@ def collect_high_load_diagnostics(path: str, **options):
 
     session = globals.shell.open_session()
 
+    if shell.parse_uri(session.uri)["scheme"] == "mysqlx":
+        session = reconnect_to_classic_session();
+
     do_collect_high_load_diagnostics(
         session, path, orig_args=options, **options)
 
@@ -237,6 +263,9 @@ def collect_slow_query_diagnostics(path: str, query: str, **options):
             "Shell must be connected to a MySQL server.")
 
     session = globals.shell.open_session()
+
+    if shell.parse_uri(session.uri)["scheme"] == "mysqlx":
+        session = reconnect_to_classic_session();
 
     do_collect_slow_query_diagnostics(
         session, path, query, orig_args=options, **options)
