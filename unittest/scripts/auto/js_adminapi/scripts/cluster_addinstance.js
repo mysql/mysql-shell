@@ -721,7 +721,7 @@ testutil.dbugSet("");
 EXPECT_NO_THROWS(function(){ cluster.addInstance(__sandbox_uri2); });
 EXPECT_OUTPUT_CONTAINS("The instance '" + hostname + ":" + __mysql_sandbox_port2 + "' was successfully added to the cluster.");
 
-//@<> Failure in clone should revert changes and stop GR {VER(>=8.0.17)}
+//@<> Failure in clone should revert changes and stop GR {VER(>=8.0.27) && !__dbug_off}
 EXPECT_NO_THROWS(function(){ cluster.removeInstance(__sandbox_uri2); });
 
 testutil.dbugSet("+d,dba_clone_trigger_recovery_exception");
@@ -732,6 +732,8 @@ status = cluster.status();
 EXPECT_EQ(1, Object.keys(status["defaultReplicaSet"]["topology"]).length)
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+
+testutil.dbugSet("");
 
 //@<> Cleanup
 session.close();
