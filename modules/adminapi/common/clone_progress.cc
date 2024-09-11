@@ -27,6 +27,7 @@
 #include <string>
 
 #include "modules/adminapi/common/clone_progress.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
@@ -100,7 +101,8 @@ void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
 
     console->print_error("The clone process has failed: " + status.error +
                          " (" + std::to_string(status.error_n) + ")");
-    throw std::runtime_error(status.error);
+    throw shcore::Exception("Clone recovery has failed",
+                            SHERR_DBA_CLONE_RECOVERY_FAILED);
   }
 }
 
