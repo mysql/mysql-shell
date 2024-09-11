@@ -76,7 +76,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   Integer getWarningsCount();
   List getWarnings();
   Bool nextResult();
-  Srting getStatementId();
+  String getStatementId();
 #elif DOXYGEN_PY
   int affected_items_count;  //!< Same as get_affected_items_count()
   int column_count;          //!< Same as get_column_count()
