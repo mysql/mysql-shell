@@ -139,6 +139,7 @@ function(create_parser_plugin)
         "${MYSQL_SOURCE_DIR}/sql/sql_lex_hash.cc"
         # Use lexer from Router, which is derived from server lexer with simpler deps
         "${MYSQL_SOURCE_DIR}/router/src/routing/src/sql_lexer.cc"
+        "${MYSQL_SOURCE_DIR}/router/src/routing/src/sql_lexer_thd.cc"
     )
     foreach(SRC ${MYSQL_SOURCES_IN})
         get_filename_component(FILENAME "${SRC}" NAME)
@@ -192,6 +193,7 @@ function(create_parser_plugin)
         "PARSER_VERSION=\"${ARG_VERSION}\""
         "PARSER_IS_5_7=${PLUGIN_IS_5_7}"
         "USE_OPTIMIZER_HINTS_PARSER"
+        "MYSQLCLIENT_IS_STATIC"
     )
     if(WIN32)
         # needed to correctly import symbols from the MySQL strings library (i.e. my_charset_utf8mb4_0900_ai_ci)
