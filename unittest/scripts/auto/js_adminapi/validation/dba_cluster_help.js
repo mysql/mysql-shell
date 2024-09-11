@@ -74,7 +74,7 @@ FUNCTIONS
             Removes metadata for a router instance.
 
       rescan([options])
-            Rescans the cluster.
+            Rescans the Cluster.
 
       resetRecoveryAccountsPassword(options)
             Resets the password of the recovery and replication accounts of the
@@ -1131,7 +1131,7 @@ DESCRIPTION
 
 //@<OUT> Rescan
 NAME
-      rescan - Rescans the cluster.
+      rescan - Rescans the Cluster.
 
 SYNTAX
       <Cluster>.rescan([options])
@@ -1143,9 +1143,29 @@ RETURNS
       Nothing.
 
 DESCRIPTION
-      This function rescans the cluster for new and obsolete Group Replication
-      members/instances, as well as changes in the used topology mode (i.e.,
-      single-primary and multi-primary).
+      This command rescans the Cluster for any changes in the Group Replication
+      topology, ensuring proper management of instances, validating metadata
+      consistency, and confirming that the correct settings are in place for
+      all instances.
+
+      It performs the following tasks:
+
+      - Detects new instances that are part of the Group Replication topology
+        but not yet managed by the Cluster.
+      - Identifies obsolete instances that are no longer part of the topology.
+      - Validates and updates the Metadata, ensuring it accurately reflects the
+        current state of the Cluster, including topology mode changes, recovery
+        accounts, server IDs, and other relevant configuration data.
+      - Verifies if 'group_replication_view_change_uuid' is configured for
+        MySQL versions from 8.0.27 up to 8.3.0.
+      - Ensures that 'group_replication_transaction_size_limit' is consistent
+        across all Cluster members and stored in the Metadata.
+      - Automatically upgrades the MySQL communication protocol version, if
+        necessary.
+      - Detects and corrects instances using the wrong account for the recovery
+        channel, resetting and updating credentials to use the proper account.
+      - Detects inconsistencies in the metadata, such as invalid
+        Cluster/ClusterSet members or other potential issues.
 
       The options dictionary may contain the following attributes:
 
@@ -1155,26 +1175,26 @@ DESCRIPTION
       - removeInstances: List with the connection data of the obsolete
         instances to remove from the metadata, or "auto" to automatically
         remove obsolete instances from the metadata. Deprecated.
-      - upgradeCommProtocol: boolean. Set to true to upgrade the Group
+      - upgradeCommProtocol: Boolean. Set to true to upgrade the Group
         Replication communication protocol to the highest version possible.
-      - updateViewChangeUuid: boolean value used to indicate if the command
-        should generate and set a value for Group Replication View Change UUID
-        in the whole Cluster. Required for InnoDB ClusterSet usage (if running
-        MySQL version lower than 8.3.0).
-      - addUnmanaged: set to true to automatically add newly discovered
-        instances, i.e. already part of the replication topology but not
-        managed in the Cluster, to the metadata. Defaults to false.
-      - removeObsolete: set to true to automatically remove all obsolete
-        instances, i.e. no longer part of the replication topology, from the
-        metadata. Defaults to false.
-      - repairMetadata: boolean. Set to true to repair the Metadata if detected
+      - updateViewChangeUuid: Boolean. Indicates if the command should generate
+        and set a value for the Group Replication View Change UUID in the
+        entire Cluster. Required for InnoDB ClusterSet usage (if running MySQL
+        version lower than 8.3.0).
+      - addUnmanaged: Boolean. Set to true to automatically add newly
+        discovered instances, i.e. already part of the replication topology but
+        not managed in the Cluster, to the metadata. Defaults to false.
+      - removeObsolete: Boolean. Set to true to automatically remove all
+        obsolete instances, i.e. no longer part of the replication topology,
+        from the metadata. Defaults to false.
+      - repairMetadata: Boolean. Set to true to repair the Metadata if detected
         to be inconsistent.
 
-      The value for addInstances and removeInstances is used to specify which
-      instances to add or remove from the metadata, respectively. Both options
-      accept list connection data. In addition, the "auto" value can be used
-      for both options in order to automatically add or remove the instances in
-      the metadata, without having to explicitly specify them.
+      The value for 'addInstances' and 'removeInstances' is used to specify
+      which instances to add or remove from the metadata, respectively. Both
+      options accept list connection data. In addition, the "auto" value can be
+      used for both options in order to automatically add or remove the
+      instances in the metadata, without having to explicitly specify them.
 
       'repairMetadata' is used to eliminate any inconsistencies detected in the
       Metadata. These inconsistencies may arise from a few scenarios, such as
