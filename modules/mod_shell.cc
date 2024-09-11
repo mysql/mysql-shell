@@ -2317,13 +2317,12 @@ shell.<<<createResult>>>.
  * $(SHELL_REGISTERSQLHANDLER)
  */
 #if DOXYGEN_JS
-Undefined registerSqlHandler(String name, String description, List prefixes,
-                             Function callback) {}
+Undefined Shell::registerSqlHandler(String name, String description,
+                                    List prefixes, Function callback) {}
 #elif DOXYGEN_PY
-None register_sql_handler(str name, str description, list prefixes,
-                          function callback) {}
+None Shell::register_sql_handler(str name, str description, list prefixes,
+                                 function callback) {}
 #endif
-
 void Shell::register_sql_handler(const std::string &name,
                                  const std::string &description,
                                  const std::vector<std::string> &prefixes,
@@ -2350,9 +2349,9 @@ Each element of the list is a dictionary with the following keys:
  * $(SHELL_LISTSQLHANDLERS)
  */
 #if DOXYGEN_JS
-Undefined listSqlHandlers() {}
+Undefined Shell::listSqlHandlers() {}
 #elif DOXYGEN_PY
-None list_sql_handlers() {}
+None Shell::list_sql_handlers() {}
 #endif
 shcore::Array_t Shell::list_sql_handlers() {
   auto handlers = shcore::current_sql_handler_registry()->get_sql_handlers();

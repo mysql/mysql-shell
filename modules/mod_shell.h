@@ -211,7 +211,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
                        std::shared_ptr<Extensible_object> object,
                        const shcore::Dictionary_t &definition = {});
 
-  /**
+  /*
    * Registers a custom SQL handler for pre/post SQL Processing
    *
    * @param name A unique identifier for the SQL handler.
