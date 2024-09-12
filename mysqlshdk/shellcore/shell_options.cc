@@ -619,15 +619,17 @@ Shell_options::Shell_options(
       "line on the batch is processed as if it were in interactive mode.",
       [this](const std::string&, const char* value) {
         if (!value || !value[0]) {
-          storage.interactive = true;
           storage.full_interactive = false;
         } else if (strcmp(value, "full") == 0) {
-          storage.interactive = true;
           storage.full_interactive = true;
         } else {
           throw std::invalid_argument(
                     "Value for --interactive if any, must be full");
         }
+        storage.interactive = true;
+
+        // Use the existing --interactive option to indicate the session should be interactive
+        storage.connection_data.set_interactive(true);
       });
 
 

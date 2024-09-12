@@ -202,7 +202,12 @@ Session_impl::Session_impl() = default;
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
-  long flags = CLIENT_MULTI_RESULTS | CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+  long flags = CLIENT_MULTI_RESULTS;
+
+  if (connection_options.is_interactive()) {
+    flags |= CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS | CLIENT_INTERACTIVE;
+  }
+
   _mysql = mysql_init(nullptr);
 
   // A tracer plugin needs to be enabled as soon as the first instance of MYSQL
@@ -260,12 +265,8 @@ void Session_impl::connect(
     }
   }
 
-  if (connection_options.has(mysqlshdk::db::kGetServerPublicKey)) {
-    const std::string &server_public_key =
-        connection_options.get(mysqlshdk::db::kGetServerPublicKey);
-    bool get_pub_key = (server_public_key == "true" || server_public_key == "1")
-                           ? true
-                           : false;
+  if (bool get_pub_key =
+          connection_options.is_enabled(mysqlshdk::db::kGetServerPublicKey)) {
     mysql_options(_mysql, MYSQL_OPT_GET_SERVER_PUBLIC_KEY, &get_pub_key);
   }
 

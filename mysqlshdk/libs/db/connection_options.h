@@ -267,6 +267,10 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   int get_net_write_timeout() const;
   void clear_net_write_timeout();
 
+  bool is_enabled(const std::string &option) const;
+  void set_interactive(bool value);
+  bool is_interactive() const;
+
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   bool is_extra_option(const std::string &option);
@@ -290,6 +294,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   // mfa_password1 is the regular password
   std::optional<std::string> m_mfa_password_2;
   std::optional<std::string> m_mfa_password_3;
+  bool m_interactive = false;
 
   // whether a (mfa) password is needed even if not given
   // regular password is assumed to be required for compatibility options

@@ -1031,12 +1031,19 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
       get_options()->get().default_compress)
     connection_options.set_compression(mysqlshdk::db::kCompressionPreferred);
 
-  if (interactive)
+  if (interactive) {
+    // If is not explicitly client_interactive (true or false) then makes it
+    // interactive
+    if (!connection_options.has(mysqlshdk::db::kClientInteractive)) {
+      connection_options.set_interactive(true);
+    }
+
     print_connection_message(
         connection_options.get_session_type(),
         connection_options.as_uri(
             mysqlshdk::db::uri::formats::no_scheme_no_password()),
         /*_options.app*/ "");
+  }
 
   // Retrieves the schema on which the session will work on
   if (connection_options.has_schema()) {
