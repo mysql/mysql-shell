@@ -208,8 +208,11 @@ namespace lts {
 
 using off_cycle_releases_t = std::set<int>;
 
+// Bugfix release minor version for 8 series
 constexpr int k_minor_version_8_0 = 0;
+// LTS release minor version for 8 series
 constexpr int k_minor_version_8_4 = 4;
+// LTS release minor version for series > 8
 constexpr int k_minor_version = 7;
 
 namespace detail {
@@ -247,18 +250,6 @@ bool off_cycle_releases(int version_id, const off_cycle_releases_t **releases) {
 }
 
 }  // namespace detail
-
-/**
- * Checks if this is an LTS release.
- */
-inline bool is_lts_release(const Version &v) {
-  if (8 == v.get_major()) {
-    return k_minor_version_8_0 == v.get_minor() ||
-           k_minor_version_8_4 == v.get_minor();
-  } else {
-    return k_minor_version == v.get_minor();
-  }
-}
 
 /**
  * Patch versions of the off-cycle releases of the given LTS release series.
@@ -360,7 +351,7 @@ std::vector<Version> corresponding_versions(Version version) {
   // this holds number of planned releases released so far
   int planned_releases = lts::count_planned_releases(version);
 
-  if (lts::is_lts_release(version)) {
+  if (is_lts_release(version)) {
     // this is an LTS release, count number of releases in the LTS series
     planned_releases += version.get_patch();
     // but don't count off-cycle releases
@@ -452,6 +443,18 @@ Version get_first_innovation_version(Version version) {
 
   auto major = version.get_major();
   return major == 8 ? Version(8, 1, 0) : Version(major, 0, 0);
+}
+
+/**
+ * Checks if this is an LTS release.
+ */
+bool is_lts_release(const Version &v) {
+  if (8 == v.get_major()) {
+    return lts::k_minor_version_8_0 == v.get_minor() ||
+           lts::k_minor_version_8_4 == v.get_minor();
+  } else {
+    return lts::k_minor_version == v.get_minor();
+  }
 }
 
 }  // namespace utils

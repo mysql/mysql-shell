@@ -154,6 +154,11 @@ Version get_first_lts_version(Version version);
  */
 Version get_first_innovation_version(Version version);
 
+/**
+ * Checks if this is an LTS release.
+ */
+bool is_lts_release(const Version &v);
+
 }  // namespace utils
 }  // namespace mysqlshdk
 
