@@ -41,6 +41,7 @@ def mangled_symbols(lib):
     p.wait()
 
 selected_symbols = set([
+    "get_charset",
     "get_charset_by_csname",
     "get_collation_number",
     "my_charset_latin1",
