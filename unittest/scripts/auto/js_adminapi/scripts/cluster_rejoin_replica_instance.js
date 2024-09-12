@@ -398,7 +398,9 @@ session4 = mysql.getSession(__sandbox_uri4);
 session4.runSql("STOP replica");
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance '" + __endpoint2 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
 
 // Disable the debug trap so the command can succeed
 testutil.dbugSet("");
@@ -409,14 +411,17 @@ CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint1], __endpoint1);
 //@<> Test a failure due to version check of the donor (automatic) {!__dbug_off}
 session4 = mysql.getSession(__sandbox_uri4);
 session4.runSql("STOP replica");
+session4.runSql("RESET " + get_reset_binary_logs_keyword());
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.rejoinInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS(function() { cluster.rejoinInstance(__sandbox_uri4); }, "Instance provisioning required");
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
 
 // Disable the debug trap so the command can succeed
 testutil.dbugSet("");
 
-EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4); });
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__endpoint4, {recoveryMethod: "clone"}); });
 CHECK_READ_REPLICA(__sandbox_uri4, cluster, [__endpoint1], __endpoint1);
 
 // --- timeout tests

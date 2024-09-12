@@ -2799,7 +2799,8 @@ Member_recovery_method Replica_set_impl::validate_instance_recovery(
       mysqlsh::dba::validate_instance_recovery(
           Cluster_type::ASYNC_REPLICATION, op_action, donor_instance,
           target_instance, check_recoverable, opt_recovery_method,
-          gtid_set_is_complete, interactive);
+          gtid_set_is_complete, interactive,
+          check_clone_availablity(donor_instance, target_instance));
 
   return recovery_method;
 }

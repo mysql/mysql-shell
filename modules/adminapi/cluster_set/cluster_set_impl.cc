@@ -739,15 +739,15 @@ std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
 
 Member_recovery_method Cluster_set_impl::validate_instance_recovery(
     Member_op_action op_action,
+    const mysqlshdk::mysql::IInstance &donor_instance,
     const mysqlshdk::mysql::IInstance &target_instance,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
     bool interactive) {
-  auto donor_instance = get_primary_master();
   auto check_recoverable =
-      [donor_instance](const mysqlshdk::mysql::IInstance &tgt_instance) {
+      [&donor_instance](const mysqlshdk::mysql::IInstance &tgt_instance) {
         // Get the gtid state in regards to the donor
         mysqlshdk::mysql::Replica_gtid_state state =
-            check_replica_group_gtid_state(*donor_instance, tgt_instance,
+            check_replica_group_gtid_state(donor_instance, tgt_instance,
                                            nullptr, nullptr);
 
         return (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE);
@@ -755,9 +755,11 @@ Member_recovery_method Cluster_set_impl::validate_instance_recovery(
 
   Member_recovery_method recovery_method =
       mysqlsh::dba::validate_instance_recovery(
-          Cluster_type::REPLICATED_CLUSTER, op_action, *donor_instance,
+          Cluster_type::REPLICATED_CLUSTER, op_action, donor_instance,
           target_instance, check_recoverable, opt_recovery_method,
-          gtid_set_is_complete, interactive);
+          gtid_set_is_complete, interactive,
+          get_primary_cluster()->check_clone_availablity(donor_instance,
+                                                         target_instance));
 
   return recovery_method;
 }

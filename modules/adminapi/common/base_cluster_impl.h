@@ -37,6 +37,7 @@
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
@@ -283,18 +284,13 @@ class Base_cluster_impl {
       const Recovery_progress_style &progress_style, int sync_timeout,
       bool dry_run);
 
-  virtual void ensure_compatible_clone_donor(
-      const mysqlshdk::mysql::IInstance &donor,
-      const mysqlshdk::mysql::IInstance &recipient) const = 0;
-
-  static bool verify_compatible_clone_versions(
-      const mysqlshdk::utils::Version &donor,
-      const mysqlshdk::utils::Version &recipient);
-
   static void check_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient);
 
+  virtual Clone_availability check_clone_availablity(
+      const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient) const;
   static void check_replication_version_compatibility(
       const std::string &source_descr, const std::string &replica_descr,
       const mysqlshdk::utils::Version &source_version,

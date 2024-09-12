@@ -37,6 +37,8 @@ if (testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, '<', __version)) {
     testutil.deployRawSandbox(__mysql_sandbox_port4, __secure_password, {report_host: hostname, "log-error-verbosity": "3", ...k_mycnf_options}, { mysqldPath: MYSQLD_SECONDARY_SERVER_A.path });
 }
 
+let __version_A = MYSQLD_SECONDARY_SERVER_A.version.replace(/[-_].*$/, '');
+
 shell.options.useWizards = false;
 
 //@<> configureInstances
@@ -229,6 +231,8 @@ NOTE: Group Replication will communicate with other members using '${hostname}:$
 
 * Checking transaction state of the instance...
 
+WARNING: Clone-based recovery not available: Instance '${hostname}:${__mysql_sandbox_port1}' cannot be a donor because its version (${__version_A}) isn't compatible with the recipient's (${__version}).
+
 NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty).
 
 Incremental state recovery selected through the recoveryMethod option
@@ -282,11 +286,13 @@ clusterset = dba.getClusterSet();
 
 shell.connect(__sandbox_uri1);
 
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.opt_gtidSetIsComplete', true)");
+
 cluster = dba.getCluster();
 
 //@<> addInstance on primary cluster
 EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
-EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "clone", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "incremental", "ipAllowlist":"127.0.0.1," + hostname_ip}); });
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 
 //@<> rejoinInstance on a primary cluster

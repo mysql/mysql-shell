@@ -34,8 +34,6 @@
 #include <utility>
 #include <vector>
 
-#include "adminapi/common/clone_options.h"
-#include "adminapi/common/instance_pool.h"
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/cluster/add_replica_instance.h"
 #include "modules/adminapi/cluster/describe.h"
@@ -56,11 +54,14 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
+#include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/execute.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/gtid_validations.h"
+#include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -2275,37 +2276,74 @@ void Cluster_impl::refresh_connections() {
   }
 }
 
-void Cluster_impl::ensure_compatible_clone_donor(
-    const mysqlshdk::mysql::IInstance &donor,
+bool Cluster_impl::has_compatible_clone_donor(
     const mysqlshdk::mysql::IInstance &recipient) const {
-  {
-    auto donor_address = donor.get_canonical_address();
+  DBUG_EXECUTE_IF("dba_clone_no_compatible_donors", { return false; });
 
-    // check if the donor belongs to the cluster (MD)
-    try {
-      get_metadata_storage()->get_instance_by_address(donor_address, get_id());
-    } catch (const shcore::Exception &e) {
-      if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+  bool has_valid_donor = false;
 
-      throw shcore::Exception(
-          shcore::str_format("Instance '%s' does not belong to the Cluster",
-                             donor_address.c_str()),
-          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
-    }
+  execute_in_members(
+      {mysqlshdk::gr::Member_state::ONLINE},
+      get_cluster_server()->get_connection_options(), {},
+      [&has_valid_donor, &recipient](const std::shared_ptr<Instance> &instance,
+                                     const mysqlshdk::gr::Member &) {
+        try {
+          check_compatible_clone_donor(*instance, recipient);
+          // stop searching as soon as we find a compatible donor
+          return has_valid_donor = true;
+        } catch (shcore::Exception &e) {
+          log_info("Incompatible donor: %s", e.what());
+        }
 
-    // check donor state
-    if (mysqlshdk::gr::get_member_state(donor) !=
-        mysqlshdk::gr::Member_state::ONLINE) {
-      throw shcore::Exception(
-          shcore::str_format(
-              "Instance '%s' is not an ONLINE member of the Cluster.",
-              donor_address.c_str()),
-          SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
-    }
+        return false;
+      });
+
+  return has_valid_donor;
+}
+
+void Cluster_impl::ensure_donor_is_valid(
+    const mysqlshdk::mysql::IInstance &donor) const {
+  auto donor_address = donor.get_canonical_address();
+
+  // Check if the donor belongs to the cluster (MD)
+  try {
+    get_metadata_storage()->get_instance_by_address(donor_address, get_id());
+  } catch (const shcore::Exception &e) {
+    if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
+
+    throw shcore::Exception(
+        shcore::str_format("Instance '%s' does not belong to the Cluster",
+                           donor_address.c_str()),
+        SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
   }
 
-  // further checks (related to the instances and unrelated to the cluster)
-  Base_cluster_impl::check_compatible_clone_donor(donor, recipient);
+  // Check donor state
+  if (mysqlshdk::gr::get_member_state(donor) !=
+      mysqlshdk::gr::Member_state::ONLINE) {
+    throw shcore::Exception(
+        shcore::str_format(
+            "Instance '%s' is not an ONLINE member of the Cluster.",
+            donor_address.c_str()),
+        SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
+  }
+}
+
+Clone_availability Cluster_impl::check_clone_availablity(
+    const mysqlshdk::mysql::IInstance &donor,
+    const mysqlshdk::mysql::IInstance &recipient) const {
+  if (get_disable_clone_option()) return Clone_availability::Disabled;
+
+  try {
+    check_compatible_clone_donor(donor, recipient);
+  } catch (shcore::Exception &e) {
+    current_console()->print_info();
+    current_console()->print_warning(
+        shcore::str_format("Clone-based recovery not available: %s", e.what()));
+
+    return Clone_availability::Unavailable;
+  }
+
+  return Clone_availability::Available;
 }
 
 void Cluster_impl::setup_admin_account(const std::string &username,
@@ -3418,40 +3456,6 @@ cluster::Replication_sources Cluster_impl::get_read_replica_replication_sources(
   return replication_sources_opts;
 }
 
-void Cluster_impl::ensure_compatible_donor(
-    const mysqlshdk::mysql::IInstance &donor,
-    const mysqlshdk::mysql::IInstance &recipient,
-    Member_recovery_method recovery_method) {
-  if (recovery_method == Member_recovery_method::CLONE) {
-    ensure_compatible_clone_donor(donor, recipient);
-  } else {
-    // Check if the source is valid
-    auto donor_address = donor.get_canonical_address();
-
-    // check if the source belongs to the cluster (MD)
-    try {
-      get_metadata_storage()->get_instance_by_address(donor_address, get_id());
-    } catch (const shcore::Exception &e) {
-      if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
-
-      throw shcore::Exception(
-          shcore::str_format("Instance '%s' does not belong to the Cluster",
-                             donor_address.c_str()),
-          SHERR_DBA_BADARG_INSTANCE_NOT_IN_CLUSTER);
-    }
-
-    // check source state
-    if (mysqlshdk::gr::get_member_state(donor) !=
-        mysqlshdk::gr::Member_state::ONLINE) {
-      throw shcore::Exception(
-          shcore::str_format(
-              "Instance '%s' is not an ONLINE member of the Cluster.",
-              donor_address.c_str()),
-          SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE);
-    }
-  }
-}
-
 void Cluster_impl::reset_recovery_password(
     const std::shared_ptr<Instance> &target,
     const std::string &recovery_account,
@@ -3950,75 +3954,95 @@ Member_recovery_method Cluster_impl::check_recovery_method(
     const mysqlshdk::mysql::IInstance &target_instance,
     Member_op_action op_action, Member_recovery_method selected_recovery_method,
     bool interactive) const {
-  // Check GTID consistency and whether clone is needed
-  auto check_recoverable = [this](const mysqlshdk::mysql::IInstance &target) {
-    // Check if the GTIDs were purged from the whole cluster
-    bool recoverable = false;
-
-    execute_in_members(
-        {mysqlshdk::gr::Member_state::ONLINE}, target.get_connection_options(),
-        {},
-        [&recoverable, &target](const std::shared_ptr<Instance> &instance,
-                                const mysqlshdk::gr::Member &) {
-          // Get the gtid state in regards to the cluster_session
-          mysqlshdk::mysql::Replica_gtid_state state =
-              mysqlshdk::mysql::check_replica_gtid_state(*instance, target,
-                                                         nullptr, nullptr);
-
-          if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-            recoverable = true;
-            // stop searching as soon as we find a possible donor
-            return false;
-          }
-          return true;
-        });
-
-    return recoverable;
-  };
-
-  std::shared_ptr<Instance> donor_instance = get_cluster_server();
-
   Member_recovery_method recovery_method;
   {
+    // Check GTID consistency and whether clone is needed
+    auto check_recoverable = [this](const mysqlshdk::mysql::IInstance &target) {
+      // Check if the GTIDs were purged from the whole cluster
+      bool recoverable = false;
+
+      execute_in_members(
+          {mysqlshdk::gr::Member_state::ONLINE},
+          target.get_connection_options(), {},
+          [&recoverable, &target](const std::shared_ptr<Instance> &instance,
+                                  const mysqlshdk::gr::Member &) {
+            // Get the gtid state in regards to the cluster_session
+            mysqlshdk::mysql::Replica_gtid_state state =
+                mysqlshdk::mysql::check_replica_gtid_state(*instance, target,
+                                                           nullptr, nullptr);
+
+            if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+              recoverable = true;
+              return false;  // stop searching as soon as we find a possible
+                             // donor
+            }
+            return true;
+          });
+
+      return recoverable;
+    };
+
     // to avoid trace order mismatch
     auto gtid_set_is_complete = get_gtid_set_is_complete();
-    auto disable_clone_option = get_disable_clone_option();
+
+    auto clone_availability = get_disable_clone_option()
+                                  ? Clone_availability::Disabled
+                                  : Clone_availability::Available;
+
+    if ((clone_availability == Clone_availability::Available) &&
+        !has_compatible_clone_donor(target_instance)) {
+      current_console()->print_warning(shcore::str_format(
+          "None of the online Cluster members are compatible with the "
+          "recipient (%s) for cloning due to version/platform "
+          "incompatibilities. Therefore, no instance is available to serve as "
+          "a valid donor for cloning.",
+          target_instance.descr().c_str()));
+
+      clone_availability = Clone_availability::Unavailable;
+    }
 
     recovery_method = mysqlsh::dba::validate_instance_recovery(
-        Cluster_type::GROUP_REPLICATION, op_action, *donor_instance,
+        Cluster_type::GROUP_REPLICATION, op_action, *get_cluster_server(),
         target_instance, check_recoverable, selected_recovery_method,
-        gtid_set_is_complete, interactive, disable_clone_option);
+        gtid_set_is_complete, interactive, clone_availability);
   }
 
-  // If recovery method was selected as clone, check that there is at least one
-  // ONLINE cluster instance not using IPV6, otherwise throw an error
-  if (recovery_method == Member_recovery_method::CLONE) {
+  // only if recovery method is clone, do we need to perform a few more checks
+  if (recovery_method != Member_recovery_method::CLONE) return recovery_method;
+
+  {
+    // check that there is at least one ONLINE cluster instance not using IPV6,
+    // otherwise throw an error
+
     bool found_ipv4 = false;
     std::string full_msg;
-    // get online members
-    const auto online_instances =
-        get_instances({mysqlshdk::gr::Member_state::ONLINE});
+
     // check if at least one of them is not IPv6, otherwise throw an error
-    for (const auto &instance : online_instances) {
+    auto instances_online =
+        get_instances({mysqlshdk::gr::Member_state::ONLINE});
+    for (const auto &instance : instances_online) {
       if (!mysqlshdk::utils::Net::is_ipv6(
               mysqlshdk::utils::split_host_and_port(instance.endpoint).first)) {
         found_ipv4 = true;
         break;
-      } else {
-        std::string msg = "Instance '" + instance.endpoint +
-                          "' is not a suitable clone donor: Instance "
-                          "hostname/report_host is an IPv6 address, which is "
-                          "not supported for cloning.";
-        log_info("%s", msg.c_str());
-        full_msg += msg + "\n";
       }
+
+      auto msg = shcore::str_format(
+          "Instance '%s' is not a suitable clone donor: Instance "
+          "hostname/report_host is an IPv6 address, which is not supported for "
+          "cloning.",
+          instance.endpoint.c_str());
+
+      log_info("%s", msg.c_str());
+      full_msg.append(msg).append("\n");
     }
+
     if (!found_ipv4) {
       auto console = current_console();
       console->print_error(
-          "None of the ONLINE members in the cluster are compatible to be used "
-          "as clone donors for " +
-          target_instance.descr());
+          shcore::str_format("None of the ONLINE members in the cluster are "
+                             "compatible to be used as clone donors for '%s'",
+                             target_instance.descr().c_str()));
       console->print_info(full_msg);
       throw shcore::Exception("The Cluster has no compatible clone donors.",
                               SHERR_DBA_CLONE_NO_DONORS);

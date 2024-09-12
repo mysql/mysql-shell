@@ -73,6 +73,7 @@ class Create_replica_cluster : public Command_interface {
  private:
   Cluster_set_impl *m_cluster_set = nullptr;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
+  std::shared_ptr<mysqlsh::dba::Instance> m_donor_instance;
   mysqlsh::dba::Instance *m_primary_instance = nullptr;
   std::string m_cluster_name;
   Recovery_progress_style m_progress_style;
