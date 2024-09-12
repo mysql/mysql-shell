@@ -99,7 +99,7 @@
         <!-- This is a string-based comparison, but we should be OK, given the versioning scheme used, since we only care about major.minor part. -->
         <Launch
             Condition="Installed OR VS14REDIST &gt;= &quot;@CPACK_WIX_REDIST_VERSION@&quot;"
-            Message="This application requires Visual Studio @CPACK_WIX_REDIST_YEAR@ Redistributable. Please install the Redistributable then run this installer again." />
+            Message="This application requires Visual Studio @CPACK_WIX_REDIST_YEAR@ Redistributable version @CPACK_WIX_REDIST_VERSION@ or newer. Please install the Redistributable then run this installer again." />
         <?endif?>
 
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
