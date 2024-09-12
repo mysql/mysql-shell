@@ -69,7 +69,6 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/innodbcluster/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/ssh/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/parser/mysql_parser_utils_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/yparser/parser_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/scripting/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
@@ -103,6 +102,10 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/test_utils.cc"
         "${CMAKE_SOURCE_DIR}/unittest/shell_script_tester.cc"
     )
+
+    if(WITH_YACC_PARSER)
+      list(APPEND mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/libs/yparser/parser_t.cc")
+    endif()
 
     if(NOT HAVE_PROTOBUF)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")

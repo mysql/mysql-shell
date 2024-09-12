@@ -209,6 +209,10 @@ else()
   list(APPEND DEB_BUILD_DEPS "libantlr4-runtime-dev (<<4.11)")
 endif()
 
+if(WITH_YACC_PARSER)
+  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_YACC_PARSER=1")
+endif()
+
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
 string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
 string(REPLACE ";" ", " DEB_DEPS         "${DEB_DEPS}")
@@ -258,7 +262,6 @@ usr/share/mysqlsh/adminapi-metadata/* usr/share/mysqlsh/adminapi-metadata
 usr/share/mysqlsh/upgrade_checker.msg
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages
-usr/lib/mysqlsh/yparser
 usr/share/man/man1/mysqlsh.1
 ")
 
@@ -306,5 +309,12 @@ if (BUNDLED_ANTLR_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For antlr4 bundle
 usr/lib/mysqlsh/libantlr4-runtime*.so*
+")
+endif()
+
+if (WITH_YACC_PARSER)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"
+usr/lib/mysqlsh/yparser
 ")
 endif()
