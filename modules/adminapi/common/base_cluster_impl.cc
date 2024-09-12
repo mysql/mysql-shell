@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_monitoring.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
@@ -571,57 +572,6 @@ void Base_cluster_impl::handle_clone_provisioning(
   }
 }
 
-bool Base_cluster_impl::verify_compatible_clone_versions(
-    const mysqlshdk::utils::Version &donor,
-    const mysqlshdk::utils::Version &recipient) {
-  // both must support clone (>= 8.0.17)
-  if (!supports_mysql_clone(donor) || !supports_mysql_clone(recipient))
-    return false;
-
-  // easy path: if {major.minor.patch.build/extra} are equal
-  if ((donor == recipient) && (donor.get_extra() == recipient.get_extra()))
-    return true;
-
-  // can't mix LTS with innovation releases: {major.minor} must always match
-  if (donor.numeric_version_series() != recipient.numeric_version_series())
-    return false;
-
-  // reaching this point, both donor and recipient have the same {major.minor}
-  // version but with different patch numbers and or build/extra.
-
-  const mysqlshdk::utils::Version min_mix_patch_version(8, 4, 0);
-  constexpr uint32_t mix_build_version_series(800);
-
-  // from 8.4 or newer, cloning is allowed if {major.minor} is the same (the
-  // rest is ignored)
-  if ((donor >= min_mix_patch_version) && (recipient >= min_mix_patch_version))
-    return true;
-
-  // if neither are in the 8.0 series, there's nothing to do and clone isn't
-  // supported
-  if ((donor.numeric_version_series() != mix_build_version_series) ||
-      (recipient.numeric_version_series() != mix_build_version_series))
-    return false;
-
-  // cloning is allowed if {major.minor.patch} is the same (the build/extra is
-  // ignored)
-  if (donor == recipient) return true;
-
-  // reaching this point, both donor and recipient are in the 8.0 series,
-  // {major.minor} is the same but patch (and possibly build/extra) is different
-
-  const mysqlshdk::utils::Version backported_mix_patch_version(8, 0, 37);
-
-  // cloning between different patch numbers is allowed if *both* versions
-  // are 8.0.37 or newer
-  if ((donor >= backported_mix_patch_version) &&
-      (recipient >= backported_mix_patch_version))
-    return true;
-
-  // anything else isn't supported
-  return false;
-}
-
 void Base_cluster_impl::check_compatible_clone_donor(
     const mysqlshdk::mysql::IInstance &donor,
     const mysqlshdk::mysql::IInstance &recipient) {
@@ -649,7 +599,7 @@ void Base_cluster_impl::check_compatible_clone_donor(
 
     auto recipient_version = recipient.get_version();
 
-    if (!Base_cluster_impl::verify_compatible_clone_versions(
+    if (!mysqlshdk::mysql::verify_compatible_clone_versions(
             donor_version, recipient_version)) {
       throw shcore::Exception(
           shcore::str_format(
@@ -696,6 +646,22 @@ void Base_cluster_impl::check_compatible_clone_donor(
           SHERR_DBA_CLONE_DIFF_PLATFORM);
     }
   }
+}
+
+Clone_availability Base_cluster_impl::check_clone_availablity(
+    const mysqlshdk::mysql::IInstance &donor_instance,
+    const mysqlshdk::mysql::IInstance &target_instance) const {
+  try {
+    check_compatible_clone_donor(donor_instance, target_instance);
+  } catch (shcore::Exception &e) {
+    current_console()->print_info();
+    current_console()->print_warning(
+        shcore::str_format("Clone-based recovery not available: %s", e.what()));
+
+    return Clone_availability::Unavailable;
+  }
+
+  return Clone_availability::Available;
 }
 
 void Base_cluster_impl::set_target_server(

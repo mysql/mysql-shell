@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,12 +21,10 @@
 
 #include "modules/adminapi/common/server_features.h"
 #include "mysqlshdk/libs/config/config.h"
-#include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
 
-namespace mysqlshdk {
-namespace mysql {
+namespace mysqlshdk::mysql {
 
 bool install_clone_plugin(const mysqlshdk::mysql::IInstance &instance,
                           mysqlshdk::config::Config *config) {
@@ -54,6 +52,58 @@ bool is_clone_available(const mysqlshdk::mysql::IInstance &instance) {
               instance.descr().c_str());
 
   return true;
+}
+
+bool verify_compatible_clone_versions(
+    const mysqlshdk::utils::Version &donor,
+    const mysqlshdk::utils::Version &recipient) {
+  // both must support clone (>= 8.0.17)
+  if (!mysqlsh::dba::supports_mysql_clone(donor) ||
+      !mysqlsh::dba::supports_mysql_clone(recipient))
+    return false;
+
+  // easy path: if {major.minor.patch.build/extra} are equal
+  if ((donor == recipient) && (donor.get_extra() == recipient.get_extra()))
+    return true;
+
+  // can't mix LTS with innovation releases: {major.minor} must always match
+  if (donor.numeric_version_series() != recipient.numeric_version_series())
+    return false;
+
+  // reaching this point, both donor and recipient have the same {major.minor}
+  // version but with different patch numbers and or build/extra.
+
+  const mysqlshdk::utils::Version min_mix_patch_version(8, 4, 0);
+  constexpr uint32_t mix_build_version_series(800);
+
+  // from 8.4 or newer, cloning is allowed if {major.minor} is the same (the
+  // rest is ignored)
+  if ((donor >= min_mix_patch_version) && (recipient >= min_mix_patch_version))
+    return true;
+
+  // if neither are in the 8.0 series, there's nothing to do and clone isn't
+  // supported
+  if ((donor.numeric_version_series() != mix_build_version_series) ||
+      (recipient.numeric_version_series() != mix_build_version_series))
+    return false;
+
+  // cloning is allowed if {major.minor.patch} is the same (the build/extra is
+  // ignored)
+  if (donor == recipient) return true;
+
+  // reaching this point, both donor and recipient are in the 8.0 series,
+  // {major.minor} is the same but patch (and possibly build/extra) is different
+
+  const mysqlshdk::utils::Version backported_mix_patch_version(8, 0, 37);
+
+  // cloning between different patch numbers is allowed if *both* versions
+  // are 8.0.37 or newer
+  if ((donor >= backported_mix_patch_version) &&
+      (recipient >= backported_mix_patch_version))
+    return true;
+
+  // anything else isn't supported
+  return false;
 }
 
 int64_t force_clone(const mysqlshdk::mysql::IInstance &instance) {
@@ -174,12 +224,11 @@ Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
       stage.work_estimated = prow.get_uint("ESTIMATE", 0);
       stage.work_completed = prow.get_uint("DATA", 0);
 
-      status.stages.push_back(stage);
+      status.stages.push_back(std::move(stage));
     }
   }
 
   return status;
 }
 
-}  // namespace mysql
-}  // namespace mysqlshdk
+}  // namespace mysqlshdk::mysql

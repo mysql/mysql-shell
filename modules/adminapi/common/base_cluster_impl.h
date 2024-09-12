@@ -26,7 +26,6 @@
 #ifndef MODULES_ADMINAPI_COMMON_BASE_CLUSTER_IMPL_H_
 #define MODULES_ADMINAPI_COMMON_BASE_CLUSTER_IMPL_H_
 
-#include <list>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -39,6 +38,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
@@ -285,17 +285,13 @@ class Base_cluster_impl {
       const Recovery_progress_style &progress_style, int sync_timeout,
       bool dry_run);
 
-  virtual void ensure_compatible_clone_donor(
-      const mysqlshdk::mysql::IInstance &donor,
-      const mysqlshdk::mysql::IInstance &recipient) const = 0;
-
-  static bool verify_compatible_clone_versions(
-      const mysqlshdk::utils::Version &donor,
-      const mysqlshdk::utils::Version &recipient);
-
   static void check_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient);
+
+  virtual Clone_availability check_clone_availablity(
+      const mysqlshdk::mysql::IInstance &donor,
+      const mysqlshdk::mysql::IInstance &recipient) const;
 
  protected:
   Cluster_id m_id;

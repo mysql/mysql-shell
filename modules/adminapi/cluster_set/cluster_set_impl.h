@@ -194,7 +194,7 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void ensure_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
-      const mysqlshdk::mysql::IInstance &recipient) const override;
+      const mysqlshdk::mysql::IInstance &recipient) const;
 
  protected:
   void _set_option(const std::string &option,
