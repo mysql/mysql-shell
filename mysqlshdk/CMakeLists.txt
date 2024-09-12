@@ -46,10 +46,12 @@ ADD_SUBDIRECTORY(libs/oci)
 ADD_SUBDIRECTORY(libs/azure)
 ADD_SUBDIRECTORY(libs/ssh)
 ADD_SUBDIRECTORY(libs/aws)
-ADD_SUBDIRECTORY(libs/yparser)
 ADD_SUBDIRECTORY(scripting)
 ADD_SUBDIRECTORY(shellcore)
 
+if(WITH_YACC_PARSER)
+  ADD_SUBDIRECTORY(libs/yparser)
+endif()
 
 #TODO: ADD_VERSION_INFO
 #merge_libraries(mysqlshdk SHARED
@@ -58,7 +60,7 @@ ADD_SUBDIRECTORY(shellcore)
 #    scripting
 #    shellcore)
 
-merge_convenience_libraries(mysqlshdk-static
+set(mysqlshdk_LIBS
     utils
     db
     shellssh
@@ -75,8 +77,13 @@ merge_convenience_libraries(mysqlshdk-static
     azure
     aws
     tinyxml2
-    yparser
-    SKIP_INSTALL)
+)
+
+if(WITH_YACC_PARSER)
+  list(APPEND mysqlshdk_LIBS yparser)
+endif()
+
+merge_convenience_libraries(mysqlshdk-static ${mysqlshdk_LIBS} SKIP_INSTALL)
 
   #target_link_libraries(mysqlshdk
   #        ${V8_LINK_LIST}
