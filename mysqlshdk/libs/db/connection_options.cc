@@ -63,6 +63,7 @@ const std::set<std::string> uri_extra_options = {
     kOciConfigFile,
     kOciAuthenticationClientConfigProfile,
     kOpenIdConnectAuthenticationClientTokenFile,
+    kClientInteractive,
 };
 
 int lexical_cast_timeout(const std::string &name, const std::string &value) {
@@ -469,7 +470,7 @@ void Connection_options::set(const std::string &name,
   }
 #endif
   else if (is_extra_option(name)) {
-    if (name == kGetServerPublicKey) {
+    if (name == kGetServerPublicKey || name == kClientInteractive) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "
@@ -912,6 +913,26 @@ int Connection_options::get_net_write_timeout() const {
 
 void Connection_options::clear_net_write_timeout() {
   m_net_write_timeout.reset();
+}
+
+bool Connection_options::is_enabled(const std::string &option) const {
+  if (has(option)) {
+    auto value = shcore::str_upper(m_extra_options.get_value(option));
+    return value == "1" || value == "TRUE";
+  }
+
+  return false;
+}
+
+void Connection_options::set_interactive(bool value) {
+  m_interactive = value;
+  if (!m_interactive && has(kClientInteractive)) {
+    remove(kClientInteractive);
+  }
+}
+
+bool Connection_options::is_interactive() const {
+  return m_interactive || is_enabled(kClientInteractive);
 }
 
 void Connection_options::set_connection_attribute(const std::string &attribute,

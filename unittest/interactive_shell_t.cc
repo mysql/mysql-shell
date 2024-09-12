@@ -1348,6 +1348,28 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   execute("session.close()");
   execute("\\sql");
 
+  std::vector<std::vector<std::string>> cases = {
+      // Attempt to SQL in non interactive mode
+      {"mysql://expired:sample@localhost:" + _mysql_port, "--sql", "-e",
+       "select host from mysql.user where user = 'expired';"},
+      // Attempt to use AAPI (even in interactive mode)
+      {"mysql://expired:sample@localhost:" + _mysql_port, "--interactive", "--",
+       "cluster", "status"},
+      // Attempt to dump an instance (even in interactive mode)
+      {"mysql://expired:sample@localhost:" + _mysql_port, "--interactive", "--",
+       "util", "dump-instance", "sample"},
+      // Attempt to use UC (even in interactive mode)
+      {"mysql://expired:sample@localhost:" + _mysql_port, "--interactive", "--",
+       "util", "check-for-server-upgrade"}};
+
+  for (const auto &params : cases) {
+    testutil->call_mysqlsh_c(params);
+    MY_EXPECT_STDOUT_CONTAINS(
+        "Your password has expired. To log in you must change it using a "
+        "client that supports expired passwords.");
+    wipe_all();
+  }
+
   // Connects with the expired account
   execute("\\c mysql://expired:sample@localhost:" + _mysql_port);
   MY_EXPECT_STDOUT_CONTAINS(
